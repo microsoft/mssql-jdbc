@@ -612,7 +612,9 @@ enum SQLServerDriverStringProperty {
     DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString()),
     ACCESS_TOKEN_CALLBACK_CLASS("accessTokenCallbackClass", ""),
     RETRY_EXEC("retryExec", ""),
-    RETRY_CONN("retryConn", "");
+    RETRY_CONN("retryConn", ""),
+    QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.ON.toString()),
+    CONCAT_NULL_YIELDS_NULL("concatNullYieldsNull", OnOffOption.ON.toString());
 
     private final String name;
     private final String defaultValue;
@@ -728,6 +730,47 @@ enum SQLServerDriverBooleanProperty {
 }
 
 
+enum OnOffOption {
+    ON("ON"),
+    OFF("OFF");
+
+    private final String option;
+
+    private OnOffOption(String option) {
+        this.option = option;
+    }
+
+    @Override
+    public String toString() {
+        return option;
+    }
+
+    static OnOffOption valueOfString(String value) throws SQLServerException {
+        OnOffOption option = null;
+
+        if (value.toLowerCase(Locale.US).equalsIgnoreCase(OnOffOption.ON.toString())) {
+            option = OnOffOption.ON;
+        } else if (value.toLowerCase(Locale.US).equalsIgnoreCase(OnOffOption.OFF.toString())) {
+            option = OnOffOption.OFF;
+        } else {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
+            Object[] msgArgs = {"OnOffOption", value};
+            throw new SQLServerException(form.format(msgArgs), null);
+        }
+        return option;
+    }
+
+    static boolean isValidOnOffOption(String option) {
+        for (OnOffOption t : OnOffOption.values()) {
+            if (option.equalsIgnoreCase(t.toString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+
 /**
  * Provides methods to connect to a SQL Server database and to obtain information about the JDBC driver.
  */
@@ -807,8 +850,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Boolean.toString(SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.getDefaultValue()), false,
                     TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.toString(),
-                    Boolean.toString(SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.getDefaultValue()), false,
-                    TRUE_FALSE),
+                    Boolean.toString(SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL.getDefaultValue()),
+                    false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.toString(),
                     SQLServerDriverStringProperty.KEY_STORE_AUTHENTICATION.getDefaultValue(), false,
                     new String[] {KeyStoreAuthentication.JAVA_KEYSTORE_PASSWORD.toString()}),
@@ -1002,8 +1045,13 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.toString(),
                     Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_COUNT.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.toString(),
-                    Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue()), false,
-                    null),};
+                    Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue()), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString(),
+                    SQLServerDriverStringProperty.QUOTED_IDENTIFIER.getDefaultValue(), false,
+                    new String[] {OnOffOption.OFF.toString(), OnOffOption.OFF.toString()}),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString(),
+                    SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.getDefaultValue(), false,
+                    new String[] {OnOffOption.OFF.toString(), OnOffOption.OFF.toString()}),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string
