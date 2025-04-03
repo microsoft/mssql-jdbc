@@ -484,6 +484,7 @@ enum JavaType {
     READER(Reader.class, JDBCType.LONGVARCHAR),
     // Note: Only SQLServerSQLXML SQLXML instances are accepted by this driver
     SQLXML(SQLServerSQLXML.class, JDBCType.SQLXML),
+    VECTOR(microsoft.sql.Vector.class, JDBCType.VECTOR),
     OBJECT(Object.class, JDBCType.UNKNOWN);
 
     private final Class<?> javaClass;
@@ -682,7 +683,7 @@ enum JDBCType {
     GEOMETRY(Category.GEOMETRY, microsoft.sql.Types.GEOMETRY, Object.class.getName()),
     GEOGRAPHY(Category.GEOGRAPHY, microsoft.sql.Types.GEOGRAPHY, Object.class.getName()),
     LOCALDATETIME(Category.TIMESTAMP, java.sql.Types.TIMESTAMP, LocalDateTime.class.getName()),
-    VECTOR(Category.VECTOR, microsoft.sql.Types.VECTOR, Object.class.getName());
+    VECTOR(Category.VECTOR, microsoft.sql.Types.VECTOR, microsoft.sql.Vector.class.getName());
 
     final Category category;
     private final int intValue;
@@ -807,7 +808,11 @@ enum JDBCType {
 
         GEOGRAPHY(JDBCType.Category.GEOGRAPHY, EnumSet.of(JDBCType.Category.GEOGRAPHY)),
 
-        VECTOR(JDBCType.Category.VECTOR, EnumSet.of(JDBCType.Category.VECTOR));
+        VECTOR(JDBCType.Category.VECTOR, EnumSet.of(JDBCType.Category.NUMERIC, JDBCType.Category.DATE,
+        JDBCType.Category.TIME, JDBCType.Category.TIMESTAMP, JDBCType.Category.CHARACTER,
+        JDBCType.Category.LONG_CHARACTER, JDBCType.Category.NCHARACTER, JDBCType.Category.LONG_NCHARACTER,
+        JDBCType.Category.BINARY, JDBCType.Category.LONG_BINARY, JDBCType.Category.BLOB, JDBCType.Category.GUID,
+        JDBCType.Category.SQL_VARIANT, JDBCType.Category.VECTOR));
 
         private final JDBCType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -909,7 +914,11 @@ enum JDBCType {
 
         SQL_VARIANT(JDBCType.Category.SQL_VARIANT, EnumSet.of(SSType.Category.SQL_VARIANT)),
 
-        VECTOR(JDBCType.Category.VECTOR, EnumSet.of(SSType.Category.VECTOR));
+        VECTOR(JDBCType.Category.VECTOR, EnumSet.of(SSType.Category.NUMERIC, SSType.Category.DATETIME,
+        SSType.Category.CHARACTER, SSType.Category.LONG_CHARACTER, SSType.Category.NCHARACTER,
+        SSType.Category.LONG_NCHARACTER, SSType.Category.XML, SSType.Category.BINARY,
+        SSType.Category.LONG_BINARY, SSType.Category.UDT, SSType.Category.TIMESTAMP, SSType.Category.GUID,
+        SSType.Category.SQL_VARIANT, SSType.Category.VECTOR));
 
         private final JDBCType.Category from;
         private final EnumSet<SSType.Category> to;
@@ -1013,7 +1022,7 @@ enum JDBCType {
                 case SQLXML:
                     return java.sql.Types.VARCHAR;
                 case VECTOR:
-                    return java.sql.Types.VARBINARY;
+                    return microsoft.sql.Types.VECTOR;
                 case LONGNVARCHAR:
                     return java.sql.Types.LONGVARCHAR;
                 case NCLOB:
