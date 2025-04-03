@@ -1813,6 +1813,11 @@ final class DTV {
                         op.execute(this, (byte[]) value);
                     break;
 
+                case VECTOR:
+                    byteValue = ((microsoft.sql.Vector) value).toBytes();
+                    op.execute(this, byteValue);
+                    break;
+
                 case BYTE:
                     // for tinyint
                     if (null != cryptoMeta) {

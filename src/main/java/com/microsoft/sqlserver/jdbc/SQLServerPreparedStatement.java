@@ -1627,6 +1627,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setNull");
     }
 
+    @Override
+    public final void setVector(int index, microsoft.sql.Vector vector, int dimensionCount)
+            throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setVector", new Object[] {index, vector, dimensionCount});
+        checkClosed();
+        setterGetParam(index).setValue(JDBCType.VECTOR, vector, JavaType.VECTOR,
+                null, null, null, dimensionCount, connection,
+                false, stmtColumnEncriptionSetting, index, userSQL, null);
+        loggerExternal.exiting(getClassNameLogging(), "setVector");
+    }
+
+    @Override
+    public final void setVector(int index, microsoft.sql.Vector vector, int dimensionCount, boolean forceEncrypt)
+            throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setVector", new Object[] {index, vector, dimensionCount, forceEncrypt});
+        checkClosed();
+        setterGetParam(index).setValue(JDBCType.VECTOR, vector, JavaType.VECTOR,
+                null, null, null, dimensionCount, connection,
+                forceEncrypt, stmtColumnEncriptionSetting, index, userSQL, null);
+        loggerExternal.exiting(getClassNameLogging(), "setVector");
+    }
+
     final void setObjectNoType(int index, Object obj, boolean forceEncrypt) throws SQLServerException {
         // Default to the JDBC type of the parameter, determined by a previous setter call or through registerOutParam.
         // This avoids repreparing unnecessarily for null values.
@@ -1680,9 +1704,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         checkClosed();
         if (microsoft.sql.Types.STRUCTURED == jdbcType) {
             tvpName = getTVPNameFromObject(n, obj);
-        }
-        if (microsoft.sql.Types.VECTOR == jdbcType) {
-            setObjectNoType(n, obj, false);
         } else {
             setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), null, null, false, n, tvpName);
         }
@@ -1706,7 +1727,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
                         || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
                         || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
-                        || Reader.class.isInstance(x)) ? scaleOrLength : null,
+                        || Reader.class.isInstance(x)
+                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scaleOrLength : null,
                 null, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");

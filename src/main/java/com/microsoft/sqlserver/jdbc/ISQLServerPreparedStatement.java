@@ -367,6 +367,40 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     void setLong(int parameterIndex, long x, boolean forceEncrypt) throws SQLServerException;
 
     /**
+     * Sets the designated parameter to the given Java <code>vector</code> value. The driver converts this to an SQL
+     * <code>VECTOR</code> value when it sends it to the database.
+     *
+     * @param parameterIndex
+     *        the first parameter is 1, the second is 2, ...
+     * @param value
+     *        the parameter value
+     * @param dimensionCount
+     *        the number of dimensions of the vector
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void setVector(int parameterIndex, microsoft.sql.Vector value, int dimensionCount) throws SQLServerException;
+
+    /**
+     * Sets the designated parameter to the given Java <code>vector</code> value. The driver converts this to an SQL
+     * <code>VECTOR</code> value when it sends it to the database.
+     *
+     * @param parameterIndex
+     *        the first parameter is 1, the second is 2, ...
+     * @param value
+     *        the parameter value
+     * @param dimensionCount
+     *        the number of dimensions of the vector
+     * @param forceEncrypt
+     *        If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column
+     *        is encrypted and Always Encrypted is enabled on the connection or on the statement. If the boolean
+     *        forceEncrypt is set to false, the driver will not force encryption on parameters.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void setVector(int parameterIndex, microsoft.sql.Vector value, int dimensionCount, boolean forceEncrypt) throws SQLServerException;
+
+    /**
      * Sets the value of the designated parameter with the given object.
      *
      * <p>

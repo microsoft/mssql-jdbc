@@ -623,6 +623,10 @@ final class Parameter {
                         param.typeDefinition = VARBINARY_8K;
                     break;
 
+                case VECTOR:
+                    param.typeDefinition = SSType.VECTOR.toString() + "(" + dtv.getScale() + ")";
+                    break;
+
                 case DATE:
                     // Bind DATE values to pre-Katmai servers as DATETIME (which has no DATE-only type).
                     param.typeDefinition = con.isKatmaiOrLater() ? SSType.DATE.toString() : SSType.DATETIME.toString();
@@ -898,9 +902,6 @@ final class Parameter {
                     break;
                 case SQLXML:
                     param.typeDefinition = SSType.XML.toString();
-                    break;
-                case VECTOR:
-                    param.typeDefinition = SSType.VECTOR.toString();
                     break;
 
                 case TVP:
