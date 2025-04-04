@@ -34,6 +34,8 @@ import java.util.logging.Level;
 
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
+import microsoft.sql.Vector;
+
 
 /**
  * Indicates the type of the row received from the server.
@@ -2497,6 +2499,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             returnValue = guid != null ? Util.readGUIDtoUUID(guid) : null;
         } else if (type == SQLXML.class) {
             returnValue = getSQLXML(columnIndex);
+        } else if (type == microsoft.sql.Vector.class) { 
+            returnValue = getVector(columnIndex); 
         } else if (type == Blob.class) {
             returnValue = getBlob(columnIndex);
         } else if (type == Clob.class) {
@@ -3063,6 +3067,24 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return xml;
     }
 
+    @Override
+    public microsoft.sql.Vector getVector(int columnIndex) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getVector", columnIndex);
+        checkClosed();
+        microsoft.sql.Vector vector = (microsoft.sql.Vector.valueOf(getValue(columnIndex, JDBCType.VECTOR))); 
+        loggerExternal.exiting(getClassNameLogging(), "getVector", vector);
+        return vector;
+    }
+
+    @Override
+    public microsoft.sql.Vector getVector(String columnLabel) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getVector", columnLabel);
+        checkClosed();
+        microsoft.sql.Vector vector = (microsoft.sql.Vector.valueOf(getValue(findColumn(columnLabel), JDBCType.VECTOR))); 
+        loggerExternal.exiting(getClassNameLogging(), "getVector", vector);
+        return vector;
+    }
+    
     @Override
     public boolean rowUpdated() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "rowUpdated");

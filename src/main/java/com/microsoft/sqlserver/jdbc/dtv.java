@@ -1137,7 +1137,8 @@ final class DTV {
 
                     writeEncryptData(dtv, true);
                 }
-
+            } else if (JDBCType.VECTOR == dtv.getJdbcType()) {
+                tdsWriter.writeRPCVector(name, byteArrayValue, isOutParam);
             } else
                 tdsWriter.writeRPCByteArray(name, byteArrayValue, isOutParam, dtv.getJdbcType(), collation);
 
@@ -1521,6 +1522,7 @@ final class DTV {
                 case VARCHAR:
                 case LONGVARCHAR:
                 case CLOB:
+                case VECTOR:
                     op.execute(this, (byte[]) null);
                     break;
 
@@ -1810,6 +1812,11 @@ final class DTV {
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                     } else
                         op.execute(this, (byte[]) value);
+                    break;
+
+                case VECTOR:
+                    byteValue = ((microsoft.sql.Vector) value).toBytes();
+                    op.execute(this, byteValue);
                     break;
 
                 case BYTE:
@@ -2992,6 +2999,36 @@ final class TypeInfo implements Serializable {
                 typeInfo.maxLength = tdsReader.readInt();
                 typeInfo.ssType = SSType.SQL_VARIANT;
             }
+        }),
+        
+        VECTOR(TDSType.VECTOR, new Strategy() {
+            /**
+             * Sets the fields of typeInfo to the correct values
+             * 
+             * @param typeInfo
+             *        the TypeInfo whos values are being corrected
+             * @param tdsReader
+             *        the TDSReader used to set the fields of typeInfo to the correct values
+             * @throws SQLServerException
+             *         when an error occurs
+             */
+            public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
+                typeInfo.maxLength = tdsReader.readUnsignedShort();
+                if (DataTypes.MAXTYPE_LENGTH == typeInfo.maxLength)// for PLP types
+                {
+                    typeInfo.ssLenType = SSLenType.PARTLENTYPE;
+                    typeInfo.ssType = SSType.VECTOR;
+                    typeInfo.displaySize = typeInfo.precision = DataTypes.MAX_VARTYPE_MAX_BYTES;
+                } else if (typeInfo.maxLength <= DataTypes.SHORT_VARTYPE_MAX_BYTES)// for non-PLP types
+                {
+                    typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
+                    typeInfo.ssType = SSType.VECTOR;
+                    typeInfo.precision = typeInfo.maxLength;
+                    typeInfo.displaySize = 2 * typeInfo.maxLength;
+                } else {
+                    tdsReader.throwInvalidTDS();
+                }
+            }
         });
 
         private final TDSType tdsType;
@@ -3551,6 +3588,7 @@ final class ServerDTVImpl extends DTVImpl {
             case BINARY:
             case VARBINARY:
             case VARBINARYMAX:
+            case VECTOR:
                 return DDC.convertBytesToObject(decryptedValue, jdbcType, baseTypeInfo);
 
             case DATE:
@@ -3769,6 +3807,7 @@ final class ServerDTVImpl extends DTVImpl {
                 case BINARY:
                 case VARBINARY:
                 case TIMESTAMP: // A special BINARY(8)
+                case VECTOR:
                 {
                     convertedValue = DDC.convertStreamToObject(
                             new SimpleInputStream(tdsReader, valueLength, streamGetterArgs, this), typeInfo, jdbcType,
