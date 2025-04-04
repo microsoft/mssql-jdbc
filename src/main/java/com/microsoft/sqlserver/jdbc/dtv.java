@@ -1137,7 +1137,8 @@ final class DTV {
 
                     writeEncryptData(dtv, true);
                 }
-
+            } else if (JDBCType.VECTOR == dtv.getJdbcType()) {
+                tdsWriter.writeRPCVector(name, byteArrayValue, isOutParam);
             } else
                 tdsWriter.writeRPCByteArray(name, byteArrayValue, isOutParam, dtv.getJdbcType(), collation);
 

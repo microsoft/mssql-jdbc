@@ -9,16 +9,17 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public final class Vector implements java.io.Serializable {
-    public enum VECTORTYPE {
+    public enum VectorDimensionType {
         F16, // 16-bit (half precision) float
         F32 // 32-bit (single precision) float
     }
 
+    public VectorDimensionType vectorType;
     public int dimensionCount;
-    public VECTORTYPE vectorType;
+
     public float[] data;
 
-    public Vector(int dimensionCount, VECTORTYPE vectorType, float[] data) {
+    public Vector(int dimensionCount, VectorDimensionType vectorType, float[] data) {
         this.dimensionCount = dimensionCount;
         this.vectorType = vectorType;
         this.data = data;
@@ -45,7 +46,7 @@ public final class Vector implements java.io.Serializable {
             floatArray[i] = buffer.getFloat();
         }
 
-        return new Vector(floatCount, VECTORTYPE.F32, floatArray);
+        return new Vector(floatCount, VectorDimensionType.F32, floatArray);
     }
 
     public byte[] toBytes() {
@@ -84,8 +85,25 @@ public final class Vector implements java.io.Serializable {
     public static microsoft.sql.Vector valueOf(Object obj) {
         if (obj instanceof byte[]) {
             return fromBytes((byte[]) obj);
+        } else if (obj instanceof microsoft.sql.Vector) {
+            return (microsoft.sql.Vector) obj;
+        } else if (obj instanceof float[]) {
+            float[] objArray = (float[]) obj;
+            return new Vector(objArray.length, VectorDimensionType.F32, objArray);
         } else {
             return null;
         }
+    }
+
+    public float[] getData() {
+        return data;
+    }
+
+    public VectorDimensionType getVectorDimensionType() {
+        return vectorType;
+    }
+
+    public int getDimensionCount() {
+        return dimensionCount;
     }
 }

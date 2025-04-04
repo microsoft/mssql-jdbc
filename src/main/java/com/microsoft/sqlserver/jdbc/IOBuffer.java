@@ -5639,6 +5639,15 @@ final class TDSWriter {
         writeByte(cryptoMeta.normalizationRuleVersion);
     }
 
+    void writeRPCVector(String sName, byte[] bValue, boolean bOut) throws SQLServerException {
+        int nValueLen = bValue == null ? 0 : bValue.length;
+
+        writeRPCNameValType(sName, bOut, TDSType.VECTOR);
+        writeShort((short) nValueLen);
+        writeShort((short) nValueLen);
+        writeBytes(bValue);
+    }
+    
     void writeRPCByteArray(String sName, byte[] bValue, boolean bOut, JDBCType jdbcType,
             SQLCollation collation) throws SQLServerException {
         boolean bValueNull = (bValue == null);
