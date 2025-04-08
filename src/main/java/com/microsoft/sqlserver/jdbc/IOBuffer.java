@@ -5639,13 +5639,25 @@ final class TDSWriter {
         writeByte(cryptoMeta.normalizationRuleVersion);
     }
 
-    void writeRPCVector(String sName, byte[] bValue, boolean bOut) throws SQLServerException {
-        int nValueLen = bValue == null ? 0 : bValue.length;
+    void writeRPCVector(String sName, microsoft.sql.Vector vectorValue, boolean bOut) throws SQLServerException {
+
+        byte[] bValue = vectorValue.toBytes();
+        int nValueLen = vectorValue.getActualLength();
 
         writeRPCNameValType(sName, bOut, TDSType.VECTOR);
+
+        // Write maxLength of datatype = actual length for vector
         writeShort((short) nValueLen);
-        writeShort((short) nValueLen);
-        writeBytes(bValue);
+
+        // Write scale (dimension type)
+        writeByte((byte) vectorValue.getScale());
+
+        if (vectorValue.data == null) {
+            writeShort((short) -1); // actual len
+        } else {
+            writeShort((short) nValueLen); // actual len
+            writeBytes(bValue); // data
+        }
     }
     
     void writeRPCByteArray(String sName, byte[] bValue, boolean bOut, JDBCType jdbcType,

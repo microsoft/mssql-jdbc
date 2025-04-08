@@ -1,13 +1,14 @@
 /*
- * Microsoft JDBC Driver for SQL Server
- * Copyright(c) Microsoft Corporation
- * All rights reserved. This program is made available under the terms of the MIT License.
- * See the LICENSE file in the project root for more information.
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
  */
 
 package com.microsoft.sqlserver.jdbc.datatypes;
 
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -17,6 +18,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -24,7 +27,11 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import microsoft.sql.Vector;
 import microsoft.sql.Vector.VectorDimensionType;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type")
@@ -53,6 +60,23 @@ public class VectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test to check if the server supports vector data type.
+     */
+    @Test
+    void testVectorSupport() {
+        boolean isVectorSupportEnabled;
+        try {
+            java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("getServerSupportsVector");
+            method.setAccessible(true);
+            isVectorSupportEnabled = (boolean) method.invoke(connection);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to access getServerSupportsVector method", e);
+        }
+        assertTrue(isVectorSupportEnabled, "Vector support is not enabled");
+        System.out.println("Vector support is enabled: " + isVectorSupportEnabled);
+    }
+
     @Test
     void validateVectorData() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
@@ -77,6 +101,27 @@ public class VectorTest extends AbstractTest {
                 assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
                 assertArrayEquals(originalData, resultVector.getData(), 0.0001f, "Vector data mismatch.");
             }
+        }
+    }
+
+    /**
+     * Test for inserting a null vector. The expected behavior is that the database
+     * should accept the null vector and store it as NULL in the database.
+     */
+    @Test
+    void testInsertNullVector() throws SQLException {
+        String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
+        Vector nullVector = new Vector(3, VectorDimensionType.F32, null); // Null vector data
+
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSql)) {
+            pstmt.setInt(1, 42); 
+            pstmt.setObject(2, nullVector, microsoft.sql.Types.VECTOR, nullVector.getDimensionCount()); 
+            int rowsInserted = pstmt.executeUpdate();
+
+            assertEquals(1, rowsInserted, "Expected one row to be inserted.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            fail(e.getMessage());
         }
     }
 

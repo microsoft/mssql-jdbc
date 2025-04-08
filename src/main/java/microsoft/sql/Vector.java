@@ -25,6 +25,10 @@ public final class Vector implements java.io.Serializable {
         this.data = data;
     }
 
+    /**
+     * Converts a byte array to a Vector object. The byte array must contain the following:
+     * 8 bytes for header and 4 bytes per float value.
+     */
     public static microsoft.sql.Vector fromBytes(byte[] bytes) {
         if (bytes == null) {
             return null;
@@ -49,8 +53,21 @@ public final class Vector implements java.io.Serializable {
         return new Vector(floatCount, VectorDimensionType.F32, floatArray);
     }
 
+    /**
+     * Converts the vector to a byte array. The byte array will contain the following:
+     * 1. Layout Format (VECTOR marker) - 1 byte
+     * 2. Layout Version (always 1) - 1 byte
+     * 3. Number of Dimensions (2 bytes, little-endian) - 2 bytes
+     * 4. Dimension Type (0x01 for F32) - 1 byte
+     * 5. Reserved (3 bytes of padding) - 3 bytes
+     * 6. Encode float values (Little-Endian) - 4 bytes per float value
+     */
     public byte[] toBytes() {
-        int payloadSize = 8 + (dimensionCount * 4); // 8-byte header + float payload
+        if (data == null) {
+            return null;
+        }
+        
+        int payloadSize = getActualLength(); // 8-byte header + float payload
 
         ByteBuffer buffer = ByteBuffer.allocate(payloadSize).order(ByteOrder.LITTLE_ENDIAN);
 
@@ -63,8 +80,8 @@ public final class Vector implements java.io.Serializable {
         // 3. Number of Dimensions (2 bytes, little-endian)
         buffer.putShort((short) (dimensionCount));
 
-        // 4. Dimension Type (0x04 for float)
-        buffer.put((byte) 0x00);
+        // 4. Dimension Type (0x01 for float) 
+        buffer.put(getScale());
 
         // 5. Reserved (3 bytes of padding)
         buffer.put(new byte[3]);
@@ -105,5 +122,40 @@ public final class Vector implements java.io.Serializable {
 
     public int getDimensionCount() {
         return dimensionCount;
+    }
+
+    /**
+     * Returns the scale for the vector type.
+     * 0x00 for F32, 0x01 for F16.
+     */
+    public byte getScale() {
+        switch (vectorType) {
+            case F32:
+                return 0x00; // Scale(dimension type) for F32
+            case F16:
+                return 0x01; // Scale(dimension type) for F16
+            default:
+                return 0x00; // Default case
+        }
+    }
+
+    /**
+     * Returns the actual length of the vector in bytes.
+     * 8 bytes for header + 4 bytes per float value.
+     */
+    public int getActualLength() {
+        int bytesPerDimension;
+        switch (vectorType) {
+            case F32:
+                bytesPerDimension = 4; // 4 bytes per dimension for F32
+                break;
+            case F16:
+                bytesPerDimension = 2; 
+                break;
+            default:
+                bytesPerDimension = 4; 
+                break;
+        }
+        return 8 + bytesPerDimension * dimensionCount; // 8-byte header + dimension payload
     }
 }
