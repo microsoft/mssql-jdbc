@@ -1561,8 +1561,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             else
                 s += " where ";
             s += schemaName + " in " + constSchemas;
-        } else if (null != schemaPattern)
+        } else if (null != schemaPattern) {
             s += " where " + schemaName + " like ?  ";
+        } else if (null != catalog && catalog.length() != 0) {
+            s += " where " + schemaName + " not in " + constSchemas;
+        }
 
         s += " order by 2, 1";
         if (logger.isLoggable(java.util.logging.Level.FINE)) {
