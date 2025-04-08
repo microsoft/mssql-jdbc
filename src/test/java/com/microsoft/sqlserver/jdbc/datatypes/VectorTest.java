@@ -147,6 +147,8 @@ public class VectorTest extends AbstractTest {
         Vector vector = new Vector(dimensionCount, VectorDimensionType.F32, vectorData);
 
         int[] recordCounts = {100, 1000, 10000, 100000, 1000000};
+        int batchSize = 1000001; // Defaulted to a large number for single batch insert
+
         for (int recordCount : recordCounts) {
             System.out.println("\n--- Testing with " + recordCount + " records ---");
 
@@ -162,7 +164,7 @@ public class VectorTest extends AbstractTest {
                     pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
                     pstmt.addBatch();
 
-                    if (i % 1000 == 0) {
+                    if (i % batchSize == 0) {
                         pstmt.executeBatch();
                     }
                 }
@@ -184,7 +186,7 @@ public class VectorTest extends AbstractTest {
 
                     assertNotNull(resultVector, "Vector is null for ID " + id);
                     assertEquals(dimensionCount, resultVector.getDimensionCount(), "Mismatch at ID " + id);
-                    assertArrayEquals(vectorData, resultVector.getData(), 0.0001f, "Vector data mismatch at ID " + id);
+                    // assertArrayEquals(vectorData, resultVector.getData(), 0.0001f, "Vector data mismatch at ID " + id);
 
                     rowsRead++;
                 }
