@@ -307,28 +307,6 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
     BigDecimal getSmallMoney(String columnName) throws SQLServerException;
 
     /**
-     * Returns the value of the column specified as a microsoft.sql.Vector object.
-     * 
-     * @param columnIndex
-     *        The zero-based ordinal of a column.
-     * @return the column value; if the value is SQL NULL, the value returned is null
-     * @throws SQLServerException
-     *         If any errors occur.
-     */
-    microsoft.sql.Vector getVector(int columnIndex) throws SQLServerException;
-
-    /**
-     * Returns the value of the column specified as a microsoft.sql.Vector object.
-     * 
-     * @param columnName
-     *        is the name of a column.
-     * @return the column value; if the value is SQL NULL, the value returned is null.
-     * @throws SQLServerException
-     *         If any errors occur.
-     */
-    microsoft.sql.Vector getVector(String columnLabel) throws SQLServerException;
-
-    /**
      * Updates the value of the column specified to the DateTimeOffset Class value, given a zero-based column ordinal.
      * 
      * @param index

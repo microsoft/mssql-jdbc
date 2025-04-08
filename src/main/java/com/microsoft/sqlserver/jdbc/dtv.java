@@ -115,6 +115,8 @@ abstract class DTVExecuteOp {
     abstract void execute(DTV dtv, TVP tvpValue) throws SQLServerException;
 
     abstract void execute(DTV dtv, SqlVariant sqlVariantValue) throws SQLServerException;
+
+    abstract void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException;
 }
 
 
@@ -1111,6 +1113,10 @@ final class DTV {
             tdsWriter.writeRPCUUID(name, uuidValue, isOutParam);
         }
 
+        void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException {
+            tdsWriter.writeRPCVector(name, vectorValue, isOutParam);
+        }
+
         void execute(DTV dtv, byte[] byteArrayValue) throws SQLServerException {
             if (null != cryptoMeta) {
                 tdsWriter.writeRPCNameValType(name, isOutParam, TDSType.BIGVARBINARY);
@@ -1137,8 +1143,6 @@ final class DTV {
 
                     writeEncryptData(dtv, true);
                 }
-            } else if (JDBCType.VECTOR == dtv.getJdbcType()) {
-                tdsWriter.writeRPCVector(name, byteArrayValue, isOutParam);
             } else
                 tdsWriter.writeRPCByteArray(name, byteArrayValue, isOutParam, dtv.getJdbcType(), collation);
 
@@ -1522,7 +1526,6 @@ final class DTV {
                 case VARCHAR:
                 case LONGVARCHAR:
                 case CLOB:
-                case VECTOR:
                     op.execute(this, (byte[]) null);
                     break;
 
@@ -1815,8 +1818,7 @@ final class DTV {
                     break;
 
                 case VECTOR:
-                    byteValue = ((microsoft.sql.Vector) value).toBytes();
-                    op.execute(this, byteValue);
+                    op.execute(this, (microsoft.sql.Vector) value);
                     break;
 
                 case BYTE:
@@ -2077,6 +2079,8 @@ final class AppDTVImpl extends DTVImpl {
         void execute(DTV dtv, Byte byteValue) throws SQLServerException {}
 
         void execute(DTV dtv, Integer intValue) throws SQLServerException {}
+
+        void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException {}
 
         void execute(DTV dtv, java.sql.Time timeValue) throws SQLServerException {
             if (dtv.getJdbcType().isTextual()) {
@@ -3013,21 +3017,13 @@ final class TypeInfo implements Serializable {
              *         when an error occurs
              */
             public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
+                typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
                 typeInfo.maxLength = tdsReader.readUnsignedShort();
-                if (DataTypes.MAXTYPE_LENGTH == typeInfo.maxLength)// for PLP types
-                {
-                    typeInfo.ssLenType = SSLenType.PARTLENTYPE;
-                    typeInfo.ssType = SSType.VECTOR;
-                    typeInfo.displaySize = typeInfo.precision = DataTypes.MAX_VARTYPE_MAX_BYTES;
-                } else if (typeInfo.maxLength <= DataTypes.SHORT_VARTYPE_MAX_BYTES)// for non-PLP types
-                {
-                    typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
-                    typeInfo.ssType = SSType.VECTOR;
-                    typeInfo.precision = typeInfo.maxLength;
-                    typeInfo.displaySize = 2 * typeInfo.maxLength;
-                } else {
-                    tdsReader.throwInvalidTDS();
-                }
+                typeInfo.displaySize = typeInfo.precision = typeInfo.maxLength;
+                typeInfo.ssType = SSType.VECTOR;
+                int dimensionType = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
+                typeInfo.scale = dimensionType;
+
             }
         });
 
