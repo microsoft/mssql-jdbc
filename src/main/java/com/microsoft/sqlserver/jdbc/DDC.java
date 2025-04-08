@@ -29,8 +29,6 @@ import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.TimeZone;
 
-import microsoft.sql.Vector;
-
 
 /**
  * Utility class for all Data Dependent Conversions (DDC).

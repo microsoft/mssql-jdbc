@@ -1200,6 +1200,10 @@ final class Parameter {
             setTypeDefinition(dtv);
         }
 
+        void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException {
+            setTypeDefinition(dtv);
+        }
+
         /*
          * (non-Javadoc)
          * @see com.microsoft.sqlserver.jdbc.DTVExecuteOp#execute(com.microsoft.sqlserver.jdbc.DTV,

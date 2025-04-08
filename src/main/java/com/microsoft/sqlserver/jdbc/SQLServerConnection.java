@@ -5621,6 +5621,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return len;
     }
 
+    /**
+     * Writes the Vector Support feature request to the physical state object.
+     * The request includes the feature ID, feature data length, and version number.
+     * @param write
+     *       If true, writes the feature request to the physical state object.
+     * @param tdsWriter
+     * @return
+     *       The length of the feature request in bytes.
+     * @throws SQLServerException
+     */
     int writeVectorSupportFeatureRequest(boolean write, /* if false just calculates the length */
             TDSWriter tdsWriter) throws SQLServerException {
         int len = 6; // 1byte = featureID, 4bytes = featureData length, 1 bytes = Version

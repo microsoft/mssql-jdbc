@@ -1627,30 +1627,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         loggerExternal.exiting(getClassNameLogging(), "setNull");
     }
 
-    @Override
-    public final void setVector(int index, microsoft.sql.Vector vector, int dimensionCount)
-            throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setVector", new Object[] {index, vector, dimensionCount});
-        checkClosed();
-        setterGetParam(index).setValue(JDBCType.VECTOR, vector, JavaType.VECTOR,
-                null, null, null, dimensionCount, connection,
-                false, stmtColumnEncriptionSetting, index, userSQL, null);
-        loggerExternal.exiting(getClassNameLogging(), "setVector");
-    }
-
-    @Override
-    public final void setVector(int index, microsoft.sql.Vector vector, int dimensionCount, boolean forceEncrypt)
-            throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setVector", new Object[] {index, vector, dimensionCount, forceEncrypt});
-        checkClosed();
-        setterGetParam(index).setValue(JDBCType.VECTOR, vector, JavaType.VECTOR,
-                null, null, null, dimensionCount, connection,
-                forceEncrypt, stmtColumnEncriptionSetting, index, userSQL, null);
-        loggerExternal.exiting(getClassNameLogging(), "setVector");
-    }
-
     final void setObjectNoType(int index, Object obj, boolean forceEncrypt) throws SQLServerException {
         // Default to the JDBC type of the parameter, determined by a previous setter call or through registerOutParam.
         // This avoids repreparing unnecessarily for null values.
@@ -1708,10 +1684,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         int scale = 0;
         if (microsoft.sql.Types.VECTOR == jdbcType) {
             microsoft.sql.Vector vector = microsoft.sql.Vector.valueOf(obj);
-            obj = vector.toBytes();
             scale = vector.getDimensionCount();
         }
-        setObject(setterGetParam(n), obj, microsoft.sql.Types.VECTOR == jdbcType ? JavaType.BYTEARRAY : JavaType.of(obj), JDBCType.of(jdbcType), scale, null, false, n, tvpName);
+        setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), scale, null, false, n, tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
