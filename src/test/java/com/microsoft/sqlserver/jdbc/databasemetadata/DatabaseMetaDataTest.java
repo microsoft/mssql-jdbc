@@ -1036,6 +1036,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     void testGetSchemasWithAndWithoutCatalog() throws Exception {
         String dbName = "TestDb_GetSchemas_Inline";
         String schemaName = "TestSchema123";
