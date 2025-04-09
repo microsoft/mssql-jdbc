@@ -1074,12 +1074,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 }
             }
         } finally {
-            try (Connection connection = getConnection();
-                 Statement stmt = connection.createStatement()) {
-                stmt.executeUpdate("USE master");
-                stmt.executeUpdate("ALTER DATABASE " + dbName + " SET SINGLE_USER WITH ROLLBACK IMMEDIATE");
-                stmt.executeUpdate("DROP DATABASE " + dbName);
-            }
+            TestUtils.dropDatabaseIfExists(dbName, connectionString);
         }
     }
 
