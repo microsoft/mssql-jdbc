@@ -1052,7 +1052,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
             stmt.executeUpdate("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '" + schemaName + "') EXEC('CREATE SCHEMA " + schemaName + "')");
         
 
-            ResultSet rs = connection.getMetaData().getSchemas("TestDb", null );
+            ResultSet rs = connection.getMetaData().getSchemas(dbName, null );
             while (rs.next()) {
                 String schema = rs.getString("TABLE_SCHEM");
                 String catalog = rs.getString("TABLE_CATALOG");
