@@ -73,6 +73,8 @@ public final class SQLServerException extends java.sql.SQLException {
     // Built-in function '%.*ls' in impersonation context is not supported in this version of SQL Server.
     static final int IMPERSONATION_CONTEXT_NOT_SUPPORTED = 40529;
 
+    static final int INVAID_ENCLAVE_SESSION_HANDLE_ERROR = 33195;
+
     // Facility for driver-specific error codes
     static final int DRIVER_ERROR_NONE = 0;
     static final int DRIVER_ERROR_FROM_DATABASE = 2;
@@ -87,7 +89,7 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int DATA_CLASSIFICATION_NOT_EXPECTED = 11;
     static final int DATA_CLASSIFICATION_INVALID_LABEL_INDEX = 12;
     static final int DATA_CLASSIFICATION_INVALID_INFORMATION_TYPE_INDEX = 13;
-
+    
     static final java.util.logging.Logger exLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerException");
 

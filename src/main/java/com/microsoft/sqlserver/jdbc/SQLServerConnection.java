@@ -2193,6 +2193,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // Any existing enclave session would be invalid, make sure it is invalidated.
         // For example, if this is a session recovery reconnect.
         //
+
         if (enclaveProvider != null) {
             if (connectionlogger.isLoggable(Level.FINE)) {
                 connectionlogger.fine("Invalidating existing enclave session for enclave provider : " + enclaveProvider);
@@ -8920,8 +8921,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (!this.enclaveEstablished()) {
             enclaveProvider.getAttestationParameters(this.enclaveAttestationUrl);
         }
-        return enclaveProvider.createEnclaveSession(this, statement, userSql, preparedTypeDefinitions, params,
-                parameterNames);
+        try {
+            return enclaveProvider.createEnclaveSession(this, statement, userSql, preparedTypeDefinitions, params,
+                    parameterNames);
+        } catch (SQLServerException e) {
+            //
+            //If the exception received is as below then just invalidate the cache and re-attempt 
+            //code = '33195', SQL state = 'S0001': Internal enclave error. Enclave was provided with an invalid session handle. For more information, contact Customer Support Services..
+            //
+            if (e.getErrorCode() == SQLServerException.INVAID_ENCLAVE_SESSION_HANDLE_ERROR) {                
+                if (connectionlogger.isLoggable(Level.FINE)) {
+                    connectionlogger.fine("Received error 33195. Invalidating existing enclave session for enclave provider : " + enclaveProvider);
+                }
+                enclaveProvider.invalidateEnclaveSession();
+                return enclaveProvider.createEnclaveSession(this, statement, userSql, preparedTypeDefinitions, params,
+                        parameterNames);
+            } else {
+                throw e;
+            }
+        }
     }
 
     boolean enclaveEstablished() {
