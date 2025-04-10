@@ -1675,7 +1675,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (microsoft.sql.Types.STRUCTURED == jdbcType) {
             tvpName = getTVPNameFromObject(n, obj);
         }
-        setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), null, null, false, n, tvpName);
+        int scale = 0;
+        if (microsoft.sql.Types.VECTOR == jdbcType)
+            scale = microsoft.sql.Vector.valueOf(obj).getDimensionCount();
+        setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), scale, null, false, n, tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
@@ -1696,7 +1699,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
                         || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
                         || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
-                        || Reader.class.isInstance(x)) ? scaleOrLength : null,
+                        || Reader.class.isInstance(x)
+                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scaleOrLength : null,
                 null, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");

@@ -623,6 +623,16 @@ final class Parameter {
                         param.typeDefinition = VARBINARY_8K;
                     break;
 
+                case VECTOR:
+                    param.typeDefinition = SSType.VECTOR.toString();
+                    if (param.isOutput() && scale < param.getOutScale())
+                        scale = param.getOutScale();
+                    else if (dtv.getScale() != null) {
+                        scale = dtv.getScale();
+                    }
+                    param.typeDefinition += "(" + scale + ")";
+                    break;
+
                 case DATE:
                     // Bind DATE values to pre-Katmai servers as DATETIME (which has no DATE-only type).
                     param.typeDefinition = con.isKatmaiOrLater() ? SSType.DATE.toString() : SSType.DATETIME.toString();
@@ -1193,6 +1203,10 @@ final class Parameter {
         }
 
         void execute(DTV dtv, com.microsoft.sqlserver.jdbc.TVP tvpValue) throws SQLServerException {
+            setTypeDefinition(dtv);
+        }
+
+        void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException {
             setTypeDefinition(dtv);
         }
 
