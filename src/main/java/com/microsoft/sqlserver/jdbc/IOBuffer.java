@@ -5639,24 +5639,31 @@ final class TDSWriter {
         writeByte(cryptoMeta.normalizationRuleVersion);
     }
 
-    void writeRPCVector(String sName, microsoft.sql.Vector vectorValue, boolean bOut) throws SQLServerException {
-
-        byte[] bValue = vectorValue.toBytes();
-        int nValueLen = vectorValue.getActualLength();
+    void writeRPCVector(String sName, microsoft.sql.Vector vectorValue, boolean bOut, int scale, int precision) throws SQLServerException {
+        boolean vectorValueNull = (vectorValue == null);
+        byte[] bValue = vectorValueNull ? null : vectorValue.toBytes();
+        int nValueLen = vectorValueNull ? 0: vectorValue.getActualLength();
 
         writeRPCNameValType(sName, bOut, TDSType.VECTOR);
 
-        // Write maxLength of datatype = actual length for vector
-        writeShort((short) nValueLen);
-
-        // Write scale (dimension type)
-        writeByte((byte) vectorValue.getScale());
-
-        if (vectorValue.data == null) {
+        if (vectorValueNull) {
+            writeShort((short) (8 + (scale * precision))); //maxLength
+            byte precisionByte = (byte) (precision == 2 ? 0x01 : 0x00);
+            writeByte((byte) precisionByte); //dimension type
             writeShort((short) -1); // actual len
         } else {
-            writeShort((short) nValueLen); // actual len
-            writeBytes(bValue); // data
+            // Write maxLength of datatype = actual length for vector
+            writeShort((short) nValueLen);
+
+            // Write scale (dimension type)
+            writeByte((byte) vectorValue.getScale());
+
+            if (vectorValue.data == null) {
+                writeShort((short) -1); // actual len
+            } else {
+                writeShort((short) nValueLen); // actual len
+                writeBytes(bValue); // data
+            }
         }
     }
     

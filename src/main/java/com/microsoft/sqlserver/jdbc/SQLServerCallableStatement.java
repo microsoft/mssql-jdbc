@@ -389,6 +389,9 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         registerOutParameter(index, sqlType);
         inOutParam[index - 1].setOutScale(scale);
+        if (microsoft.sql.Types.VECTOR == sqlType) {
+            inOutParam[index - 1].setValueLength(4); // default 32-bit (single precision) float
+        }
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
@@ -811,6 +814,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         } else if (type == Double.class) {
             double doubleValue = getDouble(index);
             returnValue = wasNull() ? null : doubleValue;
+        } else if (type == microsoft.sql.Vector.class) {
+            returnValue = (microsoft.sql.Vector.valueOf(getValue(index, JDBCType.VECTOR))); 
         } else {
             // if the type is not supported the specification says the should
             // a SQLException instead of SQLFeatureNotSupportedException
@@ -1606,9 +1611,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             tvpName = getTVPNameFromObject(findColumn(parameterName), value);
             setObject(setterGetParam(findColumn(parameterName)), value, JavaType.TVP, JDBCType.TVP, null, null, false,
                     findColumn(parameterName), tvpName);
-        } else
-            setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), null,
+        } else {
+            int scale = 0;
+            if (microsoft.sql.Types.VECTOR == sqlType) 
+                scale = microsoft.sql.Vector.valueOf(value).getDimensionCount();
+            setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), scale,
                     null, false, findColumn(parameterName), tvpName);
+        }
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 

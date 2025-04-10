@@ -1114,7 +1114,7 @@ final class DTV {
         }
 
         void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException {
-            tdsWriter.writeRPCVector(name, vectorValue, isOutParam);
+            tdsWriter.writeRPCVector(name, vectorValue, isOutParam, outScale, valueLength);
         }
 
         void execute(DTV dtv, byte[] byteArrayValue) throws SQLServerException {
@@ -1590,6 +1590,10 @@ final class DTV {
 
                 case SQL_VARIANT:
                     op.execute(this, (SqlVariant) null);
+                    break;
+                
+                case VECTOR:
+                    op.execute(this, (microsoft.sql.Vector) value);
                     break;
 
                 case UNKNOWN:

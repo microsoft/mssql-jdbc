@@ -1682,10 +1682,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             tvpName = getTVPNameFromObject(n, obj);
         }
         int scale = 0;
-        if (microsoft.sql.Types.VECTOR == jdbcType) {
-            microsoft.sql.Vector vector = microsoft.sql.Vector.valueOf(obj);
-            scale = vector.getDimensionCount();
-        }
+        if (microsoft.sql.Types.VECTOR == jdbcType)
+            scale = microsoft.sql.Vector.valueOf(obj).getDimensionCount();
         setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), scale, null, false, n, tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }

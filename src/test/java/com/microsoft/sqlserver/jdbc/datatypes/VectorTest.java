@@ -9,7 +9,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +17,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -39,6 +39,7 @@ public class VectorTest extends AbstractTest {
 
     private static final String tableName = RandomUtil.getIdentifier("VECTOR_Test");
     private static final String maxVectorDataTableName = RandomUtil.getIdentifier("Max_Vector_Test");
+    private static final String procedureName = RandomUtil.getIdentifier("VECTOR_Test_Proc");
 
     @BeforeAll
     private static void setupTest() throws Exception {
@@ -175,7 +176,13 @@ public class VectorTest extends AbstractTest {
         }
     }
 
-
+    /**
+     * * Test for inserting and reading large vector data at scale. This test is designed to check the performance and
+     * correctness of inserting and reading large vector data in batches. It uses a loop to insert and read a specified
+     * number of records, and measures the time taken for each operation. The test also checks if the inserted and
+     * retrieved vector data match.
+     * @throws SQLException
+     */
     @Test
     void validateMaxVectorDataAtScale() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName)
@@ -191,7 +198,9 @@ public class VectorTest extends AbstractTest {
 
         Vector vector = new Vector(dimensionCount, VectorDimensionType.F32, vectorData);
 
-        int[] recordCounts = {100, 1000, 10000, 100000, 1000000};
+        int[] recordCounts = {100}; // For testing, we can use a smaller set of records to avoid long execution times
+        // Uncomment the following line to test with larger record counts
+        // int[] recordCounts = {100, 1000, 10000, 100000, 1000000};
         int batchSize = 1000001; // Defaulted to a large number for single batch insert
 
         for (int recordCount : recordCounts) {
@@ -241,6 +250,41 @@ public class VectorTest extends AbstractTest {
             System.out.println("Read Time for " + rowsRead + " records: " + readDurationMs + " ms");
 
             assertEquals(recordCount, rowsRead, "Mismatch in number of rows read vs inserted.");
+        }
+    }
+
+    private static void createProcedure() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            String sql = "CREATE OR ALTER PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "\n" +
+                         "    @inVector VECTOR(3),\n" +
+                         "    @outVector VECTOR(3) OUTPUT\n" +
+                         "AS\n" +
+                         "BEGIN\n" +
+                         "    -- Echo input to output\n" +
+                         "    SET @outVector = @inVector\n" +
+                         "END";
+            stmt.execute(sql);
+        }
+    }
+
+    @Test
+    public void testVectorStoredProcedureInputOutput() throws SQLException {
+        TestUtils.dropProcedureIfExists(procedureName, connection.createStatement());
+        createProcedure();
+
+        String call = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?, ?)}";
+        try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(call)) {
+            Vector inputVector = new Vector(3, VectorDimensionType.F32, new float[]{0.5f, 1.0f, 1.5f});
+
+            cstmt.setObject(1, inputVector, microsoft.sql.Types.VECTOR);
+            cstmt.registerOutParameter(2, microsoft.sql.Types.VECTOR, 4, 3);
+            cstmt.execute();
+
+            Vector result = cstmt.getObject(2, Vector.class);
+            assertNotNull(result, "Returned vector should not be null");
+            assertArrayEquals(inputVector.getData(), result.getData(), 0.0001f, "Vector data mismatch.");
+        } finally {
+            TestUtils.dropProcedureIfExists(procedureName, connection.createStatement());
         }
     }
 }
