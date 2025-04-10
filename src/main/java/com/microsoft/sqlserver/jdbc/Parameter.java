@@ -624,7 +624,13 @@ final class Parameter {
                     break;
 
                 case VECTOR:
-                    param.typeDefinition = SSType.VECTOR.toString() + "(" + dtv.getScale() + ")";
+                    param.typeDefinition = SSType.VECTOR.toString();
+                    if (param.isOutput() && scale < param.getOutScale())
+                        scale = param.getOutScale();
+                    else if (dtv.getScale() != null) {
+                        scale = dtv.getScale();
+                    }
+                    param.typeDefinition += "(" + scale + ")";
                     break;
 
                 case DATE:

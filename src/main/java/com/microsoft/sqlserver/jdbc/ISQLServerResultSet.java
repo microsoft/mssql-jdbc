@@ -11,7 +11,6 @@ import java.util.Calendar;
 
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
-import microsoft.sql.Vector;
 
 /**
  * Provides an interface to the {@link SQLServerResultSet} class.
