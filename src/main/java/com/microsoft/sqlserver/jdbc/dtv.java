@@ -3023,10 +3023,11 @@ final class TypeInfo implements Serializable {
             public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
                 typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
                 typeInfo.maxLength = tdsReader.readUnsignedShort();
-                typeInfo.displaySize = typeInfo.precision = typeInfo.maxLength;
+                typeInfo.displaySize = typeInfo.maxLength;
+                typeInfo.scale = (typeInfo.maxLength - 8) / 4;
                 typeInfo.ssType = SSType.VECTOR;
-                int dimensionType = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
-                typeInfo.scale = dimensionType;
+                int precisionByte = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
+                typeInfo.precision = (precisionByte == 0) ? 4 : 2;
 
             }
         });
