@@ -1039,6 +1039,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
                 break;
 
+            case microsoft.sql.Types.VECTOR: // 0xF5
+                tdsWriter.writeByte(TDSType.VECTOR.byteValue());
+                tdsWriter.writeShort((short) (8 + srcScale*4)); //length
+                byte precisionByte = (byte) (srcPrecision == 2 ? 0x01 : 0x00);
+                tdsWriter.writeByte((byte) precisionByte); //scale
+                break;
+
             case microsoft.sql.Types.DATETIME:
             case microsoft.sql.Types.SMALLDATETIME:
             case java.sql.Types.TIMESTAMP:
@@ -1386,6 +1393,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 else
                     return SSType.VARBINARY.toString() + "(" + bulkPrecision + ")";
 
+            case microsoft.sql.Types.VECTOR:
+                // For vector the value has to be between 0 to 8000.
+                return SSType.VECTOR.toString() + "(" + bulkScale + ")";
             case microsoft.sql.Types.DATETIME:
             case microsoft.sql.Types.SMALLDATETIME:
             case java.sql.Types.TIMESTAMP:
@@ -1888,6 +1898,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      * Oracle 12c database returns precision = 0 for char/varchar data types.
      */
     private int validateSourcePrecision(int srcPrecision, int srcJdbcType, int destPrecision) {
+        if (srcJdbcType == microsoft.sql.Types.VECTOR) {
+            return destPrecision;
+        }
         if ((1 > srcPrecision) && Util.isCharType(srcJdbcType)) {
             srcPrecision = destPrecision;
         }
@@ -2117,6 +2130,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case microsoft.sql.Types.SQL_VARIANT:
                 tdsWriter.writeInt((byte) 0x00);
                 return;
+            case microsoft.sql.Types.VECTOR:
+                tdsWriter.writeShort((short) -1);
+                return;
             default:
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                 Object[] msgArgs = {JDBCType.of(srcJdbcType).toString().toLowerCase(Locale.ENGLISH)};
@@ -2313,6 +2329,21 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         } else {
                             tdsWriter.writeBigDecimal((BigDecimal) colValue, bulkJdbcType, bulkPrecision, bulkScale);
                         }
+                    }
+                    break;
+
+                case microsoft.sql.Types.VECTOR:
+                    
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    } else {
+                        microsoft.sql.Vector vector = (microsoft.sql.Vector) colValue;
+                        if (vector.data == null) {
+                            writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                        } else {
+                            tdsWriter.writeShort((short) (8 + (bulkScale*4))); // Actual length
+                            tdsWriter.writeBytes(vector.toBytes()); // Write vector data
+                        } 
                     }
                     break;
 
@@ -2955,6 +2986,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.FLOAT:
                     return sourceResultSet.getObject(srcColOrdinal);
 
+                case microsoft.sql.Types.VECTOR:
+                    return sourceResultSet.getObject(srcColOrdinal, microsoft.sql.Vector.class);
                 case microsoft.sql.Types.MONEY:
                 case microsoft.sql.Types.SMALLMONEY:
                 case java.sql.Types.DECIMAL:
@@ -3095,7 +3128,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     || (java.sql.Types.TIMESTAMP == srcJdbcType) || (microsoft.sql.Types.DATETIMEOFFSET == srcJdbcType)
                     || (2013 == srcJdbcType) || (2014 == srcJdbcType)) {
                 colValue = getTemporalObjectFromCSV(colValue, srcJdbcType, srcColOrdinal);
-            } else if ((java.sql.Types.NUMERIC == srcJdbcType) || (java.sql.Types.DECIMAL == srcJdbcType)) {
+            } else if ((java.sql.Types.NUMERIC == srcJdbcType) || (java.sql.Types.DECIMAL == srcJdbcType)
+                    || (microsoft.sql.Types.VECTOR == srcJdbcType)) {
                 int baseDestPrecision = destCryptoMeta.baseTypeInfo.getPrecision();
                 int baseDestScale = destCryptoMeta.baseTypeInfo.getScale();
                 if ((srcScale != baseDestScale) || (srcPrecision != baseDestPrecision)) {
@@ -3552,6 +3586,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                     }
                     return byteArrayValue;
+                case VECTOR:
+                    microsoft.sql.Vector vector = (microsoft.sql.Vector) value;
+                    byteValue = vector.toBytes();
+                    if (byteValue.length > vector.getActualLength()) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
+                        Object[] msgArgs = {srcJdbcType, destJdbcType, destName};
+                        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                    }
+                    return byteValue;
                 case GUID:
                     return Util.asGuidByteArray(UUID.fromString((String) value));
 
