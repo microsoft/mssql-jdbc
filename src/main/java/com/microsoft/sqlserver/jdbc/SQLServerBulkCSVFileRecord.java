@@ -421,6 +421,57 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             break;
                         }
 
+                        case microsoft.sql.Types.VECTOR: {
+                            microsoft.sql.Vector vector = null;
+                            int dimensionCount = cm.scale;  
+                        
+                            if (dimensionCount <= 0) {
+                                throw new SQLServerException("Invalid vector dimension count.", null, 0, null);
+                            }
+                        
+                            String vectorData = data[pair.getKey() - 1].trim();
+                        
+                            if (vectorData.equalsIgnoreCase("NULL") || vectorData.equals("\"NULL\"") || vectorData.isEmpty()) {
+                                vector = new microsoft.sql.Vector(dimensionCount, microsoft.sql.Vector.VectorDimensionType.F32, null);
+                            } else {
+                                // Clean the string to handle bracketed or inline values uniformly
+                                if (vectorData.startsWith("[") && vectorData.endsWith("]")) {
+                                    vectorData = vectorData.substring(1, vectorData.length() - 1);  // Remove brackets
+                                }
+                         
+                                String[] vectorElements = vectorData.split(",");
+                                if (vectorElements.length == 1 && vectorData.contains("|")) {
+                                    vectorElements = vectorData.split("\\|");
+                                }
+                        
+                                // Case 1: Single element and dimension count > 1  e.g. vectorElements = 1.0 and actual data = 1.0,2.0,3.0
+                                if (vectorElements.length == 1) { 
+                                    float[] vectorArray = new float[dimensionCount];
+                                    vectorArray[0] = Float.parseFloat(vectorElements[0].trim());
+                                
+                                    // Read remaining values from subsequent columns
+                                    for (int i = 1; i < dimensionCount; i++) {
+                                        vectorArray[i] = Float.parseFloat(data[pair.getKey() - 1 + i].trim());
+                                    }
+                                    vector = new microsoft.sql.Vector(dimensionCount, microsoft.sql.Vector.VectorDimensionType.F32, vectorArray);
+                                }
+                                
+                                // Case 2: More than one element (comma or pipe-separated)
+                                else if (vectorElements.length == dimensionCount) {
+                                    float[] vectorArray = new float[dimensionCount];
+                                    for (int i = 0; i < dimensionCount; i++) {
+                                        vectorArray[i] = Float.parseFloat(vectorElements[i].trim());
+                                    }
+                                    vector = new microsoft.sql.Vector(dimensionCount, microsoft.sql.Vector.VectorDimensionType.F32, vectorArray);
+                                } else {
+                                    throw new SQLServerException("Vector dimension mismatch.", null, 0, null);
+                                }
+                            }
+                        
+                            dataRow[pair.getKey() - 1] = vector;
+                            break;
+                        }
+                        
                         case java.sql.Types.TIME_WITH_TIMEZONE: {
                             OffsetTime offsetTimeValue;
 
@@ -558,6 +609,11 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             case java.sql.Types.BOOLEAN:
                 columnMetadata.put(positionInSource,
                         new ColumnMetadata(colName, java.sql.Types.BIT, precision, scale, dateTimeFormatter));
+                break;
+
+            case microsoft.sql.Types.VECTOR:
+                columnMetadata.put(positionInSource,
+                        new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));
                 break;
 
             default:

@@ -2501,7 +2501,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             returnValue = getSQLXML(columnIndex);
         } else if (type == microsoft.sql.Vector.class) {
             microsoft.sql.Vector vector = (microsoft.sql.Vector.valueOf(getValue(columnIndex, JDBCType.VECTOR))); 
-            returnValue = vector;
+            returnValue = wasNull() ? null : vector;
         } else if (type == Blob.class) {
             returnValue = getBlob(columnIndex);
         } else if (type == Clob.class) {
