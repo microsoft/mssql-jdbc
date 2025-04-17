@@ -8927,6 +8927,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     void invalidateEnclaveSessionCache() {
         if (enclaveProvider != null) {
+            if (connectionlogger.isLoggable(Level.FINE)) {
+                connectionlogger.fine("Invalidating existing enclave session for enclave provider : " + enclaveProvider);
+            }
             enclaveProvider.invalidateEnclaveSession();
         }
     }
