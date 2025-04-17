@@ -474,56 +474,66 @@ public class SQLServerConnectionTest extends AbstractTest {
      */
     @Test
     public void testConcatNullYieldsNull() throws SQLException {
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setURL(connectionString);
-        ds.setConcatNullYieldsNull("OFF");
-        int expectedResultForNewConnection = 0;
         // Server default is CONCAT_NULL_YIELDS_NULL = ON  
-        int expectedResultForPooledConnection = 1;
-
-        String sqlSelect = "SELECT SESSIONPROPERTY('CONCAT_NULL_YIELDS_NULL')";
-
-        try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {
-            try (ResultSet rs = stmt.executeQuery(sqlSelect)) {
-                if (rs.next()) {
-                    assertEquals(expectedResultForNewConnection, rs.getInt(1));
-                } else {
-                    assertTrue(false, "Expected row of data was not found.");
-                }
-            }
-        }
-
+        int expectedResultFlagOff = 0;
+        int expectedResultFlagOn = 1;
+        String sessionPropertyName = "CONCAT_NULL_YIELDS_NULL";
+        
+        // Test for concatNullYieldsNull flag is OFF
+        SQLServerDataSource dsWithOff = new SQLServerDataSource();
+        dsWithOff.setURL(connectionString);
+        dsWithOff.setConcatNullYieldsNull("OFF");
+        testSessionPropertyValueHelper(dsWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
         // Test pooled connections
-        SQLServerXADataSource pds = new SQLServerXADataSource();
-        pds.setURL(connectionString);
-        pds.setConcatNullYieldsNull("OFF");
+        SQLServerXADataSource pdsWithOff = new SQLServerXADataSource();
+        pdsWithOff.setURL(connectionString);
+        pdsWithOff.setConcatNullYieldsNull("OFF");
 
-        PooledConnection pc = pds.getPooledConnection();
+        PooledConnection pcWithOff = pdsWithOff.getPooledConnection();
         try {
-         try (Connection con = pc.getConnection(); Statement statement = con.createStatement()) {
-             try (ResultSet rs = statement.executeQuery(sqlSelect)) {
-                 if (rs.next()) {
-                     assertEquals(expectedResultForNewConnection, rs.getInt(1));
-                 } else {
-                     assertTrue(false, "Expected row of data was not found.");
-                 }
-             }
-         }
-         // Repeat getConnection to put the physical connection through a RESETCONNECTION
-         try (Connection con = pc.getConnection(); Statement statement = con.createStatement()) {
-             try (ResultSet rs = statement.executeQuery(sqlSelect)) {
-                 if (rs.next()) {
-                     assertEquals(expectedResultForPooledConnection, rs.getInt(1));
-                 } else {
-                     assertTrue(false, "Expected row of data was not found.");
-                 }
-             }
-         }
+            testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
+            // Repeat getConnection to put the physical connection through a RESETCONNECTION
+            testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOn);            
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         } finally {
-            if (null != pc) {
-                pc.close();
+            if (null != pcWithOff) {
+                pcWithOff.close();
+            }
+        }
+        // Test for concatNullYieldsNull flag is ON
+        SQLServerDataSource dsWithOn = new SQLServerDataSource();
+        dsWithOn.setURL(connectionString);
+        dsWithOn.setConcatNullYieldsNull("ON");
+        testSessionPropertyValueHelper(dsWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
+        // Test pooled connections
+        SQLServerXADataSource pdsWithOn = new SQLServerXADataSource();
+        pdsWithOn.setURL(connectionString);
+        pdsWithOn.setConcatNullYieldsNull("ON");
+
+        PooledConnection pcWithOn = pdsWithOn.getPooledConnection();
+        try {
+            testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
+            // Repeat getConnection to put the physical connection through a RESETCONNECTION
+            testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);            
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        } finally {
+            if (null != pcWithOn) {
+                pcWithOn.close();
+            }
+        }
+    }
+
+    public void testSessionPropertyValueHelper(Connection con, String propName, int expectedResult) throws SQLException {
+        String sqlSelect = "SELECT SESSIONPROPERTY('" + propName + "')";
+        try (Statement statement = con.createStatement()) {
+            try (ResultSet rs = statement.executeQuery(sqlSelect)) {
+                if (rs.next()) {
+                    assertEquals(expectedResult, rs.getInt(1));
+                } else {
+                    assertTrue(false, "Expected row of data was not found.");
+                }
             }
         }
     }
@@ -534,56 +544,52 @@ public class SQLServerConnectionTest extends AbstractTest {
      */
     @Test
     public void testQuptedIdentifier() throws SQLException {
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setURL(connectionString);
-        ds.setQuotedIdentifier("OFF");
-        int expectedResultForNewConnection = 0;
         // Server default is QUOTED_IDENTIFIER = ON  
-        int expectedResultForPooledConnection = 1;
-
-        String sqlSelect = "SELECT SESSIONPROPERTY('QUOTED_IDENTIFIER')";
-
-        try (Connection con = ds.getConnection(); Statement stmt = con.createStatement()) {
-            try (ResultSet rs = stmt.executeQuery(sqlSelect)) {
-                if (rs.next()) {
-                    assertEquals(expectedResultForNewConnection, rs.getInt(1));
-                } else {
-                    assertTrue(false, "Expected row of data was not found.");
-                }
-            }
-        }
-
+        int expectedResultFlagOff = 0;
+        int expectedResultFlagOn = 1;
+        String sessionPropertyName = "QUOTED_IDENTIFIER";
+        
+        //Test for quotedIdentifier flag is OFF
+        SQLServerDataSource dsWithOff = new SQLServerDataSource();
+        dsWithOff.setURL(connectionString);
+        dsWithOff.setQuotedIdentifier("OFF");
+        testSessionPropertyValueHelper(dsWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
         // Test pooled connections
-        SQLServerXADataSource pds = new SQLServerXADataSource();
-        pds.setURL(connectionString);
-        pds.setQuotedIdentifier("OFF");
-
-        PooledConnection pc = pds.getPooledConnection();
+        SQLServerXADataSource pdsWithOff = new SQLServerXADataSource();
+        pdsWithOff.setURL(connectionString);
+        pdsWithOff.setQuotedIdentifier("OFF");
+        PooledConnection pcWithOff = pdsWithOff.getPooledConnection();
         try {
-         try (Connection con = pc.getConnection(); Statement statement = con.createStatement()) {
-             try (ResultSet rs = statement.executeQuery(sqlSelect)) {
-                 if (rs.next()) {
-                     assertEquals(expectedResultForNewConnection, rs.getInt(1));
-                 } else {
-                     assertTrue(false, "Expected row of data was not found.");
-                 }
-             }
-         }
-         // Repeat getConnection to put the physical connection through a RESETCONNECTION
-         try (Connection con = pc.getConnection(); Statement statement = con.createStatement()) {
-             try (ResultSet rs = statement.executeQuery(sqlSelect)) {
-                 if (rs.next()) {
-                     assertEquals(expectedResultForPooledConnection, rs.getInt(1));
-                 } else {
-                     assertTrue(false, "Expected row of data was not found.");
-                 }
-             }
-         }
+            testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
+            // Repeat getConnection to put the physical connection through a RESETCONNECTION
+            testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOn);         
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         } finally {
-            if (null != pc) {
-                pc.close();
+            if (null != pcWithOff) {
+                pcWithOff.close();
+            }
+        }
+
+        // Test for quotedIdentifier flag is ON
+        SQLServerDataSource dsWithOn = new SQLServerDataSource();
+        dsWithOn.setURL(connectionString);
+        dsWithOn.setQuotedIdentifier("ON");
+        testSessionPropertyValueHelper(dsWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
+        // Test pooled connections
+        SQLServerXADataSource pdsWithOn = new SQLServerXADataSource();
+        pdsWithOn.setURL(connectionString);
+        pdsWithOn.setQuotedIdentifier("ON");
+        PooledConnection pcWithOn = pdsWithOn.getPooledConnection();
+        try {
+            testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
+            // Repeat getConnection to put the physical connection through a RESETCONNECTION
+            testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);         
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        } finally {
+            if (null != pcWithOn) {
+                pcWithOn.close();
             }
         }
     }
