@@ -6,13 +6,13 @@ package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.StackOverflowError;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -37,6 +37,7 @@ import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -68,6 +69,7 @@ public class BulkCopyCSVTest extends AbstractTest {
     static String inputFileDelimiterEscape = "BulkCopyCSVTestInputDelimiterEscape.csv";
     static String inputFileDelimiterEscapeNoNewLineAtEnd = "BulkCopyCSVTestInputDelimiterEscapeNoNewLineAtEnd.csv";
     static String inputFileMultipleDoubleQuotes = "BulkCopyCSVTestInputMultipleDoubleQuotes.csv";
+    static String computeColumnCsvFile = "BulkCopyCSVTestInputComputeColumn.csv";
     static String encoding = "UTF-8";
     static String delimiter = ",";
 
@@ -261,7 +263,7 @@ public class BulkCopyCSVTest extends AbstractTest {
             }
         }
     }
-    
+
     /**
      * test simple csv file for bulkcopy, for GitHub issue 1391 Tests to ensure that the set returned by
      * getColumnOrdinals doesn't have to be ordered
@@ -443,6 +445,108 @@ public class BulkCopyCSVTest extends AbstractTest {
             fail("Stack overflow: " + e.getMessage());
         } catch (SQLException e) {
             fail("SQL exception: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Test to perform bulk copy with a computed column as the last column in the table.
+     */
+    @Test
+    @DisplayName("Test bulk copy with computed column as last column")
+    public void testBulkCopyWithComputedColumnAsLastColumn() {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
+        String fileName = filePath + computeColumnCsvFile;
+
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",", true)) {
+
+            String createTableSQL = "CREATE TABLE " + tableName + " (" + "[NAME] varchar(50) NOT NULL,"
+                    + "[AGE] int NULL," + "[CAL_COL] numeric(17, 2) NULL," + "[ORIGINAL] varchar(50) NOT NULL,"
+                    + "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED" + ")";
+            stmt.executeUpdate(createTableSQL);
+
+            fileRecord.addColumnMetadata(1, "NAME", java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(2, "AGE", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(3, "CAL_COL", java.sql.Types.NUMERIC, 17, 2);
+            fileRecord.addColumnMetadata(4, "ORIGINAL", java.sql.Types.VARCHAR, 50, 0);
+
+            bulkCopy.setDestinationTableName(tableName);
+
+            bulkCopy.addColumnMapping("NAME", "NAME");
+            bulkCopy.addColumnMapping("AGE", "AGE");
+            bulkCopy.addColumnMapping("CAL_COL", "CAL_COL");
+            bulkCopy.addColumnMapping("ORIGINAL", "ORIGINAL");
+
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            bulkCopy.setBulkCopyOptions(options);
+
+            bulkCopy.writeToServer(fileRecord);
+
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                if (rs.next()) {
+                    int rowCount = rs.getInt(1);
+                    assertTrue(rowCount > 0);
+                }
+            } finally {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test to perform bulk copy with a computed column not as the last column in the table.
+     */
+    @Test
+    @DisplayName("Test bulk copy with computed column not as last column")
+    public void testBulkCopyWithComputedColumnNotAsLastColumn() {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
+        String fileName = filePath + computeColumnCsvFile;
+
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",", true)) {
+
+            String createTableSQL = "CREATE TABLE " + tableName + " (" + "[NAME] varchar(50) NOT NULL,"
+                    + "[AGE] int NULL," + "[CAL_COL] numeric(17, 2) NULL," + "[ORIGINAL] varchar(50) NOT NULL,"
+                    + "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED," + "[LAST_COL] varchar(50) NULL" + ")";
+            stmt.executeUpdate(createTableSQL);
+
+            fileRecord.addColumnMetadata(1, "NAME", java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(2, "AGE", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(3, "CAL_COL", java.sql.Types.NUMERIC, 17, 2);
+            fileRecord.addColumnMetadata(4, "ORIGINAL", java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(5, "LAST_COL", java.sql.Types.VARCHAR, 50, 0);
+
+            bulkCopy.setDestinationTableName(tableName);
+
+            bulkCopy.addColumnMapping("NAME", "NAME");
+            bulkCopy.addColumnMapping("AGE", "AGE");
+            bulkCopy.addColumnMapping("CAL_COL", "CAL_COL");
+            bulkCopy.addColumnMapping("ORIGINAL", "ORIGINAL");
+            bulkCopy.addColumnMapping("LAST_COL", "LAST_COL");
+
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            bulkCopy.setBulkCopyOptions(options);
+
+            bulkCopy.writeToServer(fileRecord);
+
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                if (rs.next()) {
+                    int rowCount = rs.getInt(1);
+                    assertTrue(rowCount > 0);
+                }
+            } finally {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        } catch (Exception e) {
+            fail(e.getMessage());
         }
     }
 
