@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -30,6 +31,7 @@ import microsoft.sql.Vector.VectorDimensionType;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @RunWith(JUnitPlatform.class)
@@ -39,6 +41,8 @@ public class VectorTest extends AbstractTest {
     private static final String tableName = RandomUtil.getIdentifier("VECTOR_Test");
     private static final String maxVectorDataTableName = RandomUtil.getIdentifier("Max_Vector_Test");
     private static final String procedureName = RandomUtil.getIdentifier("VECTOR_Test_Proc");
+    private static final String TABLE_NAME = RandomUtil.getIdentifier("VECTOR_TVP_Test");
+    private static final String TVP_NAME = RandomUtil.getIdentifier("VECTOR_TVP_Test_Type");
 
     @BeforeAll
     private static void setupTest() throws Exception {
@@ -49,6 +53,8 @@ public class VectorTest extends AbstractTest {
                     + " (id INT PRIMARY KEY, v VECTOR(3))");
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName)
                     + " (id INT PRIMARY KEY, v VECTOR(1998))");
+            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(TABLE_NAME) + " (rowId INT IDENTITY, c1 VECTOR(3) NULL)");
+            stmt.executeUpdate("CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(TVP_NAME) + " AS TABLE (c1 VECTOR(3) NULL)");
         }
     }
 
@@ -57,6 +63,9 @@ public class VectorTest extends AbstractTest {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
             TestUtils.dropTableIfExists(maxVectorDataTableName, stmt);
+            TestUtils.dropTypeIfExists(TVP_NAME, stmt);
+            TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+            TestUtils.dropProcedureIfExists(procedureName, stmt);
         }
     }
 
@@ -276,7 +285,6 @@ public class VectorTest extends AbstractTest {
 
     @Test
     public void testVectorStoredProcedureInputOutput() throws SQLException {
-        TestUtils.dropProcedureIfExists(procedureName, connection.createStatement());
         createProcedure();
 
         String call = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?, ?)}";
@@ -284,14 +292,68 @@ public class VectorTest extends AbstractTest {
             Vector inputVector = new Vector(3, VectorDimensionType.F32, new float[]{0.5f, 1.0f, 1.5f});
 
             cstmt.setObject(1, inputVector, microsoft.sql.Types.VECTOR);
-            cstmt.registerOutParameter(2, microsoft.sql.Types.VECTOR, 4, 3);
+            cstmt.registerOutParameter(2, microsoft.sql.Types.VECTOR, 3, 4);
             cstmt.execute();
 
             Vector result = cstmt.getObject(2, Vector.class);
             assertNotNull(result, "Returned vector should not be null");
             assertArrayEquals(inputVector.getData(), result.getData(), 0.0001f, "Vector data mismatch.");
-        } finally {
-            TestUtils.dropProcedureIfExists(procedureName, connection.createStatement());
+        }
+    }
+
+    @Test
+    public void testVectorTVP() throws SQLException {
+        Vector expectedVector = new Vector(3, VectorDimensionType.F32, new float[]{0.1f, 0.2f, 0.3f});
+
+        SQLServerDataTable tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", microsoft.sql.Types.VECTOR);
+        tvp.addRow(expectedVector);
+
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(TABLE_NAME) + " SELECT * FROM ?;")) {
+            pstmt.setStructured(1, TVP_NAME, tvp);
+            pstmt.execute();
+
+            try (Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery(
+                        "SELECT c1 FROM " + AbstractSQLGenerator.escapeIdentifier(TABLE_NAME) + " ORDER BY rowId")) {
+                while (rs.next()) {
+                    Vector actual = rs.getObject("c1", Vector.class);
+                    assertNotNull(actual, "Returned vector should not be null");
+                    assertArrayEquals(expectedVector.getData(), actual.getData(), 0.0001f, "Vector data mismatch.");
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testNullVectorInsertTVP() throws SQLException {
+        TestUtils.dropTableIfExists(TABLE_NAME, connection.createStatement());
+        TestUtils.dropTypeIfExists(TVP_NAME, connection.createStatement());
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(TABLE_NAME) + " (rowId INT IDENTITY, c1 VECTOR(3) NULL)");
+            stmt.executeUpdate("CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(TVP_NAME) + " AS TABLE (c1 VECTOR(3) NULL)");
+        }
+
+        Vector expectedVector = new Vector(3, VectorDimensionType.F32, null); // Null vector data
+
+        SQLServerDataTable tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", microsoft.sql.Types.VECTOR);
+        tvp.addRow(expectedVector);
+
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(TABLE_NAME) + " SELECT * FROM ?;")) {
+            pstmt.setStructured(1, TVP_NAME, tvp);
+            pstmt.execute();
+
+            try (Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery(
+                        "SELECT c1 FROM " + AbstractSQLGenerator.escapeIdentifier(TABLE_NAME) + " ORDER BY rowId")) {
+                while (rs.next()) {
+                    Vector actual = rs.getObject("c1", Vector.class);
+                    assertNull(actual, "Returned vector should be null");
+                }
+            }
         }
     }
 }

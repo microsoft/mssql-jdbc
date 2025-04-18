@@ -5381,6 +5381,23 @@ final class TDSWriter {
                 internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
                 writeInternalTVPRowValues(internalJDBCType, currentColumnStringValue, currentObject, columnPair, true);
                 break;
+
+            case VECTOR:
+                isNull = (null == currentObject);
+                byte[] bValue = isNull ? null : (byte[]) currentObject;
+
+                if (isNull) {
+                    writeShort((short) -1); // actual len
+                } else {
+                    if (bValue == null) {
+                        writeShort((short) -1); // NULL value
+                    } else {
+                        writeShort((short) bValue.length); // actual length
+                        writeBytes(bValue);  
+                    }
+                }
+                break;
+
             default:
                 assert false : "Unexpected JDBC type " + jdbcType.toString();
         }
@@ -5513,6 +5530,13 @@ final class TDSWriter {
                     writeByte(TDSType.SQL_VARIANT.byteValue());
                     writeInt(TDS.SQL_VARIANT_LENGTH);// write length of sql variant 8009
 
+                    break;
+                
+                case VECTOR:
+                    writeByte(TDSType.VECTOR.byteValue());
+                    writeShort((short) ((pair.getValue().scale * pair.getValue().precision) + 8)); // max length
+                    byte scaleByte = (byte) (pair.getValue().scale == 2 ? 0x01 : 0x00);
+                    writeByte((byte) scaleByte); // scale
                     break;
 
                 default:
