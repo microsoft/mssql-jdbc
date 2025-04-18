@@ -625,12 +625,14 @@ final class Parameter {
 
                 case VECTOR:
                     param.typeDefinition = SSType.VECTOR.toString();
-                    if (param.isOutput() && scale < param.getOutScale())
-                        scale = param.getOutScale();
-                    else if (dtv.getScale() != null) {
-                        scale = dtv.getScale();
-                    }
-                    param.typeDefinition += "(" + scale + ")";
+                    // if (param.isOutput() && scale < param.getOutScale())
+                    // scale = param.getOutScale();
+                    // else if (dtv.getScale() != null) {
+                    // scale = dtv.getScale();
+                    // }
+                    Object setterValue = dtv.getSetterValue();
+                    int precision = ((microsoft.sql.Vector) setterValue).getDimensionCount();
+                    param.typeDefinition += "(" + precision + ")";
                     break;
 
                 case DATE:

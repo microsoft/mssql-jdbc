@@ -1681,10 +1681,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (microsoft.sql.Types.STRUCTURED == jdbcType) {
             tvpName = getTVPNameFromObject(n, obj);
         }
-        int scale = 0;
-        if (microsoft.sql.Types.VECTOR == jdbcType)
-            scale = microsoft.sql.Vector.valueOf(obj).getDimensionCount();
-        setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), scale, null, false, n, tvpName);
+        int precision = 0, scale =0;
+        if (microsoft.sql.Types.VECTOR == jdbcType) {
+            precision = microsoft.sql.Vector.valueOf(obj).getDimensionCount();
+            scale = microsoft.sql.Vector.valueOf(obj).getScale();
+        }
+
+        setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), scale, precision, false, n, tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
@@ -1701,13 +1704,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For all other types, this value will be ignored.
 
+        int precision = 0;
+        if (microsoft.sql.Types.VECTOR == targetSqlType)
+            precision = microsoft.sql.Vector.valueOf(x).getDimensionCount();
+
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
                         || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
                         || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
                         || Reader.class.isInstance(x)
                         || microsoft.sql.Types.VECTOR == targetSqlType) ? scaleOrLength : null,
-                null, false, parameterIndex, null);
+                precision, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }

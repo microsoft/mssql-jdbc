@@ -5648,8 +5648,8 @@ final class TDSWriter {
 
         if (vectorValueNull) {
             writeShort((short) (8 + (scale * precision))); //maxLength
-            byte precisionByte = (byte) (precision == 2 ? 0x01 : 0x00);
-            writeByte((byte) precisionByte); //dimension type
+            byte scaleByte = (byte) (scale == 2 ? 0x01 : 0x00);
+            writeByte((byte) scaleByte); //dimension type
             writeShort((short) -1); // actual len
         } else {
             // Write maxLength of datatype = actual length for vector
