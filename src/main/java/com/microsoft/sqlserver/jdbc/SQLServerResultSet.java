@@ -34,6 +34,8 @@ import java.util.logging.Level;
 
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
+import microsoft.sql.Vector;
+
 
 /**
  * Indicates the type of the row received from the server.
@@ -2497,6 +2499,9 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             returnValue = guid != null ? Util.readGUIDtoUUID(guid) : null;
         } else if (type == SQLXML.class) {
             returnValue = getSQLXML(columnIndex);
+        } else if (type == microsoft.sql.Vector.class) {
+            microsoft.sql.Vector vector = (microsoft.sql.Vector.valueOf(getValue(columnIndex, JDBCType.VECTOR))); 
+            returnValue = wasNull() ? null : vector;
         } else if (type == Blob.class) {
             returnValue = getBlob(columnIndex);
         } else if (type == Clob.class) {
@@ -3062,7 +3067,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "getSQLXML", xml);
         return xml;
     }
-
+    
     @Override
     public boolean rowUpdated() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "rowUpdated");

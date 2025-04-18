@@ -318,6 +318,21 @@ public final class SQLServerDataTable {
                     internalAddrow(internalJDBCType, val, rowValues, pair);
                     break;
 
+                case VECTOR:
+                    nValueLen = ((microsoft.sql.Vector) val).getActualLength();
+                    int scale = ((microsoft.sql.Vector) val).getScale() == 0x01 ? 2 : 4;
+                    precision = ((microsoft.sql.Vector) val).getDimensionCount();
+                    if (scale > currentColumnMetadata.scale) {
+                        currentColumnMetadata.scale = scale;
+                        columnMetadata.put(pair.getKey(), currentColumnMetadata);
+                    }
+                    if (precision > currentColumnMetadata.precision) {
+                        currentColumnMetadata.precision = precision;
+                        columnMetadata.put(pair.getKey(), currentColumnMetadata);
+                    }
+                    rowValues[key] = ((microsoft.sql.Vector) val).toBytes();
+                    break;
+
                 default:
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unsupportedDataTypeTVP"));
                     Object[] msgArgs = {jdbcType};
