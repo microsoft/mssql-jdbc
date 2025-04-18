@@ -2038,7 +2038,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             return this;
     }
 
-    final void resetPooledConnection() {
+    final void resetPooledConnection() throws SQLServerException {
         tdsChannel.resetPooledConnection();
         initResettableValues();
 
@@ -2051,6 +2051,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (null != bulkCopyOperationCache) {
             bulkCopyOperationCache.clear();
         }
+
+        setSessionProperties();        
     }
 
     /**
@@ -3530,7 +3532,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             state = State.OPENED;
-
+            setSessionProperties();
+            
             // Socket timeout is bounded by loginTimeout during the login phase.
             // Reset socket timeout back to the original value.
             tdsChannel.resetTcpSocketTimeout();
@@ -3550,6 +3553,40 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
         }
         return this;
+    }
+
+    private void setSessionProperties() throws SQLServerException {
+        // check QUOTED_IDENTIFIER property
+        String quotedIdentifierProperty = SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString();
+        String quotedIdentifierValue = activeConnectionProperties.getProperty(quotedIdentifierProperty);
+        if (null != quotedIdentifierValue) {
+            OnOffOption quotedIdentifierOption = OnOffOption.valueOfString(quotedIdentifierValue);
+            activeConnectionProperties.setProperty(quotedIdentifierProperty, quotedIdentifierValue);
+            switch (quotedIdentifierOption) {
+                case ON:
+                    connectionCommand("SET QUOTED_IDENTIFIER ON", "quotedIdentifier");
+                    break;
+                case OFF:
+                    connectionCommand("SET QUOTED_IDENTIFIER OFF", "quotedIdentifier");
+                    break;
+            }
+        }
+
+        // check CONCAT_NULL_YIELDS_NULL property
+        String concatNullYieldsNullProperty = SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString();
+        String concatNullYieldsNullValue = activeConnectionProperties.getProperty(concatNullYieldsNullProperty);
+        if (null != concatNullYieldsNullValue) {
+            OnOffOption concatNullYieldsOption = OnOffOption.valueOfString(concatNullYieldsNullValue);
+            activeConnectionProperties.setProperty(concatNullYieldsNullProperty, concatNullYieldsNullValue);
+            switch (concatNullYieldsOption) {
+                case ON:
+                    connectionCommand("SET CONCAT_NULL_YIELDS_NULL ON", "concatNullYields");        
+                    break;
+                case OFF:
+                    connectionCommand("SET CONCAT_NULL_YIELDS_NULL OFF", "concatNullYields");
+                    break;
+            }
+        }
     }
 
     // log open connection failures
@@ -4786,6 +4823,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
              */
             boolean commandComplete = false;
             try {
+                newCommand.createCounter(null, activeConnectionProperties);
                 commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
             } finally {
                 /*
