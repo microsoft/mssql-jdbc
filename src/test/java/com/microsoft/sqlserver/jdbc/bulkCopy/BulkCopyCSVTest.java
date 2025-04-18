@@ -70,6 +70,7 @@ public class BulkCopyCSVTest extends AbstractTest {
     static String inputFileDelimiterEscapeNoNewLineAtEnd = "BulkCopyCSVTestInputDelimiterEscapeNoNewLineAtEnd.csv";
     static String inputFileMultipleDoubleQuotes = "BulkCopyCSVTestInputMultipleDoubleQuotes.csv";
     static String computeColumnCsvFile = "BulkCopyCSVTestInputComputeColumn.csv";
+    static String vectorInputCsvFile = "BulkCopyCSVTestInputWithVector.csv";
     static String encoding = "UTF-8";
     static String delimiter = ",";
 
@@ -544,6 +545,73 @@ public class BulkCopyCSVTest extends AbstractTest {
                 }
             } finally {
                 TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test bulk copy with different format of vector data in
+     * BulkCopyCSVTestInputWithVector.csv file
+     */
+    @Test
+    public void testBulkCopyVectorFromCSV() throws SQLException {
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
+        String fileName = filePath + vectorInputCsvFile;
+
+        try (Connection con = getConnection();
+                Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, null, ",", true)) {
+
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (vectorCol VECTOR(3));");
+
+            fileRecord.addColumnMetadata(1, "vectorCol", microsoft.sql.Types.VECTOR, 3, 4);
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+
+            // Set the destination table name
+            bulkCopy.setDestinationTableName(dstTable);
+
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            bulkCopy.setBulkCopyOptions(options);
+
+            bulkCopy.writeToServer(fileRecord);
+
+            // Validate the data
+            String selectQuery = "SELECT * FROM " + dstTable;
+            try (ResultSet rs = stmt.executeQuery(selectQuery)) {
+                int rowCount = 0;
+
+                // Expected data from the CSV file
+                List<String> expectedData = Arrays.asList(
+                        "[1.0, 9.0, 9.0]",
+                        "[9.0, 9.0, 9.0]",
+                        "[1.0, 2.0, 3.0]",
+                        "[4.0, 5.0, 6.0]",
+                        "[7.0, 8.0, 9.0]",
+                        "NULL",
+                        "NULL");
+
+                while (rs.next()) {
+                    microsoft.sql.Vector vectorObject = rs.getObject("vectorCol", microsoft.sql.Vector.class);
+                    if (vectorObject == null) {
+                        assertEquals("NULL", expectedData.get(rowCount),
+                                "Mismatch in vector data at row " + (rowCount + 1));
+                    } else {
+                        assertEquals(expectedData.get(rowCount), Arrays.toString(vectorObject.getData()),
+                                "Mismatch in vector data at row " + (rowCount + 1));
+                    }
+                    rowCount++;
+                }
+
+                // Validate row count
+                assertEquals(expectedData.size(), rowCount, "Row count mismatch.");
+            } finally {
+                TestUtils.dropTableIfExists(dstTable, stmt);
             }
         } catch (Exception e) {
             fail(e.getMessage());

@@ -3024,10 +3024,10 @@ final class TypeInfo implements Serializable {
                 typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
                 typeInfo.maxLength = tdsReader.readUnsignedShort();
                 typeInfo.displaySize = typeInfo.maxLength;
-                typeInfo.scale = (typeInfo.maxLength - 8) / 4;
+                typeInfo.precision = (typeInfo.maxLength - 8) / 4;
                 typeInfo.ssType = SSType.VECTOR;
-                int precisionByte = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
-                typeInfo.precision = (precisionByte == 0) ? 4 : 2;
+                int scaleByte = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
+                typeInfo.scale = (scaleByte == 0) ? 4 : 2;
 
             }
         });

@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type")
@@ -116,13 +115,21 @@ public class VectorTest extends AbstractTest {
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSql)) {
             pstmt.setInt(1, 42); 
-            pstmt.setObject(2, nullVector, microsoft.sql.Types.VECTOR, nullVector.getDimensionCount()); 
+            pstmt.setObject(2, nullVector, microsoft.sql.Types.VECTOR); 
             int rowsInserted = pstmt.executeUpdate();
 
             assertEquals(1, rowsInserted, "Expected one row to be inserted.");
-        } catch (SQLException e) {
-            e.printStackTrace();
-            fail(e.getMessage());
+        } 
+        String query = "SELECT id, v FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, 42);
+            try (ResultSet rs = stmt.executeQuery()) {
+
+                assertTrue(rs.next(), "No result found for inserted vector.");
+
+                Vector resultVector = rs.getObject("v", Vector.class);
+                assertEquals(null, resultVector);
+            }
         }
     }
 

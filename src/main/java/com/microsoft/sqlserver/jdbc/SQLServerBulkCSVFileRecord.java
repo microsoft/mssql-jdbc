@@ -423,7 +423,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
 
                         case microsoft.sql.Types.VECTOR: {
                             microsoft.sql.Vector vector = null;
-                            int dimensionCount = cm.scale;  
+                            int dimensionCount = cm.precision;  
                         
                             if (dimensionCount <= 0) {
                                 throw new SQLServerException("Invalid vector dimension count.", null, 0, null);

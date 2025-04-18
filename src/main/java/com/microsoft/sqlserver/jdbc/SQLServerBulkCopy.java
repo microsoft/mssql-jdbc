@@ -1041,9 +1041,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case microsoft.sql.Types.VECTOR: // 0xF5
                 tdsWriter.writeByte(TDSType.VECTOR.byteValue());
-                tdsWriter.writeShort((short) (8 + srcScale*4)); //length
-                byte precisionByte = (byte) (srcPrecision == 2 ? 0x01 : 0x00);
-                tdsWriter.writeByte((byte) precisionByte); //scale
+                tdsWriter.writeShort((short) (8 + srcScale * srcPrecision)); //length
+                byte srcByte = (byte) (srcScale == 2 ? 0x01 : 0x00);
+                tdsWriter.writeByte((byte) srcByte); //scale
                 break;
 
             case microsoft.sql.Types.DATETIME:
@@ -1394,8 +1394,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return SSType.VARBINARY.toString() + "(" + bulkPrecision + ")";
 
             case microsoft.sql.Types.VECTOR:
-                // For vector the value has to be between 0 to 8000.
-                return SSType.VECTOR.toString() + "(" + bulkScale + ")";
+                return SSType.VECTOR.toString() + "(" + bulkPrecision + ")";
             case microsoft.sql.Types.DATETIME:
             case microsoft.sql.Types.SMALLDATETIME:
             case java.sql.Types.TIMESTAMP:
@@ -1898,10 +1897,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      * Oracle 12c database returns precision = 0 for char/varchar data types.
      */
     private int validateSourcePrecision(int srcPrecision, int srcJdbcType, int destPrecision) {
-        if (srcJdbcType == microsoft.sql.Types.VECTOR) {
-            return destPrecision;
-        }
-        if ((1 > srcPrecision) && Util.isCharType(srcJdbcType)) {
+        if ((1 > srcPrecision) && Util.isCharType(srcJdbcType) && (srcJdbcType == microsoft.sql.Types.VECTOR)) {
             srcPrecision = destPrecision;
         }
         return srcPrecision;
@@ -2341,7 +2337,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         if (vector.data == null) {
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
-                            tdsWriter.writeShort((short) (8 + (bulkScale*4))); // Actual length
+                            tdsWriter.writeShort((short) (8 + (bulkScale*bulkPrecision))); // Actual length
                             tdsWriter.writeBytes(vector.toBytes()); // Write vector data
                         } 
                     }
