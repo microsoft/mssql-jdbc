@@ -2529,6 +2529,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             case java.sql.Types.BINARY:
             case java.sql.Types.LONGVARBINARY:
             case java.sql.Types.VARBINARY:
+            case microsoft.sql.Types.VECTOR:
                 // Spatial datatypes fall under Varbinary, check if the UDT is geometry/geography.
                 typeName = ti.getSSTypeName();
                 if ("geometry".equalsIgnoreCase(typeName) || "geography".equalsIgnoreCase(typeName)) {
