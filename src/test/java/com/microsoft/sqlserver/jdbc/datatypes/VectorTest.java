@@ -137,7 +137,8 @@ public class VectorTest extends AbstractTest {
                 assertTrue(rs.next(), "No result found for inserted vector.");
 
                 Vector resultVector = rs.getObject("v", Vector.class);
-                assertEquals(null, resultVector);
+                assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
+                assertNull(resultVector.getData(), "Expected null vector data.");
             }
         }
     }
