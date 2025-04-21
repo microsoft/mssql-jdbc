@@ -1038,9 +1038,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
     @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
-    void testGetSchemasWithAndWithoutCatalog() throws Exception {
-        String dbName = "TestDb_GetSchemas_Inline";
-        String schemaName = "TestSchema123";
+    public void testGetSchemasWithAndWithoutCatalog() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String dbName = "GetSchemas" + id;
+        String schemaName = "TestSchema" + id;
         String[] constSchemas = {
             "dbo", "guest", "INFORMATION_SCHEMA", "sys", "db_owner", "db_accessadmin",
             "db_securityadmin", "db_ddladmin", "db_backupoperator", "db_datareader",
@@ -1049,10 +1050,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
         try (Connection connection = getConnection();
             Statement stmt = connection.createStatement()) {
-
-            stmt.executeUpdate("IF DB_ID('" + dbName + "') IS NULL CREATE DATABASE " + dbName);
-            stmt.executeUpdate("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '" + schemaName + "') EXEC('CREATE SCHEMA " + schemaName + "')");
-        
+            TestUtils.dropDatabaseIfExists(dbName, connectionString);
+            stmt.execute(String.format("CREATE DATABASE [%s]", dbName));
+            stmt.execute(String.format("USE [%s]", dbName));
+            stmt.execute(String.format("CREATE SCHEMA [%s]", schemaName));
 
             ResultSet rs = connection.getMetaData().getSchemas(dbName, null );
             while (rs.next()) {
@@ -1063,7 +1064,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 assertNotNull(catalog, "TABLE_CATALOG should not be null for schema '" + schema + "' when catalog is specified");
             }
 
-            rs = connection.getMetaData().getSchemas(null, null );
+            rs = connection.getMetaData().getSchemas(null, null);
             while (rs.next()) {
                 String schema = rs.getString("TABLE_SCHEM");
                 String catalog = rs.getString("TABLE_CATALOG");
