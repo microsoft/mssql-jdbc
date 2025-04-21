@@ -911,6 +911,59 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test inserting vector data using prepared statement with bulk copy enabled for performance.
+     */
+    @Test
+    public void testInsertWithBulkCopyPerformance() throws SQLException {
+        String tableName = AbstractSQLGenerator.escapeIdentifier("BulkCopyVectorPerformanceTest");
+        // For testing, we can use a smaller set of records to avoid long execution time
+        int recordCount = 100; // Number of records to insert
+        int dimensionCount = 1998; // Dimension count for the vector
+        float[] vectorData = new float[dimensionCount];
+
+        // Initialize vector data
+        for (int i = 0; i < dimensionCount; i++) {
+            vectorData[i] = i + 0.5f;
+        }
+
+        // Drop the table if it already exists
+        try (Connection conn = PrepUtil.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertBatchSize=1000001;");
+                Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("IF OBJECT_ID('" + tableName + "', 'U') IS NOT NULL DROP TABLE " + tableName);
+        }
+
+        // Create the destination table with a single VECTOR column
+        try (Connection conn = PrepUtil.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertBatchSize=1000001;");
+                Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + tableName + " (vectorCol VECTOR(" + dimensionCount + "))");
+        }
+
+        long startTime = System.nanoTime();
+        try (Connection conn = PrepUtil.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertBatchSize=1000001")) {
+
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
+                    "INSERT INTO " + tableName + " (vectorCol) VALUES (?)")) {
+
+                for (int i = 1; i <= recordCount; i++) {
+                    microsoft.sql.Vector vector = new microsoft.sql.Vector(dimensionCount,
+                            microsoft.sql.Vector.VectorDimensionType.F32, vectorData);
+                    pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
+                    pstmt.addBatch();
+                }
+                // Execute the batch
+                pstmt.executeBatch();
+
+            }
+        }
+        long endTime = System.nanoTime();
+        long durationMs = (endTime - startTime) / 1_000_000;
+        System.out.println("Insert for " + recordCount + " records in " + durationMs + " ms.");
+    }
+
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
