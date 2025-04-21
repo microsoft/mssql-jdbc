@@ -325,6 +325,12 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         ds.setKeyStorePrincipalId(stringPropValue);
         assertTrue(ds.getKeyStorePrincipalId().equals(stringPropValue));
+        
+        ds.setQuotedIdentifier(stringPropValue);
+        assertTrue(ds.getQuotedIdentifier().equals(stringPropValue));
+        
+        ds.setConcatNullYieldsNull(stringPropValue);
+        assertTrue(ds.getConcatNullYieldsNull().equals(stringPropValue));
     }
 
     @Test
@@ -459,6 +465,128 @@ public class SQLServerConnectionTest extends AbstractTest {
             // make sure that connection is closed.
             if (null != pooledConnection)
                 pooledConnection.close();
+        }
+    }
+
+    /**
+     * Test connection properties: CONCAT_NULL_YIELDS_NULL with SQLServerXADataSource for new connection and pooled connection
+     * @throws SQLException
+     */
+    @Test
+    public void testConcatNullYieldsNull() throws SQLException {
+        // Server default is CONCAT_NULL_YIELDS_NULL = ON  
+        int expectedResultFlagOff = 0;
+        int expectedResultFlagOn = 1;
+        String sessionPropertyName = "CONCAT_NULL_YIELDS_NULL";
+        
+        // Test for concatNullYieldsNull flag is OFF
+        SQLServerDataSource dsWithOff = new SQLServerDataSource();
+        dsWithOff.setURL(connectionString);
+        dsWithOff.setConcatNullYieldsNull("OFF");
+        testSessionPropertyValueHelper(dsWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
+        // Test pooled connections
+        SQLServerXADataSource pdsWithOff = new SQLServerXADataSource();
+        pdsWithOff.setURL(connectionString);
+        pdsWithOff.setConcatNullYieldsNull("OFF");
+
+        PooledConnection pcWithOff = pdsWithOff.getPooledConnection();
+        try {
+            testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
+            // Repeat getConnection to put the physical connection through a RESETCONNECTION
+            testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);            
+        } finally {
+            if (null != pcWithOff) {
+                pcWithOff.close();
+            }
+        }
+        // Test for concatNullYieldsNull flag is ON
+        SQLServerDataSource dsWithOn = new SQLServerDataSource();
+        dsWithOn.setURL(connectionString);
+        dsWithOn.setConcatNullYieldsNull("ON");
+        testSessionPropertyValueHelper(dsWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
+        // Test pooled connections
+        SQLServerXADataSource pdsWithOn = new SQLServerXADataSource();
+        pdsWithOn.setURL(connectionString);
+        pdsWithOn.setConcatNullYieldsNull("ON");
+
+        PooledConnection pcWithOn = pdsWithOn.getPooledConnection();
+        try {
+            testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
+            // Repeat getConnection to put the physical connection through a RESETCONNECTION
+            testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);            
+        } finally {
+            if (null != pcWithOn) {
+                pcWithOn.close();
+            }
+        }
+    }
+
+    public void testSessionPropertyValueHelper(Connection con, String propName, int expectedResult) throws SQLException {
+        String sqlSelect = "SELECT SESSIONPROPERTY('" + propName + "')";
+        try (Statement statement = con.createStatement()) {
+            try (ResultSet rs = statement.executeQuery(sqlSelect)) {
+                if (rs.next()) {
+                    int actualResult = rs.getInt(1);
+                    MessageFormat form1 = new MessageFormat(
+                            TestResource.getResource("R_sessionPropertyFailed"));
+                    Object[] msgArgs1 = {expectedResult, propName, actualResult};
+                    assertEquals(expectedResult, actualResult, form1.format(msgArgs1));
+                } else {
+                    assertTrue(false, "Expected row of data was not found.");
+                }
+            }
+        }
+    }
+
+    /**
+     * Test connection properties: QUOTED_IDENTIFIER with SQLServerXADataSource for new connection and pooled connection
+     * @throws SQLException
+     */
+    @Test
+    public void testQuptedIdentifier() throws SQLException {
+        // Server default is QUOTED_IDENTIFIER = ON  
+        int expectedResultFlagOff = 0;
+        int expectedResultFlagOn = 1;
+        String sessionPropertyName = "QUOTED_IDENTIFIER";
+        
+        //Test for quotedIdentifier flag is OFF
+        SQLServerDataSource dsWithOff = new SQLServerDataSource();
+        dsWithOff.setURL(connectionString);
+        dsWithOff.setQuotedIdentifier("OFF");
+        testSessionPropertyValueHelper(dsWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
+        // Test pooled connections
+        SQLServerXADataSource pdsWithOff = new SQLServerXADataSource();
+        pdsWithOff.setURL(connectionString);
+        pdsWithOff.setQuotedIdentifier("OFF");
+        PooledConnection pcWithOff = pdsWithOff.getPooledConnection();
+        try {
+            testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
+            // Repeat getConnection to put the physical connection through a RESETCONNECTION
+            testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);         
+        } finally {
+            if (null != pcWithOff) {
+                pcWithOff.close();
+            }
+        }
+
+        // Test for quotedIdentifier flag is ON
+        SQLServerDataSource dsWithOn = new SQLServerDataSource();
+        dsWithOn.setURL(connectionString);
+        dsWithOn.setQuotedIdentifier("ON");
+        testSessionPropertyValueHelper(dsWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
+        // Test pooled connections
+        SQLServerXADataSource pdsWithOn = new SQLServerXADataSource();
+        pdsWithOn.setURL(connectionString);
+        pdsWithOn.setQuotedIdentifier("ON");
+        PooledConnection pcWithOn = pdsWithOn.getPooledConnection();
+        try {
+            testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
+            // Repeat getConnection to put the physical connection through a RESETCONNECTION
+            testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);         
+        } finally {
+            if (null != pcWithOn) {
+                pcWithOn.close();
+            }
         }
     }
 
