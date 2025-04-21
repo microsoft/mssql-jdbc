@@ -516,8 +516,6 @@ public class SQLServerConnectionTest extends AbstractTest {
             testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
             // Repeat getConnection to put the physical connection through a RESETCONNECTION
             testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);            
-        } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         } finally {
             if (null != pcWithOn) {
                 pcWithOn.close();
@@ -530,7 +528,11 @@ public class SQLServerConnectionTest extends AbstractTest {
         try (Statement statement = con.createStatement()) {
             try (ResultSet rs = statement.executeQuery(sqlSelect)) {
                 if (rs.next()) {
-                    assertEquals(expectedResult, rs.getInt(1));
+                    int actualResult = rs.getInt(1);
+                    MessageFormat form1 = new MessageFormat(
+                            TestResource.getResource("R_sessionPropertyFailed"));
+                    Object[] msgArgs1 = {expectedResult, propName, actualResult};
+                    assertEquals(expectedResult, actualResult, form1.format(msgArgs1));
                 } else {
                     assertTrue(false, "Expected row of data was not found.");
                 }
@@ -563,8 +565,6 @@ public class SQLServerConnectionTest extends AbstractTest {
             testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
             // Repeat getConnection to put the physical connection through a RESETCONNECTION
             testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);         
-        } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         } finally {
             if (null != pcWithOff) {
                 pcWithOff.close();
@@ -585,8 +585,6 @@ public class SQLServerConnectionTest extends AbstractTest {
             testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
             // Repeat getConnection to put the physical connection through a RESETCONNECTION
             testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);         
-        } catch (Exception e) {
-            fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         } finally {
             if (null != pcWithOn) {
                 pcWithOn.close();
