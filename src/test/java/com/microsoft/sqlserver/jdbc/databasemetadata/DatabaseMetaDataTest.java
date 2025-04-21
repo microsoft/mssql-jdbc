@@ -1120,29 +1120,36 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 con.setAutoCommit(false);
                 try (Statement stmt = con.createStatement()) {
                     TestUtils.dropTableIfExists(tableName, stmt);
-                    String createTableSQL = "CREATE TABLE " + tableName + " (" + col1Name + " INT, " + col2Name + " INT, "
+                    String createTableSQL = "CREATE TABLE " + tableName + " (" + col1Name + " INT, " + col2Name
+                            + " INT, "
                             + col3Name + " INT)";
 
                     stmt.executeUpdate(createTableSQL);
-                    assertNull(connection.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateTableConnection"));
+                    assertNull(connection.getWarnings(),
+                            TestResource.getResource("R_noSQLWarningsCreateTableConnection"));
                     assertNull(stmt.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateTableStatement"));
 
-                    String createClusteredIndexSQL = "CREATE CLUSTERED INDEX IDX_Clustered ON " + tableName + "(" + col1Name
+                    String createClusteredIndexSQL = "CREATE CLUSTERED INDEX IDX_Clustered ON " + tableName + "("
+                            + col1Name
                             + ")";
                     stmt.executeUpdate(createClusteredIndexSQL);
-                    assertNull(connection.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexConnection"));
+                    assertNull(connection.getWarnings(),
+                            TestResource.getResource("R_noSQLWarningsCreateIndexConnection"));
                     assertNull(stmt.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexStatement"));
 
-                    String createNonClusteredIndexSQL = "CREATE NONCLUSTERED INDEX IDX_NonClustered ON " + tableName + "("
+                    String createNonClusteredIndexSQL = "CREATE NONCLUSTERED INDEX IDX_NonClustered ON " + tableName
+                            + "("
                             + col2Name + ")";
                     stmt.executeUpdate(createNonClusteredIndexSQL);
-                    assertNull(connection.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexConnection"));
+                    assertNull(connection.getWarnings(),
+                            TestResource.getResource("R_noSQLWarningsCreateIndexConnection"));
                     assertNull(stmt.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexStatement"));
 
                     String createColumnstoreIndexSQL = "CREATE COLUMNSTORE INDEX IDX_Columnstore ON " + tableName + "("
                             + col3Name + ")";
                     stmt.executeUpdate(createColumnstoreIndexSQL);
-                    assertNull(connection.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexConnection"));
+                    assertNull(connection.getWarnings(),
+                            TestResource.getResource("R_noSQLWarningsCreateIndexConnection"));
                     assertNull(stmt.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexStatement"));
                 }
                 con.commit();
@@ -1179,7 +1186,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
                         + "    i.is_unique AS IsUnique, " + "    c.name AS ColumnName, "
                         + "    ic.key_ordinal AS ColumnOrder " + "FROM " + "    sys.indexes i " + "INNER JOIN "
                         + "    sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id "
-                        + "INNER JOIN " + "    sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id "
+                        + "INNER JOIN "
+                        + "    sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id "
                         + "INNER JOIN " + "    sys.tables t ON i.object_id = t.object_id " + "INNER JOIN "
                         + "    sys.schemas sch ON t.schema_id = sch.schema_id " +
 
