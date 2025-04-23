@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type")
@@ -413,6 +414,282 @@ public class VectorTest extends AbstractTest {
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("DROP TABLE IF EXISTS #vec_input;");
+            }
+        }
+    }
+
+    /**
+     * Test for inserting a vector into a table using SELECT INTO statement
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testSelectIntoForVector() throws SQLException {
+        String sourceTable = AbstractSQLGenerator.escapeIdentifier("srcTable");
+        String destinationTable = AbstractSQLGenerator.escapeIdentifier("desTable");
+
+        try (Statement stmt = connection.createStatement()) {
+            // Create the source table
+            String createSourceTableSql = "CREATE TABLE " + sourceTable + " (id INT, v VECTOR(3))";
+            stmt.executeUpdate(createSourceTableSql);
+
+            // Insert sample data into the source table
+            float[] vectorData = new float[] { 1.1f, 2.2f, 3.3f };
+            Vector vector = new Vector(3, VectorDimensionType.F32, vectorData);
+
+            String insertSql = "INSERT INTO " + sourceTable + " (id, v) VALUES (?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            float[] vectorData2 = null;
+            Vector vector2 = new Vector(3, VectorDimensionType.F32, vectorData2);
+
+            String insertSql2 = "INSERT INTO " + sourceTable + " (id, v) VALUES (?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSql2)) {
+                pstmt.setInt(1, 2);
+                pstmt.setObject(2, vector2, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            // Drop the destination table if it already exists
+            String dropTableSql = "IF OBJECT_ID('" + destinationTable + "', 'U') IS NOT NULL DROP TABLE "
+                    + destinationTable;
+            stmt.executeUpdate(dropTableSql);
+
+            // Perform the SELECT INTO operation
+            String selectIntoSql = "SELECT * INTO " + destinationTable + " FROM " + sourceTable;
+            stmt.executeUpdate(selectIntoSql);
+
+            // Validate the data in the destination table
+            String validateSql = "SELECT id, v FROM " + destinationTable + " ORDER BY id";
+            try (ResultSet rs = stmt.executeQuery(validateSql)) {
+                int rowCount = 0;
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    Vector resultVector = rs.getObject("v", Vector.class);
+
+                    assertNotNull(resultVector, "Vector is null in destination table for ID " + id);
+
+                    if (id == 1) {
+                        assertArrayEquals(vector.getData(), resultVector.getData(), 0.0001f,
+                                "Vector data mismatch in destination table for ID 1.");
+                    } else if (id == 2) {
+                        assertArrayEquals(vector2.getData(), resultVector.getData(), 0.0001f,
+                                "Vector data mismatch in destination table for ID 2.");
+                    } else {
+                        fail("Unexpected ID found in destination table: " + id);
+                    }
+                    rowCount++;
+                }
+                assertEquals(2, rowCount, "Row count mismatch in destination table.");
+            }
+        } finally {
+            // Cleanup: Drop the source and destination tables
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(sourceTable, stmt);
+                TestUtils.dropTableIfExists(destinationTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test vector insertion and retrieval in a global temporary table.
+     * Global temporary tables (##TempVector) are shared across sessions and persist
+     * until all sessions using them close.
+     */
+    @Test
+    public void testVectorInsertionInGlobalTempTable() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("##TempVector")));
+
+        String createTableSQL = "CREATE TABLE " + dstTable + " (id INT PRIMARY KEY, data VECTOR(3))";
+        String insertSQL = "INSERT INTO " + dstTable + " VALUES (?, ?)";
+        String selectSQL = "SELECT data FROM " + dstTable + " WHERE id = ?";
+
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(dstTable, stmt);
+            stmt.execute(createTableSQL);
+        }
+
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+            float[] vectorData = { 1.0f, 2.0f, 3.0f };
+            Vector vector = new Vector(3, Vector.VectorDimensionType.F32, vectorData);
+
+            pstmt.setInt(1, 1);
+            pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+        }
+
+        try (PreparedStatement pstmt = connection.prepareStatement(selectSQL)) {
+            pstmt.setInt(1, 1);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                assertTrue(rs.next());
+                Vector resultVector = rs.getObject(1, Vector.class);
+                assertNotNull(resultVector, "Retrieved vector is null.");
+                assertArrayEquals(new float[] { 1.0f, 2.0f, 3.0f }, resultVector.getData(), 0.0001f,
+                        "Vector data mismatch.");
+            }
+        }
+
+        // Ensure cleanup of the global temporary table
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(dstTable, stmt);
+        }
+    }
+
+    /**
+     * Test VECTOR insertion and retrieval in a local temporary table.
+     * Local temporary tables (#TempVector) are session-bound and deleted
+     * automatically when the session ends.
+     */
+    @Test
+    public void testVectorInsertionInLocalTempTable() throws SQLException {
+        try (SQLServerConnection conn = getConnection()) {
+            String dstTable = TestUtils
+                    .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("#TempVector")));
+            String createTableSQL = "CREATE TABLE " + dstTable + " (id INT PRIMARY KEY, data VECTOR(3))";
+            String insertSQL = "INSERT INTO " + dstTable + " VALUES (?, ?)";
+            String selectSQL = "SELECT data FROM " + dstTable + " WHERE id = ?";
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(createTableSQL);
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+                float[] vectorData = { 4.0f, 5.0f, 6.0f };
+                Vector vector = new Vector(3, Vector.VectorDimensionType.F32, vectorData);
+
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement(selectSQL)) {
+                pstmt.setInt(1, 1);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    Vector resultVector = rs.getObject(1, Vector.class);
+                    assertNotNull(resultVector, "Retrieved vector is null.");
+                    assertArrayEquals(new float[] { 4.0f, 5.0f, 6.0f }, resultVector.getData(), 0.0001f,
+                            "Vector data mismatch.");
+                }
+            }
+        } // Connection auto-closes here, so #TempVector is automatically dropped
+    }
+
+    /**
+     * Test for vector normalization using a UDF.
+     * The UDF normalizes the input vector and returns the normalized vector.
+     */
+    @Test
+    public void testVectorNormalizeUdf() throws SQLException {
+        String vectorsTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Vectors")));
+        String udfName = "dbo.udf2";
+
+        try (Statement stmt = connection.createStatement()) {
+            // Create the UDF
+            String createUdfSQL = "CREATE OR ALTER FUNCTION " + udfName + " (@p VECTOR(3)) " +
+                    "RETURNS TABLE AS " +
+                    "RETURN (SELECT vector_normalize(@p, 'norm2') AS d)";
+            stmt.execute(createUdfSQL);
+
+            // Create the table
+            String createTableSQL = "CREATE TABLE " + vectorsTable + " (id INT PRIMARY KEY, data VECTOR(3))";
+            stmt.execute(createTableSQL);
+
+            // Insert sample data
+            String insertSQL = "INSERT INTO " + vectorsTable + " (id, data) VALUES (?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+                float[] vectorData = { 1.0f, 2.0f, 3.0f };
+                Vector vector = new Vector(3, Vector.VectorDimensionType.F32, vectorData);
+
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            // Test the UDF
+            String udfTestSQL = "DECLARE @v VECTOR(3) = (SELECT data FROM " + vectorsTable + " WHERE id = 1); " +
+                    "SELECT * FROM " + udfName + "(@v)";
+
+            try (ResultSet rs = stmt.executeQuery(udfTestSQL)) {
+                assertTrue(rs.next(), "No result returned from UDF.");
+                Vector normalizedVector = rs.getObject("d", Vector.class);
+                assertNotNull(normalizedVector, "Normalized vector is null.");
+                float[] expectedNormalizedData = { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
+                assertArrayEquals(expectedNormalizedData, normalizedVector.getData(), 0.0001f,
+                        "Normalized vector mismatch.");
+            }
+        } finally {
+            // Cleanup: Drop the UDF and table
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropFunctionIfExists(udfName, stmt);
+                TestUtils.dropTableIfExists(vectorsTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test for vector normalization using a scalar-valued function.
+     * The function normalizes the input vector and returns the normalized vector.
+     */
+    @Test
+    public void testVectorNormalizeScalarFunction() throws SQLException {
+        String vectorsTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Vectors")));
+        String udfName = "dbo.svf";
+
+        try (Statement stmt = connection.createStatement()) {
+            // Drop table and UDF if they already exist
+            TestUtils.dropTableIfExists(vectorsTable, stmt);
+            String dropUdfSQL = "IF OBJECT_ID('" + udfName + "', 'FN') IS NOT NULL DROP FUNCTION " + udfName;
+            stmt.execute(dropUdfSQL);
+
+            // Create the scalar-valued function
+            String createUdfSQL = "CREATE FUNCTION " + udfName + " (@p VECTOR(3)) " +
+                    "RETURNS VECTOR(3) AS " +
+                    "BEGIN " +
+                    "    DECLARE @v VECTOR(3); " +
+                    "    SET @v = vector_normalize(@p, 'norm2'); " +
+                    "    RETURN @v; " +
+                    "END";
+            stmt.execute(createUdfSQL);
+
+            // Create the table
+            String createTableSQL = "CREATE TABLE " + vectorsTable + " (id INT PRIMARY KEY, data VECTOR(3))";
+            stmt.execute(createTableSQL);
+
+            // Insert sample data
+            String insertSQL = "INSERT INTO " + vectorsTable + " (id, data) VALUES (?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+                float[] vectorData = { 1.0f, 2.0f, 3.0f };
+                Vector vector = new Vector(3, Vector.VectorDimensionType.F32, vectorData);
+
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            // Test the scalar-valued function
+            String udfTestSQL = "DECLARE @v VECTOR(3) = (SELECT data FROM " + vectorsTable + " WHERE id = 1); " +
+                    "SELECT " + udfName + "(@v) AS normalizedVector";
+            try (ResultSet rs = stmt.executeQuery(udfTestSQL)) {
+                assertTrue(rs.next(), "No result returned from scalar-valued function.");
+                Vector normalizedVector = rs.getObject("normalizedVector", Vector.class);
+                assertNotNull(normalizedVector, "Normalized vector is null.");
+                float[] expectedNormalizedData = { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
+                assertArrayEquals(expectedNormalizedData, normalizedVector.getData(), 0.0001f,
+                        "Normalized vector mismatch.");
+            }
+        } finally {
+            // Cleanup: Drop the UDF and table
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropFunctionIfExists(udfName, stmt);
+                TestUtils.dropTableIfExists(vectorsTable, stmt);
             }
         }
     }
