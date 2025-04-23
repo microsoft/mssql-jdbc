@@ -284,6 +284,10 @@ public class VectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test for calling a stored procedure with vector input and output parameters. The expected behavior is that the
+     * database should accept the vector and return it as an output parameter.
+     */
     @Test
     public void testVectorStoredProcedureInputOutput() throws SQLException {
         createProcedure();
@@ -302,6 +306,10 @@ public class VectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test for inserting a vector into a TVP. The expected behavior is that the database should accept the vector and
+     * store it in the table.
+     */
     @Test
     public void testVectorTVP() throws SQLException {
         Vector expectedVector = new Vector(3, VectorDimensionType.F32, new float[]{0.1f, 0.2f, 0.3f});
@@ -327,6 +335,10 @@ public class VectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test for inserting a null vector into a TVP. The expected behavior is that the database should accept the null
+     * vector and store it as NULL in the database.
+     */
     @Test
     public void testNullVectorInsertTVP() throws SQLException {
         TestUtils.dropTableIfExists(TABLE_NAME, connection.createStatement());
@@ -352,8 +364,55 @@ public class VectorTest extends AbstractTest {
                         "SELECT c1 FROM " + AbstractSQLGenerator.escapeIdentifier(TABLE_NAME) + " ORDER BY rowId")) {
                 while (rs.next()) {
                     Vector actual = rs.getObject("c1", Vector.class);
-                    assertNull(actual, "Returned vector should be null");
+                    assertEquals(3, actual.getDimensionCount(), "Dimension count mismatch.");
+                    assertNull(actual.getData(), "Expected null vector data.");
                 }
+            }
+        }
+    }
+
+    private static void createVectorUdf() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            String sql =
+                "CREATE OR ALTER FUNCTION " + AbstractSQLGenerator.escapeIdentifier("EchoVectorUdf") + "\n" +
+                "(@v VECTOR(3))\n" +
+                "RETURNS VECTOR(3)\n" +
+                "AS\n" +
+                "BEGIN\n" +
+                "    RETURN @v;\n" +
+                "END";
+            stmt.execute(sql);
+        }
+    }
+    
+    /**
+     * Test for calling a vector UDF. The expected behavior is that the database should accept the vector and return it as
+     * an output parameter.
+     */
+    @Test
+    public void testVectorUdf() throws SQLException {
+        createVectorUdf();
+
+        Vector inputVector = new Vector(3, VectorDimensionType.F32, new float[]{1.1f, 2.2f, 3.3f});
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute("CREATE TABLE #vec_input (v VECTOR(3));");
+        }
+        try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO #vec_input VALUES (?);")) {
+            pstmt.setObject(1, inputVector, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+        }
+
+        String query = "SELECT dbo." + AbstractSQLGenerator.escapeIdentifier("EchoVectorUdf") + "((SELECT TOP 1 v FROM #vec_input));";
+        try (PreparedStatement selectStmt = connection.prepareStatement(query);
+            ResultSet rs = selectStmt.executeQuery()) {
+            assertTrue(rs.next(), "Result set is empty");
+
+            Vector result = rs.getObject(1, Vector.class);
+            assertNotNull(result, "Returned vector should not be null");
+            assertArrayEquals(inputVector.getData(), result.getData(), 0.0001f, "Vector data mismatch.");
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("DROP TABLE IF EXISTS #vec_input;");
             }
         }
     }
