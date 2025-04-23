@@ -30,6 +30,7 @@ import microsoft.sql.Vector.VectorDimensionType;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -693,4 +694,168 @@ public class VectorTest extends AbstractTest {
             }
         }
     }
+
+    /**
+     * Test for transaction rollback with VECTOR data type.
+     * This test simulates a transaction with insert, update, and delete operations,
+     * triggers a failure, and verifies that the rollback restores the original
+     * state.
+     */
+    @Test
+    public void testTransactionRollbackForVector() throws SQLException {
+        String transactionTable = AbstractSQLGenerator.escapeIdentifier("transactionTable");
+
+        // Create the table
+        try (Statement stmt = connection.createStatement()) {
+            String createTableSQL = "CREATE TABLE " + transactionTable + " (id INT PRIMARY KEY, v VECTOR(3))";
+            stmt.executeUpdate(createTableSQL);
+        }
+
+        // Insert initial data
+        float[] initialData = { 1.0f, 2.0f, 3.0f };
+        Vector initialVector = new Vector(3, Vector.VectorDimensionType.F32, initialData);
+
+        try (PreparedStatement pstmt = connection.prepareStatement(
+                "INSERT INTO " + transactionTable + " (id, v) VALUES (?, ?)")) {
+            pstmt.setInt(1, 1);
+            pstmt.setObject(2, initialVector, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+        }
+
+        // Start a transaction
+        connection.setAutoCommit(false);
+        try {
+            // Insert new data
+            float[] newData = { 4.0f, 5.0f, 6.0f };
+            Vector newVector = new Vector(3, Vector.VectorDimensionType.F32, newData);
+
+            try (PreparedStatement pstmt = connection.prepareStatement(
+                    "INSERT INTO " + transactionTable + " (id, v) VALUES (?, ?)")) {
+                pstmt.setInt(1, 2);
+                pstmt.setObject(2, newVector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            // Update existing data
+            float[] updatedData = { 7.0f, 8.0f, 9.0f };
+            Vector updatedVector = new Vector(3, Vector.VectorDimensionType.F32, updatedData);
+
+            try (PreparedStatement pstmt = connection.prepareStatement(
+                    "UPDATE " + transactionTable + " SET v = ? WHERE id = ?")) {
+                pstmt.setObject(1, updatedVector, microsoft.sql.Types.VECTOR);
+                pstmt.setInt(2, 1);
+                pstmt.executeUpdate();
+            }
+
+            // Delete a row
+            try (PreparedStatement pstmt = connection.prepareStatement(
+                    "DELETE FROM " + transactionTable + " WHERE id = ?")) {
+                pstmt.setInt(1, 2);
+                pstmt.executeUpdate();
+            }
+
+            // Simulate a failure
+            throw new RuntimeException("Simulated failure to trigger rollback");
+
+        } catch (RuntimeException e) {
+            // Rollback the transaction
+            connection.rollback();
+            System.out.println("Transaction rolled back due to: " + e.getMessage());
+        } finally {
+            // Restore auto-commit mode
+            connection.setAutoCommit(true);
+        }
+
+        // Validate that the data is restored to its original state
+        String validateSql = "SELECT id, v FROM " + transactionTable + " ORDER BY id";
+        try (Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery(validateSql)) {
+
+            assertTrue(rs.next(), "No data found in the table after rollback.");
+            int id = rs.getInt("id");
+            Vector resultVector = rs.getObject("v", Vector.class);
+
+            assertEquals(1, id, "ID mismatch after rollback.");
+            assertNotNull(resultVector, "Vector is null after rollback.");
+            assertArrayEquals(initialData, resultVector.getData(), 0.0001f, "Vector data mismatch after rollback.");
+
+            assertFalse(rs.next(), "Unexpected additional rows found after rollback.");
+        } finally {
+            // Cleanup: Drop the table
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(transactionTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test for creating and querying a view with VECTOR data type.
+     * This test creates a table with a VECTOR column, inserts data, creates a view
+     * on the table,
+     * and validates that the view correctly retrieves the VECTOR data.
+     */
+    @Test
+    public void testViewWithVectorDataType() throws SQLException {
+        String tableName = AbstractSQLGenerator.escapeIdentifier("VectorTable");
+        String viewName = AbstractSQLGenerator.escapeIdentifier("VectorView");
+
+        try (Statement stmt = connection.createStatement()) {
+            // Create the table
+            String createTableSQL = "CREATE TABLE " + tableName + " (id INT PRIMARY KEY, v VECTOR(3))";
+            stmt.executeUpdate(createTableSQL);
+
+            // Insert sample data into the table
+            float[] vectorData1 = { 1.1f, 2.2f, 3.3f };
+            Vector vector1 = new Vector(3, Vector.VectorDimensionType.F32, vectorData1);
+
+            float[] vectorData2 = { 4.4f, 5.5f, 6.6f };
+            Vector vector2 = new Vector(3, Vector.VectorDimensionType.F32, vectorData2);
+
+            String insertSQL = "INSERT INTO " + tableName + " (id, v) VALUES (?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, vector1, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+
+                pstmt.setInt(1, 2);
+                pstmt.setObject(2, vector2, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            // Create a view on the table
+            String createViewSQL = "CREATE VIEW " + viewName + " AS SELECT id, v FROM " + tableName;
+            stmt.executeUpdate(createViewSQL);
+
+            // Query the view and validate the data
+            String queryViewSQL = "SELECT id, v FROM " + viewName + " ORDER BY id";
+            try (ResultSet rs = stmt.executeQuery(queryViewSQL)) {
+                int rowCount = 0;
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    Vector resultVector = rs.getObject("v", Vector.class);
+
+                    assertNotNull(resultVector, "Vector is null in view for ID " + id);
+
+                    if (id == 1) {
+                        assertArrayEquals(vectorData1, resultVector.getData(), 0.0001f,
+                                "Vector data mismatch in view for ID 1.");
+                    } else if (id == 2) {
+                        assertArrayEquals(vectorData2, resultVector.getData(), 0.0001f,
+                                "Vector data mismatch in view for ID 2.");
+                    } else {
+                        fail("Unexpected ID found in view: " + id);
+                    }
+                    rowCount++;
+                }
+                assertEquals(2, rowCount, "Row count mismatch in view.");
+            }
+        } finally {
+            // Cleanup: Drop the view and table
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropViewIfExists(viewName, stmt);
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
+
 }
