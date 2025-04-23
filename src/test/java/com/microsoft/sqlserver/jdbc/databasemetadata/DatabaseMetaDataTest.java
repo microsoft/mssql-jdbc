@@ -1034,6 +1034,72 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test for VECTOR column metadata
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testVectorMetaData() throws SQLException {
+        String vectorTableName = RandomUtil.getIdentifier("vectorTable");
+
+        try (Statement stmt = connection.createStatement()) {
+            // Create a table with a VECTOR column
+            String sql = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(vectorTableName)
+                    + " (c1 VECTOR(3) NULL);";
+            stmt.execute(sql);
+
+            // Query the table and retrieve metadata
+            String query = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(vectorTableName);
+            try (Statement statement = connection.createStatement();
+                    ResultSet resultSet = statement.executeQuery(query)) {
+
+                ResultSetMetaData metaData = resultSet.getMetaData();
+                int columnCount = metaData.getColumnCount();
+                assertEquals(1, columnCount, "Column count should be 1");
+
+                // Validate column name
+                String columnName = metaData.getColumnName(1);
+                assertEquals("c1", columnName, "Column name should be 'c1'");
+
+                // Validate column type name
+                String columnType = metaData.getColumnTypeName(1);
+                assertTrue("VECTOR".equalsIgnoreCase(columnType), "Column type should be 'VECTOR'");
+
+                // Validate column type
+                int columnTypeInt = metaData.getColumnType(1);
+                assertEquals(microsoft.sql.Types.VECTOR, columnTypeInt,
+                        "Column type should be microsoft.sql.Types.VECTOR");
+
+                // Validate column display size
+                int columnDisplaySize = metaData.getColumnDisplaySize(1);
+                assertTrue(columnDisplaySize > 0, "Column display size should be greater than 0");
+
+                // Validate column precision
+                int columnPrecision = metaData.getPrecision(1);
+                assertEquals(3, columnPrecision, "Column precision should be same as dimensionCount");
+
+                // Validate column scale
+                int columnScale = metaData.getScale(1);
+                assertEquals(4, columnScale, "Column scale should be 4");
+
+                // Validate column is searchable
+                boolean columnSearchable = metaData.isSearchable(1);
+                assertFalse(columnSearchable, "Column should be non-searchable");
+
+                // Validate column class name
+                String columnClassName = metaData.getColumnClassName(1);
+                assertEquals(microsoft.sql.Vector.class.getName(), columnClassName,
+                        "Column class name should be 'microsoft.sql.Vector'");
+            }
+        } finally {
+            // Cleanup: Drop the table
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("DROP TABLE IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(vectorTableName));
+            }
+        }
+    }
+
     @BeforeAll
     public static void setupTable() throws Exception {
         setConnection();

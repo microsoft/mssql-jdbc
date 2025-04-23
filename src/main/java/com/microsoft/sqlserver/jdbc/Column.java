@@ -8,6 +8,8 @@ package com.microsoft.sqlserver.jdbc;
 import java.text.MessageFormat;
 import java.util.Calendar;
 
+import microsoft.sql.Vector.VectorDimensionType;
+
 
 /**
  * Column represents a database column definition (meta data) within a result set.
@@ -189,6 +191,12 @@ final class Column {
             SQLServerStatement statement) throws SQLServerException {
         Object value = getterDTV.getValue(jdbcType, typeInfo.getScale(), getterArgs, cal, typeInfo, cryptoMetadata,
                 tdsReader, statement);
+        if (jdbcType == JDBCType.VECTOR && value == null) {
+            int precision = typeInfo.getPrecision(); 
+            VectorDimensionType scale = typeInfo.getScale() == 4 ? VectorDimensionType.F32 : VectorDimensionType.F16;
+            microsoft.sql.Vector vector = new microsoft.sql.Vector(precision, scale, null);
+            value = vector;
+        }
         setInternalVariant(getterDTV.getInternalVariant());
         return (null != filter) ? filter.apply(value, jdbcType) : value;
     }
@@ -345,7 +353,7 @@ final class Column {
 
         // Update of binary SSType from textual JDBCType: Convert hex to binary.
         else if ((SSType.BINARY == ssType || SSType.VARBINARY == ssType || SSType.VARBINARYMAX == ssType
-                || SSType.IMAGE == ssType || SSType.UDT == ssType) &&
+                || SSType.IMAGE == ssType || SSType.UDT == ssType || SSType.VECTOR == ssType) &&
 
                 (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.LONGVARCHAR == jdbcType)) {
             jdbcType = JDBCType.VARBINARY;

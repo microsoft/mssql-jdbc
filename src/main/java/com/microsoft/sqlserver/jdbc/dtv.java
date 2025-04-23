@@ -115,6 +115,8 @@ abstract class DTVExecuteOp {
     abstract void execute(DTV dtv, TVP tvpValue) throws SQLServerException;
 
     abstract void execute(DTV dtv, SqlVariant sqlVariantValue) throws SQLServerException;
+
+    abstract void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException;
 }
 
 
@@ -1111,6 +1113,10 @@ final class DTV {
             tdsWriter.writeRPCUUID(name, uuidValue, isOutParam);
         }
 
+        void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException {
+            tdsWriter.writeRPCVector(name, vectorValue, isOutParam, outScale, valueLength);
+        }
+
         void execute(DTV dtv, byte[] byteArrayValue) throws SQLServerException {
             if (null != cryptoMeta) {
                 tdsWriter.writeRPCNameValType(name, isOutParam, TDSType.BIGVARBINARY);
@@ -1137,7 +1143,6 @@ final class DTV {
 
                     writeEncryptData(dtv, true);
                 }
-
             } else
                 tdsWriter.writeRPCByteArray(name, byteArrayValue, isOutParam, dtv.getJdbcType(), collation);
 
@@ -1586,6 +1591,10 @@ final class DTV {
                 case SQL_VARIANT:
                     op.execute(this, (SqlVariant) null);
                     break;
+                
+                case VECTOR:
+                    op.execute(this, (microsoft.sql.Vector) value);
+                    break;
 
                 case UNKNOWN:
                 default:
@@ -1810,6 +1819,10 @@ final class DTV {
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                     } else
                         op.execute(this, (byte[]) value);
+                    break;
+
+                case VECTOR:
+                    op.execute(this, (microsoft.sql.Vector) value);
                     break;
 
                 case BYTE:
@@ -2070,6 +2083,8 @@ final class AppDTVImpl extends DTVImpl {
         void execute(DTV dtv, Byte byteValue) throws SQLServerException {}
 
         void execute(DTV dtv, Integer intValue) throws SQLServerException {}
+
+        void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException {}
 
         void execute(DTV dtv, java.sql.Time timeValue) throws SQLServerException {
             if (dtv.getJdbcType().isTextual()) {
@@ -2992,6 +3007,29 @@ final class TypeInfo implements Serializable {
                 typeInfo.maxLength = tdsReader.readInt();
                 typeInfo.ssType = SSType.SQL_VARIANT;
             }
+        }),
+        
+        VECTOR(TDSType.VECTOR, new Strategy() {
+            /**
+             * Sets the fields of typeInfo to the correct values
+             * 
+             * @param typeInfo
+             *        the TypeInfo whos values are being corrected
+             * @param tdsReader
+             *        the TDSReader used to set the fields of typeInfo to the correct values
+             * @throws SQLServerException
+             *         when an error occurs
+             */
+            public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
+                typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
+                typeInfo.maxLength = tdsReader.readUnsignedShort();
+                typeInfo.displaySize = typeInfo.maxLength;
+                typeInfo.ssType = SSType.VECTOR;
+                int scaleByte = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
+                typeInfo.scale = (scaleByte == 0) ? 4 : 2;
+                typeInfo.precision = (typeInfo.maxLength - 8) / typeInfo.scale;
+
+            }
         });
 
         private final TDSType tdsType;
@@ -3551,6 +3589,7 @@ final class ServerDTVImpl extends DTVImpl {
             case BINARY:
             case VARBINARY:
             case VARBINARYMAX:
+            case VECTOR:
                 return DDC.convertBytesToObject(decryptedValue, jdbcType, baseTypeInfo);
 
             case DATE:
@@ -3769,6 +3808,7 @@ final class ServerDTVImpl extends DTVImpl {
                 case BINARY:
                 case VARBINARY:
                 case TIMESTAMP: // A special BINARY(8)
+                case VECTOR:
                 {
                     convertedValue = DDC.convertStreamToObject(
                             new SimpleInputStream(tdsReader, valueLength, streamGetterArgs, this), typeInfo, jdbcType,

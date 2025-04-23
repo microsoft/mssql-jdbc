@@ -355,6 +355,11 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
                         new ColumnMetadata(colName, java.sql.Types.BIT, precision, scale, dateTimeFormatter));
                 break;
 
+            case microsoft.sql.Types.VECTOR:
+                columnMetadata.put(positionInSource,
+                        new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));
+                break;
+
             default:
                 columnMetadata.put(positionInSource,
                         new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));

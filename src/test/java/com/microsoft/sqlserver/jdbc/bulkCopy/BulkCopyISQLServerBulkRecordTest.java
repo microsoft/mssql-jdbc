@@ -4,6 +4,9 @@
  */
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -33,6 +36,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -150,6 +154,149 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test bulk copy with a single Vector row.
+     */
+    @Test
+    public void testBulkCopyVector() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement dstStmt = conn.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (vectorCol VECTOR(3));");
+
+                bulkCopy.setDestinationTableName(dstTable);
+                float[] vectorData = new float[] { 1.0f, 2.0f, 3.0f };
+                microsoft.sql.Vector vector = new microsoft.sql.Vector(vectorData.length,
+                        microsoft.sql.Vector.VectorDimensionType.F32, vectorData);
+                VectorBulkData vectorBulkData = new VectorBulkData(vector, vectorData.length, vector.getVectorDimensionType());
+                bulkCopy.writeToServer(vectorBulkData);
+
+                String select = "SELECT * FROM " + dstTable;
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next());
+                    microsoft.sql.Vector resultVector = rs.getObject("vectorCol", microsoft.sql.Vector.class);
+                    assertNotNull(resultVector, "Retrieved vector is null.");
+                    assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
+                    assertArrayEquals(vectorData, resultVector.getData(), 0.0001f, "Vector data mismatch.");
+                }
+
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy with null Vector data.
+     */
+    @Test
+    public void testBulkCopyVectorNull() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        try (Connection conn = DriverManager.getConnection(connectionString);) {
+            try (Statement dstStmt = conn.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (vectorCol VECTOR(3));");
+
+                bulkCopy.setDestinationTableName(dstTable);
+                microsoft.sql.Vector vector = new microsoft.sql.Vector(3,
+                        microsoft.sql.Vector.VectorDimensionType.F32, null);
+                VectorBulkData vectorBulkData = new VectorBulkData(vector, 3, vector.getVectorDimensionType());
+                bulkCopy.writeToServer(vectorBulkData);
+
+                String select = "SELECT * FROM " + dstTable;
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    int rowCount = 0;
+                    while (rs.next()) {
+                        microsoft.sql.Vector vectorObject = rs.getObject("vectorCol", microsoft.sql.Vector.class);
+                        assertEquals(null, vectorObject, "Mismatch in vector data");
+                        rowCount++;
+                    }
+                    assertEquals(1, rowCount, "Row count mismatch after inserting null vector data.");
+                }
+
+            } catch (Exception e) {
+                fail(e.getMessage());
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy with a large number of records to check performance.
+     */
+    @Test
+    public void testBulkCopyPerformance() throws SQLException {
+        String tableName = AbstractSQLGenerator.escapeIdentifier("srcTable");
+        // For testing, we can use a smaller set of records to avoid long execution time
+        int recordCount = 100; // Number of records to insert
+        int dimensionCount = 1998; // Dimension count for the vector
+        float[] vectorData = new float[dimensionCount];
+
+        // Initialize vector data
+        for (int i = 0; i < dimensionCount; i++) {
+            vectorData[i] = i + 0.5f;
+        }
+
+        // Drop the table if it already exists
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("IF OBJECT_ID('" + tableName + "', 'U') IS NOT NULL DROP TABLE " + tableName);
+        }
+
+        // Create the destination table with a single VECTOR column
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + tableName + " (v VECTOR(" + dimensionCount + "))");
+        }
+
+        // Prepare bulk data
+        List<Object[]> bulkData = new ArrayList<>();
+        for (int i = 1; i <= recordCount; i++) {
+            microsoft.sql.Vector vector = new microsoft.sql.Vector(dimensionCount,
+                    microsoft.sql.Vector.VectorDimensionType.F32, vectorData);
+            bulkData.add(new Object[] { vector });
+        }
+
+        // Measure bulk copy performance
+        long startTime = System.nanoTime();
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+            SQLServerBulkCopyOptions bulkCopyOptions = new SQLServerBulkCopyOptions();
+            bulkCopyOptions.setBulkCopyTimeout(60000);
+            bulkCopyOptions.setBatchSize(1000001);
+            bulkCopy.setBulkCopyOptions(bulkCopyOptions);
+
+            bulkCopy.setDestinationTableName(tableName);
+
+            // Use VectorBulkData for bulk copy
+            ISQLServerBulkData vectorBulkData = new VectorBulkDataPerformance(bulkData, dimensionCount,
+                    microsoft.sql.Vector.VectorDimensionType.F32);
+            bulkCopy.writeToServer(vectorBulkData);
+        }
+        long endTime = System.nanoTime();
+
+        // Calculate and print performance metrics
+        long durationMs = (endTime - startTime) / 1_000_000;
+        System.out.println("Bulk copy completed for " + recordCount + " records in " + durationMs + " ms.");
+    }
+    
     class BulkData implements ISQLServerBulkData {
 
         private static final long serialVersionUID = 1L;
@@ -322,4 +469,121 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             return true;
         }
     }
+
+    public class VectorBulkData implements ISQLServerBulkData {
+        boolean anyMoreData = true;
+        Object[] data;
+        int precision;
+        microsoft.sql.Vector.VectorDimensionType scale;
+
+        VectorBulkData(Object data, int precision, microsoft.sql.Vector.VectorDimensionType scale) {
+            this.data = new Object[1];
+            this.data[0] = data;
+            this.scale = scale;
+            this.precision = precision;
+        }
+
+        @Override
+        public Set<Integer> getColumnOrdinals() {
+            Set<Integer> ords = new HashSet<>();
+            ords.add(1);
+            return ords;
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            return "vectorCol";
+        }
+
+        @Override
+        public int getColumnType(int column) {
+            return microsoft.sql.Types.VECTOR;
+        }
+
+        @Override
+        public int getPrecision(int column) {
+           return precision;
+        }
+
+        @Override
+        public int getScale(int column) {
+            if (scale == microsoft.sql.Vector.VectorDimensionType.F32) {
+                return 4;
+            } else if (scale == microsoft.sql.Vector.VectorDimensionType.F16) {
+                return 2;
+            } else {
+                return 0;
+            }
+        }
+
+        @Override
+        public Object[] getRowData() {
+            return data;
+        }
+
+        @Override
+        public boolean next() {
+            if (!anyMoreData)
+                return false;
+            anyMoreData = false;
+            return true;
+        }
+    }
+
+    public class VectorBulkDataPerformance implements ISQLServerBulkData {
+        List<Object[]> data;
+        int precision;
+        microsoft.sql.Vector.VectorDimensionType scale;
+        int counter = 0;
+
+        VectorBulkDataPerformance(List<Object[]> data, int precision, microsoft.sql.Vector.VectorDimensionType scale) {
+            this.data = data;
+            this.scale = scale;
+            this.precision = precision;
+        }
+
+        @Override
+        public Set<Integer> getColumnOrdinals() {
+            Set<Integer> ords = new HashSet<>();
+            ords.add(1);
+            return ords;
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            return "v";
+        }
+
+        @Override
+        public int getColumnType(int column) {
+            return microsoft.sql.Types.VECTOR;
+        }
+
+        @Override
+        public int getPrecision(int column) {
+           return precision;
+        }
+
+        @Override
+        public int getScale(int column) {
+            if (scale == microsoft.sql.Vector.VectorDimensionType.F32) {
+                return 4;
+            } else if (scale == microsoft.sql.Vector.VectorDimensionType.F16) {
+                return 2;
+            } else {
+                return 0;
+            }
+        }
+
+        @Override
+        public Object[] getRowData() {
+            return data.get(counter++);
+        }
+
+        @Override
+        public boolean next() {
+            return counter < data.size();
+        }
+    }
+
 }
