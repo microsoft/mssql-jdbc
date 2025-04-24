@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.JDBCType;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -46,6 +47,8 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+
+import microsoft.sql.Vector;
 
 
 /**
@@ -233,6 +236,270 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
                 }
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy from a varbinary source column to VECTOR as destination column.
+     * The operation should fail with an error: "Operand type clash: varbinary(max) is 
+     * incompatible with vector".
+     */
+    @Test
+    public void testBulkCopyVectorUsingBulkCopySourceAsVarBinary() {
+        String varbinaryTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarbinaryTable"));
+        String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
+
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                Statement statement = connection.createStatement()) {
+
+            // Create the source table with a varbinary column
+            statement.executeUpdate("CREATE TABLE " + varbinaryTable + " (varbinaryCol VARBINARY(MAX))");
+
+            // Insert sample data into the source table
+            statement.executeUpdate("INSERT INTO " + varbinaryTable + " (varbinaryCol) VALUES (0xDEADBEEF)");
+
+            // Create the destination table with a VECTOR column
+            statement.executeUpdate("CREATE TABLE " + vectorTable + " (vectorCol VECTOR(3))");
+
+            // Retrieve the data from the source table
+            String selectSql = "SELECT * FROM " + varbinaryTable;
+            try (ResultSet resultSet = statement.executeQuery(selectSql)) {
+
+                // Set up the bulk copy options
+                SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+                options.setKeepIdentity(false);
+                options.setBulkCopyTimeout(60); 
+
+                // Perform the bulk copy operation
+                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connection)) {
+                    bulkCopy.setDestinationTableName(vectorTable);
+                    bulkCopy.addColumnMapping("varbinaryCol", "vectorCol");
+                    bulkCopy.writeToServer(resultSet);
+                    fail("Expected SQLServerException was not thrown.");
+                }
+
+            } catch (SQLServerException e) {
+                // Verify the exception message
+                assertTrue(e.getMessage().contains("Operand type clash: varbinary(max) is incompatible with vector"),
+                        "Unexpected exception message: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            fail("Test failed with unexpected exception: " + e.getMessage());
+        } finally {
+            // Cleanup: Drop the tables
+            try (Connection connection = DriverManager.getConnection(connectionString);
+                    Statement statement = connection.createStatement()) {
+                TestUtils.dropTableIfExists(varbinaryTable, statement);
+                TestUtils.dropTableIfExists(vectorTable, statement);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy from a VECTOR source column to a VARBINARY(MAX) destination column.
+     * The operation should fail with an error: "Operand type clash: vector is
+     * incompatible with varbinary(max)".
+     */
+    @Test
+    public void testBulkCopyVectorUsingBulkCopyDestinationAsVarBinary1() {
+        String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
+        String varbinaryTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarbinaryTable"));
+
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                Statement statement = connection.createStatement()) {
+
+            // Create the source table with a VECTOR column
+            statement.executeUpdate("CREATE TABLE " + vectorTable + " (vectorCol VECTOR(3))");
+
+            // Insert sample data into the source table
+            float[] data = { 1.0f, 2.0f, 3.0f };
+            Vector vectorData = new Vector(3, Vector.VectorDimensionType.F32, data);
+
+            try (PreparedStatement pstmt = connection.prepareStatement(
+                    "INSERT INTO " + vectorTable + " (vectorCol) VALUES (?)")) {
+                pstmt.setObject(1, vectorData, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            // Create the destination table with a VARBINARY(MAX) column
+            statement.executeUpdate("CREATE TABLE " + varbinaryTable + " (varbinaryCol VARBINARY(MAX))");
+
+            // Retrieve the data from the source table
+            String selectSql = "SELECT * FROM " + vectorTable;
+            try (ResultSet resultSet = statement.executeQuery(selectSql)) {
+
+                // Set up the bulk copy options
+                SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+                options.setKeepIdentity(false);
+                options.setBulkCopyTimeout(60);
+
+                // Perform the bulk copy operation
+                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connection)) {
+                    bulkCopy.setDestinationTableName(varbinaryTable);
+                    bulkCopy.addColumnMapping("vectorCol", "varbinaryCol");
+                    bulkCopy.writeToServer(resultSet);
+                    fail("Expected SQLServerException was not thrown.");
+                }
+
+            } catch (SQLServerException e) {
+                // Verify the exception message
+                assertTrue(e.getMessage().contains("Operand type clash: vector is incompatible with varbinary(max)"),
+                        "Unexpected exception message: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            fail("Test failed with unexpected exception: " + e.getMessage());
+        } finally {
+            // Cleanup: Drop the tables
+            try (Connection connection = DriverManager.getConnection(connectionString);
+                    Statement statement = connection.createStatement()) {
+                TestUtils.dropTableIfExists(varbinaryTable, statement);
+                TestUtils.dropTableIfExists(vectorTable, statement);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy from a VARCHAR source column to a VECTOR destination column.
+     * The operation should succeed, and the data should be validated.
+     */
+    @Test
+    public void testBulkCopyVectorUsingBulkCopySourceAsVarchar() {
+        String varcharTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarcharTable"));
+        String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
+
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                Statement statement = connection.createStatement()) {
+
+            // Create the source table with a VARCHAR column
+            statement.executeUpdate("CREATE TABLE " + varcharTable + " (varcharCol VARCHAR(MAX))");
+
+            // Insert sample data into the source table
+            String vectorString = "[1.0, 2.0, 3.0]";
+            statement.executeUpdate("INSERT INTO " + varcharTable + " (varcharCol) VALUES ('" + vectorString + "')");
+
+            // Create the destination table with a VECTOR column
+            statement.executeUpdate("CREATE TABLE " + vectorTable + " (vectorCol VECTOR(3))");
+
+            // Retrieve the data from the source table
+            String selectSql = "SELECT * FROM " + varcharTable;
+            try (ResultSet resultSet = statement.executeQuery(selectSql)) {
+
+                // Set up the bulk copy options
+                SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+                options.setKeepIdentity(false);
+                options.setBulkCopyTimeout(60); 
+
+                // Perform the bulk copy operation
+                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connection)) {
+                    bulkCopy.setDestinationTableName(vectorTable);
+                    bulkCopy.addColumnMapping("varcharCol", "vectorCol");
+                    bulkCopy.writeToServer(resultSet);
+                }
+
+                // Validate the data in the destination table
+                String validateSql = "SELECT * FROM " + vectorTable;
+                try (ResultSet rs = statement.executeQuery(validateSql)) {
+                    assertTrue(rs.next(), "No data found in the destination table.");
+                    microsoft.sql.Vector resultVector = rs.getObject("vectorCol", microsoft.sql.Vector.class);
+                    assertNotNull(resultVector, "Retrieved vector is null.");
+                    assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
+                    assertEquals(microsoft.sql.Vector.VectorDimensionType.F32, resultVector.getVectorDimensionType(),
+                            "Vector dimension type mismatch.");
+                    assertArrayEquals(new float[] { 1.0f, 2.0f, 3.0f }, resultVector.getData(), 0.0001f,
+                            "Vector data mismatch.");
+                }
+
+            }
+
+        } catch (Exception e) {
+            fail("Test failed with unexpected exception: " + e.getMessage());
+        } finally {
+            // Cleanup: Drop the tables
+            try (Connection connection = DriverManager.getConnection(connectionString);
+                    Statement statement = connection.createStatement()) {
+                TestUtils.dropTableIfExists(varcharTable, statement);
+                TestUtils.dropTableIfExists(vectorTable, statement);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy from a VECTOR source column to a VARCHAR destination column.
+     * The operation should succeed, and the data should be validated.
+     */
+    @Test
+    public void testBulkCopyVectorUsingBulkCopyDestinationAsVarchar() {
+        String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
+        String varcharTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarcharTable"));
+
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                Statement statement = connection.createStatement()) {
+
+            // Create the source table with a VECTOR column
+            statement.executeUpdate("CREATE TABLE " + vectorTable + " (vectorCol VECTOR(3))");
+
+            // Insert sample data into the source table
+            float[] data = new float[] { 1.0f, 2.0f, 3.0f };
+            microsoft.sql.Vector vector = new microsoft.sql.Vector(data.length,
+                    microsoft.sql.Vector.VectorDimensionType.F32, data);
+            try (PreparedStatement pstmt = connection.prepareStatement(
+                    "INSERT INTO " + vectorTable + " (vectorCol) VALUES (?)")) {
+                pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            // Create the destination table with a VARCHAR column
+            statement.executeUpdate("CREATE TABLE " + varcharTable + " (varcharCol VARCHAR(MAX))");
+
+            // Retrieve the data from the source table
+            String selectSql = "SELECT * FROM " + vectorTable;
+            try (ResultSet resultSet = statement.executeQuery(selectSql)) {
+
+                // Set up the bulk copy options
+                SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+                options.setKeepIdentity(false);
+                options.setBulkCopyTimeout(60); 
+
+                // Perform the bulk copy operation
+                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connection)) {
+                    bulkCopy.setDestinationTableName(varcharTable);
+                    bulkCopy.addColumnMapping("vectorCol", "varcharCol");
+                    bulkCopy.writeToServer(resultSet);
+                }
+
+                // Validate the data in the destination table
+                String validateSql = "SELECT * FROM " + varcharTable;
+                try (ResultSet rs = statement.executeQuery(validateSql)) {
+                    assertTrue(rs.next(), "No data found in the destination table.");
+                    String resultString = rs.getString("varcharCol");
+                    assertNotNull(resultString, "Retrieved string is null.");
+                    assertEquals("[1.0000000e+000,2.0000000e+000,3.0000000e+000]", resultString,
+                     "String data mismatch.");
+                }
+
+            }
+
+        } catch (Exception e) {
+            fail("Test failed with unexpected exception: " + e.getMessage());
+        } finally {
+            // Cleanup: Drop the tables
+            try (Connection connection = DriverManager.getConnection(connectionString);
+                    Statement statement = connection.createStatement()) {
+                TestUtils.dropTableIfExists(varcharTable, statement);
+                TestUtils.dropTableIfExists(vectorTable, statement);
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
         }
     }
