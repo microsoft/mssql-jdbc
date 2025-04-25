@@ -22,6 +22,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLPermission;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
@@ -7473,7 +7474,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
         loggerExternal.entering(loggingClassName, "releaseSavepoint", savepoint);
-        SQLServerException.throwNotSupportedException(this, null);
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_featureNotSupported"));
+        Object[] msgArgs = {"releaseSavepoint"};
+        throw new SQLFeatureNotSupportedException(form.format(msgArgs));
     }
 
     final private Savepoint setNamedSavepoint(String sName) throws SQLServerException {
