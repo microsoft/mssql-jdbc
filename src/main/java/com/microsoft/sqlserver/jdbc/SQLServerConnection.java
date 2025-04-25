@@ -3023,13 +3023,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             SQLServerException.getErrString("R_IntegratedAuthenticationWithUserPassword"), null);
                 }
 
-                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())
-                        && ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
-                                .isEmpty())
-                                || (activeConnectionProperties
-                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForActivePassword"),
-                            null);
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())) {
+                    if (connectionlogger.isLoggable(Level.WARNING)) {
+                        connectionlogger.warning(this.toString()
+                                + "ActiveDirectoryPassword authentication method is deprecated.");
+                    }
+
+                    if(((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
+                            .isEmpty())
+                            || (activeConnectionProperties
+                                    .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForActivePassword"),
+                                null);
+                    }
                 }
 
                 if (authenticationString
