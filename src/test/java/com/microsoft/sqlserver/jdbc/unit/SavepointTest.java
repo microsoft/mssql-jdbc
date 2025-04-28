@@ -4,12 +4,14 @@
  */
 package com.microsoft.sqlserver.jdbc.unit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.text.MessageFormat;
 
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -136,4 +138,23 @@ public class SavepointTest extends AbstractTest {
             } catch (SQLException e) {}
         }
     }
+
+    /**
+     * Test releaseSavepoint.
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testReleaseSavepoint() throws SQLException {
+        try (Connection connection = getConnection()) {
+            try {
+                connection.releaseSavepoint(null);
+            } catch (SQLException e) {
+                assertEquals(e.getClass(), SQLFeatureNotSupportedException.class, "Expected exception type " + SQLFeatureNotSupportedException.class.getName() + ", but received " + e.getClass().getName());
+
+                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_featureNotSupported")));
+            }
+        }
+    }
+
 }

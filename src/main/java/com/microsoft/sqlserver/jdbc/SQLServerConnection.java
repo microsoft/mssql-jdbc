@@ -22,6 +22,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLPermission;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
@@ -2038,7 +2039,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             return this;
     }
 
-    final void resetPooledConnection() {
+    final void resetPooledConnection() throws SQLServerException {
         tdsChannel.resetPooledConnection();
         initResettableValues();
 
@@ -2051,6 +2052,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (null != bulkCopyOperationCache) {
             bulkCopyOperationCache.clear();
         }
+
+        setSessionProperties();        
     }
 
     /**
@@ -3021,13 +3024,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             SQLServerException.getErrString("R_IntegratedAuthenticationWithUserPassword"), null);
                 }
 
-                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())
-                        && ((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
-                                .isEmpty())
-                                || (activeConnectionProperties
-                                        .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForActivePassword"),
-                            null);
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())) {
+                    if (connectionlogger.isLoggable(Level.WARNING)) {
+                        connectionlogger.warning(this.toString()
+                                + "ActiveDirectoryPassword authentication method is deprecated.");
+                    }
+
+                    if(((activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
+                            .isEmpty())
+                            || (activeConnectionProperties
+                                    .getProperty(SQLServerDriverStringProperty.PASSWORD.toString()).isEmpty()))) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_NoUserPasswordForActivePassword"),
+                                null);
+                    }
                 }
 
                 if (authenticationString
@@ -3530,7 +3539,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             state = State.OPENED;
-
+            setSessionProperties();
+            
             // Socket timeout is bounded by loginTimeout during the login phase.
             // Reset socket timeout back to the original value.
             tdsChannel.resetTcpSocketTimeout();
@@ -3550,6 +3560,40 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
         }
         return this;
+    }
+
+    private void setSessionProperties() throws SQLServerException {
+        // check QUOTED_IDENTIFIER property
+        String quotedIdentifierProperty = SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString();
+        String quotedIdentifierValue = activeConnectionProperties.getProperty(quotedIdentifierProperty);
+        if (null != quotedIdentifierValue) {
+            OnOffOption quotedIdentifierOption = OnOffOption.valueOfString(quotedIdentifierValue);
+            activeConnectionProperties.setProperty(quotedIdentifierProperty, quotedIdentifierValue);
+            switch (quotedIdentifierOption) {
+                case ON:
+                    connectionCommand("SET QUOTED_IDENTIFIER ON", "quotedIdentifier");
+                    break;
+                case OFF:
+                    connectionCommand("SET QUOTED_IDENTIFIER OFF", "quotedIdentifier");
+                    break;
+            }
+        }
+
+        // check CONCAT_NULL_YIELDS_NULL property
+        String concatNullYieldsNullProperty = SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString();
+        String concatNullYieldsNullValue = activeConnectionProperties.getProperty(concatNullYieldsNullProperty);
+        if (null != concatNullYieldsNullValue) {
+            OnOffOption concatNullYieldsOption = OnOffOption.valueOfString(concatNullYieldsNullValue);
+            activeConnectionProperties.setProperty(concatNullYieldsNullProperty, concatNullYieldsNullValue);
+            switch (concatNullYieldsOption) {
+                case ON:
+                    connectionCommand("SET CONCAT_NULL_YIELDS_NULL ON", "concatNullYields");        
+                    break;
+                case OFF:
+                    connectionCommand("SET CONCAT_NULL_YIELDS_NULL OFF", "concatNullYields");
+                    break;
+            }
+        }
     }
 
     // log open connection failures
@@ -4786,6 +4830,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
              */
             boolean commandComplete = false;
             try {
+                newCommand.createCounter(null, activeConnectionProperties);
                 commandComplete = newCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(newCommand));
             } finally {
                 /*
@@ -7429,7 +7474,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     @Override
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
         loggerExternal.entering(loggingClassName, "releaseSavepoint", savepoint);
-        SQLServerException.throwNotSupportedException(this, null);
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_featureNotSupported"));
+        Object[] msgArgs = {"releaseSavepoint"};
+        throw new SQLFeatureNotSupportedException(form.format(msgArgs));
     }
 
     final private Savepoint setNamedSavepoint(String sName) throws SQLServerException {
