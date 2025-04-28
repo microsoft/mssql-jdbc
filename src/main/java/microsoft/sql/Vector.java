@@ -116,12 +116,27 @@ public final class Vector implements java.io.Serializable {
         return data;
     }
 
+    public int getDimensionCount() {
+        return dimensionCount;
+    }
+
     public VectorDimensionType getVectorDimensionType() {
         return vectorType;
     }
 
-    public int getDimensionCount() {
-        return dimensionCount;
+    /**
+     * Returns the vector dimension type based on the scale.
+     * F32 for 0, F16 for 1
+     */
+    public static VectorDimensionType getVectorDimensionType(int scale) {
+        switch (scale) {
+            case 0:
+                return VectorDimensionType.F32; 
+            case 1:
+                return VectorDimensionType.F16; 
+            default:
+                return VectorDimensionType.F32; // Default case
+        }
     }
 
     /**
