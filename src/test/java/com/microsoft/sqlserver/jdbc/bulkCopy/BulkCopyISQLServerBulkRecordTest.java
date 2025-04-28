@@ -505,6 +505,65 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     }
 
     /**
+     * Test bulk copy from a VECTOR source column to a VARCHAR destination column with different dimensions.
+     * The operation should fail with an error: "The vector dimensions 3 and 4 do not match."
+     */
+    @Test
+    public void testBulkCopyVectorWithMismatchedDimensions() {
+        String srcTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testSrcTable"));
+        String desTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testDesTable"));
+
+        try (Connection connection = DriverManager.getConnection(connectionString);
+                Statement statement = connection.createStatement()) {
+
+            // Create the source table with a VECTOR column
+            statement.executeUpdate("CREATE TABLE " + srcTable + " (vectorCol1 VECTOR(3))");
+
+            // Insert sample data into the source table
+            float[] data = new float[] { 1.0f, 2.0f, 3.0f };
+            microsoft.sql.Vector vector = new microsoft.sql.Vector(data.length,
+                    microsoft.sql.Vector.VectorDimensionType.F32, data);
+            try (PreparedStatement pstmt = connection.prepareStatement(
+                    "INSERT INTO " + srcTable + " (vectorCol1) VALUES (?)")) {
+                pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            // Create the destination table with a VARCHAR column
+            statement.executeUpdate("CREATE TABLE " + desTable + " (vectorCol2 VECTOR(4))");
+
+            // Retrieve the data from the source table
+            String selectSql = "SELECT * FROM " + srcTable;
+            try (ResultSet resultSet = statement.executeQuery(selectSql);
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connection)) {
+
+                // Set up the bulk copy options
+                SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+                options.setKeepIdentity(false);
+                options.setBulkCopyTimeout(60); 
+
+                bulkCopy.setDestinationTableName(desTable);
+                bulkCopy.addColumnMapping("vectorCol1", "vectorCol2");
+                bulkCopy.writeToServer(resultSet);
+            }
+
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("The vector dimensions 3 and 4 do not match."),
+                    "Unexpected error message: " + e.getMessage());
+        } finally {
+            // Cleanup: Drop the tables
+            try (Connection connection = DriverManager.getConnection(connectionString);
+                    Statement statement = connection.createStatement()) {
+                TestUtils.dropTableIfExists(srcTable, statement);
+                TestUtils.dropTableIfExists(desTable, statement);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    /**
      * Test bulk copy with a large number of records to check performance.
      */
     @Test
