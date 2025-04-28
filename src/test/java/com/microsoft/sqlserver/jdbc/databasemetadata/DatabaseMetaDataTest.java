@@ -1181,10 +1181,10 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 boolean hasNonClusteredIndex = false;
                 boolean hasColumnstoreIndex = false;
 
-                String query = "SELECT " + "    db_name() AS CatalogName, " + "    sch.name AS SchemaName, "
-                        + "    t.name AS TableName, " + "    i.name AS IndexName, " + "    i.type_desc AS IndexType, "
-                        + "    i.is_unique AS IsUnique, " + "    c.name AS ColumnName, "
-                        + "    ic.key_ordinal AS ColumnOrder " + "FROM " + "    sys.indexes i " + "INNER JOIN "
+                String query = "SELECT " + "    db_name() AS TABLE_CAT, " + "    sch.name AS TABLE_SCHEM, "
+                        + "    t.name AS TABLE_NAME, " + "    i.name AS INDEX_NAME, " + "    i.type_desc AS TYPE, "
+                        + "    i.is_unique AS NON_UNIQUE, " + "    c.name AS COLUMN_NAME, "
+                        + "    ic.key_ordinal AS ORDINAL_POSITION " + "FROM " + "    sys.indexes i " + "INNER JOIN "
                         + "    sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id "
                         + "INNER JOIN "
                         + "    sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id "
@@ -1196,23 +1196,23 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 rs2 = stmt.executeQuery(query);
 
                 while (rs1.next() && rs2.next()) {
-                    String indexType = rs1.getString("IndexType");
-                    String indexName = rs1.getString("IndexName");
-                    String catalogName = rs1.getString("CatalogName");
-                    String schemaName = rs1.getString("SchemaName");
-                    String tableName = rs1.getString("TableName");
-                    boolean isUnique = rs1.getBoolean("IsUnique");
-                    String columnName = rs1.getString("ColumnName");
-                    int columnOrder = rs1.getInt("ColumnOrder");
+                    String indexType = rs1.getString("TYPE");
+                    String indexName = rs1.getString("INDEX_NAME");
+                    String catalogName = rs1.getString("TABLE_CAT");
+                    String schemaName = rs1.getString("TABLE_SCHEM");
+                    String tableName = rs1.getString("TABLE_NAME");
+                    boolean isUnique = rs1.getBoolean("NON_UNIQUE");
+                    String columnName = rs1.getString("COLUMN_NAME");
+                    int columnOrder = rs1.getInt("ORDINAL_POSITION");
 
-                    assertEquals(catalogName, rs2.getString("CatalogName"));
-                    assertEquals(schemaName, rs2.getString("SchemaName"));
-                    assertEquals(tableName, rs2.getString("TableName"));
-                    assertEquals(indexName, rs2.getString("IndexName"));
-                    assertEquals(indexType, rs2.getString("IndexType"));
-                    assertEquals(isUnique, rs2.getBoolean("IsUnique"));
-                    assertEquals(columnName, rs2.getString("ColumnName"));
-                    assertEquals(columnOrder, rs2.getInt("ColumnOrder"));
+                    assertEquals(catalogName, rs2.getString("TABLE_CAT"));
+                    assertEquals(schemaName, rs2.getString("TABLE_SCHEM"));
+                    assertEquals(tableName, rs2.getString("TABLE_NAME"));
+                    assertEquals(indexName, rs2.getString("INDEX_NAME"));
+                    assertEquals(indexType, rs2.getString("TYPE"));
+                    assertEquals(isUnique, rs2.getBoolean("NON_UNIQUE"));
+                    assertEquals(columnName, rs2.getString("COLUMN_NAME"));
+                    assertEquals(columnOrder, rs2.getInt("ORDINAL_POSITION"));
 
                     if (indexType.contains("COLUMNSTORE")) {
                         hasColumnstoreIndex = true;
@@ -1242,23 +1242,23 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 rs2 = dbMetadata.getIndexInfo(catalog, schema, table.toUpperCase(), false, false);
 
                 while (rs1.next() && rs2.next()) {
-                    String indexType = rs1.getString("IndexType");
-                    String indexName = rs1.getString("IndexName");
-                    String catalogName = rs1.getString("CatalogName");
-                    String schemaName = rs1.getString("SchemaName");
-                    String tableName = rs1.getString("TableName");
-                    boolean isUnique = rs1.getBoolean("IsUnique");
-                    String columnName = rs1.getString("ColumnName");
-                    int columnOrder = rs1.getInt("ColumnOrder");
+                    String indexType = rs1.getString("TYPE");
+                    String indexName = rs1.getString("INDEX_NAME");
+                    String catalogName = rs1.getString("TABLE_CAT");
+                    String schemaName = rs1.getString("TABLE_SCHEM");
+                    String tableName = rs1.getString("TABLE_NAME");
+                    boolean isUnique = rs1.getBoolean("NON_UNIQUE");
+                    String columnName = rs1.getString("COLUMN_NAME");
+                    int columnOrder = rs1.getInt("ORDINAL_POSITION");
 
-                    assertEquals(catalogName, rs2.getString("CatalogName"));
-                    assertEquals(schemaName, rs2.getString("SchemaName"));
-                    assertEquals(tableName, rs2.getString("TableName"));
-                    assertEquals(indexName, rs2.getString("IndexName"));
-                    assertEquals(indexType, rs2.getString("IndexType"));
-                    assertEquals(isUnique, rs2.getBoolean("IsUnique"));
-                    assertEquals(columnName, rs2.getString("ColumnName"));
-                    assertEquals(columnOrder, rs2.getInt("ColumnOrder"));
+                    assertEquals(catalogName, rs2.getString("TABLE_CAT"));
+                    assertEquals(schemaName, rs2.getString("TABLE_SCHEM"));
+                    assertEquals(tableName, rs2.getString("TABLE_NAME"));
+                    assertEquals(indexName, rs2.getString("INDEX_NAME"));
+                    assertEquals(indexType, rs2.getString("TYPE"));
+                    assertEquals(isUnique, rs2.getBoolean("NON_UNIQUE"));
+                    assertEquals(columnName, rs2.getString("COLUMN_NAME"));
+                    assertEquals(columnOrder, rs2.getInt("ORDINAL_POSITION"));
                 }
             }
         }

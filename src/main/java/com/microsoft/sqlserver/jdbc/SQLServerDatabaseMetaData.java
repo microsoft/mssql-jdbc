@@ -265,14 +265,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     private static final String SQL_KEYWORDS = createSqlKeyWords();
 
-    private static final String INDEX_INFO_QUERY = "SELECT db_name() AS CatalogName, " +
-    "sch.name AS SchemaName, " +
-    "t.name AS TableName, " +
-    "i.name AS IndexName, " +
-    "i.type_desc AS IndexType, " +
-    "i.is_unique AS IsUnique, " +
-    "c.name AS ColumnName, " +
-    "ic.key_ordinal AS ColumnOrder " +
+    private static final String INDEX_INFO_QUERY = "SELECT db_name() AS TABLE_CAT, " +
+    "sch.name AS TABLE_SCHEM, " +
+    "t.name AS TABLE_NAME, " +
+    "i.name AS INDEX_NAME, " +
+    "i.type_desc AS TYPE, " +
+    "i.is_unique AS NON_UNIQUE, " +
+    "c.name AS COLUMN_NAME, " +
+    "ic.key_ordinal AS ORDINAL_POSITION " +
     "FROM sys.indexes i " +
     "INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id " +
     "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
