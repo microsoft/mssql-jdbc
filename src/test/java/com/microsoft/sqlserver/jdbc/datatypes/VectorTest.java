@@ -145,6 +145,77 @@ public class VectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test for inserting a vector from one table to another using setObject(getObject()).
+     * The expected behavior is that the database should accept the vector and store it in the destination table.
+     */
+    @Test
+    public void testInsertFromTableWithNullVectorData() throws SQLException {
+        String sourceTable = AbstractSQLGenerator.escapeIdentifier("SourceTable");
+        String destinationTable = AbstractSQLGenerator.escapeIdentifier("DestinationTable");
+
+        try (Statement stmt = connection.createStatement()) {
+            // Create the source table
+            String createSourceTableSQL = "CREATE TABLE " + sourceTable + " (id INT PRIMARY KEY, v VECTOR(3))";
+            stmt.executeUpdate(createSourceTableSQL);
+
+            // Insert rows with null vector data into the source table
+            String insertSourceSQL = "INSERT INTO " + sourceTable + " (id, v) VALUES (?, ?)";
+            Vector nullVector = new Vector(3, VectorDimensionType.F32, null); // Null vector data
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSourceSQL)) {
+                for (int i = 1; i <= 3; i++) {
+                    pstmt.setInt(1, i);
+                    pstmt.setObject(2, nullVector, microsoft.sql.Types.VECTOR);
+                    pstmt.executeUpdate();
+                }
+            }
+
+            // Create the destination table
+            String createDestinationTableSQL = "CREATE TABLE " + destinationTable
+                    + " (id INT PRIMARY KEY, v VECTOR(3))";
+            stmt.executeUpdate(createDestinationTableSQL);
+
+            // Insert data from the source table to the destination table using
+            // setObject(getObject())
+            String selectSourceSQL = "SELECT id, v FROM " + sourceTable;
+            String insertDestinationSQL = "INSERT INTO " + destinationTable + " (id, v) VALUES (?, ?)";
+            try (PreparedStatement selectStmt = connection.prepareStatement(selectSourceSQL);
+                    PreparedStatement insertStmt = connection.prepareStatement(insertDestinationSQL);
+                    ResultSet rs = selectStmt.executeQuery()) {
+
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    insertStmt.setInt(1, id);
+                    insertStmt.setObject(2, rs.getObject("v", Vector.class), microsoft.sql.Types.VECTOR); // Use
+                                                                                                          // setObject(getObject())
+                    insertStmt.executeUpdate();
+                }
+            }
+
+            // Validate the data in the destination table
+            String validateSQL = "SELECT id, v FROM " + destinationTable + " ORDER BY id";
+            try (ResultSet rs = stmt.executeQuery(validateSQL)) {
+                int rowCount = 0;
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    Vector resultVector = rs.getObject("v", Vector.class);
+
+                    assertNotNull(id, "ID should not be null.");
+                    assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
+                    assertNull(resultVector.getData(), "Expected null vector data.");
+                    rowCount++;
+                }
+                assertEquals(3, rowCount, "Row count mismatch in destination table.");
+            }
+        } finally {
+            // Cleanup: Drop the source and destination tables
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(sourceTable, stmt);
+                TestUtils.dropTableIfExists(destinationTable, stmt);
+            }
+        }
+    }
+
     @Test
     void validateMaxVectorData() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName)

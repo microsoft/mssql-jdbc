@@ -71,6 +71,8 @@ public class BulkCopyCSVTest extends AbstractTest {
     static String inputFileMultipleDoubleQuotes = "BulkCopyCSVTestInputMultipleDoubleQuotes.csv";
     static String computeColumnCsvFile = "BulkCopyCSVTestInputComputeColumn.csv";
     static String vectorInputCsvFile = "BulkCopyCSVTestInputWithVector.csv";
+    static String vectorInputCsvFileWithMultipleColumn = "BulkCopyCSVTestInputWithMultipleVectorColumn.csv";
+    static String vectorInputCsvFileWithMultipleColumnWithPipeDelimiter = "BulkCopyCSVTestWithMultipleVectorColumnWithPipeDelimiter.csv";
     static String encoding = "UTF-8";
     static String delimiter = ",";
 
@@ -577,6 +579,7 @@ public class BulkCopyCSVTest extends AbstractTest {
             SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
             options.setKeepIdentity(false);
             options.setTableLock(true);
+            options.setBulkCopyTimeout(60);
             bulkCopy.setBulkCopyOptions(options);
 
             bulkCopy.writeToServer(fileRecord);
@@ -588,23 +591,146 @@ public class BulkCopyCSVTest extends AbstractTest {
 
                 // Expected data from the CSV file
                 List<String> expectedData = Arrays.asList(
-                        "[1.0, 9.0, 9.0]",
-                        "[9.0, 9.0, 9.0]",
                         "[1.0, 2.0, 3.0]",
                         "[4.0, 5.0, 6.0]",
-                        "[7.0, 8.0, 9.0]",
-                        "NULL",
-                        "NULL");
+                        "null");
 
                 while (rs.next()) {
                     microsoft.sql.Vector vectorObject = rs.getObject("vectorCol", microsoft.sql.Vector.class);
-                    if (vectorObject == null) {
-                        assertEquals("NULL", expectedData.get(rowCount),
-                                "Mismatch in vector data at row " + (rowCount + 1));
-                    } else {
-                        assertEquals(expectedData.get(rowCount), Arrays.toString(vectorObject.getData()),
-                                "Mismatch in vector data at row " + (rowCount + 1));
-                    }
+                    assertEquals(expectedData.get(rowCount), Arrays.toString(vectorObject.getData()),
+                            "Mismatch in vector data at row " + (rowCount + 1));
+                    rowCount++;
+                }
+
+                // Validate row count
+                assertEquals(expectedData.size(), rowCount, "Row count mismatch.");
+            } finally {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test bulk copy with multiple columns of vector data in
+     * BulkCopyCSVTestInputWithMultipleVectorColumn.csv file
+     */
+    @Test
+    public void testBulkCopyVectorFromCSVWithMultipleColumns() throws SQLException {
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
+        String fileName = filePath + vectorInputCsvFileWithMultipleColumn;
+
+        try (Connection con = getConnection();
+                Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, null, ",", true)) {
+
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (vectorCol1 VECTOR(3), vectorCol2 VECTOR(3));");
+
+            fileRecord.addColumnMetadata(1, "vectorCol1", microsoft.sql.Types.VECTOR, 3, 4);
+            fileRecord.addColumnMetadata(2, "vectorCol2", microsoft.sql.Types.VECTOR, 3, 4);
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+
+            // Set the destination table name
+            bulkCopy.setDestinationTableName(dstTable);
+
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            options.setBulkCopyTimeout(60);
+            bulkCopy.setBulkCopyOptions(options);
+
+            bulkCopy.writeToServer(fileRecord);
+
+            // Validate the data
+            String selectQuery = "SELECT * FROM " + dstTable;
+            try (ResultSet rs = stmt.executeQuery(selectQuery)) {
+                int rowCount = 0;
+
+                // Expected data from the CSV file
+                List<String[]> expectedData = Arrays.asList(
+                        new String[] { "null", "null" },
+                        new String[] { "[1.0, 2.0, 3.0]", "[1.0, 2.0, 3.0]" },
+                        new String[] { "[1.0, 2.0, 3.0]", "[1.0, 2.0, 3.0]" });
+
+                while (rs.next()) {
+                    microsoft.sql.Vector vectorCol1 = rs.getObject("vectorCol1", microsoft.sql.Vector.class);
+                    microsoft.sql.Vector vectorCol2 = rs.getObject("vectorCol2", microsoft.sql.Vector.class);
+
+                    assertEquals(expectedData.get(rowCount)[0],
+                            vectorCol1 == null ? "null" : Arrays.toString(vectorCol1.getData()),
+                            "Mismatch in vectorCol1 data at row " + (rowCount + 1));
+                    assertEquals(expectedData.get(rowCount)[1],
+                            vectorCol2 == null ? "null" : Arrays.toString(vectorCol2.getData()),
+                            "Mismatch in vectorCol2 data at row " + (rowCount + 1));
+                    rowCount++;
+                }
+
+                // Validate row count
+                assertEquals(expectedData.size(), rowCount, "Row count mismatch.");
+            } finally {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test bulk copy with multiple columns of vector data with pipe delimiter in
+     * BulkCopyCSVTestWithMultipleVectorColumnWithPipeDelimiter.csv file
+     */
+    @Test
+    public void testBulkCopyVectorFromCSVWithMultipleColumnsWithPipeDelimiter() throws SQLException {
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
+        String fileName = filePath + vectorInputCsvFileWithMultipleColumnWithPipeDelimiter;
+
+        try (Connection con = getConnection();
+                Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, null, "|", true)) {
+
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (vectorCol1 VECTOR(3), vectorCol2 VECTOR(3));");
+
+            fileRecord.addColumnMetadata(1, "vectorCol1", microsoft.sql.Types.VECTOR, 3, 4);
+            fileRecord.addColumnMetadata(2, "vectorCol2", microsoft.sql.Types.VECTOR, 3, 4);
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+
+            // Set the destination table name
+            bulkCopy.setDestinationTableName(dstTable);
+
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            options.setBulkCopyTimeout(60);
+            bulkCopy.setBulkCopyOptions(options);
+
+            bulkCopy.writeToServer(fileRecord);
+
+            // Validate the data
+            String selectQuery = "SELECT * FROM " + dstTable;
+            try (ResultSet rs = stmt.executeQuery(selectQuery)) {
+                int rowCount = 0;
+
+                // Expected data from the CSV file
+                List<String[]> expectedData = Arrays.asList(
+                        new String[] { "null", "null" },
+                        new String[] { "[1.0, 2.0, 3.0]", "[1.0, 2.0, 3.0]" },
+                        new String[] { "[1.0, 2.0, 3.0]", "[1.0, 2.0, 3.0]" });
+
+                while (rs.next()) {
+                    microsoft.sql.Vector vectorCol1 = rs.getObject("vectorCol1", microsoft.sql.Vector.class);
+                    microsoft.sql.Vector vectorCol2 = rs.getObject("vectorCol2", microsoft.sql.Vector.class);
+
+                    assertEquals(expectedData.get(rowCount)[0],
+                            vectorCol1 == null ? "null" : Arrays.toString(vectorCol1.getData()),
+                            "Mismatch in vectorCol1 data at row " + (rowCount + 1));
+                    assertEquals(expectedData.get(rowCount)[1],
+                            vectorCol2 == null ? "null" : Arrays.toString(vectorCol2.getData()),
+                            "Mismatch in vectorCol2 data at row " + (rowCount + 1));
                     rowCount++;
                 }
 
