@@ -216,6 +216,67 @@ public class VectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test for inserting a vector with mismatched dimensions from one table to another.
+     * The expected behavior is that the database should throw an error due to dimension mismatch.
+     */
+    @Test
+    public void testInsertVectorWithMismatchedDimensions() throws SQLException {
+        String sourceTable = AbstractSQLGenerator.escapeIdentifier("SourceTable");
+        String destinationTable = AbstractSQLGenerator.escapeIdentifier("DestinationTable");
+
+        try (Statement stmt = connection.createStatement()) {
+            // Create the source table with 4 dimensions
+            String createSourceTableSQL = "CREATE TABLE " + sourceTable + " (id INT PRIMARY KEY, v VECTOR(4))";
+            stmt.executeUpdate(createSourceTableSQL);
+
+            // Insert rows into the source table
+            String insertSourceSQL = "INSERT INTO " + sourceTable + " (id, v) VALUES (?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSourceSQL)) {
+                for (int i = 1; i <= 4; i++) {
+                    float[] vectorData = { i * 1.0f, i * 2.0f, i * 3.0f, i * 4.0f }; // 4 dimensions
+                    Vector vector = new Vector(4, Vector.VectorDimensionType.F32, vectorData);
+                    pstmt.setInt(1, i);
+                    pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
+                    pstmt.executeUpdate();
+                }
+            }
+
+            // Create the destination table with 3 dimensions
+            String createDestinationTableSQL = "CREATE TABLE " + destinationTable
+                    + " (id INT PRIMARY KEY, v VECTOR(3))";
+            stmt.executeUpdate(createDestinationTableSQL);
+
+            // Attempt to insert data from the source table into the destination table
+            String selectSourceSQL = "SELECT id, v FROM " + sourceTable;
+            String insertDestinationSQL = "INSERT INTO " + destinationTable + " (id, v) VALUES (?, ?)";
+            try (PreparedStatement selectStmt = connection.prepareStatement(selectSourceSQL);
+                    PreparedStatement insertStmt = connection.prepareStatement(insertDestinationSQL);
+                    ResultSet rs = selectStmt.executeQuery()) {
+
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    Vector vector = rs.getObject("v", Vector.class); // Retrieve vector from source table
+
+                    insertStmt.setInt(1, id);
+                    insertStmt.setObject(2, vector, microsoft.sql.Types.VECTOR); // Attempt to insert into destination
+                                                                                 // table
+                    insertStmt.executeUpdate();
+                }
+            } catch (SQLException e) {
+                // Validate the error message
+                assertTrue(e.getMessage().contains("The vector dimensions 4 and 3 do not match."),
+                        "Unexpected error message: " + e.getMessage());
+            }
+        } finally {
+            // Cleanup: Drop the source and destination tables
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(sourceTable, stmt);
+                TestUtils.dropTableIfExists(destinationTable, stmt);
+            }
+        }
+    }
+
     @Test
     void validateMaxVectorData() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName)
