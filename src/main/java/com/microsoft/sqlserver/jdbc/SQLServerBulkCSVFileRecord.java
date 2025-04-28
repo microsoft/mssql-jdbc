@@ -422,53 +422,36 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                         }
 
                         case microsoft.sql.Types.VECTOR: {
-                            microsoft.sql.Vector vector = null;
-                            int dimensionCount = cm.precision;  
+                            int dimensionCount = cm.precision;
                         
                             if (dimensionCount <= 0) {
                                 throw new SQLServerException("Invalid vector dimension count.", null, 0, null);
                             }
                         
                             String vectorData = data[pair.getKey() - 1].trim();
+                            microsoft.sql.Vector.VectorDimensionType vectorDimensionType = microsoft.sql.Vector.getVectorDimensionType(cm.scale);
                         
-                            if (vectorData.equalsIgnoreCase("NULL") || vectorData.equals("\"NULL\"") || vectorData.isEmpty()) {
-                                vector = new microsoft.sql.Vector(dimensionCount, microsoft.sql.Vector.VectorDimensionType.F32, null);
+                            if ("NULL".equalsIgnoreCase(vectorData) || "\"NULL\"".equalsIgnoreCase(vectorData)) {
+                                dataRow[pair.getKey() - 1] = new microsoft.sql.Vector(dimensionCount, vectorDimensionType, null);
                             } else {
-                                // Clean the string to handle bracketed or inline values uniformly
-                                if (vectorData.startsWith("[") && vectorData.endsWith("]")) {
-                                    vectorData = vectorData.substring(1, vectorData.length() - 1);  // Remove brackets
+                                // Remove enclosing brackets or braces if present
+                                if ((vectorData.startsWith("[") && vectorData.endsWith("]")) || 
+                                    (vectorData.startsWith("{") && vectorData.endsWith("}"))) {
+                                    vectorData = vectorData.substring(1, vectorData.length() - 1);
                                 }
-                         
+                        
                                 String[] vectorElements = vectorData.split(",");
-                                if (vectorElements.length == 1 && vectorData.contains("|")) {
-                                    vectorElements = vectorData.split("\\|");
+                                if (vectorElements.length != dimensionCount) {
+                                    throw new SQLServerException("Mismatch between vector dimension count and provided data.", null, 0, null);
                                 }
                         
-                                // Case 1: Single element and dimension count > 1  e.g. vectorElements = 1.0 and actual data = 1.0,2.0,3.0
-                                if (vectorElements.length == 1) { 
-                                    float[] vectorArray = new float[dimensionCount];
-                                    vectorArray[0] = Float.parseFloat(vectorElements[0].trim());
-                                
-                                    // Read remaining values from subsequent columns
-                                    for (int i = 1; i < dimensionCount; i++) {
-                                        vectorArray[i] = Float.parseFloat(data[pair.getKey() - 1 + i].trim());
-                                    }
-                                    vector = new microsoft.sql.Vector(dimensionCount, microsoft.sql.Vector.VectorDimensionType.F32, vectorArray);
+                                float[] vectorArray = new float[dimensionCount];
+                                for (int i = 0; i < dimensionCount; i++) {
+                                    vectorArray[i] = Float.parseFloat(vectorElements[i].trim());
                                 }
-                                
-                                // Case 2: More than one element (comma or pipe-separated)
-                                else if (vectorElements.length == dimensionCount) {
-                                    float[] vectorArray = new float[dimensionCount];
-                                    for (int i = 0; i < dimensionCount; i++) {
-                                        vectorArray[i] = Float.parseFloat(vectorElements[i].trim());
-                                    }
-                                    vector = new microsoft.sql.Vector(dimensionCount, microsoft.sql.Vector.VectorDimensionType.F32, vectorArray);
-                                } else {
-                                    throw new SQLServerException("Vector dimension mismatch.", null, 0, null);
-                                }
+                        
+                                dataRow[pair.getKey() - 1] = new microsoft.sql.Vector(dimensionCount, vectorDimensionType, vectorArray);
                             }
-                        
-                            dataRow[pair.getKey() - 1] = vector;
                             break;
                         }
                         
