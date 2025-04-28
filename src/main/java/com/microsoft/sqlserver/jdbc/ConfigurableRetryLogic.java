@@ -365,6 +365,11 @@ public class ConfigurableRetryLogic {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
             Object[] msgArgs = {e.getMessage() + ", from path - \"" + filePath + "\""};
             throw new SQLServerException(form.format(msgArgs), null, 0, e);
+        } catch (Exception e) {
+            // General exception handling
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINER)) {
+                CONFIGURABLE_RETRY_LOGGER.finest("An unexpected error occurred while reading from file: " + e.getMessage());
+            }
         }
         return list;
     }
