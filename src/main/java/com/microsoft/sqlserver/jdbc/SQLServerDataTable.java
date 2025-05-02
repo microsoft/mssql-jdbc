@@ -23,6 +23,8 @@ import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import microsoft.sql.Vector;
+
 
 /**
  * Represents the data table for SQL Server.
@@ -325,9 +327,10 @@ public final class SQLServerDataTable {
                     break;
 
                 case VECTOR:
-                    nValueLen = ((microsoft.sql.Vector) val).getActualLength();
-                    int scale = ((microsoft.sql.Vector) val).getScale() == 0x01 ? 2 : 4;
-                    precision = ((microsoft.sql.Vector) val).getDimensionCount();
+                    nValueLen = ((Vector) val).getActualLength();
+                    int scaleByte = ((Vector) val).getScale();
+                    int scale = Vector.getbytesPerDimensionFromScale(scaleByte);
+                    precision = ((Vector) val).getDimensionCount();
                     if (scale > currentColumnMetadata.scale) {
                         currentColumnMetadata.scale = scale;
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
@@ -336,7 +339,7 @@ public final class SQLServerDataTable {
                         currentColumnMetadata.precision = precision;
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
-                    rowValues[key] = ((microsoft.sql.Vector) val).toBytes();
+                    rowValues[key] = ((Vector) val).toBytes();
                     break;
 
                 default:

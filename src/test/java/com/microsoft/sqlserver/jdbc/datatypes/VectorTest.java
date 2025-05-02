@@ -92,7 +92,7 @@ public class VectorTest extends AbstractTest {
     void validateVectorData() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
         float[] originalData = new float[] { 0.45f, 7.9f, 63.0f };
-        Vector initialVector = new Vector(3, VectorDimensionType.F32, originalData);
+        Vector initialVector = new Vector(3, VectorDimensionType.float32, originalData);
 
         try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
             pstmt.setInt(1, 23);
@@ -122,7 +122,7 @@ public class VectorTest extends AbstractTest {
     @Test
     void testInsertNullVector() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
-        Vector nullVector = new Vector(3, VectorDimensionType.F32, null); // Null vector data
+        Vector nullVector = new Vector(3, VectorDimensionType.float32, null); // Null vector data
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSql)) {
             pstmt.setInt(1, 42); 
@@ -161,7 +161,7 @@ public class VectorTest extends AbstractTest {
 
             // Insert rows with null vector data into the source table
             String insertSourceSQL = "INSERT INTO " + sourceTable + " (id, v) VALUES (?, ?)";
-            Vector nullVector = new Vector(3, VectorDimensionType.F32, null); // Null vector data
+            Vector nullVector = new Vector(3, VectorDimensionType.float32, null); // Null vector data
             try (PreparedStatement pstmt = connection.prepareStatement(insertSourceSQL)) {
                 for (int i = 1; i <= 3; i++) {
                     pstmt.setInt(1, i);
@@ -235,7 +235,7 @@ public class VectorTest extends AbstractTest {
             try (PreparedStatement pstmt = connection.prepareStatement(insertSourceSQL)) {
                 for (int i = 1; i <= 4; i++) {
                     float[] vectorData = { i * 1.0f, i * 2.0f, i * 3.0f, i * 4.0f }; // 4 dimensions
-                    Vector vector = new Vector(4, Vector.VectorDimensionType.F32, vectorData);
+                    Vector vector = new Vector(4, Vector.VectorDimensionType.float32, vectorData);
                     pstmt.setInt(1, i);
                     pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
                     pstmt.executeUpdate();
@@ -289,7 +289,7 @@ public class VectorTest extends AbstractTest {
             originalData[i] = i + 0.5f;
         }
 
-        Vector initialVector = new Vector(dimensionCount, VectorDimensionType.F32, originalData);
+        Vector initialVector = new Vector(dimensionCount, VectorDimensionType.float32, originalData);
 
         try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
             pstmt.setInt(1, 101);
@@ -347,7 +347,7 @@ public class VectorTest extends AbstractTest {
             vectorData[i] = i + 0.5f;
         }
 
-        Vector vector = new Vector(dimensionCount, VectorDimensionType.F32, vectorData);
+        Vector vector = new Vector(dimensionCount, VectorDimensionType.float32, vectorData);
 
         int[] recordCounts = {100}; // For testing, we can use a smaller set of records to avoid long execution times
         // Uncomment the following line to test with larger record counts
@@ -428,7 +428,7 @@ public class VectorTest extends AbstractTest {
 
         String call = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?, ?)}";
         try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(call)) {
-            Vector inputVector = new Vector(3, VectorDimensionType.F32, new float[]{0.5f, 1.0f, 1.5f});
+            Vector inputVector = new Vector(3, VectorDimensionType.float32, new float[]{0.5f, 1.0f, 1.5f});
 
             cstmt.setObject(1, inputVector, microsoft.sql.Types.VECTOR);
             cstmt.registerOutParameter(2, microsoft.sql.Types.VECTOR, 3, 4);
@@ -446,7 +446,7 @@ public class VectorTest extends AbstractTest {
      */
     @Test
     public void testVectorTVP() throws SQLException {
-        Vector expectedVector = new Vector(3, VectorDimensionType.F32, new float[]{0.1f, 0.2f, 0.3f});
+        Vector expectedVector = new Vector(3, VectorDimensionType.float32, new float[]{0.1f, 0.2f, 0.3f});
 
         SQLServerDataTable tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.VECTOR);
@@ -482,7 +482,7 @@ public class VectorTest extends AbstractTest {
             stmt.executeUpdate("CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(TVP_NAME) + " AS TABLE (c1 VECTOR(3) NULL)");
         }
 
-        Vector expectedVector = new Vector(3, VectorDimensionType.F32, null); // Null vector data
+        Vector expectedVector = new Vector(3, VectorDimensionType.float32, null); // Null vector data
 
         SQLServerDataTable tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.VECTOR);
@@ -527,7 +527,7 @@ public class VectorTest extends AbstractTest {
     public void testVectorUdf() throws SQLException {
         createVectorUdf();
 
-        Vector inputVector = new Vector(3, VectorDimensionType.F32, new float[]{1.1f, 2.2f, 3.3f});
+        Vector inputVector = new Vector(3, VectorDimensionType.float32, new float[]{1.1f, 2.2f, 3.3f});
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("CREATE TABLE #vec_input (v VECTOR(3));");
         }
@@ -558,7 +558,7 @@ public class VectorTest extends AbstractTest {
      */
     @Test
     public void testSelectIntoForVector() throws SQLException {
-        String sourceTable = AbstractSQLGenerator.escapeIdentifier("srcTable");
+        String sourceTable = AbstractSQLGenerator.escapeIdentifier("srcTableVector");
         String destinationTable = AbstractSQLGenerator.escapeIdentifier("desTable");
 
         try (Statement stmt = connection.createStatement()) {
@@ -568,7 +568,7 @@ public class VectorTest extends AbstractTest {
 
             // Insert sample data into the source table
             float[] vectorData = new float[] { 1.1f, 2.2f, 3.3f };
-            Vector vector = new Vector(3, VectorDimensionType.F32, vectorData);
+            Vector vector = new Vector(3, VectorDimensionType.float32, vectorData);
 
             String insertSql = "INSERT INTO " + sourceTable + " (id, v) VALUES (?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
@@ -578,7 +578,7 @@ public class VectorTest extends AbstractTest {
             }
 
             float[] vectorData2 = null;
-            Vector vector2 = new Vector(3, VectorDimensionType.F32, vectorData2);
+            Vector vector2 = new Vector(3, VectorDimensionType.float32, vectorData2);
 
             String insertSql2 = "INSERT INTO " + sourceTable + " (id, v) VALUES (?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(insertSql2)) {
@@ -649,7 +649,7 @@ public class VectorTest extends AbstractTest {
 
         try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
             float[] vectorData = { 1.0f, 2.0f, 3.0f };
-            Vector vector = new Vector(3, Vector.VectorDimensionType.F32, vectorData);
+            Vector vector = new Vector(3, Vector.VectorDimensionType.float32, vectorData);
 
             pstmt.setInt(1, 1);
             pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
@@ -693,7 +693,7 @@ public class VectorTest extends AbstractTest {
 
             try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
                 float[] vectorData = { 4.0f, 5.0f, 6.0f };
-                Vector vector = new Vector(3, Vector.VectorDimensionType.F32, vectorData);
+                Vector vector = new Vector(3, Vector.VectorDimensionType.float32, vectorData);
 
                 pstmt.setInt(1, 1);
                 pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
@@ -738,7 +738,7 @@ public class VectorTest extends AbstractTest {
             String insertSQL = "INSERT INTO " + vectorsTable + " (id, data) VALUES (?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
                 float[] vectorData = { 1.0f, 2.0f, 3.0f };
-                Vector vector = new Vector(3, Vector.VectorDimensionType.F32, vectorData);
+                Vector vector = new Vector(3, Vector.VectorDimensionType.float32, vectorData);
 
                 pstmt.setInt(1, 1);
                 pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
@@ -800,7 +800,7 @@ public class VectorTest extends AbstractTest {
             String insertSQL = "INSERT INTO " + vectorsTable + " (id, data) VALUES (?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
                 float[] vectorData = { 1.0f, 2.0f, 3.0f };
-                Vector vector = new Vector(3, Vector.VectorDimensionType.F32, vectorData);
+                Vector vector = new Vector(3, Vector.VectorDimensionType.float32, vectorData);
 
                 pstmt.setInt(1, 1);
                 pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
@@ -845,7 +845,7 @@ public class VectorTest extends AbstractTest {
 
         // Insert initial data
         float[] initialData = { 1.0f, 2.0f, 3.0f };
-        Vector initialVector = new Vector(3, Vector.VectorDimensionType.F32, initialData);
+        Vector initialVector = new Vector(3, Vector.VectorDimensionType.float32, initialData);
 
         try (PreparedStatement pstmt = connection.prepareStatement(
                 "INSERT INTO " + transactionTable + " (id, v) VALUES (?, ?)")) {
@@ -859,7 +859,7 @@ public class VectorTest extends AbstractTest {
         try {
             // Insert new data
             float[] newData = { 4.0f, 5.0f, 6.0f };
-            Vector newVector = new Vector(3, Vector.VectorDimensionType.F32, newData);
+            Vector newVector = new Vector(3, Vector.VectorDimensionType.float32, newData);
 
             try (PreparedStatement pstmt = connection.prepareStatement(
                     "INSERT INTO " + transactionTable + " (id, v) VALUES (?, ?)")) {
@@ -870,7 +870,7 @@ public class VectorTest extends AbstractTest {
 
             // Update existing data
             float[] updatedData = { 7.0f, 8.0f, 9.0f };
-            Vector updatedVector = new Vector(3, Vector.VectorDimensionType.F32, updatedData);
+            Vector updatedVector = new Vector(3, Vector.VectorDimensionType.float32, updatedData);
 
             try (PreparedStatement pstmt = connection.prepareStatement(
                     "UPDATE " + transactionTable + " SET v = ? WHERE id = ?")) {
@@ -938,10 +938,10 @@ public class VectorTest extends AbstractTest {
 
             // Insert sample data into the table
             float[] vectorData1 = { 1.1f, 2.2f, 3.3f };
-            Vector vector1 = new Vector(3, Vector.VectorDimensionType.F32, vectorData1);
+            Vector vector1 = new Vector(3, Vector.VectorDimensionType.float32, vectorData1);
 
             float[] vectorData2 = { 4.4f, 5.5f, 6.6f };
-            Vector vector2 = new Vector(3, Vector.VectorDimensionType.F32, vectorData2);
+            Vector vector2 = new Vector(3, Vector.VectorDimensionType.float32, vectorData2);
 
             String insertSQL = "INSERT INTO " + tableName + " (id, v) VALUES (?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {

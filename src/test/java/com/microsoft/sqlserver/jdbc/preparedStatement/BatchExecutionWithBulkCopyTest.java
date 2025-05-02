@@ -852,7 +852,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             float[] vectorData = { 4.0f, 5.0f, 6.0f }; // Sample float data
             microsoft.sql.Vector vector = new microsoft.sql.Vector(vectorData.length,
-                    microsoft.sql.Vector.VectorDimensionType.F32, vectorData);
+                    microsoft.sql.Vector.VectorDimensionType.float32, vectorData);
 
             pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
             pstmt.addBatch();
@@ -889,9 +889,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             stmt.execute(createTable);
 
             microsoft.sql.Vector vector = new microsoft.sql.Vector(3,
-                    microsoft.sql.Vector.VectorDimensionType.F32, null);
+                    microsoft.sql.Vector.VectorDimensionType.float32, null);
 
-            pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR, 3);
+            pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
             pstmt.addBatch();
             pstmt.executeBatch();
 
@@ -899,7 +899,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 int rowCount = 0;
                     while (rs.next()) {
                         microsoft.sql.Vector vectorObject = rs.getObject("vectorCol", microsoft.sql.Vector.class);
-                        assertEquals(null, vectorObject);
+                        assertEquals(null, vectorObject.getData());
                         rowCount++;
                     }
                 assertEquals(1, rowCount);
@@ -950,7 +950,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
                 for (int i = 1; i <= recordCount; i++) {
                     microsoft.sql.Vector vector = new microsoft.sql.Vector(dimensionCount,
-                            microsoft.sql.Vector.VectorDimensionType.F32, vectorData);
+                            microsoft.sql.Vector.VectorDimensionType.float32, vectorData);
                     pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
                     pstmt.addBatch();
                 }

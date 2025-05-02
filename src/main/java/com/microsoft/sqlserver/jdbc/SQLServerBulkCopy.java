@@ -54,6 +54,7 @@ import java.util.logging.Level;
 import javax.sql.RowSet;
 
 import microsoft.sql.DateTimeOffset;
+import microsoft.sql.Vector;
 
 
 /**
@@ -1897,7 +1898,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      * Oracle 12c database returns precision = 0 for char/varchar data types.
      */
     private int validateSourcePrecision(int srcPrecision, int srcJdbcType, int destPrecision) {
-        if ((1 > srcPrecision) && Util.isCharType(srcJdbcType) && (srcJdbcType == microsoft.sql.Types.VECTOR)) {
+        if ((1 > srcPrecision) && Util.isCharType(srcJdbcType)) {
             srcPrecision = destPrecision;
         }
         return srcPrecision;
@@ -2333,11 +2334,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     if (null == colValue) {
                         writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                     } else {
-                        microsoft.sql.Vector vector = (microsoft.sql.Vector) colValue;
-                        if (vector.data == null) {
+                        Vector vector = (Vector) colValue;
+                        if (vector.getData() == null) {
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
-                            tdsWriter.writeShort((short) (8 + (bulkScale*bulkPrecision))); // Actual length
+                            tdsWriter.writeShort((short) (vector.getActualLength())); // Actual length
                             tdsWriter.writeBytes(vector.toBytes()); // Write vector data
                         } 
                     }
@@ -2983,7 +2984,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return sourceResultSet.getObject(srcColOrdinal);
 
                 case microsoft.sql.Types.VECTOR:
-                    return sourceResultSet.getObject(srcColOrdinal, microsoft.sql.Vector.class);
+                    return sourceResultSet.getObject(srcColOrdinal, Vector.class);
                 case microsoft.sql.Types.MONEY:
                 case microsoft.sql.Types.SMALLMONEY:
                 case java.sql.Types.DECIMAL:
@@ -3583,7 +3584,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     }
                     return byteArrayValue;
                 case VECTOR:
-                    microsoft.sql.Vector vector = (microsoft.sql.Vector) value;
+                    Vector vector = (Vector) value;
                     byteValue = vector.toBytes();
                     if (byteValue.length > vector.getActualLength()) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));

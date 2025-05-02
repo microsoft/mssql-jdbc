@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.text.MessageFormat;
 import java.util.Calendar;
 
+import microsoft.sql.Vector;
 import microsoft.sql.Vector.VectorDimensionType;
 
 
@@ -193,8 +194,8 @@ final class Column {
                 tdsReader, statement);
         if (jdbcType == JDBCType.VECTOR && value == null) {
             int precision = typeInfo.getPrecision(); 
-            VectorDimensionType scale = typeInfo.getScale() == 4 ? VectorDimensionType.F32 : VectorDimensionType.F16;
-            microsoft.sql.Vector vector = new microsoft.sql.Vector(precision, scale, null);
+            VectorDimensionType scale = Vector.getVectorDimensionType(typeInfo.getScale());
+            Vector vector = new Vector(precision, scale, null);
             value = vector;
         }
         setInternalVariant(getterDTV.getInternalVariant());
