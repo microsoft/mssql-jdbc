@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import microsoft.sql.Vector;
+
 
 /**
  * Provides a simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java
@@ -429,14 +431,13 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             }
                         
                             String vectorData = data[pair.getKey() - 1].trim();
-                            microsoft.sql.Vector.VectorDimensionType vectorDimensionType = microsoft.sql.Vector.getVectorDimensionType(cm.scale);
+                            Vector.VectorDimensionType vectorDimensionType = Vector.getVectorDimensionType(cm.scale);
                         
                             if ("NULL".equalsIgnoreCase(vectorData) || "\"NULL\"".equalsIgnoreCase(vectorData)) {
                                 dataRow[pair.getKey() - 1] = new microsoft.sql.Vector(dimensionCount, vectorDimensionType, null);
                             } else {
                                 // Remove enclosing brackets or braces if present
-                                if ((vectorData.startsWith("[") && vectorData.endsWith("]")) || 
-                                    (vectorData.startsWith("{") && vectorData.endsWith("}"))) {
+                                if ((vectorData.startsWith("[") && vectorData.endsWith("]"))) {
                                     vectorData = vectorData.substring(1, vectorData.length() - 1);
                                 }
                         
@@ -450,7 +451,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                                     vectorArray[i] = Float.parseFloat(vectorElements[i].trim());
                                 }
                         
-                                dataRow[pair.getKey() - 1] = new microsoft.sql.Vector(dimensionCount, vectorDimensionType, vectorArray);
+                                dataRow[pair.getKey() - 1] = new Vector(dimensionCount, vectorDimensionType, vectorArray);
                             }
                             break;
                         }
