@@ -82,6 +82,7 @@ import javax.net.ssl.X509TrustManager;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.FedAuthTokenCommand;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
+import microsoft.sql.Vector;
 
 final class TDS {
     // application protocol
@@ -5382,19 +5383,11 @@ final class TDSWriter {
                 writeInternalTVPRowValues(internalJDBCType, currentColumnStringValue, currentObject, columnPair, true);
                 break;
 
-            case VECTOR:
-                isNull = (null == currentObject);
-                byte[] bValue = isNull ? null : (byte[]) currentObject;
-
-                if (isNull) {
-                    writeShort((short) -1); // actual len
-                } else {
-                    if (bValue == null) {
-                        writeShort((short) -1); // NULL value
-                    } else {
-                        writeShort((short) bValue.length); // actual length
-                        writeBytes(bValue);  
-                    }
+                case VECTOR:
+                byte[] bValue = (currentObject == null) ? null : (byte[]) currentObject;
+                writeShort((short) (bValue == null ? -1 : bValue.length));
+                if (bValue != null) {
+                    writeBytes(bValue);
                 }
                 break;
 
@@ -5663,29 +5656,25 @@ final class TDSWriter {
         writeByte(cryptoMeta.normalizationRuleVersion);
     }
 
-    void writeRPCVector(String sName, microsoft.sql.Vector vectorValue, boolean bOut, int scale, int precision) throws SQLServerException {
+    void writeRPCVector(String sName, Vector vectorValue, boolean bOut, int scale, int precision)
+            throws SQLServerException {
         boolean vectorValueNull = (vectorValue == null);
         byte[] bValue = vectorValueNull ? null : vectorValue.toBytes();
-        int nValueLen = vectorValueNull ? 0: vectorValue.getActualLength();
 
         writeRPCNameValType(sName, bOut, TDSType.VECTOR);
 
         if (vectorValueNull) {
-            writeShort((short) (8 + (scale * precision))); //maxLength
+            writeShort((short) (8 + (scale * precision))); // max length
             byte scaleByte = (byte) (scale == 2 ? 0x01 : 0x00);
-            writeByte((byte) scaleByte); //dimension type
+            writeByte((byte) scaleByte); // scale (dimension type)
             writeShort((short) -1); // actual len
         } else {
-            // Write maxLength of datatype = actual length for vector
-            writeShort((short) nValueLen);
-
-            // Write scale (dimension type)
-            writeByte((byte) vectorValue.getScale());
-
-            if (vectorValue.data == null) {
+            writeShort((short) vectorValue.getActualLength()); // max length
+            writeByte((byte) vectorValue.getScale()); // scale (dimension type)
+            if (vectorValue.getData() == null) {
                 writeShort((short) -1); // actual len
             } else {
-                writeShort((short) nValueLen); // actual len
+                writeShort((short) vectorValue.getActualLength()); // actual len
                 writeBytes(bValue); // data
             }
         }

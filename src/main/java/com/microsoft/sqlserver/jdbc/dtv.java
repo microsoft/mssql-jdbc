@@ -42,6 +42,8 @@ import java.util.UUID;
 
 import com.microsoft.sqlserver.jdbc.JavaType.SetterConversionAE;
 
+import microsoft.sql.Vector;
+
 
 /**
  * Defines an abstraction for execution of type-specific operations on DTV values.
@@ -116,7 +118,7 @@ abstract class DTVExecuteOp {
 
     abstract void execute(DTV dtv, SqlVariant sqlVariantValue) throws SQLServerException;
 
-    abstract void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException;
+    abstract void execute(DTV dtv, Vector vectorValue) throws SQLServerException;
 }
 
 
@@ -1113,7 +1115,7 @@ final class DTV {
             tdsWriter.writeRPCUUID(name, uuidValue, isOutParam);
         }
 
-        void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException {
+        void execute(DTV dtv, Vector vectorValue) throws SQLServerException {
             tdsWriter.writeRPCVector(name, vectorValue, isOutParam, outScale, valueLength);
         }
 
@@ -1593,7 +1595,7 @@ final class DTV {
                     break;
                 
                 case VECTOR:
-                    op.execute(this, (microsoft.sql.Vector) value);
+                    op.execute(this, (Vector) value);
                     break;
 
                 case UNKNOWN:
@@ -1822,7 +1824,7 @@ final class DTV {
                     break;
 
                 case VECTOR:
-                    op.execute(this, (microsoft.sql.Vector) value);
+                    op.execute(this, (Vector) value);
                     break;
 
                 case BYTE:
@@ -2084,7 +2086,7 @@ final class AppDTVImpl extends DTVImpl {
 
         void execute(DTV dtv, Integer intValue) throws SQLServerException {}
 
-        void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException {}
+        void execute(DTV dtv, Vector vectorValue) throws SQLServerException {}
 
         void execute(DTV dtv, java.sql.Time timeValue) throws SQLServerException {
             if (dtv.getJdbcType().isTextual()) {
@@ -3026,7 +3028,7 @@ final class TypeInfo implements Serializable {
                 typeInfo.displaySize = typeInfo.maxLength;
                 typeInfo.ssType = SSType.VECTOR;
                 int scaleByte = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
-                typeInfo.scale = (scaleByte == 0) ? 4 : 2;
+                typeInfo.scale = Vector.getbytesPerDimensionFromScale(scaleByte);
                 typeInfo.precision = (typeInfo.maxLength - 8) / typeInfo.scale;
 
             }
