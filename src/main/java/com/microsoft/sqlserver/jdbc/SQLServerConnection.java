@@ -2193,14 +2193,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // Any existing enclave session would be invalid, make sure it is invalidated.
         // For example, if this is a session recovery reconnect.
         //
-
-        if (enclaveProvider != null) {
-            if (connectionlogger.isLoggable(Level.FINE)) {
-                connectionlogger.fine("Invalidating existing enclave session for enclave provider : " + enclaveProvider);
-            }
-            enclaveProvider.invalidateEnclaveSession();
-        }
-
+        invalidateEnclaveSessionCache();
         for (int connectRetryAttempt = 0, tlsRetryAttempt = 0;;) {
             try {
                 if (0 == elapsedSeconds || elapsedSeconds < loginTimeoutSeconds) {

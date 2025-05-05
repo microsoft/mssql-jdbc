@@ -89,7 +89,7 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int DATA_CLASSIFICATION_NOT_EXPECTED = 11;
     static final int DATA_CLASSIFICATION_INVALID_LABEL_INDEX = 12;
     static final int DATA_CLASSIFICATION_INVALID_INFORMATION_TYPE_INDEX = 13;
-    
+
     static final java.util.logging.Logger exLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerException");
 
