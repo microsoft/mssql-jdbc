@@ -116,13 +116,14 @@ public class VectorTest extends AbstractTest {
     }
 
     /**
-     * Test for inserting a vector with scale 0 (float32) and validating the data.
+     * Test for inserting a vector with specifying precision and scale validating the data.
      */
     @Test
-    void validateVectorDataWithScaleByte() throws SQLException {
+    void validateVectorDataWithPrecisionScale() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
         float[] data = new float[] { 0.4f, 0.5f, 0.6f };
-        Vector vector = new Vector(3, 0, data); // Using scale 0 for float32
+        // Create a vector object with precision and scale for vector data type
+        Vector vector = new Vector(3, 4, data); 
 
         try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
             pstmt.setInt(1, 23);
