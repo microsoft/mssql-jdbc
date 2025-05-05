@@ -116,6 +116,36 @@ public class VectorTest extends AbstractTest {
     }
 
     /**
+     * Test for inserting a vector with scale 0 (float32) and validating the data.
+     */
+    @Test
+    void validateVectorDataWithScaleByte() throws SQLException {
+        String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
+        float[] data = new float[] { 0.4f, 0.5f, 0.6f };
+        Vector vector = new Vector(3, 0, data); // Using scale 0 for float32
+
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+            pstmt.setInt(1, 23);
+            pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+        }
+
+        String query = "SELECT id, v FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, 23);
+            try (ResultSet rs = stmt.executeQuery()) {
+
+                assertTrue(rs.next(), "No result found for inserted vector.");
+
+                Vector resultVector = rs.getObject("v", Vector.class);
+                assertNotNull(resultVector, "Retrieved vector is null.");
+                assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
+                assertArrayEquals(data, resultVector.getData(), 0.0001f, "Vector data mismatch.");
+            }
+        }
+    }
+
+    /**
      * Test for inserting a null vector. The expected behavior is that the database
      * should accept the null vector and store it as NULL in the database.
      */
