@@ -25,6 +25,12 @@ public final class Vector implements java.io.Serializable {
         this.data = data;
     }
 
+    public Vector(int dimensionCount, int scaleByte, float[] data) {
+        this.dimensionCount = dimensionCount;
+        this.vectorType = getVectorDimensionType(scaleByte);
+        this.data = data;
+    }
+
     /**
      * Converts a byte array to a Vector object. The byte array must contain the following:
      * 8 bytes for header and 4 bytes per float value.
