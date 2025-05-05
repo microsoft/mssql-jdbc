@@ -19,16 +19,26 @@ public final class Vector implements java.io.Serializable {
 
     private float[] data;
 
+    /**
+     * Constructor for Vector with dimension count and vector type.
+     * @param dimensionCount The number of dimensions in the vector.
+     * @param vectorType The type of the vector (float32 or float16).
+     * @param data The float array representing the vector data.
+     */
     public Vector(int dimensionCount, VectorDimensionType vectorType, float[] data) {
         this.dimensionCount = dimensionCount;
         this.vectorType = vectorType;
         this.data = data;
     }
 
-    public Vector(int dimensionCount, int scaleByte, float[] data) {
-        this.dimensionCount = dimensionCount;
-        this.vectorType = getVectorDimensionType(scaleByte);
-        this.data = data;
+    /**
+     * Constructor for Vector with precision and scale value.
+     * @param precision The number of dimensions in the vector.
+     * @param scale The scale value of the vector (4 for float32, 2 for float16).
+     * @param data The float array representing the vector data.
+     */
+    public Vector(int precision, int scale, float[] data) {
+        this(precision, getVectorDimensionTypeFromScaleValue(scale), data);
     }
 
     /**
@@ -138,8 +148,8 @@ public final class Vector implements java.io.Serializable {
      * Returns the vector dimension type based on the scale.
      * float32 for 0, float16 for 1
      */
-    public static VectorDimensionType getVectorDimensionType(int scale) {
-        switch (scale) {
+    public static VectorDimensionType getVectorDimensionType(int scaleByte) {
+        switch (scaleByte) {
             case 0:
                 return VectorDimensionType.float32; 
             case 1:
@@ -153,14 +163,29 @@ public final class Vector implements java.io.Serializable {
      * Returns the bytesPerDimension based on the scale.
      * 4 for 0, 2 for 1
      */
-    public static int getbytesPerDimensionFromScale(int scale) {
-        switch (scale) {
+    public static int getbytesPerDimensionFromScale(int scaleByte) {
+        switch (scaleByte) {
             case 0:
                 return 4; // 4 bytes per dimension for float32
             case 1:
                 return 2; // 2 bytes per dimension for float16
             default:
                 return 4; // Default case
+        }
+    }
+
+    /**
+     * Returns the vector dimension type based on the scale value.
+     * 4 for float32, 2 for float16
+     */
+    public static VectorDimensionType getVectorDimensionTypeFromScaleValue(int scale) {
+        switch (scale) {
+            case 4:
+                return VectorDimensionType.float32; 
+            case 2:
+                return VectorDimensionType.float16; 
+            default:
+                return VectorDimensionType.float32; 
         }
     }
 
