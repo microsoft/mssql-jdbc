@@ -1451,8 +1451,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return cacheBulkCopyMetadata boolean value
      */
     boolean getcacheBulkCopyMetadata();
-  
-   /**
+
+    /**
      * Returns value of 'retryExec' from Connection String.
      *
      * @param retryExec
@@ -1506,4 +1506,38 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return useFlexibleCallableStatements
      */
     boolean getUseFlexibleCallableStatements();
+
+    /**
+     * Returns value of 'quotedIdentifier' from Connection String.
+     *
+     * @return true
+     *         if quotedIdentifier is set to true, false otherwise
+     */
+    String getQuotedIdentifier();
+
+    /**
+     * Sets the value for 'quotedIdentifier' property
+     *
+     * @param quotedIdentifier
+     *        boolean value
+     * 
+     */
+    void setQuotedIdentifier(String quotedIdentifier);
+
+    /**
+     * Returns value of 'concatNullYieldsNull' from Connection String.
+     *
+     * @return true
+     *         if concatNullYieldsNull is set to true, false otherwise
+     */
+    String getConcatNullYieldsNull();
+
+    /**
+     * Sets the value for 'concatNullYieldsNull' property
+     *
+     * @param concatNullYieldsNull
+     *        boolean value
+     * 
+     */
+    void setConcatNullYieldsNull(String concatNullYieldsNull);
 }

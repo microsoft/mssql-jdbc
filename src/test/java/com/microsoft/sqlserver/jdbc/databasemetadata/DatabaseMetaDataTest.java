@@ -27,6 +27,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -1031,6 +1032,52 @@ public class DatabaseMetaDataTest extends AbstractTest {
             TestUtils.dropTableWithSchemaIfExists(tableNameWithSchema, stmt);
             TestUtils.dropProcedureWithSchemaIfExists(sprocWithSchema, stmt);
             TestUtils.dropSchemaIfExists(schema, stmt);
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testGetSchemasWithAndWithoutCatalog() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String dbName = "GetSchemas" + id;
+        String schemaName = "TestSchema" + id;
+        String[] constSchemas = {
+            "dbo", "guest", "INFORMATION_SCHEMA", "sys", "db_owner", "db_accessadmin",
+            "db_securityadmin", "db_ddladmin", "db_backupoperator", "db_datareader",
+            "db_datawriter", "db_denydatareader", "db_denydatawriter"
+        };
+
+        try (Connection connection = getConnection();
+            Statement stmt = connection.createStatement()) {
+            TestUtils.dropDatabaseIfExists(dbName, connectionString);
+            stmt.execute(String.format("CREATE DATABASE [%s]", dbName));
+            stmt.execute(String.format("USE [%s]", dbName));
+            stmt.execute(String.format("CREATE SCHEMA [%s]", schemaName));
+
+            ResultSet rs = connection.getMetaData().getSchemas(dbName, null );
+            while (rs.next()) {
+                String schema = rs.getString("TABLE_SCHEM");
+                String catalog = rs.getString("TABLE_CATALOG");
+
+                // When catalog is specified, all results should have non-null catalog
+                assertNotNull(catalog, "TABLE_CATALOG should not be null for schema '" + schema + "' when catalog is specified");
+            }
+
+            rs = connection.getMetaData().getSchemas(null, null);
+            while (rs.next()) {
+                String schema = rs.getString("TABLE_SCHEM");
+                String catalog = rs.getString("TABLE_CATALOG");
+
+                if (catalog == null) {
+                    assertTrue(
+                        Arrays.asList(constSchemas).contains(schema),
+                        "Unexpected schema with null catalog: " + schema
+                    );
+                }
+            }
+        } finally {
+            TestUtils.dropDatabaseIfExists(dbName, connectionString);
         }
     }
 
