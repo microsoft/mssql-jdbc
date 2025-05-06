@@ -45,6 +45,9 @@ public class SQLServerDataTableTest {
         assertEquals(3, table.getColumnMetadata().size());
     }
 
+    /*
+     * * Test for hashCode and equals methods of SQLServerDataColumn and SQLServerDataTable.
+     */
     @Test
     public void testHashCodes() throws SQLServerException {
         // Test Null field values for SQLServerDataColumn
