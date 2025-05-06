@@ -799,6 +799,12 @@ final class DDC {
                             return new StringReader(new String(stream.getBytes(), typeInfo.getCharset()));
                     }
 
+                    if (typeInfo.getSSType() == SSType.VECTOR) {
+                        byte[] byteValue = stream.getBytes();
+                        microsoft.sql.Vector vector = microsoft.sql.Vector.fromBytes(byteValue);
+                        return vector.toString();
+                    }
+
                     // None of the special/fast textual conversion cases applied. Just go the normal route of converting
                     // via String.
                     return convertStringToObject(new String(stream.getBytes(), typeInfo.getCharset()),

@@ -126,14 +126,14 @@ public class VectorTest extends AbstractTest {
         Vector vector = new Vector(3, 4, data); 
 
         try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
-            pstmt.setInt(1, 23);
+            pstmt.setInt(1, 24);
             pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
             pstmt.executeUpdate();
         }
 
         String query = "SELECT id, v FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setInt(1, 23);
+            stmt.setInt(1, 24);
             try (ResultSet rs = stmt.executeQuery()) {
 
                 assertTrue(rs.next(), "No result found for inserted vector.");
@@ -304,6 +304,67 @@ public class VectorTest extends AbstractTest {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(sourceTable, stmt);
                 TestUtils.dropTableIfExists(destinationTable, stmt);
+            }
+        }
+    }
+
+    /*
+     * Test to check backward compatibility of vector data type. 
+     * This test checks if the vector data can be retrieved as a json formatted string representation.
+     */
+    @Test
+    void validateVectorDataUsingGetString() throws SQLException {
+        String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
+        float[] originalData = new float[] { 0.45f, 7.9f, 63.0f };
+        Vector initialVector = new Vector(3, VectorDimensionType.float32, originalData);
+
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+            pstmt.setInt(1, 25);
+            pstmt.setObject(2, initialVector, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+        }
+
+        String query = "SELECT id, v FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, 25);
+            try (ResultSet rs = stmt.executeQuery()) {
+
+                assertTrue(rs.next(), "No result found for inserted vector.");
+
+                String vectorString = rs.getString("v");
+                assertNotNull(vectorString, "Retrieved vector string is null.");
+                assertEquals("{0.45,7.9,63.0}", vectorString, "Vector string mismatch.");
+
+            }
+        }
+    }
+
+    /*
+     * Test to check backward compatibility of vector data type. 
+     * This test checks if the vector data can be retrieved as a json formatted string representation.
+     * For null vector data, it should return null as a string.
+     */
+    @Test
+    void validateNullVectorDataUsingGetString() throws SQLException {
+        String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
+        Vector initialVector = new Vector(3, VectorDimensionType.float32, null);
+
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+            pstmt.setInt(1, 26);
+            pstmt.setObject(2, initialVector, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+        }
+
+        String query = "SELECT id, v FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, 26);
+            try (ResultSet rs = stmt.executeQuery()) {
+
+                assertTrue(rs.next(), "No result found for inserted vector.");
+
+                String vectorString = rs.getString("v");
+                assertNull(vectorString, "Retrieved vector string should be null.");
+
             }
         }
     }
