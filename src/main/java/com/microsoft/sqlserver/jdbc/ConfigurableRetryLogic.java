@@ -354,12 +354,12 @@ public class ConfigurableRetryLogic {
         } catch (FileNotFoundException e) {
             // If the file is not found either A) We're not using CRL OR B) the path is wrong. Do not error out, instead
             // log a message.
-            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINER)) {
-                CONFIGURABLE_RETRY_LOGGER.finest("File not found at path - \"" + filePath + "\"");
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINE)) {
+                CONFIGURABLE_RETRY_LOGGER.fine("File not found at path - \"" + filePath + "\"");
             }
         } catch (InvalidPathException e) {
-            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINER)) {
-                CONFIGURABLE_RETRY_LOGGER.finest("Invalid path specified - \"" + filePath + "\"");
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINE)) {
+                CONFIGURABLE_RETRY_LOGGER.fine("Invalid path specified - \"" + filePath + "\"");
             }
         } catch (IOException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
@@ -367,8 +367,8 @@ public class ConfigurableRetryLogic {
             throw new SQLServerException(form.format(msgArgs), null, 0, e);
         } catch (Exception e) {
             // General exception handling
-            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINER)) {
-                CONFIGURABLE_RETRY_LOGGER.finest("An unexpected error occurred while reading from file: " + e.getMessage());
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINE)) {
+                CONFIGURABLE_RETRY_LOGGER.fine("An unexpected error occurred while reading from file: " + e.getMessage());
             }
         }
         return list;
