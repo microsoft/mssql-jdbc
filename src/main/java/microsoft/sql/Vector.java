@@ -115,20 +115,9 @@ public final class Vector implements java.io.Serializable {
         return buffer.array();
     }
 
-    /**
-     * Converts the vector to a json formatted string representation.
-     * @return A json formatted string representation of the vector.
-     */
     @Override
     public String toString() {
-        if (data == null || data.length == 0) {
-            return null;
-        }
-        StringJoiner joiner = new StringJoiner(",", "{", "}");
-        for (float value : data) {
-            joiner.add(Float.toString(value));
-        }
-        return joiner.toString();
+        return "VECTOR" + "(" + dimensionCount + ")";
     }
 
     public static microsoft.sql.Vector valueOf(Object obj) {

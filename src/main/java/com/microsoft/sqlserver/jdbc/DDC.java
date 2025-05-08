@@ -799,10 +799,9 @@ final class DDC {
                             return new StringReader(new String(stream.getBytes(), typeInfo.getCharset()));
                     }
 
+                    //Handling backward compatibility for vector type
                     if (typeInfo.getSSType() == SSType.VECTOR) {
-                        byte[] byteValue = stream.getBytes();
-                        microsoft.sql.Vector vector = microsoft.sql.Vector.fromBytes(byteValue);
-                        return vector.toString();
+                        throw new SQLServerException("getString() not supported for VECTOR type", null, 0, null);
                     }
 
                     // None of the special/fast textual conversion cases applied. Just go the normal route of converting
