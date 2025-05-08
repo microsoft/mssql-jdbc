@@ -1159,7 +1159,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
         boolean isPrepareMethodSpPrepExec = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
-
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
             if (needsPrepare)
@@ -1172,23 +1171,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
+            } else if (isPrepareMethodSpPrepExec) { // If true, we're using sp_prepexec.
+                 buildPrepExecParams(tdsWriter);
             } else if (needsPrepare) { // Second execution, use prepared statements since we seem to be re-using it.
-                if (isPrepareMethodSpPrepExec) { // If true, we're using sp_prepexec.
-                    buildPrepExecParams(tdsWriter);
-                } else { // Otherwise, we're using sp_prepare instead of sp_prepexec.
-                    isSpPrepareExecuted = true;
-                    // If we're preparing for a statement in a batch we just need to call sp_prepare because in the
-                    // "batching" code it will start another tds request to execute the statement after preparing.
-                    if (executeMethod == EXECUTE_BATCH) {
-                        buildPrepParams(tdsWriter);
-                        return needsPrepare;
-                    } else { // Otherwise, if it is not a batch query, then prepare and start new TDS request to execute
-                             // the statement.
-                        isSpPrepareExecuted = false;
-                        doPrep(tdsWriter, command);
-                        command.startRequest(TDS.PKT_RPC);
-                        buildExecParams(tdsWriter);
-                    }
+                 // Otherwise, we're using sp_prepare instead of sp_prepexec.
+                isSpPrepareExecuted = true;
+                // If we're preparing for a statement in a batch we just need to call sp_prepare because in the
+                // "batching" code it will start another tds request to execute the statement after preparing.
+                if (executeMethod == EXECUTE_BATCH) {
+                    buildPrepParams(tdsWriter);
+                    return needsPrepare;
+                } else { // Otherwise, if it is not a batch query, then prepare and start new TDS request to execute
+                            // the statement.
+                    isSpPrepareExecuted = false;
+                    doPrep(tdsWriter, command);
+                    command.startRequest(TDS.PKT_RPC);
+                    buildExecParams(tdsWriter);
                 }
             } else {
                 buildExecParams(tdsWriter);
