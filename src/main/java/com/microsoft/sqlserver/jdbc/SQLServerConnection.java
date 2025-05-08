@@ -2189,6 +2189,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         long elapsedSeconds = 0;
         long start = System.currentTimeMillis();
+
+        // Any existing enclave session would be invalid, make sure it is invalidated.
+        // For example, if this is a session recovery reconnect.
+        //
+        invalidateEnclaveSessionCache();
         for (int connectRetryAttempt = 0, tlsRetryAttempt = 0;;) {
             try {
                 if (0 == elapsedSeconds || elapsedSeconds < loginTimeoutSeconds) {
@@ -8911,6 +8916,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
         return enclaveProvider.createEnclaveSession(this, statement, userSql, preparedTypeDefinitions, params,
                 parameterNames);
+    }
+
+    void invalidateEnclaveSessionCache() {
+        if (enclaveProvider != null) {
+            if (connectionlogger.isLoggable(Level.FINE)) {
+                connectionlogger.fine("Invalidating existing enclave session for enclave provider : " + enclaveProvider);
+            }
+            enclaveProvider.invalidateEnclaveSession();
+        }
     }
 
     boolean enclaveEstablished() {
