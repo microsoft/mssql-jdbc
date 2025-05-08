@@ -310,7 +310,7 @@ public class VectorTest extends AbstractTest {
 
     /*
      * Test to check backward compatibility of vector data type. 
-     * This test checks if the vector data can be retrieved as a json formatted string representation.
+     * This test throws an exception when trying to retrieve the vector data using getString() method.
      */
     @Test
     void validateVectorDataUsingGetString() throws SQLException {
@@ -331,9 +331,14 @@ public class VectorTest extends AbstractTest {
 
                 assertTrue(rs.next(), "No result found for inserted vector.");
 
-                String vectorString = rs.getString("v");
-                assertNotNull(vectorString, "Retrieved vector string is null.");
-                assertEquals("{0.45,7.9,63.0}", vectorString, "Vector string mismatch.");
+                //Attempt to retrieve the vector as a string and check for exception
+                try {
+                    String vectorString = rs.getString("v");
+                    fail("Expected an exception when calling getString() on VECTOR type, but none was thrown.");
+                } catch (SQLException e) {
+                    assertEquals("getString() not supported for VECTOR type", e.getMessage(),
+                            "Error message does not match the expected message.");
+                }
 
             }
         }
