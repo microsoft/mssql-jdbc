@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -276,8 +277,12 @@ public final class SQLServerDataTable {
 
                     // java.sql.Date, java.sql.Time and java.sql.Timestamp are subclass of java.util.Date
                     if (val instanceof java.util.Date || val instanceof microsoft.sql.DateTimeOffset
-                            || val instanceof OffsetDateTime || val instanceof OffsetTime)
+                            || val instanceof OffsetTime)
                         rowValues[key] = val.toString();
+                    else if (val instanceof OffsetDateTime)
+                        // avoid calling OffsetDateTime#toString() because when there are no seconds we would get
+                        // a format which is incompatible with the server - see LocalTime#toString()
+                        rowValues[key] = ((OffsetDateTime)val).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
                     else
                         rowValues[key] = val;
                     break;
