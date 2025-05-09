@@ -292,6 +292,29 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "AND ic.key_ordinal = 0 " +
     "ORDER BY t.name, i.name, ic.key_ordinal";
 
+    private static final String INDEX_INFO_QUERY_DW = "SELECT db_name() AS TABLE_CAT, " +
+    "sch.name AS TABLE_SCHEM, " +
+    "t.name AS TABLE_NAME, " +
+    "i.is_unique AS NON_UNIQUE, " +
+    "t.name AS INDEX_QUALIFIER, " +
+    "i.name AS INDEX_NAME, " +
+    "i.type AS TYPE, " +
+    "ic.key_ordinal AS ORDINAL_POSITION, " +
+    "c.name AS COLUMN_NAME, " +
+    "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
+    "NULL AS CARDINALITY, " +
+    "NULL AS PAGES, " +
+    "NULL AS FILTER_CONDITION " +
+    "FROM sys.indexes i " +
+    "INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id " +
+    "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
+    "INNER JOIN sys.tables t ON i.object_id = t.object_id " +
+    "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
+    "WHERE t.name = ? " +
+    "AND sch.name = ? " +
+    "AND ic.key_ordinal = 0 " +
+    "ORDER BY t.name, i.name, ic.key_ordinal";
+
     // Use LinkedHashMap to force retrieve elements in order they were inserted
     /** getColumns columns */
     private LinkedHashMap<Integer, String> getColumnsDWColumns = null;
@@ -1266,7 +1289,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         * 
         * GitHub Issue: #2546 - Columnstore indexes were missing from sp_statistics results.
         */
-        PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(INDEX_INFO_QUERY);
+        String columnstoreIndexQuery = this.connection.isAzureDW() ? INDEX_INFO_QUERY_DW : INDEX_INFO_QUERY;
+        PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(columnstoreIndexQuery);
         pstmt.setString(1, table);
         pstmt.setString(2, schema);
         ResultSet customResultSet = pstmt.executeQuery();
