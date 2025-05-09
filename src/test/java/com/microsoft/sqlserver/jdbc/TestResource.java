@@ -219,5 +219,9 @@ public final class TestResource extends ListResourceBundle {
             {"R_MInotAvailable", "Managed Identity authentication is not available"},
             {"R_sessionPropertyFailed", "Expected {0} from server for session property {1} but got {2}."},
             {"R_featureNotSupported", "{0} is not supported."},
-            {"R_MInotAvailable", "Managed Identity authentication is not available"},};
+            {"R_MInotAvailable", "Managed Identity authentication is not available"},
+            {"R_noSQLWarningsCreateTableConnection", "Expecting NO SQLWarnings from 'create table', at Connection."},
+            {"R_noSQLWarningsCreateTableStatement", "Expecting NO SQLWarnings from 'create table', at Statement."},
+            {"R_noSQLWarningsCreateIndexConnection", "Expecting NO SQLWarnings from 'create index', at Connection."},
+            {"R_noSQLWarningsCreateIndexStatement", "Expecting NO SQLWarnings from 'create index', at Statement."},};
 }

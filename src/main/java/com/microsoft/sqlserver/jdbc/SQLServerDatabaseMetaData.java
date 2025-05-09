@@ -26,6 +26,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
+import javax.sql.rowset.CachedRowSet;
+import javax.sql.rowset.RowSetProvider;
+
 
 /**
  * Provides the JDBC database meta data.
@@ -264,6 +267,53 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String SMALLINT = JDBCType.SMALLINT.name();
 
     private static final String SQL_KEYWORDS = createSqlKeyWords();
+
+    private static final String INDEX_INFO_QUERY = "SELECT db_name() AS TABLE_CAT, " +
+    "sch.name AS TABLE_SCHEM, " +
+    "t.name AS TABLE_NAME, " +
+    "i.is_unique AS NON_UNIQUE, " +
+    "t.name AS INDEX_QUALIFIER, " +
+    "i.name AS INDEX_NAME, " +
+    "i.type AS TYPE, " +
+    "ic.key_ordinal AS ORDINAL_POSITION, " +
+    "c.name AS COLUMN_NAME, " +
+    "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
+    "CASE WHEN i.index_id <= 1 THEN ps.row_count ELSE NULL END AS CARDINALITY, " +
+    "CASE WHEN i.index_id <= 1 THEN ps.used_page_count ELSE NULL END AS PAGES, " +
+    "NULL AS FILTER_CONDITION " +
+    "FROM sys.indexes i " +
+    "INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id " +
+    "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
+    "INNER JOIN sys.tables t ON i.object_id = t.object_id " +
+    "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
+    "LEFT JOIN sys.dm_db_partition_stats ps ON ps.object_id = i.object_id AND ps.index_id = i.index_id AND ps.index_id IN (0,1) " +
+    "WHERE t.name = ? " +
+    "AND sch.name = ? " +
+    "AND ic.key_ordinal = 0 " +
+    "ORDER BY t.name, i.name, ic.key_ordinal";
+
+    private static final String INDEX_INFO_QUERY_DW = "SELECT db_name() AS TABLE_CAT, " +
+    "sch.name AS TABLE_SCHEM, " +
+    "t.name AS TABLE_NAME, " +
+    "i.is_unique AS NON_UNIQUE, " +
+    "t.name AS INDEX_QUALIFIER, " +
+    "i.name AS INDEX_NAME, " +
+    "i.type AS TYPE, " +
+    "ic.key_ordinal AS ORDINAL_POSITION, " +
+    "c.name AS COLUMN_NAME, " +
+    "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
+    "NULL AS CARDINALITY, " +
+    "NULL AS PAGES, " +
+    "NULL AS FILTER_CONDITION " +
+    "FROM sys.indexes i " +
+    "INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id " +
+    "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
+    "INNER JOIN sys.tables t ON i.object_id = t.object_id " +
+    "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
+    "WHERE t.name = ? " +
+    "AND sch.name = ? " +
+    "AND ic.key_ordinal = 0 " +
+    "ORDER BY t.name, i.name, ic.key_ordinal";
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
     /** getColumns columns */
@@ -1198,22 +1248,22 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     private static final String[] getIndexInfoColumnNames = { /* 1 */ TABLE_CAT, /* 2 */ TABLE_SCHEM,
-            /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE, /* 5 */ INDEX_QUALIFIER, /* 6 */ INDEX_NAME, /* 7 */ TYPE,
-            /* 8 */ ORDINAL_POSITION, /* 9 */ COLUMN_NAME, /* 10 */ ASC_OR_DESC, /* 11 */ CARDINALITY, /* 12 */ PAGES,
-            /* 13 */ FILTER_CONDITION};
+        /* 3 */ TABLE_NAME, /* 4 */ NON_UNIQUE, /* 5 */ INDEX_QUALIFIER, /* 6 */ INDEX_NAME, /* 7 */ TYPE,
+        /* 8 */ ORDINAL_POSITION, /* 9 */ COLUMN_NAME, /* 10 */ ASC_OR_DESC, /* 11 */ CARDINALITY, /* 12 */ PAGES,
+        /* 13 */ FILTER_CONDITION};
 
     @Override
     public java.sql.ResultSet getIndexInfo(String cat, String schema, String table, boolean unique,
-            boolean approximate) throws SQLServerException, SQLTimeoutException {
+            boolean approximate) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
         checkClosed();
         /*
-         * sp_statistics [ @table_name = ] 'table_name' [ , [ @table_owner = ] 'owner' ] [ , [ @table_qualifier = ]
-         * 'qualifier' ] [ , [ @index_name = ] 'index_name' ] [ , [ @is_unique = ] 'is_unique' ] [ , [ @accuracy = ]
-         * 'accuracy' ]
-         */
+            * sp_statistics [ @table_name = ] 'table_name' [ , [ @table_owner = ] 'owner' ] [ , [ @table_qualifier = ]
+            * 'qualifier' ] [ , [ @index_name = ] 'index_name' ] [ , [ @is_unique = ] 'is_unique' ] [ , [ @accuracy = ]
+            * 'accuracy' ]
+            */
         String[] arguments = new String[6];
         arguments[0] = table;
         arguments[1] = schema;
@@ -1228,8 +1278,44 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             arguments[5] = "Q";
         else
             arguments[5] = "E";
-        return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_STATISTICS, arguments,
+        ResultSet spStatsResultSet = getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_STATISTICS, arguments,
                 getIndexInfoColumnNames);
+        
+        /*
+        * This change was made to address the issue of missing Columnstore indexes in the
+        * sp_statistics result set. The original implementation relied on the sp_statistics
+        * stored procedure to retrieve index information, which did not include Columnstore
+        * indexes. As a result, the query was limited to only Clustered and NonClustered indexes.
+        * 
+        * GitHub Issue: #2546 - Columnstore indexes were missing from sp_statistics results.
+        */
+        String columnstoreIndexQuery = this.connection.isAzureDW() ? INDEX_INFO_QUERY_DW : INDEX_INFO_QUERY;
+        PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(columnstoreIndexQuery);
+        pstmt.setString(1, table);
+        pstmt.setString(2, schema);
+        ResultSet customResultSet = pstmt.executeQuery();
+
+        /*
+         * Create a CachedRowSet to hold the results of the sp_statistics query and
+         * the custom query. The CachedRowSet allows us to combine the results from both
+         * queries into a single result set.
+         */
+        CachedRowSet rowSet = RowSetProvider.newFactory().createCachedRowSet();
+        // Populate with first result set
+        rowSet.populate(spStatsResultSet);
+
+        while (customResultSet.next()) {
+            rowSet.moveToInsertRow();
+            for (String columnName : getIndexInfoColumnNames) {
+                Object value = customResultSet.getObject(columnName);
+                rowSet.updateObject(columnName, value);
+            }
+            rowSet.insertRow();
+        }
+        rowSet.moveToCurrentRow();
+        rowSet.beforeFirst();
+
+        return rowSet;
     }
 
     @Override

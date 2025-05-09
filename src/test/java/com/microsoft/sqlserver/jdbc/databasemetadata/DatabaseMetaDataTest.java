@@ -36,7 +36,10 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -1095,12 +1098,140 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
     @AfterAll
     public static void terminate() throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
             TestUtils.dropFunctionIfExists(functionName, stmt);
             TestUtils.dropTableWithSchemaIfExists(tableNameWithSchema, stmt);
             TestUtils.dropProcedureWithSchemaIfExists(sprocWithSchema, stmt);
             TestUtils.dropSchemaIfExists(schema, stmt);
+        }
+    }
+
+    @Nested
+    public class DatabaseMetadataGetIndexInfoTest extends AbstractTest {
+        String tableName = AbstractSQLGenerator.escapeIdentifier("DBMetadataTestTable");
+        String col1Name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("col1"));
+        String col2Name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("col2"));
+        String col3Name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("col3"));
+
+        @BeforeEach
+        public void init() throws SQLException {
+            try (Connection con = getConnection()) {
+                con.setAutoCommit(false);
+                try (Statement stmt = con.createStatement()) {
+                    TestUtils.dropTableIfExists(tableName, stmt);
+                    String createTableSQL = "CREATE TABLE " + tableName + " (" + col1Name + " INT, " + col2Name
+                            + " INT, "
+                            + col3Name + " INT)";
+
+                    stmt.executeUpdate(createTableSQL);
+                    assertNull(connection.getWarnings(),
+                            TestResource.getResource("R_noSQLWarningsCreateTableConnection"));
+                    assertNull(stmt.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateTableStatement"));
+
+                    String createClusteredIndexSQL = "CREATE CLUSTERED INDEX IDX_Clustered ON " + tableName + "("
+                            + col1Name
+                            + ")";
+                    stmt.executeUpdate(createClusteredIndexSQL);
+                    assertNull(connection.getWarnings(),
+                            TestResource.getResource("R_noSQLWarningsCreateIndexConnection"));
+                    assertNull(stmt.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexStatement"));
+
+                    String createNonClusteredIndexSQL = "CREATE NONCLUSTERED INDEX IDX_NonClustered ON " + tableName
+                            + "("
+                            + col2Name + ")";
+                    stmt.executeUpdate(createNonClusteredIndexSQL);
+                    assertNull(connection.getWarnings(),
+                            TestResource.getResource("R_noSQLWarningsCreateIndexConnection"));
+                    assertNull(stmt.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexStatement"));
+
+                    String createColumnstoreIndexSQL = "CREATE COLUMNSTORE INDEX IDX_Columnstore ON " + tableName + "("
+                            + col3Name + ")";
+                    stmt.executeUpdate(createColumnstoreIndexSQL);
+                    assertNull(connection.getWarnings(),
+                            TestResource.getResource("R_noSQLWarningsCreateIndexConnection"));
+                    assertNull(stmt.getWarnings(), TestResource.getResource("R_noSQLWarningsCreateIndexStatement"));
+                }
+                con.commit();
+            }
+        }
+
+        @AfterEach
+        public void terminate() throws SQLException {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                try {
+                    TestUtils.dropTableIfExists(tableName, stmt);
+                } catch (SQLException e) {
+                    fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+                }
+            }
+        }
+
+        @Test
+        public void testGetIndexInfo() throws SQLException {
+            ResultSet rs1 = null;
+            try (Connection connection = getConnection()) {
+                String catalog = connection.getCatalog();
+                String schema = "dbo";
+                String table = "DBMetadataTestTable";
+                DatabaseMetaData dbMetadata = connection.getMetaData();
+                rs1 = dbMetadata.getIndexInfo(catalog, schema, table, false, false);
+
+                boolean hasClusteredIndex = false;
+                boolean hasNonClusteredIndex = false;
+                boolean hasColumnstoreIndex = false;
+
+                while (rs1.next()) {
+                    String indexName = rs1.getString("INDEX_NAME");
+
+                    if (indexName != null && indexName.contains("Columnstore")) {
+                        hasColumnstoreIndex = true;
+                    } else if (indexName != null && indexName.contains("NonClustered")) {
+                        hasNonClusteredIndex = true;
+                    } else if (indexName != null && indexName.contains("Clustered")) {
+                        hasClusteredIndex = true;
+                    }
+                }
+
+                // Verify that the expected indexes are present
+                assertTrue(hasColumnstoreIndex, "COLUMNSTORE index not found.");
+                assertTrue(hasClusteredIndex, "CLUSTERED index not found.");
+                assertTrue(hasNonClusteredIndex, "NONCLUSTERED index not found.");
+            }
+        }
+
+        @Test
+        public void testGetIndexInfoCaseSensitivity() throws SQLException {
+            ResultSet rs1, rs2 = null;
+            try (Connection connection = getConnection()) {
+                String catalog = connection.getCatalog();
+                String schema = "dbo";
+                String table = "DBMetadataTestTable";
+
+                DatabaseMetaData dbMetadata = connection.getMetaData();
+                rs1 = dbMetadata.getIndexInfo(catalog, schema, table, false, false);
+                rs2 = dbMetadata.getIndexInfo(catalog, schema, table.toUpperCase(), false, false);
+
+                while (rs1.next() && rs2.next()) {
+                    String indexType = rs1.getString("TYPE");
+                    String indexName = rs1.getString("INDEX_NAME");
+                    String catalogName = rs1.getString("TABLE_CAT");
+                    String schemaName = rs1.getString("TABLE_SCHEM");
+                    String tableName = rs1.getString("TABLE_NAME");
+                    boolean isUnique = rs1.getBoolean("NON_UNIQUE");
+                    String columnName = rs1.getString("COLUMN_NAME");
+                    int columnOrder = rs1.getInt("ORDINAL_POSITION");
+
+                    assertEquals(catalogName, rs2.getString("TABLE_CAT"));
+                    assertEquals(schemaName, rs2.getString("TABLE_SCHEM"));
+                    assertEquals(tableName, rs2.getString("TABLE_NAME"));
+                    assertEquals(indexName, rs2.getString("INDEX_NAME"));
+                    assertEquals(indexType, rs2.getString("TYPE"));
+                    assertEquals(isUnique, rs2.getBoolean("NON_UNIQUE"));
+                    assertEquals(columnName, rs2.getString("COLUMN_NAME"));
+                    assertEquals(columnOrder, rs2.getInt("ORDINAL_POSITION"));
+                }
+            }
         }
     }
 }
