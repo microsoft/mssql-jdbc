@@ -3690,7 +3690,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // indicates the no of times the connection was routed to a different server
         int noOfRedirections = 0;
-
+        int maxNoOfRedirections = 10;
         // Only three ways out of this loop:
         // 1) Successfully connected
         // 2) Parser threw exception while main timer was expired
@@ -3764,9 +3764,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 .fine(toString() + " Connection open - redirection count: " + noOfRedirections);
                     }
 
-                    if (noOfRedirections > 1) {
-                        String msg = SQLServerException.getErrString("R_multipleRedirections");
-                        terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
+                    if (noOfRedirections > maxNoOfRedirections) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_multipleRedirections"));
+                        Object[] msgArgs = {maxNoOfRedirections};
+                        terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
                     }
 
                     // close tds channel
