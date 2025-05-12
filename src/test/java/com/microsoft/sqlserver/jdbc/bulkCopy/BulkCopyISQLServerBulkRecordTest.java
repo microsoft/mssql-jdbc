@@ -173,7 +173,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                         "CREATE TABLE " + dstTable + " (vectorCol VECTOR(3));");
 
                 bulkCopy.setDestinationTableName(dstTable);
-                float[] vectorData = new float[] { 1.0f, 2.0f, 3.0f };
+                Object[] vectorData = new Object[] { 1.0f, 2.0f, 3.0f };
                 microsoft.sql.Vector vector = new microsoft.sql.Vector(vectorData.length,
                         microsoft.sql.Vector.VectorDimensionType.float32, vectorData);
                 VectorBulkData vectorBulkData = new VectorBulkData(vector, vectorData.length, vector.getVectorDimensionType());
@@ -185,7 +185,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     microsoft.sql.Vector resultVector = rs.getObject("vectorCol", microsoft.sql.Vector.class);
                     assertNotNull(resultVector, "Retrieved vector is null.");
                     assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
-                    assertArrayEquals(vectorData, resultVector.getData(), 0.0001f, "Vector data mismatch.");
+                    assertArrayEquals(vectorData, resultVector.getData(), "Vector data mismatch.");
                 }
 
             } catch (Exception e) {
@@ -321,7 +321,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             statement.executeUpdate("CREATE TABLE " + vectorTable + " (vectorCol VECTOR(3))");
 
             // Insert sample data into the source table
-            float[] data = { 1.0f, 2.0f, 3.0f };
+            Object[] data = { 1.0f, 2.0f, 3.0f };
             Vector vectorData = new Vector(3, Vector.VectorDimensionType.float32, data);
 
             try (PreparedStatement pstmt = connection.prepareStatement(
@@ -417,8 +417,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
                     assertEquals(microsoft.sql.Vector.VectorDimensionType.float32, resultVector.getVectorDimensionType(),
                             "Vector dimension type mismatch.");
-                    assertArrayEquals(new float[] { 1.0f, 2.0f, 3.0f }, resultVector.getData(), 0.0001f,
-                            "Vector data mismatch.");
+                    assertArrayEquals(new Object[] { 1.0f, 2.0f, 3.0f }, resultVector.getData(), "Vector data mismatch.");
                 }
 
             }
@@ -453,9 +452,8 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             statement.executeUpdate("CREATE TABLE " + vectorTable + " (vectorCol VECTOR(3))");
 
             // Insert sample data into the source table
-            float[] data = new float[] { 1.0f, 2.0f, 3.0f };
-            microsoft.sql.Vector vector = new microsoft.sql.Vector(data.length,
-                    microsoft.sql.Vector.VectorDimensionType.float32, data);
+            Object[] data = new Object[] { 1.0f, 2.0f, 3.0f };
+            microsoft.sql.Vector vector = new microsoft.sql.Vector(data.length, microsoft.sql.Vector.VectorDimensionType.float32, data);
             try (PreparedStatement pstmt = connection.prepareStatement(
                     "INSERT INTO " + vectorTable + " (vectorCol) VALUES (?)")) {
                 pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
@@ -523,9 +521,8 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             statement.executeUpdate("CREATE TABLE " + srcTable + " (vectorCol1 VECTOR(3))");
 
             // Insert sample data into the source table
-            float[] data = new float[] { 1.0f, 2.0f, 3.0f };
-            microsoft.sql.Vector vector = new microsoft.sql.Vector(data.length,
-                    microsoft.sql.Vector.VectorDimensionType.float32, data);
+            Object[] data = new Object[] { 1.0f, 2.0f, 3.0f };
+            microsoft.sql.Vector vector = new microsoft.sql.Vector(data.length, microsoft.sql.Vector.VectorDimensionType.float32, data);
             try (PreparedStatement pstmt = connection.prepareStatement(
                     "INSERT INTO " + srcTable + " (vectorCol1) VALUES (?)")) {
                 pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
@@ -575,7 +572,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         // For testing, we can use a smaller set of records to avoid long execution time
         int recordCount = 100; // Number of records to insert
         int dimensionCount = 1998; // Dimension count for the vector
-        float[] vectorData = new float[dimensionCount];
+        Object[] vectorData = new Object[dimensionCount];
 
         // Initialize vector data
         for (int i = 0; i < dimensionCount; i++) {
