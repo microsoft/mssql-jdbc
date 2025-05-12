@@ -7,7 +7,6 @@ package microsoft.sql;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.StringJoiner;
 
 public final class Vector implements java.io.Serializable {
     public enum VectorDimensionType {
@@ -18,15 +17,15 @@ public final class Vector implements java.io.Serializable {
     private VectorDimensionType vectorType;
     private int dimensionCount;
 
-    private float[] data;
+    private Object[] data;
 
     /**
      * Constructor for Vector with dimension count and vector type.
      * @param dimensionCount The number of dimensions in the vector.
      * @param vectorType The type of the vector (float32 or float16).
-     * @param data The float array representing the vector data.
+     * @param data The object array representing the vector data.
      */
-    public Vector(int dimensionCount, VectorDimensionType vectorType, float[] data) {
+    public Vector(int dimensionCount, VectorDimensionType vectorType, Object[] data) {
         this.dimensionCount = dimensionCount;
         this.vectorType = vectorType;
         this.data = data;
@@ -36,9 +35,9 @@ public final class Vector implements java.io.Serializable {
      * Constructor for Vector with precision and scale value.
      * @param precision The number of dimensions in the vector.
      * @param scale The scale value of the vector (4 for float32, 2 for float16).
-     * @param data The float array representing the vector data.
+     * @param data The object array representing the vector data.
      */
-    public Vector(int precision, int scale, float[] data) {
+    public Vector(int precision, int scale, Object[] data) {
         this(precision, getVectorDimensionTypeFromScaleValue(scale), data);
     }
 
@@ -57,8 +56,8 @@ public final class Vector implements java.io.Serializable {
             throw new IllegalArgumentException("Byte array length must be a multiple of 4.");
         }
 
-        int floatCount = (bytes.length - 8) / 4; // 8 bytes for header
-        float[] floatArray = new float[floatCount];
+        int objectCount = (bytes.length - 8) / 4; // 8 bytes for header
+        Object[] objectArray = new Object[objectCount];
 
         ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
 
@@ -67,11 +66,11 @@ public final class Vector implements java.io.Serializable {
 
         buffer.position(8); // Skip the first 8 bytes (header)
 
-        for (int i = 0; i < floatCount; i++) {
-            floatArray[i] = buffer.getFloat();
+        for (int i = 0; i < objectCount; i++) {
+            objectArray[i] = buffer.getFloat();
         }
 
-        return new Vector(floatCount, getVectorDimensionType(dimensionTypeByte), floatArray);
+        return new Vector(objectCount, getVectorDimensionType(dimensionTypeByte), objectArray);
     }
 
     /**
@@ -107,9 +106,20 @@ public final class Vector implements java.io.Serializable {
         // 5. Reserved (3 bytes of padding)
         buffer.put(new byte[3]);
 
-        // 6. Encode float values (Little-Endian)
-        for (float value : data) {
-            buffer.putFloat(value);
+        // 6. Encode values (Little-Endian)
+        for (Object value : data) {
+            switch (vectorType) {
+                case float32:
+                    buffer.putFloat(((Number) value).floatValue());
+                    break;
+                case float16:
+                    // For float16, you need to convert to 2-byte representation.
+                    buffer.putShort((short) ((Number) value).intValue());
+                    break;      
+                default:
+                    buffer.putFloat(((Number) value).floatValue());
+                    break;
+            }
         }
 
         return buffer.array();
@@ -126,14 +136,14 @@ public final class Vector implements java.io.Serializable {
         } else if (obj instanceof microsoft.sql.Vector) {
             return (microsoft.sql.Vector) obj;
         } else if (obj instanceof float[]) {
-            float[] objArray = (float[]) obj;
+            Object[] objArray = (Object[]) obj;
             return new Vector(objArray.length, VectorDimensionType.float32, objArray);
         } else {
             return null;
         }
     }
 
-    public float[] getData() {
+    public Object[] getData() {
         return data;
     }
 

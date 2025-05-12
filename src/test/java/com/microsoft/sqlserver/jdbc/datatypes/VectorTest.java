@@ -91,7 +91,7 @@ public class VectorTest extends AbstractTest {
     @Test
     void validateVectorData() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
-        float[] originalData = new float[] { 0.45f, 7.9f, 63.0f };
+        Object[] originalData = new Object[] { 0.45f, 7.9f, 63.0f };
         Vector initialVector = new Vector(3, VectorDimensionType.float32, originalData);
 
         try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
@@ -110,7 +110,7 @@ public class VectorTest extends AbstractTest {
                 Vector resultVector = rs.getObject("v", Vector.class);
                 assertNotNull(resultVector, "Retrieved vector is null.");
                 assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
-                assertArrayEquals(originalData, resultVector.getData(), 0.0001f, "Vector data mismatch.");
+                assertArrayEquals(originalData, resultVector.getData(), "Vector data mismatch.");
             }
         }
     }
@@ -121,7 +121,7 @@ public class VectorTest extends AbstractTest {
     @Test
     void validateVectorDataWithPrecisionScale() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
-        float[] data = new float[] { 0.4f, 0.5f, 0.6f };
+        Object[] data = new Object[] { 0.4f, 0.5f, 0.6f };
         // Create a vector object with precision and scale for vector data type
         Vector vector = new Vector(3, 4, data); 
 
@@ -141,7 +141,7 @@ public class VectorTest extends AbstractTest {
                 Vector resultVector = rs.getObject("v", Vector.class);
                 assertNotNull(resultVector, "Retrieved vector is null.");
                 assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
-                assertArrayEquals(data, resultVector.getData(), 0.0001f, "Vector data mismatch.");
+                assertArrayEquals(data, resultVector.getData(), "Vector data mismatch.");
             }
         }
     }
@@ -265,7 +265,7 @@ public class VectorTest extends AbstractTest {
             String insertSourceSQL = "INSERT INTO " + sourceTable + " (id, v) VALUES (?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(insertSourceSQL)) {
                 for (int i = 1; i <= 4; i++) {
-                    float[] vectorData = { i * 1.0f, i * 2.0f, i * 3.0f, i * 4.0f }; // 4 dimensions
+                    Object[] vectorData = { i * 1.0f, i * 2.0f, i * 3.0f, i * 4.0f }; // 4 dimensions
                     Vector vector = new Vector(4, Vector.VectorDimensionType.float32, vectorData);
                     pstmt.setInt(1, i);
                     pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
@@ -315,7 +315,7 @@ public class VectorTest extends AbstractTest {
     @Test
     void validateVectorDataUsingGetString() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
-        float[] originalData = new float[] { 0.45f, 7.9f, 63.0f };
+        Object[] originalData = new Object[] { 0.45f, 7.9f, 63.0f };
         Vector initialVector = new Vector(3, VectorDimensionType.float32, originalData);
 
         try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
@@ -380,7 +380,7 @@ public class VectorTest extends AbstractTest {
                 + " (id, v) VALUES (?, ?)";
 
         int dimensionCount = 1998;
-        float[] originalData = new float[dimensionCount];
+        Object[] originalData = new Object[dimensionCount];
 
         for (int i = 0; i < dimensionCount; i++) {
             originalData[i] = i + 0.5f;
@@ -417,7 +417,7 @@ public class VectorTest extends AbstractTest {
 
                 assertNotNull(resultVector, "Retrieved vector is null.");
                 assertEquals(dimensionCount, resultVector.getDimensionCount(), "Dimension count mismatch.");
-                assertArrayEquals(originalData, resultVector.getData(), 0.0001f, "Vector data mismatch.");
+                assertArrayEquals(originalData, resultVector.getData(), "Vector data mismatch.");
             }
 
             
@@ -438,7 +438,7 @@ public class VectorTest extends AbstractTest {
         String selectSql = "SELECT id, v FROM " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName);
 
         int dimensionCount = 1998;
-        float[] vectorData = new float[dimensionCount];
+        Object[] vectorData = new Object[dimensionCount];
 
         for (int i = 0; i < dimensionCount; i++) {
             vectorData[i] = i + 0.5f;
@@ -488,7 +488,7 @@ public class VectorTest extends AbstractTest {
 
                     assertNotNull(resultVector, "Vector is null for ID " + id);
                     assertEquals(dimensionCount, resultVector.getDimensionCount(), "Mismatch at ID " + id);
-                    // assertArrayEquals(vectorData, resultVector.getData(), 0.0001f, "Vector data mismatch at ID " + id);
+                    // assertArrayEquals(vectorData, resultVector.getData(), "Vector data mismatch at ID " + id);
 
                     rowsRead++;
                 }
@@ -525,7 +525,7 @@ public class VectorTest extends AbstractTest {
 
         String call = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?, ?)}";
         try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(call)) {
-            Vector inputVector = new Vector(3, VectorDimensionType.float32, new float[]{0.5f, 1.0f, 1.5f});
+            Vector inputVector = new Vector(3, VectorDimensionType.float32, new Object[]{0.5f, 1.0f, 1.5f});
 
             cstmt.setObject(1, inputVector, microsoft.sql.Types.VECTOR);
             cstmt.registerOutParameter(2, microsoft.sql.Types.VECTOR, 3, 4);
@@ -533,7 +533,7 @@ public class VectorTest extends AbstractTest {
 
             Vector result = cstmt.getObject(2, Vector.class);
             assertNotNull(result, "Returned vector should not be null");
-            assertArrayEquals(inputVector.getData(), result.getData(), 0.0001f, "Vector data mismatch.");
+            assertArrayEquals(inputVector.getData(), result.getData(), "Vector data mismatch.");
         }
     }
 
@@ -543,7 +543,7 @@ public class VectorTest extends AbstractTest {
      */
     @Test
     public void testVectorTVP() throws SQLException {
-        Vector expectedVector = new Vector(3, VectorDimensionType.float32, new float[]{0.1f, 0.2f, 0.3f});
+        Vector expectedVector = new Vector(3, VectorDimensionType.float32, new Object[]{0.1f, 0.2f, 0.3f});
 
         SQLServerDataTable tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.VECTOR);
@@ -560,7 +560,7 @@ public class VectorTest extends AbstractTest {
                 while (rs.next()) {
                     Vector actual = rs.getObject("c1", Vector.class);
                     assertNotNull(actual, "Returned vector should not be null");
-                    assertArrayEquals(expectedVector.getData(), actual.getData(), 0.0001f, "Vector data mismatch.");
+                    assertArrayEquals(expectedVector.getData(), actual.getData(), "Vector data mismatch.");
                 }
             }
         }
@@ -624,7 +624,7 @@ public class VectorTest extends AbstractTest {
     public void testVectorUdf() throws SQLException {
         createVectorUdf();
 
-        Vector inputVector = new Vector(3, VectorDimensionType.float32, new float[]{1.1f, 2.2f, 3.3f});
+        Vector inputVector = new Vector(3, VectorDimensionType.float32, new Object[]{1.1f, 2.2f, 3.3f});
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("CREATE TABLE #vec_input (v VECTOR(3));");
         }
@@ -640,7 +640,7 @@ public class VectorTest extends AbstractTest {
 
             Vector result = rs.getObject(1, Vector.class);
             assertNotNull(result, "Returned vector should not be null");
-            assertArrayEquals(inputVector.getData(), result.getData(), 0.0001f, "Vector data mismatch.");
+            assertArrayEquals(inputVector.getData(), result.getData(), "Vector data mismatch.");
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("DROP TABLE IF EXISTS #vec_input;");
@@ -664,7 +664,7 @@ public class VectorTest extends AbstractTest {
             stmt.executeUpdate(createSourceTableSql);
 
             // Insert sample data into the source table
-            float[] vectorData = new float[] { 1.1f, 2.2f, 3.3f };
+            Object[] vectorData = new Object[] { 1.1f, 2.2f, 3.3f };
             Vector vector = new Vector(3, VectorDimensionType.float32, vectorData);
 
             String insertSql = "INSERT INTO " + sourceTable + " (id, v) VALUES (?, ?)";
@@ -674,7 +674,7 @@ public class VectorTest extends AbstractTest {
                 pstmt.executeUpdate();
             }
 
-            float[] vectorData2 = null;
+            Object[] vectorData2 = null;
             Vector vector2 = new Vector(3, VectorDimensionType.float32, vectorData2);
 
             String insertSql2 = "INSERT INTO " + sourceTable + " (id, v) VALUES (?, ?)";
@@ -704,11 +704,9 @@ public class VectorTest extends AbstractTest {
                     assertNotNull(resultVector, "Vector is null in destination table for ID " + id);
 
                     if (id == 1) {
-                        assertArrayEquals(vector.getData(), resultVector.getData(), 0.0001f,
-                                "Vector data mismatch in destination table for ID 1.");
+                        assertArrayEquals(vector.getData(), resultVector.getData(), "Vector data mismatch in destination table for ID 1.");
                     } else if (id == 2) {
-                        assertArrayEquals(vector2.getData(), resultVector.getData(), 0.0001f,
-                                "Vector data mismatch in destination table for ID 2.");
+                        assertArrayEquals(vector2.getData(), resultVector.getData(), "Vector data mismatch in destination table for ID 2.");
                     } else {
                         fail("Unexpected ID found in destination table: " + id);
                     }
@@ -745,7 +743,7 @@ public class VectorTest extends AbstractTest {
         }
 
         try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
-            float[] vectorData = { 1.0f, 2.0f, 3.0f };
+            Object[] vectorData = { 1.0f, 2.0f, 3.0f };
             Vector vector = new Vector(3, Vector.VectorDimensionType.float32, vectorData);
 
             pstmt.setInt(1, 1);
@@ -759,8 +757,7 @@ public class VectorTest extends AbstractTest {
                 assertTrue(rs.next());
                 Vector resultVector = rs.getObject(1, Vector.class);
                 assertNotNull(resultVector, "Retrieved vector is null.");
-                assertArrayEquals(new float[] { 1.0f, 2.0f, 3.0f }, resultVector.getData(), 0.0001f,
-                        "Vector data mismatch.");
+                assertArrayEquals(new Object[] { 1.0f, 2.0f, 3.0f }, resultVector.getData(), "Vector data mismatch.");
             }
         }
 
@@ -789,7 +786,7 @@ public class VectorTest extends AbstractTest {
             }
 
             try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
-                float[] vectorData = { 4.0f, 5.0f, 6.0f };
+                Object[] vectorData = { 4.0f, 5.0f, 6.0f };
                 Vector vector = new Vector(3, Vector.VectorDimensionType.float32, vectorData);
 
                 pstmt.setInt(1, 1);
@@ -803,8 +800,7 @@ public class VectorTest extends AbstractTest {
                     assertTrue(rs.next());
                     Vector resultVector = rs.getObject(1, Vector.class);
                     assertNotNull(resultVector, "Retrieved vector is null.");
-                    assertArrayEquals(new float[] { 4.0f, 5.0f, 6.0f }, resultVector.getData(), 0.0001f,
-                            "Vector data mismatch.");
+                    assertArrayEquals(new Object[] { 4.0f, 5.0f, 6.0f }, resultVector.getData(), "Vector data mismatch.");
                 }
             }
         } // Connection auto-closes here, so #TempVector is automatically dropped
@@ -834,7 +830,7 @@ public class VectorTest extends AbstractTest {
             // Insert sample data
             String insertSQL = "INSERT INTO " + vectorsTable + " (id, data) VALUES (?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
-                float[] vectorData = { 1.0f, 2.0f, 3.0f };
+                Object[] vectorData = { 1.0f, 2.0f, 3.0f };
                 Vector vector = new Vector(3, Vector.VectorDimensionType.float32, vectorData);
 
                 pstmt.setInt(1, 1);
@@ -850,9 +846,8 @@ public class VectorTest extends AbstractTest {
                 assertTrue(rs.next(), "No result returned from UDF.");
                 Vector normalizedVector = rs.getObject("d", Vector.class);
                 assertNotNull(normalizedVector, "Normalized vector is null.");
-                float[] expectedNormalizedData = { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
-                assertArrayEquals(expectedNormalizedData, normalizedVector.getData(), 0.0001f,
-                        "Normalized vector mismatch.");
+                Object[] expectedNormalizedData = { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
+                assertArrayEquals(expectedNormalizedData, normalizedVector.getData(), "Normalized vector mismatch.");
             }
         } finally {
             // Cleanup: Drop the UDF and table
@@ -896,7 +891,7 @@ public class VectorTest extends AbstractTest {
             // Insert sample data
             String insertSQL = "INSERT INTO " + vectorsTable + " (id, data) VALUES (?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
-                float[] vectorData = { 1.0f, 2.0f, 3.0f };
+                Object[] vectorData = { 1.0f, 2.0f, 3.0f };
                 Vector vector = new Vector(3, Vector.VectorDimensionType.float32, vectorData);
 
                 pstmt.setInt(1, 1);
@@ -911,9 +906,8 @@ public class VectorTest extends AbstractTest {
                 assertTrue(rs.next(), "No result returned from scalar-valued function.");
                 Vector normalizedVector = rs.getObject("normalizedVector", Vector.class);
                 assertNotNull(normalizedVector, "Normalized vector is null.");
-                float[] expectedNormalizedData = { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
-                assertArrayEquals(expectedNormalizedData, normalizedVector.getData(), 0.0001f,
-                        "Normalized vector mismatch.");
+                Object[] expectedNormalizedData = { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
+                assertArrayEquals(expectedNormalizedData, normalizedVector.getData(), "Normalized vector mismatch.");
             }
         } finally {
             // Cleanup: Drop the UDF and table
@@ -941,7 +935,7 @@ public class VectorTest extends AbstractTest {
         }
 
         // Insert initial data
-        float[] initialData = { 1.0f, 2.0f, 3.0f };
+        Object[] initialData = { 1.0f, 2.0f, 3.0f };
         Vector initialVector = new Vector(3, Vector.VectorDimensionType.float32, initialData);
 
         try (PreparedStatement pstmt = connection.prepareStatement(
@@ -955,7 +949,7 @@ public class VectorTest extends AbstractTest {
         connection.setAutoCommit(false);
         try {
             // Insert new data
-            float[] newData = { 4.0f, 5.0f, 6.0f };
+            Object[] newData = { 4.0f, 5.0f, 6.0f };
             Vector newVector = new Vector(3, Vector.VectorDimensionType.float32, newData);
 
             try (PreparedStatement pstmt = connection.prepareStatement(
@@ -966,7 +960,7 @@ public class VectorTest extends AbstractTest {
             }
 
             // Update existing data
-            float[] updatedData = { 7.0f, 8.0f, 9.0f };
+            Object[] updatedData = { 7.0f, 8.0f, 9.0f };
             Vector updatedVector = new Vector(3, Vector.VectorDimensionType.float32, updatedData);
 
             try (PreparedStatement pstmt = connection.prepareStatement(
@@ -1006,7 +1000,7 @@ public class VectorTest extends AbstractTest {
 
             assertEquals(1, id, "ID mismatch after rollback.");
             assertNotNull(resultVector, "Vector is null after rollback.");
-            assertArrayEquals(initialData, resultVector.getData(), 0.0001f, "Vector data mismatch after rollback.");
+            assertArrayEquals(initialData, resultVector.getData(), "Vector data mismatch after rollback.");
 
             assertFalse(rs.next(), "Unexpected additional rows found after rollback.");
         } finally {
@@ -1034,10 +1028,10 @@ public class VectorTest extends AbstractTest {
             stmt.executeUpdate(createTableSQL);
 
             // Insert sample data into the table
-            float[] vectorData1 = { 1.1f, 2.2f, 3.3f };
+            Object[] vectorData1 = { 1.1f, 2.2f, 3.3f };
             Vector vector1 = new Vector(3, Vector.VectorDimensionType.float32, vectorData1);
 
-            float[] vectorData2 = { 4.4f, 5.5f, 6.6f };
+            Object[] vectorData2 = { 4.4f, 5.5f, 6.6f };
             Vector vector2 = new Vector(3, Vector.VectorDimensionType.float32, vectorData2);
 
             String insertSQL = "INSERT INTO " + tableName + " (id, v) VALUES (?, ?)";
@@ -1066,11 +1060,9 @@ public class VectorTest extends AbstractTest {
                     assertNotNull(resultVector, "Vector is null in view for ID " + id);
 
                     if (id == 1) {
-                        assertArrayEquals(vectorData1, resultVector.getData(), 0.0001f,
-                                "Vector data mismatch in view for ID 1.");
+                        assertArrayEquals(vectorData1, resultVector.getData(), "Vector data mismatch in view for ID 1.");
                     } else if (id == 2) {
-                        assertArrayEquals(vectorData2, resultVector.getData(), 0.0001f,
-                                "Vector data mismatch in view for ID 2.");
+                        assertArrayEquals(vectorData2, resultVector.getData(), "Vector data mismatch in view for ID 2.");
                     } else {
                         fail("Unexpected ID found in view: " + id);
                     }
