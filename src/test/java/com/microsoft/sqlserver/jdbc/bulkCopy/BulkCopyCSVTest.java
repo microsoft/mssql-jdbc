@@ -614,7 +614,7 @@ public class BulkCopyCSVTest extends AbstractTest {
                         assertEquals(null, vectorObject.getData(), "Expected null vector at row " + (rowCount + 1));
                     } else {
                         assertNotNull(vectorObject, "Expected non-null vector at row " + (rowCount + 1));
-                        assertArrayEquals((float[]) expectedData.get(rowCount)[1], vectorObject.getData(),
+                        assertArrayEquals((Object[]) expectedData.get(rowCount)[1], vectorObject.getData(),
                                 "Mismatch in vector data at row " + (rowCount + 1));
                     }
 

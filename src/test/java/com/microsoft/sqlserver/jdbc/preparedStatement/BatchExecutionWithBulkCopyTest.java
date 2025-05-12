@@ -850,9 +850,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (vectorCol VECTOR(3))";
             stmt.execute(createTable);
 
-            float[] vectorData = { 4.0f, 5.0f, 6.0f }; // Sample float data
-            microsoft.sql.Vector vector = new microsoft.sql.Vector(vectorData.length,
-                    microsoft.sql.Vector.VectorDimensionType.float32, vectorData);
+            Object[] vectorData = { 4.0f, 5.0f, 6.0f };
+            microsoft.sql.Vector vector = new microsoft.sql.Vector(vectorData.length, microsoft.sql.Vector.VectorDimensionType.float32, vectorData);
 
             pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
             pstmt.addBatch();
@@ -863,7 +862,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 microsoft.sql.Vector resultVector = rs.getObject("vectorCol", microsoft.sql.Vector.class);
                 assertNotNull(resultVector, "Retrieved vector is null.");
                 assertEquals(3, resultVector.getDimensionCount());
-                assertArrayEquals(vectorData, resultVector.getData(), 0.0001f, "Vector data mismatch.");
+                assertArrayEquals(vectorData, resultVector.getData(), "Vector data mismatch.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
@@ -920,7 +919,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         // For testing, we can use a smaller set of records to avoid long execution time
         int recordCount = 100; // Number of records to insert
         int dimensionCount = 1998; // Dimension count for the vector
-        float[] vectorData = new float[dimensionCount];
+        Object[] vectorData = new Object[dimensionCount];
 
         // Initialize vector data
         for (int i = 0; i < dimensionCount; i++) {

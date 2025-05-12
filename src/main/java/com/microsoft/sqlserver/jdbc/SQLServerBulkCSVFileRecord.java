@@ -446,7 +446,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                                     throw new SQLServerException("Mismatch between vector dimension count and provided data.", null, 0, null);
                                 }
                         
-                                float[] vectorArray = new float[dimensionCount];
+                                Object[] vectorArray = new Object[dimensionCount];
                                 for (int i = 0; i < dimensionCount; i++) {
                                     vectorArray[i] = Float.parseFloat(vectorElements[i].trim());
                                 }
