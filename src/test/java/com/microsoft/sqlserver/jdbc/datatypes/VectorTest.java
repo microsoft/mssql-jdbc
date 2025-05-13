@@ -111,6 +111,10 @@ public class VectorTest extends AbstractTest {
                 assertNotNull(resultVector, "Retrieved vector is null.");
                 assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
                 assertArrayEquals(originalData, resultVector.getData(), "Vector data mismatch.");
+
+                // Validate the toString output
+                String expectedToString = "VECTOR(float32, 3) : [0.45, 7.9, 63.0]";
+                assertEquals(expectedToString, resultVector.toString(), "Vector toString output mismatch.");
             }
         }
     }
@@ -846,8 +850,14 @@ public class VectorTest extends AbstractTest {
                 assertTrue(rs.next(), "No result returned from UDF.");
                 Vector normalizedVector = rs.getObject("d", Vector.class);
                 assertNotNull(normalizedVector, "Normalized vector is null.");
+
                 Object[] expectedNormalizedData = { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
-                assertArrayEquals(expectedNormalizedData, normalizedVector.getData(), "Normalized vector mismatch.");
+                Object[] actualNormalizedData = normalizedVector.getData();
+
+                for (int i = 0; i < expectedNormalizedData.length; i++) {
+                    assertEquals((float) expectedNormalizedData[i], (float) actualNormalizedData[i], 0.0001f,
+                            "Normalized vector mismatch at index " + i);
+                }
             }
         } finally {
             // Cleanup: Drop the UDF and table
@@ -906,8 +916,14 @@ public class VectorTest extends AbstractTest {
                 assertTrue(rs.next(), "No result returned from scalar-valued function.");
                 Vector normalizedVector = rs.getObject("normalizedVector", Vector.class);
                 assertNotNull(normalizedVector, "Normalized vector is null.");
+                
                 Object[] expectedNormalizedData = { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
-                assertArrayEquals(expectedNormalizedData, normalizedVector.getData(), "Normalized vector mismatch.");
+                Object[] actualNormalizedData = normalizedVector.getData();
+
+                for (int i = 0; i < expectedNormalizedData.length; i++) {
+                    assertEquals((float) expectedNormalizedData[i], (float) actualNormalizedData[i], 0.0001f,
+                            "Normalized vector mismatch at index " + i);
+                }
             }
         } finally {
             // Cleanup: Drop the UDF and table
