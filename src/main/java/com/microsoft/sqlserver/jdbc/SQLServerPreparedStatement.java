@@ -235,6 +235,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private ReconnectListener clearPrepStmtHandleOnReconnectListener;
 
     /**
+     * Flag to indicate if the SQL is executed directly or through sp_prepexec
+     */
+    private boolean needsPrepare = true;
+    /**
+     * In case of internal encryption query call, Flag to hold the last calculated needsPrepare flag value 
+     */
+    private boolean needsPreparePreCache = false;
+
+    /**
      * Constructs a SQLServerPreparedStatement.
      * 
      * @param conn
@@ -667,7 +676,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
-        boolean needsPrepare = true;
         // Retry execution if existing handle could not be re-used.
         for (int attempt = 1; attempt <= 2; ++attempt) {
             try {
@@ -679,7 +687,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // Start the request and detach the response reader so that we can
                 // continue using it after we return.
                 TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
-
+                // Need to hold the last calculated NeedPrepExec flag value in case of internal encryption query call
+                needsPreparePreCache = needsPrepare;
                 needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
                         command);
 
@@ -1178,7 +1187,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
-            } else if (needsPrepare) { // Second execution, use prepared statements since we seem to be re-using it.
+            } else if (needsPrepare || (connection.isAEv2() && !isInternalEncryptionQuery && needsPreparePreCache)) { // Second execution, use prepared statements since we seem to be re-using it.
                 if (isPrepareMethodSpPrepExec) { // If true, we're using sp_prepexec.
                     buildPrepExecParams(tdsWriter);
                 } else { // Otherwise, we're using sp_prepare instead of sp_prepexec.
