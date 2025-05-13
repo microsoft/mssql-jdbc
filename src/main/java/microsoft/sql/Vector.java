@@ -7,6 +7,7 @@ package microsoft.sql;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
 public final class Vector implements java.io.Serializable {
     public enum VectorDimensionType {
@@ -125,9 +126,14 @@ public final class Vector implements java.io.Serializable {
         return buffer.array();
     }
 
+    /**
+     * Converts the vector to a string representation.
+     * @return A string representation of the vector.
+     */
     @Override
     public String toString() {
-        return "VECTOR" + "(" + dimensionCount + ")";
+        return "VECTOR(" + vectorType + ", " + dimensionCount + ") : " +
+                (data != null ? Arrays.toString(data) : "null");
     }
 
     public static microsoft.sql.Vector valueOf(Object obj) {

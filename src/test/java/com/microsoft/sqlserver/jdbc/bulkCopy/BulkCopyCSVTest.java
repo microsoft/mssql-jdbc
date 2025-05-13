@@ -598,8 +598,8 @@ public class BulkCopyCSVTest extends AbstractTest {
 
                 // Expected data from the CSV file
                 List<Object[]> expectedData = Arrays.asList(
-                        new Object[] { 1, new float[] { 1.0f, 2.0f, 3.0f } },
-                        new Object[] { 2, new float[] { 4.0f, 5.0f, 6.0f } },
+                        new Object[] { 1, new Object[] { 1.0f, 2.0f, 3.0f } },
+                        new Object[] { 2, new Object[] { 4.0f, 5.0f, 6.0f } },
                         new Object[] { 3, null });
 
                 while (rs.next()) {
