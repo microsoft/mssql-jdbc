@@ -24,6 +24,9 @@ import java.util.Calendar;
 import java.util.Locale;
 import java.util.UUID;
 
+import microsoft.sql.Vector;
+import microsoft.sql.Vector.VectorDimensionType;
+
 
 /**
  * Parameter represents a JDBC parameter value that is supplied with a prepared or callable statement or an updatable
@@ -403,7 +406,14 @@ final class Parameter {
         deriveTypeInfo(tdsReader);
         // If the parameter is not encrypted or column encryption is turned off (either at connection or
         // statement level), cryptoMeta would be null.
-        return getterDTV.getValue(jdbcType, outScale, getterArgs, cal, typeInfo, cryptoMeta, tdsReader, statement);
+        Object value = getterDTV.getValue(jdbcType, outScale, getterArgs, cal, typeInfo, cryptoMeta, tdsReader, statement);
+        if (jdbcType == JDBCType.VECTOR && value == null) {
+            int precision = typeInfo.getPrecision(); 
+            VectorDimensionType scale = Vector.getVectorDimensionType(typeInfo.getScale());
+            Vector vector = new Vector(precision, scale, null);
+            value = vector;
+        }
+        return value;
     }
 
     Object getSetterValue() {
