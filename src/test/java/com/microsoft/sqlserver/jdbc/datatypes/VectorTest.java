@@ -542,6 +542,28 @@ public class VectorTest extends AbstractTest {
     }
 
     /**
+     * Test for calling a stored procedure with a null vector input and output parameters. The expected behavior is that
+     * the database should accept the null vector and return it as an output parameter.
+     */
+    @Test
+    public void testNullVectorStoredProcedureInputOutput() throws SQLException {
+        createProcedure();
+
+        String call = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?, ?)}";
+        try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(call)) {
+            Vector inputVector = new Vector(3, VectorDimensionType.float32, null);
+
+            cstmt.setObject(1, inputVector, microsoft.sql.Types.VECTOR);
+            cstmt.registerOutParameter(2, microsoft.sql.Types.VECTOR, 3, 4);
+            cstmt.execute();
+
+            Vector result = cstmt.getObject(2, Vector.class);
+            assertNotNull(result, "Returned vector should not be null");
+            assertArrayEquals(inputVector.getData(), result.getData(), "Vector data mismatch.");
+        }
+    }
+
+    /**
      * Test for inserting a vector into a TVP. The expected behavior is that the database should accept the vector and
      * store it in the table.
      */
