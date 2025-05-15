@@ -216,6 +216,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** sendTemporalDataTypesAsStringForBulkCopy flag */
     private boolean sendTemporalDataTypesAsStringForBulkCopy = true;
 
+    /** application attributes set by application */
+    private HashMap<ApplicationAttribute, String> applicationAttributes = new HashMap<ApplicationAttribute, String>();
+
     /**
      * https://docs.microsoft.com/sql/t-sql/functions/serverproperty-transact-sql
      */
@@ -312,6 +315,102 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * static lock instance for the class
      **/
     private static final Lock sLock = new ReentrantLock();
+
+    static final String USER_AGENT_TEMPLATE = "{\"driver\":\"%s\",\"version\":\"%s\",\"os\":{\"type\":\"%s\",\"details\":\"%s\"},\"arch\":\"%s\",\"runtime\":\"%s\"$1}";
+    static final String constructedUserAgent;
+
+    static {
+        constructedUserAgent = getUserAgent();
+    }
+
+    static String getUserAgent() {
+        try {
+            return String.format(
+                    USER_AGENT_TEMPLATE,
+                    "MS-JDBC",
+                    getJDBCVersion(),
+                    getOSType(),
+                    getOSDetails(),
+                    getArchitecture(),
+                    getRuntimeDetails()
+                    );
+        } catch(Exception e) {
+            return "{\"driver\":\"MS-JDBC\"}";
+        }
+    }
+
+    static String getJDBCVersion() {
+        return sanitizeField(SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "." + SQLJdbcVersion.PATCH + "." + SQLJdbcVersion.BUILD + SQLJdbcVersion.RELEASE_EXT, 16);
+    }
+    static String getOSType() {
+        String osName = System.getProperty("os.name", "Unknown").trim();
+        String osNameToReturn = "Unknown";
+        if (osName.startsWith("Windows")) osNameToReturn = "Windows";
+        if (osName.startsWith("Linux")) osNameToReturn = "Linux";
+        if (osName.startsWith("Mac")) osNameToReturn = "macOS";
+        if (osName.startsWith("FreeBSD")) osNameToReturn = "FreeBSD";
+        if (osName.startsWith("Android")) osNameToReturn = "Android";
+        return sanitizeField(osNameToReturn, 16);
+    }
+
+    static String getArchitecture() {
+        return sanitizeField(System.getProperty("os.arch", "Unknown").trim(), 16);
+    }
+
+    static String getOSDetails() {
+        String osName = System.getProperty("os.name", "").trim();
+        String osVersion = System.getProperty("os.version", "").trim();
+        if (osName.isEmpty() && osVersion.isEmpty()) return "Unknown";
+        return sanitizeField(osName + " " + osVersion, 128);
+    }
+
+    static String getRuntimeDetails() {
+        String javaVmName = System.getProperty("java.vm.name", "").trim();
+        String javaVmVersion = System.getProperty("java.vm.version", "").trim();
+        if (javaVmName.isEmpty() && javaVmVersion.isEmpty()) return "Unknown";
+        return sanitizeField(javaVmName + " " + javaVmVersion, 128);
+    }
+
+    static String sanitizeField(String field, int maxLength) {
+        String sanitized = field.replaceAll("[^A-Za-z0-9 .+_-]", "").trim();
+        return sanitized.isEmpty() ? "Unknown" : sanitized.substring(0, Math.min(sanitized.length(), maxLength));
+    }
+
+    private final String getUserAgentToSend() {
+        String applicationAttributesJSON = getApplicationAttributesJSON();
+        return constructedUserAgent.replace("$1", applicationAttributesJSON);
+    }
+
+    private final String getApplicationAttributesJSON() {
+        if (applicationAttributes.isEmpty()) {
+            return "";
+        } else {
+            StringBuilder b = new StringBuilder();
+            //Note: not relying on any third party json library here.
+            //
+            b.append(",\"ext\":{");
+            for (Map.Entry<ApplicationAttribute, String> e : applicationAttributes.entrySet()) {
+                b.append("\"");
+                b.append(e.getKey());
+                b.append("\":");
+                b.append("\"");
+                b.append(e.getValue());
+                b.append("\"");
+            }
+            b.append("}");
+            return b.toString();
+        }
+    }
+
+    //TODO
+    //Rework the API and enable after privacy implications discussion
+    //
+    /*
+    public boolean SetApplicationAttribute(ApplicationAttribute attribute, String value) {
+        applicationAttributes.put(attribute, sanitizeField(value, 64));
+        return true;
+    }
+    */
 
     /**
      * Generate a 6 byte random array for netAddress
@@ -5605,6 +5704,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return len;
     }
 
+    int writeUserAgentFeatureRequest(boolean write, /* if false just calculates the length */
+            TDSWriter tdsWriter) throws SQLServerException {
+        String userAgentToSend = getUserAgentToSend();
+        //
+        //TODO: use UTF-8 encoding for JSON
+        //
+        byte[] userAgentToSendBytes = toUCS16(userAgentToSend);
+        int len = userAgentToSendBytes.length + 6; // 1byte = featureID, 1byte = version, 4byte = feature data length in bytes, remaining bytes: feature data
+        if (write) {
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_USERAGENT);
+            tdsWriter.writeInt(userAgentToSendBytes.length + 1);
+            tdsWriter.writeByte(TDS.MAX_USERAGENT_VERSION);
+            tdsWriter.writeBytes(userAgentToSendBytes);
+        }
+        return len;
+    }
+
     int writeIdleConnectionResiliencyRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
         SessionStateTable ssTable = sessionRecovery.getSessionStateTable();
         int len = 1;
@@ -6739,6 +6855,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sessionRecovery.setConnectionRecoveryPossible(true);
                 break;
             }
+
+            case TDS.TDS_FEATURE_EXT_USERAGENT: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(
+                            toString() + " Received feature extension acknowledgement for User Agent feature extension.");
+                }
+                break;
+            }
+
             default: {
                 // Unknown feature ack
                 throw new SQLServerException(SQLServerException.getErrString("R_UnknownFeatureAck"), null);
@@ -7039,12 +7164,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         len = len + writeDNSCacheFeatureRequest(false, tdsWriter);
 
+        len = len + writeUserAgentFeatureRequest(false, tdsWriter);
+
         len = len + 1; // add 1 to length because of FeatureEx terminator
 
         // Idle Connection Resiliency is requested
         if (connectRetryCount > 0) {
             len = len + writeIdleConnectionResiliencyRequest(false, tdsWriter);
         }
+
 
         // Length of entire Login 7 packet
         tdsWriter.writeInt(len);
@@ -7235,6 +7363,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         writeDataClassificationFeatureRequest(true, tdsWriter);
         writeUTF8SupportFeatureRequest(true, tdsWriter);
         writeDNSCacheFeatureRequest(true, tdsWriter);
+        writeUserAgentFeatureRequest(true, tdsWriter);
 
         // Idle Connection Resiliency is requested
         if (connectRetryCount > 0) {

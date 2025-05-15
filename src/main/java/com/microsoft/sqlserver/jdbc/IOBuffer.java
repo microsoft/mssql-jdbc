@@ -169,6 +169,11 @@ final class TDS {
     static final byte TDS_FEATURE_EXT_AZURESQLDNSCACHING = 0x0B;
     static final byte TDS_FEATURE_EXT_SESSIONRECOVERY = 0x01;
 
+    // Driver Info Telemetry support
+    static final byte TDS_FEATURE_EXT_USERAGENT = 0x0F;
+    static final byte MAX_USERAGENT_VERSION = 0x01;
+    static final byte USERAGENT_NOT_SUPPORTED = 0x00;
+
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
     static final int TVP_NULL_TOKEN = 0xFFFF;
@@ -237,6 +242,8 @@ final class TDS {
                 return "TDS_FEATURE_EXT_AZURESQLDNSCACHING (0x0B)";
             case TDS_FEATURE_EXT_SESSIONRECOVERY:
                 return "TDS_FEATURE_EXT_SESSIONRECOVERY (0x01)";
+            case TDS_FEATURE_EXT_USERAGENT:
+                return "TDS_FEATURE_EXT_DRIVERINFOTELEMETRY (0x0F)";
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
