@@ -81,6 +81,8 @@ public class AESetup extends AbstractTest {
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedNumeric")));
     public static final String SCALE_DATE_TABLE_AE = TestUtils.escapeSingleQuotes(
             AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedScaleDate")));
+    public static final String VARY_STRING_TABLE_AE = TestUtils.escapeSingleQuotes(
+            AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBCEncryptedString")));
 
     final static char[] HEXCHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
