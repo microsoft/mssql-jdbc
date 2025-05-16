@@ -21,7 +21,7 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 
 @RunWith(JUnitPlatform.class)
-public class SQLServerPreparedStatementTest extends AbstractTest {
+public class SQLServerPreparedStatementMockTest extends AbstractTest {
 
     /**
      * This test case helps track the insertion process and ensures that encrypted columns can handle string values of varying sizes correctly.
@@ -63,7 +63,7 @@ public class SQLServerPreparedStatementTest extends AbstractTest {
         boolean isInternalEncryptionQuery = false;
         
         // On the first invocation, buildPreparedStringsMethod() sets the preparedTypeDefinitionsCache field.
-        result = (boolean) buildPreparedStringsMethod.invoke(preparedStatement, params, renewDefinition, isInternalEncryptionQuery);
+        buildPreparedStringsMethod.invoke(preparedStatement, params, renewDefinition, isInternalEncryptionQuery);
         // Use reflection to access the private field 'preparedTypeDefinitionsCache'
         Field cacheFieldPreparedTypeDefinitionsCache = SQLServerPreparedStatement.class.getDeclaredField("preparedTypeDefinitionsCache");
         cacheFieldPreparedTypeDefinitionsCache.setAccessible(true);
@@ -76,9 +76,9 @@ public class SQLServerPreparedStatementTest extends AbstractTest {
         isInternalEncryptionQuery = false;
         when(params[0].getTypeDefinition(any(), any())).thenReturn("varchar(3)");
         // Invoke the private method
-        result = (boolean) buildPreparedStringsMethod.invoke(preparedStatement, params, renewDefinition, isInternalEncryptionQuery);
+        boolean needsPrepareCall = (boolean) buildPreparedStringsMethod.invoke(preparedStatement, params, renewDefinition, isInternalEncryptionQuery);
         // Validate that the field is now null
-        assertTrue(result, "buildPreparedStrings() should return true");
+        assertTrue(needsPrepareCall, "buildPreparedStrings() should return true");
     }
     
 }
