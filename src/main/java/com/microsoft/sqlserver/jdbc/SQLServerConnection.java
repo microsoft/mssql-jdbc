@@ -2195,6 +2195,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         long elapsedSeconds = 0;
         long start = System.currentTimeMillis();
+
+        // Any existing enclave session would be invalid, make sure it is invalidated.
+        // For example, if this is a session recovery reconnect.
+        //
+        invalidateEnclaveSessionCache();
         for (int connectRetryAttempt = 0, tlsRetryAttempt = 0;;) {
             try {
                 if (0 == elapsedSeconds || elapsedSeconds < loginTimeoutSeconds) {
@@ -3685,7 +3690,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // indicates the no of times the connection was routed to a different server
         int noOfRedirections = 0;
-
+        int maxNoOfRedirections = 10;
         // Only three ways out of this loop:
         // 1) Successfully connected
         // 2) Parser threw exception while main timer was expired
@@ -3759,9 +3764,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 .fine(toString() + " Connection open - redirection count: " + noOfRedirections);
                     }
 
-                    if (noOfRedirections > 1) {
-                        String msg = SQLServerException.getErrString("R_multipleRedirections");
-                        terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
+                    if (noOfRedirections > maxNoOfRedirections) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_multipleRedirections"));
+                        Object[] msgArgs = {maxNoOfRedirections};
+                        terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
                     }
 
                     // close tds channel
@@ -8967,6 +8973,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
         return enclaveProvider.createEnclaveSession(this, statement, userSql, preparedTypeDefinitions, params,
                 parameterNames);
+    }
+
+    void invalidateEnclaveSessionCache() {
+        if (enclaveProvider != null) {
+            if (connectionlogger.isLoggable(Level.FINE)) {
+                connectionlogger.fine("Invalidating existing enclave session for enclave provider : " + enclaveProvider);
+            }
+            enclaveProvider.invalidateEnclaveSession();
+        }
     }
 
     boolean enclaveEstablished() {

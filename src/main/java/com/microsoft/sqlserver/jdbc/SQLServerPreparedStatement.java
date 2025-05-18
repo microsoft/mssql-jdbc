@@ -687,6 +687,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 startResults();
                 getNextResult(true);
             } catch (SQLException e) {
+                if (connection.isAEv2() && (e.getErrorCode() == SQLServerException.INVAID_ENCLAVE_SESSION_HANDLE_ERROR)) {
+                    //If the exception received is as below then just invalidate the cache 
+                    //code = '33195', SQL state = 'S0001': Internal enclave error. Enclave was provided with an invalid session handle. For more information, contact Customer Support Services..
+                    //
+                    connection.invalidateEnclaveSessionCache();
+                }
                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false)) {
                     continue;
                 } else if (!inRetry && connection.doesServerSupportEnclaveRetry()) {
@@ -3119,6 +3125,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         assert numBatchesExecuted == numBatchesPrepared;
                     }
                 } catch (SQLException e) {
+                    if (connection.isAEv2() && (e.getErrorCode() == SQLServerException.INVAID_ENCLAVE_SESSION_HANDLE_ERROR)) {
+                        //If the exception received is as below then just invalidate the cache 
+                        //code = '33195', SQL state = 'S0001': Internal enclave error. Enclave was provided with an invalid session handle. For more information, contact Customer Support Services..
+                        //
+                        connection.invalidateEnclaveSessionCache();
+                    }
                     if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, true)
                             && connection.isStatementPoolingEnabled()) {
                         // Reset number of batches prepared.

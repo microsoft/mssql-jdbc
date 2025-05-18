@@ -41,7 +41,7 @@ public final class SQLServerResource extends ListResourceBundle {
         // LOCALIZE THIS
         {"R_timedOutBeforeRouting", "The timeout expired before connecting to the routing destination."},
         {"R_invalidRoutingInfo", "Unexpected routing information received. Please check your connection properties and SQL Server configuration."},
-        {"R_multipleRedirections", "Two or more redirections have occurred. Only one redirection per login attempt is allowed."},
+        {"R_multipleRedirections", "Too many redirections have occurred. Only {0} redirections per login is allowed."},
         {"R_dbMirroringWithMultiSubnetFailover", "Connecting to a mirrored SQL Server instance using the multiSubnetFailover connection property is not supported."},
         {"R_dbMirroringWithReadOnlyIntent", "Connecting to a mirrored SQL Server instance using the ApplicationIntent ReadOnly connection property is not supported."},
         {"R_ipAddressLimitWithMultiSubnetFailover", "Connecting with the multiSubnetFailover connection property to a SQL Server instance configured with more than {0} IP addresses is not supported."},
