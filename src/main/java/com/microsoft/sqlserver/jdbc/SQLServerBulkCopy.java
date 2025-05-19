@@ -1042,8 +1042,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case microsoft.sql.Types.VECTOR: // 0xF5
                 tdsWriter.writeByte(TDSType.VECTOR.byteValue());
-                tdsWriter.writeShort((short) (8 + srcScale * srcPrecision)); //length
-                byte srcByte = (byte) (srcScale == 2 ? 0x01 : 0x00);
+                tdsWriter.writeShort((short) (Vector.getVectorLength(srcScale, srcPrecision))); //length
+                byte srcByte = (byte) (Vector.getScaleByte(srcScale));
                 tdsWriter.writeByte((byte) srcByte); //scale
                 break;
 
@@ -2338,7 +2338,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         if (vector.getData() == null) {
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
-                            tdsWriter.writeShort((short) (vector.getActualLength())); // Actual length
+                            tdsWriter.writeShort((short) (vector.getVectorLength())); // Actual length
                             tdsWriter.writeBytes(vector.toBytes()); // Write vector data
                         } 
                     }
@@ -3586,7 +3586,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case VECTOR:
                     Vector vector = (Vector) value;
                     byteValue = vector.toBytes();
-                    if (byteValue.length > vector.getActualLength()) {
+                    if (byteValue.length > vector.getVectorLength()) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
                         Object[] msgArgs = {srcJdbcType, destJdbcType, destName};
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);

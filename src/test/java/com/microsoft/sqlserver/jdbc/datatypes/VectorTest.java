@@ -968,6 +968,7 @@ public class VectorTest extends AbstractTest {
 
         // Create the table
         try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(transactionTable, stmt);
             String createTableSQL = "CREATE TABLE " + transactionTable + " (id INT PRIMARY KEY, v VECTOR(3))";
             stmt.executeUpdate(createTableSQL);
         }

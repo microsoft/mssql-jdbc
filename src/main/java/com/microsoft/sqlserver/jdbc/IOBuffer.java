@@ -5383,7 +5383,7 @@ final class TDSWriter {
                 writeInternalTVPRowValues(internalJDBCType, currentColumnStringValue, currentObject, columnPair, true);
                 break;
 
-                case VECTOR:
+            case VECTOR:
                 byte[] bValue = (currentObject == null) ? null : (byte[]) currentObject;
                 writeShort((short) (bValue == null ? -1 : bValue.length));
                 if (bValue != null) {
@@ -5527,8 +5527,8 @@ final class TDSWriter {
                 
                 case VECTOR:
                     writeByte(TDSType.VECTOR.byteValue());
-                    writeShort((short) ((pair.getValue().scale * pair.getValue().precision) + 8)); // max length
-                    byte scaleByte = (byte) (pair.getValue().scale == 2 ? 0x01 : 0x00);
+                    writeShort((short) (Vector.getVectorLength(pair.getValue().scale,  pair.getValue().precision))); // max length
+                    byte scaleByte = (byte) (Vector.getScaleByte(pair.getValue().scale));
                     writeByte((byte) scaleByte); // scale
                     break;
 
@@ -5664,17 +5664,17 @@ final class TDSWriter {
         writeRPCNameValType(sName, bOut, TDSType.VECTOR);
 
         if (vectorValueNull) {
-            writeShort((short) (8 + (scale * precision))); // max length
-            byte scaleByte = (byte) (scale == 2 ? 0x01 : 0x00);
+            writeShort((short) (Vector.getVectorLength(scale, precision))); // max length
+            byte scaleByte = (byte) (Vector.getScaleByte(scale));
             writeByte((byte) scaleByte); // scale (dimension type)
             writeShort((short) -1); // actual len
         } else {
-            writeShort((short) vectorValue.getActualLength()); // max length
-            writeByte((byte) vectorValue.getScale()); // scale (dimension type)
+            writeShort((short) vectorValue.getVectorLength()); // max length
+            writeByte((byte) vectorValue.getScaleByte()); // scale (dimension type)
             if (vectorValue.getData() == null) {
                 writeShort((short) -1); // actual len
             } else {
-                writeShort((short) vectorValue.getActualLength()); // actual len
+                writeShort((short) vectorValue.getVectorLength()); // actual len
                 writeBytes(bValue); // data
             }
         }

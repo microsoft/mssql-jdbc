@@ -88,7 +88,7 @@ public final class Vector implements java.io.Serializable {
             return null;
         }
         
-        int payloadSize = getActualLength(); // 8-byte header + float payload
+        int payloadSize = getVectorLength(); // 8-byte header + float payload
 
         ByteBuffer buffer = ByteBuffer.allocate(payloadSize).order(ByteOrder.LITTLE_ENDIAN);
 
@@ -102,7 +102,7 @@ public final class Vector implements java.io.Serializable {
         buffer.putShort((short) (dimensionCount));
 
         // 4. Dimension Type (0x01 for float) 
-        buffer.put(getScale());
+        buffer.put(getScaleByte());
 
         // 5. Reserved (3 bytes of padding)
         buffer.put(new byte[3]);
@@ -177,10 +177,18 @@ public final class Vector implements java.io.Serializable {
     }
 
     /**
+     * Returns the precision based on the vector length and scale.
+     * (vectorLength - 8) / scale
+     */
+    public static int getPrecision(int vectorLength, int scale) {
+        return (vectorLength - 8) / scale; // 8-byte header + dimension payload
+    }
+
+    /**
      * Returns the bytesPerDimension based on the scale.
      * 4 for 0, 2 for 1
      */
-    public static int getbytesPerDimensionFromScale(int scaleByte) {
+    public static int getBytesPerDimensionFromScale(int scaleByte) {
         switch (scaleByte) {
             case 0:
                 return 4; // 4 bytes per dimension for float32
@@ -210,7 +218,7 @@ public final class Vector implements java.io.Serializable {
      * Returns the scale for the vector type.
      * 0x00 for float32, 0x01 for float16.
      */
-    public byte getScale() {
+    public byte getScaleByte() {
         switch (vectorType) {
             case float32:
                 return 0x00; // Scale(dimension type) for float32
@@ -222,10 +230,25 @@ public final class Vector implements java.io.Serializable {
     }
 
     /**
+     * Returns the scale byte for the vector type.
+     * 0x00 for float32(4 bytes), 0x01 for float16(2 bytes).
+     */
+    public static byte getScaleByte(int scale) {
+        switch (scale) {
+            case 4:
+                return 0x00; // scaleByte for float32
+            case 2:
+                return 0x01; // scaleByte for float16
+            default:
+                return 0x00; // Default case
+        }
+    }
+
+    /**
      * Returns the actual length of the vector in bytes.
      * 8 bytes for header + 4 bytes per float value.
      */
-    public int getActualLength() {
+    public int getVectorLength() {
         int bytesPerDimension;
         switch (vectorType) {
             case float32:
@@ -239,5 +262,13 @@ public final class Vector implements java.io.Serializable {
                 break;
         }
         return 8 + bytesPerDimension * dimensionCount; // 8-byte header + dimension payload
+    }
+
+    /**
+     * Returns the actual length of the vector in bytes.
+     * 8 bytes for header + scale * precision.
+     */
+    public static int getVectorLength(int scale, int precision) {
+        return 8 + scale * precision; // 8-byte header + dimension payload
     }
 }

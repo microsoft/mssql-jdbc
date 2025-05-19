@@ -3028,8 +3028,8 @@ final class TypeInfo implements Serializable {
                 typeInfo.displaySize = typeInfo.maxLength;
                 typeInfo.ssType = SSType.VECTOR;
                 int scaleByte = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
-                typeInfo.scale = Vector.getbytesPerDimensionFromScale(scaleByte);
-                typeInfo.precision = (typeInfo.maxLength - 8) / typeInfo.scale;
+                typeInfo.scale = Vector.getBytesPerDimensionFromScale(scaleByte);
+                typeInfo.precision = Vector.getPrecision(typeInfo.maxLength, typeInfo.scale);
 
             }
         });
