@@ -42,6 +42,8 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     static String charTable[][] = {{"Char", "char(20) COLLATE Latin1_General_BIN2"},
             {"Varchar", "varchar(50) COLLATE Latin1_General_BIN2"},};
 
+    static String stringVaryLengthTable[][] = {{"VarcharMax", "varchar(max) COLLATE Latin1_General_BIN2"},};
+        
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void alwaysEncrypted1(String serverName, String url, String protocol) throws Exception {
@@ -242,7 +244,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 
-            createTable(VARY_STRING_TABLE_AE, cekJks, stringTable);
+            createTable(VARY_STRING_TABLE_AE, cekJks, stringVaryLengthTable);
 
             try {
                 verifyStringTable(connection);
