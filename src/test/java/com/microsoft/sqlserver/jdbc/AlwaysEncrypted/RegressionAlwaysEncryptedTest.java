@@ -241,7 +241,11 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
             createTable(VARY_STRING_TABLE_AE, cekJks, stringTable);
 
-            verifyStringTable(connection);
+            try {
+                verifyStringTable(connection);
+            } finally {
+                dropTables(stmt);
+            }
         }
     }
 
