@@ -1684,7 +1684,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         int precision = 0, scale =0;
         if (microsoft.sql.Types.VECTOR == jdbcType) {
             precision = microsoft.sql.Vector.valueOf(obj).getDimensionCount();
-            scale = microsoft.sql.Vector.valueOf(obj).getScale();
+            scale = microsoft.sql.Vector.valueOf(obj).getScaleByte();
         }
 
         setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), scale, precision, false, n, tvpName);

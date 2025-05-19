@@ -799,7 +799,6 @@ final class DDC {
                             return new StringReader(new String(stream.getBytes(), typeInfo.getCharset()));
                     }
 
-                    //Handling backward compatibility for vector type
                     if (typeInfo.getSSType() == SSType.VECTOR) {
                         throw new SQLServerException("getString() not supported for VECTOR type", null, 0, null);
                     }

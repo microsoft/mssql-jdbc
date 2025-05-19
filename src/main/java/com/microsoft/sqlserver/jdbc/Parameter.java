@@ -636,8 +636,9 @@ final class Parameter {
                 case VECTOR:
                     param.typeDefinition = SSType.VECTOR.toString();
                     int precision = 0;
-                    if (param.isOutput() && scale < param.getOutScale())
+                    if (param.isOutput() && scale < param.getOutScale()) {
                         precision = param.getValueLength();
+                    }
                     else if (dtv.getSetterValue() != null) {
                         precision = ((microsoft.sql.Vector) dtv.getSetterValue()).getDimensionCount();
                     }
