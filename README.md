@@ -184,6 +184,17 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 </dependency>
 ```
 
+## Helpful Links
+
+| Topic | Link to File |
+| :---- | :------------- |
+| Coding Style | [coding-style.md](/Coding-Guidelines.md) |
+| Best Practices | [coding-best-practices.md](/coding-best-practices.md) |
+| Review Process | [review-process.md](/review-process.md) |
+| Security Guidelines | [security.md](/security.md) |
+| Changelog | [CHANGELOG.md](CHANGELOG.md) |
+| Code of Conduct | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) |
+
 ## Guidelines for Creating Pull Requests
 We love contributions from the community.  To help improve the quality of our code, we encourage you to use the mssql-jdbc_formatter.xml formatter provided on all pull requests.
 
