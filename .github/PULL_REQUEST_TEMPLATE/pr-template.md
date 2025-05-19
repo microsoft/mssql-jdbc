@@ -31,5 +31,5 @@ Please review the contribution guidelines before submitting a pull request:
 - [Contributing](/CONTRIBUTING.md)
 - [Code of Conduct](/CODE_OF_CONDUCT.md)
 - [Best Practices](/coding-best-practices.md)
-- [Coding Style](/Coding-Guidelines.md)
+- [Coding Guidelines](/coding-guidelines.md)
 - [Review Process](/review-process.md)
