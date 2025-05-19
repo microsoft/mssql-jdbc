@@ -50,25 +50,27 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
                 .getConnection(AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
+            try {        
+                createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
 
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
+                populateNumericTable(connection);
+                verifyNumericTable(connection, false);
 
-            populateNumericTable(connection);
-            verifyNumericTable(connection, false);
+                dropTables(stmt);
+                createTable(DATE_TABLE_AE, cekJks, dateTable);
 
-            dropTables(stmt);
-            createTable(DATE_TABLE_AE, cekJks, dateTable);
+                populateDateTable(connection);
+                verifyDateTable(connection);
 
-            populateDateTable(connection);
-            verifyDateTable(connection);
+                dropTables(stmt);
+                createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
 
-            dropTables(stmt);
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
-
-            populateNumericTableWithNull(connection);
-            verifyNumericTable(connection, true);
-
-            dropTables(stmt);
+                populateNumericTableWithNull(connection);
+                verifyNumericTable(connection, true);
+               
+            } finally {
+                dropTables(stmt);
+            }
         }
     }
 
@@ -80,22 +82,23 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
                 .getConnection(AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
+            try{
+                createTable(CHAR_TABLE_AE, cekJks, charTable);
+                populateCharTable(connection);
+                verifyCharTable(connection);
 
-            createTable(CHAR_TABLE_AE, cekJks, charTable);
-            populateCharTable(connection);
-            verifyCharTable(connection);
+                dropTables(stmt);
+                createTable(DATE_TABLE_AE, cekJks, dateTable);
+                populateDateTable(connection);
+                verifyDateTable(connection);
 
-            dropTables(stmt);
-            createTable(DATE_TABLE_AE, cekJks, dateTable);
-            populateDateTable(connection);
-            verifyDateTable(connection);
-
-            dropTables(stmt);
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
-            populateNumericTableSpecificSetter(connection);
-            verifyNumericTable(connection, false);
-
-            dropTables(stmt);
+                dropTables(stmt);
+                createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
+                populateNumericTableSpecificSetter(connection);
+                verifyNumericTable(connection, false);
+            } finally {
+                dropTables(stmt);
+            }
         }
     }
 
@@ -241,7 +244,11 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
             createTable(VARY_STRING_TABLE_AE, cekJks, stringTable);
 
-            verifyStringTable(connection);
+            try {
+                verifyStringTable(connection);
+            } finally {
+                dropTables(stmt);
+            }
         }
     }
 
