@@ -188,7 +188,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 
 | Topic | Link to File |
 | :---- | :------------- |
-| Coding Style | [coding-style.md](/Coding-Guidelines.md) |
+| Coding Guidelines | [coding-guidelines.md](/coding-guidelines.md) |
 | Best Practices | [coding-best-practices.md](/coding-best-practices.md) |
 | Review Process | [review-process.md](/review-process.md) |
 | Security Guidelines | [security.md](/security.md) |
