@@ -255,19 +255,25 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     }
 
     private void verifyStringTable(Connection connection) throws SQLException {
-        String sql = "insert into " + VARY_STRING_TABLE_AE + " values(?, ?)";
+        String sql = "insert into " + VARY_STRING_TABLE_AE + " values(?, ?, ?)";
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
                 String data1 ="a"; 
                 sqlPstmt.setString(1, data1);
+                sqlPstmt.setString(2, data1);
+                sqlPstmt.setString(3, data1);
                 sqlPstmt.executeUpdate();
               
                 String data2 =  data1 + "aa";
                 sqlPstmt.setString(1, data2);
+                sqlPstmt.setString(2, data2);
+                sqlPstmt.setString(3, data2);
                 sqlPstmt.executeUpdate();
               
                 String data3 =  data2 + "aaa";
                 sqlPstmt.setString(1, data3);
+                sqlPstmt.setString(2, data3);
+                sqlPstmt.setString(3, data3);
                 sqlPstmt.executeUpdate();
         }
     }
