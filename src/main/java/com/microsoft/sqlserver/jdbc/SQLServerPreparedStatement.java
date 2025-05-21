@@ -66,6 +66,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** The prepared type definitions */
     private String preparedTypeDefinitions;
+    
+    /** Cached preparedTypeDefinitions in case of multiple time calls of buildPreparedStrings method*/
+    private String preparedTypeDefinitionsPrev;
 
     /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
@@ -430,18 +433,25 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Determines whether the statement needs to be reprepared based on a change in any of the type definitions of any
      * of the parameters due to changes in scale, length, etc., and, if so, sets the new type definition string.
      */
-    private boolean buildPreparedStrings(Parameter[] params, boolean renewDefinition) throws SQLServerException {
+    private boolean buildPreparedStrings(Parameter[] params, boolean renewDefinition, boolean isInternalEncryptionQuery) throws SQLServerException {
         String newTypeDefinitions = buildParamTypeDefinitions(params, renewDefinition);
+
+        if(connection.isAEv2() && renewDefinition && !isInternalEncryptionQuery && null != preparedTypeDefinitionsPrev) {
+           preparedTypeDefinitions = preparedTypeDefinitionsPrev; 
+        }
+
         if (null != preparedTypeDefinitions && newTypeDefinitions.equalsIgnoreCase(preparedTypeDefinitions))
             return false;
 
         preparedTypeDefinitions = newTypeDefinitions;
 
-        /* Replace the parameter marker '?' with the param numbers @p1, @p2 etc */
         preparedSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, bReturnValueSyntax);
         if (bRequestedGeneratedKeys)
             preparedSQL = preparedSQL + IDENTITY_QUERY;
 
+        if(connection.isAEv2() && !renewDefinition && !isInternalEncryptionQuery) {
+           preparedTypeDefinitionsPrev = preparedTypeDefinitions; 
+        }
         return true;
     }
 
@@ -638,7 +648,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         boolean hasNewTypeDefinitions = true;
         boolean inRetry = false; // Used to indicate if this execution is a retry
         if (!encryptionMetadataIsRetrieved) {
-            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
+            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false, isInternalEncryptionQuery);
         }
 
         if (connection.isAEv2() && !isInternalEncryptionQuery) {
@@ -646,7 +656,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     parameterNames);
             encryptionMetadataIsRetrieved = true;
             setMaxRowsAndMaxFieldSize();
-            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
+            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true, isInternalEncryptionQuery);
         }
 
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
@@ -664,7 +674,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
             // Connection
-            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
+            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true, isInternalEncryptionQuery);
         }
 
         boolean needsPrepare = true;
@@ -2943,7 +2953,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
 
             boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
-            boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
+            boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false, isInternalEncryptionQuery);
 
             if ((0 == numBatchesExecuted) && !isInternalEncryptionQuery && connection.isAEv2()
                     && !encryptionMetadataIsRetrieved) {
@@ -2955,7 +2965,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                  * fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on
                  * one Connection
                  */
-                buildPreparedStrings(batchParam, true);
+                buildPreparedStrings(batchParam, true, isInternalEncryptionQuery);
 
                 /*
                  * Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
@@ -2976,7 +2986,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                  * fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on
                  * one Connection
                  */
-                buildPreparedStrings(batchParam, true);
+                buildPreparedStrings(batchParam, true, isInternalEncryptionQuery);
 
                 /*
                  * Save the crypto metadata retrieved for the first batch. We will re-use these for the rest of the
