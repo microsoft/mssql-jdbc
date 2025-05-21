@@ -35,6 +35,7 @@ import java.util.logging.Level;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
 import microsoft.sql.Vector;
+import microsoft.sql.Vector.VectorDimensionType;
 
 
 /**
@@ -2499,9 +2500,18 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             returnValue = guid != null ? Util.readGUIDtoUUID(guid) : null;
         } else if (type == SQLXML.class) {
             returnValue = getSQLXML(columnIndex);
-        } else if (type == microsoft.sql.Vector.class) {
-            microsoft.sql.Vector vector = (microsoft.sql.Vector.valueOf(getValue(columnIndex, JDBCType.VECTOR))); 
-            returnValue = wasNull() ? null : vector;
+        } else if (type == Vector.class) {
+            returnValue = getValue(columnIndex, JDBCType.VECTOR);
+            Vector vector = null;
+            if (returnValue == null) {
+                TypeInfo typeInfo = getterGetColumn(columnIndex).getTypeInfo();
+                int precision = typeInfo.getPrecision();
+                VectorDimensionType scale = Vector.getVectorDimensionType(typeInfo.getScale());
+                vector = new Vector(precision, scale, null);
+            } else {
+                vector = Vector.valueOf(returnValue);
+            }
+            returnValue = vector;
         } else if (type == Blob.class) {
             returnValue = getBlob(columnIndex);
         } else if (type == Clob.class) {

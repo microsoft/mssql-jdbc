@@ -8,6 +8,8 @@ package microsoft.sql;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.ResourceBundle;
+import java.text.MessageFormat;
 
 public final class Vector implements java.io.Serializable {
     public enum VectorDimensionType {
@@ -50,20 +52,29 @@ public final class Vector implements java.io.Serializable {
         if (bytes == null) {
             return null;
         }
+        
+        // Read the vector type from the header (5th byte in the header)
+        byte vectorTypeByte = bytes[4];
+        VectorDimensionType vectorType = getVectorDimensionType(vectorTypeByte);
+        int bytesPerDimension = getBytesPerDimensionFromScale(vectorType);
+
         if (bytes.length < 8) {
-            throw new IllegalArgumentException("Byte array length must be at least 8 bytes.");
+            MessageFormat form = new MessageFormat(
+                ResourceBundle.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource")
+                    .getString("R_vectorByteArrayLength"));
+            throw new IllegalArgumentException(form.format(new Object[0]));
         }
-        if (bytes.length % 4 != 0) {
-            throw new IllegalArgumentException("Byte array length must be a multiple of 4.");
+                if ((bytes.length - 8) % bytesPerDimension != 0) {
+            MessageFormat form = new MessageFormat(
+                ResourceBundle.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource")
+                    .getString("R_vectorByteArrayMultipleOfBytesPerDimension"));
+            throw new IllegalArgumentException(form.format(new Object[] {bytesPerDimension}));
         }
 
-        int objectCount = (bytes.length - 8) / 4; // 8 bytes for header
+        int objectCount = (bytes.length - 8) / bytesPerDimension; // 8 bytes for header
         Object[] objectArray = new Object[objectCount];
 
         ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
-
-        // Read the dimension type from the header (4th byte in the header)
-        byte dimensionTypeByte = buffer.get(4);
 
         buffer.position(8); // Skip the first 8 bytes (header)
 
@@ -71,7 +82,7 @@ public final class Vector implements java.io.Serializable {
             objectArray[i] = buffer.getFloat();
         }
 
-        return new Vector(objectCount, getVectorDimensionType(dimensionTypeByte), objectArray);
+        return new Vector(objectCount, vectorType, objectArray);
     }
 
     /**
@@ -161,6 +172,10 @@ public final class Vector implements java.io.Serializable {
         return vectorType;
     }
 
+    public static int getDefaultPrecision() {
+        return 4; // float32
+    }
+
     /**
      * Returns the vector dimension type based on the scale.
      * float32 for 0, float16 for 1
@@ -196,6 +211,21 @@ public final class Vector implements java.io.Serializable {
                 return 2; // 2 bytes per dimension for float16
             default:
                 return 4; // Default case
+        }
+    }
+
+    /**
+     * Returns the bytesPerDimension based on the vectorType.
+     * 4 for float32, 2 for float16
+     */
+    public static int getBytesPerDimensionFromScale(VectorDimensionType vectorType) {
+        switch (vectorType) {
+            case float32:
+                return 4; 
+            case float16:
+                return 2; 
+            default:
+                return 4; 
         }
     }
 
@@ -271,4 +301,27 @@ public final class Vector implements java.io.Serializable {
     public static int getVectorLength(int scale, int precision) {
         return 8 + scale * precision; // 8-byte header + dimension payload
     }
+
+    /**
+     * Returns the SQL type definition string for a vector parameter.
+     * 
+     * @param vector      The vector instance (may be null for output-only
+     *                    parameters)
+     * @param scale       Number of bytes per dimension (e.g., 4 for float32, 2 for
+     *                    float16)
+     * @param isOutput    True if the parameter is an output parameter
+     * @param outScale    Output parameter's bytes per dimension (if applicable)
+     * @param valueLength The value length for output parameters
+     * @return SQL type definition string, e.g., VECTOR(128)
+     */
+    public static String getTypeDefinition(Vector vector, int scale, boolean isOutput, int outScale, int valueLength) {
+        int precision = 0;
+        if (isOutput && scale < outScale) {
+            precision = valueLength;
+        } else if (vector != null) {
+            precision = vector.getDimensionCount();
+        }
+        return "VECTOR(" + precision + ")";
+    }
+    
 }
