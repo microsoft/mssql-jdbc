@@ -340,6 +340,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_unsupportedStmtColEncSetting", "SQLServerStatementColumnEncryptionSetting cannot be null."},
         {"R_unsupportedConversionAE", "The conversion from {0} to {1} is unsupported for encrypted column."},
         {"R_InvalidDataForAE", "The given value of type {0} from the data source cannot be converted to type {1} of the specified target column {2}."},
+        {"R_vectorTypeSupportPropertyDescription", "Determines the vector feature extension support during connection initialization. Valid values are \"off\" (do not send FE for vector) and \"v1\" (send FE for vector v1). Default is \"v1\"."}, 
+        {"R_invalidVectorTypeSupport", "Invalid value for vectorTypeSupport: {0}. Valid values are \"off\" or \"v1\"."},
         {"R_authenticationPropertyDescription", "The authentication to use."},
         {"R_accessTokenPropertyDescription", "The access token to use for Azure Active Directory."},
         {"R_FedAuthRequiredPreLoginResponseInvalidValue", "Server sent an unexpected value for FedAuthRequired PreLogin Option. Value was {0}."},

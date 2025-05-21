@@ -1025,6 +1025,42 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         this.bulkCopyForBatchInsertAllowEncryptedValueModifications = bulkCopyForBatchInsertAllowEncryptedValueModifications;
     }
 
+    /**
+     * Indicates the vector feature extension support during connection initialization.
+     * Valid values are "off" (do not send FE for vector) and "v1" (send FE for vector v1). Default is "v1".
+     */
+    private String vectorTypeSupport = "v1";
+
+    /**
+     * Returns the value of the vectorTypeSupport connection property.
+     *
+     * @return vectorTypeSupport
+     *         The current vector feature extension support setting ("off" or "v1").
+     */
+    @Override
+    public String getVectorTypeSupport() {
+        return vectorTypeSupport;
+    }
+
+    /**
+     * Sets the value of the vectorTypeSupport connection property.
+     *
+     * @param vectorTypeSupport
+     *                          A string that indicates the vector feature extension
+     *                          support during connection initialization.
+     *                          Valid values are "off" (do not send FE for vector)
+     *                          and "v1" (send FE for vector v1). Default is "v1".
+     */
+    @Override
+    public void setVectorTypeSupport(String vectorTypeSupport) {
+        if (!"off".equalsIgnoreCase(vectorTypeSupport) && !"v1".equalsIgnoreCase(vectorTypeSupport)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
+            Object[] msgArgs = { vectorTypeSupport };
+            throw new IllegalArgumentException(form.format(msgArgs));
+        }
+        this.vectorTypeSupport = vectorTypeSupport.toLowerCase();
+    }
+
     /** user set TNIR flag */
     boolean userSetTNIR = true;
 
@@ -3371,6 +3407,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     setcacheBulkCopyMetadata(isBooleanPropertyOn(sPropKey, sPropValue));
                 }
 
+                sPropKey = SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    setVectorTypeSupport(sPropValue);
+                }
+
                 sPropKey = SQLServerDriverStringProperty.SSL_PROTOCOL.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null == sPropValue) {
@@ -5622,17 +5664,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Writes the Vector Support feature request to the physical state object.
-     * The request includes the feature ID, feature data length, and version number.
+     * Writes the Vector Support feature request to the physical state object,
+     * unless vectorTypeSupport is "off". The request includes the feature ID,
+     * feature data length, and version number.
+     * 
      * @param write
-     *       If true, writes the feature request to the physical state object.
+     *                  If true, writes the feature request to the physical state
+     *                  object.
      * @param tdsWriter
      * @return
-     *       The length of the feature request in bytes.
+     *         The length of the feature request in bytes, or 0 if vectorTypeSupport
+     *         is "off".
      * @throws SQLServerException
      */
-    int writeVectorSupportFeatureRequest(boolean write, /* if false just calculates the length */
+    int writeVectorSupportFeatureRequest(boolean write,
             TDSWriter tdsWriter) throws SQLServerException {
+        if ("off".equalsIgnoreCase(vectorTypeSupport)) {
+            return 0;
+        }
         int len = 6; // 1byte = featureID, 4bytes = featureData length, 1 bytes = Version
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_VECTORSUPPORT);
@@ -7994,7 +8043,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** original bulkCopyForBatchInsertAllowEncryptedValueModifications flag */
     private boolean originalBulkCopyForBatchInsertAllowEncryptedValueModifications;
-
+    
     /** original SqlWarnings */
     private volatile SQLWarning originalSqlWarnings;
 
@@ -8009,6 +8058,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** original ignoreOffsetOnDateTimeOffsetConversion */
     private boolean originalIgnoreOffsetOnDateTimeOffsetConversion;
+
+    /** original vectorTypeSupport value */
+    private String originalVectorTypeSupport;
 
     /** Always Encrypted version */
     private int aeVersion = TDS.COLUMNENCRYPTION_NOT_SUPPORTED;
@@ -8037,6 +8089,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 originalBulkCopyForBatchInsertKeepNulls = getBulkCopyForBatchInsertKeepNulls();
                 originalBulkCopyForBatchInsertTableLock = getBulkCopyForBatchInsertTableLock();
                 originalBulkCopyForBatchInsertAllowEncryptedValueModifications = getBulkCopyForBatchInsertAllowEncryptedValueModifications();
+                originalVectorTypeSupport = getVectorTypeSupport();
                 originalSqlWarnings = sqlWarnings;
                 openStatements = new LinkedList<>();
                 originalUseFmtOnly = useFmtOnly;
@@ -8126,6 +8179,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (getBulkCopyForBatchInsertAllowEncryptedValueModifications() != originalBulkCopyForBatchInsertAllowEncryptedValueModifications) {
                     setBulkCopyForBatchInsertAllowEncryptedValueModifications(
                             originalBulkCopyForBatchInsertAllowEncryptedValueModifications);
+                }
+
+                if (!getVectorTypeSupport().equalsIgnoreCase(originalVectorTypeSupport)) {
+                    setVectorTypeSupport(originalVectorTypeSupport);
                 }
 
                 if (delayLoadingLobs != originalDelayLoadingLobs) {
