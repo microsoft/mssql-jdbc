@@ -62,15 +62,15 @@ public class SQLServerPreparedStatementMockTest extends AbstractTest {
         boolean renewDefinition = false;
         boolean isInternalEncryptionQuery = false;
         
-        // On the first invocation, buildPreparedStringsMethod() sets the preparedTypeDefinitionsCache field.
+        // On the first invocation, buildPreparedStringsMethod() sets the preparedTypeDefinitionsPrev field.
         buildPreparedStringsMethod.invoke(preparedStatement, params, renewDefinition, isInternalEncryptionQuery);
-        // Use reflection to access the private field 'preparedTypeDefinitionsCache'
-        Field cacheFieldPreparedTypeDefinitionsCache = SQLServerPreparedStatement.class.getDeclaredField("preparedTypeDefinitionsCache");
-        cacheFieldPreparedTypeDefinitionsCache.setAccessible(true);
+        // Use reflection to access the private field 'preparedTypeDefinitionsPrev'
+        Field cacheFieldpreparedTypeDefinitionsPrev = SQLServerPreparedStatement.class.getDeclaredField("preparedTypeDefinitionsPrev");
+        cacheFieldpreparedTypeDefinitionsPrev.setAccessible(true);
         // Validate that the field is now non-null
-        assertNotNull(cacheFieldPreparedTypeDefinitionsCache.get(preparedStatement), "The preparedTypeDefinitionsCache should not be null.");
+        assertNotNull(cacheFieldpreparedTypeDefinitionsPrev.get(preparedStatement), "The preparedTypeDefinitionsPrev should not be null.");
 
-        // On the second invocation, buildPreparedStringsMethod() resets preparedTypeDefinitions using the value from preparedTypeDefinitionsCache,
+        // On the second invocation, buildPreparedStringsMethod() resets preparedTypeDefinitions using the value from preparedTypeDefinitionsPrev,
         // and returns true, which triggers sp_prepexec since the prepared statement definition has changed.
         renewDefinition = true;
         isInternalEncryptionQuery = false;
