@@ -407,12 +407,6 @@ final class Parameter {
         // If the parameter is not encrypted or column encryption is turned off (either at connection or
         // statement level), cryptoMeta would be null.
         Object value = getterDTV.getValue(jdbcType, outScale, getterArgs, cal, typeInfo, cryptoMeta, tdsReader, statement);
-        if (jdbcType == JDBCType.VECTOR && value == null) {
-            int precision = typeInfo.getPrecision(); 
-            VectorDimensionType scale = Vector.getVectorDimensionType(typeInfo.getScale());
-            Vector vector = new Vector(precision, scale, null);
-            value = vector;
-        }
         return value;
     }
 
@@ -634,15 +628,9 @@ final class Parameter {
                     break;
 
                 case VECTOR:
-                    param.typeDefinition = SSType.VECTOR.toString();
-                    int precision = 0;
-                    if (param.isOutput() && scale < param.getOutScale()) {
-                        precision = param.getValueLength();
-                    }
-                    else if (dtv.getSetterValue() != null) {
-                        precision = ((microsoft.sql.Vector) dtv.getSetterValue()).getDimensionCount();
-                    }
-                    param.typeDefinition += "(" + precision + ")";
+                    param.typeDefinition = Vector.getTypeDefinition(
+                            (microsoft.sql.Vector) dtv.getSetterValue(), scale, param.isOutput(), 
+                            param.getOutScale(), param.getValueLength());
                     break;
 
                 case DATE:
