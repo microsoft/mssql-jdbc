@@ -5,8 +5,10 @@
 
 package com.microsoft.sqlserver.jdbc.datatypes;
 
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import org.junit.jupiter.api.AfterAll;
@@ -375,6 +377,181 @@ public class VectorTest extends AbstractTest {
                 assertNull(vectorString, "Retrieved vector string should be null.");
 
             }
+        }
+    }
+
+    /**
+     * Test for validating vector data when the vectorTypeSupport feature is "off".
+     * The expected behavior is that the server should return the vector as a string.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    void testValidateVectorWhenVectorFEIsDisabled() throws SQLException {
+        // Setup: create a logs table with VECTOR and VARCHAR columns
+        String logsTable = AbstractSQLGenerator.escapeIdentifier("logs");
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(logsTable, stmt);
+            stmt.executeUpdate("CREATE TABLE " + logsTable + " (v VECTOR(3))");
+        }
+
+        // Insert a row
+        Object[] vectorData = new Object[] { 1.23f, 4.56f, 7.89f };
+        Vector vector = new Vector(3, VectorDimensionType.float32, vectorData);
+        String insertSql = "INSERT INTO " + logsTable + " (v) VALUES (?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+            pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+        }
+
+        // Use a new connection with disableVectorV1=true
+        try (SQLServerConnection conn = getConnectionWithVectorFlag("off");
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT * FROM " + logsTable)) {
+
+            ResultSetMetaData meta = rs.getMetaData();
+            int columnCount = meta.getColumnCount();
+
+            assertTrue(rs.next(), "No result found in logs table.");
+
+            for (int i = 1; i <= columnCount; i++) {
+                int columnType = meta.getColumnType(i);
+
+                Object value = null;
+                switch (columnType) {
+                    case java.sql.Types.VARCHAR: // It will be returned as a string
+                        value = rs.getString(i);
+                        assertEquals("[1.2300000e+000,4.5599999e+000,7.8899999e+000]", value,
+                                "VARCHAR column value mismatch.");
+                        break;
+                    case microsoft.sql.Types.VECTOR:
+                        value = rs.getObject(i, Vector.class);
+                        assertNotNull(value, "Vector column is null.");
+                        assertArrayEquals(vectorData, ((Vector) value).getData(), "Vector data mismatch.");
+                        assertEquals(3, ((Vector) value).getDimensionCount(), "Dimension count mismatch.");
+                        assertEquals(VectorDimensionType.float32, ((Vector) value).getVectorDimensionType(),
+                                "Dimension type mismatch.");
+                        String expectedToString = "VECTOR(float32, 3) : [1.23, 4.56, 7.89]";
+                        assertEquals(expectedToString, ((Vector) value).toString(), "Vector toString output mismatch.");
+                        break;
+                    default:
+                        throw new SQLException("Unexpected column type: " + columnType);
+                }
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(logsTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test for validating vector data when the vectorTypeSupport feature is "v1".
+     * The expected behavior is that the server should return the vector as a vector object.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    void testValidateVectorWhenVectorFEIsEnabled() throws SQLException {
+        // Setup: create a logs table with VECTOR and VARCHAR columns
+        String logsTable = AbstractSQLGenerator.escapeIdentifier("logs");
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(logsTable, stmt);
+            stmt.executeUpdate("CREATE TABLE " + logsTable + " (v VECTOR(3))");
+        }
+
+        // Insert a row
+        Object[] vectorData = new Object[] { 1.23f, 4.56f, 7.89f };
+        Vector vector = new Vector(3, VectorDimensionType.float32, vectorData);
+        String insertSql = "INSERT INTO " + logsTable + " (v) VALUES (?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+            pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+        }
+
+        // Use a new connection with disableVectorV1=false
+        try (SQLServerConnection conn = getConnectionWithVectorFlag("v1");
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT * FROM " + logsTable)) {
+
+            ResultSetMetaData meta = rs.getMetaData();
+            int columnCount = meta.getColumnCount();
+
+            assertTrue(rs.next(), "No result found in logs table.");
+
+            for (int i = 1; i <= columnCount; i++) {
+                int columnType = meta.getColumnType(i);
+
+                Object value = null;
+                switch (columnType) {
+                    case java.sql.Types.VARCHAR:
+                        value = rs.getString(i);
+                        assertEquals("[1.2300000e+000,4.5599999e+000,7.8899999e+000]", value,
+                                "VARCHAR column value mismatch.");
+                        break;
+                    case microsoft.sql.Types.VECTOR: // It will be returned as a vector
+                        value = rs.getObject(i, Vector.class);
+                        assertNotNull(value, "Vector column is null.");
+                        assertArrayEquals(vectorData, ((Vector) value).getData(), "Vector data mismatch.");
+                        assertEquals(3, ((Vector) value).getDimensionCount(), "Dimension count mismatch.");
+                        assertEquals(VectorDimensionType.float32, ((Vector) value).getVectorDimensionType(),
+                                "Dimension type mismatch.");
+                        String expectedToString = "VECTOR(float32, 3) : [1.23, 4.56, 7.89]";
+                        assertEquals(expectedToString, ((Vector) value).toString(), "Vector toString output mismatch.");
+                        break;
+                    default:
+                        throw new SQLException("Unexpected column type: " + columnType);
+                }
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(logsTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test that an invalid vectorTypeSupport value in the connection string throws
+     * an IllegalArgumentException. The only valid values are "off" and "v1".
+     */
+    @Test
+    void testInvalidVectorTypeSupportConnectionProperty() throws SQLException {
+        // Setup: create a logs table with VECTOR and VARCHAR columns
+        String logsTable = AbstractSQLGenerator.escapeIdentifier("logs");
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(logsTable, stmt);
+            stmt.executeUpdate("CREATE TABLE " + logsTable + " (v VECTOR(3))");
+        }
+
+        // Insert a row
+        Object[] vectorData = new Object[] { 1.23f, 4.56f, 7.89f };
+        Vector vector = new Vector(3, VectorDimensionType.float32, vectorData);
+        String insertSql = "INSERT INTO " + logsTable + " (v) VALUES (?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+            pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+        }
+
+        // Try to open a connection with an invalid vectorTypeSupport value and check
+        // for failure
+        boolean exceptionThrown = false;
+        try {
+            SQLServerConnection conn = getConnectionWithVectorFlag("1");
+            // If no exception, close the connection and fail the test
+            conn.close();
+            fail("Expected IllegalArgumentException for invalid vectorTypeSupport value, but none was thrown.");
+        } catch (IllegalArgumentException e) {
+            exceptionThrown = true;
+            assertTrue(
+                    e.getMessage().contains("Incorrect connection string property for vectorTypeSupport: 1"),
+                    "Unexpected exception message: " + e.getMessage());
+        }
+
+        assertTrue(exceptionThrown, "Expected IllegalArgumentException was not thrown.");
+
+        // Cleanup
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(logsTable, stmt);
         }
     }
 
@@ -1116,6 +1293,24 @@ public class VectorTest extends AbstractTest {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
+    }
+
+    /**
+     * Helper method to get a connection with the vectorTypeSupport setting.
+     * 
+     * @param vectorTypeSupport "v1", "off", or any other value for testing
+     * @return SQLServerConnection
+     * @throws SQLException
+     */
+    private SQLServerConnection getConnectionWithVectorFlag(String vectorTypeSupport) throws SQLException {
+        String connStr = connectionString;
+        if ("off".equalsIgnoreCase(vectorTypeSupport) || "v1".equalsIgnoreCase(vectorTypeSupport)) {
+            connStr = connStr + ";vectorTypeSupport=" + vectorTypeSupport;
+        } else {
+            throw new IllegalArgumentException(
+                    "Incorrect connection string property for vectorTypeSupport: " + vectorTypeSupport);
+        }
+        return (SQLServerConnection) DriverManager.getConnection(connStr);
     }
 
 }

@@ -892,4 +892,23 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
         wrappedConnection.setBulkCopyForBatchInsertAllowEncryptedValueModifications(bulkCopyForBatchInsertAllowEncryptedValueModifications);
     }
 
+    /**
+     * Returns the vectorTypeSupport value.
+     *
+     * @return the vectorTypeSupport value.
+     */
+    public String getVectorTypeSupport() {
+        return wrappedConnection.getVectorTypeSupport();
+    }
+
+    /**
+     * Sets the vectorTypeSupport value.
+     *
+     * @param vectorTypeSupport
+     *                          the vectorTypeSupport value to set ("off" or "v1").
+     */
+    public void setVectorTypeSupport(String vectorTypeSupport) {
+        wrappedConnection.setVectorTypeSupport(vectorTypeSupport);
+    }
+
 }
