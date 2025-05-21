@@ -192,12 +192,6 @@ final class Column {
             SQLServerStatement statement) throws SQLServerException {
         Object value = getterDTV.getValue(jdbcType, typeInfo.getScale(), getterArgs, cal, typeInfo, cryptoMetadata,
                 tdsReader, statement);
-        if (jdbcType == JDBCType.VECTOR && value == null) {
-            int precision = typeInfo.getPrecision(); 
-            VectorDimensionType scale = Vector.getVectorDimensionType(typeInfo.getScale());
-            Vector vector = new Vector(precision, scale, null);
-            value = vector;
-        }
         setInternalVariant(getterDTV.getInternalVariant());
         return (null != filter) ? filter.apply(value, jdbcType) : value;
     }
