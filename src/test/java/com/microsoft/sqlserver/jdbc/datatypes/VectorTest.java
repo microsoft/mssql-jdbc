@@ -212,8 +212,7 @@ public class VectorTest extends AbstractTest {
                     + " (id INT PRIMARY KEY, v VECTOR(3))";
             stmt.executeUpdate(createDestinationTableSQL);
 
-            // Insert data from the source table to the destination table using
-            // setObject(getObject())
+            // Insert data from the source table to the destination table using setObject(getObject())
             String selectSourceSQL = "SELECT id, v FROM " + sourceTable;
             String insertDestinationSQL = "INSERT INTO " + destinationTable + " (id, v) VALUES (?, ?)";
             try (PreparedStatement selectStmt = connection.prepareStatement(selectSourceSQL);
