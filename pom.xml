@@ -46,10 +46,11 @@
 			kerberos  - - - - - For tests using Kerberos authentication (excluded by default)
 			reqExternalSetup - For tests requiring external setup (excluded by default)
 			clientCertAuth - - For tests requiring client certificate authentication 
+			xVectorType - - For tests using vector data types (excluded by default)
 			setup (excluded by default) - - - - - - - - - - - - - - - - - - - - - - - 
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
-		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth,kerberos</excludedGroups>
+		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth,kerberos,xVectorType</excludedGroups>
 		<!-- Use -preview for preview release, leave empty for official release. -->
 		<releaseExt></releaseExt>
 		<!-- Driver Dependencies -->
