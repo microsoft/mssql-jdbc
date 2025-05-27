@@ -838,7 +838,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test inserting vector data using prepared statement with bulk copy enabled.
      */
     @Test
-    @Tag(Constants.xVectorType)
+    @Tag(Constants.xSQLv25)
     public void testInsertVectorWithBulkCopy() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkCopyVectorTest");
         String sqlString = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (vectorCol) values (?)";
@@ -876,7 +876,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test inserting null vector data using prepared statement with bulk copy enabled.
      */
     @Test
-    @Tag(Constants.xVectorType)
+    @Tag(Constants.xSQLv25)
     public void testInsertNullVectorWithBulkCopy() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkCopyVectorTest");
         String sqlString = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (vectorCol) values (?)";
@@ -916,7 +916,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test inserting vector data using prepared statement with bulk copy enabled for performance.
      */
     @Test
-    @Tag(Constants.xVectorType)
+    @Tag(Constants.xSQLv25)
     public void testInsertWithBulkCopyPerformance() throws SQLException {
         String tableName = AbstractSQLGenerator.escapeIdentifier("BulkCopyVectorPerformanceTest");
         // For testing, we can use a smaller set of records to avoid long execution time
