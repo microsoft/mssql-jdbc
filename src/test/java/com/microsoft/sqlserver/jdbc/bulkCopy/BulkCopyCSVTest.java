@@ -560,7 +560,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestInputWithVector.csv file
      */
     @Test
-    @Tag(Constants.xSQLv25)
+    @Tag(Constants.xVectorType)
     public void testBulkCopyVectorFromCSV() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFile;
@@ -636,7 +636,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestInputWithMultipleVectorColumn.csv file
      */
     @Test
-    @Tag(Constants.xSQLv25)
+    @Tag(Constants.xVectorType)
     public void testBulkCopyVectorFromCSVWithMultipleColumns() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFileWithMultipleColumn;
@@ -703,7 +703,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestWithMultipleVectorColumnWithPipeDelimiter.csv file
      */
     @Test
-    @Tag(Constants.xSQLv25)
+    @Tag(Constants.xVectorType)
     public void testBulkCopyVectorFromCSVWithMultipleColumnsWithPipeDelimiter() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFileWithMultipleColumnWithPipeDelimiter;
