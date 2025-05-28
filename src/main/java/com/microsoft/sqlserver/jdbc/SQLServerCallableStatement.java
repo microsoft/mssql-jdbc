@@ -33,6 +33,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import microsoft.sql.Vector;
+import microsoft.sql.Vector.VectorDimensionType;
 
 /**
  * Provides implementation of JDBC callable statements. CallableStatement allows the caller to specify the procedure
@@ -389,6 +391,9 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         registerOutParameter(index, sqlType);
         inOutParam[index - 1].setOutScale(scale);
+        if (microsoft.sql.Types.VECTOR == sqlType) {
+            inOutParam[index - 1].setValueLength(Vector.getDefaultPrecision()); // default 32-bit (single precision) float
+        }
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
     }
@@ -811,6 +816,18 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         } else if (type == Double.class) {
             double doubleValue = getDouble(index);
             returnValue = wasNull() ? null : doubleValue;
+        } else if (type == Vector.class) {
+            returnValue = getValue(index, JDBCType.VECTOR);
+            Vector vector = null;
+            if (returnValue == null) {
+                TypeInfo typeInfo = getterGetParam(index).getTypeInfo();
+                int precision = typeInfo.getPrecision();
+                VectorDimensionType scale = Vector.getVectorDimensionType(typeInfo.getScale());
+                vector = new Vector(precision, scale, null);
+            } else {
+                vector = Vector.valueOf(returnValue);
+            }
+            returnValue = vector;
         } else {
             // if the type is not supported the specification says the should
             // a SQLException instead of SQLFeatureNotSupportedException
@@ -1606,9 +1623,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             tvpName = getTVPNameFromObject(findColumn(parameterName), value);
             setObject(setterGetParam(findColumn(parameterName)), value, JavaType.TVP, JDBCType.TVP, null, null, false,
                     findColumn(parameterName), tvpName);
-        } else
-            setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), null,
+        } else {
+            int scale = 0;
+            if (microsoft.sql.Types.VECTOR == sqlType) 
+                scale = Vector.valueOf(value).getDimensionCount();
+            setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), scale,
                     null, false, findColumn(parameterName), tvpName);
+        }
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 

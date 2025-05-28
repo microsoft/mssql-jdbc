@@ -313,6 +313,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_StreamingDataTypeAE", "Data of length greater than {0} is not supported in encrypted {1} column."},
         {"R_AE_NotSupportedByServer", "SQL Server in use does not support column encryption."},
         {"R_InvalidAEVersionNumber", "Received invalid version number \"{0}\" for Always Encrypted."}, // From server
+        {"R_InvalidVectorVersionNumber", "Received invalid version number \"{0}\" for Vector."},
         {"R_NullEncryptedColumnEncryptionKey", "Internal error. Encrypted column encryption key cannot be null."},
         {"R_EmptyEncryptedColumnEncryptionKey", "Internal error. Empty encrypted column encryption key specified."},
         {"R_InvalidMasterKeyDetails", "Invalid master key details specified."},
@@ -339,6 +340,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_unsupportedStmtColEncSetting", "SQLServerStatementColumnEncryptionSetting cannot be null."},
         {"R_unsupportedConversionAE", "The conversion from {0} to {1} is unsupported for encrypted column."},
         {"R_InvalidDataForAE", "The given value of type {0} from the data source cannot be converted to type {1} of the specified target column {2}."},
+        {"R_vectorTypeSupportPropertyDescription", "Determines the vector feature extension support during connection initialization. Valid values are \"off\" (do not send FE for vector) and \"v1\" (send FE for vector v1). Default is \"v1\"."}, 
+        {"R_invalidVectorTypeSupport", "Invalid value for vectorTypeSupport: {0}. Valid values are \"off\" or \"v1\"."},
         {"R_authenticationPropertyDescription", "The authentication to use."},
         {"R_accessTokenPropertyDescription", "The access token to use for Azure Active Directory."},
         {"R_FedAuthRequiredPreLoginResponseInvalidValue", "Server sent an unexpected value for FedAuthRequired PreLogin Option. Value was {0}."},
@@ -480,6 +483,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidDataClsVersionNumber", "Invalid version number {0} for Data Classification."}, // From Server
         {"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},
         {"R_unknownAzureSQLDNSCachingValue", "Unknown value for Azure SQL DNS Caching."},
+        {"R_unknownVectorSupportValue", "Unknown value for Vector support."},
         {"R_illegalWKT", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
         {"R_illegalTypeForGeometry", "{0} is not supported for Geometry."},
         {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},
@@ -562,6 +566,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_UnableToFindClass", "Unable to locate specified class: {0}"},
         {"R_ibmModuleNotFound", "com.ibm.security.auth.module.Krb5LoginModule module was not found."},
         {"R_moduleNotFound", "Neither com.sun.security.auth.module.Krb5LoginModule nor com.ibm.security.auth.module.Krb5LoginModule was found."},
+        {"R_vectorByteArrayLength", "Byte array length must be at least 8 bytes."},
+        {"R_vectorByteArrayMultipleOfBytesPerDimension", "Byte array length must be a multiple of {0}."},
     };
 }
 // @formatter:on

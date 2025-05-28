@@ -8,6 +8,9 @@ package com.microsoft.sqlserver.jdbc;
 import java.text.MessageFormat;
 import java.util.Calendar;
 
+import microsoft.sql.Vector;
+import microsoft.sql.Vector.VectorDimensionType;
+
 
 /**
  * Column represents a database column definition (meta data) within a result set.
@@ -345,7 +348,7 @@ final class Column {
 
         // Update of binary SSType from textual JDBCType: Convert hex to binary.
         else if ((SSType.BINARY == ssType || SSType.VARBINARY == ssType || SSType.VARBINARYMAX == ssType
-                || SSType.IMAGE == ssType || SSType.UDT == ssType) &&
+                || SSType.IMAGE == ssType || SSType.UDT == ssType || SSType.VECTOR == ssType) &&
 
                 (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.LONGVARCHAR == jdbcType)) {
             jdbcType = JDBCType.VARBINARY;
