@@ -435,8 +435,18 @@ public class DBTable extends AbstractSQLGenerator {
      * @param sqlType
      */
     public void addColumn(SqlType sqlType) {
+        this.addColumn(sqlType, RandomUtil.getIdentifier(sqlType.getName()));
+    }
+
+    /**
+     * new column to add to DBTable based on the SqlType and column name
+     *
+     * @param sqlType
+     * @param columnName
+     */
+    public void addColumn(SqlType sqlType, String columnName) {
         schema.addSqlTpe(sqlType);
-        DBColumn column = new DBColumn(RandomUtil.getIdentifier(sqlType.getName()), sqlType);
+        DBColumn column = new DBColumn(columnName, sqlType);
         columns.add(column);
         ++totalColumns;
     }
