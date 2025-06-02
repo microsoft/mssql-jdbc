@@ -83,6 +83,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         boolean useFmtOnly1 = true;
         boolean delayLoadingLobs1 = false;
         boolean ignoreOffsetOnDateTimeOffsetConversion1 = true;
+        String vectorTypeSupport1 = "v1";
 
         boolean autoCommitMode2 = false;
         int transactionIsolationLevel2 = SQLServerConnection.TRANSACTION_SERIALIZABLE;
@@ -105,6 +106,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         boolean useFmtOnly2 = false;
         boolean delayLoadingLobs2 = true;
         boolean ignoreOffsetOnDateTimeOffsetConversion2 = false;
+        String vectorTypeSupport2 = "off";
 
         try (SQLServerConnection con = getConnection(); Statement stmt = con.createStatement()) {
             assumeTrue(TestUtils.isJDBC43OrGreater(con));
@@ -118,7 +120,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
                     bulkCopyForBatchInsertBatchSize1, bulkCopyForBatchInsertCheckConstraints1,
                     bulkCopyForBatchInsertFireTriggers1, bulkCopyForBatchInsertKeepIdentity1, bulkCopyForBatchInsertKeepNulls1,
-                    bulkCopyForBatchInsertTableLock1,bulkCopyForBatchInsertAllowEncryptedValueModifications1);
+                    bulkCopyForBatchInsertTableLock1,bulkCopyForBatchInsertAllowEncryptedValueModifications1, vectorTypeSupport1);
             con.beginRequest();
             // Call setters with the second set of values inside beginRequest()/endRequest() block.
             setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
@@ -127,7 +129,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
                     bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertCheckConstraints2,
                     bulkCopyForBatchInsertFireTriggers2, bulkCopyForBatchInsertKeepIdentity2, bulkCopyForBatchInsertKeepNulls2,
-                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2);
+                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2, vectorTypeSupport2);
             con.endRequest();
             // Test if endRequest() resets the SQLServerConnection properties back to the first set of values.
             compareValuesAgainstConnection(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1,
@@ -136,7 +138,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
                     bulkCopyForBatchInsertBatchSize1, bulkCopyForBatchInsertCheckConstraints1,
                     bulkCopyForBatchInsertFireTriggers1, bulkCopyForBatchInsertKeepIdentity1, bulkCopyForBatchInsertKeepNulls1,
-                    bulkCopyForBatchInsertTableLock1, bulkCopyForBatchInsertAllowEncryptedValueModifications1);
+                    bulkCopyForBatchInsertTableLock1, bulkCopyForBatchInsertAllowEncryptedValueModifications1, vectorTypeSupport1);
             // Multiple calls to beginRequest() without an intervening call to endRequest() are no-op.
             setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
                     sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
@@ -144,7 +146,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
                     bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertCheckConstraints2,
                     bulkCopyForBatchInsertFireTriggers2, bulkCopyForBatchInsertKeepIdentity2, bulkCopyForBatchInsertKeepNulls2,
-                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2);            
+                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2, vectorTypeSupport2);            
             con.beginRequest();
             setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
                     sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
@@ -152,7 +154,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
                     bulkCopyForBatchInsertBatchSize1, bulkCopyForBatchInsertCheckConstraints1,
                     bulkCopyForBatchInsertFireTriggers1, bulkCopyForBatchInsertKeepIdentity1, bulkCopyForBatchInsertKeepNulls1,
-                    bulkCopyForBatchInsertTableLock1, bulkCopyForBatchInsertAllowEncryptedValueModifications1);
+                    bulkCopyForBatchInsertTableLock1, bulkCopyForBatchInsertAllowEncryptedValueModifications1, vectorTypeSupport1);
             con.beginRequest();
             con.endRequest();
             // Same values as before the first beginRequest()
@@ -162,7 +164,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
                     bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertCheckConstraints2,
                     bulkCopyForBatchInsertFireTriggers2, bulkCopyForBatchInsertKeepIdentity2, bulkCopyForBatchInsertKeepNulls2,
-                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2);            
+                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2, vectorTypeSupport2);            
             // A call to endRequest() without an intervening call to beginRequest() is no-op.
             setConnectionFields(con, autoCommitMode1, transactionIsolationLevel1, networkTimeout1, holdability1,
                     sendTimeAsDatetime1, statementPoolingCacheSize1, disableStatementPooling1,
@@ -170,7 +172,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     useBulkCopyForBatchInsert1, useFmtOnly1, delayLoadingLobs1, ignoreOffsetOnDateTimeOffsetConversion1,
                     bulkCopyForBatchInsertBatchSize1, bulkCopyForBatchInsertCheckConstraints1,
                     bulkCopyForBatchInsertFireTriggers1, bulkCopyForBatchInsertKeepIdentity1, bulkCopyForBatchInsertKeepNulls1,
-                    bulkCopyForBatchInsertTableLock1, bulkCopyForBatchInsertAllowEncryptedValueModifications1);
+                    bulkCopyForBatchInsertTableLock1, bulkCopyForBatchInsertAllowEncryptedValueModifications1, vectorTypeSupport1);
 
             setConnectionFields(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2, holdability2,
                     sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
@@ -178,7 +180,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
                     bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertCheckConstraints2,
                     bulkCopyForBatchInsertFireTriggers2, bulkCopyForBatchInsertKeepIdentity2, bulkCopyForBatchInsertKeepNulls2,
-                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2);            con.endRequest();
+                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2, vectorTypeSupport2);            con.endRequest();
             // No change.
             compareValuesAgainstConnection(con, autoCommitMode2, transactionIsolationLevel2, networkTimeout2,
                     holdability2, sendTimeAsDatetime2, statementPoolingCacheSize2, disableStatementPooling2,
@@ -186,7 +188,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
                     useBulkCopyForBatchInsert2, useFmtOnly2, delayLoadingLobs2, ignoreOffsetOnDateTimeOffsetConversion2,
                     bulkCopyForBatchInsertBatchSize2, bulkCopyForBatchInsertCheckConstraints2,
                     bulkCopyForBatchInsertFireTriggers2, bulkCopyForBatchInsertKeepIdentity2, bulkCopyForBatchInsertKeepNulls2,
-                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2);
+                    bulkCopyForBatchInsertTableLock2, bulkCopyForBatchInsertAllowEncryptedValueModifications2, vectorTypeSupport2);
         } finally {
             TestUtils.dropDatabaseIfExists(sCatalog2, connectionString);
         }
@@ -434,7 +436,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             int bulkCopyForBatchInsertBatchSize, boolean bulkCopyForBatchInsertCheckConstraints, 
             boolean bulkCopyForBatchInsertFireTriggers, boolean bulkCopyForBatchInsertKeepIdentity, 
             boolean bulkCopyForBatchInsertKeepNulls, boolean bulkCopyForBatchInsertTableLock, 
-            boolean bulkCopyForBatchInsertAllowEncryptedValueModifications) throws SQLException {
+            boolean bulkCopyForBatchInsertAllowEncryptedValueModifications, String vectorTypeSupport) throws SQLException {
         
         con.setAutoCommit(autoCommitMode);
         con.setTransactionIsolation(transactionIsolationLevel);
@@ -457,6 +459,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         con.setBulkCopyForBatchInsertKeepNulls(bulkCopyForBatchInsertKeepNulls);
         con.setBulkCopyForBatchInsertTableLock(bulkCopyForBatchInsertTableLock);
         con.setBulkCopyForBatchInsertAllowEncryptedValueModifications(bulkCopyForBatchInsertAllowEncryptedValueModifications);
+        con.setVectorTypeSupport(vectorTypeSupport);
     }
     
     private void compareValuesAgainstConnection(SQLServerConnection con, boolean autoCommitMode,
@@ -467,7 +470,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             int bulkCopyForBatchInsertBatchSize, boolean bulkCopyForBatchInsertCheckConstraints, 
             boolean bulkCopyForBatchInsertFireTriggers, boolean bulkCopyForBatchInsertKeepIdentity, 
             boolean bulkCopyForBatchInsertKeepNulls, boolean bulkCopyForBatchInsertTableLock, 
-            boolean bulkCopyForBatchInsertAllowEncryptedValueModifications) throws SQLException {
+            boolean bulkCopyForBatchInsertAllowEncryptedValueModifications, String vectorTypeSupport) throws SQLException {
         
         final String description = " values do not match.";
         assertEquals(autoCommitMode, con.getAutoCommit(), "autoCommitmode" + description);
@@ -491,6 +494,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         assertEquals(bulkCopyForBatchInsertKeepNulls, con.getBulkCopyForBatchInsertKeepNulls(), "bulkCopyForBatchInsertKeepNulls" + description);
         assertEquals(bulkCopyForBatchInsertTableLock, con.getBulkCopyForBatchInsertTableLock(), "bulkCopyForBatchInsertTableLock" + description);
         assertEquals(bulkCopyForBatchInsertAllowEncryptedValueModifications, con.getBulkCopyForBatchInsertAllowEncryptedValueModifications(), "bulkCopyForBatchInsertAllowEncryptedValueModifications" + description);
+        assertEquals(vectorTypeSupport, con.getVectorTypeSupport(), "vectorTypeSupport" + description);
     }
     
     private void generateWarning(Connection con) throws SQLException {
@@ -528,6 +532,7 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
         verifiedMethodNames.add("setBulkCopyForBatchInsertKeepNulls");
         verifiedMethodNames.add("setBulkCopyForBatchInsertTableLock");
         verifiedMethodNames.add("setBulkCopyForBatchInsertAllowEncryptedValueModifications");
+        verifiedMethodNames.add("setVectorTypeSupport");
         verifiedMethodNames.add("commit");
         verifiedMethodNames.add("clearWarnings");
         verifiedMethodNames.add("prepareStatement");
