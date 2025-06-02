@@ -1090,7 +1090,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xVectorType)
+    @Tag(Constants.vectorTest)
     public void testVectorMetaData() throws SQLException {
         String vectorTableName = RandomUtil.getIdentifier("vectorTable");
 
