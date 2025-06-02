@@ -344,7 +344,7 @@ public class VectorTest extends AbstractTest {
                     String vectorString = rs.getString("v");
                     fail("Expected an exception when calling getString() on VECTOR type, but none was thrown.");
                 } catch (SQLException e) {
-                    assertEquals("getString() not supported for VECTOR type", e.getMessage(),
+                    assertEquals("getString() is not supported for Vector types. Use getObject().", e.getMessage(),
                             "Error message does not match the expected message.");
                 }
 

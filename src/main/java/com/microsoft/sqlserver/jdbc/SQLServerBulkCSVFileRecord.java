@@ -427,7 +427,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             int dimensionCount = cm.precision;
                         
                             if (dimensionCount <= 0) {
-                                throw new SQLServerException("Invalid vector dimension count.", null, 0, null);
+                                throw new SQLServerException(SQLServerException.getErrString("R_InvalidVectorDimensionCount"), null, 0, null);
                             }
                         
                             String vectorData = data[pair.getKey() - 1].trim();
@@ -443,7 +443,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                         
                                 String[] vectorElements = vectorData.split(",");
                                 if (vectorElements.length != dimensionCount) {
-                                    throw new SQLServerException("Mismatch between vector dimension count and provided data.", null, 0, null);
+                                    throw new SQLServerException(SQLServerException.getErrString("R_VectorDimensionCountMismatch"), null, 0, null);
                                 }
                         
                                 Object[] vectorArray = new Object[dimensionCount];

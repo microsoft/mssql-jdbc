@@ -1026,8 +1026,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Indicates the vector feature extension support during connection initialization.
-     * Valid values are "off" (do not send FE for vector) and "v1" (send FE for vector v1). Default is "v1".
+     * A string that indicates the vector type support during connection initialization.
+     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type float32 are returned as vectors).  
+     * Default is "v1".
      */
     private String vectorTypeSupport = "v1";
 
@@ -1035,7 +1036,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Returns the value of the vectorTypeSupport connection property.
      *
      * @return vectorTypeSupport
-     *         The current vector feature extension support setting ("off" or "v1").
+     *         The current vector type support setting ("off" or "v1").
      */
     @Override
     public String getVectorTypeSupport() {
@@ -1046,10 +1047,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Sets the value of the vectorTypeSupport connection property.
      *
      * @param vectorTypeSupport
-     *                          A string that indicates the vector feature extension
-     *                          support during connection initialization.
-     *                          Valid values are "off" (do not send FE for vector)
-     *                          and "v1" (send FE for vector v1). Default is "v1".
+     * A string that indicates the vector type support during connection initialization.
+     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type float32 are returned as vectors).  
+     * Default is "v1".
      */
     @Override
     public void setVectorTypeSupport(String vectorTypeSupport) {
