@@ -800,7 +800,7 @@ final class DDC {
                     }
 
                     if (typeInfo.getSSType() == SSType.VECTOR) {
-                        throw new SQLServerException("getString() not supported for VECTOR type", null, 0, null);
+                        throw new SQLServerException(SQLServerException.getErrString("R_getStringNotSupportedForVector"), null, 0, null);
                     }
 
                     // None of the special/fast textual conversion cases applied. Just go the normal route of converting
