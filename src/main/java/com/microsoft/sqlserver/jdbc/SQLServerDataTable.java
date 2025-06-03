@@ -327,19 +327,21 @@ public final class SQLServerDataTable {
                     break;
 
                 case VECTOR:
-                    nValueLen = ((Vector) val).getVectorLength();
-                    int scaleByte = ((Vector) val).getScaleByte();
+                    Vector vectorVal = (Vector) val;
+                    nValueLen = vectorVal.getVectorLength();
+                    int scaleByte = vectorVal.getScaleByte();
                     int scale = Vector.getBytesPerDimensionFromScale(scaleByte);
-                    precision = ((Vector) val).getDimensionCount();
-                    if (scale > currentColumnMetadata.scale) {
-                        currentColumnMetadata.scale = scale;
+                    precision = vectorVal.getDimensionCount();
+                    if (scale > currentColumnMetadata.scale || precision > currentColumnMetadata.precision) {
+                        if (scale > currentColumnMetadata.scale) {
+                            currentColumnMetadata.scale = scale;
+                        }
+                        if (precision > currentColumnMetadata.precision) {
+                            currentColumnMetadata.precision = precision;
+                        }
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
-                    if (precision > currentColumnMetadata.precision) {
-                        currentColumnMetadata.precision = precision;
-                        columnMetadata.put(pair.getKey(), currentColumnMetadata);
-                    }
-                    rowValues[key] = ((Vector) val).toBytes();
+                    rowValues[key] = vectorVal.toBytes();
                     break;
 
                 default:

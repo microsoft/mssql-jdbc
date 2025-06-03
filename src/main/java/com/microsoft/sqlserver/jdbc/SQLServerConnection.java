@@ -5669,12 +5669,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * feature data length, and version number.
      * 
      * @param write
-     *                  If true, writes the feature request to the physical state
-     *                  object.
+     * If true, writes the feature request to the physical state object.
      * @param tdsWriter
      * @return
-     *         The length of the feature request in bytes, or 0 if vectorTypeSupport
-     *         is "off".
+     * The length of the feature request in bytes, or 0 if vectorTypeSupport is "off".
      * @throws SQLServerException
      */
     int writeVectorSupportFeatureRequest(boolean write,
@@ -6827,7 +6825,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             case TDS.TDS_FEATURE_EXT_VECTORSUPPORT: {
-                if (connectionlogger.isLoggable(Level.FINER)) {
+                if (connectionlogger.isLoggable(Level.FINE)) {
                     connectionlogger.fine(toString() + " Received feature extension acknowledgement for Vector Support.");
                 }
 
@@ -8043,7 +8041,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** original bulkCopyForBatchInsertAllowEncryptedValueModifications flag */
     private boolean originalBulkCopyForBatchInsertAllowEncryptedValueModifications;
-    
+
     /** original SqlWarnings */
     private volatile SQLWarning originalSqlWarnings;
 

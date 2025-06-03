@@ -1624,11 +1624,12 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             setObject(setterGetParam(findColumn(parameterName)), value, JavaType.TVP, JDBCType.TVP, null, null, false,
                     findColumn(parameterName), tvpName);
         } else {
-            int scale = 0;
+            Integer scale = null, precision = null;
             if (microsoft.sql.Types.VECTOR == sqlType) 
-                scale = Vector.valueOf(value).getDimensionCount();
+                precision = Vector.valueOf(value).getDimensionCount();
+                scale = (int) Vector.valueOf(value).getScaleByte();
             setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), scale,
-                    null, false, findColumn(parameterName), tvpName);
+                    precision, false, findColumn(parameterName), tvpName);
         }
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
