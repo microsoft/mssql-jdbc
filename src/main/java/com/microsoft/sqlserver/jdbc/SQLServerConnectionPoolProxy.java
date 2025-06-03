@@ -905,7 +905,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
      * Sets the vectorTypeSupport value.
      *
      * @param vectorTypeSupport
-     *                          the vectorTypeSupport value to set ("off" or "v1").
+     * the vectorTypeSupport value to set ("off" or "v1").
      */
     public void setVectorTypeSupport(String vectorTypeSupport) {
         wrappedConnection.setVectorTypeSupport(vectorTypeSupport);
