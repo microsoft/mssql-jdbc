@@ -1681,10 +1681,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (microsoft.sql.Types.STRUCTURED == jdbcType) {
             tvpName = getTVPNameFromObject(n, obj);
         }
-        int precision = 0, scale =0;
+        Integer precision = null, scale = null;
         if (microsoft.sql.Types.VECTOR == jdbcType) {
             precision = microsoft.sql.Vector.valueOf(obj).getDimensionCount();
-            scale = microsoft.sql.Vector.valueOf(obj).getScaleByte();
+            scale = (int) microsoft.sql.Vector.valueOf(obj).getScaleByte();
         }
 
         setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), scale, precision, false, n, tvpName);
@@ -1704,7 +1704,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For all other types, this value will be ignored.
 
-        int precision = 0;
+        Integer precision = null;
         if (microsoft.sql.Types.VECTOR == targetSqlType)
             precision = microsoft.sql.Vector.valueOf(x).getDimensionCount();
 
@@ -1734,7 +1734,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
-                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
+                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)
+                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scale : null,
                 precision, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
@@ -1755,7 +1756,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
-                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
+                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)
+                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scale : null,
                 precision, forceEncrypt, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
