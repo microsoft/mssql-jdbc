@@ -2159,6 +2159,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.TIME:
                 case java.sql.Types.TIMESTAMP:
                 case microsoft.sql.Types.DATETIMEOFFSET:
+                case microsoft.sql.Types.DATETIME:
+                case microsoft.sql.Types.SMALLDATETIME:
                     bulkJdbcType = java.sql.Types.VARCHAR;
                     break;
                 default:

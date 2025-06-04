@@ -2558,9 +2558,9 @@ final class TypeInfo implements Serializable {
         ),
 
         SMALLDATETIME(TDSType.DATETIME4, new FixedLenStrategy(SSType.SMALLDATETIME, 4, // TDS length (bytes)
-                "yyyy-mm-dd hh:mm".length(), // precision (formatted length, in characters, assuming max fractional
-                                             // seconds precision (0))
-                "yyyy-mm-dd hh:mm".length(), // column display size
+                "yyyy-mm-dd hh:mm:ss.fff".length(), // precision (formatted length, in characters, assuming max fractional 
+                                                    // seconds precision)
+                "yyyy-mm-dd hh:mm:ss.fff".length(), // column display size
                 0) // scale
         ),
 

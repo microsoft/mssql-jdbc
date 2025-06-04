@@ -18,7 +18,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -828,6 +832,628 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testNoSpaceInsertTableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with DateTime records when sendTemporalDataTypesAsStringForBulkCopy is set to true(default)
+     * Data will be sent as string format
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithDateTimeRecordsAsVarchar() throws Exception {
+        String tableName = "DateTimeBulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (dateTimeColumn DATETIME)";
+        String insertSQL = "INSERT INTO " + tableName + " (dateTimeColumn) VALUES (?)";
+        String selectSQL = "SELECT dateTimeColumn FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert records
+            Timestamp ts = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
+            pstmt.setTimestamp(1, ts);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    Timestamp expected = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
+                    assertEquals(expected, rs.getTimestamp(1));
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with DateTime records when sendTemporalDataTypesAsStringForBulkCopy is set to false (default is true)
+     * Data will be sent as Timestamp format
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithDateTimeRecords() throws Exception {
+        String tableName = "DateTimeBulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (dateTimeColumn DATETIME)";
+        String insertSQL = "INSERT INTO " + tableName + " (dateTimeColumn) VALUES (?)";
+        String selectSQL = "SELECT dateTimeColumn FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = connection.createStatement();
+                PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert records
+            Timestamp ts = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
+            pstmt.setTimestamp(1, ts);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    Timestamp expected = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
+                    assertEquals(expected, rs.getTimestamp(1));
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with SmallDateTime records when sendTemporalDataTypesAsStringForBulkCopy is set to true(default)
+     * Data will be sent as string format
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithSmallDateTimeRecordsAsVarchar() throws Exception {
+        String tableName = "SmallDateTimeBulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (smallDateTimeColumn SMALLDATETIME)";
+        String insertSQL = "INSERT INTO " + tableName + " (smallDateTimeColumn) VALUES (?)";
+        String selectSQL = "SELECT smallDateTimeColumn FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert records
+            Timestamp ts = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
+            pstmt.setSmallDateTime(1, ts);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    Timestamp expected = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 31, 00));
+                    Timestamp result = rs.getTimestamp(1);
+                    String expectedString = "2025-05-13 14:31:00.0";
+
+                    assertEquals(expected, result);
+                    assertEquals(expectedString, result.toString());
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with SmallDateTime records when sendTemporalDataTypesAsStringForBulkCopy is set to false
+     * Data will be sent as Timestamp format
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithSmallDateTimeRecords() throws Exception {
+        String tableName = "SmallDateTimeBulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (smallDateTimeColumn SMALLDATETIME)";
+        String insertSQL = "INSERT INTO " + tableName + " (smallDateTimeColumn) VALUES (?)";
+        String selectSQL = "SELECT smallDateTimeColumn FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert records
+            Timestamp ts = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
+            pstmt.setSmallDateTime(1, ts);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    Timestamp expected = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 31, 00));
+                    Timestamp result = rs.getTimestamp(1);
+                    String expectedString = "2025-05-13 14:31:00.0";
+
+                    assertEquals(expected, result);
+                    assertEquals(expectedString, result.toString());
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with DateTime2 records when sendTemporalDataTypesAsStringForBulkCopy is set to true(default)
+     * Data will be sent as string format
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithDateTime2RecordsAsVarchar() throws Exception {
+        String tableName = "DateTime2BulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (dateTime2Column DATETIME2)";
+        String insertSQL = "INSERT INTO " + tableName + " (dateTime2Column) VALUES (?)";
+        String selectSQL = "SELECT dateTime2Column FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert records
+            Timestamp dateTime2Value = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 25, 123000000));
+            pstmt.setObject(1, dateTime2Value);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    Timestamp expected = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 25, 123000000));
+                    Timestamp result = rs.getObject(1, java.sql.Timestamp.class);
+                    String expectedString = "2025-05-13 14:30:25.123";
+
+                    assertEquals(expected, result);
+                    assertEquals(expectedString, result.toString());
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with DateTime2 records when sendTemporalDataTypesAsStringForBulkCopy is set to false
+     * Data will be sent as DateTime2 format
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithDateTime2Records() throws Exception {
+        String tableName = "DateTime2BulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (dateTime2Column DATETIME2)";
+        String insertSQL = "INSERT INTO " + tableName + " (dateTime2Column) VALUES (?)";
+        String selectSQL = "SELECT dateTime2Column FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert records
+            Timestamp dateTime2Value = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 25, 123000000));
+            pstmt.setObject(1, dateTime2Value);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    Timestamp expected = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 25, 123000000));
+                    Timestamp result = rs.getObject(1, java.sql.Timestamp.class);
+                    String expectedString = "2025-05-13 14:30:25.123";
+
+                    assertEquals(expected, result);
+                    assertEquals(expectedString, result.toString());
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with Money records when useBulkCopyForBatchInsert is set to true
+     * Data will be sent as respective money format when sendTemporalDataTypesAsStringForBulkCopy is set to true or false
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithMoneyRecords() throws Exception {
+        String tableName = "MoneyBulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (moneyColumn MONEY)";
+        String insertSQL = "INSERT INTO " + tableName + " (moneyColumn) VALUES (?)";
+        String selectSQL = "SELECT moneyColumn FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert records
+            pstmt.setMoney(1, new BigDecimal("12345.67"));
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    BigDecimal result = rs.getBigDecimal(1);
+                    String expectedString = "12345.6700";
+
+                    assertEquals(expectedString, result.toString());
+                    assertEquals(new BigDecimal(expectedString), result);
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with SmallMoney records when useBulkCopyForBatchInsert is set to true
+     * Data will be sent as respective smallmoney format when sendTemporalDataTypesAsStringForBulkCopy is set to true or false
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithSmallMoneyRecords() throws Exception {
+        String tableName = "SmallMoneyBulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (smallMoneyColumn SMALLMONEY)";
+        String insertSQL = "INSERT INTO " + tableName + " (smallMoneyColumn) VALUES (?)";
+        String selectSQL = "SELECT smallMoneyColumn FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                        .prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert records
+            pstmt.setSmallMoney(1, new BigDecimal("123.45"));
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    BigDecimal result = rs.getBigDecimal(1);
+                    String expectedString = "123.4500";
+
+                    assertEquals(expectedString, result.toString());
+                    assertEquals(new BigDecimal(expectedString), result);
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with Date records when sendTemporalDataTypesAsStringForBulkCopy is set to true(default)
+     * Data will be sent as string format
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithDateRecordsAsVarchar() throws Exception {
+        String tableName = "DateBulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (dateColumn DATE)";
+        String insertSQL = "INSERT INTO " + tableName + " (dateColumn) VALUES (?)";
+        String selectSQL = "SELECT dateColumn FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert record
+            Date expected = Date.valueOf("2025-06-02");
+            pstmt.setDate(1, expected);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    Date result = rs.getDate(1);
+                    assertEquals(expected, result);
+                    assertEquals("2025-06-02", result.toString());
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with Date records when sendTemporalDataTypesAsStringForBulkCopy is set to false
+     * Data will be sent as Date format
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithDateRecords() throws Exception {
+        String tableName = "DateBulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (dateColumn DATE)";
+        String insertSQL = "INSERT INTO " + tableName + " (dateColumn) VALUES (?)";
+        String selectSQL = "SELECT dateColumn FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = connection.createStatement();
+                PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert record
+            Date expected = Date.valueOf("2025-06-02");
+            pstmt.setDate(1, expected);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    Date result = rs.getDate(1);
+                    assertEquals(expected, result);
+                    assertEquals("2025-06-02", result.toString());
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with Time records when sendTemporalDataTypesAsStringForBulkCopy is set to true(default)
+     * Data will be sent as string format
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithTimeRecordsAsVarchar() throws Exception {
+        String tableName = "TimeBulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (timeColumn TIME)";
+        String insertSQL = "INSERT INTO " + tableName + " (timeColumn) VALUES (?)";
+        String selectSQL = "SELECT timeColumn FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert record
+            Time expected = Time.valueOf("14:30:00");
+            pstmt.setObject(1, expected);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    Time result = rs.getObject(1, Time.class);
+                    assertEquals(expected, result);
+                    assertEquals("14:30:00", result.toString());
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with Time records when sendTemporalDataTypesAsStringForBulkCopy is set to false
+     * Data will be sent as Time format
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithTimeRecords() throws Exception {
+        String tableName = "TimeBulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (timeColumn TIME)";
+        String insertSQL = "INSERT INTO " + tableName + " (timeColumn) VALUES (?)";
+        String selectSQL = "SELECT timeColumn FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = connection.createStatement();
+                PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert record
+            LocalTime timeValue = LocalTime.of(14, 30, 0);
+            Timestamp ts = Timestamp.valueOf(
+                    LocalDateTime.of(1970, 1, 1, timeValue.getHour(), timeValue.getMinute(), timeValue.getSecond()));
+            pstmt.setTimestamp(1, ts);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    Time expected = Time.valueOf(timeValue);
+                    Time result = rs.getTime(1);
+                    assertEquals(expected, result);
+                    assertEquals("14:30:00", result.toString());
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with DateTimeOffset records when sendTemporalDataTypesAsStringForBulkCopy is set to true(default)
+     * Data will be sent as string format
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithDateTimeOffsetRecordsAsVarchar() throws Exception {
+        String tableName = "DateTimeOffsetBulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (dateTimeOffsetColumn DATETIMEOFFSET)";
+        String insertSQL = "INSERT INTO " + tableName + " (dateTimeOffsetColumn) VALUES (?)";
+        String selectSQL = "SELECT dateTimeOffsetColumn FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                        .prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert record
+            OffsetDateTime offsetDateTime = OffsetDateTime.of(2025, 5, 13, 14, 30, 0, 0, ZoneOffset.UTC);
+            DateTimeOffset expected = DateTimeOffset.valueOf(offsetDateTime);
+            pstmt.setDateTimeOffset(1, expected);
+            pstmt.addBatch();
+
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    DateTimeOffset result = (DateTimeOffset) rs.getObject(1);
+                    assertEquals(expected, result);
+                    assertEquals("2025-05-13 14:30:00 +00:00", result.toString());
+                    row++;
+                }
+                assertEquals(1, row);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with DateTimeOffset records when sendTemporalDataTypesAsStringForBulkCopy is set to false
+     * Data will be sent as DateTimeOffset format
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithDateTimeOffsetRecords() throws Exception {
+        String tableName = "DateTimeOffsetBulkTable";
+
+        String createTableSQL = "CREATE TABLE " + tableName + " (dateTimeOffsetColumn DATETIMEOFFSET)";
+        String insertSQL = "INSERT INTO " + tableName + " (dateTimeOffsetColumn) VALUES (?)";
+        String selectSQL = "SELECT dateTimeOffsetColumn FROM " + tableName;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                        .prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(tableName, stmt);
+            stmt.execute(createTableSQL);
+
+            // Insert record
+            OffsetDateTime offsetDateTime = OffsetDateTime.of(2025, 5, 13, 14, 30, 0, 0, ZoneOffset.UTC);
+            DateTimeOffset expected = DateTimeOffset.valueOf(offsetDateTime);
+            pstmt.setDateTimeOffset(1, expected);
+            pstmt.addBatch();
+            
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                int row = 0;
+                while (rs.next()) {
+                    DateTimeOffset result = (DateTimeOffset) rs.getObject(1);
+                    assertEquals(expected, result);
+                    assertEquals("2025-05-13 14:30:00 +00:00", result.toString());
+                    row++;
+                }
+                assertEquals(1, row);
             }
         }
     }
