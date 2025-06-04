@@ -6675,9 +6675,14 @@ final class TDSPacket {
     }
 
     TDSPacket(int size) {
-        payload = new byte[size];
+        // payload = new byte[size];
+        payload = ByteBufferManager.rentBytes(size);
         payloadLength = 0;
         next = null;
+    }
+
+    void releasePayload() {
+        ByteBufferManager.release(payload);
     }
 
     final boolean isEOM() {
@@ -6977,6 +6982,7 @@ final class TDSReader implements Serializable {
             // interrupts. If an interrupt happened prior to disabling, then expect
             // to read the attention ack packet as well.
             if (newPacket.isEOM()) {
+                newPacket.releasePayload();
                 ++tdsChannel.numMsgsRcvd;
 
                 // Notify the command (if any) that we've reached the end of the response.
