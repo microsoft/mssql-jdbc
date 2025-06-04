@@ -1625,9 +1625,11 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     findColumn(parameterName), tvpName);
         } else {
             Integer scale = null, precision = null;
-            if (microsoft.sql.Types.VECTOR == sqlType) 
+            if (microsoft.sql.Types.VECTOR == sqlType) {
                 precision = Vector.valueOf(value).getDimensionCount();
                 scale = (int) Vector.valueOf(value).getScaleByte();
+            }
+            
             setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), scale,
                     precision, false, findColumn(parameterName), tvpName);
         }
