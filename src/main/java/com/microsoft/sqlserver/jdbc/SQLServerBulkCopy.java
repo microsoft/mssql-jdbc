@@ -1393,7 +1393,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     case SMALLDATETIME:
                         if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
                             return SSType.VARCHAR.toString() + "("
-                                    + ((0 == bulkPrecision) ? SOURCE_BULK_RECORD_TEMPORAL_MAX_PRECISION : bulkPrecision)
+                                    + SOURCE_BULK_RECORD_TEMPORAL_MAX_PRECISION
                                     + ")";
                         } else {
                             return SSType.SMALLDATETIME.toString();
