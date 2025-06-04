@@ -7,13 +7,13 @@ public class ByteBufferManager {
     private static int[] poolSizes = { 1024, 2048, 4096, 8192, 16384, 32768, 65536 };
     private final static ConcurrentHashMap<Integer, BufferPool> pools = new ConcurrentHashMap<>();
 
-    static {
+    public ByteBufferManager() {
         for (int size : poolSizes) {
             pools.put(size, new BufferPool(size));
         }
     }
  
-    public static byte[] rentBytes(int size) {
+    public byte[] rentBytes(int size) {
         int poolSize = getPoolSize(size);
 
         if (poolSize == -1) {
@@ -30,7 +30,7 @@ public class ByteBufferManager {
     }
 
     // Return a previously rented byte array
-    public static void release(byte[] array) {
+    public void release(byte[] array) {
         int size = array.length;
         BufferPool pool = pools.get(size);
         if (pool != null) {
