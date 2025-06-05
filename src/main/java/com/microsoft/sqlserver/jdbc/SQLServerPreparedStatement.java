@@ -67,9 +67,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** The prepared type definitions */
     private String preparedTypeDefinitions;
     
-    /** Cached preparedTypeDefinitions in case of multiple time calls of buildPreparedStrings method*/
-    private String preparedTypeDefinitionsPrev;
-
     /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
 
@@ -436,10 +433,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean buildPreparedStrings(Parameter[] params, boolean renewDefinition, boolean isInternalEncryptionQuery) throws SQLServerException {
         String newTypeDefinitions = buildParamTypeDefinitions(params, renewDefinition);
 
-        if(connection.isAEv2() && renewDefinition && !isInternalEncryptionQuery && null != preparedTypeDefinitionsPrev) {
-           preparedTypeDefinitions = preparedTypeDefinitionsPrev; 
-        }
-
         if (null != preparedTypeDefinitions && newTypeDefinitions.equalsIgnoreCase(preparedTypeDefinitions))
             return false;
 
@@ -449,9 +442,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (bRequestedGeneratedKeys)
             preparedSQL = preparedSQL + IDENTITY_QUERY;
 
-        if(connection.isAEv2() && !renewDefinition && !isInternalEncryptionQuery) {
-           preparedTypeDefinitionsPrev = preparedTypeDefinitions; 
-        }
         return true;
     }
 
