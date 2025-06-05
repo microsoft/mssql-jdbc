@@ -851,11 +851,7 @@ final class Parameter {
                                 param.typeDefinition = SSType.VARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else {
-                                param.typeDefinition = SSType.VARCHAR.toString() + "(" + valueLength + ")";
-
-                                if (DataTypes.SHORT_VARTYPE_MAX_BYTES < valueLength) {
-                                    param.typeDefinition = VARCHAR_MAX;
-                                }
+                                param.typeDefinition = VARCHAR_MAX;
                             }
 
                             if (JDBCType.LONGVARCHAR == jdbcTypeSetByUser) {
@@ -869,11 +865,7 @@ final class Parameter {
                                 param.typeDefinition = SSType.NVARCHAR.toString() + "(1)";
                                 valueLength++;
                             } else {
-                                param.typeDefinition = SSType.NVARCHAR.toString() + "(" + valueLength + ")";
-
-                                if (DataTypes.SHORT_VARTYPE_MAX_BYTES <= valueLength) {
-                                    param.typeDefinition = NVARCHAR_MAX;
-                                }
+                                param.typeDefinition = NVARCHAR_MAX;
                             }
 
                             if (JDBCType.LONGNVARCHAR == jdbcTypeSetByUser) {
