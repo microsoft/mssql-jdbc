@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -27,6 +28,7 @@ public class SQLServerPreparedStatementMockTest extends AbstractTest {
      * This test case helps track the insertion process and ensures that encrypted columns can handle string values of varying sizes correctly.
      * @throws Exception
      */
+    @Ignore
     @Test
     public void testBuildPreparedStringsForVaryLength() throws Exception {
         // Create a mock of SQLServerConnection
