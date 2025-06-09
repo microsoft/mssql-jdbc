@@ -3077,7 +3077,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "getSQLXML", xml);
         return xml;
     }
-    
+
     @Override
     public boolean rowUpdated() throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "rowUpdated");
