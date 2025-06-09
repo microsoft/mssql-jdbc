@@ -69,7 +69,6 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
                 populateNumericTableWithNull(connection);
                 verifyNumericTable(connection, true);
-               
             } finally {
                 dropTables(stmt);
             }
@@ -84,7 +83,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
                 .getConnection(AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
-            try{
+            try {
                 createTable(CHAR_TABLE_AE, cekJks, charTable);
                 populateCharTable(connection);
                 verifyCharTable(connection);
@@ -256,7 +255,8 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
     @ParameterizedTest
     @MethodSource("enclaveParams")
-    public void testStringColumnEncryptWithVaryLengthClearParam(String serverName, String url, String protocol) throws Exception {
+    public void testStringColumnEncryptWithVaryLengthClearParam(String serverName, String url,
+            String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
         try (Connection connection = PrepUtil
                 .getConnection(AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
@@ -264,7 +264,6 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
             dropTables(stmt);
 
             createTable(VARY_STRING_TABLE_AE, cekJks, stringVaryLengthTable);
-
             try {
                 verifyStringTable(connection, true);
             } finally {
@@ -275,6 +274,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
     private void verifyStringTable(Connection connection, boolean enableClearParameters) throws SQLException {
         String sql = "insert into " + VARY_STRING_TABLE_AE + " values(?, ?, ?)";
+
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
                 String data1 ="a"; 

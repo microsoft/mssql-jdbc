@@ -66,7 +66,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** The prepared type definitions */
     private String preparedTypeDefinitions;
-    
+
     /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
 
