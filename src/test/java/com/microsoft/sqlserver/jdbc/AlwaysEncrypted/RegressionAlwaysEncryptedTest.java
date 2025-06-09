@@ -52,7 +52,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
                 .getConnection(AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
-            try {        
+            try {
                 createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
 
                 populateNumericTable(connection);
@@ -233,7 +233,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
             }
         }
     }
-    
+
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testStringColumnEncryptWithVaryLength(String serverName, String url, String protocol) throws Exception {
@@ -277,32 +277,33 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
         try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
-                String data1 ="a"; 
-                if(enableClearParameters) {
-                    sqlPstmt.clearParameters();
-                }
-                sqlPstmt.setString(1, data1);
-                sqlPstmt.setString(2, data1);
-                sqlPstmt.setString(3, data1);
-                sqlPstmt.executeUpdate();
-              
-                String data2 =  data1 + "aa";
-                if(enableClearParameters) {
-                    sqlPstmt.clearParameters();
-                }
-                sqlPstmt.setString(1, data2);
-                sqlPstmt.setString(2, data2);
-                sqlPstmt.setString(3, data2);
-                sqlPstmt.executeUpdate();
-              
-                String data3 =  data2 + "aaa";
-                if(enableClearParameters) {
-                    sqlPstmt.clearParameters();
-                }
-                sqlPstmt.setString(1, data3);
-                sqlPstmt.setString(2, data3);
-                sqlPstmt.setString(3, data3);
-                sqlPstmt.executeUpdate();
+            String data1 = "a";
+
+            if (enableClearParameters) {
+                sqlPstmt.clearParameters();
+            }
+            sqlPstmt.setString(1, data1);
+            sqlPstmt.setString(2, data1);
+            sqlPstmt.setString(3, data1);
+            sqlPstmt.executeUpdate();
+
+            String data2 = data1 + "aa";
+            if (enableClearParameters) {
+                sqlPstmt.clearParameters();
+            }
+            sqlPstmt.setString(1, data2);
+            sqlPstmt.setString(2, data2);
+            sqlPstmt.setString(3, data2);
+            sqlPstmt.executeUpdate();
+
+            String data3 = data2 + "aaa";
+            if (enableClearParameters) {
+                sqlPstmt.clearParameters();
+            }
+            sqlPstmt.setString(1, data3);
+            sqlPstmt.setString(2, data3);
+            sqlPstmt.setString(3, data3);
+            sqlPstmt.executeUpdate();
         }
     }
 
