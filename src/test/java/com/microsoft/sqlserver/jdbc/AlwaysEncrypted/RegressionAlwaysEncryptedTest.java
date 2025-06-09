@@ -37,13 +37,13 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
 
     };
 
-    static String stringTable[][] = {{"VarcharMax", "varchar(max)"},};
-
     static String charTable[][] = {{"Char", "char(20) COLLATE Latin1_General_BIN2"},
             {"Varchar", "varchar(50) COLLATE Latin1_General_BIN2"},};
 
+    static String stringTable[][] = {{"VarcharMax", "varchar(max)"},};
+
     static String stringVaryLengthTable[][] = {{"VarcharMax", "varchar(max) COLLATE Latin1_General_BIN2"},};
-        
+
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void alwaysEncrypted1(String serverName, String url, String protocol) throws Exception {
@@ -234,7 +234,7 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
             }
         }
     }
-
+    
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void testStringColumnEncryptWithVaryLength(String serverName, String url, String protocol) throws Exception {
@@ -282,6 +282,5 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
         TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
         TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
         TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
-        TestUtils.dropTableIfExists(VARY_STRING_TABLE_AE, stmt);
     }
 }

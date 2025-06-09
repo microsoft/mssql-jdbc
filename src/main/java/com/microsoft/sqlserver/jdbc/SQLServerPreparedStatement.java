@@ -66,7 +66,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     /** The prepared type definitions */
     private String preparedTypeDefinitions;
-    
     /** Processed SQL statement text, may not be same as what user initially passed. */
     final String userSQL;
 
@@ -432,12 +431,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private boolean buildPreparedStrings(Parameter[] params, boolean renewDefinition) throws SQLServerException {
         String newTypeDefinitions = buildParamTypeDefinitions(params, renewDefinition);
-
         if (null != preparedTypeDefinitions && newTypeDefinitions.equalsIgnoreCase(preparedTypeDefinitions))
             return false;
 
         preparedTypeDefinitions = newTypeDefinitions;
 
+        /* Replace the parameter marker '?' with the param numbers @p1, @p2 etc */
         preparedSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, bReturnValueSyntax);
         if (bRequestedGeneratedKeys)
             preparedSQL = preparedSQL + IDENTITY_QUERY;
@@ -646,7 +645,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     parameterNames);
             encryptionMetadataIsRetrieved = true;
             setMaxRowsAndMaxFieldSize();
-            buildPreparedStrings(inOutParam, true);
+            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
@@ -664,7 +663,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
             // Connection
-            buildPreparedStrings(inOutParam, true);
+            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
         }
 
         boolean needsPrepare = true;
