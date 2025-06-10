@@ -34,7 +34,8 @@ final class ResiliencyUtils {
 
     private static final String[] ON_OFF = new String[] {"ON", "OFF"};
     static final String alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    static final int checkRecoveryAliveInterval = 500;
+
+    static final int checkRecoveryAliveInterval = 15000; // SQLServerConnection.maxIdleMillis is 15000
 
     private ResiliencyUtils() {};
 
