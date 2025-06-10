@@ -846,8 +846,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testBulkInsertWithAllTemporalTypesAndMoneyAsVarchar() throws Exception {
-        String tableName = "BulkTable";
-        String createTableSQL = "CREATE TABLE " + tableName + " (" +
+        String tableName = RandomUtil.getIdentifier("BulkTable");
+        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
                 "dateTimeColumn DATETIME, " +
                 "smallDateTimeColumn SMALLDATETIME, " +
                 "dateTime2Column DATETIME2, " +
@@ -856,17 +856,17 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 "dateTimeOffsetColumn DATETIMEOFFSET, " +
                 "moneyColumn MONEY, " +
                 "smallMoneyColumn SMALLMONEY" + ")";
-        String insertSQL = "INSERT INTO " + tableName +
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
                 " (dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         String selectSQL = "SELECT dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn FROM "
-                + tableName;
+                + AbstractSQLGenerator.escapeIdentifier(tableName);
 
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 Statement stmt = connection.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
 
             // Drop and create table
-            TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             stmt.execute(createTableSQL);
 
             Timestamp dateTimeVal = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
@@ -935,6 +935,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 assertEquals(expectedSmallMoneyString,rs.getBigDecimal(8).toString());
                 
             }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
         }
     }
 
@@ -948,8 +952,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Test
     @Tag(Constants.xAzureSQLDW)
     public void testBulkInsertWithAllTemporalTypesAndMoney() throws Exception {
-        String tableName = "BulkTable";
-        String createTableSQL = "CREATE TABLE " + tableName + " (" +
+        String tableName = RandomUtil.getIdentifier("BulkTable");
+        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
                 "dateTimeColumn DATETIME, " +
                 "smallDateTimeColumn SMALLDATETIME, " +
                 "dateTime2Column DATETIME2, " +
@@ -958,17 +962,17 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 "dateTimeOffsetColumn DATETIMEOFFSET, " +
                 "moneyColumn MONEY, " +
                 "smallMoneyColumn SMALLMONEY" + ")";
-        String insertSQL = "INSERT INTO " + tableName +
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
                 " (dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         String selectSQL = "SELECT dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn FROM "
-                + tableName;
+                + AbstractSQLGenerator.escapeIdentifier(tableName);
 
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 Statement stmt = connection.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
 
             // Drop and create table
-            TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             stmt.execute(createTableSQL);
 
             Timestamp dateTimeVal = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
@@ -1039,6 +1043,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 assertEquals(smallMoneyVal, rs.getBigDecimal(8));
                 assertEquals(expectedSmallMoneyString,rs.getBigDecimal(8).toString());
                 
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
     }
