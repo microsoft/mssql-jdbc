@@ -646,7 +646,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     parameterNames);
             encryptionMetadataIsRetrieved = true;
             setMaxRowsAndMaxFieldSize();
-            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
+            buildPreparedStrings(inOutParam, true);
         }
 
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
@@ -664,7 +664,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
             // Connection
-            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
+            buildPreparedStrings(inOutParam, true);
         }
 
         boolean needsPrepare = true;
