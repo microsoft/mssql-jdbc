@@ -843,8 +843,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         public int getScale(int column) {
             if (scale == microsoft.sql.Vector.VectorDimensionType.float32) {
                 return 4;
-            } else if (scale == microsoft.sql.Vector.VectorDimensionType.float16) {
-                return 2;
             } else {
                 return 0;
             }
@@ -902,8 +900,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         public int getScale(int column) {
             if (scale == microsoft.sql.Vector.VectorDimensionType.float32) {
                 return 4;
-            } else if (scale == microsoft.sql.Vector.VectorDimensionType.float16) {
-                return 2;
             } else {
                 return 0;
             }
