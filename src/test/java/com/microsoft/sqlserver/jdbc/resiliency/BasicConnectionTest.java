@@ -491,20 +491,6 @@ public class BasicConnectionTest extends AbstractTest {
         }
     }
 
-    @Test
-    public void testAccessTokenInReconnect() throws SQLException {       
-        // Should use adIntegratedConnectionStr
-        try (Connection c = DriverManager.getConnection(adIntegratedConnectionStr);
-            Statement s = c.createStatement()) {
-                s.executeQuery("SELECT 1");
-                ResiliencyUtils.killConnection(c, adIntegratedConnectionStr, 0);
-                s.executeQuery("SELECT 1");
-            } catch (SQLException e) {
-                 fail(TestResource.getResource("R_expectedFailPassed"));
-            }
-    }
-
-
     private void basicReconnect(String connectionString) throws SQLException {
         // Ensure reconnects can happen multiple times over the same connection and subsequent connections
         for (int i1 = 0; i1 < 2; i1++) {

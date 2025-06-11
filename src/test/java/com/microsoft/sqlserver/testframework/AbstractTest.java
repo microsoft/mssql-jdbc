@@ -50,7 +50,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
-import com.microsoft.sqlserver.jdbc.fedauth.FedauthCommon.SqlAuthentication;
 
 
 /**
@@ -119,10 +118,6 @@ public abstract class AbstractTest {
     protected static String connectionString = null;
     protected static String connectionStringNTLM;
     protected static String connectionStringKerberos;
-    
-    protected static String azureServer = null;
-    protected static String azureDatabase = null;
-    protected static String adIntegratedConnectionStr;
 
     protected static ConfidentialClientApplication fedauthClientApp = null;
 
@@ -189,11 +184,6 @@ public abstract class AbstractTest {
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustServerCertificate",
                 trustServerCertificate);
 
-        azureServer = getConfiguredProperty("azureServer");
-        azureDatabase = getConfiguredProperty("azureDatabase");
-        adIntegratedConnectionStr = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase
-                + ";Authentication=" + SqlAuthentication.ActiveDirectoryIntegrated.toString();
-                
         javaKeyPath = TestUtils.getCurrentClassPath() + Constants.JKS_NAME;
 
         keyIDs = getConfiguredProperty("keyID", "").split(Constants.SEMI_COLON);

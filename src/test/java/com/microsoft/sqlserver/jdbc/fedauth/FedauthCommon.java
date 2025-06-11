@@ -145,7 +145,7 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_REQUEST_THROTTLED = "Request was throttled";
     static final String ERR_FAILED_FEDAUTH = TestResource.getResource("R_failedFedauth");
 
-    public enum SqlAuthentication {
+    enum SqlAuthentication {
         NotSpecified,
         SqlPassword,
         ActiveDirectoryPassword,
