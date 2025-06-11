@@ -13,7 +13,7 @@ import java.text.MessageFormat;
 
 public final class Vector implements java.io.Serializable {
     public enum VectorDimensionType {
-        float16, // 16-bit (half precision) float
+        //float16,  16-bit (half precision) float
         float32 // 32-bit (single precision) float
     }
 
@@ -25,7 +25,7 @@ public final class Vector implements java.io.Serializable {
     /**
      * Constructor for Vector with dimension count and vector type.
      * @param dimensionCount The number of dimensions in the vector.
-     * @param vectorType The type of the vector (float32 or float16).
+     * @param vectorType The type of the vector.
      * @param data The object array representing the vector data.
      */
     public Vector(int dimensionCount, VectorDimensionType vectorType, Object[] data) {
@@ -37,7 +37,7 @@ public final class Vector implements java.io.Serializable {
     /**
      * Constructor for Vector with precision and scale value.
      * @param precision The number of dimensions in the vector.
-     * @param scale The scale value of the vector (4 for float32, 2 for float16).
+     * @param scale The scale value of the vector (4 for float32).
      * @param data The object array representing the vector data.
      */
     public Vector(int precision, int scale, Object[] data) {
@@ -112,7 +112,7 @@ public final class Vector implements java.io.Serializable {
         // 3. Number of Dimensions (2 bytes, little-endian)
         buffer.putShort((short) (dimensionCount));
 
-        // 4. Dimension Type (0x01 for float) 
+        // 4. Dimension Type (1 byte) 
         buffer.put(getScaleByte());
 
         // 5. Reserved (3 bytes of padding)
@@ -124,10 +124,10 @@ public final class Vector implements java.io.Serializable {
                 case float32:
                     buffer.putFloat(((Number) value).floatValue());
                     break;
-                case float16:
-                    // For float16, you need to convert to 2-byte representation.
-                    buffer.putShort((short) ((Number) value).intValue());
-                    break;      
+                // case float16:
+                //     // For float16, you need to convert to 2-byte representation.
+                //     buffer.putShort((short) ((Number) value).intValue());
+                //     break;      
                 default:
                     buffer.putFloat(((Number) value).floatValue());
                     break;
@@ -184,8 +184,8 @@ public final class Vector implements java.io.Serializable {
         switch (scaleByte) {
             case 0:
                 return VectorDimensionType.float32; 
-            case 1:
-                return VectorDimensionType.float16; 
+            // case 1:
+            //     return VectorDimensionType.float16; 
             default:
                 return VectorDimensionType.float32; // Default case
         }
@@ -207,8 +207,8 @@ public final class Vector implements java.io.Serializable {
         switch (scaleByte) {
             case 0:
                 return 4; // 4 bytes per dimension for float32
-            case 1:
-                return 2; // 2 bytes per dimension for float16
+            // case 1:
+            //     return 2; // 2 bytes per dimension for float16
             default:
                 return 4; // Default case
         }
@@ -222,8 +222,8 @@ public final class Vector implements java.io.Serializable {
         switch (vectorType) {
             case float32:
                 return 4; 
-            case float16:
-                return 2; 
+            // case float16:
+            //     return 2; 
             default:
                 return 4; 
         }
@@ -237,8 +237,8 @@ public final class Vector implements java.io.Serializable {
         switch (scale) {
             case 4:
                 return VectorDimensionType.float32; 
-            case 2:
-                return VectorDimensionType.float16; 
+            // case 2:
+            //     return VectorDimensionType.float16; 
             default:
                 return VectorDimensionType.float32; 
         }
@@ -252,8 +252,8 @@ public final class Vector implements java.io.Serializable {
         switch (vectorType) {
             case float32:
                 return 0x00; // Scale(dimension type) for float32
-            case float16:
-                return 0x01; // Scale(dimension type) for float16
+            // case float16:
+            //     return 0x01; // Scale(dimension type) for float16
             default:
                 return 0x00; // Default case
         }
@@ -267,8 +267,8 @@ public final class Vector implements java.io.Serializable {
         switch (scale) {
             case 4:
                 return 0x00; // scaleByte for float32
-            case 2:
-                return 0x01; // scaleByte for float16
+            // case 2:
+            //     return 0x01; // scaleByte for float16
             default:
                 return 0x00; // Default case
         }
@@ -284,9 +284,9 @@ public final class Vector implements java.io.Serializable {
             case float32:
                 bytesPerDimension = 4; // 4 bytes per dimension for float32
                 break;
-            case float16:
-                bytesPerDimension = 2; 
-                break;
+            // case float16:
+            //     bytesPerDimension = 2; 
+            //     break;
             default:
                 bytesPerDimension = 4; 
                 break;
@@ -305,10 +305,8 @@ public final class Vector implements java.io.Serializable {
     /**
      * Returns the SQL type definition string for a vector parameter.
      * 
-     * @param vector      The vector instance (may be null for output-only
-     *                    parameters)
-     * @param scale       Number of bytes per dimension (e.g., 4 for float32, 2 for
-     *                    float16)
+     * @param vector      The vector instance (may be null for output-only parameters)
+     * @param scale       Number of bytes per dimension (e.g., 4 for float32, 2 for float16)
      * @param isOutput    True if the parameter is an output parameter
      * @param outScale    Output parameter's bytes per dimension (if applicable)
      * @param valueLength The value length for output parameters
