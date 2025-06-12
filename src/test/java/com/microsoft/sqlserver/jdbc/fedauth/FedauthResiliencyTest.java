@@ -36,15 +36,9 @@ public class FedauthResiliencyTest extends FedauthCommon {
     @Test
     public void testConnectionResiliency() throws Exception {
 
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setServerName(azureServer);
-        ds.setDatabaseName(azureDatabase);
-        ds.setAccessToken(accessToken);
-
         String connectionString = "jdbc:sqlserver://" + azureServer +
-                         ";database=" + azureDatabase +
-                         ";accessToken=" + accessToken + 
-                         ";trustServerCertificate=true;loginTimeout=1200;socketTimeout=1200;";
+                ";database=" + azureDatabase + ";accessToken=" + accessToken + ";user=" + azureUserName
+                + ";trustServerCertificate=true;loginTimeout=1200;socketTimeout=1200;";
         try {
             for (int i1 = 0; i1 < 2; i1++) {
                 try (Connection c = ResiliencyUtils.getConnection(connectionString)) {
