@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc.resiliency;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -83,6 +84,24 @@ public class BasicConnectionTest extends AbstractTest {
                     fail(e.getMessage());
                 }
             }
+        }
+    }
+
+    @Test
+    @Tag(Constants.fedAuth)
+    public void testBasicConnectionAADIntegrated() throws Exception {
+
+        try {
+            String azureServer = getConfiguredProperty("azureServer");
+            String azureDatabase = getConfiguredProperty("azureDatabase");
+
+            String connectionStringAADIntegrated = String.format(
+                    "jdbc:sqlserver://%s:1433;database=%s;authentication=ActiveDirectoryIntegrated;encrypt=false;trustServerCertificate=true;",
+                    azureServer, azureDatabase, encrypt);
+            basicReconnect(connectionStringAADIntegrated);
+
+        } catch (Exception e) {
+            throw e;
         }
     }
 

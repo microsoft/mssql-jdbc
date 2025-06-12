@@ -30,7 +30,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @Tag(Constants.xSQLv11)
 @Tag(Constants.xAzureSQLDW)
-final class ResiliencyUtils {
+public final class ResiliencyUtils {
 
     private static final String[] ON_OFF = new String[] {"ON", "OFF"};
     static final String alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -194,7 +194,7 @@ final class ResiliencyUtils {
         return c;
     }
 
-    static Connection getConnection(String connectionString) throws SQLException {
+    public static Connection getConnection(String connectionString) throws SQLException {
         Connection c = DriverManager.getConnection(connectionString);
         minimizeIdleNetworkTracker(c);
         return c;
@@ -288,7 +288,7 @@ final class ResiliencyUtils {
         return sessionID;
     }
 
-    static void killConnection(Connection c, String cString, int delayTimeout) throws SQLException {
+    public static void killConnection(Connection c, String cString, int delayTimeout) throws SQLException {
         killConnection(getSessionId(c), cString, c, delayTimeout);
     }
 
