@@ -7252,20 +7252,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         LogonProcessor logonProcessor = new LogonProcessor(authentication);
         TDSReader tdsReader;
+        sessionRecovery.setConnectionRecoveryPossible(false);
         do {
             tdsReader = logonCommand.startResponse();
-            sessionRecovery.setConnectionRecoveryPossible(false);
             TDSParser.parse(tdsReader, logonProcessor);
         } while (!logonProcessor.complete(logonCommand, tdsReader));
 
-        if (sessionRecovery.isReconnectRunning() && !sessionRecovery.isConnectionRecoveryPossible()) {
-            if (connectionlogger.isLoggable(Level.WARNING)) {
-                connectionlogger.warning(this.toString()
-                        + "SessionRecovery feature extension ack was not sent by the server during reconnection.");
-            }
-            terminate(SQLServerException.DRIVER_ERROR_INVALID_TDS,
-                    SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin"));
-        }
+        connectionReconveryCheck(sessionRecovery.isReconnectRunning(), sessionRecovery.isConnectionRecoveryPossible(),
+                routingInfo);
+
         if (connectRetryCount > 0 && !sessionRecovery.isReconnectRunning()) {
             sessionRecovery.getSessionStateTable().setOriginalCatalog(sCatalog);
             sessionRecovery.getSessionStateTable().setOriginalCollation(databaseCollation);
@@ -7273,6 +7268,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    private void connectionReconveryCheck(boolean isReconnectRunning, boolean isConnectionRecoveryPossible,
+                    ServerPortPlaceHolder routingDetails) throws SQLServerException {
+        if (isReconnectRunning && !isConnectionRecoveryPossible && routingDetails == null) {
+            if (connectionlogger.isLoggable(Level.WARNING)) {
+                connectionlogger.warning(this.toString()
+                        + "SessionRecovery feature extension ack was not sent by the server during reconnection.");
+            }
+            terminate(SQLServerException.DRIVER_ERROR_INVALID_TDS,
+                    SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin"));
+        }
+    }
     /* --------------- JDBC 3.0 ------------- */
 
     /**
