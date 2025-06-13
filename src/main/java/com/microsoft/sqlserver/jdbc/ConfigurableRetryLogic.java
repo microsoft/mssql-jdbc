@@ -336,10 +336,10 @@ public class ConfigurableRetryLogic {
      *         if unable to read from the file
      */
     private static LinkedList<String> readFromFile(String connectionStringProperty) throws SQLServerException {
-        String filePath = getCurrentClassPath();
+        String filePath = "";
         LinkedList<String> list = new LinkedList<>();
-
         try {
+            filePath = getCurrentClassPath();
             File f = new File(filePath);
             try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
                 String readLine;
@@ -354,13 +354,22 @@ public class ConfigurableRetryLogic {
         } catch (FileNotFoundException e) {
             // If the file is not found either A) We're not using CRL OR B) the path is wrong. Do not error out, instead
             // log a message.
-            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINER)) {
-                CONFIGURABLE_RETRY_LOGGER.finest("File not found at path - \"" + filePath + "\"");
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINE)) {
+                CONFIGURABLE_RETRY_LOGGER.fine("File not found at path - \"" + filePath + "\"");
+            }
+        } catch (InvalidPathException e) {
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINE)) {
+                CONFIGURABLE_RETRY_LOGGER.fine("Invalid path specified - \"" + filePath + "\"");
             }
         } catch (IOException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
             Object[] msgArgs = {e.getMessage() + ", from path - \"" + filePath + "\""};
             throw new SQLServerException(form.format(msgArgs), null, 0, e);
+        } catch (Exception e) {
+            // General exception handling
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINE)) {
+                CONFIGURABLE_RETRY_LOGGER.fine("An unexpected error occurred while reading from file: " + e.getMessage());
+            }
         }
         return list;
     }
