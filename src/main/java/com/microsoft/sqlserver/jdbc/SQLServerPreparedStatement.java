@@ -2489,16 +2489,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         String typeName;
         MessageFormat form;
         switch (jdbctype) {
+            case microsoft.sql.Types.DATETIME:
+            case microsoft.sql.Types.SMALLDATETIME:
             case microsoft.sql.Types.MONEY:
             case microsoft.sql.Types.SMALLMONEY:
             case java.sql.Types.DATE:
-            case microsoft.sql.Types.DATETIME:
-            case microsoft.sql.Types.DATETIMEOFFSET:
-            case microsoft.sql.Types.SMALLDATETIME:
             case java.sql.Types.TIME:
+            case microsoft.sql.Types.DATETIMEOFFSET:
                 typeName = ti.getSSTypeName();
-                form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupportedDW"));
-                throw new IllegalArgumentException(form.format(new Object[] {typeName}));
+                if (connection.isAzureDW()) {
+                    // Azure DW does not support these data types.
+                    form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupportedDW"));
+                    throw new IllegalArgumentException(form.format(new Object[] { typeName }));
+                }
             case java.sql.Types.INTEGER:
             case java.sql.Types.SMALLINT:
             case java.sql.Types.BIGINT:
