@@ -7268,8 +7268,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    void connectionReconveryCheck(boolean isReconnectRunning, boolean isConnectionRecoveryPossible,
-            ServerPortPlaceHolder routingDetails) throws SQLServerException {
+    private void connectionReconveryCheck(boolean isReconnectRunning, boolean isConnectionRecoveryPossible,
+                    ServerPortPlaceHolder routingDetails) throws SQLServerException {
         if (isReconnectRunning && !isConnectionRecoveryPossible && routingDetails == null) {
             if (connectionlogger.isLoggable(Level.WARNING)) {
                 connectionlogger.warning(this.toString()
