@@ -392,7 +392,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         registerOutParameter(index, sqlType);
         inOutParam[index - 1].setOutScale(scale);
         if (microsoft.sql.Types.VECTOR == sqlType) {
-            inOutParam[index - 1].setValueLength(Vector.getDefaultPrecision()); // default 32-bit (single precision) float
+            inOutParam[index - 1].setValueLength(VectorUtils.getDefaultPrecision()); // default 32-bit (single precision) float
         }
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
@@ -822,10 +822,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             if (returnValue == null) {
                 TypeInfo typeInfo = getterGetParam(index).getTypeInfo();
                 int precision = typeInfo.getPrecision();
-                VectorDimensionType scale = Vector.getVectorDimensionType(typeInfo.getScale());
+                VectorDimensionType scale = VectorUtils.getVectorDimensionType(typeInfo.getScale());
                 vector = new Vector(precision, scale, null);
             } else {
-                vector = Vector.valueOf(returnValue);
+                vector = VectorUtils.fromBytes((byte[]) returnValue);
             }
             returnValue = vector;
         } else {
@@ -1625,9 +1625,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     findColumn(parameterName), tvpName);
         } else {
             Integer scale = null, precision = null;
-            if (microsoft.sql.Types.VECTOR == sqlType) {
-                precision = Vector.valueOf(value).getDimensionCount();
-                scale = (int) Vector.valueOf(value).getScaleByte();
+            if (microsoft.sql.Types.VECTOR == sqlType && value instanceof Vector) {
+                Vector vector = (Vector) value;
+                precision = vector.getDimensionCount();
+                scale = (int) VectorUtils.getScaleByte(vector.getVectorDimensionType());
             }
             
             setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), scale,
@@ -1680,7 +1681,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(targetSqlType),
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
-                        || InputStream.class.isInstance(value) || Reader.class.isInstance(value)) ? scale : null,
+                        || InputStream.class.isInstance(value) || Reader.class.isInstance(value)
+                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scale : null,
                 precision, false, findColumn(parameterName), null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");

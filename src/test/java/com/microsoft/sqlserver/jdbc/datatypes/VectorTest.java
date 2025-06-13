@@ -96,18 +96,18 @@ public class VectorTest extends AbstractTest {
     @Test
     void validateVectorData() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
-        Object[] originalData = new Object[] { 0.45f, 7.9f, 63.0f };
+        Object[] originalData = new Float[] { 0.45f, 7.9f, 63.0f };
         Vector initialVector = new Vector(3, VectorDimensionType.float32, originalData);
 
         try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
-            pstmt.setInt(1, 23);
+            pstmt.setInt(1, 19);
             pstmt.setObject(2, initialVector, microsoft.sql.Types.VECTOR);
             pstmt.executeUpdate();
         }
 
         String query = "SELECT id, v FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setInt(1, 23);
+            stmt.setInt(1, 19);
             try (ResultSet rs = stmt.executeQuery()) {
 
                 assertTrue(rs.next(), "No result found for inserted vector.");
@@ -130,7 +130,7 @@ public class VectorTest extends AbstractTest {
     @Test
     void validateVectorDataWithPrecisionScale() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
-        Object[] data = new Object[] { 0.4f, 0.5f, 0.6f };
+        Object[] data = new Float[] { 0.4f, 0.5f, 0.6f };
         // Create a vector object with precision and scale for vector data type
         Vector vector = new Vector(3, 4, data); 
 
@@ -273,7 +273,7 @@ public class VectorTest extends AbstractTest {
             String insertSourceSQL = "INSERT INTO " + sourceTable + " (id, v) VALUES (?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(insertSourceSQL)) {
                 for (int i = 1; i <= 4; i++) {
-                    Object[] vectorData = { i * 1.0f, i * 2.0f, i * 3.0f, i * 4.0f }; // 4 dimensions
+                    Object[] vectorData = new Float[] { i * 1.0f, i * 2.0f, i * 3.0f, i * 4.0f }; // 4 dimensions
                     Vector vector = new Vector(4, Vector.VectorDimensionType.float32, vectorData);
                     pstmt.setInt(1, i);
                     pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
@@ -323,7 +323,7 @@ public class VectorTest extends AbstractTest {
     @Test
     void validateVectorDataUsingGetString() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
-        Object[] originalData = new Object[] { 0.45f, 7.9f, 63.0f };
+        Object[] originalData = new Float[] { 0.45f, 7.9f, 63.0f };
         Vector initialVector = new Vector(3, VectorDimensionType.float32, originalData);
 
         try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
@@ -383,6 +383,24 @@ public class VectorTest extends AbstractTest {
     }
 
     /**
+     * Test for inserting a vector with Double[] data type. There will be lossy conversion from double to float.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    void testInsertDoubleVectorData() throws SQLException {
+        Object[] originalData = new Double[] { 0.45, 7.9, 63.0 };
+        try {
+            Vector initialVector = new Vector(3, VectorDimensionType.float32, originalData);
+            fail("Expected an exception due to type mismatch, but none was thrown.");
+        } catch (IllegalArgumentException e) {
+            // Expected exception due to type mismatch
+            assertTrue(e.getMessage().contains("Invalid vector data type."),
+                    "Unexpected error message: " + e.getMessage());
+        }
+    }
+
+    /**
      * Test for validating vector data when the vectorTypeSupport feature is "off".
      * The expected behavior is that the server should return the vector as a string.
      * 
@@ -398,7 +416,7 @@ public class VectorTest extends AbstractTest {
         }
 
         // Insert a row
-        Object[] vectorData = new Object[] { 1.23f, 4.56f, 7.89f };
+        Object[] vectorData = new Float[] { 1.23f, 4.56f, 7.89f };
         Vector vector = new Vector(3, VectorDimensionType.float32, vectorData);
         String insertSql = "INSERT INTO " + logsTable + " (v) VALUES (?)";
         try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
@@ -463,7 +481,7 @@ public class VectorTest extends AbstractTest {
         }
 
         // Insert a row
-        Object[] vectorData = new Object[] { 1.23f, 4.56f, 7.89f };
+        Object[] vectorData = new Float[] { 1.23f, 4.56f, 7.89f };
         Vector vector = new Vector(3, VectorDimensionType.float32, vectorData);
         String insertSql = "INSERT INTO " + logsTable + " (v) VALUES (?)";
         try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
@@ -526,7 +544,7 @@ public class VectorTest extends AbstractTest {
         }
 
         // Insert a row
-        Object[] vectorData = new Object[] { 1.23f, 4.56f, 7.89f };
+        Object[] vectorData = new Float[] { 1.23f, 4.56f, 7.89f };
         Vector vector = new Vector(3, VectorDimensionType.float32, vectorData);
         String insertSql = "INSERT INTO " + logsTable + " (v) VALUES (?)";
         try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
@@ -563,7 +581,7 @@ public class VectorTest extends AbstractTest {
                 + " (id, v) VALUES (?, ?)";
 
         int dimensionCount = 1998;
-        Object[] originalData = new Object[dimensionCount];
+        Object[] originalData = new Float[dimensionCount];
 
         for (int i = 0; i < dimensionCount; i++) {
             originalData[i] = i + 0.5f;
@@ -621,7 +639,7 @@ public class VectorTest extends AbstractTest {
         String selectSql = "SELECT id, v FROM " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName);
 
         int dimensionCount = 1998;
-        Object[] vectorData = new Object[dimensionCount];
+        Object[] vectorData = new Float[dimensionCount];
 
         for (int i = 0; i < dimensionCount; i++) {
             vectorData[i] = i + 0.5f;
@@ -708,7 +726,7 @@ public class VectorTest extends AbstractTest {
 
         String call = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?, ?)}";
         try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(call)) {
-            Vector inputVector = new Vector(3, VectorDimensionType.float32, new Object[]{0.5f, 1.0f, 1.5f});
+            Vector inputVector = new Vector(3, VectorDimensionType.float32, new Float[] {0.5f, 1.0f, 1.5f});
 
             cstmt.setObject(1, inputVector, microsoft.sql.Types.VECTOR);
             cstmt.registerOutParameter(2, microsoft.sql.Types.VECTOR, 3, 4);
@@ -748,7 +766,7 @@ public class VectorTest extends AbstractTest {
      */
     @Test
     public void testVectorTVP() throws SQLException {
-        Vector expectedVector = new Vector(3, VectorDimensionType.float32, new Object[]{0.1f, 0.2f, 0.3f});
+        Vector expectedVector = new Vector(3, VectorDimensionType.float32, new Float[] {0.1f, 0.2f, 0.3f});
 
         SQLServerDataTable tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", microsoft.sql.Types.VECTOR);
@@ -829,7 +847,7 @@ public class VectorTest extends AbstractTest {
     public void testVectorUdf() throws SQLException {
         createVectorUdf();
 
-        Vector inputVector = new Vector(3, VectorDimensionType.float32, new Object[]{1.1f, 2.2f, 3.3f});
+        Vector inputVector = new Vector(3, VectorDimensionType.float32, new Float[] {1.1f, 2.2f, 3.3f});
         try (Statement stmt = connection.createStatement()) {
             stmt.execute("CREATE TABLE #vec_input (v VECTOR(3));");
         }
@@ -869,7 +887,7 @@ public class VectorTest extends AbstractTest {
             stmt.executeUpdate(createSourceTableSql);
 
             // Insert sample data into the source table
-            Object[] vectorData = new Object[] { 1.1f, 2.2f, 3.3f };
+            Object[] vectorData = new Float[] { 1.1f, 2.2f, 3.3f };
             Vector vector = new Vector(3, VectorDimensionType.float32, vectorData);
 
             String insertSql = "INSERT INTO " + sourceTable + " (id, v) VALUES (?, ?)";
@@ -948,7 +966,7 @@ public class VectorTest extends AbstractTest {
         }
 
         try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
-            Object[] vectorData = { 1.0f, 2.0f, 3.0f };
+            Object[] vectorData = new Float[] { 1.0f, 2.0f, 3.0f };
             Vector vector = new Vector(3, Vector.VectorDimensionType.float32, vectorData);
 
             pstmt.setInt(1, 1);
@@ -962,7 +980,7 @@ public class VectorTest extends AbstractTest {
                 assertTrue(rs.next());
                 Vector resultVector = rs.getObject(1, Vector.class);
                 assertNotNull(resultVector, "Retrieved vector is null.");
-                assertArrayEquals(new Object[] { 1.0f, 2.0f, 3.0f }, resultVector.getData(), "Vector data mismatch.");
+                assertArrayEquals(new Float[] { 1.0f, 2.0f, 3.0f }, resultVector.getData(), "Vector data mismatch.");
             }
         }
 
@@ -991,7 +1009,7 @@ public class VectorTest extends AbstractTest {
             }
 
             try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
-                Object[] vectorData = { 4.0f, 5.0f, 6.0f };
+                Object[] vectorData = new Float[] { 4.0f, 5.0f, 6.0f };
                 Vector vector = new Vector(3, Vector.VectorDimensionType.float32, vectorData);
 
                 pstmt.setInt(1, 1);
@@ -1005,7 +1023,7 @@ public class VectorTest extends AbstractTest {
                     assertTrue(rs.next());
                     Vector resultVector = rs.getObject(1, Vector.class);
                     assertNotNull(resultVector, "Retrieved vector is null.");
-                    assertArrayEquals(new Object[] { 4.0f, 5.0f, 6.0f }, resultVector.getData(), "Vector data mismatch.");
+                    assertArrayEquals(new Float[] { 4.0f, 5.0f, 6.0f }, resultVector.getData(), "Vector data mismatch.");
                 }
             }
         } // Connection auto-closes here, so #TempVector is automatically dropped
@@ -1035,7 +1053,7 @@ public class VectorTest extends AbstractTest {
             // Insert sample data
             String insertSQL = "INSERT INTO " + vectorsTable + " (id, data) VALUES (?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
-                Object[] vectorData = { 1.0f, 2.0f, 3.0f };
+                Object[] vectorData = new Float[] { 1.0f, 2.0f, 3.0f };
                 Vector vector = new Vector(3, Vector.VectorDimensionType.float32, vectorData);
 
                 pstmt.setInt(1, 1);
@@ -1052,7 +1070,7 @@ public class VectorTest extends AbstractTest {
                 Vector normalizedVector = rs.getObject("d", Vector.class);
                 assertNotNull(normalizedVector, "Normalized vector is null.");
 
-                Object[] expectedNormalizedData = { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
+                Object[] expectedNormalizedData = new Float[] { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
                 Object[] actualNormalizedData = normalizedVector.getData();
 
                 for (int i = 0; i < expectedNormalizedData.length; i++) {
@@ -1102,7 +1120,7 @@ public class VectorTest extends AbstractTest {
             // Insert sample data
             String insertSQL = "INSERT INTO " + vectorsTable + " (id, data) VALUES (?, ?)";
             try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
-                Object[] vectorData = { 1.0f, 2.0f, 3.0f };
+                Object[] vectorData = new Float[] { 1.0f, 2.0f, 3.0f };
                 Vector vector = new Vector(3, Vector.VectorDimensionType.float32, vectorData);
 
                 pstmt.setInt(1, 1);
@@ -1118,7 +1136,7 @@ public class VectorTest extends AbstractTest {
                 Vector normalizedVector = rs.getObject("normalizedVector", Vector.class);
                 assertNotNull(normalizedVector, "Normalized vector is null.");
                 
-                Object[] expectedNormalizedData = { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
+                Object[] expectedNormalizedData = new Float[] { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
                 Object[] actualNormalizedData = normalizedVector.getData();
 
                 for (int i = 0; i < expectedNormalizedData.length; i++) {
@@ -1153,7 +1171,7 @@ public class VectorTest extends AbstractTest {
         }
 
         // Insert initial data
-        Object[] initialData = { 1.0f, 2.0f, 3.0f };
+        Object[] initialData = new Float[] { 1.0f, 2.0f, 3.0f };
         Vector initialVector = new Vector(3, Vector.VectorDimensionType.float32, initialData);
 
         try (PreparedStatement pstmt = connection.prepareStatement(
@@ -1167,7 +1185,7 @@ public class VectorTest extends AbstractTest {
         connection.setAutoCommit(false);
         try {
             // Insert new data
-            Object[] newData = { 4.0f, 5.0f, 6.0f };
+            Object[] newData = new Float[] { 4.0f, 5.0f, 6.0f };
             Vector newVector = new Vector(3, Vector.VectorDimensionType.float32, newData);
 
             try (PreparedStatement pstmt = connection.prepareStatement(
@@ -1178,7 +1196,7 @@ public class VectorTest extends AbstractTest {
             }
 
             // Update existing data
-            Object[] updatedData = { 7.0f, 8.0f, 9.0f };
+            Object[] updatedData = new Float[] { 7.0f, 8.0f, 9.0f };
             Vector updatedVector = new Vector(3, Vector.VectorDimensionType.float32, updatedData);
 
             try (PreparedStatement pstmt = connection.prepareStatement(
@@ -1246,10 +1264,10 @@ public class VectorTest extends AbstractTest {
             stmt.executeUpdate(createTableSQL);
 
             // Insert sample data into the table
-            Object[] vectorData1 = { 1.1f, 2.2f, 3.3f };
+            Object[] vectorData1 = new Float[] { 1.1f, 2.2f, 3.3f };
             Vector vector1 = new Vector(3, Vector.VectorDimensionType.float32, vectorData1);
 
-            Object[] vectorData2 = { 4.4f, 5.5f, 6.6f };
+            Object[] vectorData2 = new Float[] { 4.4f, 5.5f, 6.6f };
             Vector vector2 = new Vector(3, Vector.VectorDimensionType.float32, vectorData2);
 
             String insertSQL = "INSERT INTO " + tableName + " (id, v) VALUES (?, ?)";

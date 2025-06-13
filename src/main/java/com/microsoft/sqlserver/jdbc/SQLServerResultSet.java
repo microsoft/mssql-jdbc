@@ -2506,10 +2506,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             if (returnValue == null) {
                 TypeInfo typeInfo = getterGetColumn(columnIndex).getTypeInfo();
                 int precision = typeInfo.getPrecision();
-                VectorDimensionType scale = Vector.getVectorDimensionType(typeInfo.getScale());
+                VectorDimensionType scale = VectorUtils.getVectorDimensionType(typeInfo.getScale());
                 vector = new Vector(precision, scale, null);
             } else {
-                vector = Vector.valueOf(returnValue);
+                vector = VectorUtils.fromBytes((byte[]) returnValue);
             }
             returnValue = vector;
         } else if (type == Blob.class) {

@@ -8,10 +8,6 @@ package com.microsoft.sqlserver.jdbc;
 import java.text.MessageFormat;
 import java.util.Calendar;
 
-import microsoft.sql.Vector;
-import microsoft.sql.Vector.VectorDimensionType;
-
-
 /**
  * Column represents a database column definition (meta data) within a result set.
  */

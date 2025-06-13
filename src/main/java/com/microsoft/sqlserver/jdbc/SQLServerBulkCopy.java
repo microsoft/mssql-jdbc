@@ -1042,8 +1042,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case microsoft.sql.Types.VECTOR: // 0xF5
                 tdsWriter.writeByte(TDSType.VECTOR.byteValue());
-                tdsWriter.writeShort((short) (Vector.getVectorLength(srcScale, srcPrecision))); //length
-                byte srcByte = (byte) (Vector.getScaleByte(srcScale));
+                tdsWriter.writeShort((short) (VectorUtils.getVectorLength(srcScale, srcPrecision))); //length
+                byte srcByte = (byte) (VectorUtils.getScaleByte(srcScale));
                 tdsWriter.writeByte((byte) srcByte); //scale
                 break;
 
@@ -2338,8 +2338,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         if (vector.getData() == null) {
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
-                            tdsWriter.writeShort((short) (vector.getVectorLength())); // Actual length
-                            tdsWriter.writeBytes(vector.toBytes()); // Write vector data
+                            tdsWriter.writeShort((short) (VectorUtils.getVectorLength(vector))); // Actual length
+                            tdsWriter.writeBytes(VectorUtils.toBytes(vector)); // Write vector data
                         } 
                     }
                     break;
@@ -3585,8 +3585,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return byteArrayValue;
                 case VECTOR:
                     Vector vector = (Vector) value;
-                    byteValue = vector.toBytes();
-                    if (byteValue.length > vector.getVectorLength()) {
+                    byteValue = VectorUtils.toBytes(vector);
+                    if (byteValue.length > VectorUtils.getVectorLength(vector)) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
                         Object[] msgArgs = {srcJdbcType, destJdbcType, destName};
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);

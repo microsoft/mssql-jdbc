@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -3028,8 +3027,8 @@ final class TypeInfo implements Serializable {
                 typeInfo.displaySize = typeInfo.maxLength;
                 typeInfo.ssType = SSType.VECTOR;
                 int scaleByte = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
-                typeInfo.scale = Vector.getBytesPerDimensionFromScale(scaleByte);
-                typeInfo.precision = Vector.getPrecision(typeInfo.maxLength, typeInfo.scale);
+                typeInfo.scale = VectorUtils.getBytesPerDimensionFromScale(scaleByte);
+                typeInfo.precision = VectorUtils.getPrecision(typeInfo.maxLength, typeInfo.scale);
 
             }
         });

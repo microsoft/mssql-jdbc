@@ -345,6 +345,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_getStringNotSupportedForVector", "getString() is not supported for Vector types. Use getObject()."},
         {"R_VectorDimensionCountMismatch", "Mismatch between vector dimension count and provided data."},
         {"R_InvalidVectorDimensionCount", "Invalid vector dimension count."},
+        {"R_VectorDataTypeMismatch", "Invalid vector data type."},
         {"R_authenticationPropertyDescription", "The authentication to use."},
         {"R_accessTokenPropertyDescription", "The access token to use for Azure Active Directory."},
         {"R_FedAuthRequiredPreLoginResponseInvalidValue", "Server sent an unexpected value for FedAuthRequired PreLogin Option. Value was {0}."},
@@ -570,6 +571,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_ibmModuleNotFound", "com.ibm.security.auth.module.Krb5LoginModule module was not found."},
         {"R_moduleNotFound", "Neither com.sun.security.auth.module.Krb5LoginModule nor com.ibm.security.auth.module.Krb5LoginModule was found."},
         {"R_vectorByteArrayLength", "Byte array length must be at least 8 bytes."},
+        {"R_invalidVectorData", "The provided type of data is not supported for vector."},
         {"R_vectorByteArrayMultipleOfBytesPerDimension", "Byte array length must be a multiple of {0}."},
     };
 }

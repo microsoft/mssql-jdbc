@@ -25,8 +25,6 @@ import java.util.Locale;
 import java.util.UUID;
 
 import microsoft.sql.Vector;
-import microsoft.sql.Vector.VectorDimensionType;
-
 
 /**
  * Parameter represents a JDBC parameter value that is supplied with a prepared or callable statement or an updatable
@@ -628,8 +626,8 @@ final class Parameter {
                     break;
 
                 case VECTOR:
-                    param.typeDefinition = Vector.getTypeDefinition(
-                            (microsoft.sql.Vector) dtv.getSetterValue(), scale, param.isOutput(), 
+                    param.typeDefinition = VectorUtils.getTypeDefinition(
+                            (Vector) dtv.getSetterValue(), scale, param.isOutput(), 
                             param.getOutScale(), param.getValueLength());
                     break;
 
@@ -1206,7 +1204,7 @@ final class Parameter {
             setTypeDefinition(dtv);
         }
 
-        void execute(DTV dtv, microsoft.sql.Vector vectorValue) throws SQLServerException {
+        void execute(DTV dtv, Vector vectorValue) throws SQLServerException {
             setTypeDefinition(dtv);
         }
 
