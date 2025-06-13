@@ -9,10 +9,21 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Method;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -29,6 +40,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.sql.ConnectionEvent;
@@ -59,6 +71,9 @@ public class SQLServerConnectionTest extends AbstractTest {
     static String tnirHost = getConfiguredProperty("tnirHost");
 
     String randomServer = RandomUtil.getIdentifier("Server");
+
+    SQLServerConnection mockConnection;
+    Logger mockLogger;
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -1400,6 +1415,49 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (SQLException e) {
             fail("Connection failed: " + e.getMessage());
         }
-    } 
+    }
+
+    public Method mockedConnectionRecoveryCheck() throws Exception {
+        mockConnection = spy(new SQLServerConnection("test"));
+        mockLogger = mock(Logger.class);
+        doReturn(true).when(mockLogger).isLoggable(Level.WARNING);
+        doNothing().when(mockConnection).terminate(anyInt(), anyString());
+
+        Method method = SQLServerConnection.class.getDeclaredMethod("connectionReconveryCheck", boolean.class,
+                boolean.class, ServerPortPlaceHolder.class);
+        method.setAccessible(true);
+        return method;
+    }
+
+    @Test
+    void testConnectionRecoveryCheckThrowsWhenAllConditionsMet() throws Exception {
+        Method method = mockedConnectionRecoveryCheck();
+        method.invoke(mockConnection, true, false, null);
+        verify(mockConnection, times(1)).terminate(eq(SQLServerException.DRIVER_ERROR_INVALID_TDS),
+                eq(SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin")));
+    }
+
+    @Test
+    void testConnectionRecoveryCheckDoesNotThrowWhenNotReconnectRunning() throws Exception {
+        Method method = mockedConnectionRecoveryCheck();
+        method.invoke(mockConnection, false, false, null);
+        verify(mockConnection, never()).terminate(anyInt(), anyString());
+    }
+
+    @Test
+    void testConnectionRecoveryCheckDoesNotThrowWhenRecoveryPossible() throws Exception {
+        Method method = mockedConnectionRecoveryCheck();
+        method.invoke(mockConnection, true, true, null);
+        verify(mockConnection, never()).terminate(anyInt(), anyString());
+    }
+
+    @Test
+    void testConnectionRecoveryCheckDoesNotThrowWhenRoutingDetailsNotNull() throws Exception {
+        Method method = mockedConnectionRecoveryCheck();
+        ServerPortPlaceHolder routingDetails = mock(ServerPortPlaceHolder.class);
+        method.setAccessible(true);
+        method.invoke(mockConnection, true, false, routingDetails);
+        verify(mockConnection, never()).terminate(anyInt(), anyString());
+    }
 
 }
