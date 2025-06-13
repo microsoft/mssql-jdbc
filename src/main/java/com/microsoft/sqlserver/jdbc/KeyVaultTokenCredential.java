@@ -92,7 +92,7 @@ class KeyVaultTokenCredential implements TokenCredential {
 
         // gets the token from MSAL
         return authenticateWithConfidentialClientCache(request).onErrorResume(t -> Mono.empty())
-                .switchIfEmpty(Mono.defer(() -> authenticateWithConfidentialClient(request)));
+                .switchIfEmpty(Mono.<AcceesToken>defer(() -> authenticateWithConfidentialClient(request)));
     }
 
     /**

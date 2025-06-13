@@ -51,7 +51,7 @@ class ScopeTokenCache {
         if (cache != null && !cache.isExpired()) {
             return Mono.just(cache);
         }
-        return Mono.defer(() -> {
+        return Mono.<AccessToken>defer(() -> {
             if (!wip.getAndSet(true)) {
                 return getNew.apply(request).doOnNext(ac -> cache = ac).doOnNext(sink::next).doOnError(sink::error)
                         .doOnTerminate(() -> wip.set(false));
