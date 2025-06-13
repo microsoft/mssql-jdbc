@@ -328,9 +328,9 @@ public final class SQLServerDataTable {
 
                 case VECTOR:
                     Vector vectorVal = (Vector) val;
-                    nValueLen = vectorVal.getVectorLength();
-                    int scaleByte = vectorVal.getScaleByte();
-                    int scale = Vector.getBytesPerDimensionFromScale(scaleByte);
+                    nValueLen = VectorUtils.getVectorLength(vectorVal);
+                    int scaleByte = VectorUtils.getScaleByte(vectorVal.getVectorDimensionType());
+                    int scale = VectorUtils.getBytesPerDimensionFromScale(scaleByte);
                     precision = vectorVal.getDimensionCount();
                     if (scale > currentColumnMetadata.scale || precision > currentColumnMetadata.precision) {
                         if (scale > currentColumnMetadata.scale) {
@@ -341,7 +341,7 @@ public final class SQLServerDataTable {
                         }
                         columnMetadata.put(pair.getKey(), currentColumnMetadata);
                     }
-                    rowValues[key] = vectorVal.toBytes();
+                    rowValues[key] = VectorUtils.toBytes(vectorVal);
                     break;
 
                 default:

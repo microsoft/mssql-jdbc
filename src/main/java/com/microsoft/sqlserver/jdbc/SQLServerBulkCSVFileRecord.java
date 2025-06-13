@@ -431,7 +431,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             }
                         
                             String vectorData = data[pair.getKey() - 1].trim();
-                            Vector.VectorDimensionType vectorDimensionType = Vector.getVectorDimensionType(cm.scale);
+                            Vector.VectorDimensionType vectorDimensionType = VectorUtils.getVectorDimensionType(cm.scale);
                         
                             if ("NULL".equalsIgnoreCase(vectorData) || "\"NULL\"".equalsIgnoreCase(vectorData)) {
                                 dataRow[pair.getKey() - 1] = new microsoft.sql.Vector(dimensionCount, vectorDimensionType, null);
@@ -446,7 +446,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                                     throw new SQLServerException(SQLServerException.getErrString("R_VectorDimensionCountMismatch"), null, 0, null);
                                 }
                         
-                                Object[] vectorArray = new Object[dimensionCount];
+                                Float[] vectorArray = new Float[dimensionCount];
                                 for (int i = 0; i < dimensionCount; i++) {
                                     vectorArray[i] = Float.parseFloat(vectorElements[i].trim());
                                 }

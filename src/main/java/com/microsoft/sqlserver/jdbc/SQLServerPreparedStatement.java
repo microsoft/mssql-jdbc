@@ -1682,9 +1682,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             tvpName = getTVPNameFromObject(n, obj);
         }
         Integer precision = null, scale = null;
-        if (microsoft.sql.Types.VECTOR == jdbcType) {
-            precision = microsoft.sql.Vector.valueOf(obj).getDimensionCount();
-            scale = (int) microsoft.sql.Vector.valueOf(obj).getScaleByte();
+        if (microsoft.sql.Types.VECTOR == jdbcType && obj instanceof microsoft.sql.Vector) {
+            microsoft.sql.Vector vector = (microsoft.sql.Vector) obj;
+            precision = vector.getDimensionCount();
+            scale = (int) VectorUtils.getScaleByte(vector.getVectorDimensionType());
         }
 
         setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), scale, precision, false, n, tvpName);
@@ -1705,8 +1706,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // For all other types, this value will be ignored.
 
         Integer precision = null;
-        if (microsoft.sql.Types.VECTOR == targetSqlType)
-            precision = microsoft.sql.Vector.valueOf(x).getDimensionCount();
+        if (microsoft.sql.Types.VECTOR == targetSqlType && x instanceof microsoft.sql.Vector) {
+            precision = ((microsoft.sql.Vector) x).getDimensionCount();
+        }
 
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType

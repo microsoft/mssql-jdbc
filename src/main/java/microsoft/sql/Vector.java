@@ -5,15 +5,14 @@
 
 package microsoft.sql;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.Arrays;
-import java.util.ResourceBundle;
-import java.text.MessageFormat;
+
+import com.microsoft.sqlserver.jdbc.VectorUtils;
 
 public final class Vector implements java.io.Serializable {
+
     public enum VectorDimensionType {
-        //float16,  16-bit (half precision) float
+        // float16, 16-bit (half precision) float
         float32 // 32-bit (single precision) float
     }
 
@@ -24,142 +23,30 @@ public final class Vector implements java.io.Serializable {
 
     /**
      * Constructor for Vector with dimension count and vector type.
+     * 
      * @param dimensionCount The number of dimensions in the vector.
-     * @param vectorType The type of the vector.
-     * @param data The object array representing the vector data.
+     * @param vectorType     The type of the vector.
+     * @param data           The object array representing the vector data.
      */
     public Vector(int dimensionCount, VectorDimensionType vectorType, Object[] data) {
-        this.dimensionCount = dimensionCount;
+        VectorUtils.validateVectorParameters(dimensionCount, vectorType, data);
+        this.dimensionCount = dimensionCount; // checks non zero
         this.vectorType = vectorType;
-        this.data = data;
+        this.data = data; // float and null
     }
 
     /**
      * Constructor for Vector with precision and scale value.
+     * 
      * @param precision The number of dimensions in the vector.
-     * @param scale The scale value of the vector (4 for float32).
-     * @param data The object array representing the vector data.
+     * @param scale     The scale value of the vector (4 for float32).
+     * @param data      The object array representing the vector data.
      */
     public Vector(int precision, int scale, Object[] data) {
-        this(precision, getVectorDimensionTypeFromScaleValue(scale), data);
+        this(precision, VectorUtils.getVectorDimensionTypeFromScaleValue(scale), data);
     }
 
-    /**
-     * Converts a byte array to a Vector object. The byte array must contain the following:
-     * 8 bytes for header and 4 bytes per float value.
-     */
-    public static microsoft.sql.Vector fromBytes(byte[] bytes) {
-        if (bytes == null) {
-            return null;
-        }
-        
-        // Read the vector type from the header (5th byte in the header)
-        byte vectorTypeByte = bytes[4];
-        VectorDimensionType vectorType = getVectorDimensionType(vectorTypeByte);
-        int bytesPerDimension = getBytesPerDimensionFromScale(vectorType);
-
-        if (bytes.length < 8) {
-            MessageFormat form = new MessageFormat(
-                ResourceBundle.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource")
-                    .getString("R_vectorByteArrayLength"));
-            throw new IllegalArgumentException(form.format(new Object[0]));
-        }
-                if ((bytes.length - 8) % bytesPerDimension != 0) {
-            MessageFormat form = new MessageFormat(
-                ResourceBundle.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource")
-                    .getString("R_vectorByteArrayMultipleOfBytesPerDimension"));
-            throw new IllegalArgumentException(form.format(new Object[] {bytesPerDimension}));
-        }
-
-        int objectCount = (bytes.length - 8) / bytesPerDimension; // 8 bytes for header
-        Object[] objectArray = new Object[objectCount];
-
-        ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
-
-        buffer.position(8); // Skip the first 8 bytes (header)
-
-        for (int i = 0; i < objectCount; i++) {
-            objectArray[i] = buffer.getFloat();
-        }
-
-        return new Vector(objectCount, vectorType, objectArray);
-    }
-
-    /**
-     * Converts the vector to a byte array. The byte array will contain the following:
-     * 1. Layout Format (VECTOR marker) - 1 byte
-     * 2. Layout Version (always 1) - 1 byte
-     * 3. Number of Dimensions (2 bytes, little-endian) - 2 bytes
-     * 4. Dimension Type (0x00 for float32) - 1 byte
-     * 5. Reserved (3 bytes of padding) - 3 bytes
-     * 6. Encode float values (Little-Endian) - 4 bytes per float value
-     */
-    public byte[] toBytes() {
-        if (data == null) {
-            return null;
-        }
-        
-        int payloadSize = getVectorLength(); // 8-byte header + float payload
-
-        ByteBuffer buffer = ByteBuffer.allocate(payloadSize).order(ByteOrder.LITTLE_ENDIAN);
-
-        // 1. Layout Format (VECTOR marker)
-        buffer.put((byte) 0xA9);
-
-        // 2. Layout Version (always 1)
-        buffer.put((byte) 0x01);
-
-        // 3. Number of Dimensions (2 bytes, little-endian)
-        buffer.putShort((short) (dimensionCount));
-
-        // 4. Dimension Type (1 byte) 
-        buffer.put(getScaleByte());
-
-        // 5. Reserved (3 bytes of padding)
-        buffer.put(new byte[3]);
-
-        // 6. Encode values (Little-Endian)
-        for (Object value : data) {
-            switch (vectorType) {
-                case float32:
-                    buffer.putFloat(((Number) value).floatValue());
-                    break;
-                // case float16:
-                //     // For float16, you need to convert to 2-byte representation.
-                //     buffer.putShort((short) ((Number) value).intValue());
-                //     break;      
-                default:
-                    buffer.putFloat(((Number) value).floatValue());
-                    break;
-            }
-        }
-
-        return buffer.array();
-    }
-
-    /**
-     * Converts the vector to a string representation.
-     * @return A string representation of the vector.
-     */
-    @Override
-    public String toString() {
-        return "VECTOR(" + vectorType + ", " + dimensionCount + ") : " +
-                (data != null ? Arrays.toString(data) : "null");
-    }
-
-    public static microsoft.sql.Vector valueOf(Object obj) {
-        if (obj instanceof byte[]) {
-            return fromBytes((byte[]) obj);
-        } else if (obj instanceof microsoft.sql.Vector) {
-            return (microsoft.sql.Vector) obj;
-        } else if (obj instanceof float[]) {
-            Object[] objArray = (Object[]) obj;
-            return new Vector(objArray.length, VectorDimensionType.float32, objArray);
-        } else {
-            return null;
-        }
-    }
-
+    // Getter methods for vector properties
     public Object[] getData() {
         return data;
     }
@@ -172,154 +59,15 @@ public final class Vector implements java.io.Serializable {
         return vectorType;
     }
 
-    public static int getDefaultPrecision() {
-        return 4; // float32
-    }
-
     /**
-     * Returns the vector dimension type based on the scale.
-     * float32 for 0, float16 for 1
-     */
-    public static VectorDimensionType getVectorDimensionType(int scaleByte) {
-        switch (scaleByte) {
-            case 0:
-                return VectorDimensionType.float32; 
-            // case 1:
-            //     return VectorDimensionType.float16; 
-            default:
-                return VectorDimensionType.float32; // Default case
-        }
-    }
-
-    /**
-     * Returns the precision based on the vector length and scale.
-     * (vectorLength - 8) / scale
-     */
-    public static int getPrecision(int vectorLength, int scale) {
-        return (vectorLength - 8) / scale; // 8-byte header + dimension payload
-    }
-
-    /**
-     * Returns the bytesPerDimension based on the scale.
-     * 4 for 0, 2 for 1
-     */
-    public static int getBytesPerDimensionFromScale(int scaleByte) {
-        switch (scaleByte) {
-            case 0:
-                return 4; // 4 bytes per dimension for float32
-            // case 1:
-            //     return 2; // 2 bytes per dimension for float16
-            default:
-                return 4; // Default case
-        }
-    }
-
-    /**
-     * Returns the bytesPerDimension based on the vectorType.
-     * 4 for float32, 2 for float16
-     */
-    public static int getBytesPerDimensionFromScale(VectorDimensionType vectorType) {
-        switch (vectorType) {
-            case float32:
-                return 4; 
-            // case float16:
-            //     return 2; 
-            default:
-                return 4; 
-        }
-    }
-
-    /**
-     * Returns the vector dimension type based on the scale value.
-     * 4 for float32, 2 for float16
-     */
-    public static VectorDimensionType getVectorDimensionTypeFromScaleValue(int scale) {
-        switch (scale) {
-            case 4:
-                return VectorDimensionType.float32; 
-            // case 2:
-            //     return VectorDimensionType.float16; 
-            default:
-                return VectorDimensionType.float32; 
-        }
-    }
-
-    /**
-     * Returns the scale for the vector type.
-     * 0x00 for float32, 0x01 for float16.
-     */
-    public byte getScaleByte() {
-        switch (vectorType) {
-            case float32:
-                return 0x00; // Scale(dimension type) for float32
-            // case float16:
-            //     return 0x01; // Scale(dimension type) for float16
-            default:
-                return 0x00; // Default case
-        }
-    }
-
-    /**
-     * Returns the scale byte for the vector type.
-     * 0x00 for float32(4 bytes), 0x01 for float16(2 bytes).
-     */
-    public static byte getScaleByte(int scale) {
-        switch (scale) {
-            case 4:
-                return 0x00; // scaleByte for float32
-            // case 2:
-            //     return 0x01; // scaleByte for float16
-            default:
-                return 0x00; // Default case
-        }
-    }
-
-    /**
-     * Returns the actual length of the vector in bytes.
-     * 8 bytes for header + 4 bytes per float value.
-     */
-    public int getVectorLength() {
-        int bytesPerDimension;
-        switch (vectorType) {
-            case float32:
-                bytesPerDimension = 4; // 4 bytes per dimension for float32
-                break;
-            // case float16:
-            //     bytesPerDimension = 2; 
-            //     break;
-            default:
-                bytesPerDimension = 4; 
-                break;
-        }
-        return 8 + bytesPerDimension * dimensionCount; // 8-byte header + dimension payload
-    }
-
-    /**
-     * Returns the actual length of the vector in bytes.
-     * 8 bytes for header + scale * precision.
-     */
-    public static int getVectorLength(int scale, int precision) {
-        return 8 + scale * precision; // 8-byte header + dimension payload
-    }
-
-    /**
-     * Returns the SQL type definition string for a vector parameter.
+     * Converts the vector to a string representation.
      * 
-     * @param vector      The vector instance (may be null for output-only parameters)
-     * @param scale       Number of bytes per dimension (e.g., 4 for float32, 2 for float16)
-     * @param isOutput    True if the parameter is an output parameter
-     * @param outScale    Output parameter's bytes per dimension (if applicable)
-     * @param valueLength The value length for output parameters
-     * @return SQL type definition string, e.g., VECTOR(128)
+     * @return A string representation of the vector.
      */
-    public static String getTypeDefinition(Vector vector, int scale, boolean isOutput, int outScale, int valueLength) {
-        int precision = 0;
-        if (isOutput && scale < outScale) {
-            precision = valueLength;
-        } else if (vector != null) {
-            precision = vector.getDimensionCount();
-        }
-        return "VECTOR(" + precision + ")";
+    @Override
+    public String toString() {
+        return "VECTOR(" + vectorType + ", " + dimensionCount + ") : " +
+                (data != null ? Arrays.toString(data) : "null");
     }
-    
+
 }
