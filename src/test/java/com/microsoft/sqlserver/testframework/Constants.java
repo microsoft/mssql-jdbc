@@ -48,6 +48,7 @@ public final class Constants {
     public static final String clientCertAuth = "clientCertAuth";
     public static final String fedAuth = "fedAuth";
     public static final String requireSecret = "requireSecret";
+    public static final String vectorTest = "vectorTest";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");
