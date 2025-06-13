@@ -422,7 +422,7 @@ final class SQLServerCertificateUtils {
             buffer.get(key);
 
             if (encrypted) {
-                MessageDigest digest = MessageDigest.getInstance("SHA1");
+                MessageDigest digest = MessageDigest.getInstance("SHA1"); // CodeQL [SM05136] Required for backwards compatibility reading of old private keys
                 digest.update(salt);
                 if (null != keyPass) {
                     digest.update(keyPass.getBytes());
@@ -482,7 +482,7 @@ final class SQLServerCertificateUtils {
 
     private static byte[] getSecretKeyFromHash(byte[] originalKey,
             byte[] keyHash) throws GeneralSecurityException, SQLServerException {
-        SecretKey key = new SecretKeySpec(keyHash, 0, 16, RC4_ALG);
+        SecretKey key = new SecretKeySpec(keyHash, 0, 16, RC4_ALG); // CodeQL [SM05136] Required for backwards compatibility reading of old private keys
         byte[] decrypted = decryptSecretKey(key, originalKey);
         if (startsWithMagic(decrypted)) {
             return decrypted;

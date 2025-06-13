@@ -602,7 +602,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *         if key is invalid
      */
     private byte[] hmacMD5(final byte[] key, final byte[] data) throws InvalidKeyException {
-        SecretKeySpec keySpec = new SecretKeySpec(key, "HmacMD5");
+        SecretKeySpec keySpec = new SecretKeySpec(key, "HmacMD5"); // CodeQL [SM05136] HmacMD5 is required for NTLM support
         context.mac.init(keySpec);
         return context.mac.doFinal(data);
     }
@@ -822,7 +822,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
              * MIC is calculated by using a 0 MIC then hmacMD5 of session key and concat of the 3 msgs
              */
             if (null != context.timestamp && 0 < context.timestamp.length) {
-                SecretKeySpec keySpec = new SecretKeySpec(context.sessionBaseKey, "HmacMD5");
+                SecretKeySpec keySpec = new SecretKeySpec(context.sessionBaseKey, "HmacMD5"); // CodeQL [SM05136] HmacMD5 is required for NTLM support
                 context.mac.init(keySpec);
                 context.mac.update(context.negotiateMsg);
                 context.mac.update(context.challengeMsg);

@@ -126,7 +126,7 @@ class KeyStoreProviderCommon {
             CertificateDetails certificateDetails) throws SQLServerException {
         byte[] plainCEK = null;
         try {
-            Cipher rsa = Cipher.getInstance("RSA/ECB/OAEPWithSHA-1AndMGF1Padding");
+            Cipher rsa = Cipher.getInstance("RSA/ECB/OAEPWithSHA-1AndMGF1Padding"); // CodeQL [SM03796] Required for an external standard: Always Encrypted only supports encrypting column encryption keys with RSA_OAEP(SHA1) (https://learn.microsoft.com/en-us/sql/t-sql/statements/create-column-encryption-key-transact-sql?view=sql-server-ver16)
             rsa.init(Cipher.DECRYPT_MODE, certificateDetails.privateKey);
             rsa.update(cipherText);
             plainCEK = rsa.doFinal();
