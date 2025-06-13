@@ -5,9 +5,10 @@
 
 package microsoft.sql;
 
+import java.text.MessageFormat;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 import java.util.Arrays;
-
-import com.microsoft.sqlserver.jdbc.VectorUtils;
 
 public final class Vector implements java.io.Serializable {
 
@@ -29,7 +30,8 @@ public final class Vector implements java.io.Serializable {
      * @param data           The object array representing the vector data.
      */
     public Vector(int dimensionCount, VectorDimensionType vectorType, Object[] data) {
-        VectorUtils.validateVectorParameters(dimensionCount, vectorType, data);
+        validateVectorParameters(dimensionCount, vectorType, data);
+
         this.dimensionCount = dimensionCount; // checks non zero
         this.vectorType = vectorType;
         this.data = data; // float and null
@@ -43,7 +45,7 @@ public final class Vector implements java.io.Serializable {
      * @param data      The object array representing the vector data.
      */
     public Vector(int precision, int scale, Object[] data) {
-        this(precision, VectorUtils.getVectorDimensionTypeFromScaleValue(scale), data);
+        this(precision, getVectorDimensionTypeFromScaleValue(scale), data);
     }
 
     // Getter methods for vector properties
@@ -68,6 +70,45 @@ public final class Vector implements java.io.Serializable {
     public String toString() {
         return "VECTOR(" + vectorType + ", " + dimensionCount + ") : " +
                 (data != null ? Arrays.toString(data) : "null");
+    }
+
+    private static void validateVectorParameters(int dimensionCount, VectorDimensionType vectorType, Object[] data) {
+        if (dimensionCount <= 0) {
+            throw vectorException("R_InvalidVectorDimensionCount");
+        }
+        if (data != null) {
+            if (data.length != dimensionCount) {
+                throw vectorException("R_VectorDimensionCountMismatch");
+            }
+            if (!(data instanceof Float[])) {
+                throw vectorException("R_VectorDataTypeMismatch");
+            }
+        }
+    }
+
+    private static IllegalArgumentException vectorException(String resourceKey, Object... args) {
+        try {
+            MessageFormat form = new MessageFormat(
+                    ResourceBundle.getBundle("com.microsoft.sqlserver.jdbc.SQLServerResource").getString(resourceKey));
+            return new IllegalArgumentException(form.format(args));
+        } catch (MissingResourceException e) {
+            return new IllegalArgumentException("Missing resource: " + resourceKey);
+        }
+    }
+
+    /**
+     * Returns the vector dimension type based on the scale value.
+     * 4 for float32, 2 for float16
+     */
+    private static VectorDimensionType getVectorDimensionTypeFromScaleValue(int scale) {
+        switch (scale) {
+            case 4:
+                return VectorDimensionType.float32;
+            // case 2:
+            // return VectorDimensionType.float16;
+            default:
+                return VectorDimensionType.float32;
+        }
     }
 
 }
