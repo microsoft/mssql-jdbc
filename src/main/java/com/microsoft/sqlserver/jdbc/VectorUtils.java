@@ -13,7 +13,7 @@ import java.util.ResourceBundle;
 import microsoft.sql.Vector;
 import microsoft.sql.Vector.VectorDimensionType;
 
-public class VectorUtils {
+class VectorUtils {
 
     private static final int VECTOR_HEADER_LENGTH = 8;
     private static final int BYTES_PER_FLOAT = 4;
@@ -172,21 +172,6 @@ public class VectorUtils {
     }
 
     /**
-     * Returns the vector dimension type based on the scale value.
-     * 4 for float32, 2 for float16
-     */
-    public static VectorDimensionType getVectorDimensionTypeFromScaleValue(int scale) {
-        switch (scale) {
-            case BYTES_PER_FLOAT:
-                return VectorDimensionType.float32;
-            // case BYTES_PER_SHORT:
-            // return VectorDimensionType.float16;
-            default:
-                return VectorDimensionType.float32;
-        }
-    }
-
-    /**
      * Returns the scale for the vector type.
      * 0x00 for float32, 0x01 for float16.
      */
@@ -264,20 +249,6 @@ public class VectorUtils {
             precision = vector.getDimensionCount();
         }
         return "VECTOR(" + precision + ")";
-    }
-
-    public static void validateVectorParameters(int dimensionCount, VectorDimensionType vectorType, Object[] data) {
-        if (dimensionCount <= 0) {
-            throw vectorException("R_InvalidVectorDimensionCount");
-        }
-        if (data != null) {
-            if (data.length != dimensionCount) {
-                throw vectorException("R_VectorDimensionCountMismatch");
-            }
-            if (!(data instanceof Float[])) {
-                throw vectorException("R_VectorDataTypeMismatch");
-            }
-        }
     }
 
     private static IllegalArgumentException vectorException(String resourceKey, Object... args) {
