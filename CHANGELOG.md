@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.10.1] Stable Release
+### Fixed issues
+- Make ibm security module optional [#2679] (https://github.com/microsoft/mssql-jdbc/pull/2679)
+- Invalidate existing enclave session during connection (re)connect [#2680] (https://github.com/microsoft/mssql-jdbc/pull/2680)
+- Update readFromFile() in ConfigurableRetryLogic to handle filePath [#2681](https://github.com/microsoft/mssql-jdbc/pull/2681)
+- Increased the max noOfRedirections and updated the message. [#2682](https://github.com/microsoft/mssql-jdbc/pull/2682)
+- Fixed New Type Param Definitions logic in doExecutePreparedStatement [#2683](https://github.com/microsoft/mssql-jdbc/pull/2683)
+- Fixed session recovery for Azure SQL DB in redirect mode connected [#2684](https://github.com/microsoft/mssql-jdbc/pull/2684)
+
 ## [12.10.0] Stable Release
 ### Added
 - Added provision to set SQLServerBulkCopy options in PreparedStatement [#2555](https://github.com/microsoft/mssql-jdbc/pull/2555)
