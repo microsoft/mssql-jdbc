@@ -44,7 +44,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
      * Constructs a SQLServerBulkBatchInsertRecord with the batch parameter, column list, value list, and encoding
      */
     SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam, ArrayList<String> columnList,
-            ArrayList<String> valueList, String encoding) throws SQLServerException {
+            ArrayList<String> valueList, String encoding, boolean columnNameCaseSensitive) throws SQLServerException {
         initLoggerResources();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
             loggerExternal.entering(loggerPackageName, loggerClassName, new Object[] {batchParam, encoding});
@@ -61,6 +61,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
         this.batchParam = batchParam;
         this.columnList = columnList;
         this.valueList = valueList;
+        this.columnNameCaseSensitive = columnNameCaseSensitive;
         columnMetadata = new HashMap<>();
 
         loggerExternal.exiting(loggerPackageName, loggerClassName);
