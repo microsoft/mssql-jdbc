@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc.datatypes;
 
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,6 +24,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -46,10 +48,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class VectorTest extends AbstractTest {
 
     private static final String tableName = RandomUtil.getIdentifier("VECTOR_Test");
+    private static final String tableNameWithMultipleVectorColumn = RandomUtil.getIdentifier("VECTOR_Test_MultipleColumn");
     private static final String maxVectorDataTableName = RandomUtil.getIdentifier("Max_Vector_Test");
     private static final String procedureName = RandomUtil.getIdentifier("VECTOR_Test_Proc");
     private static final String TABLE_NAME = RandomUtil.getIdentifier("VECTOR_TVP_Test");
     private static final String TVP_NAME = RandomUtil.getIdentifier("VECTOR_TVP_Test_Type");
+    private static final String TVP = RandomUtil.getIdentifier("VECTOR_TVP_UDF_Test_Type");
 
     @BeforeAll
     private static void setupTest() throws Exception {
@@ -58,10 +62,13 @@ public class VectorTest extends AbstractTest {
         try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (id INT PRIMARY KEY, v VECTOR(3))");
+            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableNameWithMultipleVectorColumn)
+                    + " (id INT PRIMARY KEY, v1 VECTOR(3), v2 VECTOR(4))");
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName)
                     + " (id INT PRIMARY KEY, v VECTOR(1998))");
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(TABLE_NAME) + " (rowId INT IDENTITY, c1 VECTOR(3) NULL)");
             stmt.executeUpdate("CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(TVP_NAME) + " AS TABLE (c1 VECTOR(3) NULL)");
+            stmt.executeUpdate("CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(TVP) + " AS TABLE (c1 VECTOR(4) NULL)");
         }
     }
 
@@ -69,10 +76,29 @@ public class VectorTest extends AbstractTest {
     private static void cleanupTest() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
+            TestUtils.dropTableIfExists(tableNameWithMultipleVectorColumn, stmt);
             TestUtils.dropTableIfExists(maxVectorDataTableName, stmt);
             TestUtils.dropTypeIfExists(TVP_NAME, stmt);
             TestUtils.dropTableIfExists(TABLE_NAME, stmt);
             TestUtils.dropProcedureIfExists(procedureName, stmt);
+        }
+    }
+
+    @Test
+    public void testConnectionGetMetaData() throws Exception {
+        DatabaseMetaData metaData = connection.getMetaData();
+        assertNotNull(metaData, "DatabaseMetaData should not be null");
+
+        try (ResultSet rs = metaData.getColumns(null, null, tableName, "v")) {
+            ResultSetMetaData rsMetaData = rs.getMetaData();
+            int columnCount = rsMetaData.getColumnCount();
+
+            while (rs.next()) {
+                for (int i = 1; i <= columnCount; i++) {
+                    System.out.println(rsMetaData.getColumnName(i) + ": " + rs.getString(i));
+                }
+                System.out.println();
+            }
         }
     }
 
@@ -316,6 +342,82 @@ public class VectorTest extends AbstractTest {
         }
     }
 
+    @Test
+    void validateVectorDataWithMultipleVectorColumn() throws SQLException {
+        String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameWithMultipleVectorColumn)
+                + " (id, v1, v2) VALUES (?, ?, ?)";
+        Object[] originalData1 = new Float[] { 0.45f, 7.9f, 63.0f };
+        Vector vector1 = new Vector(3, VectorDimensionType.float32, originalData1);
+        Object[] originalData2 = new Float[] { 0.45f, 7.9f, 63.0f, 1.2f };
+        Vector vector2 = new Vector(4, VectorDimensionType.float32, originalData2);
+
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+            pstmt.setInt(1, 10);
+            pstmt.setObject(2, vector1, microsoft.sql.Types.VECTOR);
+            pstmt.setObject(3, vector2, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+        }
+
+        String query = "SELECT id, v1, v2 FROM "
+                + AbstractSQLGenerator.escapeIdentifier(tableNameWithMultipleVectorColumn) + " WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, 10);
+            try (ResultSet rs = stmt.executeQuery()) {
+
+                assertTrue(rs.next(), "No result found for inserted vector.");
+
+                Vector resultVector1 = rs.getObject("v1", Vector.class);
+                assertNotNull(resultVector1, "Retrieved vector v1 is null.");
+                assertEquals(3, resultVector1.getDimensionCount(), "Dimension count mismatch for v1.");
+                assertArrayEquals(originalData1, resultVector1.getData(), "Vector data mismatch for v1.");
+                String expectedToString1 = "VECTOR(float32, 3) : [0.45, 7.9, 63.0]";
+                assertEquals(expectedToString1, resultVector1.toString(), "Vector toString output mismatch.");
+
+                Vector resultVector2 = rs.getObject("v2", Vector.class);
+                assertNotNull(resultVector2, "Retrieved vector v2 is null.");
+                assertEquals(4, resultVector2.getDimensionCount(), "Dimension count mismatch for v2.");
+                assertArrayEquals(originalData2, resultVector2.getData(), "Vector data mismatch for v2.");
+                String expectedToString2 = "VECTOR(float32, 4) : [0.45, 7.9, 63.0, 1.2]";
+                assertEquals(expectedToString2, resultVector2.toString(), "Vector toString output mismatch for v2.");
+            }
+        }
+    }
+
+    /**
+     * Test inserting and retrieving a vector containing Float.MAX_VALUE and Float.MIN_VALUE.
+     */
+    @Test
+    void testVectorWithMaxAndMinFloatValues() throws SQLException {
+        String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
+        Object[] extremeData = new Float[] { Float.MAX_VALUE, Float.MIN_VALUE, 0.0f };
+        Vector vector = new Vector(3, VectorDimensionType.float32, extremeData);
+
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+            pstmt.setInt(1, 99);
+            pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+        }
+
+        String query = "SELECT id, v FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, 99);
+            try (ResultSet rs = stmt.executeQuery()) {
+                assertTrue(rs.next(), "No result found for inserted vector with extreme float values.");
+
+                Vector resultVector = rs.getObject("v", Vector.class);
+                assertNotNull(resultVector, "Retrieved vector is null.");
+                assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
+                assertArrayEquals(extremeData, resultVector.getData(),
+                        "Vector data mismatch for extreme float values.");
+
+                String expectedToString = "VECTOR(float32, 3) : [" + Float.MAX_VALUE + ", " + Float.MIN_VALUE
+                        + ", 0.0]";
+                assertEquals(expectedToString, resultVector.toString(),
+                        "Vector toString output mismatch for extreme float values.");
+            }
+        }
+    }
+
     /*
      * Test to check backward compatibility of vector data type. 
      * This test throws an exception when trying to retrieve the vector data using getString() method.
@@ -396,6 +498,32 @@ public class VectorTest extends AbstractTest {
         } catch (IllegalArgumentException e) {
             // Expected exception due to type mismatch
             assertTrue(e.getMessage().contains("Invalid vector data type."),
+                    "Unexpected error message: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void testVectorDataWithNegativeDimensionCount() throws SQLException {
+        Object[] originalData = new Float[] { 0.45f, 7.9f, 63.0f };
+        try {
+            Vector initialVector = new Vector(-5, VectorDimensionType.float32, originalData);
+            fail("Expected an exception due to type mismatch, but none was thrown.");
+        } catch (IllegalArgumentException e) {
+            // Expected exception due to type mismatch
+            assertTrue(e.getMessage().contains("Invalid vector dimension count."),
+                    "Unexpected error message: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void testVectorDataWithIncorrectDimensionCount() throws SQLException {
+        Object[] originalData = new Float[] { 0.45f, 7.9f, 63.0f };
+        try {
+            Vector initialVector = new Vector(7, VectorDimensionType.float32, originalData);
+            fail("Expected an exception due to type mismatch, but none was thrown.");
+        } catch (IllegalArgumentException e) {
+            // Expected exception due to type mismatch
+            assertTrue(e.getMessage().contains("Mismatch between vector dimension count and provided data."),
                     "Unexpected error message: " + e.getMessage());
         }
     }
@@ -702,6 +830,38 @@ public class VectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test for inserting a vector that exceeds the maximum allowed dimension count(1998).
+     * The expected behavior is that the database should throw an exception due to exceeding the maximum allowed vector size.
+     */
+    @Test
+    void validateVectorExceedingMaxDimension() throws SQLException {
+        String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName)
+                + " (id, v) VALUES (?, ?)";
+
+        int dimensionCount = 1999; // Exceeding the maximum allowed dimension count(1998)
+        Object[] originalData = new Float[dimensionCount];
+
+        for (int i = 0; i < dimensionCount; i++) {
+            originalData[i] = i + 0.5f;
+        }
+
+        Vector initialVector = new Vector(dimensionCount, VectorDimensionType.float32, originalData);
+
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+            pstmt.setInt(1, 101);
+            pstmt.setObject(2, initialVector, microsoft.sql.Types.VECTOR);
+
+            try {
+                pstmt.executeUpdate();
+                fail("Expected SQLServerException due to exceeding maximum allowed vector size, but none was thrown.");
+            } catch (SQLServerException e) {
+                assertTrue(e.getMessage().contains("The size (" + dimensionCount + ") given to the type 'vector' exceeds the maximum allowed (1998)."),
+                        "Unexpected error message: " + e.getMessage());
+            }
+        }
+    }
+
     private static void createProcedure() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             String sql = "CREATE OR ALTER PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "\n" +
@@ -825,6 +985,71 @@ public class VectorTest extends AbstractTest {
         }
     }
 
+    private static void createTVPReturnProcedure(String procName, String tvpTypeName) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            String sql = "CREATE OR ALTER PROCEDURE " + procName + "\n" +
+                    "    @tvpInput " + tvpTypeName + " READONLY\n" +
+                    "AS\n" +
+                    "BEGIN\n" +
+                    "    SELECT * FROM @tvpInput;\n" +
+                    "END";
+            stmt.execute(sql);
+        }
+    }
+
+    /**
+     * Test for a stored procedure that returns a TVP containing vector data.
+     */
+    @Test
+    public void testStoredProcedureReturnsTVPWithVector() throws SQLException {
+        String tvpTypeName = AbstractSQLGenerator.escapeIdentifier("VectorTVPType");
+        String procName = AbstractSQLGenerator.escapeIdentifier("sp_ReturnVectorTVP");
+
+        // Create TVP type
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("CREATE TYPE " + tvpTypeName + " AS TABLE (c1 VECTOR(3) NULL)");
+        }
+
+        // Create the stored procedure
+        createTVPReturnProcedure(procName, tvpTypeName);
+
+        // Prepare TVP data
+        SQLServerDataTable tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", microsoft.sql.Types.VECTOR);
+        Vector v1 = new Vector(3, VectorDimensionType.float32, new Float[] { 1.0f, 2.0f, 3.0f });
+        Vector v2 = new Vector(3, VectorDimensionType.float32, new Float[] { 4.0f, 5.0f, 6.0f });
+        tvp.addRow(v1);
+        tvp.addRow(v2);
+
+        // Call the stored procedure and validate the result set
+        String call = "{call " + procName + "(?)}";
+        try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(call)) {
+            cstmt.setStructured(1, tvpTypeName, tvp);
+            boolean hasResultSet = cstmt.execute();
+            assertTrue(hasResultSet, "Stored procedure should return a result set");
+
+            try (ResultSet rs = cstmt.getResultSet()) {
+                int rowCount = 0;
+                while (rs.next()) {
+                    Vector v = rs.getObject("c1", Vector.class);
+                    assertNotNull(v, "Returned vector should not be null");
+                    if (rowCount == 0) {
+                        assertArrayEquals(v1.getData(), v.getData(), "Vector data mismatch in row 1.");
+                    } else if (rowCount == 1) {
+                        assertArrayEquals(v2.getData(), v.getData(), "Vector data mismatch in row 2.");
+                    }
+                    rowCount++;
+                }
+                assertEquals(2, rowCount, "Row count mismatch.");
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropProcedureIfExists(procName, stmt);
+                TestUtils.dropTypeIfExists(tvpTypeName, stmt);
+            }
+        }
+    }
+
     private static void createVectorUdf() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             String sql =
@@ -868,6 +1093,56 @@ public class VectorTest extends AbstractTest {
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("DROP TABLE IF EXISTS #vec_input;");
             }
+        }
+    }
+
+    /**
+     * Test UDF that returns a TVP containing vector data.
+     */
+    @Test
+    public void testVectorUdfReturnsTVP() throws SQLException {
+
+        createTVPReturnUdf();
+
+        SQLServerDataTable tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", microsoft.sql.Types.VECTOR);
+        Vector v1 = new Vector(4, VectorDimensionType.float32, new Float[] { 1.0f, 2.0f, 3.0f, 4.0f });
+        Vector v2 = new Vector(4, VectorDimensionType.float32, new Float[] { 4.0f, 5.0f, 6.0f, 7.0f });
+        tvp.addRow(v1);
+        tvp.addRow(v2);
+
+        String query = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier("VectorUdf") + "(?)";
+        try (SQLServerPreparedStatement selectStmt = (SQLServerPreparedStatement) connection.prepareStatement(query)) {
+            selectStmt.setStructured(1, TVP, tvp);
+            try (ResultSet rs = selectStmt.executeQuery()) {
+                int rowCount = 0;
+                while (rs.next()) {
+                    Vector v = rs.getObject("c1", Vector.class);
+                    assertNotNull(v, "Returned vector should not be null");
+                    if (rowCount == 0) {
+                        assertArrayEquals(v1.getData(), v.getData(), "Vector data mismatch in row 1.");
+                    } else if (rowCount == 1) {
+                        assertArrayEquals(v2.getData(), v.getData(), "Vector data mismatch in row 2.");
+                    }
+                    rowCount++;
+                }
+                assertEquals(2, rowCount, "Row count mismatch.");
+            } finally {
+                try (Statement stmt = connection.createStatement()) {
+                    TestUtils.dropFunctionIfExists(AbstractSQLGenerator.escapeIdentifier("VectorUdf"), stmt);
+                }
+            }
+        }
+    }
+
+    private static void createTVPReturnUdf() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            String sql = "CREATE OR ALTER FUNCTION " + AbstractSQLGenerator.escapeIdentifier("VectorUdf") +
+                    "(@tvpInput " + AbstractSQLGenerator.escapeIdentifier(TVP) + " READONLY)\n" +
+                    "RETURNS TABLE\n" +
+                    "AS\n" +
+                    "RETURN SELECT c1 FROM @tvpInput;";
+            stmt.execute(sql);
         }
     }
 

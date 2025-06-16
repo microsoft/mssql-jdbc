@@ -434,7 +434,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             Vector.VectorDimensionType vectorDimensionType = VectorUtils.getVectorDimensionType(cm.scale);
                         
                             if ("NULL".equalsIgnoreCase(vectorData) || "\"NULL\"".equalsIgnoreCase(vectorData)) {
-                                dataRow[pair.getKey() - 1] = new microsoft.sql.Vector(dimensionCount, vectorDimensionType, null);
+                                dataRow[pair.getKey() - 1] = new Vector(dimensionCount, vectorDimensionType, null);
                             } else {
                                 // Remove enclosing brackets or braces if present
                                 if ((vectorData.startsWith("[") && vectorData.endsWith("]"))) {

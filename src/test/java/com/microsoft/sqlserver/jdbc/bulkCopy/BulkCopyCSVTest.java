@@ -51,6 +51,8 @@ import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
+import microsoft.sql.Vector;
+
 
 /**
  * Test bulkcopy with CSV file input
@@ -605,7 +607,7 @@ public class BulkCopyCSVTest extends AbstractTest {
 
                 while (rs.next()) {
                     int id = rs.getInt("id");
-                    microsoft.sql.Vector vectorObject = rs.getObject("vectorCol", microsoft.sql.Vector.class);
+                    Vector vectorObject = rs.getObject("vectorCol", Vector.class);
 
                     // Validate ID
                     assertEquals(expectedData.get(rowCount)[0], id, "Mismatch in ID at row " + (rowCount + 1));
@@ -631,6 +633,7 @@ public class BulkCopyCSVTest extends AbstractTest {
             fail(e.getMessage());
         }
     }
+
     /**
      * Test bulk copy with multiple columns of vector data in
      * BulkCopyCSVTestInputWithMultipleVectorColumn.csv file
@@ -676,8 +679,8 @@ public class BulkCopyCSVTest extends AbstractTest {
                         new String[] { "[3.0, 4.0, 5.0]", "[6.0, 7.0, 8.0]" });
 
                 while (rs.next()) {
-                    microsoft.sql.Vector vectorCol1 = rs.getObject("vectorCol1", microsoft.sql.Vector.class);
-                    microsoft.sql.Vector vectorCol2 = rs.getObject("vectorCol2", microsoft.sql.Vector.class);
+                    Vector vectorCol1 = rs.getObject("vectorCol1", Vector.class);
+                    Vector vectorCol2 = rs.getObject("vectorCol2", Vector.class);
 
                     assertEquals(expectedData.get(rowCount)[0],
                             vectorCol1 == null ? "null" : Arrays.toString(vectorCol1.getData()),
@@ -743,8 +746,8 @@ public class BulkCopyCSVTest extends AbstractTest {
                         new String[] { "[3.0, 4.0, 5.0]", "[6.0, 7.0, 8.0]" });
 
                 while (rs.next()) {
-                    microsoft.sql.Vector vectorCol1 = rs.getObject("vectorCol1", microsoft.sql.Vector.class);
-                    microsoft.sql.Vector vectorCol2 = rs.getObject("vectorCol2", microsoft.sql.Vector.class);
+                    Vector vectorCol1 = rs.getObject("vectorCol1", Vector.class);
+                    Vector vectorCol2 = rs.getObject("vectorCol2", Vector.class);
 
                     assertEquals(expectedData.get(rowCount)[0],
                             vectorCol1 == null ? "null" : Arrays.toString(vectorCol1.getData()),
@@ -762,6 +765,50 @@ public class BulkCopyCSVTest extends AbstractTest {
             }
         } catch (Exception e) {
             fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test bulk copy with mismatched vector dimensions in file and provided column
+     * metadata.
+     */
+    @Test
+    @Tag(Constants.vectorTest)
+    public void testBulkCopyVectorFromCSVWithIncorrectDimension() throws SQLException {
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
+        String fileName = filePath + vectorInputCsvFile;
+
+        try (Connection con = getConnection();
+                Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, null, ",", true)) {
+
+            // Create the destination table
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (id INT, vectorCol VECTOR(3));");
+
+            // Add column metadata for the CSV file
+            fileRecord.addColumnMetadata(1, "id", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(2, "vectorCol", microsoft.sql.Types.VECTOR, 4, 4);
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+
+            // Set the destination table name
+            bulkCopy.setDestinationTableName(dstTable);
+
+            // Configure bulk copy options
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            options.setBulkCopyTimeout(60);
+            bulkCopy.setBulkCopyOptions(options);
+
+            // Perform the bulk copy
+            bulkCopy.writeToServer(fileRecord);
+
+            fail("Expected an exception due to vector data type mismatch, but none was thrown.");
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("The vector dimensions 4 and 3 do not match."),
+                    "Unexpected error message: " + e.getMessage());
         }
     }
 

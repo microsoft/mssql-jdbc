@@ -687,6 +687,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    private static final String VECTOR_SUPPORT_OFF = "off";
+    private static final String VECTOR_SUPPORT_V1 = "v1";
+
     final static int TNIR_FIRST_ATTEMPT_TIMEOUT_MS = 500; // fraction of timeout to use for fast failover connections
 
     /**
@@ -1030,7 +1033,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type float32 are returned as vectors).  
      * Default is "v1".
      */
-    private String vectorTypeSupport = "v1";
+    private String vectorTypeSupport = VECTOR_SUPPORT_V1;
 
     /**
      * Returns the value of the vectorTypeSupport connection property.
@@ -1053,7 +1056,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     @Override
     public void setVectorTypeSupport(String vectorTypeSupport) {
-        if (!"off".equalsIgnoreCase(vectorTypeSupport) && !"v1".equalsIgnoreCase(vectorTypeSupport)) {
+        if (!VECTOR_SUPPORT_OFF.equalsIgnoreCase(vectorTypeSupport) && !VECTOR_SUPPORT_V1.equalsIgnoreCase(vectorTypeSupport)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
             Object[] msgArgs = { vectorTypeSupport };
             throw new IllegalArgumentException(form.format(msgArgs));
@@ -5677,7 +5680,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     int writeVectorSupportFeatureRequest(boolean write,
             TDSWriter tdsWriter) throws SQLServerException {
-        if ("off".equalsIgnoreCase(vectorTypeSupport)) {
+        if (VECTOR_SUPPORT_OFF.equalsIgnoreCase(vectorTypeSupport)) {
             return 0;
         }
         int len = 6; // 1byte = featureID, 4bytes = featureData length, 1 bytes = Version
