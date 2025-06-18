@@ -20,7 +20,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -830,6 +834,221 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testNoSpaceInsertTableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with all temporal types and money as varchar when useBulkCopyForBatchInsert is true.
+     * sendTemporalDataTypesAsStringForBulkCopy is set to true by default.
+     * Temporal types are sent as varchar, and money/smallMoney are sent as their respective types.
+     * 
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithAllTemporalTypesAndMoneyAsVarchar() throws Exception {
+        String tableName = RandomUtil.getIdentifier("BulkTable");
+        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
+                "dateTimeColumn DATETIME, " +
+                "smallDateTimeColumn SMALLDATETIME, " +
+                "dateTime2Column DATETIME2, " +
+                "dateColumn DATE, " +
+                "timeColumn TIME, " +
+                "dateTimeOffsetColumn DATETIMEOFFSET, " +
+                "moneyColumn MONEY, " +
+                "smallMoneyColumn SMALLMONEY" + ")";
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
+                " (dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String selectSQL = "SELECT dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn FROM "
+                + AbstractSQLGenerator.escapeIdentifier(tableName);
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            stmt.execute(createTableSQL);
+
+            Timestamp dateTimeVal = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
+            String expectedDateTimeString = "2025-05-13 14:30:45.0"; 
+
+            Timestamp smallDateTimeVal = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
+            String expectedSmallDateTimeString = "2025-05-13 14:31:00.0"; 
+
+            Timestamp dateTime2Val = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 25, 123000000));
+            String expectedDateTime2String = "2025-05-13 14:30:25.1230000"; 
+
+            Date dateVal = Date.valueOf("2025-06-02");
+            String expectedDateString = "2025-06-02";
+
+            Time timeVal = Time.valueOf("14:30:00");
+            String expectedTimeString = "14:30:00";
+
+            OffsetDateTime offsetDateTimeVal = OffsetDateTime.of(2025, 5, 13, 14, 30, 0, 0, ZoneOffset.UTC);
+            DateTimeOffset dateTimeOffsetVal = DateTimeOffset.valueOf(offsetDateTimeVal);
+            String expectedDateTimeOffsetString = "2025-05-13 14:30:00 +00:00";
+
+            BigDecimal moneyVal = new BigDecimal("12345.6789");
+            String expectedMoneyString = "12345.6789";
+
+            BigDecimal smallMoneyVal = new BigDecimal("1234.5611");
+            String expectedSmallMoneyString = "1234.5611";
+
+            pstmt.setTimestamp(1, dateTimeVal); // DATETIME
+            pstmt.setSmallDateTime(2, smallDateTimeVal); // SMALLDATETIME
+            pstmt.setObject(3, dateTime2Val); // DATETIME2
+            pstmt.setDate(4, dateVal); // DATE
+            pstmt.setObject(5, timeVal); // TIME
+            pstmt.setDateTimeOffset(6, dateTimeOffsetVal); // DATETIMEOFFSET
+            pstmt.setMoney(7, moneyVal); // MONEY
+            pstmt.setSmallMoney(8, smallMoneyVal); // SMALLMONEY
+
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next());
+
+                assertEquals(dateTimeVal, rs.getTimestamp(1));
+                assertEquals(expectedDateTimeString, rs.getString(1));
+
+                assertEquals(Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 31, 0)), rs.getTimestamp(2));
+                assertEquals(expectedSmallDateTimeString, rs.getString(2));
+
+                assertEquals(dateTime2Val, rs.getTimestamp(3));
+                assertEquals(expectedDateTime2String, rs.getString(3));
+
+                assertEquals(dateVal, rs.getDate(4));
+                assertEquals(expectedDateString, rs.getString(4));
+
+                assertEquals(timeVal, rs.getObject(5));
+                assertEquals(expectedTimeString, rs.getObject(5).toString());
+
+                assertEquals(dateTimeOffsetVal, rs.getObject(6, DateTimeOffset.class));
+                assertEquals(expectedDateTimeOffsetString, rs.getObject(6).toString());
+
+                assertEquals(moneyVal, rs.getBigDecimal(7));
+                assertEquals(expectedMoneyString, rs.getBigDecimal(7).toString());
+
+                assertEquals(smallMoneyVal, rs.getBigDecimal(8));
+                assertEquals(expectedSmallMoneyString,rs.getBigDecimal(8).toString());
+                
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with all temporal types and money as varchar when useBulkCopyForBatchInsert is true.
+     * and sendTemporalDataTypesAsStringForBulkCopy is set to false explicitly.
+     * In this case all data types are sent as their respective types, including temporal types and money/smallMoney.
+     * 
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithAllTemporalTypesAndMoney() throws Exception {
+        String tableName = RandomUtil.getIdentifier("BulkTable");
+        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
+                "dateTimeColumn DATETIME, " +
+                "smallDateTimeColumn SMALLDATETIME, " +
+                "dateTime2Column DATETIME2, " +
+                "dateColumn DATE, " +
+                "timeColumn TIME, " +
+                "dateTimeOffsetColumn DATETIMEOFFSET, " +
+                "moneyColumn MONEY, " +
+                "smallMoneyColumn SMALLMONEY" + ")";
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
+                " (dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String selectSQL = "SELECT dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn FROM "
+                + AbstractSQLGenerator.escapeIdentifier(tableName);
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            stmt.execute(createTableSQL);
+
+            Timestamp dateTimeVal = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
+            String expectedDateTimeString = "2025-05-13 14:30:45.0"; 
+
+            Timestamp smallDateTimeVal = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
+            String expectedSmallDateTimeString = "2025-05-13 14:31:00.0"; 
+
+            Timestamp dateTime2Val = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 25, 123000000));
+            String expectedDateTime2String = "2025-05-13 14:30:25.1230000"; 
+
+            Date dateVal = Date.valueOf("2025-06-02");
+            String expectedDateString = "2025-06-02";
+
+            LocalTime time = LocalTime.of(14, 30, 0);
+            Timestamp timeVal = Timestamp.valueOf(
+                    LocalDateTime.of(1970, 1, 1, time.getHour(), time.getMinute(), time.getSecond()));
+            pstmt.setTimestamp(5, timeVal);
+            String expectedTimeString = "14:30:00";
+
+            OffsetDateTime offsetDateTimeVal = OffsetDateTime.of(2025, 5, 13, 14, 30, 0, 0, ZoneOffset.UTC);
+            DateTimeOffset dateTimeOffsetVal = DateTimeOffset.valueOf(offsetDateTimeVal);
+            String expectedDateTimeOffsetString = "2025-05-13 14:30:00 +00:00";
+
+            BigDecimal moneyVal = new BigDecimal("12345.6789");
+            String expectedMoneyString = "12345.6789";
+
+            BigDecimal smallMoneyVal = new BigDecimal("1234.5611");
+            String expectedSmallMoneyString = "1234.5611";
+
+            pstmt.setTimestamp(1, dateTimeVal); // DATETIME
+            pstmt.setSmallDateTime(2, smallDateTimeVal); // SMALLDATETIME
+            pstmt.setObject(3, dateTime2Val); // DATETIME2
+            pstmt.setDate(4, dateVal); // DATE
+            pstmt.setTimestamp(5, timeVal); // TIME
+            pstmt.setDateTimeOffset(6, dateTimeOffsetVal); // DATETIMEOFFSET
+            pstmt.setMoney(7, moneyVal); // MONEY
+            pstmt.setSmallMoney(8, smallMoneyVal); // SMALLMONEY
+
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next());
+
+                assertEquals(dateTimeVal, rs.getTimestamp(1));
+                assertEquals(expectedDateTimeString, rs.getString(1));
+
+                assertEquals(Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 31, 0)), rs.getTimestamp(2));
+                assertEquals(expectedSmallDateTimeString, rs.getString(2));
+
+                assertEquals(dateTime2Val, rs.getTimestamp(3));
+                assertEquals(expectedDateTime2String, rs.getString(3));
+
+                assertEquals(dateVal, rs.getDate(4));
+                assertEquals(expectedDateString, rs.getString(4));
+
+                assertEquals(Time.valueOf(time), rs.getObject(5));
+                assertEquals(expectedTimeString, rs.getObject(5).toString());
+
+                assertEquals(dateTimeOffsetVal, rs.getObject(6, DateTimeOffset.class));
+                assertEquals(expectedDateTimeOffsetString, rs.getObject(6).toString());
+
+                assertEquals(moneyVal, rs.getBigDecimal(7));
+                assertEquals(expectedMoneyString, rs.getBigDecimal(7).toString());
+
+                assertEquals(smallMoneyVal, rs.getBigDecimal(8));
+                assertEquals(expectedSmallMoneyString,rs.getBigDecimal(8).toString());
+                
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
     }
