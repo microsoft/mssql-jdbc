@@ -19,7 +19,8 @@ public class ByteBufferManager {
         if (poolSize == -1) {
             return new byte[size];
         }
-        return pools.get(poolSize).rent();
+        BufferPool pool = pools.computeIfAbsent(poolSize, BufferPool::new);
+        return pool.rent();
     }
 
     private static int getPoolSize(int size) {
