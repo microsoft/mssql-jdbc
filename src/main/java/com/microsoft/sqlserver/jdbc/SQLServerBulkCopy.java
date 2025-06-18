@@ -1392,8 +1392,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 switch (destSSType) {
                     case SMALLDATETIME:
                         if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
+                            /*
+                             * Fallback to maximum precision when sending smalldatetime as varchar.
+                             * The default precision (16) is too small for the full string value and will cause issue.
+                             */
                             return SSType.VARCHAR.toString() + "("
-                                    + ((0 == bulkPrecision) ? SOURCE_BULK_RECORD_TEMPORAL_MAX_PRECISION : bulkPrecision)
+                                    + SOURCE_BULK_RECORD_TEMPORAL_MAX_PRECISION
                                     + ")";
                         } else {
                             return SSType.SMALLDATETIME.toString();
@@ -2159,6 +2163,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.TIME:
                 case java.sql.Types.TIMESTAMP:
                 case microsoft.sql.Types.DATETIMEOFFSET:
+                case microsoft.sql.Types.DATETIME:
+                case microsoft.sql.Types.SMALLDATETIME:
                     bulkJdbcType = java.sql.Types.VARCHAR;
                     break;
                 default:
