@@ -455,7 +455,7 @@ public class AESetup extends AbstractTest {
         String nvarchar4000 = RandomData.generateNCharTypes("4000", nullable, encrypted);
 
         String[] values = {char20.trim(), varchar50, varcharmax, nchar30, nvarchar60, nvarcharmax, Constants.UID,
-                varchar8000, nvarchar4000};
+                Constants.UID, varchar8000, nvarchar4000};
 
         return values;
     }
