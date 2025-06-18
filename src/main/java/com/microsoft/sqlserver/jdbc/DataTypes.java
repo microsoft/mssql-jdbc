@@ -21,7 +21,7 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.EnumMap;
 import java.util.EnumSet;
-
+import java.util.UUID;
 
 enum TDSType {
     // FIXEDLEN types
@@ -476,7 +476,8 @@ enum JavaType {
     READER(Reader.class, JDBCType.LONGVARCHAR),
     // Note: Only SQLServerSQLXML SQLXML instances are accepted by this driver
     SQLXML(SQLServerSQLXML.class, JDBCType.SQLXML),
-    OBJECT(Object.class, JDBCType.UNKNOWN);
+    OBJECT(Object.class, JDBCType.UNKNOWN),
+    UUID(UUID.class, JDBCType.GUID);
 
     private final Class<?> javaClass;
     private final JDBCType jdbcTypeFromJavaType;
@@ -582,7 +583,8 @@ enum JavaType {
         TIMESTAMP(JavaType.TIMESTAMP, EnumSet.of(JDBCType.TIME, // This is needed to send nanoseconds to the driver as
                                                                 // setTime() is only milliseconds
                 JDBCType.TIMESTAMP, // This is datetime2
-                JDBCType.DATETIME, JDBCType.SMALLDATETIME));
+                JDBCType.DATETIME, JDBCType.SMALLDATETIME)),
+        UUID(JavaType.UUID, EnumSet.of(JDBCType.GUID));
 
         private final EnumSet<JDBCType> to;
         private final JavaType from;

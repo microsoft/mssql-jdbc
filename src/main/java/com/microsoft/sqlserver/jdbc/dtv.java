@@ -1888,6 +1888,15 @@ final class DTV {
                     op.execute(this, (SQLServerSQLXML) value);
                     break;
 
+                case UUID:
+                    if (null != cryptoMeta) {
+                        byte[] bArray = Util.asGuidByteArray((UUID) value);
+                        op.execute(this, bArray);
+                    } else {
+                        op.execute(this, (UUID) value);
+                    }
+                    break;
+
                 default:
                     assert false : "Unexpected JavaType: " + javaType;
                     unsupportedConversion = true;
