@@ -6862,6 +6862,7 @@ final class TDSReader implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Moving to next packet -- unlinking consumed packet");
 
+            consumedPacket.releasePayload();
             consumedPacket.next = null;
         }
         currentPacket = nextPacket;
@@ -6985,7 +6986,6 @@ final class TDSReader implements Serializable {
             // interrupts. If an interrupt happened prior to disabling, then expect
             // to read the attention ack packet as well.
             if (newPacket.isEOM()) {
-                newPacket.releasePayload();
                 ++tdsChannel.numMsgsRcvd;
 
                 // Notify the command (if any) that we've reached the end of the response.
