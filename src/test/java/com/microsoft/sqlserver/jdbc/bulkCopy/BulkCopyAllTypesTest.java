@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -43,6 +44,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -272,6 +274,50 @@ public class BulkCopyAllTypesTest extends AbstractTest {
                     SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(conn)) {
                 bcOperation.setDestinationTableName(destTableName2);
                 bcOperation.writeToServer(rs);
+            }
+        }
+    }
+
+    @Test
+    public void testBulkCopyUUID() throws Exception {
+        String uuidSrcTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("uuidSrc"));
+        String uuidDestTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("uuidDest"));
+        int rowCount = 10;
+        List<UUID> uuids = new ArrayList<>();
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            // Create source and destination tables
+            stmt.execute("CREATE TABLE " + uuidSrcTable + " (id uniqueidentifier)");
+            stmt.execute("CREATE TABLE " + uuidDestTable + " (id uniqueidentifier)");
+
+            // Insert random UUIDs into source table
+            for (int i = 0; i < rowCount; i++) {
+                UUID uuid = java.util.UUID.randomUUID();
+                uuids.add(uuid);
+                stmt.executeUpdate("INSERT INTO " + uuidSrcTable + " (id) VALUES ('" + uuid + "')");
+            }
+
+            // Bulk copy from source to destination
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + uuidSrcTable);
+                    SQLServerBulkCopy bcOperation = new SQLServerBulkCopy(conn)) {
+                bcOperation.setDestinationTableName(uuidDestTable);
+                bcOperation.writeToServer(rs);
+            }
+
+            // Verify data matches
+            List<UUID> destUuids = new ArrayList<>();
+            try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery("SELECT id FROM " + uuidDestTable)) {
+                while (rs.next()) {
+                    destUuids.add(UUID.fromString(rs.getUniqueIdentifier(1)));
+                }
+            }
+            assertEquals(uuids.size(), destUuids.size());
+            assertTrue(destUuids.containsAll(uuids));
+        } finally {
+            // Clean up
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(uuidSrcTable, stmt);
+                TestUtils.dropTableIfExists(uuidDestTable, stmt);
             }
         }
     }
