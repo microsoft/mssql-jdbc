@@ -1,5 +1,6 @@
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class BufferPool {
@@ -18,6 +19,7 @@ public class BufferPool {
     public void release(byte[] buffer) {
         if (buffer.length == bufferSize) {
             pool.offer(buffer);
+            Arrays.fill(buffer, (byte) 0); // Clear the array for re-use
         }
         // If the buffer size does not match, we do not store it in the pool
     }
