@@ -90,6 +90,7 @@ public class VectorTest extends AbstractTest {
         assertNotNull(metaData, "DatabaseMetaData should not be null");
 
         try (ResultSet rs = metaData.getColumns(null, null, tableName, "v")) {
+            
             ResultSetMetaData rsMetaData = rs.getMetaData();
             int columnCount = rsMetaData.getColumnCount();
 
