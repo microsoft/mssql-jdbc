@@ -21,6 +21,7 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.UUID;
 
 
 enum TDSType {
@@ -424,6 +425,7 @@ enum JavaType {
     TVP(com.microsoft.sqlserver.jdbc.TVP.class, JDBCType.TVP),
     GEOMETRY(Geometry.class, JDBCType.GEOMETRY),
     GEOGRAPHY(Geography.class, JDBCType.GEOGRAPHY),
+    UUID(UUID.class, JDBCType.GUID),
 
     INPUTSTREAM(InputStream.class, JDBCType.UNKNOWN) {
         // InputStreams are either ASCII or binary
@@ -582,7 +584,9 @@ enum JavaType {
         TIMESTAMP(JavaType.TIMESTAMP, EnumSet.of(JDBCType.TIME, // This is needed to send nanoseconds to the driver as
                                                                 // setTime() is only milliseconds
                 JDBCType.TIMESTAMP, // This is datetime2
-                JDBCType.DATETIME, JDBCType.SMALLDATETIME));
+                JDBCType.DATETIME, JDBCType.SMALLDATETIME)),
+        
+        UUID(JavaType.UUID, EnumSet.of(JDBCType.GUID));
 
         private final EnumSet<JDBCType> to;
         private final JavaType from;
