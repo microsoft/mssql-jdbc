@@ -572,6 +572,7 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDB)
     public void testExecuteBatchColumnCaseMismatch_CI() throws Exception {
         String connectionStringCollationCaseInsensitive = TestUtils.addOrOverrideProperty(connectionString, "databaseName", caseInsensitiveDatabase);
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("caseInsensitiveTable"));
@@ -605,6 +606,7 @@ public class BatchExecutionTest extends AbstractTest {
 
     // adapter Azure pipeline CI, need to add a new environment variable `mssql_jdbc_test_connection_properties_collation_cs`
     @Test
+    @Tag(Constants.xAzureSQLDB)
     public void testExecuteBatchColumnCaseMismatch_CS_throwException() throws Exception {
         String connectionStringCollationCaseSensitive = TestUtils.addOrOverrideProperty(connectionString, "databaseName", caseSensitiveDatabase);
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("caseSensitiveTable"));
@@ -643,6 +645,7 @@ public class BatchExecutionTest extends AbstractTest {
 
     // adapter Azure pipeline CI, need to add a new environment variable `mssql_jdbc_test_connection_properties_collation_cs`
     @Test
+    @Tag(Constants.xAzureSQLDB)
     public void testExecuteBatchColumnCaseMismatch_CS() throws Exception {
         String connectionStringCollationCaseSensitive = TestUtils.addOrOverrideProperty(connectionString, "databaseName", caseSensitiveDatabase);
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("caseSensitiveTable"));
