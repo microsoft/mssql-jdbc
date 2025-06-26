@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
@@ -72,6 +73,8 @@ public class BatchExecutionTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("timestamptable1"));
     private static String timestampTable2 = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("timestamptable2"));
+    private static String caseSensitiveDatabase = "BD_Collation_SQL_Latin1_General_CP1_CS_AS";
+    private static String caseInsensitiveDatabase = "BD_Collation_SQL_Latin1_General_CP1_CI_AS";
 
     /**
      * This tests the updateCount when the error query does cause a SQL state HY008.
@@ -565,6 +568,114 @@ public class BatchExecutionTest extends AbstractTest {
                     connection.commit();
                 }
             }
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDB)
+    public void testExecuteBatchColumnCaseMismatch_CI() throws Exception {
+        String connectionStringCollationCaseInsensitive = TestUtils.addOrOverrideProperty(connectionString, "databaseName", caseInsensitiveDatabase);
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("caseInsensitiveTable"));
+
+        try (Connection conTemp = DriverManager.getConnection(connectionString); Statement stmt = conTemp.createStatement()) {
+            TestUtils.dropDatabaseIfExists(caseInsensitiveDatabase, connectionString);
+            stmt.executeUpdate("CREATE DATABASE " + caseInsensitiveDatabase);
+            stmt.executeUpdate("ALTER DATABASE " + caseInsensitiveDatabase + " COLLATE SQL_Latin1_General_CP1_CI_AS;");
+
+            // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
+            try (Connection con = DriverManager.getConnection(connectionStringCollationCaseInsensitive
+                    + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
+                try (Statement statement = con.createStatement()) {
+                    TestUtils.dropTableIfExists(tableName, statement);
+                    String createSql = "CREATE TABLE" + tableName + " (c1 varchar(10))";
+                    statement.execute(createSql);
+                }
+                // upper case C1
+                try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO " + tableName + "(C1) VALUES(?)")) {
+                    preparedStatement.setObject(1, "value1");
+                    preparedStatement.addBatch();
+                    preparedStatement.setObject(1, "value2");
+                    preparedStatement.addBatch();
+                    preparedStatement.executeBatch();
+                }
+            }
+        } finally {
+            TestUtils.dropDatabaseIfExists(caseInsensitiveDatabase, connectionString);
+        }
+    }
+
+    // adapter Azure pipeline CI, need to add a new environment variable `mssql_jdbc_test_connection_properties_collation_cs`
+    @Test
+    @Tag(Constants.xAzureSQLDB)
+    public void testExecuteBatchColumnCaseMismatch_CS_throwException() throws Exception {
+        String connectionStringCollationCaseSensitive = TestUtils.addOrOverrideProperty(connectionString, "databaseName", caseSensitiveDatabase);
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("caseSensitiveTable"));
+
+        try (Connection conTemp = DriverManager.getConnection(connectionString); Statement stmt = conTemp.createStatement()) {
+            TestUtils.dropDatabaseIfExists(caseSensitiveDatabase, connectionString);
+            stmt.executeUpdate("CREATE DATABASE " + caseSensitiveDatabase);
+            stmt.executeUpdate("ALTER DATABASE " + caseSensitiveDatabase + " COLLATE SQL_Latin1_General_CP1_CS_AS;");
+
+            try (Connection con = DriverManager.getConnection(connectionStringCollationCaseSensitive
+                    + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
+                try (Statement statement = con.createStatement()) {
+                    TestUtils.dropTableIfExists(tableName, statement);
+                    String createSql = "CREATE TABLE" + tableName + " (c1 varchar(10))";
+                    statement.execute(createSql);
+                }
+                // upper case C1
+                try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO " + tableName + "(C1) VALUES(?)")) {
+                    preparedStatement.setObject(1, "value1");
+                    preparedStatement.addBatch();
+                    preparedStatement.setObject(1, "value2");
+                    preparedStatement.addBatch();
+                    try {
+                        preparedStatement.executeBatch();
+                        fail("Should have failed");
+                    } catch (Exception ex) {
+                        assertInstanceOf(java.sql.BatchUpdateException.class, ex);
+                        assertEquals("Unable to retrieve column metadata.", ex.getMessage());
+                    }
+                }
+            }
+        } finally {
+            TestUtils.dropDatabaseIfExists(caseSensitiveDatabase, connectionString);
+        }
+    }
+
+    // adapter Azure pipeline CI, need to add a new environment variable `mssql_jdbc_test_connection_properties_collation_cs`
+    @Test
+    @Tag(Constants.xAzureSQLDB)
+    public void testExecuteBatchColumnCaseMismatch_CS() throws Exception {
+        String connectionStringCollationCaseSensitive = TestUtils.addOrOverrideProperty(connectionString, "databaseName", caseSensitiveDatabase);
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("caseSensitiveTable"));
+
+        try (Connection conTemp = DriverManager.getConnection(connectionString); Statement stmt = conTemp.createStatement()) {
+            TestUtils.dropDatabaseIfExists(caseSensitiveDatabase, connectionString);
+            stmt.executeUpdate("CREATE DATABASE " + caseSensitiveDatabase);
+            stmt.executeUpdate("ALTER DATABASE " + caseSensitiveDatabase + " COLLATE SQL_Latin1_General_CP1_CS_AS;");
+
+            // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
+            try (Connection con = DriverManager.getConnection(connectionStringCollationCaseSensitive
+                    + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
+                try (Statement statement = con.createStatement()) {
+                    TestUtils.dropTableIfExists(tableName, statement);
+                    String createSql = "CREATE TABLE" + tableName + " (c1 varchar(10), C1 varchar(10))";
+                    statement.execute(createSql);
+                }
+                // upper case C1
+                try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO " + tableName + "(c1, C1) VALUES(?,?)")) {
+                    preparedStatement.setObject(1, "value1-1");
+                    preparedStatement.setObject(2, "value1-2");
+                    preparedStatement.addBatch();
+                    preparedStatement.setObject(1, "value2-1");
+                    preparedStatement.setObject(2, "value2-2");
+                    preparedStatement.addBatch();
+                    preparedStatement.executeBatch();
+                }
+            }
+        } finally {
+            TestUtils.dropDatabaseIfExists(caseSensitiveDatabase, connectionString);
         }
     }
 
