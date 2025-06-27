@@ -78,6 +78,17 @@ final class SQLCollation implements java.io.Serializable {
         return this.sortId;
     }
 
+    /**
+     * return collation is case-sensitive or not
+     *
+     * @return
+     */
+    boolean getIsCaseSensitive() {
+        SortOrder sortOrder = sortOrderIndex.get(this.sortId);
+        // consider case-insensitive if no SortOrder entry
+        return sortOrder != null && sortOrder.name.contains("_CS_");
+    }
+
     boolean isEqual(SQLCollation col) {
         return (col != null && col.info == info && col.sortId == sortId);
     }

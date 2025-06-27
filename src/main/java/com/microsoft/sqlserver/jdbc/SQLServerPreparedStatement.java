@@ -2214,7 +2214,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
 
                         SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
-                                batchParamValues, bcOperationColumnList, bcOperationValueList, null);
+                                batchParamValues, bcOperationColumnList, bcOperationValueList, null, isDBColationCaseSensitive());
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2231,7 +2231,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
                             if (null != bcOperationColumnList && !bcOperationColumnList.isEmpty()) {
-                                int columnIndex = bcOperationColumnList.indexOf(c.getColumnName());
+                                // connection contains database name
+                                boolean isCaseSensitive = isDBColationCaseSensitive();
+                                int columnIndex = -1;
+                                if (isCaseSensitive) {
+                                    columnIndex = bcOperationColumnList.indexOf(c.getColumnName());
+                                } else {
+                                    // find index ignore case
+                                    for (int opi = 0; opi < bcOperationColumnList.size(); opi++) {
+                                        String opCol = bcOperationColumnList.get(opi);
+                                        if (opCol != null && opCol.equalsIgnoreCase(c.getColumnName())) {
+                                            columnIndex = opi;
+                                            break;
+                                        }
+                                    }
+                                }
+
                                 if (columnIndex > -1) {
                                     columnMappings.put(columnIndex + 1, i);
                                     batchRecord.addColumnMetadata(columnIndex + 1, c.getColumnName(), jdbctype,
@@ -2407,7 +2422,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
 
                         SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
-                                batchParamValues, bcOperationColumnList, bcOperationValueList, null);
+                                batchParamValues, bcOperationColumnList, bcOperationValueList, null, isDBColationCaseSensitive());
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2497,6 +2512,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } finally {
             batchParamValues = null;
         }
+    }
+
+    private boolean isDBColationCaseSensitive() throws SQLServerException {
+        if (null == connection.getDatabaseCollation())
+            return false;
+        return connection.getDatabaseCollation().getIsCaseSensitive();
     }
 
     private void checkValidColumns(TypeInfo ti) throws SQLServerException {
