@@ -39,7 +39,7 @@ class VectorUtils {
             throw vectorException("R_vectorByteArrayLength");
         }
         if ((bytes.length - getHeaderLength()) % bytesPerDimension != 0) {
-            throw vectorException("R_vectorByteArrayMultipleOfBytesPerDimension", bytesPerDimension);
+            throw vectorException("R_vectorByteArrayMultipleOfBytesPerDimension", bytesPerDimension, vectorType);
         }
 
         int objectCount = (bytes.length - getHeaderLength()) / bytesPerDimension; // 8 bytes for header
@@ -66,8 +66,7 @@ class VectorUtils {
     }
 
     /**
-     * Converts the vector to a byte array. The byte array will contain the
-     * following:
+     * Converts the vector to a byte array. The byte array will contain the following:
      * 1. Layout Format (VECTOR marker) - 1 byte
      * 2. Layout Version (always 1) - 1 byte
      * 3. Number of Dimensions (2 bytes, little-endian) - 2 bytes
@@ -90,22 +89,23 @@ class VectorUtils {
         buffer.put(getScaleByte(vector.getVectorDimensionType())); // 0x00 for FLOAT32, 0x01 for FLOAT16
         buffer.put(new byte[3]);
 
-        for (Object value : vector.getData()) {
-            switch (vector.getVectorDimensionType()) {
-                // case FLOAT16:
-                // // For FLOAT16, you need to convert to 2-byte representation.
-                // buffer.putShort((short) ((Number) value).intValue());
-                // break;
-                case FLOAT32:
-                default:
+        Object[] data = vector.getData();
+        switch (vector.getVectorDimensionType()) {
+            // case FLOAT16:
+            //     for (Object value : data) {
+            //         buffer.putShort((short) ((Number) value).intValue());
+            //     }
+            //     break;
+            case FLOAT32:
+            default:
+                for (Object value : data) {
                     buffer.putFloat(((Number) value).floatValue());
-                    break;
-            }
+                }
+                break;
         }
 
         return buffer.array();
     }
-
 
     static int getDefaultPrecision() {
         return BYTES_PER_FLOAT; // FLOAT32

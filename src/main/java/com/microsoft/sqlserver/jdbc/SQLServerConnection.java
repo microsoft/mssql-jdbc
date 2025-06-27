@@ -6838,7 +6838,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             case TDS.TDS_FEATURE_EXT_VECTORSUPPORT: {
                 if (connectionlogger.isLoggable(Level.FINE)) {
-                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for Vector Support.");
+                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for vector support. Received byte: " + data[0]);
                 }
 
                 if (1 != data.length) {
@@ -7153,7 +7153,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         len = len + writeDNSCacheFeatureRequest(false, tdsWriter);
 
-        // request Vector support
+        // request vector support
         len += writeVectorSupportFeatureRequest(false, tdsWriter);
 
         len = len + 1; // add 1 to length because of FeatureEx terminator
