@@ -423,6 +423,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             break;
                         }
 
+                        // For vector data type, allowed format in csv file is : "[1.0, 2.0, 3.0]"
                         case microsoft.sql.Types.VECTOR: {
                             int dimensionCount = cm.precision;
                         

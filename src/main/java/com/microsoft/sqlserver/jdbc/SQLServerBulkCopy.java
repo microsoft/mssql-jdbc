@@ -2101,6 +2101,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.LONGVARCHAR:
             case java.sql.Types.LONGNVARCHAR:
             case java.sql.Types.LONGVARBINARY:
+            case microsoft.sql.Types.VECTOR:
                 if (isStreaming) {
                     tdsWriter.writeLong(PLPInputStream.PLP_NULL);
                 } else {
@@ -2130,9 +2131,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 return;
             case microsoft.sql.Types.SQL_VARIANT:
                 tdsWriter.writeInt((byte) 0x00);
-                return;
-            case microsoft.sql.Types.VECTOR:
-                tdsWriter.writeShort((short) -1);
                 return;
             default:
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));

@@ -1090,7 +1090,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *
      * @param vectorTypeSupport
      * A string that indicates the vector type support during connection initialization.
-     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type float32 are returned as vectors). 
+     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type FLOAT32 are returned as vectors). 
      * Default is "v1".
      */
     void setVectorTypeSupport(String vectorTypeSupport);

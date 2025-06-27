@@ -56,6 +56,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 import microsoft.sql.DateTimeOffset;
 import microsoft.sql.Vector;
+import microsoft.sql.Vector.VectorDimensionType;
 
 @RunWith(JUnitPlatform.class)
 public class BatchExecutionWithBulkCopyTest extends AbstractTest {
@@ -1071,7 +1072,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             stmt.execute(createTable);
 
             Object[] vectorData = new Float[] { 4.0f, 5.0f, 6.0f };
-            Vector vector = new Vector(vectorData.length, Vector.VectorDimensionType.float32, vectorData);
+            Vector vector = new Vector(vectorData.length, VectorDimensionType.FLOAT32, vectorData);
 
             pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
             pstmt.addBatch();
@@ -1108,7 +1109,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (vectorCol VECTOR(3))";
             stmt.execute(createTable);
 
-            Vector vector = new Vector(3, Vector.VectorDimensionType.float32, null);
+            Vector vector = new Vector(3, VectorDimensionType.FLOAT32, null);
 
             pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
             pstmt.addBatch();
@@ -1169,7 +1170,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     "INSERT INTO " + tableName + " (vectorCol) VALUES (?)")) {
 
                 for (int i = 1; i <= recordCount; i++) {
-                    Vector vector = new Vector(dimensionCount, Vector.VectorDimensionType.float32, vectorData);
+                    Vector vector = new Vector(dimensionCount, VectorDimensionType.FLOAT32, vectorData);
                     pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
                     pstmt.addBatch();
                 }

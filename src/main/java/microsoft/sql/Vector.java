@@ -13,8 +13,8 @@ import java.util.Arrays;
 public final class Vector implements java.io.Serializable {
 
     public enum VectorDimensionType {
-        // float16, 16-bit (half precision) float
-        float32 // 32-bit (single precision) float
+        // FLOAT16, 16-bit (half precision) float
+        FLOAT32 // 32-bit (single precision) float
     }
 
     private VectorDimensionType vectorType;
@@ -41,7 +41,7 @@ public final class Vector implements java.io.Serializable {
      * Constructor for Vector with precision and scale value.
      * 
      * @param precision The number of dimensions in the vector.
-     * @param scale     The scale value of the vector (4 for float32).
+     * @param scale     The scale value of the vector (4 for FLOAT32).
      * @param data      The object array representing the vector data.
      */
     public Vector(int precision, int scale, Object[] data) {
@@ -76,6 +76,9 @@ public final class Vector implements java.io.Serializable {
         if (dimensionCount <= 0) {
             throw vectorException("R_InvalidVectorDimensionCount");
         }
+        if (vectorType == null) {
+            throw vectorException("R_VectorDimensionTypeCannotBeNull");
+        }
         if (data != null) {
             if (data.length != dimensionCount) {
                 throw vectorException("R_VectorDimensionCountMismatch");
@@ -98,16 +101,16 @@ public final class Vector implements java.io.Serializable {
 
     /**
      * Returns the vector dimension type based on the scale value.
-     * 4 for float32, 2 for float16
+     * 4 for FLOAT32, 2 for FLOAT16
      */
     private static VectorDimensionType getVectorDimensionTypeFromScaleValue(int scale) {
         switch (scale) {
             case 4:
-                return VectorDimensionType.float32;
+                return VectorDimensionType.FLOAT32;
             // case 2:
-            // return VectorDimensionType.float16;
+            // return VectorDimensionType.FLOAT16;
             default:
-                return VectorDimensionType.float32;
+                return VectorDimensionType.FLOAT32;
         }
     }
 

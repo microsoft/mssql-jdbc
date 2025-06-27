@@ -45,11 +45,10 @@ class VectorUtils {
         int objectCount = (bytes.length - getHeaderLength()) / bytesPerDimension; // 8 bytes for header
         Object[] objectArray;
         switch (vectorType) {
-            case float32:
-                objectArray = new Float[objectCount];
-                break;
-            // case float16:
+            // case FLOAT16:
             // objectArray = new Short[objectCount];
+            // break;
+            case FLOAT32:
             default:
                 objectArray = new Float[objectCount];
                 break;
@@ -72,7 +71,7 @@ class VectorUtils {
      * 1. Layout Format (VECTOR marker) - 1 byte
      * 2. Layout Version (always 1) - 1 byte
      * 3. Number of Dimensions (2 bytes, little-endian) - 2 bytes
-     * 4. Dimension Type (0x00 for float32) - 1 byte
+     * 4. Dimension Type (0x00 for FLOAT32) - 1 byte
      * 5. Reserved (3 bytes of padding) - 3 bytes
      * 6. Encode float values (Little-Endian) - 4 bytes per float value
      */
@@ -88,18 +87,16 @@ class VectorUtils {
         buffer.put((byte) 0xA9);
         buffer.put((byte) 0x01);
         buffer.putShort((short) (vector.getDimensionCount()));
-        buffer.put(getScaleByte(vector.getVectorDimensionType())); // 0x00 for float32, 0x01 for float16
+        buffer.put(getScaleByte(vector.getVectorDimensionType())); // 0x00 for FLOAT32, 0x01 for FLOAT16
         buffer.put(new byte[3]);
 
         for (Object value : vector.getData()) {
             switch (vector.getVectorDimensionType()) {
-                case float32:
-                    buffer.putFloat(((Number) value).floatValue());
-                    break;
-                // case float16:
-                // // For float16, you need to convert to 2-byte representation.
+                // case FLOAT16:
+                // // For FLOAT16, you need to convert to 2-byte representation.
                 // buffer.putShort((short) ((Number) value).intValue());
                 // break;
+                case FLOAT32:
                 default:
                     buffer.putFloat(((Number) value).floatValue());
                     break;
@@ -111,7 +108,7 @@ class VectorUtils {
 
 
     static int getDefaultPrecision() {
-        return BYTES_PER_FLOAT; // float32
+        return BYTES_PER_FLOAT; // FLOAT32
     }
 
     static int getHeaderLength() {
@@ -120,16 +117,16 @@ class VectorUtils {
 
     /**
      * Returns the vector dimension type based on the scale.
-     * float32 for 0, float16 for 1
+     * FLOAT32 for 0, FLOAT16 for 1
      */
     static VectorDimensionType getVectorDimensionType(int scaleByte) {
         switch (scaleByte) {
             case 0:
-                return VectorDimensionType.float32;
+                return VectorDimensionType.FLOAT32;
             // case 1:
-            // return VectorDimensionType.float16;
+            // return VectorDimensionType.FLOAT16;
             default:
-                return VectorDimensionType.float32;
+                return VectorDimensionType.FLOAT32;
         }
     }
 
@@ -143,7 +140,7 @@ class VectorUtils {
 
     /**
      * Returns the bytesPerDimension based on the scale.
-     * 4 bytes per dimension for float32(0), 2 bytes per dimension for float16(1)
+     * 4 bytes per dimension for FLOAT32(0), 2 bytes per dimension for FLOAT16(1)
      */
     static int getBytesPerDimensionFromScale(int scaleByte) {
         switch (scaleByte) {
@@ -158,14 +155,13 @@ class VectorUtils {
 
     /**
      * Returns the bytesPerDimension based on the vectorType.
-     * 4 for float32, 2 for float16
+     * 4 for FLOAT32, 2 for FLOAT16
      */
     static int getBytesPerDimensionFromScale(VectorDimensionType vectorType) {
         switch (vectorType) {
-            case float32:
-                return BYTES_PER_FLOAT;
-            // case float16:
+            // case FLOAT16:
             // return BYTES_PER_SHORT;
+            case FLOAT32:
             default:
                 return BYTES_PER_FLOAT;
         }
@@ -173,14 +169,13 @@ class VectorUtils {
 
     /**
      * Returns the scale for the vector type.
-     * 0x00 for float32, 0x01 for float16.
+     * 0x00 for FLOAT32, 0x01 for FLOAT16.
      */
     static byte getScaleByte(VectorDimensionType vectorType) {
         switch (vectorType) {
-            case float32:
-                return SCALE_BYTE_FLOAT32;
-            // case float16:
+            // case FLOAT16:
             // return SCALE_BYTE_FLOAT16;
+            case FLOAT32:
             default:
                 return SCALE_BYTE_FLOAT32;
         }
@@ -188,14 +183,13 @@ class VectorUtils {
 
     /**
      * Returns the scale byte for the vector type.
-     * 0x00 for float32(4 bytes), 0x01 for float16(2 bytes).
+     * 0x00 for FLOAT32(4 bytes), 0x01 for FLOAT16(2 bytes).
      */
     static byte getScaleByte(int scale) {
         switch (scale) {
-            case BYTES_PER_FLOAT:
-                return SCALE_BYTE_FLOAT32;
             // case BYTES_PER_SHORT:
             // return SCALE_BYTE_FLOAT16;
+            case BYTES_PER_FLOAT:
             default:
                 return SCALE_BYTE_FLOAT32;
         }
@@ -208,12 +202,10 @@ class VectorUtils {
     static int getVectorLength(Vector vector) {
         int bytesPerDimension;
         switch (vector.getVectorDimensionType()) {
-            case float32:
-                bytesPerDimension = BYTES_PER_FLOAT;
-                break;
-            // case float16:
+            // case FLOAT16:
             // bytesPerDimension = BYTES_PER_SHORT;
             // break;
+            case FLOAT32:
             default:
                 bytesPerDimension = BYTES_PER_FLOAT;
                 break;
@@ -234,8 +226,8 @@ class VectorUtils {
      * 
      * @param vector      The vector instance (may be null for output-only
      *                    parameters)
-     * @param scale       Number of bytes per dimension (e.g., 4 for float32, 2 for
-     *                    float16)
+     * @param scale       Number of bytes per dimension (e.g., 4 for FLOAT32, 2 for
+     *                    FLOAT16)
      * @param isOutput    True if the parameter is an output parameter
      * @param outScale    Output parameter's bytes per dimension (if applicable)
      * @param valueLength The value length for output parameters

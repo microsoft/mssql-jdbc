@@ -234,7 +234,7 @@ enum SSType {
 
         CHARACTER(SSType.Category.CHARACTER, EnumSet.of(JDBCType.Category.NUMERIC, JDBCType.Category.DATE,
                 JDBCType.Category.TIME, JDBCType.Category.TIMESTAMP, JDBCType.Category.CHARACTER,
-                JDBCType.Category.LONG_CHARACTER, JDBCType.Category.BINARY, JDBCType.Category.GUID, JDBCType.Category.VECTOR)),
+                JDBCType.Category.LONG_CHARACTER, JDBCType.Category.BINARY, JDBCType.Category.GUID)),
 
         LONG_CHARACTER(SSType.Category.LONG_CHARACTER, EnumSet.of(JDBCType.Category.NUMERIC, JDBCType.Category.DATE,
                 JDBCType.Category.TIME, JDBCType.Category.TIMESTAMP, JDBCType.Category.CHARACTER,
@@ -272,7 +272,7 @@ enum SSType {
                 JDBCType.Category.NUMERIC, JDBCType.Category.DATE, JDBCType.Category.TIME, JDBCType.Category.BINARY,
                 JDBCType.Category.TIMESTAMP, JDBCType.Category.NCHARACTER, JDBCType.Category.GUID)),
 
-        VECTOR(SSType.Category.VECTOR, EnumSet.of(JDBCType.Category.CHARACTER, JDBCType.Category.VECTOR));    
+        VECTOR(SSType.Category.VECTOR, EnumSet.of(JDBCType.Category.VECTOR));    
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -747,7 +747,7 @@ enum JDBCType {
                 JDBCType.Category.TIME, JDBCType.Category.TIMESTAMP, JDBCType.Category.DATETIMEOFFSET,
                 JDBCType.Category.CHARACTER, JDBCType.Category.LONG_CHARACTER, JDBCType.Category.NCHARACTER,
                 JDBCType.Category.LONG_NCHARACTER, JDBCType.Category.BINARY, JDBCType.Category.LONG_BINARY,
-                JDBCType.Category.GUID, JDBCType.Category.SQL_VARIANT, JDBCType.Category.VECTOR)),
+                JDBCType.Category.GUID, JDBCType.Category.SQL_VARIANT)),
 
         LONG_CHARACTER(JDBCType.Category.LONG_CHARACTER, EnumSet.of(JDBCType.Category.CHARACTER,
                 JDBCType.Category.LONG_CHARACTER, JDBCType.Category.NCHARACTER, JDBCType.Category.LONG_NCHARACTER,
@@ -811,7 +811,7 @@ enum JDBCType {
 
         GEOGRAPHY(JDBCType.Category.GEOGRAPHY, EnumSet.of(JDBCType.Category.GEOGRAPHY)),
 
-        VECTOR(JDBCType.Category.VECTOR, EnumSet.of(JDBCType.Category.VECTOR, JDBCType.Category.CHARACTER));
+        VECTOR(JDBCType.Category.VECTOR, EnumSet.of(JDBCType.Category.VECTOR));
 
         private final JDBCType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -852,7 +852,7 @@ enum JDBCType {
 
         LONG_CHARACTER(JDBCType.Category.LONG_CHARACTER, EnumSet.of(SSType.Category.CHARACTER,
                 SSType.Category.LONG_CHARACTER, SSType.Category.NCHARACTER, SSType.Category.LONG_NCHARACTER,
-                SSType.Category.XML, SSType.Category.BINARY, SSType.Category.LONG_BINARY)),
+                SSType.Category.XML, SSType.Category.BINARY, SSType.Category.LONG_BINARY, SSType.Category.VECTOR)),
 
         CLOB(JDBCType.Category.CLOB, EnumSet.of(SSType.Category.LONG_CHARACTER, SSType.Category.LONG_NCHARACTER,
                 SSType.Category.XML)),

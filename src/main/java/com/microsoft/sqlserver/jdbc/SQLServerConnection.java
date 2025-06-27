@@ -1030,7 +1030,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * A string that indicates the vector type support during connection initialization.
-     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type float32 are returned as vectors).  
+     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type FLOAT32 are returned as vectors).  
      * Default is "v1".
      */
     private String vectorTypeSupport = VECTOR_SUPPORT_V1;
@@ -1051,17 +1051,26 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      *
      * @param vectorTypeSupport
      * A string that indicates the vector type support during connection initialization.
-     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type float32 are returned as vectors).  
+     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type FLOAT32 are returned as vectors).  
      * Default is "v1".
      */
     @Override
     public void setVectorTypeSupport(String vectorTypeSupport) {
-        if (!VECTOR_SUPPORT_OFF.equalsIgnoreCase(vectorTypeSupport) && !VECTOR_SUPPORT_V1.equalsIgnoreCase(vectorTypeSupport)) {
+        if (vectorTypeSupport == null) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
-            Object[] msgArgs = { vectorTypeSupport };
+            Object[] msgArgs = { "null" };
             throw new IllegalArgumentException(form.format(msgArgs));
         }
-        this.vectorTypeSupport = vectorTypeSupport.toLowerCase();
+        switch (vectorTypeSupport.trim().toLowerCase()) {
+            case VECTOR_SUPPORT_OFF:
+            case VECTOR_SUPPORT_V1:
+                this.vectorTypeSupport = vectorTypeSupport.toLowerCase();
+                break;
+            default:
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
+                Object[] msgArgs = { vectorTypeSupport };
+                throw new IllegalArgumentException(form.format(msgArgs));
+        }
     }
 
     /** user set TNIR flag */
