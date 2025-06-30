@@ -32,9 +32,9 @@ public final class Vector implements java.io.Serializable {
     public Vector(int dimensionCount, VectorDimensionType vectorType, Object[] data) {
         validateVectorParameters(dimensionCount, vectorType, data);
 
-        this.dimensionCount = dimensionCount; // checks non zero
+        this.dimensionCount = dimensionCount;
         this.vectorType = vectorType;
-        this.data = data; // float and null
+        this.data = data;
     }
 
     /**
@@ -48,15 +48,29 @@ public final class Vector implements java.io.Serializable {
         this(precision, getVectorDimensionTypeFromScaleValue(scale), data);
     }
 
-    // Getter methods for vector properties
+    /**
+     * Returns the data of the vector.
+     * 
+     * @return The object array representing the vector data.
+     */
     public Object[] getData() {
         return data;
     }
 
+    /**
+     * Returns the number of dimensions in the vector.
+     * 
+     * @return The dimension count of the vector.
+     */
     public int getDimensionCount() {
         return dimensionCount;
     }
 
+    /**
+     * Returns the type of the vector.
+     * 
+     * @return The vector dimension type.
+     */
     public VectorDimensionType getVectorDimensionType() {
         return vectorType;
     }
