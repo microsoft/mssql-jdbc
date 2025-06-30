@@ -34,6 +34,9 @@ import java.util.logging.Level;
 
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
+import microsoft.sql.Vector;
+import microsoft.sql.Vector.VectorDimensionType;
+
 
 /**
  * Indicates the type of the row received from the server.
@@ -2497,6 +2500,18 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             returnValue = guid != null ? Util.readGUIDtoUUID(guid) : null;
         } else if (type == SQLXML.class) {
             returnValue = getSQLXML(columnIndex);
+        } else if (type == Vector.class) {
+            returnValue = getValue(columnIndex, JDBCType.VECTOR);
+            Vector vector = null;
+            if (returnValue == null) {
+                TypeInfo typeInfo = getterGetColumn(columnIndex).getTypeInfo();
+                int precision = typeInfo.getPrecision();
+                VectorDimensionType scale = VectorUtils.getVectorDimensionType(typeInfo.getScale());
+                vector = new Vector(precision, scale, null);
+            } else {
+                vector = VectorUtils.fromBytes((byte[]) returnValue);
+            }
+            returnValue = vector;
         } else if (type == Blob.class) {
             returnValue = getBlob(columnIndex);
         } else if (type == Clob.class) {

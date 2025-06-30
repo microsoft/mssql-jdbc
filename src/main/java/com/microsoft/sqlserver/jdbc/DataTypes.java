@@ -66,6 +66,7 @@ enum TDSType {
     NTEXT(0x63), // 99
     UDT(0xF0), // -16
     XML(0xF1), // -15
+    VECTOR(0xF5), // 245
 
     // LONGLEN types
     SQL_VARIANT(0x62); // 98
@@ -149,7 +150,8 @@ enum SSType {
     XML(Category.XML, "xml", JDBCType.LONGNVARCHAR),
     TIMESTAMP(Category.TIMESTAMP, "timestamp", JDBCType.BINARY),
     GEOMETRY(Category.UDT, "geometry", JDBCType.GEOMETRY),
-    GEOGRAPHY(Category.UDT, "geography", JDBCType.GEOGRAPHY);
+    GEOGRAPHY(Category.UDT, "geography", JDBCType.GEOGRAPHY),
+    VECTOR(Category.VECTOR, "vector", JDBCType.VECTOR);
 
     final Category category;
     private final String name;
@@ -205,7 +207,8 @@ enum SSType {
         TIMESTAMP,
         UDT,
         SQL_VARIANT,
-        XML;
+        XML,
+        VECTOR;
 
         private static final Category[] VALUES = values();
     }
@@ -267,7 +270,9 @@ enum SSType {
 
         SQL_VARIANT(SSType.Category.SQL_VARIANT, EnumSet.of(JDBCType.Category.CHARACTER, JDBCType.Category.SQL_VARIANT,
                 JDBCType.Category.NUMERIC, JDBCType.Category.DATE, JDBCType.Category.TIME, JDBCType.Category.BINARY,
-                JDBCType.Category.TIMESTAMP, JDBCType.Category.NCHARACTER, JDBCType.Category.GUID));
+                JDBCType.Category.TIMESTAMP, JDBCType.Category.NCHARACTER, JDBCType.Category.GUID)),
+
+        VECTOR(SSType.Category.VECTOR, EnumSet.of(JDBCType.Category.VECTOR));    
 
         private final SSType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -454,7 +459,9 @@ enum JavaType {
                     case NTEXT:
                         jdbcType = JDBCType.LONGVARCHAR;
                         break;
-
+                    case VECTOR:
+                        jdbcType = JDBCType.VECTOR;
+                        break;
                     case XML:
                     default:
                         jdbcType = JDBCType.LONGVARBINARY;
@@ -478,6 +485,7 @@ enum JavaType {
     READER(Reader.class, JDBCType.LONGVARCHAR),
     // Note: Only SQLServerSQLXML SQLXML instances are accepted by this driver
     SQLXML(SQLServerSQLXML.class, JDBCType.SQLXML),
+    VECTOR(microsoft.sql.Vector.class, JDBCType.VECTOR),
     OBJECT(Object.class, JDBCType.UNKNOWN);
 
     private final Class<?> javaClass;
@@ -677,7 +685,8 @@ enum JDBCType {
     SQL_VARIANT(Category.SQL_VARIANT, microsoft.sql.Types.SQL_VARIANT, Object.class.getName()),
     GEOMETRY(Category.GEOMETRY, microsoft.sql.Types.GEOMETRY, Object.class.getName()),
     GEOGRAPHY(Category.GEOGRAPHY, microsoft.sql.Types.GEOGRAPHY, Object.class.getName()),
-    LOCALDATETIME(Category.TIMESTAMP, java.sql.Types.TIMESTAMP, LocalDateTime.class.getName());
+    LOCALDATETIME(Category.TIMESTAMP, java.sql.Types.TIMESTAMP, LocalDateTime.class.getName()),
+    VECTOR(Category.VECTOR, microsoft.sql.Types.VECTOR, microsoft.sql.Vector.class.getName());
 
     final Category category;
     private final int intValue;
@@ -726,7 +735,8 @@ enum JDBCType {
         GUID,
         SQL_VARIANT,
         GEOMETRY,
-        GEOGRAPHY;
+        GEOGRAPHY,
+        VECTOR;
 
         private static final Category[] VALUES = values();
     }
@@ -799,7 +809,9 @@ enum JDBCType {
 
         GEOMETRY(JDBCType.Category.GEOMETRY, EnumSet.of(JDBCType.Category.GEOMETRY)),
 
-        GEOGRAPHY(JDBCType.Category.GEOGRAPHY, EnumSet.of(JDBCType.Category.GEOGRAPHY));
+        GEOGRAPHY(JDBCType.Category.GEOGRAPHY, EnumSet.of(JDBCType.Category.GEOGRAPHY)),
+
+        VECTOR(JDBCType.Category.VECTOR, EnumSet.of(JDBCType.Category.VECTOR));
 
         private final JDBCType.Category from;
         private final EnumSet<JDBCType.Category> to;
@@ -836,11 +848,11 @@ enum JDBCType {
                 SSType.Category.DATETIMEOFFSET, SSType.Category.CHARACTER, SSType.Category.LONG_CHARACTER,
                 SSType.Category.NCHARACTER, SSType.Category.LONG_NCHARACTER, SSType.Category.XML,
                 SSType.Category.BINARY, SSType.Category.LONG_BINARY, SSType.Category.UDT, SSType.Category.GUID,
-                SSType.Category.TIMESTAMP, SSType.Category.SQL_VARIANT)),
+                SSType.Category.TIMESTAMP, SSType.Category.SQL_VARIANT, SSType.Category.VECTOR)),
 
         LONG_CHARACTER(JDBCType.Category.LONG_CHARACTER, EnumSet.of(SSType.Category.CHARACTER,
                 SSType.Category.LONG_CHARACTER, SSType.Category.NCHARACTER, SSType.Category.LONG_NCHARACTER,
-                SSType.Category.XML, SSType.Category.BINARY, SSType.Category.LONG_BINARY)),
+                SSType.Category.XML, SSType.Category.BINARY, SSType.Category.LONG_BINARY, SSType.Category.VECTOR)),
 
         CLOB(JDBCType.Category.CLOB, EnumSet.of(SSType.Category.LONG_CHARACTER, SSType.Category.LONG_NCHARACTER,
                 SSType.Category.XML)),
@@ -899,7 +911,10 @@ enum JDBCType {
                 SSType.Category.DATETIMEOFFSET, SSType.Category.CHARACTER, SSType.Category.LONG_CHARACTER,
                 SSType.Category.NCHARACTER, SSType.Category.LONG_NCHARACTER)),
 
-        SQL_VARIANT(JDBCType.Category.SQL_VARIANT, EnumSet.of(SSType.Category.SQL_VARIANT));
+        SQL_VARIANT(JDBCType.Category.SQL_VARIANT, EnumSet.of(SSType.Category.SQL_VARIANT)),
+
+        VECTOR(JDBCType.Category.VECTOR, EnumSet.of(SSType.Category.CHARACTER, SSType.Category.LONG_CHARACTER, 
+                SSType.Category.VECTOR));
 
         private final JDBCType.Category from;
         private final EnumSet<SSType.Category> to;
@@ -1002,6 +1017,8 @@ enum JDBCType {
                 case NVARCHAR:
                 case SQLXML:
                     return java.sql.Types.VARCHAR;
+                case VECTOR:
+                    return microsoft.sql.Types.VECTOR;
                 case LONGNVARCHAR:
                     return java.sql.Types.LONGVARCHAR;
                 case NCLOB:

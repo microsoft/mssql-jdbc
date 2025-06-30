@@ -1681,7 +1681,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (microsoft.sql.Types.STRUCTURED == jdbcType) {
             tvpName = getTVPNameFromObject(n, obj);
         }
-        setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), null, null, false, n, tvpName);
+        Integer precision = null, scale = null;
+        if (microsoft.sql.Types.VECTOR == jdbcType && obj instanceof microsoft.sql.Vector) {
+            microsoft.sql.Vector vector = (microsoft.sql.Vector) obj;
+            precision = vector.getDimensionCount();
+            scale = (int) VectorUtils.getScaleByte(vector.getVectorDimensionType());
+        }
+
+        setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), scale, precision, false, n, tvpName);
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
@@ -1698,12 +1705,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For all other types, this value will be ignored.
 
+        Integer precision = null;
+        if (microsoft.sql.Types.VECTOR == targetSqlType && x instanceof microsoft.sql.Vector) {
+            precision = ((microsoft.sql.Vector) x).getDimensionCount();
+        }
+
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
                         || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
                         || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
-                        || Reader.class.isInstance(x)) ? scaleOrLength : null,
-                null, false, parameterIndex, null);
+                        || Reader.class.isInstance(x)
+                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scaleOrLength : null,
+                precision, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
@@ -1723,7 +1736,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
-                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
+                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)
+                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scale : null,
                 precision, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
@@ -1744,7 +1758,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
-                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
+                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)
+                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scale : null,
                 precision, forceEncrypt, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
@@ -2542,6 +2557,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             case java.sql.Types.BINARY:
             case java.sql.Types.LONGVARBINARY:
             case java.sql.Types.VARBINARY:
+            case microsoft.sql.Types.VECTOR:
                 // Spatial datatypes fall under Varbinary, check if the UDT is geometry/geography.
                 typeName = ti.getSSTypeName();
                 if ("geometry".equalsIgnoreCase(typeName) || "geography".equalsIgnoreCase(typeName)) {
