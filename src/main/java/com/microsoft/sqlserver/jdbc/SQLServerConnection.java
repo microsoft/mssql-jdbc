@@ -1191,6 +1191,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return serverSupportedDataClassificationVersion;
     }
 
+    /** whether server supports JSON */
+    private boolean serverSupportsJSON = false;
+
+    /** server supported JSON version */
+    private byte serverSupportedJSONVersion = TDS.JSONSUPPORT_NOT_SUPPORTED;
+
+    boolean getServerSupportsJSON() {
+        return serverSupportsJSON;
+    }
+
     /** Boolean that indicates whether LOB objects created by this connection should be loaded into memory */
     private boolean delayLoadingLobs = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue();
 
@@ -5611,6 +5621,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return len;
     }
 
+    int writeJSONSupportFeatureRequest(boolean write, /* if false just calculates the length */
+            TDSWriter tdsWriter) throws SQLServerException {
+        int len = 6; // 1byte = featureID, 4bytes = featureData length, 1 bytes = Version
+        if (write) {
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_JSONSUPPORT);
+            tdsWriter.writeInt(1);
+            tdsWriter.writeByte(TDS.MAX_JSONSUPPORT_VERSION);
+        }
+        return len;
+    }
+
     int writeIdleConnectionResiliencyRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
         SessionStateTable ssTable = sessionRecovery.getSessionStateTable();
         int len = 1;
@@ -6745,6 +6766,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sessionRecovery.setConnectionRecoveryPossible(true);
                 break;
             }
+
+            case TDS.TDS_FEATURE_EXT_JSONSUPPORT: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for JSON Support.");
+                }
+
+                if (1 != data.length) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_unknownJSONSupportValue"), null);
+                }
+
+                serverSupportedJSONVersion = data[0];
+                if (0 == serverSupportedJSONVersion || serverSupportedJSONVersion > TDS.MAX_JSONSUPPORT_VERSION) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_InvalidJSONVersionNumber"), null);
+                }
+                serverSupportsJSON = true;
+                break;
+            }
+
             default: {
                 // Unknown feature ack
                 throw new SQLServerException(SQLServerException.getErrString("R_UnknownFeatureAck"), null);
@@ -7045,6 +7084,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         len = len + writeDNSCacheFeatureRequest(false, tdsWriter);
 
+        // request JSON support
+        len += writeJSONSupportFeatureRequest(false, tdsWriter);
+
         len = len + 1; // add 1 to length because of FeatureEx terminator
 
         // Idle Connection Resiliency is requested
@@ -7241,6 +7283,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         writeDataClassificationFeatureRequest(true, tdsWriter);
         writeUTF8SupportFeatureRequest(true, tdsWriter);
         writeDNSCacheFeatureRequest(true, tdsWriter);
+        writeJSONSupportFeatureRequest(true, tdsWriter);
 
         // Idle Connection Resiliency is requested
         if (connectRetryCount > 0) {
