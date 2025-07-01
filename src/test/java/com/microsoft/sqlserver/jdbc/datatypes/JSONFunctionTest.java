@@ -6,17 +6,17 @@
 package com.microsoft.sqlserver.jdbc.datatypes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.BufferedReader;
+import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -1644,7 +1644,7 @@ public class JSONFunctionTest extends AbstractTest {
                 }
             }
             
-            assertTrue(Files.mismatch(Path.of(JSON_FILE_PATH), tempFile) == -1);
+            assertTrue(filesAreEqual(Path.of(JSON_FILE_PATH), tempFile));
         
         } catch (Exception e) {
             fail("Test failed due to: " + e.getMessage());
@@ -1656,6 +1656,38 @@ public class JSONFunctionTest extends AbstractTest {
             Files.deleteIfExists(tempFile);
         }
     }
+
+    private boolean filesAreEqual(Path path1, Path path2) throws IOException {
+        try (InputStream is1 = new BufferedInputStream(Files.newInputStream(path1));
+            InputStream is2 = new BufferedInputStream(Files.newInputStream(path2))) {
+
+            byte[] buf1 = new byte[1024 * 1024]; // 64KB buffer
+            byte[] buf2 = new byte[1024 * 1024];
+
+            int numRead1, numRead2;
+
+            while (true) {
+                numRead1 = is1.read(buf1);
+                numRead2 = is2.read(buf2);
+
+                if (numRead1 != numRead2) {
+                    return false;
+                }
+
+                if (numRead1 == -1) { // both files reached EOF
+                    return true;
+                }
+
+                for (int i = 0; i < numRead1; i++) {
+                    if (buf1[i] != buf2[i]) {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
+
 
     /*
      * Test inserting a 1.98 GB JSON file into a table.
@@ -1701,7 +1733,7 @@ public class JSONFunctionTest extends AbstractTest {
                 }
             }
             
-            assertTrue(Files.mismatch(Path.of(JSON_FILE_PATH), tempFile) == -1);
+            assertTrue(filesAreEqual(Path.of(JSON_FILE_PATH), tempFile));
         
         } catch (Exception e) {
             fail("Test failed due to: " + e.getMessage());
