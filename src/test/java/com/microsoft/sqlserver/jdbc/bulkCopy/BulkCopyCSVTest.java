@@ -456,6 +456,12 @@ public class BulkCopyCSVTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test bulk copy with JSON data type
+     * 
+     * This test reads a CSV file with JSON data and performs a bulk copy into a table with a JSON column.
+     * It verifies that the data is copied correctly by comparing the values in the table with the expected values.
+     */
     @Test
     @DisplayName("Test Bulk Copy with JSON Data")
     @Tag(Constants.JSONTest)

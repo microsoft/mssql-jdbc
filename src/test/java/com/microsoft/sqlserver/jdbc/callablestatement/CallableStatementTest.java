@@ -605,6 +605,11 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
     
+    /**
+     * Tests JSON column in a table with setObject
+     * 
+     * @throws SQLException
+     */
     @Test
     @Tag(Constants.JSONTest)
 	public void testJSONColumnInTableWithSetObject() throws SQLException {
