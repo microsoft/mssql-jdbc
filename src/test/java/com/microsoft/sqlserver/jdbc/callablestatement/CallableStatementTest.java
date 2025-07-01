@@ -117,8 +117,6 @@ public class CallableStatementTest extends AbstractTest {
             createGetObjectOffsetDateTimeProcedure(stmt);
             createConditionalProcedure();
             createSimpleRetValSproc();
-            createJSONTestTable(stmt);
-			createJSONStoredProcedure(stmt);
         }
     }
 
@@ -615,6 +613,7 @@ public class CallableStatementTest extends AbstractTest {
 	public void testJSONColumnInTableWithSetObject() throws SQLException {
 
 		try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            createJSONTestTable(stmt);
 			String jsonString = "{\"key\":\"value\"}";
 			try (CallableStatement callableStatement = con
 					.prepareCall("INSERT INTO " + tableNameJSON + " (col1) VALUES (?)")) {
@@ -635,7 +634,8 @@ public class CallableStatementTest extends AbstractTest {
 	public void testJSONProcedureWithSetObject() throws SQLException {
 
 		try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
-			String jsonString = "{\"key\":\"value\"}";
+			createJSONStoredProcedure(stmt);
+            String jsonString = "{\"key\":\"value\"}";
 			try (CallableStatement callableStatement = con.prepareCall("{call " + procedureNameJSON + " (?)}")) {
 				callableStatement.setObject(1, jsonString);
 				callableStatement.execute();
