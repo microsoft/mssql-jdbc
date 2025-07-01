@@ -3023,6 +3023,16 @@ final class TypeInfo implements Serializable {
         }),
         
         VECTOR(TDSType.VECTOR, new Strategy() {
+            /**
+             * Sets the fields of typeInfo to the correct values
+             * 
+             * @param typeInfo
+             *        the TypeInfo whos values are being corrected
+             * @param tdsReader
+             *        the TDSReader used to set the fields of typeInfo to the correct values
+             * @throws SQLServerException
+             *         when an error occurs
+             */
             public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
                 typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
                 typeInfo.maxLength = tdsReader.readUnsignedShort();

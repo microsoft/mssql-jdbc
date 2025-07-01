@@ -1083,7 +1083,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
             TestUtils.dropDatabaseIfExists(dbName, connectionString);
         }
     }
-       
     /**
      * Test for VECTOR column metadata
      * 
@@ -1151,6 +1150,11 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test for JSON column metadata
+     * 
+     * @throws SQLException
+     */
     @Test
     @Tag(Constants.JSONTest)
     public void testJSONMetaData() throws SQLException {
