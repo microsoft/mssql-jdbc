@@ -55,6 +55,7 @@ import java.util.logging.Level;
 import javax.sql.RowSet;
 
 import microsoft.sql.DateTimeOffset;
+import microsoft.sql.Vector;
 
 
 /**
@@ -1099,6 +1100,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
                 break;
 
+            case microsoft.sql.Types.VECTOR: // 0xF5
+                tdsWriter.writeByte(TDSType.VECTOR.byteValue());
+                tdsWriter.writeShort((short) (VectorUtils.getVectorLength(srcScale, srcPrecision))); //length
+                byte srcByte = (byte) (VectorUtils.getScaleByte(srcScale));
+                tdsWriter.writeByte((byte) srcByte); //scale
+                break;
+
             case microsoft.sql.Types.DATETIME:
             case microsoft.sql.Types.SMALLDATETIME:
             case java.sql.Types.TIMESTAMP:
@@ -1446,14 +1454,20 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 else
                     return SSType.VARBINARY.toString() + "(" + bulkPrecision + ")";
 
+            case microsoft.sql.Types.VECTOR:
+                return SSType.VECTOR.toString() + "(" + bulkPrecision + ")";
             case microsoft.sql.Types.DATETIME:
             case microsoft.sql.Types.SMALLDATETIME:
             case java.sql.Types.TIMESTAMP:
                 switch (destSSType) {
                     case SMALLDATETIME:
                         if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
+                            /*
+                             * Fallback to maximum precision when sending smalldatetime as varchar.
+                             * The default precision (16) is too small for the full string value and will cause issue.
+                             */
                             return SSType.VARCHAR.toString() + "("
-                                    + ((0 == bulkPrecision) ? SOURCE_BULK_RECORD_TEMPORAL_MAX_PRECISION : bulkPrecision)
+                                    + SOURCE_BULK_RECORD_TEMPORAL_MAX_PRECISION
                                     + ")";
                         } else {
                             return SSType.SMALLDATETIME.toString();
@@ -2182,6 +2196,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.LONGVARCHAR:
             case java.sql.Types.LONGNVARCHAR:
             case java.sql.Types.LONGVARBINARY:
+            case microsoft.sql.Types.VECTOR:
                 if (isStreaming) {
                     tdsWriter.writeLong(PLPInputStream.PLP_NULL);
                 } else {
@@ -2254,6 +2269,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.TIME:
                 case java.sql.Types.TIMESTAMP:
                 case microsoft.sql.Types.DATETIMEOFFSET:
+                case microsoft.sql.Types.DATETIME:
+                case microsoft.sql.Types.SMALLDATETIME:
                     bulkJdbcType = java.sql.Types.VARCHAR;
                     break;
                 default:
@@ -2408,6 +2425,21 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         } else {
                             tdsWriter.writeBigDecimal((BigDecimal) colValue, bulkJdbcType, bulkPrecision, bulkScale);
                         }
+                    }
+                    break;
+
+                case microsoft.sql.Types.VECTOR:
+                    
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    } else {
+                        Vector vector = (Vector) colValue;
+                        if (vector.getData() == null) {
+                            writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                        } else {
+                            tdsWriter.writeShort((short) (VectorUtils.getVectorLength(vector))); // Actual length
+                            tdsWriter.writeBytes(VectorUtils.toBytes(vector)); // Write vector data
+                        } 
                     }
                     break;
 
@@ -3050,6 +3082,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.FLOAT:
                     return sourceResultSet.getObject(srcColOrdinal);
 
+                case microsoft.sql.Types.VECTOR:
+                    return sourceResultSet.getObject(srcColOrdinal, Vector.class);
                 case microsoft.sql.Types.MONEY:
                 case microsoft.sql.Types.SMALLMONEY:
                 case java.sql.Types.DECIMAL:
@@ -3190,7 +3224,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     || (java.sql.Types.TIMESTAMP == srcJdbcType) || (microsoft.sql.Types.DATETIMEOFFSET == srcJdbcType)
                     || (2013 == srcJdbcType) || (2014 == srcJdbcType)) {
                 colValue = getTemporalObjectFromCSV(colValue, srcJdbcType, srcColOrdinal);
-            } else if ((java.sql.Types.NUMERIC == srcJdbcType) || (java.sql.Types.DECIMAL == srcJdbcType)) {
+            } else if ((java.sql.Types.NUMERIC == srcJdbcType) || (java.sql.Types.DECIMAL == srcJdbcType)
+                    || (microsoft.sql.Types.VECTOR == srcJdbcType)) {
                 int baseDestPrecision = destCryptoMeta.baseTypeInfo.getPrecision();
                 int baseDestScale = destCryptoMeta.baseTypeInfo.getScale();
                 if ((srcScale != baseDestScale) || (srcPrecision != baseDestPrecision)) {
@@ -3647,6 +3682,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                     }
                     return byteArrayValue;
+                case VECTOR:
+                    Vector vector = (Vector) value;
+                    byteValue = VectorUtils.toBytes(vector);
+                    if (byteValue.length > VectorUtils.getVectorLength(vector)) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
+                        Object[] msgArgs = {srcJdbcType, destJdbcType, destName};
+                        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                    }
+                    return byteValue;
                 case GUID:
                     return Util.asGuidByteArray(UUID.fromString((String) value));
 

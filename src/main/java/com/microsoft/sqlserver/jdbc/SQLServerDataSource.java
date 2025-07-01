@@ -1112,7 +1112,21 @@ public class SQLServerDataSource
         return getBooleanProperty(connectionProps,
                 SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
                 SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.getDefaultValue());
-    }    
+    }
+    
+    @Override
+    public void setVectorTypeSupport(String vectorTypeSupport) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.toString(),
+                vectorTypeSupport);
+    }
+
+    @Override
+    public String getVectorTypeSupport() {
+        return getStringProperty(connectionProps,
+                SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.toString(),
+                SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.getDefaultValue());
+    }
+
     /**
      * @deprecated
      */
