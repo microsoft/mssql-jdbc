@@ -44,6 +44,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Json Functions")
+@Tag(Constants.JSONTest)
 public class JSONFunctionTest extends AbstractTest {
 
     @BeforeAll
