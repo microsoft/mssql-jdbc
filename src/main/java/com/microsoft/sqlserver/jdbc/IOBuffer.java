@@ -4873,7 +4873,16 @@ final class TDSWriter {
 
     void writeRPCJson(String sName, String sValue, boolean bOut) throws SQLServerException {
         writeRPCNameValType(sName, bOut, TDSType.JSON);
-        writeLong(0xFFFFFFFFFFFFFFFFL);
+        if (sValue == null) {
+            writeInt(0); // max length
+            writeInt(0); // actual length
+        } else {
+            int nValueLen = sValue.length();
+            writeInt(nValueLen); // max length
+            writeInt(nValueLen); // actual length
+            if (nValueLen != 0)
+                writeString(sValue);
+        }
     }
 
     /**
