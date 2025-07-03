@@ -490,7 +490,7 @@ final class SQLServerCertificateUtils {
 
         // Couldn't find magic due to padding, trim the key
         Arrays.fill(keyHash, 5, keyHash.length, (byte) 0);
-        key = new SecretKeySpec(keyHash, 0, 16, RC4_ALG);
+        key = new SecretKeySpec(keyHash, 0, 16, RC4_ALG); // CodeQL [SM05136] Required for backwards compatibility reading of old private keys
         decrypted = decryptSecretKey(key, originalKey);
         if (startsWithMagic(decrypted)) {
             return decrypted;
