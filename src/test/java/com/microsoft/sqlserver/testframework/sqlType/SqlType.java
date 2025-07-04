@@ -21,6 +21,7 @@ public abstract class SqlType extends DBItems {
     // exact data for debugging
     protected String name = null; // type name for creating SQL query
     protected JDBCType jdbctype = JDBCType.NULL;
+    protected int vendorTypeNumber = 0;
     protected int precision = 0;
     protected int scale = 0;
     protected Object minvalue = null;
@@ -70,6 +71,34 @@ public abstract class SqlType extends DBItems {
             VariableLengthType variableLengthType, Class type) {
         this.name = name;
         this.jdbctype = jdbctype;
+        this.precision = precision;
+        this.scale = scale;
+        this.minvalue = min;
+        this.maxvalue = max;
+        this.nullvalue = nullvalue;
+        this.variableLengthType = variableLengthType;
+        this.type = type;
+    }
+
+    /**
+     * 
+     * @param name
+     * @param vendorTypeNumber
+     * @param precision
+     * @param scale
+     * @param min
+     *        minimum allowed value for the SQL type
+     * @param max
+     *        maximum allowed value for the SQL type
+     * @param nullvalue
+     *        default null value for the SQL type
+     * @param variableLengthType
+     *        {@link VariableLengthType}
+     */
+    SqlType(String name, int vendorTypeNumber, int precision, int scale, Object min, Object max, Object nullvalue, 
+            VariableLengthType variableLengthType, Class type) {
+        this.name = name;
+        this.vendorTypeNumber = vendorTypeNumber;
         this.precision = precision;
         this.scale = scale;
         this.minvalue = min;
@@ -262,4 +291,20 @@ public abstract class SqlType extends DBItems {
         return false;
     }
 
+    /**
+     * 
+     * @return vendorTypeNumber of SqlType object
+     */
+    public int getVendorTypeNumber() {
+        return vendorTypeNumber;
+    }
+
+    /**
+     * 
+     * @param vendorTypeNumber
+     *        set vendorTypeNumber of SqlType object
+     */
+    public void setVendorTypeNumber(int vendorTypeNumber) {
+        this.vendorTypeNumber = vendorTypeNumber;
+    }
 }
