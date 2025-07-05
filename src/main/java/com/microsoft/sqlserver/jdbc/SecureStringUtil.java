@@ -85,8 +85,8 @@ final class SecureStringUtil {
             secretKey = new SecretKeySpec(keygen.generateKey().getEncoded(), "AES");
 
             // get ciphers for encryption/decryption
-            encryptCipher = Cipher.getInstance(CIPHER_TRANSFORMATION); // This cipher is used appropriately in a short-lived, in-memory scenario, with each nonce only used once for encryption.
-            decryptCipher = Cipher.getInstance(CIPHER_TRANSFORMATION); // This cipher is used appropriately in a short-lived, in-memory scenario, with each nonce only used once for encryption.
+            encryptCipher = Cipher.getInstance(CIPHER_TRANSFORMATION); // CodeQL [SM05136] This cipher is used appropriately in a short-lived, in-memory scenario, with each nonce only used once for encryption.
+            decryptCipher = Cipher.getInstance(CIPHER_TRANSFORMATION); // CodeQL [SM05136] This cipher is used appropriately in a short-lived, in-memory scenario, with each nonce only used once for encryption.
         } catch (Exception e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_SecureStringInitFailed"));
             Object[] msgArgs = {e.getMessage()};
