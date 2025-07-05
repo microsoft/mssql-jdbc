@@ -87,6 +87,12 @@ class BulkCopyTestUtil {
                         }
                     }
                 }
+                if(wrapper.isUsingColumnOrderHints()) {
+                    for (int i = 0; i < wrapper.coh.size(); i++) {
+                        BulkCopyTestWrapper.ColumnOrderHint columnOrderHint = wrapper.coh.get(i);
+                        bulkCopy.addColumnOrderHint(columnOrderHint.columnName, columnOrderHint.sortOrder);
+                    }
+                }
                 bulkCopy.writeToServer((ResultSet) srcResultSet.product());
                 if (validateResult) {
                     validateValues(con, sourceTable, destinationTable);
@@ -138,6 +144,13 @@ class BulkCopyTestUtil {
                     }
                 }
             }
+            if(wrapper.isUsingColumnOrderHints()) {
+                for (int i = 0; i < wrapper.coh.size(); i++) {
+                    BulkCopyTestWrapper.ColumnOrderHint columnOrderHint = wrapper.coh.get(i);
+                    bulkCopy.addColumnOrderHint(columnOrderHint.columnName, columnOrderHint.sortOrder);
+                }
+            }
+
             bulkCopy.writeToServer((ResultSet) srcResultSet.product());
             if (validateResult) {
                 validateValues(con, sourceTable, destinationTable);
@@ -182,6 +195,12 @@ class BulkCopyTestUtil {
                         } else if ((!currentMap.sourceIsInt) && (!currentMap.destIsInt)) {
                             bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
                         }
+                    }
+                }
+                if(wrapper.isUsingColumnOrderHints()) {
+                    for (int i = 0; i < wrapper.coh.size(); i++) {
+                        BulkCopyTestWrapper.ColumnOrderHint columnOrderHint = wrapper.coh.get(i);
+                        bulkCopy.addColumnOrderHint(columnOrderHint.columnName, columnOrderHint.sortOrder);
                     }
                 }
                 bulkCopy.writeToServer((ResultSet) srcResultSet.product());
@@ -242,6 +261,12 @@ class BulkCopyTestUtil {
                         } else if ((!currentMap.sourceIsInt) && (!currentMap.destIsInt)) {
                             bulkCopy.addColumnMapping(currentMap.srcString, currentMap.destString);
                         }
+                    }
+                }
+                if(wrapper.isUsingColumnOrderHints()) {
+                    for (int i = 0; i < wrapper.coh.size(); i++) {
+                        BulkCopyTestWrapper.ColumnOrderHint columnOrderHint = wrapper.coh.get(i);
+                        bulkCopy.addColumnOrderHint(columnOrderHint.columnName, columnOrderHint.sortOrder);
                     }
                 }
                 bulkCopy.writeToServer((ResultSet) srcResultSet.product());
