@@ -21,6 +21,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.CallableStatement;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -53,6 +54,7 @@ public class JSONFunctionTest extends AbstractTest {
     }
     
     private static final String JSON_FILE_PATH = "large_json.json";
+    private static String procedureName = RandomUtil.getIdentifier("testJsonProcedure");
 
     /**
      * Test ISJSON function with JSON.
@@ -101,7 +103,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testISJSONWithVariousInputs() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("dstTable"));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("dstTableNew"));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement stmt = conn.createStatement()) {
@@ -1780,6 +1782,45 @@ public class JSONFunctionTest extends AbstractTest {
             try (Connection conn = DriverManager.getConnection(connectionString);
                     Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        }
+    }
+
+    private void createProcedure() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropProcedureIfExists(procedureName, stmt);
+            String sql = "CREATE OR ALTER PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "\n"
+                    + " @inputJson json,\n"
+                    + " @outputJson json OUTPUT AS\n"
+                    + "BEGIN\n"
+                    + "    SET @outputJson = @inputJson "
+                    + "END";
+            stmt.execute(sql);
+        }
+    }
+
+    /**
+     * Test a stored procedure that accepts JSON input and returns JSON output.
+     * This test ensures that the procedure can handle JSON data correctly.
+     * input: Procedure `JsonProcedure` with input and output parameters of type JSON.
+     * output: JSON data returned from the procedure.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testJsonStoredProcedureInputOutput() throws SQLException {
+        createProcedure();
+        String call = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?, ?)}";
+        try (CallableStatement cstmt = connection.prepareCall(call)) {
+            String inputJson = "{\"key\":\"value\"}";
+            cstmt.setString(1, inputJson);
+            cstmt.registerOutParameter(2, microsoft.sql.Types.JSON);
+
+            cstmt.execute();
+            String outputJson = cstmt.getString(2);
+            System.out.println("Output JSON: " + outputJson);
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropProcedureIfExists(procedureName, stmt);
             }
         }
     }

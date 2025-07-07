@@ -4872,16 +4872,22 @@ final class TDSWriter {
     }
 
     void writeRPCJson(String sName, String sValue, boolean bOut) throws SQLServerException {
+        boolean bValueNull = (sValue == null);
+        int nValueLen = bValueNull ? 0 : (2 * sValue.length());
+
         writeRPCNameValType(sName, bOut, TDSType.JSON);
-        if (sValue == null) {
-            writeInt(0); // max length
-            writeInt(0); // actual length
-        } else {
-            int nValueLen = sValue.length();
-            writeInt(nValueLen); // max length
-            writeInt(nValueLen); // actual length
-            if (nValueLen != 0)
+
+        // PLP encoding is used for JSON values.
+        writeVMaxHeader(nValueLen, bValueNull, /* collation = */ null);
+
+        if (!bValueNull) {
+            if (nValueLen > 0) {
+                writeInt(nValueLen);
                 writeString(sValue);
+            }
+
+            // PLP terminator
+            writeInt(0);
         }
     }
 
