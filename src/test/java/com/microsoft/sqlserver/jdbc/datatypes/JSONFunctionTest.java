@@ -1817,7 +1817,7 @@ public class JSONFunctionTest extends AbstractTest {
 
             cstmt.execute();
             String outputJson = cstmt.getString(2);
-            System.out.println("Output JSON: " + outputJson);
+            assertEquals(inputJson, outputJson, "Output JSON should match input JSON");
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropProcedureIfExists(procedureName, stmt);
