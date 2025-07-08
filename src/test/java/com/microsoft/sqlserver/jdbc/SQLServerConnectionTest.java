@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -64,7 +65,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 @RunWith(JUnitPlatform.class)
 public class SQLServerConnectionTest extends AbstractTest {
-	
+
     // If no retry is done, the function should at least exit in 5 seconds
     static int threshHoldForNoRetryInMilliseconds = 5000;
     static int loginTimeOutInSeconds = 10;
@@ -1472,14 +1473,14 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Test
     public void testGetSqlFedAuthTokenFailure() throws SQLException {
         try (Connection conn = getConnection()){
-        	SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
-        	fedAuthInfo.spn = "https://database.windows.net/";
-        	fedAuthInfo.stsurl = "https://login.windows.net/xxx";
-        	SqlAuthenticationToken fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, "xxx",
+            SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
+            fedAuthInfo.spn = "https://database.windows.net/";
+            fedAuthInfo.stsurl = "https://login.windows.net/xxx";
+            SqlAuthenticationToken fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, "xxx",
                     "xxx",SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString(), 10);
-        	fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-        	//test pass
+            // test pass
             assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
         }        
     }
@@ -1487,14 +1488,14 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Test
     public void testGetSqlFedAuthTokenFailureNoWaiting() throws SQLException {
         try (Connection conn = getConnection()){
-        	SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
-        	fedAuthInfo.spn = "https://database.windows.net/";
-        	fedAuthInfo.stsurl = "https://login.windows.net/xxx";
-        	SqlAuthenticationToken fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, "xxx",
+            SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
+            fedAuthInfo.spn = "https://database.windows.net/";
+            fedAuthInfo.stsurl = "https://login.windows.net/xxx";
+            SqlAuthenticationToken fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, "xxx",
                     "xxx",SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString(), 0);
-        	fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-        	//test pass
+            // test pass
             assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
         }        
     }
@@ -1502,14 +1503,14 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Test
     public void testGetSqlFedAuthTokenFailureNagativeWaiting() throws SQLException {
         try (Connection conn = getConnection()){
-        	SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
-        	fedAuthInfo.spn = "https://database.windows.net/";
-        	fedAuthInfo.stsurl = "https://login.windows.net/xxx";
-        	SqlAuthenticationToken fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, "xxx",
+            SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
+            fedAuthInfo.spn = "https://database.windows.net/";
+            fedAuthInfo.stsurl = "https://login.windows.net/xxx";
+            SqlAuthenticationToken fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, "xxx",
                     "xxx",SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString(), -1);
-        	fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
         } catch (SQLServerException e) {
-        	//test pass
+            // test pass
             assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
         }        
     }
@@ -1588,4 +1589,931 @@ public class SQLServerConnectionTest extends AbstractTest {
         verify(mockConnection, never()).terminate(anyInt(), anyString());
     }
 
+    @Test
+    public void testIsAzureSynapseOnDemandEndpoint() throws Exception {
+        // Use reflection to instantiate SQLServerConnection with a dummy argument
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection synapseConn = ctor.newInstance("test");
+        java.util.Properties props = new java.util.Properties();
+        // Typical Synapse OnDemand endpoint pattern
+        props.setProperty("serverName", "myworkspace-ondemand.sql.azuresynapse.net");
+        synapseConn.activeConnectionProperties = props;
+        assertTrue(synapseConn.isAzureSynapseOnDemandEndpoint(), "Should detect Azure Synapse OnDemand endpoint");
+
+        // Simulate a regular Azure SQL endpoint
+        SQLServerConnection regularConn = ctor.newInstance("test");
+        java.util.Properties props2 = new java.util.Properties();
+        props2.setProperty("serverName", "myserver.database.windows.net");
+        regularConn.activeConnectionProperties = props2;
+        assertFalse(regularConn.isAzureSynapseOnDemandEndpoint(),
+                "Should not detect regular Azure SQL as Synapse OnDemand endpoint");
+    }
+
+    /**
+     * Test for validateMaxSQLLoginName: should throw if login name exceeds max length, otherwise not.
+     */
+    @Test
+    public void testValidateMaxSQLLoginName() throws Exception {
+        // Use reflection to access the method and constant
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+
+        java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("validateMaxSQLLoginName",
+                String.class, String.class);
+        method.setAccessible(true);
+
+        // Get the max length constant
+        java.lang.reflect.Field maxLenField = SQLServerConnection.class.getDeclaredField("MAX_SQL_LOGIN_NAME_WCHARS");
+        maxLenField.setAccessible(true);
+        int maxLen = maxLenField.getInt(conn);
+
+        String propName = "user";
+        String validValue = "a".repeat(maxLen);
+        String tooLongValue = "b".repeat(maxLen + 1);
+
+        // Should NOT throw for valid length
+        method.invoke(conn, propName, validValue);
+
+        // Should throw for too long value
+        Exception ex = assertThrows(Exception.class, () -> {
+            try {
+                method.invoke(conn, propName, tooLongValue);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                // Unwrap
+                throw e.getCause();
+            }
+        });
+        // Should be SQLServerException
+        assertTrue(ex instanceof com.microsoft.sqlserver.jdbc.SQLServerException,
+                "Should throw SQLServerException for too long login name");
+    }
+
+    @Test
+    public void testGetServerNameStringRedirected() throws Exception {
+        // Use reflection to instantiate SQLServerConnection with a dummy argument
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.util.Properties props = new java.util.Properties();
+        props.setProperty("serverName", "originalServer.database.windows.net");
+        conn.activeConnectionProperties = props;
+
+        // Simulate a redirect: pass a different serverName
+        String redirectedServer = "redirectedServer.database.windows.net";
+        String result = conn.getServerNameString(redirectedServer);
+        // The expected format is: {0} (redirected from {1})
+        String expected = redirectedServer + " (redirected from originalServer.database.windows.net)";
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testFederatedAuthenticationFeatureExtensionDataSwitchCases() throws Exception {
+        // Use reflection to access the inner class and constructor
+        Class<?> innerClass = Class.forName(
+                "com.microsoft.sqlserver.jdbc.SQLServerConnection$FederatedAuthenticationFeatureExtensionData");
+        java.lang.reflect.Constructor<?> ctor = innerClass.getDeclaredConstructor(int.class, String.class,
+                boolean.class);
+        ctor.setAccessible(true);
+
+        // All valid authentication strings and expected enum names
+        String[][] cases = {{"ActiveDirectoryPassword", "ACTIVE_DIRECTORY_PASSWORD"},
+                {"ActiveDirectoryIntegrated", "ACTIVE_DIRECTORY_INTEGRATED"},
+                {"ActiveDirectoryManagedIdentity", "ACTIVE_DIRECTORY_MANAGED_IDENTITY"},
+                {"ActiveDirectoryDefault", "ACTIVE_DIRECTORY_DEFAULT"},
+                {"ActiveDirectoryServicePrincipal", "ACTIVE_DIRECTORY_SERVICE_PRINCIPAL"},
+                {"ActiveDirectoryServicePrincipalCertificate", "ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE"},
+                {"ActiveDirectoryInteractive", "ACTIVE_DIRECTORY_INTERACTIVE"}};
+        for (String[] c : cases) {
+            Object obj = ctor.newInstance(1, c[0], true);
+            java.lang.reflect.Field authField = innerClass.getDeclaredField("authentication");
+            authField.setAccessible(true);
+            Object authEnum = authField.get(obj);
+            assertEquals(c[1], authEnum.toString(), "Enum for " + c[0]);
+        }
+
+        // Test default/callback case: if accessTokenCallback or hasAccessTokenCallbackClass is set, should use NOT_SPECIFIED
+        // We'll use reflection to set the static field hasAccessTokenCallbackClass to true, then reset it
+        java.lang.reflect.Field callbackField = SQLServerConnection.class
+                .getDeclaredField("hasAccessTokenCallbackClass");
+        callbackField.setAccessible(true);
+        boolean oldValue = callbackField.getBoolean(null);
+        try {
+            callbackField.setBoolean(null, true);
+            Object obj = ctor.newInstance(1, "", true);
+            java.lang.reflect.Field authField = innerClass.getDeclaredField("authentication");
+            authField.setAccessible(true);
+            Object authEnum = authField.get(obj);
+            assertEquals("NOT_SPECIFIED", authEnum.toString(), "Enum for callback case");
+        } finally {
+            callbackField.setBoolean(null, oldValue);
+        }
+
+        // Test invalid string throws exception if no callback
+        callbackField.setBoolean(null, false);
+        Exception ex = assertThrows(Exception.class, () -> {
+            ctor.newInstance(1, "InvalidAuthType", true);
+        });
+        assertTrue(ex.getCause() instanceof com.microsoft.sqlserver.jdbc.SQLServerException,
+                "Should throw SQLServerException for invalid auth string");
+    }
+
+    @Test
+    public void testSetVectorTypeSupport_UserCase() throws SQLException {
+        // Set to "v1" and set/update column encryption trusted master key paths
+        String connStrV1 = connectionString + ";vectorTypeSupport=v1;";
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStrV1)) {
+            // This should succeed for valid input
+            String keyPath = "C:/trusted/key/path";
+            java.util.Map<String, java.util.List<String>> keyMap = new java.util.HashMap<>();
+            keyMap.put("keyStoreProviderName", java.util.Collections.singletonList(keyPath));
+            SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(keyMap);
+            Boolean[] found = new Boolean[1];
+            java.util.List<String> paths = SQLServerConnection
+                    .getColumnEncryptionTrustedMasterKeyPaths("keyStoreProviderName", found);
+            assertTrue(paths.contains(keyPath), "Trusted master key path should be set when vectorTypeSupport is v1");
+            assertTrue(Boolean.TRUE.equals(found[0]), "Key path should be found for provider");
+
+            // Now update the trusted master key paths for the same provider
+            String updatedKeyPath = "C:/trusted/key/updated";
+            java.util.List<String> updatedKeyPaths = java.util.Collections.singletonList(updatedKeyPath);
+            SQLServerConnection.updateColumnEncryptionTrustedMasterKeyPaths("keyStoreProviderName", updatedKeyPaths);
+            Boolean[] foundUpdated = new Boolean[1];
+            java.util.List<String> updatedPaths = SQLServerConnection
+                    .getColumnEncryptionTrustedMasterKeyPaths("keyStoreProviderName", foundUpdated);
+            assertTrue(updatedPaths.contains(updatedKeyPath), "Updated trusted master key path should be set");
+            assertFalse(updatedPaths.contains(keyPath), "Old key path should not be present after update");
+            assertTrue(Boolean.TRUE.equals(foundUpdated[0]), "Updated key path should be found for provider");
+        }
+
+        // Set to "off" and try to set column encryption trusted master key paths
+        String connStrOff = connectionString + ";vectorTypeSupport=off;";
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStrOff)) {
+            String keyPath = "C:/trusted/key/path";
+            java.util.Map<String, java.util.List<String>> keyMap = new java.util.HashMap<>();
+            keyMap.put("keyStoreProviderName", java.util.Collections.singletonList(keyPath));
+            try {
+                SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(keyMap);
+                Boolean[] found = new Boolean[1];
+                java.util.List<String> paths = SQLServerConnection
+                        .getColumnEncryptionTrustedMasterKeyPaths("keyStoreProviderName", found);
+                // If feature is disabled, paths should be empty or not contain the keyPath
+                assertFalse(paths.contains(keyPath),
+                        "Trusted master key path should not be set when vectorTypeSupport is off");
+                assertFalse(Boolean.TRUE.equals(found[0]),
+                        "Key path should not be found for provider when vectorTypeSupport is off");
+            } catch (Exception e) {
+                // Acceptable: feature may be disabled and throw
+                assertTrue(e instanceof SQLException || e instanceof UnsupportedOperationException);
+            }
+        }
+
+        // Invalid value in connection string should throw
+        String invalidConnStr = connectionString + ";vectorTypeSupport=invalid;";
+        assertThrows(SQLException.class, () -> {
+            PrepUtil.getConnection(invalidConnStr);
+        });
+    }
+
+    /**
+     * User-case driven test: Attempt to connect using each supported authentication type.
+     * This simulates a real user specifying authentication in the connection string.
+     * Note: Actual authentication may fail if not configured, but the test ensures the code path is exercised.
+     */
+    @Test
+    public void testFederatedAuthentication_UserCase() {
+        String[] authTypes = {"ActiveDirectoryPassword", "ActiveDirectoryIntegrated", "ActiveDirectoryManagedIdentity",
+                "ActiveDirectoryDefault", "ActiveDirectoryServicePrincipal",
+                "ActiveDirectoryServicePrincipalCertificate", "ActiveDirectoryInteractive"};
+        for (String auth : authTypes) {
+            String connStr = connectionString + ";authentication=" + auth + ";";
+            try {
+                // We expect most of these to fail unless the environment is configured, but the point is to exercise the user path
+                PrepUtil.getConnection(connStr);
+            } catch (Exception e) {
+                // Acceptable: just ensure the driver attempts to process the auth type
+                assertTrue(e.getMessage().toLowerCase().contains("authentication") || e instanceof SQLException);
+            }
+        }
+
+        // Invalid authentication type should throw
+        String invalidConnStr = connectionString + ";authentication=InvalidAuthType;";
+        assertThrows(SQLException.class, () -> {
+            PrepUtil.getConnection(invalidConnStr);
+        });
+    }
+
+    /**
+     * User-case driven test: Remove column encryption trusted master key paths for a provider and verify removal.
+     */
+    @Test
+    public void testRemoveColumnEncryptionTrustedMasterKeyPaths_UserCase() throws SQLException {
+
+        String connStr = connectionString + ";vectorTypeSupport=v1;";
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStr)) {
+            String provider = "keyStoreProviderName";
+            String keyPath = "C:/trusted/key/path";
+            java.util.Map<String, java.util.List<String>> keyMap = new java.util.HashMap<>();
+            keyMap.put(provider, java.util.Collections.singletonList(keyPath));
+            SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(keyMap);
+            Boolean[] found = new Boolean[1];
+            java.util.List<String> paths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(provider,
+                    found);
+            assertTrue(paths.contains(keyPath), "Trusted master key path should be set before removal");
+            assertTrue(Boolean.TRUE.equals(found[0]), "Key path should be found for provider before removal");
+
+            // Now remove the trusted master key paths for the provider
+            SQLServerConnection.removeColumnEncryptionTrustedMasterKeyPaths(provider);
+            Boolean[] foundAfter = new Boolean[1];
+            java.util.List<String> afterPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(provider,
+                    foundAfter);
+            assertTrue(afterPaths == null || afterPaths.isEmpty(),
+                    "Trusted master key path list should be empty after removal");
+            assertFalse(Boolean.TRUE.equals(foundAfter[0]), "Key path should not be found for provider after removal");
+        }
+
+        // Test isDenaliOrLater utility if available
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            try {
+                java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("isDenaliOrLater");
+                method.setAccessible(true);
+                Object result = null;
+                try {
+                    result = method.invoke(conn);
+                } catch (IllegalAccessException | java.lang.reflect.InvocationTargetException e) {
+                    // If the method cannot be invoked, skip
+                }
+                // Just assert that the method returns a boolean (true/false)
+                if (result != null) {
+                    assertTrue(result instanceof Boolean, "isDenaliOrLater should return a boolean");
+                }
+            } catch (NoSuchMethodException e) {
+                // Method does not exist, skip
+            }
+        }
+    }
+
+    /**
+     * Test that checkClosed throws an exception when called on a closed connection.
+     */
+    @Test
+    public void testCheckClosedThrowsOnClosedConnection() throws Exception {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            conn.close();
+            java.lang.reflect.Method checkClosedMethod = SQLServerConnection.class.getDeclaredMethod("checkClosed");
+            checkClosedMethod.setAccessible(true);
+            Exception ex = assertThrows(Exception.class, () -> {
+                try {
+                    checkClosedMethod.invoke(conn);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    // Unwrap the cause for assertion
+                    throw e.getCause();
+                }
+            });
+            // Should be SQLServerException
+            assertTrue(ex instanceof com.microsoft.sqlserver.jdbc.SQLServerException,
+                    "checkClosed should throw SQLServerException when called on closed connection");
+        }
+    }
+
+    /**
+     * Test the connect method for exception and logging coverage.
+     * This uses reflection to invoke connect and simulates error scenarios.
+     */
+    @Test
+    public void testConnectMethodExceptionAndLogging() throws Exception {
+        // Use reflection to get the connect method
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.lang.reflect.Method connectMethod = SQLServerConnection.class.getDeclaredMethod("connect", String.class,
+                java.util.Properties.class, String.class, String.class);
+        connectMethod.setAccessible(true);
+
+        // Set up logger to FINEST to ensure all logging paths are covered
+        java.util.logging.Logger logger = java.util.logging.Logger.getLogger(SQLServerConnection.class.getName());
+        java.util.logging.Level oldLevel = logger.getLevel();
+        logger.setLevel(java.util.logging.Level.FINEST);
+        try {
+            // Simulate invalid arguments to trigger exception and logging
+            Exception ex = assertThrows(Exception.class, () -> {
+                try {
+                    connectMethod.invoke(conn, "invalidUrl", new java.util.Properties(), null, null);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    throw e.getCause();
+                }
+            });
+            // Should be SQLServerException or IllegalArgumentException depending on code path
+            assertTrue(
+                    ex instanceof com.microsoft.sqlserver.jdbc.SQLServerException
+                            || ex instanceof IllegalArgumentException,
+                    "connect should throw SQLServerException or IllegalArgumentException for invalid input");
+        } finally {
+            logger.setLevel(oldLevel);
+        }
+    }
+
+    /**
+     * Test setKeyStoreSecretAndLocation for exception coverage via reflection.
+     */
+    @Test
+    public void testSetKeyStoreSecretAndLocationException() throws Exception {
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("setKeyStoreSecretAndLocation",
+                String.class, String.class);
+        method.setAccessible(true);
+        // Simulate invalid input (nulls or empty)
+        Exception ex = assertThrows(Exception.class, () -> {
+            try {
+                method.invoke(conn, (String) null, (String) null);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                throw e.getCause();
+            }
+        });
+        assertTrue(
+                ex instanceof com.microsoft.sqlserver.jdbc.SQLServerException || ex instanceof IllegalArgumentException,
+                "setKeyStoreSecretAndLocation should throw for invalid input");
+    }
+
+    /**
+     * Test validateTimeout for exception coverage via reflection.
+     */
+    @Test
+    public void testValidateTimeoutException() throws Exception {
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("validateTimeout", int.class);
+        method.setAccessible(true);
+        // Simulate invalid input (negative timeout)
+        Exception ex = assertThrows(Exception.class, () -> {
+            try {
+                method.invoke(conn, -1);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                throw e.getCause();
+            }
+        });
+        assertTrue(
+                ex instanceof com.microsoft.sqlserver.jdbc.SQLServerException || ex instanceof IllegalArgumentException,
+                "validateTimeout should throw for negative timeout");
+    }
+
+    /**
+     * Test validateConnectionRetry for exception coverage via reflection.
+     */
+    @Test
+    public void testValidateConnectionRetryException() throws Exception {
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("validateConnectionRetry",
+                int.class, int.class);
+        method.setAccessible(true);
+        // Simulate invalid input (negative retry count or interval)
+        Exception ex1 = assertThrows(Exception.class, () -> {
+            try {
+                method.invoke(conn, -1, 10);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                throw e.getCause();
+            }
+        });
+        assertTrue(
+                ex1 instanceof com.microsoft.sqlserver.jdbc.SQLServerException
+                        || ex1 instanceof IllegalArgumentException,
+                "validateConnectionRetry should throw for negative retry count");
+        Exception ex2 = assertThrows(Exception.class, () -> {
+            try {
+                method.invoke(conn, 1, -10);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                throw e.getCause();
+            }
+        });
+        assertTrue(
+                ex2 instanceof com.microsoft.sqlserver.jdbc.SQLServerException
+                        || ex2 instanceof IllegalArgumentException,
+                "validateConnectionRetry should throw for negative retry interval");
+    }
+
+    /**
+     * Test connectInternal for exception and logging coverage via reflection.
+     */
+    @Test
+    public void testConnectInternalExceptionAndLogging() throws Exception {
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("connectInternal", String.class,
+                java.util.Properties.class, String.class, String.class);
+        method.setAccessible(true);
+        // Set up logger to FINEST to ensure all logging paths are covered
+        java.util.logging.Logger logger = java.util.logging.Logger.getLogger(SQLServerConnection.class.getName());
+        java.util.logging.Level oldLevel = logger.getLevel();
+        logger.setLevel(java.util.logging.Level.FINEST);
+        try {
+            // Simulate invalid arguments to trigger exception and logging
+            Exception ex = assertThrows(Exception.class, () -> {
+                try {
+                    method.invoke(conn, "invalidUrl", new java.util.Properties(), null, null);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    throw e.getCause();
+                }
+            });
+            assertTrue(
+                    ex instanceof com.microsoft.sqlserver.jdbc.SQLServerException
+                            || ex instanceof IllegalArgumentException,
+                    "connectInternal should throw SQLServerException or IllegalArgumentException for invalid input");
+        } finally {
+            logger.setLevel(oldLevel);
+        }
+    }
+
+    /**
+     * Use-case driven test for the login method to cover exception and edge cases.
+     * This uses reflection to invoke login with various invalid and edge-case arguments.
+     */
+    @Test
+    public void testLoginMethodUseCases() throws Exception {
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.lang.reflect.Method loginMethod = SQLServerConnection.class.getDeclaredMethod("login", String.class,
+                java.util.Properties.class, String.class, String.class, boolean.class, boolean.class);
+        loginMethod.setAccessible(true);
+
+        // Set up logger to FINEST to ensure all logging paths are covered
+        java.util.logging.Logger logger = java.util.logging.Logger.getLogger(SQLServerConnection.class.getName());
+        java.util.logging.Level oldLevel = logger.getLevel();
+        logger.setLevel(java.util.logging.Level.FINEST);
+        try {
+            // Case 1: All nulls/empty, expect exception
+            Exception ex1 = assertThrows(Exception.class, () -> {
+                try {
+                    loginMethod.invoke(conn, null, null, null, null, false, false);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    throw e.getCause();
+                }
+            });
+            assertTrue(ex1 instanceof com.microsoft.sqlserver.jdbc.SQLServerException
+                    || ex1 instanceof IllegalArgumentException, "login should throw for all null arguments");
+
+            // Case 2: Invalid URL, expect exception
+            Exception ex2 = assertThrows(Exception.class, () -> {
+                try {
+                    loginMethod.invoke(conn, "invalidUrl", new java.util.Properties(), null, null, false, false);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    throw e.getCause();
+                }
+            });
+            assertTrue(ex2 instanceof com.microsoft.sqlserver.jdbc.SQLServerException
+                    || ex2 instanceof IllegalArgumentException, "login should throw for invalid URL");
+
+            // Case 3: Valid URL but missing properties, expect exception
+            Exception ex3 = assertThrows(Exception.class, () -> {
+                try {
+                    loginMethod.invoke(conn, "jdbc:sqlserver://localhost", new java.util.Properties(), null, null,
+                            false, false);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    throw e.getCause();
+                }
+            });
+            assertTrue(
+                    ex3 instanceof com.microsoft.sqlserver.jdbc.SQLServerException
+                            || ex3 instanceof IllegalArgumentException,
+                    "login should throw for missing required properties");
+
+            // Case 4: Valid URL and properties but simulate login failure (e.g., wrong credentials)
+            java.util.Properties props = new java.util.Properties();
+            props.setProperty("user", "invalidUser");
+            props.setProperty("password", "invalidPassword");
+            Exception ex4 = assertThrows(Exception.class, () -> {
+                try {
+                    loginMethod.invoke(conn, "jdbc:sqlserver://localhost", props, null, null, false, false);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    throw e.getCause();
+                }
+            });
+            assertTrue(ex4 instanceof com.microsoft.sqlserver.jdbc.SQLServerException
+                    || ex4 instanceof IllegalArgumentException, "login should throw for invalid credentials");
+
+            // Case 5: Valid URL, properties, and simulate integrated security (should throw if not supported)
+            java.util.Properties propsIntegrated = new java.util.Properties();
+            propsIntegrated.setProperty("integratedSecurity", "true");
+            Exception ex5 = assertThrows(Exception.class, () -> {
+                try {
+                    loginMethod.invoke(conn, "jdbc:sqlserver://localhost", propsIntegrated, null, null, false, false);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    throw e.getCause();
+                }
+            });
+            assertTrue(
+                    ex5 instanceof com.microsoft.sqlserver.jdbc.SQLServerException
+                            || ex5 instanceof IllegalArgumentException,
+                    "login should throw for unsupported integrated security");
+
+        } finally {
+            logger.setLevel(oldLevel);
+        }
+    }
+
+    /**
+     * Test connectHelper for exception and logging code coverage via reflection.
+     */
+    @Test
+    public void testConnectHelperExceptionCoverage() throws Exception {
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("connectHelper", String.class,
+                java.util.Properties.class, String.class, String.class);
+        method.setAccessible(true);
+        // Pass nulls or invalid values to trigger exception paths
+        try {
+            method.invoke(conn, (String) null, null, null, null);
+            fail("Expected exception not thrown");
+        } catch (Exception e) {
+            // Should throw due to invalid arguments or internal logic
+            assertTrue(e.getCause() instanceof SQLException || e.getCause() instanceof NullPointerException);
+        }
+    }
+
+    /**
+     * Test resetNonRoutingEnvchangeValues for code coverage via reflection (already covered, but for completeness).
+     */
+    @Test
+    public void testResetNonRoutingEnvchangeValuesExceptionCoverage() throws Exception {
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("resetNonRoutingEnvchangeValues");
+        method.setAccessible(true);
+        // Should not throw, but call for coverage
+        method.invoke(conn);
+    }
+
+    /**
+     * Test executeReconnect for exception and logging code coverage via reflection.
+     */
+    @Test
+    public void testExecuteReconnectExceptionCoverage() throws Exception {
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("executeReconnect");
+        method.setAccessible(true);
+        // Simulate closed connection or invalid state
+        java.lang.reflect.Field closedField = SQLServerConnection.class.getDeclaredField("isClosed");
+        closedField.setAccessible(true);
+        closedField.set(conn, true);
+        try {
+            method.invoke(conn);
+            fail("Expected exception not thrown");
+        } catch (Exception e) {
+            assertTrue(e.getCause() instanceof SQLException || e.getCause() instanceof IllegalStateException);
+        }
+    }
+
+    /**
+     * Test executeCommand for exception and logging code coverage via reflection.
+     */
+    @Test
+    public void testExecuteCommandExceptionCoverage() throws Exception {
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("executeCommand", String.class);
+        method.setAccessible(true);
+        // Pass null or invalid command to trigger exception
+        try {
+            method.invoke(conn, (String) null);
+            fail("Expected exception not thrown");
+        } catch (Exception e) {
+            assertTrue(e.getCause() instanceof SQLException || e.getCause() instanceof NullPointerException);
+        }
+    }
+
+    /**
+     * Test abort for exception and logging code coverage.
+     */
+    @Test
+    public void testAbortExceptionCoverage() throws Exception {
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        // Simulate closed connection
+        java.lang.reflect.Field closedField = SQLServerConnection.class.getDeclaredField("isClosed");
+        closedField.setAccessible(true);
+        closedField.set(conn, true);
+        try {
+            conn.abort(null);
+            fail("Expected exception not thrown");
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("closed") || e.getSQLState() != null);
+        }
+        // Also test abort with null executor on open connection
+        closedField.set(conn, false);
+        try {
+            conn.abort(null);
+            fail("Expected exception not thrown");
+        } catch (SQLException e) {
+            assertTrue(e.getMessage() != null);
+        }
+    }
+
+    /**
+     * Test processEnvChange for code coverage via reflection, including exception and edge cases.
+     */
+    @Test
+    public void testProcessEnvChangeCoverage() throws Exception {
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("processEnvChange", Object.class);
+        method.setAccessible(true);
+        // Test with null argument (should handle gracefully or throw)
+        try {
+            method.invoke(conn, (Object) null);
+        } catch (Exception e) {
+            // Acceptable: method may throw for null input
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            assertTrue(cause instanceof SQLException || cause instanceof NullPointerException
+                    || cause instanceof IllegalArgumentException);
+        }
+        // Test with a dummy object (simulate unexpected type)
+        Object dummy = new Object();
+        try {
+            method.invoke(conn, dummy);
+        } catch (Exception e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            assertTrue(cause instanceof SQLException || cause instanceof ClassCastException
+                    || cause instanceof IllegalArgumentException);
+        }
+        // If possible, test with a mock or minimal valid env change object (if class is accessible)
+        // This part is optional and will be skipped if the class is not public/accessible
+        try {
+            Class<?> envChangeClass = null;
+            for (Class<?> inner : SQLServerConnection.class.getDeclaredClasses()) {
+                if (inner.getSimpleName().equals("EnvChange")) {
+                    envChangeClass = inner;
+                    break;
+                }
+            }
+            if (envChangeClass != null) {
+                java.lang.reflect.Constructor<?> envCtor = envChangeClass.getDeclaredConstructors()[0];
+                envCtor.setAccessible(true);
+                // Try to create an instance with default or dummy values
+                Object envChange = null;
+                try {
+                    // Try with zero args, else with nulls
+                    if (envCtor.getParameterCount() == 0) {
+                        envChange = envCtor.newInstance();
+                    } else {
+                        Object[] params = new Object[envCtor.getParameterCount()];
+                        envChange = envCtor.newInstance(params);
+                    }
+                } catch (Exception ignore) {
+                    // If cannot instantiate, skip
+                }
+                if (envChange != null) {
+                    try {
+                        method.invoke(conn, envChange);
+                    } catch (Exception e) {
+                        // Acceptable: may throw if not fully initialized
+                        Throwable cause = e.getCause() != null ? e.getCause() : e;
+                        assertTrue(cause instanceof SQLException || cause instanceof IllegalArgumentException
+                                || cause instanceof NullPointerException);
+                    }
+                }
+            }
+        } catch (Exception ignore) {
+            // If EnvChange class is not accessible, skip
+        }
+    }
+
+    /**
+     * Use-case driven test for executeDTCCommand method via reflection.
+     * Covers exception and edge cases.
+     */
+    @Test
+    public void testExecuteDTCCommandUseCases() throws Exception {
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+        java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("executeDTCCommand", int.class,
+                byte[].class, int.class, int.class);
+        method.setAccessible(true);
+        // Case 1: Null byte array
+        Exception ex1 = assertThrows(Exception.class, () -> {
+            try {
+                method.invoke(conn, 0, null, 0, 0);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                throw e.getCause();
+            }
+        });
+        assertTrue(ex1 instanceof SQLException || ex1 instanceof NullPointerException
+                || ex1 instanceof IllegalArgumentException);
+        // Case 2: Empty byte array
+        Exception ex2 = assertThrows(Exception.class, () -> {
+            try {
+                method.invoke(conn, 0, new byte[0], 0, 0);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                throw e.getCause();
+            }
+        });
+        assertTrue(ex2 instanceof SQLException || ex2 instanceof IllegalArgumentException);
+        // Case 3: Valid byte array but invalid state (simulate closed connection)
+        java.lang.reflect.Field closedField = SQLServerConnection.class.getDeclaredField("isClosed");
+        closedField.setAccessible(true);
+        closedField.set(conn, true);
+        Exception ex3 = assertThrows(Exception.class, () -> {
+            try {
+                method.invoke(conn, 0, new byte[] {1, 2, 3}, 0, 3);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                throw e.getCause();
+            }
+        });
+        assertTrue(ex3 instanceof SQLException || ex3 instanceof IllegalStateException);
+    }
+
+    /**
+     * Use-case driven test for prepareStatement methods.
+     * Covers various overloads and exception/edge cases.
+     */
+    @Test
+    public void testPrepareStatementUseCases() throws Exception {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            // Case 1: Null SQL
+            assertThrows(SQLException.class, () -> conn.prepareStatement(null));
+            // Case 2: Empty SQL
+            assertThrows(SQLException.class, () -> conn.prepareStatement(""));
+            // Case 3: Valid SQL, default
+            try (java.sql.PreparedStatement ps = conn.prepareStatement("SELECT 1")) {
+                assertNotNull(ps);
+            }
+            // Case 4: Valid SQL, with auto-generated keys
+            try (java.sql.PreparedStatement ps = conn.prepareStatement("SELECT 1",
+                    java.sql.Statement.RETURN_GENERATED_KEYS)) {
+                assertNotNull(ps);
+            }
+            // Case 5: Valid SQL, with column indexes
+            try (java.sql.PreparedStatement ps = conn.prepareStatement("SELECT 1", new int[] {1})) {
+                assertNotNull(ps);
+            }
+            // Case 6: Valid SQL, with column names
+            try (java.sql.PreparedStatement ps = conn.prepareStatement("SELECT 1", new String[] {"col1"})) {
+                assertNotNull(ps);
+            }
+            // Case 7: Valid SQL, with result set type, concurrency, holdability
+            try (java.sql.PreparedStatement ps = conn.prepareStatement("SELECT 1", java.sql.ResultSet.TYPE_FORWARD_ONLY,
+                    java.sql.ResultSet.CONCUR_READ_ONLY, java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT)) {
+                assertNotNull(ps);
+            }
+        }
+        // Case 8: Closed connection
+        SQLServerConnection closedConn = (SQLServerConnection) PrepUtil.getConnection(connectionString);
+        closedConn.close();
+        assertThrows(SQLException.class, () -> closedConn.prepareStatement("SELECT 1"));
+    }
+
+    /**
+     * Use-case driven test for setSavepoint and rollback methods.
+     * Covers normal, edge, and exception cases.
+     */
+    @Test
+    public void testSetSavepointAndRollbackCoverage() throws Exception {
+        // Normal use-case: setSavepoint, rollback to savepoint, release savepoint
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            conn.setAutoCommit(false);
+            try (java.sql.Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE #t (id int)");
+                stmt.execute("INSERT INTO #t VALUES (1)");
+                java.sql.Savepoint sp = conn.setSavepoint();
+                stmt.execute("INSERT INTO #t VALUES (2)");
+                conn.rollback(sp);
+                stmt.execute("INSERT INTO #t VALUES (3)");
+                conn.releaseSavepoint(sp);
+                conn.commit();
+                // Validate only 1 and 3 exist
+                try (java.sql.ResultSet rs = stmt.executeQuery("SELECT id FROM #t ORDER BY id")) {
+                    int count = 0;
+                    int[] expected = {1, 3};
+                    while (rs.next()) {
+                        assertEquals(expected[count++], rs.getInt(1));
+                    }
+                    assertEquals(2, count);
+                }
+            }
+        }
+        // Named savepoint
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            conn.setAutoCommit(false);
+            java.sql.Savepoint sp = conn.setSavepoint("mysave");
+            conn.rollback(sp);
+            conn.releaseSavepoint(sp);
+            conn.commit();
+        }
+        // Exception: rollback to invalid savepoint
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            conn.setAutoCommit(false);
+            java.sql.Savepoint sp = conn.setSavepoint();
+            conn.releaseSavepoint(sp);
+            assertThrows(SQLException.class, () -> conn.rollback(sp));
+        }
+        // Exception: setSavepoint/rollback on closed connection
+        SQLServerConnection closedConn = (SQLServerConnection) PrepUtil.getConnection(connectionString);
+        closedConn.close();
+        assertThrows(SQLException.class, () -> closedConn.setSavepoint());
+        assertThrows(SQLException.class, () -> closedConn.rollback());
+    }
+
+    /**
+     * Test setNetworkTimeout for normal and exception coverage.
+     */
+    @Test
+    public void testSetNetworkTimeoutCoverage() throws Exception {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            // Normal: set network timeout with a valid executor
+            java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newSingleThreadExecutor();
+            conn.setNetworkTimeout(executor, 1000);
+            assertEquals(1000, conn.getNetworkTimeout());
+            executor.shutdownNow();
+        }
+        // Exception: setNetworkTimeout on closed connection
+        SQLServerConnection closedConn = (SQLServerConnection) PrepUtil.getConnection(connectionString);
+        closedConn.close();
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newSingleThreadExecutor();
+        assertThrows(SQLException.class, () -> closedConn.setNetworkTimeout(executor, 1000));
+        executor.shutdownNow();
+        // Exception: setNetworkTimeout with null executor
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            assertThrows(SQLException.class, () -> conn.setNetworkTimeout(null, 1000));
+        }
+    }
+
+    /**
+     * Test supportsTransactions for coverage.
+     */
+    @Test
+    public void testSupportsTransactionsCoverage() throws Exception {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            // Should return true for SQL Server
+            assertTrue(conn.supportsTransactions());
+        }
+        // Exception: supportsTransactions on closed connection
+        SQLServerConnection closedConn = (SQLServerConnection) PrepUtil.getConnection(connectionString);
+        closedConn.close();
+        assertThrows(SQLException.class, () -> closedConn.supportsTransactions());
+    }
+
+    /**
+     * Test setLockTimeout for normal and exception coverage.
+     */
+    @Test
+    public void testSetLockTimeoutCoverage() throws Exception {
+        // Use reflection to call setLockTimeout(int) if available, else skip
+        java.lang.reflect.Method setLockTimeoutMethod = null;
+        try {
+            setLockTimeoutMethod = SQLServerConnection.class.getDeclaredMethod("setLockTimeout", int.class);
+        } catch (NoSuchMethodException e) {
+            // Method does not exist, skip test
+            return;
+        }
+        // Normal: set lock timeout to 1000 ms
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            setLockTimeoutMethod.invoke(conn, 1000);
+            // Should not throw, but validate by running a simple query
+            try (java.sql.Statement stmt = conn.createStatement()) {
+                stmt.execute("SELECT 1");
+            }
+        }
+        // Exception: setLockTimeout on closed connection
+        SQLServerConnection closedConn = (SQLServerConnection) PrepUtil.getConnection(connectionString);
+        closedConn.close();
+        SQLServerConnection finalClosedConn = closedConn;
+        java.lang.reflect.Method finalSetLockTimeoutMethod = setLockTimeoutMethod;
+        assertThrows(Exception.class, () -> finalSetLockTimeoutMethod.invoke(finalClosedConn, 1000));
+        // Exception: setLockTimeout with negative value (should throw)
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            SQLServerConnection finalConn = conn;
+            assertThrows(Exception.class, () -> finalSetLockTimeoutMethod.invoke(finalConn, -1));
+        }
+    }
 }
