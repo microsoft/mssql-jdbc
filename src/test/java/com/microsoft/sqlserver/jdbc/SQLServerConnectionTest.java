@@ -86,7 +86,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * 
      * @throws SQLServerException
      */
-    // @Test
+    @Test
     public void testDataSource() throws SQLServerException {
         SQLServerDataSource ds = new SQLServerDataSource();
         String stringPropValue = "stringPropValue";
@@ -349,7 +349,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertTrue(ds.getConcatNullYieldsNull().equals(stringPropValue));
     }
 
-    // @Test
+    @Test
     public void testDSConnection() {
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(connectionString, ds);
@@ -360,7 +360,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testEncryptedConnection() throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setApplicationName("User");
@@ -381,7 +381,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Tag(Constants.xSQLv15)
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
-    // @Test
+    @Test
     public void testEncryptedStrictConnection() throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
@@ -391,7 +391,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         try (Connection con = ds.getConnection()) {}
     }
 
-    // @Test
+    @Test
     public void testJdbcDataSourceMethod() throws SQLFeatureNotSupportedException {
         SQLServerDataSource fxds = new SQLServerDataSource();
         Logger logger = fxds.getParentLogger();
@@ -420,7 +420,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      *
      * @throws SQLException
      */
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     public void testConnectionEvents() throws SQLException {
@@ -453,7 +453,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     public void testConnectionPoolGetTwice() throws SQLException {
@@ -488,7 +488,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Test connection properties: CONCAT_NULL_YIELDS_NULL with SQLServerXADataSource for new connection and pooled connection
      * @throws SQLException
      */
-    // @Test
+    @Test
     public void testConcatNullYieldsNull() throws SQLException {
         // Server default is CONCAT_NULL_YIELDS_NULL = ON  
         int expectedResultFlagOff = 0;
@@ -558,7 +558,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Test connection properties: QUOTED_IDENTIFIER with SQLServerXADataSource for new connection and pooled connection
      * @throws SQLException
      */
-    // @Test
+    @Test
     public void testQuptedIdentifier() throws SQLException {
         // Server default is QUOTED_IDENTIFIER = ON  
         int expectedResultFlagOff = 0;
@@ -610,7 +610,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Runs the `testConnectCountInLoginAndCorrectRetryCount` test several times with different values of
      * connectRetryCount.
      */
-    // @Test
+    @Test
     public void testConnectCountInLoginAndCorrectRetryCountForMultipleValues() {
         testConnectCountInLoginAndCorrectRetryCount(0);
         testConnectCountInLoginAndCorrectRetryCount(1);
@@ -664,7 +664,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     // Test connect retry 0 but should still connect to TNIR
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.reqExternalSetup)
@@ -680,7 +680,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     // Test connect retry 0 and TNIR disabled
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.reqExternalSetup)
@@ -701,7 +701,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     public void testConnectionClosed() throws SQLException {
@@ -724,7 +724,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testIsWrapperFor() throws SQLException, ClassNotFoundException {
         try (Connection conn = getConnection(); SQLServerConnection ssconn = (SQLServerConnection) conn) {
             boolean isWrapper;
@@ -748,14 +748,14 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testNewConnection() throws SQLException {
         try (Connection conn = getConnection()) {
             assertTrue(conn.isValid(0), TestResource.getResource("R_newConnectionShouldBeValid"));
         }
     }
 
-    // @Test
+    @Test
     public void testClosedConnection() throws SQLException {
         try (Connection conn = getConnection()) {
             conn.close();
@@ -780,7 +780,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     public void testSetTransactionIsolation() throws SQLException {
         try (Connection conn = getConnection()) {
@@ -802,7 +802,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testNativeSQL() throws SQLException {
         try (Connection conn = getConnection()) {
             String nativeSql = conn.nativeSQL("SELECT @@version");
@@ -812,7 +812,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testReadOnly() throws SQLException {
         try (Connection conn = getConnection()) {
             // not supported, will always return false
@@ -823,7 +823,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.xAzureSQLMI)
@@ -835,7 +835,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void testTypeMap() throws SQLException {
         try (Connection conn = getConnection()) {
@@ -846,7 +846,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testNegativeTimeout() throws Exception {
         try (Connection conn = getConnection()) {
             try {
@@ -861,7 +861,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     public void testDeadConnection() throws SQLException {
@@ -899,7 +899,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testClientConnectionId() throws Exception {
         try (ISQLServerConnection conn = (ISQLServerConnection) getConnection()) {
             assertTrue(conn.getClientConnectionId() != null, TestResource.getResource("R_clientConnectionIdNull"));
@@ -947,7 +947,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testIncorrectDatabase() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
@@ -978,7 +978,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testIncorrectUserName() throws SQLException {
         String auth = TestUtils.getProperty(connectionString, "authentication");
         org.junit.Assume.assumeTrue(auth != null
@@ -1011,7 +1011,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testIncorrectPassword() throws SQLException {
         String auth = TestUtils.getProperty(connectionString, "authentication");
         org.junit.Assume.assumeTrue(auth != null
@@ -1044,7 +1044,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testInvalidCombination() throws SQLException {
         long timerStart = 0;
         long timerEnd = 0;
@@ -1069,7 +1069,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     @Tag("slow")
     public void testIncorrectDatabaseWithFailoverPartner() throws SQLException {
         long timerStart = 0;
@@ -1093,7 +1093,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testAbortBadParam() throws SQLException {
         try (Connection conn = getConnection()) {
             try {
@@ -1104,7 +1104,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testAbort() throws SQLException {
         try (Connection conn = getConnection()) {
             Executor executor = Executors.newFixedThreadPool(2);
@@ -1115,21 +1115,21 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testSetSchema() throws SQLException {
         try (Connection conn = getConnection()) {
             conn.setSchema(RandomUtil.getIdentifier("schema"));
         }
     }
 
-    // @Test
+    @Test
     public void testGetSchema() throws SQLException {
         try (Connection conn = getConnection()) {
             conn.getSchema();
         }
     }
 
-    // @Test
+    @Test
     public void testSetDatetimeParameterTypeShouldAcceptDatetime() throws SQLException {
         String expected = "datetime";
         String actual = "";
@@ -1142,7 +1142,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
     }
 
-    // @Test
+    @Test
     public void testSetDatetimeParameterTypeShouldAcceptDatetime2() throws SQLException {
         String expected = "datetime2";
         String actual = "";
@@ -1155,7 +1155,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
     }
 
-    // @Test
+    @Test
     public void testSetDatetimeParameterTypeShouldAcceptDatetimeoffset() throws SQLException {
         String expected = "datetimeoffset";
         String actual = "";
@@ -1168,7 +1168,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
     }
 
-    // @Test
+    @Test
     public void testSetDatetimeParameterTypeThrowExceptionWhenBadValue() throws SQLException {
         try (SQLServerConnection conn = getConnection()) {
             assertThrows(SQLException.class, () -> {
@@ -1177,7 +1177,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testGetDatetimeParameterTypeShouldReturnDatetime2AsDefault() throws SQLException {
         String expected = "datetime2";
         String actual = "";
@@ -1189,7 +1189,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(expected, actual, TestResource.getResource("R_valuesAreDifferent"));
     }
 
-    // @Test
+    @Test
     public void testGetDatetimeParameterTypeShouldConvertDatetimeParameterTypeToLowercase() throws SQLException {
         String expected = "datetime2";
         String actual = "";
@@ -1207,7 +1207,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      *
      * @throws InterruptedException
      */
-    // @Test
+    @Test
     @Tag("slow")
     public void testThreadInterruptedStatus() throws InterruptedException {
         Runnable runnable = new Runnable() {
@@ -1239,7 +1239,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     /**
      * Test thread count when finding socket using threading.
      */
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.xAzureSQLDW)
     public void testThreadCountWhenFindingSocket() {
@@ -1296,7 +1296,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     /**
      * Test calling method to get redirected server string.
      */
-    // @Test
+    @Test
     public void testRedirectedError() {
         try (SQLServerConnection conn = getConnection()) {
             assertTrue(conn.getServerNameString(null) == null);
@@ -1309,7 +1309,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Basic test to make sure lobs work with ConnectionPoolProxy as well
      */
     @Tag(Constants.xAzureSQLDW)
-    // @Test
+    @Test
     public void testConnectionPoolProxyWithLobs() throws SQLException, IOException {
         String cString = getConnectionString() + ";delayLoadingLobs=false;";
         String data = "testConnectionPoolProxyWithLobs";
@@ -1364,7 +1364,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Test PersistentTokenCacheAccessAspect methods - this test just executes the methods in the class it does not test
      * correct functionality as that requires manual interactive auth
      */
-    // @Test
+    @Test
     public void testPersistentTokenCacheAccessAspect() throws SQLException {
         TokenCacheAccessContext tokenCacheAccessContext = TokenCacheAccessContext.builder().clientId(null)
                 .tokenCache(new TokenCache()).account(null).hasCacheChanged(true).build();
@@ -1380,7 +1380,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * 
      * @throws SQLException
      */
-    // @Test
+    @Test
     public void testBadServerCert() throws SQLException {
         SQLServerDataSource ds = new SQLServerDataSource();
         ds.setURL(connectionString);
@@ -1419,7 +1419,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * 
      * @throws SQLServerException
      */
-    // @Test
+    @Test
     public void testParameterMetadataAccessDenial() throws SQLException {
         try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement()) {
             CryptoCache cache = new CryptoCache();
@@ -1445,7 +1445,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    // @Test
+    @Test
     public void testServerNameField() throws SQLException {
         String subProtocol = "jdbc:sqlserver://";
         int indexOfFirstDelimiter = connectionString.indexOf(";");
@@ -1470,7 +1470,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
     
 
-    // @Test
+    @Test
     public void testGetSqlFedAuthTokenFailure() throws SQLException {
         try (Connection conn = getConnection()){
             SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
@@ -1485,7 +1485,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }        
     }
 
-    // @Test
+    @Test
     public void testGetSqlFedAuthTokenFailureNoWaiting() throws SQLException {
         try (Connection conn = getConnection()){
             SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
@@ -1500,7 +1500,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }        
     }
 
-    // @Test
+    @Test
     public void testGetSqlFedAuthTokenFailureNagativeWaiting() throws SQLException {
         try (Connection conn = getConnection()){
             SqlFedAuthInfo fedAuthInfo = ((SQLServerConnection) conn).new SqlFedAuthInfo();
@@ -1515,7 +1515,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         }        
     }
 
-    // @Test
+    @Test
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLMI)
     @Tag(Constants.xSQLv11)
@@ -1558,7 +1558,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         return method;
     }
 
-    // @Test
+    @Test
     void testConnectionRecoveryCheckThrowsWhenAllConditionsMet() throws Exception {
         Method method = mockedConnectionRecoveryCheck();
         method.invoke(mockConnection, true, false, null);
@@ -1566,21 +1566,21 @@ public class SQLServerConnectionTest extends AbstractTest {
                 eq(SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin")));
     }
 
-    // @Test
+    @Test
     void testConnectionRecoveryCheckDoesNotThrowWhenNotReconnectRunning() throws Exception {
         Method method = mockedConnectionRecoveryCheck();
         method.invoke(mockConnection, false, false, null);
         verify(mockConnection, never()).terminate(anyInt(), anyString());
     }
 
-    // @Test
+    @Test
     void testConnectionRecoveryCheckDoesNotThrowWhenRecoveryPossible() throws Exception {
         Method method = mockedConnectionRecoveryCheck();
         method.invoke(mockConnection, true, true, null);
         verify(mockConnection, never()).terminate(anyInt(), anyString());
     }
 
-    // @Test
+    @Test
     void testConnectionRecoveryCheckDoesNotThrowWhenRoutingDetailsNotNull() throws Exception {
         Method method = mockedConnectionRecoveryCheck();
         ServerPortPlaceHolder routingDetails = mock(ServerPortPlaceHolder.class);
@@ -1609,47 +1609,6 @@ public class SQLServerConnectionTest extends AbstractTest {
         regularConn.activeConnectionProperties = props2;
         assertFalse(regularConn.isAzureSynapseOnDemandEndpoint(),
                 "Should not detect regular Azure SQL as Synapse OnDemand endpoint");
-    }
-
-    /**
-     * Test for validateMaxSQLLoginName: should throw if login name exceeds max length, otherwise not.
-     */
-    @Test
-    public void testValidateMaxSQLLoginName() throws Exception {
-        // Use reflection to access the method and constant
-        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
-                .getDeclaredConstructor(String.class);
-        ctor.setAccessible(true);
-        SQLServerConnection conn = ctor.newInstance("test");
-
-        java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("validateMaxSQLLoginName",
-                String.class, String.class);
-        method.setAccessible(true);
-
-        // Get the max length constant
-        java.lang.reflect.Field maxLenField = SQLServerConnection.class.getDeclaredField("MAX_SQL_LOGIN_NAME_WCHARS");
-        maxLenField.setAccessible(true);
-        int maxLen = maxLenField.getInt(conn);
-
-        String propName = "user";
-        String validValue = "a".repeat(maxLen);
-        String tooLongValue = "b".repeat(maxLen + 1);
-
-        // Should NOT throw for valid length
-        method.invoke(conn, propName, validValue);
-
-        // Should throw for too long value
-        Exception ex = assertThrows(Exception.class, () -> {
-            try {
-                method.invoke(conn, propName, tooLongValue);
-            } catch (java.lang.reflect.InvocationTargetException e) {
-                // Unwrap
-                throw e.getCause();
-            }
-        });
-        // Should be SQLServerException
-        assertTrue(ex instanceof com.microsoft.sqlserver.jdbc.SQLServerException,
-                "Should throw SQLServerException for too long login name");
     }
 
     @Test
@@ -1835,34 +1794,6 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertThrows(Exception.class, () -> {
             PrepUtil.getConnection(invalidConnStr);
         }, "Should throw SQLException or IllegalArgumentException for invalid vectorTypeSupport value");
-    }
-
-    /**
-     * User-case driven test: Attempt to connect using each supported authentication type.
-     * This simulates a real user specifying authentication in the connection string.
-     * Note: Actual authentication may fail if not configured, but the test ensures the code path is exercised.
-     */
-    @Test
-    public void testFederatedAuthentication_UserCase() {
-        String[] authTypes = {"ActiveDirectoryPassword", "ActiveDirectoryIntegrated", "ActiveDirectoryManagedIdentity",
-                "ActiveDirectoryDefault", "ActiveDirectoryServicePrincipal",
-                "ActiveDirectoryServicePrincipalCertificate", "ActiveDirectoryInteractive"};
-        for (String auth : authTypes) {
-            String connStr = connectionString + ";authentication=" + auth + ";";
-            try {
-                // We expect most of these to fail unless the environment is configured, but the point is to exercise the user path
-                PrepUtil.getConnection(connStr);
-            } catch (Exception e) {
-                // Acceptable: just ensure the driver attempts to process the auth type
-                assertTrue(e.getMessage().toLowerCase().contains("authentication") || e instanceof SQLException);
-            }
-        }
-
-        // Invalid authentication type should throw
-        String invalidConnStr = connectionString + ";authentication=InvalidAuthType;";
-        assertThrows(SQLException.class, () -> {
-            PrepUtil.getConnection(invalidConnStr);
-        });
     }
 
     /**
