@@ -946,6 +946,72 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     /**
+     * Test bulk insert with null data for all temporal types and money as varchar when useBulkCopyForBatchInsert is true.
+     * sendTemporalDataTypesAsStringForBulkCopy is set to true by default.
+     * Temporal types are sent as varchar, and money/smallMoney are sent as their respective types.
+     * 
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithNullDataForAllTemporalTypesAndMoneyAsVarchar() throws Exception {
+        String tableName = RandomUtil.getIdentifier("BulkTable");
+        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
+                "dateTimeColumn DATETIME, " +
+                "smallDateTimeColumn SMALLDATETIME, " +
+                "dateTime2Column DATETIME2, " +
+                "dateColumn DATE, " +
+                "timeColumn TIME, " +
+                "dateTimeOffsetColumn DATETIMEOFFSET, " +
+                "moneyColumn MONEY, " +
+                "smallMoneyColumn SMALLMONEY" + ")";
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
+                " (dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String selectSQL = "SELECT dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn FROM "
+                + AbstractSQLGenerator.escapeIdentifier(tableName);
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            stmt.execute(createTableSQL);
+
+            pstmt.setTimestamp(1, null); // DATETIME
+            pstmt.setSmallDateTime(2, null); // SMALLDATETIME
+            pstmt.setObject(3, null); // DATETIME2
+            pstmt.setDate(4, null); // DATE
+            pstmt.setObject(5, null); // TIME
+            pstmt.setDateTimeOffset(6, null); // DATETIMEOFFSET
+            pstmt.setMoney(7, null); // MONEY
+            pstmt.setSmallMoney(8, null); // SMALLMONEY
+
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next());
+
+                assertEquals(null, rs.getTimestamp(1));
+                assertEquals(null, rs.getTimestamp(2));
+                assertEquals(null, rs.getTimestamp(3));
+                assertEquals(null, rs.getDate(4));
+                assertEquals(null, rs.getObject(5));
+                assertEquals(null, rs.getObject(6));
+                assertEquals(null, rs.getBigDecimal(7));
+                assertEquals(null, rs.getBigDecimal(8));
+                
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    /**
      * Test bulk insert with all temporal types and money as varchar when useBulkCopyForBatchInsert is true.
      * and sendTemporalDataTypesAsStringForBulkCopy is set to false explicitly.
      * In this case all data types are sent as their respective types, including temporal types and money/smallMoney.
@@ -1045,6 +1111,72 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
                 assertEquals(smallMoneyVal, rs.getBigDecimal(8));
                 assertEquals(expectedSmallMoneyString,rs.getBigDecimal(8).toString());
+                
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Test bulk insert with null data for all temporal types and money as varchar when useBulkCopyForBatchInsert is true.
+     * and sendTemporalDataTypesAsStringForBulkCopy is set to false explicitly.
+     * In this case all data types are sent as their respective types, including temporal types and money/smallMoney.
+     * 
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertWithNullDataForAllTemporalTypesAndMoney() throws Exception {
+        String tableName = RandomUtil.getIdentifier("BulkTable");
+        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
+                "dateTimeColumn DATETIME, " +
+                "smallDateTimeColumn SMALLDATETIME, " +
+                "dateTime2Column DATETIME2, " +
+                "dateColumn DATE, " +
+                "timeColumn TIME, " +
+                "dateTimeOffsetColumn DATETIMEOFFSET, " +
+                "moneyColumn MONEY, " +
+                "smallMoneyColumn SMALLMONEY" + ")";
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
+                " (dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String selectSQL = "SELECT dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn FROM "
+                + AbstractSQLGenerator.escapeIdentifier(tableName);
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
+
+            // Drop and create table
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            stmt.execute(createTableSQL);
+
+            pstmt.setTimestamp(1, null); // DATETIME
+            pstmt.setSmallDateTime(2, null); // SMALLDATETIME
+            pstmt.setObject(3, null); // DATETIME2
+            pstmt.setDate(4, null); // DATE
+            pstmt.setObject(5, null); // TIME
+            pstmt.setDateTimeOffset(6, null); // DATETIMEOFFSET
+            pstmt.setMoney(7, null); // MONEY
+            pstmt.setSmallMoney(8, null); // SMALLMONEY
+
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next());
+
+                assertEquals(null, rs.getTimestamp(1));
+                assertEquals(null, rs.getTimestamp(2));
+                assertEquals(null, rs.getTimestamp(3));
+                assertEquals(null, rs.getDate(4));
+                assertEquals(null, rs.getObject(5));
+                assertEquals(null, rs.getObject(6));
+                assertEquals(null, rs.getBigDecimal(7));
+                assertEquals(null, rs.getBigDecimal(8));
                 
             }
         } finally {
