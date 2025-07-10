@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.testframework;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayOutputStream;
@@ -26,6 +27,7 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
@@ -34,8 +36,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
-import com.azure.identity.ClientSecretCredential;
-import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
@@ -576,6 +576,16 @@ public abstract class AbstractTest {
             if (handler != null) {
                 handler.setLevel(Level.FINEST);
                 Logger.getLogger(Constants.MSSQL_JDBC_LOGGING_HANDLER).addHandler(handler);
+            }
+
+            try (InputStream loggingConfig = AbstractTest.class.getResourceAsStream("/logging.properties")) {
+                if (loggingConfig != null) {
+                    LogManager.getLogManager().readConfiguration(loggingConfig);
+
+                    LogManager lm = LogManager.getLogManager();
+                    String activityTrace = lm.getProperty("com.microsoft.sqlserver.jdbc.traceactivity");
+                    assertTrue("on".equalsIgnoreCase(activityTrace), "Activity trace should be enabled");
+                }
             }
 
             /*
