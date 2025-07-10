@@ -181,6 +181,9 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
                 return null;
             }
 
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
             case Types.NCHAR:
             case Types.NVARCHAR:
             case Types.LONGNVARCHAR: {
@@ -196,9 +199,6 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
             }
 
             case Types.DATE:
-            case Types.CHAR:
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:
             case Types.CLOB:
             default: {
                 // The string is copied as is.
