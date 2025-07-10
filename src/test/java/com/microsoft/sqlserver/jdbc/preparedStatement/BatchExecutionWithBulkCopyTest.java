@@ -850,15 +850,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     public void testBulkInsertWithAllTemporalTypesAndMoneyAsVarchar() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkTable");
-        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
-                "dateTimeColumn DATETIME, " +
-                "smallDateTimeColumn SMALLDATETIME, " +
-                "dateTime2Column DATETIME2, " +
-                "dateColumn DATE, " +
-                "timeColumn TIME, " +
-                "dateTimeOffsetColumn DATETIMEOFFSET, " +
-                "moneyColumn MONEY, " +
-                "smallMoneyColumn SMALLMONEY" + ")";
         String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
                 " (dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         String selectSQL = "SELECT dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn FROM "
@@ -868,9 +859,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 Statement stmt = connection.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
 
-            // Drop and create table
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            stmt.execute(createTableSQL);
+            getCreateTableTemporalSQL(tableName);
 
             Timestamp dateTimeVal = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
             String expectedDateTimeString = "2025-05-13 14:30:45.0"; 
@@ -956,15 +945,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     public void testBulkInsertWithNullDataForAllTemporalTypesAndMoneyAsVarchar() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkTable");
-        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
-                "dateTimeColumn DATETIME, " +
-                "smallDateTimeColumn SMALLDATETIME, " +
-                "dateTime2Column DATETIME2, " +
-                "dateColumn DATE, " +
-                "timeColumn TIME, " +
-                "dateTimeOffsetColumn DATETIMEOFFSET, " +
-                "moneyColumn MONEY, " +
-                "smallMoneyColumn SMALLMONEY" + ")";
         String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
                 " (dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         String selectSQL = "SELECT dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn FROM "
@@ -974,9 +954,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 Statement stmt = connection.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
 
-            // Drop and create table
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            stmt.execute(createTableSQL);
+            getCreateTableTemporalSQL(tableName);
 
             pstmt.setTimestamp(1, null); // DATETIME
             pstmt.setSmallDateTime(2, null); // SMALLDATETIME
@@ -1022,15 +1000,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     public void testBulkInsertWithAllTemporalTypesAndMoney() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkTable");
-        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
-                "dateTimeColumn DATETIME, " +
-                "smallDateTimeColumn SMALLDATETIME, " +
-                "dateTime2Column DATETIME2, " +
-                "dateColumn DATE, " +
-                "timeColumn TIME, " +
-                "dateTimeOffsetColumn DATETIMEOFFSET, " +
-                "moneyColumn MONEY, " +
-                "smallMoneyColumn SMALLMONEY" + ")";
         String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
                 " (dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         String selectSQL = "SELECT dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn FROM "
@@ -1040,9 +1009,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 Statement stmt = connection.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
 
-            // Drop and create table
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            stmt.execute(createTableSQL);
+            getCreateTableTemporalSQL(tableName);
 
             Timestamp dateTimeVal = Timestamp.valueOf(LocalDateTime.of(2025, 5, 13, 14, 30, 45));
             String expectedDateTimeString = "2025-05-13 14:30:45.0"; 
@@ -1131,15 +1098,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     public void testBulkInsertWithNullDataForAllTemporalTypesAndMoney() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkTable");
-        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
-                "dateTimeColumn DATETIME, " +
-                "smallDateTimeColumn SMALLDATETIME, " +
-                "dateTime2Column DATETIME2, " +
-                "dateColumn DATE, " +
-                "timeColumn TIME, " +
-                "dateTimeOffsetColumn DATETIMEOFFSET, " +
-                "moneyColumn MONEY, " +
-                "smallMoneyColumn SMALLMONEY" + ")";
         String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
                 " (dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         String selectSQL = "SELECT dateTimeColumn, smallDateTimeColumn, dateTime2Column, dateColumn, timeColumn, dateTimeOffsetColumn, moneyColumn, smallMoneyColumn FROM "
@@ -1149,9 +1107,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 Statement stmt = connection.createStatement();
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
 
-            // Drop and create table
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            stmt.execute(createTableSQL);
+            getCreateTableTemporalSQL(tableName);
 
             pstmt.setTimestamp(1, null); // DATETIME
             pstmt.setSmallDateTime(2, null); // SMALLDATETIME
@@ -1314,6 +1270,24 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         long endTime = System.nanoTime();
         long durationMs = (endTime - startTime) / 1_000_000;
         System.out.println("Insert for " + recordCount + " records in " + durationMs + " ms.");
+    }
+
+    private void getCreateTableTemporalSQL(String tableName) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
+                    "dateTimeColumn DATETIME, " +
+                    "smallDateTimeColumn SMALLDATETIME, " +
+                    "dateTime2Column DATETIME2, " +
+                    "dateColumn DATE, " +
+                    "timeColumn TIME, " +
+                    "dateTimeOffsetColumn DATETIMEOFFSET, " +
+                    "moneyColumn MONEY, " +
+                    "smallMoneyColumn SMALLMONEY" + ")";
+
+            stmt.execute(createTableSQL);
+
+        }
     }
 
     @BeforeAll
