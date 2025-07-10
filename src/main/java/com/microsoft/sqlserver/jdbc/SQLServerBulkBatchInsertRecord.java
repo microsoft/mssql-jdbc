@@ -181,13 +181,24 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
                 return null;
             }
 
-            case Types.DATE:
             case Types.CHAR:
-            case Types.NCHAR:
             case Types.VARCHAR:
-            case Types.NVARCHAR:
             case Types.LONGVARCHAR:
-            case Types.LONGNVARCHAR:
+            case Types.NCHAR:
+            case Types.NVARCHAR:
+            case Types.LONGNVARCHAR: {
+                /*
+                 * If string data comes in as a byte array through setString (and sendStringParametersAsUnicode = false)
+                 * through Bulk Copy for Batch Insert API, convert the byte array to a string.
+                 * If the data is already a string, return it as is.
+                 */
+                if (data instanceof byte[]) {
+                    return new String((byte[]) data);
+                }
+                return data;
+            }
+
+            case Types.DATE:
             case Types.CLOB:
             default: {
                 // The string is copied as is.
