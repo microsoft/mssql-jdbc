@@ -6887,7 +6887,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
             
             case TDS.TDS_FEATURE_EXT_JSONSUPPORT: {
-                if (connectionlogger.isLoggable(Level.FINER)) {
+                if (connectionlogger.isLoggable(Level.FINE)) {
                     connectionlogger.fine(toString() + " Received feature extension acknowledgement for JSON Support.");
                 }
 
