@@ -32,7 +32,8 @@ enum SqlTypeValue {
     TIME("00:00:00.0000000", "23:59:59.9999999", null),
     SMALLDATETIME("19000101T00:00:00", "20790606T23:59:59", null),
     DATETIME2("00010101T00:00:00.0000000", "99991231T23:59:59.9999999", null),
-    DATETIMEOFFSET("0001-01-01 00:00:00", "9999-12-31 23:59:59", null),;
+    DATETIMEOFFSET("0001-01-01 00:00:00", "9999-12-31 23:59:59", null),
+    JSON(null, null, null),;
 
     Object minValue;
     Object maxValue;

@@ -150,6 +150,37 @@ public class TVPTypesTest extends AbstractTest {
     }
 
     /**
+     * Test JSON support
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testJSON() throws SQLException {
+        createTables("json");
+        createTVPS("json");
+        value = "{\"severity\":\"TRACE\",\"duration\":200,\"date\":\"2024-12-17T15:45:56\"}";
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", microsoft.sql.Types.JSON);
+        tvp.addRow(value);
+
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+
+            pstmt.execute();
+
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
+                while (rs.next())
+                    assertEquals(rs.getString("c1"), value);
+            }
+        }
+    }
+
+    /**
      * Test ntext support
      * 
      * @throws SQLException
@@ -332,6 +363,39 @@ public class TVPTypesTest extends AbstractTest {
 
         tvp = new SQLServerDataTable();
         tvp.addColumnMetadata("c1", java.sql.Types.SQLXML);
+        tvp.addRow(value);
+
+        final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
+
+        try (SQLServerCallableStatement callableStmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            callableStmt.setStructured(1, tvpName, tvp);
+            callableStmt.execute();
+
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
+                while (rs.next())
+                    assertEquals(rs.getString(1), value);
+            }
+        }
+    }
+
+    /**
+     * JSON with StoredProcedure
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testTVPJSONStoredProcedure() throws SQLException {
+        createTables("json");
+        createTVPS("json");
+        createProcedure();
+
+        value = "{\"severity\":\"TRACE\",\"duration\":200,\"date\":\"2024-12-17T15:45:56\"}";
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1",  microsoft.sql.Types.JSON);
         tvp.addRow(value);
 
         final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
@@ -690,6 +754,34 @@ public class TVPTypesTest extends AbstractTest {
             } catch (SQLException e) {
                 assert (null != e);
                 assert (e.getMessage().contains(TestUtils.R_BUNDLE.getString("R_TVPInvalidColumnValue")));
+            }
+        }
+    }
+    
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testJSONTVPCallableAPI() throws SQLException {
+        createTables("json");
+        createTVPS("json");
+        createProcedure();
+
+        value = "{\"Name\":\"Alice\",\"Age\":25}";
+
+        tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1",  microsoft.sql.Types.JSON);
+        tvp.addRow(value);
+
+        final String sql = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
+
+        try (SQLServerCallableStatement callableStmt = (SQLServerCallableStatement) connection.prepareCall(sql)) {
+            callableStmt.setObject(1, tvp);
+            callableStmt.execute();
+
+            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName) + " ORDER BY rowId")) {
+                while (rs.next())
+                    assertEquals(rs.getObject(1), value);
             }
         }
     }

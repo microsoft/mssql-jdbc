@@ -300,6 +300,8 @@ final class DTV {
         void execute(DTV dtv, String strValue) throws SQLServerException {
             if (dtv.getJdbcType() == JDBCType.GUID) {
                 tdsWriter.writeRPCUUID(name, UUID.fromString(strValue), isOutParam);
+            } else if (dtv.getJdbcType() == JDBCType.JSON) {
+                tdsWriter.writeRPCJson(name, strValue, isOutParam);
             } else {
                 tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
             }
@@ -1468,6 +1470,7 @@ final class DTV {
                 case NVARCHAR:
                 case LONGNVARCHAR:
                 case NCLOB:
+                case JSON:
                     if (null != cryptoMeta)
                         op.execute(this, (byte[]) null);
                     else
@@ -3038,7 +3041,25 @@ final class TypeInfo implements Serializable {
                 int scaleByte = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
                 typeInfo.scale = VectorUtils.getBytesPerDimensionFromScale(scaleByte);
                 typeInfo.precision = VectorUtils.getPrecision(typeInfo.maxLength, typeInfo.scale);
+            }
+        }),
 
+        JSON(TDSType.JSON, new Strategy() {
+            /**
+             * Sets the fields of typeInfo to the correct values
+             * 
+             * @param typeInfo
+             *        the TypeInfo whos values are being corrected
+             * @param tdsReader
+             *        the TDSReader used to set the fields of typeInfo to the correct values
+             * @throws SQLServerException
+             *         when an error occurs
+             */
+            public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
+                typeInfo.ssLenType = SSLenType.PARTLENTYPE; 
+                typeInfo.ssType = SSType.JSON;
+                typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE;
+                typeInfo.charset = Encoding.UTF8.charset();
             }
         });
 
@@ -3789,6 +3810,7 @@ final class ServerDTVImpl extends DTVImpl {
                 case VARBINARYMAX:
                 case VARCHARMAX:
                 case NVARCHARMAX:
+                case JSON:
                 case UDT: {
                     convertedValue = DDC.convertStreamToObject(
                             PLPInputStream.makeStream(tdsReader, streamGetterArgs, this), typeInfo, jdbcType,
