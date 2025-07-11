@@ -4,7 +4,6 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
-import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -12,11 +11,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -26,18 +28,25 @@ import static org.mockito.Mockito.verify;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -2043,4 +2052,348 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testActiveDirectoryServicePrincipalCertificateValidation() throws Exception {
+        // Use reflection to instantiate SQLServerConnection with a dummy argument
+        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
+                .getDeclaredConstructor(String.class);
+        ctor.setAccessible(true);
+        SQLServerConnection conn = ctor.newInstance("test");
+
+        // Prepare properties for ActiveDirectoryServicePrincipalCertificate with missing user/principalId and missing cert
+        Properties props = new Properties();
+        props.setProperty(com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty.AUTHENTICATION.toString(),
+                com.microsoft.sqlserver.jdbc.SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE
+                        .toString());
+        props.setProperty(com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty.USER.toString(), ""); // empty
+        props.setProperty(com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
+                ""); // empty
+        // No clientCertificate property set
+
+        // Should throw due to missing user/principalId and missing certificate
+        assertThrows(SQLServerException.class, () -> {
+            conn.connectInternal(props, null);
+        });
+
+        // Now set a certificate, but still missing user/principalId
+        props.setProperty(com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(),
+                "dummy123");
+        // Should still throw
+        assertThrows(SQLServerException.class, () -> {
+            conn.connectInternal(props, null);
+        });
+    }
+
+    @Test
+    public void testSetColumnEncryptionTrustedMasterKeyPaths() throws Exception {
+        // Prepare a map with mixed-case keys and values
+        Map<String, List<String>> trustedKeyPaths = new HashMap<>();
+        trustedKeyPaths.put("server1\\instanceA", Arrays.asList("path1", "path2"));
+        trustedKeyPaths.put("SERVER2\\InstanceB", Arrays.asList("path3"));
+
+        // Get reference to the static field for validation
+        java.lang.reflect.Field field = SQLServerConnection.class
+                .getDeclaredField("columnEncryptionTrustedMasterKeyPaths");
+        field.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<String, List<String>> internalMap = (Map<String, List<String>>) field.get(null);
+
+        // Set initial dummy value to ensure clear() is called
+        internalMap.put("DUMMY", Arrays.asList("dummyPath"));
+
+        // Call the method under test
+        SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(trustedKeyPaths);
+
+        // Validate that the map is cleared and keys are upper-cased
+        assertFalse(internalMap.containsKey("DUMMY"), "Old entries should be cleared");
+        assertTrue(internalMap.containsKey("SERVER1\\INSTANCEA"), "Key should be upper-cased");
+        assertTrue(internalMap.containsKey("SERVER2\\INSTANCEB"), "Key should be upper-cased");
+        assertEquals(Arrays.asList("path1", "path2"), internalMap.get("SERVER1\\INSTANCEA"));
+        assertEquals(Arrays.asList("path3"), internalMap.get("SERVER2\\INSTANCEB"));
+    }
+
+    @Test
+    public void testUpdateColumnEncryptionTrustedMasterKeyPaths() throws Exception {
+        // Prepare a server name and trusted key paths
+        String server = "TestServer\\Instance";
+        List<String> paths = Arrays.asList("keyPath1", "keyPath2");
+
+        // Get reference to the static field for validation
+        java.lang.reflect.Field field = SQLServerConnection.class
+                .getDeclaredField("columnEncryptionTrustedMasterKeyPaths");
+        field.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<String, List<String>> internalMap = (Map<String, List<String>>) field.get(null);
+
+        // Clear the map before test
+        internalMap.clear();
+
+        // Call the method under test
+        SQLServerConnection.updateColumnEncryptionTrustedMasterKeyPaths(server, paths);
+
+        // Validate that the map contains the upper-cased key and correct value
+        assertTrue(internalMap.containsKey(server.toUpperCase()), "Key should be upper-cased");
+        assertEquals(paths, internalMap.get(server.toUpperCase()));
+    }
+
+    @Test
+    public void testRemoveColumnEncryptionTrustedMasterKeyPaths() throws Exception {
+        String server = "RemoveServer\\Instance";
+        List<String> paths = Arrays.asList("removePath1", "removePath2");
+
+        // Get reference to the static field for validation
+        java.lang.reflect.Field field = SQLServerConnection.class
+                .getDeclaredField("columnEncryptionTrustedMasterKeyPaths");
+        field.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<String, List<String>> internalMap = (Map<String, List<String>>) field.get(null);
+
+        // Add entry to the map
+        internalMap.put(server.toUpperCase(), paths);
+
+        // Call the method under test
+        SQLServerConnection.removeColumnEncryptionTrustedMasterKeyPaths(server);
+
+        // Validate that the map no longer contains the key
+        assertFalse(internalMap.containsKey(server.toUpperCase()), "Key should be removed from the map");
+    }
+
+    @Test
+    public void testGetColumnEncryptionTrustedMasterKeyPaths() throws Exception {
+        // Prepare a map with mixed-case keys and values
+        Map<String, List<String>> trustedKeyPaths = new HashMap<>();
+        trustedKeyPaths.put("server1\\instanceA", Arrays.asList("path1", "path2"));
+        trustedKeyPaths.put("SERVER2\\InstanceB", Arrays.asList("path3"));
+
+        // Set the trusted master key paths
+        SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(trustedKeyPaths);
+
+        // Call the method under test
+        Map<String, List<String>> result = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths();
+
+        // Validate that the returned map contains upper-cased keys and correct values
+        assertTrue(result.containsKey("SERVER1\\INSTANCEA"));
+        assertTrue(result.containsKey("SERVER2\\INSTANCEB"));
+        assertEquals(Arrays.asList("path1", "path2"), result.get("SERVER1\\INSTANCEA"));
+        assertEquals(Arrays.asList("path3"), result.get("SERVER2\\INSTANCEB"));
+    }
+
+    @Test
+    public void testValidateMaxSQLLoginName() throws Exception {
+        SQLServerConnection conn = new SQLServerConnection("test");
+        String longName = "a".repeat(130); // Exceeds MAX_SQL_LOGIN_NAME_WCHARS (128)
+        Exception ex = assertThrows(com.microsoft.sqlserver.jdbc.SQLServerException.class,
+                () -> conn.validateMaxSQLLoginName("user", longName));
+        assertTrue(ex.getMessage().contains("user"));
+    }
+
+    // Helper to set private authenticationString
+    private void setAuthenticationString(SQLServerConnection conn, String value) throws Exception {
+        java.lang.reflect.Field field = SQLServerConnection.class.getDeclaredField("authenticationString");
+        field.setAccessible(true);
+        field.set(conn, value);
+    }
+
+    @Test
+    public void testConnectNumberFormatExceptionForLoginTimeout() throws Exception {
+        SQLServerConnection conn = new SQLServerConnection("test");
+        Properties props = new Properties();
+        props.setProperty("loginTimeout", "notANumber");
+        // Should not throw NumberFormatException, but SQLServerException
+        assertThrows(SQLServerException.class, () -> conn.connect(props, null));
+    }
+
+    @Test
+    public void testConnectActiveDirectoryInteractiveTimeout() throws Exception {
+        SQLServerConnection conn = new SQLServerConnection("test");
+        setAuthenticationString(conn, "ActiveDirectoryInteractive");
+        Properties props = new Properties();
+        props.setProperty("loginTimeout", "1");
+        // connectInternal will throw, but we want to check the timeout is multiplied
+        SQLServerConnection spyConn = spy(conn);
+        doThrow(new SQLServerException("fail", null, 0, null)).when(spyConn).connectInternal(any(), any());
+        assertThrows(SQLServerException.class, () -> spyConn.connect(props, null));
+        // If you want to check the timeout value, you can expose it via reflection or add a getter for testing.
+    }
+
+    @Test
+    public void testConnectInvalidateEnclaveSessionCacheCalled() throws Exception {
+        SQLServerConnection conn = spy(new SQLServerConnection("test"));
+        doNothing().when(conn).invalidateEnclaveSessionCache();
+        doThrow(new SQLServerException("fail", null, 0, null)).when(conn).connectInternal(any(), any());
+        Properties props = new Properties();
+        props.setProperty("loginTimeout", "1");
+        assertThrows(SQLServerException.class, () -> conn.connect(props, null));
+        verify(conn, atLeastOnce()).invalidateEnclaveSessionCache();
+    }
+
+    @Test
+    public void testValidateTimeoutProperty() throws Exception {
+        SQLServerConnection conn = new SQLServerConnection("test");
+        // Set up the activeConnectionProperties field via reflection
+        java.lang.reflect.Field propsField = SQLServerConnection.class.getDeclaredField("activeConnectionProperties");
+        propsField.setAccessible(true);
+
+        // Test with valid integer value
+        Properties props = new Properties();
+        props.setProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), "30");
+        propsField.set(conn, props);
+        int timeout = conn.validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
+        assertEquals(30, timeout);
+
+        // Test with invalid (negative) value
+        props.setProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), "-1");
+        propsField.set(conn, props);
+        Exception ex = assertThrows(SQLServerException.class,
+                () -> conn.validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT));
+        assertTrue(ex.getMessage().contains("-1"));
+
+        // Test with non-integer value
+        props.setProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString(), "notANumber");
+        propsField.set(conn, props);
+        Exception ex2 = assertThrows(SQLServerException.class,
+                () -> conn.validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT));
+        assertTrue(ex2.getMessage().contains("notANumber"));
+
+        // Test with missing property (should return default)
+        props.remove(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
+        propsField.set(conn, props);
+        int defaultTimeout = conn.validateTimeout(SQLServerDriverIntProperty.LOGIN_TIMEOUT);
+        assertEquals(SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue(), defaultTimeout);
+    }
+
+    @Test
+    public void testConnectPropertiesConf() throws Exception {
+        Properties props = new Properties();
+        props.setProperty("hostNameInCertificate", "certHost");
+        props.setProperty("trustStorePassword", "secret");
+        props.setProperty("serverName", "host\\instance");
+        props.setProperty("selectMethod", "invalid");
+
+        SQLServerConnection conn = new SQLServerConnection("test");
+
+        assertThrows(SQLServerException.class, () -> {
+            conn.connectInternal(props, null);
+        });
+
+        Field origField = SQLServerConnection.class.getDeclaredField("originalHostNameInCertificate");
+        origField.setAccessible(true);
+        assertEquals("certHost", origField.get(conn));
+        assertEquals("certHost", conn.activeConnectionProperties.getProperty("hostNameInCertificate"));
+
+        origField = SQLServerConnection.class.getDeclaredField("encryptedTrustStorePassword");
+        origField.setAccessible(true);
+        assertNotNull(origField.get(conn));
+
+        origField = SQLServerConnection.class.getDeclaredField("trustedServerNameAE");
+        origField.setAccessible(true);
+        assertTrue(((String) origField.get(conn)).contains("\\instance"));
+
+        origField = SQLServerConnection.class.getDeclaredField("selectMethod");
+        origField.setAccessible(true);
+        assertNotNull(origField.get(conn));
+
+    }
+
+    @Test
+    public void testLogin_DBMirroringFailoverValidation() throws Exception {
+        // Subclass to stub connectHelper and avoid real network IO
+        class TestConnection extends SQLServerConnection {
+            TestConnection(String s) throws SQLServerException {
+                super(s);
+            }
+
+            @SuppressWarnings("unused")
+            InetSocketAddress connectHelper(ServerPortPlaceHolder serverInfo, int timeOutSliceInMillis,
+                    int timeOutFullInSeconds, boolean useParallel, boolean useTnir, boolean isTnirFirstAttempt,
+                    int timeOutsliceInMillisForFullTimeout) throws SQLServerException {
+                try {
+                    Field stateField = SQLServerConnection.class.getDeclaredField("state");
+                    stateField.setAccessible(true);
+                    Class<?> stateEnum = stateField.getType();
+                    Object connectedState = Enum.valueOf((Class<Enum>) stateEnum, "CONNECTED");
+                    stateField.set(this, connectedState);
+                } catch (Exception e) {
+                    throw new SQLServerException("Reflection error", null);
+                }
+                return new InetSocketAddress("localhost", 1433);
+            }
+        }
+
+        // Setup: failover host, no failover partner provided
+        TestConnection conn = new TestConnection("test");
+        Properties props = new Properties();
+        props.setProperty("user", "u");
+        props.setProperty("databaseName", "db");
+        props.setProperty("serverName", "primary");
+        props.setProperty("failoverPartner", "mirror");
+        props.setProperty("applicationIntent", "ReadWrite");
+        conn.activeConnectionProperties = props;
+
+        // Set up placeholders for failover scenario
+        Field stateField = SQLServerConnection.class.getDeclaredField("state");
+        stateField.setAccessible(true);
+        stateField.set(conn, Enum.valueOf((Class<Enum>) stateField.getType(), "INITIALIZED"));
+
+        // Simulate DB mirroring with useFailoverHost = true, but no failoverPartnerServerProvided
+        FailoverInfo fo = new FailoverInfo("mirror", false);
+        Field failoverPartnerServerProvidedField = SQLServerConnection.class
+                .getDeclaredField("failoverPartnerServerProvided");
+        failoverPartnerServerProvidedField.setAccessible(true);
+        failoverPartnerServerProvidedField.set(conn, null);
+
+        Field currentConnectPlaceHolderField = SQLServerConnection.class.getDeclaredField("currentConnectPlaceHolder");
+        currentConnectPlaceHolderField.setAccessible(true);
+        currentConnectPlaceHolderField.set(conn, new ServerPortPlaceHolder("failoverHost", 1433, null, false));
+
+        Field currentFOPlaceHolderField = SQLServerConnection.class.getDeclaredField("currentConnectPlaceHolder");
+        currentFOPlaceHolderField.setAccessible(true);
+        currentFOPlaceHolderField.set(conn, new ServerPortPlaceHolder("failoverHost", 1433, null, false));
+
+        Method loginMethod = SQLServerConnection.class.getDeclaredMethod("login", String.class, String.class, int.class,
+                String.class, FailoverInfo.class, int.class, long.class);
+        loginMethod.setAccessible(true);
+        Exception ex = assertThrows(InvocationTargetException.class,
+                () -> loginMethod.invoke(conn, "primary", null, 1433, "mirror", null, 10, System.currentTimeMillis()));
+        assertTrue(ex.getCause() instanceof SQLServerException);
+
+        // Now test failoverPartnerServerProvided + multiSubnetFailover
+        failoverPartnerServerProvidedField.set(conn, "mirror");
+        Field multiSubnetFailoverField = SQLServerConnection.class.getDeclaredField("multiSubnetFailover");
+        multiSubnetFailoverField.setAccessible(true);
+        multiSubnetFailoverField.set(conn, true);
+        Exception ex2 = assertThrows(InvocationTargetException.class,
+                () -> loginMethod.invoke(conn, "primary", null, 1433, "mirror", null, 10, System.currentTimeMillis()));
+        assertTrue(ex2.getCause() instanceof SQLServerException);
+
+        // Now test failoverPartnerServerProvided + applicationIntent = READ_ONLY
+        multiSubnetFailoverField.set(conn, false);
+        Field applicationIntentField = SQLServerConnection.class.getDeclaredField("applicationIntent");
+        applicationIntentField.setAccessible(true);
+        applicationIntentField.set(conn, ApplicationIntent.READ_ONLY);
+        Exception ex3 = assertThrows(InvocationTargetException.class,
+                () -> loginMethod.invoke(conn, "primary", null, 1433, "mirror", null, 10, System.currentTimeMillis()));
+        assertTrue(ex3.getCause() instanceof SQLServerException);
+    }
+
+    @Test
+    public void testPrepareStatementOverloads() throws Exception {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            // 1. Basic
+            PreparedStatement ps1 = conn.prepareStatement("SELECT 1");
+            assertNotNull(ps1);
+
+            // 2. With autoGeneratedKeys
+            PreparedStatement ps2 = conn.prepareStatement("SELECT 1", Statement.RETURN_GENERATED_KEYS);
+            assertNotNull(ps2);
+
+            // 3. With columnIndexes
+            PreparedStatement ps3 = conn.prepareStatement("SELECT 1", new int[] {1});
+            assertNotNull(ps3);
+
+            // 4. With columnNames
+            PreparedStatement ps4 = conn.prepareStatement("SELECT 1", new String[] {"col1"});
+            assertNotNull(ps4);
+        }
+    }
 }
