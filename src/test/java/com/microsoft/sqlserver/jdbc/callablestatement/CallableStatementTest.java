@@ -75,7 +75,8 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_definedType"));
     private static String zeroParamSproc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("zeroParamSproc"));
-    private static String tableNameJSON = "TestJSONTable";
+    private static String tableNameJSON = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("TestJSONTable"));
 	private static String procedureNameJSON = AbstractSQLGenerator
 			.escapeIdentifier(RandomUtil.getIdentifier("TestJSONProcedure"));
 

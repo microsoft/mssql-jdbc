@@ -85,8 +85,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertEquals(1, rs.getInt("isJsonValid"));
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -103,7 +101,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testISJSONWithVariousInputs() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("dstTableNew"));
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement stmt = conn.createStatement()) {
@@ -136,8 +134,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertEquals(0, rs.getInt("isJsonValid"));
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -171,8 +167,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertTrue(rs.next());
                     assertEquals("[\"value1\",123]", rs.getString("testCol"));
                 }
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -206,8 +200,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertTrue(rs.next());
                     assertEquals("[\"value1\",123,null,\"value2\"]", rs.getString("testCol"));
                 }
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -242,8 +234,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertTrue(rs.next());
                     assertEquals("[\"a\",{\"name\":\"value\",\"type\":1},[1,null,2]]", rs.getString("testCol"));
                 }
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -283,8 +273,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertTrue(jsonArray.contains("\","));
                     assertTrue(jsonArray.endsWith("]"));
                 }
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -325,8 +313,6 @@ public class JSONFunctionTest extends AbstractTest {
                         assertTrue(info.endsWith("\"]"));
                     }
                 }
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -363,8 +349,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertEquals("[{\"key\":\"value1\"},{\"key\":\"value2\"}]", rs.getString("jsonArrayAgg"));
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -459,8 +443,6 @@ public class JSONFunctionTest extends AbstractTest {
                         }
                     }
                 }
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -539,8 +521,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertEquals("{\"name\":\"John\",\"skills\":[\"C#\",\"SQL\",\"Azure\"],\"surname\":\"Smith\"}",
                             rs.getString("testCol"));
                 }
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -665,8 +645,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertTrue(rs.next());
                     assertEquals("{\"info\":{\"address\":{\"town\":\"London\"}}}", rs.getString("jsonCol"));
                 }
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -856,8 +834,6 @@ public class JSONFunctionTest extends AbstractTest {
                         }
                     }
                 }
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -952,8 +928,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertEquals("[\"German\",\"Italian\"]", rs.getString("Languages"));
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -1006,8 +980,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertTrue(jsonResult.contains("\"ValidityPeriod\":[\"2023-02-01\",\"2023-11-30\"]"));
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -1056,8 +1028,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertEquals("New York", rs.getString("Town"));
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -1110,8 +1080,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertEquals("34.052235", rs.getString("Latitude"));
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -1151,8 +1119,6 @@ public class JSONFunctionTest extends AbstractTest {
                     assertEquals("name", rs.getString("key"));
                     assertEquals("John", rs.getString("value"));
                 }
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement()) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
