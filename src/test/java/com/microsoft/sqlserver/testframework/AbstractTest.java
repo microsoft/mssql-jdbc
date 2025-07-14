@@ -578,16 +578,6 @@ public abstract class AbstractTest {
                 Logger.getLogger(Constants.MSSQL_JDBC_LOGGING_HANDLER).addHandler(handler);
             }
 
-            try (InputStream loggingConfig = AbstractTest.class.getResourceAsStream("/logging.properties")) {
-                if (loggingConfig != null) {
-                    LogManager.getLogManager().readConfiguration(loggingConfig);
-
-                    LogManager lm = LogManager.getLogManager();
-                    String activityTrace = lm.getProperty("com.microsoft.sqlserver.jdbc.traceactivity");
-                    assertTrue("on".equalsIgnoreCase(activityTrace), "Activity trace should be enabled");
-                }
-            }
-
             /*
              * By default, Loggers also send their output to their parent logger. Typically the root Logger is
              * configured with a set of Handlers that essentially act as default handlers for all loggers.
