@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.sql.XAConnection;
 
@@ -2229,125 +2230,128 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
-        int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
-        if (propsIn != null) {
-            String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
-            try {
-                if (null != sPropValue && sPropValue.length() > 0) {
-                    int sPropValueInt = Integer.parseInt(sPropValue);
-                    if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
-                        loginTimeoutSeconds = sPropValueInt;
+        try (PerformanceLog.Scope connScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection, null, PerformanceActivity.CONNECTION)) {
+            int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
+
+            if (propsIn != null) {
+                String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
+                try {
+                    if (null != sPropValue && sPropValue.length() > 0) {
+                        int sPropValueInt = Integer.parseInt(sPropValue);
+                        if (0 != sPropValueInt) { // Use the default timeout in case of a zero value
+                            loginTimeoutSeconds = sPropValueInt;
+                        }
                     }
+                } catch (NumberFormatException e) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
+                    Object[] msgArgs = {sPropValue};
+                    SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
-            } catch (NumberFormatException e) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
-                Object[] msgArgs = {sPropValue};
-                SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
             }
-        }
 
-        // Interactive auth may involve MFA which require longer timeout
-        if (SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString().equalsIgnoreCase(authenticationString)) {
-            loginTimeoutSeconds *= 10;
-        }
+            // Interactive auth may involve MFA which require longer timeout
+            if (SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString().equalsIgnoreCase(authenticationString)) {
+                loginTimeoutSeconds *= 10;
+            }
 
-        long elapsedSeconds = 0;
-        long start = System.currentTimeMillis();
+            long elapsedSeconds = 0;
+            long start = System.currentTimeMillis();
 
-        // Any existing enclave session would be invalid, make sure it is invalidated.
-        // For example, if this is a session recovery reconnect.
-        //
-        invalidateEnclaveSessionCache();
-        for (int connectRetryAttempt = 0, tlsRetryAttempt = 0;;) {
-            try {
-                if (0 == elapsedSeconds || elapsedSeconds < loginTimeoutSeconds) {
-                    if (0 < tlsRetryAttempt && INTERMITTENT_TLS_MAX_RETRY > tlsRetryAttempt) {
-                        if (connectionlogger.isLoggable(Level.FINE)) {
-                            connectionlogger.fine("TLS retry " + tlsRetryAttempt + " of " + INTERMITTENT_TLS_MAX_RETRY
-                                    + " elapsed time " + elapsedSeconds + " secs");
+            // Any existing enclave session would be invalid, make sure it is invalidated.
+            // For example, if this is a session recovery reconnect.
+            //
+            invalidateEnclaveSessionCache();
+            for (int connectRetryAttempt = 0, tlsRetryAttempt = 0;;) {
+                try {
+                    if (0 == elapsedSeconds || elapsedSeconds < loginTimeoutSeconds) {
+                        if (0 < tlsRetryAttempt && INTERMITTENT_TLS_MAX_RETRY > tlsRetryAttempt) {
+                            if (connectionlogger.isLoggable(Level.FINE)) {
+                                connectionlogger.fine("TLS retry " + tlsRetryAttempt + " of " + INTERMITTENT_TLS_MAX_RETRY
+                                        + " elapsed time " + elapsedSeconds + " secs");
+                            }
+                        } else if (0 < connectRetryAttempt) {
+                            if (connectionlogger.isLoggable(Level.FINE)) {
+                                connectionlogger.fine("Retrying connection " + connectRetryAttempt + " of "
+                                        + connectRetryCount + " elapsed time " + elapsedSeconds + " secs");
+                            }
                         }
-                    } else if (0 < connectRetryAttempt) {
-                        if (connectionlogger.isLoggable(Level.FINE)) {
-                            connectionlogger.fine("Retrying connection " + connectRetryAttempt + " of "
-                                    + connectRetryCount + " elapsed time " + elapsedSeconds + " secs");
-                        }
+
+                        return connectInternal(propsIn, pooledConnection);
                     }
+                } catch (SQLServerException e) {
+                    elapsedSeconds = ((System.currentTimeMillis() - start) / 1000L);
 
-                    return connectInternal(propsIn, pooledConnection);
-                }
-            } catch (SQLServerException e) {
-                elapsedSeconds = ((System.currentTimeMillis() - start) / 1000L);
-
-                // special case for TLS intermittent failures: no wait retries
-                if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode()
-                        && tlsRetryAttempt < INTERMITTENT_TLS_MAX_RETRY && elapsedSeconds < loginTimeoutSeconds) {
-                    if (connectionlogger.isLoggable(Level.FINE)) {
-                        connectionlogger.fine(
-                                "Connection failed during SSL handshake. Retrying due to an intermittent TLS 1.2 failure issue. Retry attempt = "
-                                        + tlsRetryAttempt + ".");
-                    }
-                    tlsRetryAttempt++;
-                } else {
-                    // TLS max retry exceeded
-                    if (tlsRetryAttempt > INTERMITTENT_TLS_MAX_RETRY) {
+                    // special case for TLS intermittent failures: no wait retries
+                    if (SQLServerException.DRIVER_ERROR_INTERMITTENT_TLS_FAILED == e.getDriverErrorCode()
+                            && tlsRetryAttempt < INTERMITTENT_TLS_MAX_RETRY && elapsedSeconds < loginTimeoutSeconds) {
                         if (connectionlogger.isLoggable(Level.FINE)) {
-                            connectionlogger.fine("Connection failed during SSL handshake. Maximum retry attempt ("
-                                    + INTERMITTENT_TLS_MAX_RETRY + ") reached.  ");
+                            connectionlogger.fine(
+                                    "Connection failed during SSL handshake. Retrying due to an intermittent TLS 1.2 failure issue. Retry attempt = "
+                                            + tlsRetryAttempt + ".");
                         }
-                    }
-
-                    if (0 == connectRetryCount) {
-                        // connection retry disabled
-                        throw e;
-                    } else if (connectRetryAttempt++ >= connectRetryCount) {
-                        // maximum connection retry count reached
-                        if (connectionlogger.isLoggable(Level.FINE)) {
-                            connectionlogger.fine("Connection failed. Maximum connection retry count "
-                                    + connectRetryCount + " reached.");
-                        }
-                        throw e;
+                        tlsRetryAttempt++;
                     } else {
-                        // Only retry if matches configured CRL rules, or transient error (if CRL is not in use)
-                        SQLServerError sqlServerError = e.getSQLServerError();
-                        if (null == sqlServerError) {
+                        // TLS max retry exceeded
+                        if (tlsRetryAttempt > INTERMITTENT_TLS_MAX_RETRY) {
+                            if (connectionlogger.isLoggable(Level.FINE)) {
+                                connectionlogger.fine("Connection failed during SSL handshake. Maximum retry attempt ("
+                                        + INTERMITTENT_TLS_MAX_RETRY + ") reached.  ");
+                            }
+                        }
+
+                        if (0 == connectRetryCount) {
+                            // connection retry disabled
+                            throw e;
+                        } else if (connectRetryAttempt++ >= connectRetryCount) {
+                            // maximum connection retry count reached
+                            if (connectionlogger.isLoggable(Level.FINE)) {
+                                connectionlogger.fine("Connection failed. Maximum connection retry count "
+                                        + connectRetryCount + " reached.");
+                            }
                             throw e;
                         } else {
-                            ConfigurableRetryRule rule = ConfigurableRetryLogic.getInstance()
-                                    .searchRuleSet(sqlServerError.getErrorNumber(), "connection");
+                            // Only retry if matches configured CRL rules, or transient error (if CRL is not in use)
+                            SQLServerError sqlServerError = e.getSQLServerError();
+                            if (null == sqlServerError) {
+                                throw e;
+                            } else {
+                                ConfigurableRetryRule rule = ConfigurableRetryLogic.getInstance()
+                                        .searchRuleSet(sqlServerError.getErrorNumber(), "connection");
 
-                            if (null == rule) {
-                                if (ConfigurableRetryLogic.getInstance().getReplaceFlag()) {
-                                    throw e;
-                                } else {
-                                    if (!TransientError.isTransientError(sqlServerError)) {
+                                if (null == rule) {
+                                    if (ConfigurableRetryLogic.getInstance().getReplaceFlag()) {
                                         throw e;
+                                    } else {
+                                        if (!TransientError.isTransientError(sqlServerError)) {
+                                            throw e;
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        // check if there's time to retry, no point to wait if no time left
-                        if ((elapsedSeconds + connectRetryInterval) >= loginTimeoutSeconds) {
-                            if (connectionlogger.isLoggable(Level.FINEST)) {
-                                connectionlogger
-                                        .finest("Connection failed. No time left to retry timeout will be exceeded:"
-                                                + " elapsed time(" + elapsedSeconds + ")s + connectRetryInterval("
-                                                + connectRetryInterval + ")s >= loginTimeout(" + loginTimeoutSeconds
-                                                + ")s");
+                            // check if there's time to retry, no point to wait if no time left
+                            if ((elapsedSeconds + connectRetryInterval) >= loginTimeoutSeconds) {
+                                if (connectionlogger.isLoggable(Level.FINEST)) {
+                                    connectionlogger
+                                    .finest("Connection failed. No time left to retry timeout will be exceeded:"
+                                            + " elapsed time(" + elapsedSeconds + ")s + connectRetryInterval("
+                                            + connectRetryInterval + ")s >= loginTimeout(" + loginTimeoutSeconds
+                                            + ")s");
+                                }
+                                throw e;
                             }
-                            throw e;
-                        }
 
-                        // wait for connectRetryInterval before retry
-                        if (connectionlogger.isLoggable(Level.FINEST)) {
-                            connectionlogger.finest(toString() + "Connection failed on transient error "
-                                    + sqlServerError.getErrorNumber() + ". Wait for connectRetryInterval("
-                                    + connectRetryInterval + ")s before retry.");
-                        }
+                            // wait for connectRetryInterval before retry
+                            if (connectionlogger.isLoggable(Level.FINEST)) {
+                                connectionlogger.finest(toString() + "Connection failed on transient error "
+                                        + sqlServerError.getErrorNumber() + ". Wait for connectRetryInterval("
+                                        + connectRetryInterval + ")s before retry.");
+                            }
 
-                        if (connectRetryAttempt > 1) {
-                            // We do not sleep for first retry; first retry is immediate
-                            sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                            if (connectRetryAttempt > 1) {
+                                // We do not sleep for first retry; first retry is immediate
+                                sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                            }
                         }
                     }
                 }
@@ -3689,372 +3693,373 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
         // standardLogin would be false only for db mirroring scenarios. It would be true
         // for all other cases, including multiSubnetFailover
+        try (PerformanceLog.Scope loginScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection, clientConnectionId, PerformanceActivity.LOGIN)) {
+            final boolean isDBMirroring = null != mirror || null != foActual;
 
-        final boolean isDBMirroring = null != mirror || null != foActual;
+            int fedauthRetryInterval = BACKOFF_INTERVAL; // milliseconds to sleep (back off) between attempts.
 
-        int fedauthRetryInterval = BACKOFF_INTERVAL; // milliseconds to sleep (back off) between attempts.
+            long timeoutUnitInterval;
+            long timeForFirstTry = 0; // time it took to do 1st try in ms
 
-        long timeoutUnitInterval;
-        long timeForFirstTry = 0; // time it took to do 1st try in ms
+            boolean useFailoverHost = false;
+            FailoverInfo tempFailover = null;
+            // This is the failover server info place holder
+            ServerPortPlaceHolder currentFOPlaceHolder = null;
+            // This is the primary server placeHolder
+            ServerPortPlaceHolder currentPrimaryPlaceHolder = null;
 
-        boolean useFailoverHost = false;
-        FailoverInfo tempFailover = null;
-        // This is the failover server info place holder
-        ServerPortPlaceHolder currentFOPlaceHolder = null;
-        // This is the primary server placeHolder
-        ServerPortPlaceHolder currentPrimaryPlaceHolder = null;
-
-        if (null != foActual) {
-            tempFailover = foActual;
-            useFailoverHost = foActual.getUseFailoverPartner();
-        } else {
-            if (isDBMirroring) {
-                // Create a temporary class with the mirror info from the user
-                tempFailover = new FailoverInfo(mirror, false);
+            if (null != foActual) {
+                tempFailover = foActual;
+                useFailoverHost = foActual.getUseFailoverPartner();
+            } else {
+                if (isDBMirroring) {
+                    // Create a temporary class with the mirror info from the user
+                    tempFailover = new FailoverInfo(mirror, false);
+                }
             }
-        }
 
-        // useParallel is set to true only for the first connection
-        // when multiSubnetFailover is set to true. In all other cases, it is set
-        // to false.
-        boolean useParallel = getMultiSubnetFailover();
-        boolean useTnir = getTransparentNetworkIPResolution();
+            // useParallel is set to true only for the first connection
+            // when multiSubnetFailover is set to true. In all other cases, it is set
+            // to false.
+            boolean useParallel = getMultiSubnetFailover();
+            boolean useTnir = getTransparentNetworkIPResolution();
 
-        long intervalExpire;
+            long intervalExpire;
 
-        if (0 == timeout) {
-            timeout = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
-        }
-        long timerTimeout = timeout * 1000L; // ConnectTimeout is in seconds, we need timer millis
-        timerExpire = timerStart + timerTimeout;
+            if (0 == timeout) {
+                timeout = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
+            }
+            long timerTimeout = timeout * 1000L; // ConnectTimeout is in seconds, we need timer millis
+            timerExpire = timerStart + timerTimeout;
 
-        // For non-dbmirroring, non-tnir and non-multisubnetfailover scenarios, full time out would be used as time
-        // slice.
-        if (isDBMirroring || useParallel) {
-            timeoutUnitInterval = (long) (TIMEOUTSTEP * timerTimeout);
-        } else if (useTnir) {
-            timeoutUnitInterval = (long) (TIMEOUTSTEP_TNIR * timerTimeout);
-        } else {
-            timeoutUnitInterval = timerTimeout;
-        }
-        intervalExpire = timerStart + timeoutUnitInterval;
+            // For non-dbmirroring, non-tnir and non-multisubnetfailover scenarios, full time out would be used as time
+            // slice.
+            if (isDBMirroring || useParallel) {
+                timeoutUnitInterval = (long) (TIMEOUTSTEP * timerTimeout);
+            } else if (useTnir) {
+                timeoutUnitInterval = (long) (TIMEOUTSTEP_TNIR * timerTimeout);
+            } else {
+                timeoutUnitInterval = timerTimeout;
+            }
+            intervalExpire = timerStart + timeoutUnitInterval;
 
-        // This is needed when the host resolves to more than 64 IP addresses. In that case, TNIR is ignored
-        // and the original timeout is used instead of the timeout slice.
-        long intervalExpireFullTimeout = timerStart + timerTimeout;
+            // This is needed when the host resolves to more than 64 IP addresses. In that case, TNIR is ignored
+            // and the original timeout is used instead of the timeout slice.
+            long intervalExpireFullTimeout = timerStart + timerTimeout;
 
-        if (loggerResiliency.isLoggable(Level.FINER)) {
-            loggerResiliency.finer(toString() + " Connection open - start time: " + timeout + " time out time: "
-                    + timerExpire + " timeout unit interval: " + timeoutUnitInterval);
-        }
+            if (loggerResiliency.isLoggable(Level.FINER)) {
+                loggerResiliency.finer(toString() + " Connection open - start time: " + timeout + " time out time: "
+                        + timerExpire + " timeout unit interval: " + timeoutUnitInterval);
+            }
 
-        // Initialize loop variables
-        int attemptNumber = 0;
-        SQLServerError sqlServerError = null;
+            // Initialize loop variables
+            int attemptNumber = 0;
+            SQLServerError sqlServerError = null;
 
-        // indicates the no of times the connection was routed to a different server
-        int noOfRedirections = 0;
-        int maxNoOfRedirections = 10;
-        // Only three ways out of this loop:
-        // 1) Successfully connected
-        // 2) Parser threw exception while main timer was expired
-        // 3) Parser threw logon failure-related exception (LOGON_FAILED, PASSWORD_EXPIRED, etc)
-        //
-        // Of these methods, only #1 exits normally. This preserves the call stack on the exception
-        // back into the parser for the error cases.
-        while (true) {
-            clientConnectionId = null;
-            state = State.INITIALIZED;
+            // indicates the no of times the connection was routed to a different server
+            int noOfRedirections = 0;
+            int maxNoOfRedirections = 10;
+            // Only three ways out of this loop:
+            // 1) Successfully connected
+            // 2) Parser threw exception while main timer was expired
+            // 3) Parser threw logon failure-related exception (LOGON_FAILED, PASSWORD_EXPIRED, etc)
+            //
+            // Of these methods, only #1 exits normally. This preserves the call stack on the exception
+            // back into the parser for the error cases.
+            while (true) {
+                clientConnectionId = null;
+                state = State.INITIALIZED;
 
-            try {
-                if (isDBMirroring && useFailoverHost) {
-                    if (null == currentFOPlaceHolder) {
-                        // integrated security flag passed here to verify that the linked dll can be loaded
-                        currentFOPlaceHolder = tempFailover.failoverPermissionCheck(this, integratedSecurity);
+                try {
+                    if (isDBMirroring && useFailoverHost) {
+                        if (null == currentFOPlaceHolder) {
+                            // integrated security flag passed here to verify that the linked dll can be loaded
+                            currentFOPlaceHolder = tempFailover.failoverPermissionCheck(this, integratedSecurity);
+                        }
+                        currentConnectPlaceHolder = currentFOPlaceHolder;
+                    } else {
+                        if (routingInfo != null) {
+                            if (loggerRedirection.isLoggable(Level.FINE)) {
+                                loggerRedirection
+                                .fine(toString() + " Connection open - redirecting to server and instance: "
+                                        + routingInfo.getFullServerName());
+                            }
+                            currentPrimaryPlaceHolder = routingInfo;
+                            routingInfo = null;
+                        } else if (null == currentPrimaryPlaceHolder) {
+                            currentPrimaryPlaceHolder = primaryPermissionCheck(primary, primaryInstanceName,
+                                    primaryPortNumber);
+                        }
+                        currentConnectPlaceHolder = currentPrimaryPlaceHolder;
                     }
-                    currentConnectPlaceHolder = currentFOPlaceHolder;
-                } else {
-                    if (routingInfo != null) {
+
+                    if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
+                        loggerResiliency.fine(toString() + " Connection open - starting connection retry attempt number: "
+                                + attemptNumber);
+                    }
+
+                    if (loggerResiliency.isLoggable(Level.FINER)) {
+                        loggerResiliency.finer(toString() + " Connection open - attempt server name: "
+                                + currentConnectPlaceHolder.getServerName() + " port: "
+                                + currentConnectPlaceHolder.getPortNumber() + " InstanceName: "
+                                + currentConnectPlaceHolder.getInstanceName() + " useParallel: " + useParallel);
+                        loggerResiliency.finer(toString() + " Connection open - attempt end time: " + intervalExpire);
+                        loggerResiliency.finer(toString() + " Connection open - attempt number: " + attemptNumber);
+                    }
+
+                    // Attempt login. Use Place holder to make sure that the failoverdemand is done.
+                    InetSocketAddress inetSocketAddress = connectHelper(currentConnectPlaceHolder,
+                            timerRemaining(intervalExpire), timeout, useParallel, useTnir, (0 == attemptNumber), // TNIR
+                            // first
+                            // attempt
+                            timerRemaining(intervalExpireFullTimeout)); // Only used when host resolves to >64 IPs
+                    // Successful connection, cache the IP address and port if server supports DNS Cache.
+                    if (serverSupportsDNSCaching) {
+                        dnsCache.put(currentConnectPlaceHolder.getServerName(), inetSocketAddress);
+                    }
+
+                    if (isRoutedInCurrentAttempt) {
+                        // we ignore the failoverpartner ENVCHANGE if we got routed so no error needs to be thrown
+                        if (isDBMirroring) {
+                            String msg = SQLServerException.getErrString("R_invalidRoutingInfo");
+                            terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
+                        }
+
+                        noOfRedirections++;
+
                         if (loggerRedirection.isLoggable(Level.FINE)) {
                             loggerRedirection
-                                    .fine(toString() + " Connection open - redirecting to server and instance: "
-                                            + routingInfo.getFullServerName());
+                            .fine(toString() + " Connection open - redirection count: " + noOfRedirections);
                         }
-                        currentPrimaryPlaceHolder = routingInfo;
-                        routingInfo = null;
-                    } else if (null == currentPrimaryPlaceHolder) {
-                        currentPrimaryPlaceHolder = primaryPermissionCheck(primary, primaryInstanceName,
-                                primaryPortNumber);
-                    }
-                    currentConnectPlaceHolder = currentPrimaryPlaceHolder;
-                }
 
-                if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
-                    loggerResiliency.fine(toString() + " Connection open - starting connection retry attempt number: "
-                            + attemptNumber);
-                }
+                        if (noOfRedirections > maxNoOfRedirections) {
+                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_multipleRedirections"));
+                            Object[] msgArgs = {maxNoOfRedirections};
+                            terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
+                        }
 
-                if (loggerResiliency.isLoggable(Level.FINER)) {
-                    loggerResiliency.finer(toString() + " Connection open - attempt server name: "
-                            + currentConnectPlaceHolder.getServerName() + " port: "
-                            + currentConnectPlaceHolder.getPortNumber() + " InstanceName: "
-                            + currentConnectPlaceHolder.getInstanceName() + " useParallel: " + useParallel);
-                    loggerResiliency.finer(toString() + " Connection open - attempt end time: " + intervalExpire);
-                    loggerResiliency.finer(toString() + " Connection open - attempt number: " + attemptNumber);
-                }
+                        // close tds channel
+                        if (tdsChannel != null)
+                            tdsChannel.close();
 
-                // Attempt login. Use Place holder to make sure that the failoverdemand is done.
-                InetSocketAddress inetSocketAddress = connectHelper(currentConnectPlaceHolder,
-                        timerRemaining(intervalExpire), timeout, useParallel, useTnir, (0 == attemptNumber), // TNIR
-                                                                                                             // first
-                                                                                                             // attempt
-                        timerRemaining(intervalExpireFullTimeout)); // Only used when host resolves to >64 IPs
-                // Successful connection, cache the IP address and port if server supports DNS Cache.
-                if (serverSupportsDNSCaching) {
-                    dnsCache.put(currentConnectPlaceHolder.getServerName(), inetSocketAddress);
-                }
+                        initResettableValues();
 
-                if (isRoutedInCurrentAttempt) {
-                    // we ignore the failoverpartner ENVCHANGE if we got routed so no error needs to be thrown
-                    if (isDBMirroring) {
-                        String msg = SQLServerException.getErrString("R_invalidRoutingInfo");
-                        terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
-                    }
+                        // reset all params that could have been changed due to ENVCHANGE tokens
+                        // to defaults, excluding those changed due to routing ENVCHANGE token
+                        resetNonRoutingEnvchangeValues();
 
-                    noOfRedirections++;
+                        // increase the attempt number. This is not really necessary
+                        // (in fact it does not matter whether we increase it or not) as
+                        // we do not use any timeslicing for multisubnetfailover. However, this
+                        // is done just to be consistent with the rest of the logic.
+                        attemptNumber++;
 
-                    if (loggerRedirection.isLoggable(Level.FINE)) {
-                        loggerRedirection
-                                .fine(toString() + " Connection open - redirection count: " + noOfRedirections);
-                    }
+                        // useParallel and useTnir should be set to false once we get routed
+                        useParallel = false;
+                        useTnir = false;
 
-                    if (noOfRedirections > maxNoOfRedirections) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_multipleRedirections"));
-                        Object[] msgArgs = {maxNoOfRedirections};
-                        terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
-                    }
+                        // When connection is routed for read only application, remaining timer duration is used as a one
+                        // full interval
+                        intervalExpire = timerExpire;
 
-                    // close tds channel
-                    if (tdsChannel != null)
-                        tdsChannel.close();
+                        // if timeout expired, throw.
+                        if (timerHasExpired(timerExpire)) {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_tcpipConnectionFailed"));
+                            Object[] msgArgs = {getServerNameString(currentConnectPlaceHolder.getServerName()),
+                                    Integer.toString(currentConnectPlaceHolder.getPortNumber()),
+                                    SQLServerException.getErrString("R_timedOutBeforeRouting")};
+                            String msg = form.format(msgArgs);
+                            terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
+                        } else {
+                            // set isRoutedInCurrentAttempt to false for the next attempt
+                            isRoutedInCurrentAttempt = false;
 
-                    initResettableValues();
-
-                    // reset all params that could have been changed due to ENVCHANGE tokens
-                    // to defaults, excluding those changed due to routing ENVCHANGE token
-                    resetNonRoutingEnvchangeValues();
-
-                    // increase the attempt number. This is not really necessary
-                    // (in fact it does not matter whether we increase it or not) as
-                    // we do not use any timeslicing for multisubnetfailover. However, this
-                    // is done just to be consistent with the rest of the logic.
-                    attemptNumber++;
-
-                    // useParallel and useTnir should be set to false once we get routed
-                    useParallel = false;
-                    useTnir = false;
-
-                    // When connection is routed for read only application, remaining timer duration is used as a one
-                    // full interval
-                    intervalExpire = timerExpire;
-
-                    // if timeout expired, throw.
-                    if (timerHasExpired(timerExpire)) {
-                        MessageFormat form = new MessageFormat(
-                                SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                        Object[] msgArgs = {getServerNameString(currentConnectPlaceHolder.getServerName()),
-                                Integer.toString(currentConnectPlaceHolder.getPortNumber()),
-                                SQLServerException.getErrString("R_timedOutBeforeRouting")};
-                        String msg = form.format(msgArgs);
-                        terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
+                            continue;
+                        }
                     } else {
-                        // set isRoutedInCurrentAttempt to false for the next attempt
-                        isRoutedInCurrentAttempt = false;
+                        if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
+                            loggerResiliency.fine(toString()
+                                    + " Connection open - connection retry succeeded on attempt number: " + attemptNumber);
+                        }
 
-                        continue;
+                        break; // leave the while loop -- we've successfully connected
                     }
-                } else {
+                } catch (SQLServerException e) {
+
                     if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
-                        loggerResiliency.fine(toString()
-                                + " Connection open - connection retry succeeded on attempt number: " + attemptNumber);
+                        loggerResiliency.fine(toString() + " Connection open - connection retry failed on attempt number: "
+                                + attemptNumber);
                     }
 
-                    break; // leave the while loop -- we've successfully connected
-                }
-            } catch (SQLServerException e) {
-
-                if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
-                    loggerResiliency.fine(toString() + " Connection open - connection retry failed on attempt number: "
-                            + attemptNumber);
-                }
-
-                if (loggerResiliency.isLoggable(Level.FINER) && (attemptNumber >= connectRetryCount)) {
-                    loggerResiliency
-                            .finer(toString() + " Connection open - connection failed. Maximum connection retry count "
-                                    + connectRetryCount + " reached.");
-                }
-
-                // estimate time it took to do 1 try
-                if (attemptNumber == 0) {
-                    timeForFirstTry = (System.currentTimeMillis() - timerStart);
-                }
-
-                sqlServerError = e.getSQLServerError();
-
-                if (isFatalError(e) // do not retry on fatal errors
-                        || timerHasExpired(timerExpire) // no time left
-                        || (timerRemaining(timerExpire) < TimeUnit.SECONDS.toMillis(connectRetryInterval)
-                                + 2 * timeForFirstTry) // not enough time for another retry
-                        || (connectRetryCount == 0 && !isDBMirroring && !useTnir) // retries disabled
-                        // retry at least once for TNIR and failover
-                        || (connectRetryCount == 0 && (isDBMirroring || useTnir) && attemptNumber > 0)
-                        || (connectRetryCount != 0 && attemptNumber >= connectRetryCount) // no retries left
-                ) {
-                    if (loggerResiliency.isLoggable(Level.FINER)) {
-                        logConnectFailure(attemptNumber, e, sqlServerError);
+                    if (loggerResiliency.isLoggable(Level.FINER) && (attemptNumber >= connectRetryCount)) {
+                        loggerResiliency
+                        .finer(toString() + " Connection open - connection failed. Maximum connection retry count "
+                                + connectRetryCount + " reached.");
                     }
 
-                    // close the connection and throw the error back
-                    close();
-                    throw e;
-                } else {
-                    if (loggerResiliency.isLoggable(Level.FINER)) {
-                        logConnectFailure(attemptNumber, e, sqlServerError);
+                    // estimate time it took to do 1 try
+                    if (attemptNumber == 0) {
+                        timeForFirstTry = (System.currentTimeMillis() - timerStart);
                     }
 
-                    // Close the TDS channel from the failed connection attempt so that we don't
-                    // hold onto network resources any longer than necessary.
-                    if (null != tdsChannel)
-                        tdsChannel.close();
-                }
+                    sqlServerError = e.getSQLServerError();
 
-                // For standard connections and MultiSubnetFailover connections, change the sleep interval after every
-                // attempt.
-                // For DB Mirroring, we only sleep after every other attempt.
-                if (!isDBMirroring || 1 == attemptNumber % 2) {
-                    // Check sleep interval to make sure we won't exceed the timeout
-                    // Do this in the catch block so we can re-throw the current exception
-                    long remainingMilliseconds = timerRemaining(timerExpire);
-                    if (remainingMilliseconds <= fedauthRetryInterval) {
-
+                    if (isFatalError(e) // do not retry on fatal errors
+                            || timerHasExpired(timerExpire) // no time left
+                            || (timerRemaining(timerExpire) < TimeUnit.SECONDS.toMillis(connectRetryInterval)
+                                    + 2 * timeForFirstTry) // not enough time for another retry
+                            || (connectRetryCount == 0 && !isDBMirroring && !useTnir) // retries disabled
+                            // retry at least once for TNIR and failover
+                            || (connectRetryCount == 0 && (isDBMirroring || useTnir) && attemptNumber > 0)
+                            || (connectRetryCount != 0 && attemptNumber >= connectRetryCount) // no retries left
+                            ) {
                         if (loggerResiliency.isLoggable(Level.FINER)) {
                             logConnectFailure(attemptNumber, e, sqlServerError);
                         }
 
+                        // close the connection and throw the error back
+                        close();
                         throw e;
-                    }
-                }
-            }
+                    } else {
+                        if (loggerResiliency.isLoggable(Level.FINER)) {
+                            logConnectFailure(attemptNumber, e, sqlServerError);
+                        }
 
-            // We only get here when we failed to connect, but are going to re-try
-            // After trying to connect to both servers fails, sleep for a bit to prevent clogging
-            // the network with requests, then update sleep interval for next iteration (max 1 second interval)
-            // We have to sleep for every attempt in case of non-dbMirroring scenarios (including multisubnetfailover),
-            // Whereas for dbMirroring, we sleep for every two attempts as each attempt is to a different server.
-            // Make sure there's enough time to do another retry
-            if (!isDBMirroring || (isDBMirroring && (0 == attemptNumber % 2))
-                    && (attemptNumber < connectRetryCount && connectRetryCount != 0) && timerRemaining(
-                            timerExpire) > (TimeUnit.SECONDS.toMillis(connectRetryInterval) + 2 * timeForFirstTry)) {
-
-                // don't wait for TNIR
-                if (!(useTnir && attemptNumber == 0)) {
-                    if (loggerResiliency.isLoggable(Level.FINER)) {
-                        loggerResiliency.finer(toString() + " Connection open - connection failed on transient error "
-                                + (sqlServerError != null ? sqlServerError.getErrorNumber() : "")
-                                + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
-                                + attemptNumber);
+                        // Close the TDS channel from the failed connection attempt so that we don't
+                        // hold onto network resources any longer than necessary.
+                        if (null != tdsChannel)
+                            tdsChannel.close();
                     }
 
-                    sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                    // For standard connections and MultiSubnetFailover connections, change the sleep interval after every
+                    // attempt.
+                    // For DB Mirroring, we only sleep after every other attempt.
+                    if (!isDBMirroring || 1 == attemptNumber % 2) {
+                        // Check sleep interval to make sure we won't exceed the timeout
+                        // Do this in the catch block so we can re-throw the current exception
+                        long remainingMilliseconds = timerRemaining(timerExpire);
+                        if (remainingMilliseconds <= fedauthRetryInterval) {
+
+                            if (loggerResiliency.isLoggable(Level.FINER)) {
+                                logConnectFailure(attemptNumber, e, sqlServerError);
+                            }
+
+                            throw e;
+                        }
+                    }
+                }
+
+                // We only get here when we failed to connect, but are going to re-try
+                // After trying to connect to both servers fails, sleep for a bit to prevent clogging
+                // the network with requests, then update sleep interval for next iteration (max 1 second interval)
+                // We have to sleep for every attempt in case of non-dbMirroring scenarios (including multisubnetfailover),
+                // Whereas for dbMirroring, we sleep for every two attempts as each attempt is to a different server.
+                // Make sure there's enough time to do another retry
+                if (!isDBMirroring || (isDBMirroring && (0 == attemptNumber % 2))
+                        && (attemptNumber < connectRetryCount && connectRetryCount != 0) && timerRemaining(
+                                timerExpire) > (TimeUnit.SECONDS.toMillis(connectRetryInterval) + 2 * timeForFirstTry)) {
+
+                    // don't wait for TNIR
+                    if (!(useTnir && attemptNumber == 0)) {
+                        if (loggerResiliency.isLoggable(Level.FINER)) {
+                            loggerResiliency.finer(toString() + " Connection open - connection failed on transient error "
+                                    + (sqlServerError != null ? sqlServerError.getErrorNumber() : "")
+                                    + ". Wait for connectRetryInterval(" + connectRetryInterval + ")s before retry #"
+                                    + attemptNumber);
+                        }
+
+                        sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                    }
+                }
+
+                // Update timeout interval (but no more than the point where we're supposed to fail: timerExpire)
+                attemptNumber++;
+
+                if (useParallel) {
+                    intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * (attemptNumber + 1));
+                } else if (isDBMirroring) {
+                    intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((attemptNumber / 2) + 1));
+                } else if (useTnir) {
+                    long timeSlice = timeoutUnitInterval * (1 << attemptNumber);
+
+                    // In case the timeout for the first slice is less than 500 ms then bump it up to 500 ms
+                    if ((1 == attemptNumber) && (500 > timeSlice)) {
+                        timeSlice = 500;
+                    }
+
+                    intervalExpire = System.currentTimeMillis() + timeSlice;
+                } else
+                    intervalExpire = timerExpire;
+                // Due to the below condition and the timerHasExpired check in catch block,
+                // the multiSubnetFailover case or any other standardLogin case where timeOutInterval is full timeout would
+                // also be handled correctly.
+                if (intervalExpire > timerExpire) {
+                    intervalExpire = timerExpire;
+                }
+
+                // try again, this time swapping primary/secondary servers
+                if (isDBMirroring) {
+                    useFailoverHost = !useFailoverHost;
                 }
             }
 
-            // Update timeout interval (but no more than the point where we're supposed to fail: timerExpire)
-            attemptNumber++;
+            // If we get here, connection/login succeeded! Just a few more checks & record-keeping
+            // if connected to failover host, but said host doesn't have DbMirroring set up, throw an error
+            if (useFailoverHost && null == failoverPartnerServerProvided) {
+                String curserverinfo = currentConnectPlaceHolder.getServerName();
+                if (null != currentFOPlaceHolder.getInstanceName()) {
+                    curserverinfo = curserverinfo + "\\";
+                    curserverinfo = curserverinfo + currentFOPlaceHolder.getInstanceName();
+                }
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPartnerConfiguration"));
+                Object[] msgArgs = {
+                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()),
+                        curserverinfo};
+                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
+            }
 
-            if (useParallel) {
-                intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * (attemptNumber + 1));
-            } else if (isDBMirroring) {
-                intervalExpire = System.currentTimeMillis() + (timeoutUnitInterval * ((attemptNumber / 2) + 1));
-            } else if (useTnir) {
-                long timeSlice = timeoutUnitInterval * (1 << attemptNumber);
-
-                // In case the timeout for the first slice is less than 500 ms then bump it up to 500 ms
-                if ((1 == attemptNumber) && (500 > timeSlice)) {
-                    timeSlice = 500;
+            if (null != failoverPartnerServerProvided) {
+                // if server returns failoverPartner when multiSubnetFailover keyword is used, fail
+                if (multiSubnetFailover) {
+                    String msg = SQLServerException.getErrString("R_dbMirroringWithMultiSubnetFailover");
+                    terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
                 }
 
-                intervalExpire = System.currentTimeMillis() + timeSlice;
-            } else
-                intervalExpire = timerExpire;
-            // Due to the below condition and the timerHasExpired check in catch block,
-            // the multiSubnetFailover case or any other standardLogin case where timeOutInterval is full timeout would
-            // also be handled correctly.
-            if (intervalExpire > timerExpire) {
-                intervalExpire = timerExpire;
-            }
-
-            // try again, this time swapping primary/secondary servers
-            if (isDBMirroring) {
-                useFailoverHost = !useFailoverHost;
-            }
-        }
-
-        // If we get here, connection/login succeeded! Just a few more checks & record-keeping
-        // if connected to failover host, but said host doesn't have DbMirroring set up, throw an error
-        if (useFailoverHost && null == failoverPartnerServerProvided) {
-            String curserverinfo = currentConnectPlaceHolder.getServerName();
-            if (null != currentFOPlaceHolder.getInstanceName()) {
-                curserverinfo = curserverinfo + "\\";
-                curserverinfo = curserverinfo + currentFOPlaceHolder.getInstanceName();
-            }
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPartnerConfiguration"));
-            Object[] msgArgs = {
-                    activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()),
-                    curserverinfo};
-            terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
-        }
-
-        if (null != failoverPartnerServerProvided) {
-            // if server returns failoverPartner when multiSubnetFailover keyword is used, fail
-            if (multiSubnetFailover) {
-                String msg = SQLServerException.getErrString("R_dbMirroringWithMultiSubnetFailover");
-                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
-            }
-
-            // if server returns failoverPartner and applicationIntent=ReadOnly, fail
-            if ((applicationIntent != null) && applicationIntent.equals(ApplicationIntent.READ_ONLY)) {
-                String msg = SQLServerException.getErrString("R_dbMirroringWithReadOnlyIntent");
-                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
-            }
-
-            if (null == tempFailover)
-                tempFailover = new FailoverInfo(failoverPartnerServerProvided, false);
-            // if the failover is not from the map already out this in the map, if it is from the map just make sure
-            // that we change the
-            if (null != foActual) {
-                // We must wait for CompleteLogin to finish for to have the
-                // env change from the server to know its designated failover
-                // partner; saved in failoverPartnerServerProvided
-                foActual.failoverAdd(this, useFailoverHost, failoverPartnerServerProvided);
-            } else {
-                String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
-                String instanceNameProperty = SQLServerDriverStringProperty.INSTANCE_NAME.toString();
-                String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
-
-                if (connectionlogger.isLoggable(Level.FINE)) {
-                    connectionlogger.fine(toString() + " adding new failover info server: "
-                            + activeConnectionProperties.getProperty(serverNameProperty) + " instance: "
-                            + activeConnectionProperties.getProperty(instanceNameProperty) + " database: "
-                            + activeConnectionProperties.getProperty(databaseNameProperty)
-                            + " server provided failover: " + failoverPartnerServerProvided);
+                // if server returns failoverPartner and applicationIntent=ReadOnly, fail
+                if ((applicationIntent != null) && applicationIntent.equals(ApplicationIntent.READ_ONLY)) {
+                    String msg = SQLServerException.getErrString("R_dbMirroringWithReadOnlyIntent");
+                    terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
                 }
 
-                tempFailover.failoverAdd(this, useFailoverHost, failoverPartnerServerProvided);
-                FailoverMapSingleton.putFailoverInfo(this, primary,
-                        activeConnectionProperties.getProperty(instanceNameProperty),
-                        activeConnectionProperties.getProperty(databaseNameProperty), tempFailover, useFailoverHost,
-                        failoverPartnerServerProvided);
+                if (null == tempFailover)
+                    tempFailover = new FailoverInfo(failoverPartnerServerProvided, false);
+                // if the failover is not from the map already out this in the map, if it is from the map just make sure
+                // that we change the
+                if (null != foActual) {
+                    // We must wait for CompleteLogin to finish for to have the
+                    // env change from the server to know its designated failover
+                    // partner; saved in failoverPartnerServerProvided
+                    foActual.failoverAdd(this, useFailoverHost, failoverPartnerServerProvided);
+                } else {
+                    String databaseNameProperty = SQLServerDriverStringProperty.DATABASE_NAME.toString();
+                    String instanceNameProperty = SQLServerDriverStringProperty.INSTANCE_NAME.toString();
+                    String serverNameProperty = SQLServerDriverStringProperty.SERVER_NAME.toString();
+
+                    if (connectionlogger.isLoggable(Level.FINE)) {
+                        connectionlogger.fine(toString() + " adding new failover info server: "
+                                + activeConnectionProperties.getProperty(serverNameProperty) + " instance: "
+                                + activeConnectionProperties.getProperty(instanceNameProperty) + " database: "
+                                + activeConnectionProperties.getProperty(databaseNameProperty)
+                                + " server provided failover: " + failoverPartnerServerProvided);
+                    }
+
+                    tempFailover.failoverAdd(this, useFailoverHost, failoverPartnerServerProvided);
+                    FailoverMapSingleton.putFailoverInfo(this, primary,
+                            activeConnectionProperties.getProperty(instanceNameProperty),
+                            activeConnectionProperties.getProperty(databaseNameProperty), tempFailover, useFailoverHost,
+                            failoverPartnerServerProvided);
+                }
             }
         }
     }
@@ -4262,189 +4267,166 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Negotiates prelogin information with the server.
      */
     void prelogin(String serverName, int portNumber) throws SQLServerException {
-        // Build a TDS Pre-Login packet to send to the server.
-        if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString()))
-                || (null != accessTokenInByte) || null != accessTokenCallback || hasAccessTokenCallbackClass) {
-            fedAuthRequiredByUser = true;
-        }
-
-        // Message length (including header)
-        final byte messageLength;
-        final byte fedAuthOffset;
-        if (fedAuthRequiredByUser) {
-            messageLength = TDS.B_PRELOGIN_MESSAGE_LENGTH_WITH_FEDAUTH;
-            if (encryptOption.compareToIgnoreCase(EncryptOption.STRICT.toString()) == 0) {
-                requestedEncryptionLevel = TDS.ENCRYPT_NOT_SUP;
-            } else {
-                requestedEncryptionLevel = TDS.ENCRYPT_ON;
+        try (PerformanceLog.Scope preLoginScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection, clientConnectionId, PerformanceActivity.PRELOGIN)) {
+            // Build a TDS Pre-Login packet to send to the server.
+            if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString()))
+                    || (null != accessTokenInByte) || null != accessTokenCallback || hasAccessTokenCallbackClass) {
+                fedAuthRequiredByUser = true;
             }
 
-            // since we added one more line for prelogin option with fedauth,
-            // we also needed to modify the offsets above, by adding 5 to each offset,
-            // since the data session of each option is push 5 bytes behind.
-            fedAuthOffset = 5;
-        } else {
-            messageLength = TDS.B_PRELOGIN_MESSAGE_LENGTH;
-            fedAuthOffset = 0;
-        }
+            // Message length (including header)
+            final byte messageLength;
+            final byte fedAuthOffset;
+            if (fedAuthRequiredByUser) {
+                messageLength = TDS.B_PRELOGIN_MESSAGE_LENGTH_WITH_FEDAUTH;
+                if (encryptOption.compareToIgnoreCase(EncryptOption.STRICT.toString()) == 0) {
+                    requestedEncryptionLevel = TDS.ENCRYPT_NOT_SUP;
+                } else {
+                    requestedEncryptionLevel = TDS.ENCRYPT_ON;
+                }
 
-        final byte[] preloginRequest = new byte[messageLength];
+                // since we added one more line for prelogin option with fedauth,
+                // we also needed to modify the offsets above, by adding 5 to each offset,
+                // since the data session of each option is push 5 bytes behind.
+                fedAuthOffset = 5;
+            } else {
+                messageLength = TDS.B_PRELOGIN_MESSAGE_LENGTH;
+                fedAuthOffset = 0;
+            }
 
-        int preloginRequestOffset = 0;
+            final byte[] preloginRequest = new byte[messageLength];
 
-        byte[] bufferHeader = {
-                // Buffer Header
-                TDS.PKT_PRELOGIN, // Message Type
-                TDS.STATUS_BIT_EOM, 0, messageLength, 0, 0, // SPID (not used)
-                0, // Packet (not used)
-                0, // Window (not used)
-        };
+            int preloginRequestOffset = 0;
 
-        System.arraycopy(bufferHeader, 0, preloginRequest, preloginRequestOffset, bufferHeader.length);
-        preloginRequestOffset = preloginRequestOffset + bufferHeader.length;
+            byte[] bufferHeader = {
+                    // Buffer Header
+                    TDS.PKT_PRELOGIN, // Message Type
+                    TDS.STATUS_BIT_EOM, 0, messageLength, 0, 0, // SPID (not used)
+                    0, // Packet (not used)
+                    0, // Window (not used)
+            };
 
-        byte[] preloginOptionsBeforeFedAuth = {
-                // OPTION_TOKEN (BYTE), OFFSET (USHORT), LENGTH (USHORT)
-                TDS.B_PRELOGIN_OPTION_VERSION, 0, (byte) (16 + fedAuthOffset), 0, 6, // UL_VERSION + US_SUBBUILD
-                TDS.B_PRELOGIN_OPTION_ENCRYPTION, 0, (byte) (22 + fedAuthOffset), 0, 1, // B_FENCRYPTION
-                TDS.B_PRELOGIN_OPTION_TRACEID, 0, (byte) (23 + fedAuthOffset), 0, 36, // ClientConnectionId + ActivityId
-        };
-        System.arraycopy(preloginOptionsBeforeFedAuth, 0, preloginRequest, preloginRequestOffset,
-                preloginOptionsBeforeFedAuth.length);
-        preloginRequestOffset = preloginRequestOffset + preloginOptionsBeforeFedAuth.length;
+            System.arraycopy(bufferHeader, 0, preloginRequest, preloginRequestOffset, bufferHeader.length);
+            preloginRequestOffset = preloginRequestOffset + bufferHeader.length;
 
-        if (fedAuthRequiredByUser) {
-            byte[] preloginOptions2 = {TDS.B_PRELOGIN_OPTION_FEDAUTHREQUIRED, 0, 64, 0, 1,};
-            System.arraycopy(preloginOptions2, 0, preloginRequest, preloginRequestOffset, preloginOptions2.length);
-            preloginRequestOffset = preloginRequestOffset + preloginOptions2.length;
-        }
+            byte[] preloginOptionsBeforeFedAuth = {
+                    // OPTION_TOKEN (BYTE), OFFSET (USHORT), LENGTH (USHORT)
+                    TDS.B_PRELOGIN_OPTION_VERSION, 0, (byte) (16 + fedAuthOffset), 0, 6, // UL_VERSION + US_SUBBUILD
+                    TDS.B_PRELOGIN_OPTION_ENCRYPTION, 0, (byte) (22 + fedAuthOffset), 0, 1, // B_FENCRYPTION
+                    TDS.B_PRELOGIN_OPTION_TRACEID, 0, (byte) (23 + fedAuthOffset), 0, 36, // ClientConnectionId + ActivityId
+            };
+            System.arraycopy(preloginOptionsBeforeFedAuth, 0, preloginRequest, preloginRequestOffset,
+                    preloginOptionsBeforeFedAuth.length);
+            preloginRequestOffset = preloginRequestOffset + preloginOptionsBeforeFedAuth.length;
 
-        preloginRequest[preloginRequestOffset] = TDS.B_PRELOGIN_OPTION_TERMINATOR;
-        preloginRequestOffset++;
+            if (fedAuthRequiredByUser) {
+                byte[] preloginOptions2 = {TDS.B_PRELOGIN_OPTION_FEDAUTHREQUIRED, 0, 64, 0, 1,};
+                System.arraycopy(preloginOptions2, 0, preloginRequest, preloginRequestOffset, preloginOptions2.length);
+                preloginRequestOffset = preloginRequestOffset + preloginOptions2.length;
+            }
 
-        // PL_OPTION_DATA
-        byte[] preloginOptionData = {
-                // Driver major and minor version, 1 byte each
-                (byte) SQLJdbcVersion.MAJOR, (byte) SQLJdbcVersion.MINOR,
-                // Revision (Big Endian), 2 bytes
-                (byte) ((SQLJdbcVersion.PATCH & 0xff00) >> 8), (byte) (SQLJdbcVersion.PATCH & 0xff),
-                // Build (Little Endian), 2 bytes
-                (byte) (SQLJdbcVersion.BUILD & 0xff), (byte) ((SQLJdbcVersion.BUILD & 0xff00) >> 8),
+            preloginRequest[preloginRequestOffset] = TDS.B_PRELOGIN_OPTION_TERMINATOR;
+            preloginRequestOffset++;
 
-                // Encryption
-                // turn encryption off for TDS 8 since it's already enabled
-                (null == clientCertificate) ? requestedEncryptionLevel
-                                            : (byte) (requestedEncryptionLevel | TDS.ENCRYPT_CLIENT_CERT),
+            // PL_OPTION_DATA
+            byte[] preloginOptionData = {
+                    // Driver major and minor version, 1 byte each
+                    (byte) SQLJdbcVersion.MAJOR, (byte) SQLJdbcVersion.MINOR,
+                    // Revision (Big Endian), 2 bytes
+                    (byte) ((SQLJdbcVersion.PATCH & 0xff00) >> 8), (byte) (SQLJdbcVersion.PATCH & 0xff),
+                    // Build (Little Endian), 2 bytes
+                    (byte) (SQLJdbcVersion.BUILD & 0xff), (byte) ((SQLJdbcVersion.BUILD & 0xff00) >> 8),
 
-                // TRACEID Data Session (ClientConnectionId + ActivityId) - Initialize to 0
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0,};
-        System.arraycopy(preloginOptionData, 0, preloginRequest, preloginRequestOffset, preloginOptionData.length);
-        preloginRequestOffset = preloginRequestOffset + preloginOptionData.length;
+                    // Encryption
+                    // turn encryption off for TDS 8 since it's already enabled
+                    (null == clientCertificate) ? requestedEncryptionLevel
+                            : (byte) (requestedEncryptionLevel | TDS.ENCRYPT_CLIENT_CERT),
 
-        // If the client's PRELOGIN request message contains the FEDAUTHREQUIRED option,
-        // the client MUST specify 0x01 as the B_FEDAUTHREQUIRED value
-        if (fedAuthRequiredByUser) {
-            preloginRequest[preloginRequestOffset] = 1;
-            preloginRequestOffset = preloginRequestOffset + 1;
-        }
+                            // TRACEID Data Session (ClientConnectionId + ActivityId) - Initialize to 0
+                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0,};
+            System.arraycopy(preloginOptionData, 0, preloginRequest, preloginRequestOffset, preloginOptionData.length);
+            preloginRequestOffset = preloginRequestOffset + preloginOptionData.length;
 
-        final byte[] preloginResponse = new byte[TDS.INITIAL_PACKET_SIZE];
-        String preloginErrorLogString = " Prelogin error: host " + serverName + " port " + portNumber;
+            // If the client's PRELOGIN request message contains the FEDAUTHREQUIRED option,
+            // the client MUST specify 0x01 as the B_FEDAUTHREQUIRED value
+            if (fedAuthRequiredByUser) {
+                preloginRequest[preloginRequestOffset] = 1;
+                preloginRequestOffset = preloginRequestOffset + 1;
+            }
 
-        final byte[] conIdByteArray = Util.asGuidByteArray(clientConnectionId);
+            final byte[] preloginResponse = new byte[TDS.INITIAL_PACKET_SIZE];
+            String preloginErrorLogString = " Prelogin error: host " + serverName + " port " + portNumber;
 
-        int offset;
+            final byte[] conIdByteArray = Util.asGuidByteArray(clientConnectionId);
 
-        if (fedAuthRequiredByUser) {
-            offset = preloginRequest.length - 36 - 1; // point to the TRACEID Data Session (one more byte for fedauth
-                                                      // data session)
-        } else {
-            offset = preloginRequest.length - 36; // point to the TRACEID Data Session
-        }
+            int offset;
 
-        // copy ClientConnectionId
-        System.arraycopy(conIdByteArray, 0, preloginRequest, offset, conIdByteArray.length);
-        offset += conIdByteArray.length;
+            if (fedAuthRequiredByUser) {
+                offset = preloginRequest.length - 36 - 1; // point to the TRACEID Data Session (one more byte for fedauth
+                // data session)
+            } else {
+                offset = preloginRequest.length - 36; // point to the TRACEID Data Session
+            }
 
-        ActivityId activityId = ActivityCorrelator.getNext();
-        final byte[] actIdByteArray = Util.asGuidByteArray(activityId.getId());
-        System.arraycopy(actIdByteArray, 0, preloginRequest, offset, actIdByteArray.length);
-        offset += actIdByteArray.length;
-        long seqNum = activityId.getSequence();
-        Util.writeInt((int) seqNum, preloginRequest, offset);
-        offset += 4;
+            // copy ClientConnectionId
+            System.arraycopy(conIdByteArray, 0, preloginRequest, offset, conIdByteArray.length);
+            offset += conIdByteArray.length;
 
-        if (Util.isActivityTraceOn() && connectionlogger.isLoggable(Level.FINER)) {
-            connectionlogger.finer(toString() + " ActivityId " + activityId);
-        }
+            ActivityId activityId = ActivityCorrelator.getNext();
+            final byte[] actIdByteArray = Util.asGuidByteArray(activityId.getId());
+            System.arraycopy(actIdByteArray, 0, preloginRequest, offset, actIdByteArray.length);
+            offset += actIdByteArray.length;
+            long seqNum = activityId.getSequence();
+            Util.writeInt((int) seqNum, preloginRequest, offset);
+            offset += 4;
 
-        if (connectionlogger.isLoggable(Level.FINER)) {
-            connectionlogger.finer(
-                    toString() + " Requesting encryption level:" + TDS.getEncryptionLevel(requestedEncryptionLevel));
-        }
+            if (Util.isActivityTraceOn() && connectionlogger.isLoggable(Level.FINER)) {
+                connectionlogger.finer(toString() + " ActivityId " + activityId);
+            }
 
-        // Write the entire prelogin request
-        if (tdsChannel.isLoggingPackets())
-            tdsChannel.logPacket(preloginRequest, 0, preloginRequest.length, toString() + " Prelogin request");
+            if (connectionlogger.isLoggable(Level.FINER)) {
+                connectionlogger.finer(
+                        toString() + " Requesting encryption level:" + TDS.getEncryptionLevel(requestedEncryptionLevel));
+            }
 
-        try {
-            tdsChannel.write(preloginRequest, 0, preloginRequest.length);
-            tdsChannel.flush();
-        } catch (SQLServerException e) {
-            connectionlogger.warning(
-                    toString() + preloginErrorLogString + " Error sending prelogin request: " + e.getMessage());
-            throw e;
-        }
-
-        // Read the entire prelogin response
-        int responseLength = preloginResponse.length;
-        int responseBytesRead = 0;
-        boolean processedResponseHeader = false;
-        while (responseBytesRead < responseLength) {
-            int bytesRead;
+            // Write the entire prelogin request
+            if (tdsChannel.isLoggingPackets())
+                tdsChannel.logPacket(preloginRequest, 0, preloginRequest.length, toString() + " Prelogin request");
 
             try {
-                bytesRead = tdsChannel.read(preloginResponse, responseBytesRead, responseLength - responseBytesRead);
+                tdsChannel.write(preloginRequest, 0, preloginRequest.length);
+                tdsChannel.flush();
             } catch (SQLServerException e) {
                 connectionlogger.warning(
-                        toString() + preloginErrorLogString + " Error reading prelogin response: " + e.getMessage());
+                        toString() + preloginErrorLogString + " Error sending prelogin request: " + e.getMessage());
                 throw e;
             }
 
-            // If we reached EOF before the end of the prelogin response then something is wrong.
-            //
-            // Special case: If there was no response at all (i.e. the server closed the connection),
-            // then maybe we are just trying to talk to an older server that doesn't support prelogin
-            // (and that we don't support with this driver).
-            if (-1 == bytesRead) {
-                if (connectionlogger.isLoggable(Level.WARNING)) {
-                    connectionlogger.warning(toString() + preloginErrorLogString
-                            + " Unexpected end of prelogin response after " + responseBytesRead + " bytes read");
+            // Read the entire prelogin response
+            int responseLength = preloginResponse.length;
+            int responseBytesRead = 0;
+            boolean processedResponseHeader = false;
+            while (responseBytesRead < responseLength) {
+                int bytesRead;
+
+                try {
+                    bytesRead = tdsChannel.read(preloginResponse, responseBytesRead, responseLength - responseBytesRead);
+                } catch (SQLServerException e) {
+                    connectionlogger.warning(
+                            toString() + preloginErrorLogString + " Error reading prelogin response: " + e.getMessage());
+                    throw e;
                 }
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
-                        SQLServerException.getErrString("R_notSQLServer")};
-                terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
-            }
 
-            // Otherwise, we must have read some bytes...
-            assert bytesRead >= 0;
-            assert bytesRead <= responseLength - responseBytesRead;
-
-            if (tdsChannel.isLoggingPackets())
-                tdsChannel.logPacket(preloginResponse, responseBytesRead, bytesRead, toString() + " Prelogin response");
-
-            responseBytesRead += bytesRead;
-
-            // Validate the response header if we haven't already done so and
-            // we've read enough of the response to do it.
-            if (!processedResponseHeader && responseBytesRead >= TDS.PACKET_HEADER_SIZE) {
-                // Verify that the response is actually a response...
-                if (TDS.PKT_REPLY != preloginResponse[0]) {
+                // If we reached EOF before the end of the prelogin response then something is wrong.
+                //
+                // Special case: If there was no response at all (i.e. the server closed the connection),
+                // then maybe we are just trying to talk to an older server that doesn't support prelogin
+                // (and that we don't support with this driver).
+                if (-1 == bytesRead) {
                     if (connectionlogger.isLoggable(Level.WARNING)) {
-                        connectionlogger.warning(toString() + preloginErrorLogString + " Unexpected response type:"
-                                + preloginResponse[0]);
+                        connectionlogger.warning(toString() + preloginErrorLogString
+                                + " Unexpected end of prelogin response after " + responseBytesRead + " bytes read");
                     }
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
                     Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
@@ -4452,85 +4434,109 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                 }
 
-                // Verify that the response claims to only be one TDS packet long.
-                // In theory, it can be longer, but in current practice it isn't, as all of the
-                // prelogin response items easily fit into a single 4K packet.
-                if (TDS.STATUS_BIT_EOM != (TDS.STATUS_BIT_EOM & preloginResponse[1])) {
-                    if (connectionlogger.isLoggable(Level.WARNING)) {
-                        connectionlogger.warning(toString() + preloginErrorLogString + " Unexpected response status:"
-                                + preloginResponse[1]);
+                // Otherwise, we must have read some bytes...
+                assert bytesRead >= 0;
+                assert bytesRead <= responseLength - responseBytesRead;
+
+                if (tdsChannel.isLoggingPackets())
+                    tdsChannel.logPacket(preloginResponse, responseBytesRead, bytesRead, toString() + " Prelogin response");
+
+                responseBytesRead += bytesRead;
+
+                // Validate the response header if we haven't already done so and
+                // we've read enough of the response to do it.
+                if (!processedResponseHeader && responseBytesRead >= TDS.PACKET_HEADER_SIZE) {
+                    // Verify that the response is actually a response...
+                    if (TDS.PKT_REPLY != preloginResponse[0]) {
+                        if (connectionlogger.isLoggable(Level.WARNING)) {
+                            connectionlogger.warning(toString() + preloginErrorLogString + " Unexpected response type:"
+                                    + preloginResponse[0]);
+                        }
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
+                        Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
+                                SQLServerException.getErrString("R_notSQLServer")};
+                        terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                     }
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
-                            SQLServerException.getErrString("R_notSQLServer")};
-                    terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
-                }
 
-                // Verify that the length of the response claims to be small enough to fit in the allocated area
-                responseLength = Util.readUnsignedShortBigEndian(preloginResponse, 2);
-                assert responseLength >= 0;
-
-                if (responseLength >= preloginResponse.length) {
-                    if (connectionlogger.isLoggable(Level.WARNING)) {
-                        connectionlogger.warning(toString() + preloginErrorLogString + " Response length:"
-                                + responseLength + " is greater than allowed length:" + preloginResponse.length);
+                    // Verify that the response claims to only be one TDS packet long.
+                    // In theory, it can be longer, but in current practice it isn't, as all of the
+                    // prelogin response items easily fit into a single 4K packet.
+                    if (TDS.STATUS_BIT_EOM != (TDS.STATUS_BIT_EOM & preloginResponse[1])) {
+                        if (connectionlogger.isLoggable(Level.WARNING)) {
+                            connectionlogger.warning(toString() + preloginErrorLogString + " Unexpected response status:"
+                                    + preloginResponse[1]);
+                        }
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
+                        Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
+                                SQLServerException.getErrString("R_notSQLServer")};
+                        terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
                     }
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
-                    Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
-                            SQLServerException.getErrString("R_notSQLServer")};
-                    terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
+
+                    // Verify that the length of the response claims to be small enough to fit in the allocated area
+                    responseLength = Util.readUnsignedShortBigEndian(preloginResponse, 2);
+                    assert responseLength >= 0;
+
+                    if (responseLength >= preloginResponse.length) {
+                        if (connectionlogger.isLoggable(Level.WARNING)) {
+                            connectionlogger.warning(toString() + preloginErrorLogString + " Response length:"
+                                    + responseLength + " is greater than allowed length:" + preloginResponse.length);
+                        }
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_tcpipConnectionFailed"));
+                        Object[] msgArgs = {getServerNameString(serverName), Integer.toString(portNumber),
+                                SQLServerException.getErrString("R_notSQLServer")};
+                        terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, form.format(msgArgs));
+                    }
+
+                    processedResponseHeader = true;
                 }
-
-                processedResponseHeader = true;
-            }
-        }
-
-        // Walk the response for prelogin options received. We expect at least to get
-        // back the server version and the encryption level.
-        boolean receivedVersionOption = false;
-        negotiatedEncryptionLevel = TDS.ENCRYPT_INVALID;
-
-        int responseIndex = TDS.PACKET_HEADER_SIZE;
-        while (true) {
-            // Get the option token
-            if (responseIndex >= responseLength) {
-                if (connectionlogger.isLoggable(Level.WARNING)) {
-                    connectionlogger.warning(toString() + " Option token not found");
-                }
-                throwInvalidTDS();
-            }
-            byte optionToken = preloginResponse[responseIndex++];
-
-            // When we reach the option terminator, we're done processing option tokens
-            if (TDS.B_PRELOGIN_OPTION_TERMINATOR == optionToken)
-                break;
-
-            // Get the offset and length that follows the option token
-            if (responseIndex + 4 >= responseLength) {
-                if (connectionlogger.isLoggable(Level.WARNING)) {
-                    connectionlogger.warning(toString() + " Offset/Length not found for option:" + optionToken);
-                }
-                throwInvalidTDS();
             }
 
-            int optionOffset = Util.readUnsignedShortBigEndian(preloginResponse, responseIndex)
-                    + TDS.PACKET_HEADER_SIZE;
-            responseIndex += 2;
-            assert optionOffset >= 0;
+            // Walk the response for prelogin options received. We expect at least to get
+            // back the server version and the encryption level.
+            boolean receivedVersionOption = false;
+            negotiatedEncryptionLevel = TDS.ENCRYPT_INVALID;
 
-            int optionLength = Util.readUnsignedShortBigEndian(preloginResponse, responseIndex);
-            responseIndex += 2;
-            assert optionLength >= 0;
-
-            if (optionOffset + optionLength > responseLength) {
-                if (connectionlogger.isLoggable(Level.WARNING)) {
-                    connectionlogger.warning(toString() + " Offset:" + optionOffset + " and length:" + optionLength
-                            + " exceed response length:" + responseLength);
+            int responseIndex = TDS.PACKET_HEADER_SIZE;
+            while (true) {
+                // Get the option token
+                if (responseIndex >= responseLength) {
+                    if (connectionlogger.isLoggable(Level.WARNING)) {
+                        connectionlogger.warning(toString() + " Option token not found");
+                    }
+                    throwInvalidTDS();
                 }
-                throwInvalidTDS();
-            }
+                byte optionToken = preloginResponse[responseIndex++];
 
-            switch (optionToken) {
+                // When we reach the option terminator, we're done processing option tokens
+                if (TDS.B_PRELOGIN_OPTION_TERMINATOR == optionToken)
+                    break;
+
+                // Get the offset and length that follows the option token
+                if (responseIndex + 4 >= responseLength) {
+                    if (connectionlogger.isLoggable(Level.WARNING)) {
+                        connectionlogger.warning(toString() + " Offset/Length not found for option:" + optionToken);
+                    }
+                    throwInvalidTDS();
+                }
+
+                int optionOffset = Util.readUnsignedShortBigEndian(preloginResponse, responseIndex)
+                        + TDS.PACKET_HEADER_SIZE;
+                responseIndex += 2;
+                assert optionOffset >= 0;
+
+                int optionLength = Util.readUnsignedShortBigEndian(preloginResponse, responseIndex);
+                responseIndex += 2;
+                assert optionLength >= 0;
+
+                if (optionOffset + optionLength > responseLength) {
+                    if (connectionlogger.isLoggable(Level.WARNING)) {
+                        connectionlogger.warning(toString() + " Offset:" + optionOffset + " and length:" + optionLength
+                                + " exceed response length:" + responseLength);
+                    }
+                    throwInvalidTDS();
+                }
+
+                switch (optionToken) {
                 case TDS.B_PRELOGIN_OPTION_VERSION:
                     if (receivedVersionOption) {
                         if (connectionlogger.isLoggable(Level.WARNING)) {
@@ -4561,7 +4567,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                     if (connectionlogger.isLoggable(Level.FINE))
                         connectionlogger
-                                .fine(toString() + " Server returned major version:" + preloginResponse[optionOffset]);
+                        .fine(toString() + " Server returned major version:" + preloginResponse[optionOffset]);
 
                     receivedVersionOption = true;
                     break;
@@ -4654,15 +4660,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (connectionlogger.isLoggable(Level.FINER))
                         connectionlogger.finer(toString() + " Ignoring prelogin response option:" + optionToken);
                     break;
+                }
             }
-        }
 
-        if (!receivedVersionOption || TDS.ENCRYPT_INVALID == negotiatedEncryptionLevel) {
-            if (connectionlogger.isLoggable(Level.WARNING)) {
-                connectionlogger
-                        .warning(toString() + " Prelogin response is missing version and/or encryption option.");
+            if (!receivedVersionOption || TDS.ENCRYPT_INVALID == negotiatedEncryptionLevel) {
+                if (connectionlogger.isLoggable(Level.WARNING)) {
+                    connectionlogger
+                    .warning(toString() + " Prelogin response is missing version and/or encryption option.");
+                }
+                throwInvalidTDS();
             }
-            throwInvalidTDS();
         }
     }
 
@@ -6418,12 +6425,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void onFedAuthInfo(SqlFedAuthInfo fedAuthInfo, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
         assert (null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                 && null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()))
-                || (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())
-                        || authenticationString
-                                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())
-                        || authenticationString
-                                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())
-                                && fedAuthRequiredPreLoginResponse);
+        || (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())
+                || authenticationString
+                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())
+                || authenticationString
+                .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())
+                && fedAuthRequiredPreLoginResponse);
 
         assert null != fedAuthInfo;
 
@@ -6433,7 +6440,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 && !accessTokenCallbackClass.isEmpty()) {
             try {
                 Object[] msgArgs = {"accessTokenCallbackClass",
-                        "com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback"};
+                "com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback"};
                 SQLServerAccessTokenCallback callbackInstance = Util.newInstance(SQLServerAccessTokenCallback.class,
                         accessTokenCallbackClass, null, msgArgs);
                 fedAuthToken = callbackInstance.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
@@ -6459,190 +6466,192 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private SqlAuthenticationToken getFedAuthToken(SqlFedAuthInfo fedAuthInfo) throws SQLServerException {
-        // fedAuthInfo should not be null.
-        assert null != fedAuthInfo;
+        try (PerformanceLog.Scope authTokenScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection, clientConnectionId, PerformanceActivity.TOKEN_ACQUISITION)) {
+            // fedAuthInfo should not be null.
+            assert null != fedAuthInfo;
 
-        String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
+            String user = activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString());
 
-        // No of milliseconds to sleep for the initial back off.
-        int fedauthSleepInterval = BACKOFF_INTERVAL;
+            // No of milliseconds to sleep for the initial back off.
+            int fedauthSleepInterval = BACKOFF_INTERVAL;
 
-        if (!msalContextExists()
-                && !authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALMissing"));
-            throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
-        }
+            if (!msalContextExists()
+                    && !authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALMissing"));
+                throw new SQLServerException(form.format(new Object[] {authenticationString}), null, 0, null);
+            }
 
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINEST)) {
-            loggerExternal.finest("Getting FedAuth token " + fedAuthInfo.toString());
-        }
+            if (loggerExternal.isLoggable(java.util.logging.Level.FINEST)) {
+                loggerExternal.finest("Getting FedAuth token " + fedAuthInfo.toString());
+            }
 
-        while (true) {
-            int millisecondsRemaining = timerRemaining(timerExpire);
-            if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())) {
-                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
-                        authenticationString, millisecondsRemaining);
-
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString
-                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())) {
-
-                String managedIdentityClientId = activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.USER.toString());
-
-                if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
-                    fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
-                            managedIdentityClientId, millisecondsRemaining);
-                    break;
-                }
-
-                fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()),
-                        millisecondsRemaining);
-
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString
-                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())) {
-
-                // aadPrincipalID and aadPrincipalSecret is deprecated replaced by username and password
-                if (aadPrincipalID != null && !aadPrincipalID.isEmpty() && aadPrincipalSecret != null
-                        && !aadPrincipalSecret.isEmpty()) {
-                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo, aadPrincipalID,
-                            aadPrincipalSecret, authenticationString, millisecondsRemaining);
-                } else {
-                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo,
-                            activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
+            while (true) {
+                int millisecondsRemaining = timerRemaining(timerExpire);
+                if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_PASSWORD.toString())) {
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthToken(fedAuthInfo, user,
                             activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
                             authenticationString, millisecondsRemaining);
-                }
 
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString
-                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())) {
+                    // Break out of the retry loop in successful case.
+                    break;
+                } else if (authenticationString
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString())) {
 
-                // clientCertificate property is used to specify path to certificate file
-                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipalCertificate(fedAuthInfo,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
-                        servicePrincipalCertificate,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
-                        servicePrincipalCertificateKey, servicePrincipalCertificatePassword, authenticationString,
-                        millisecondsRemaining);
+                    String managedIdentityClientId = activeConnectionProperties
+                            .getProperty(SQLServerDriverStringProperty.USER.toString());
 
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString
-                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
-                // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
-                if (isWindows && AuthenticationJNI.isDllLoaded()) {
-                    try {
-                        FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(
-                                fedAuthInfo.stsurl, fedAuthInfo.spn, clientConnectionId.toString(),
-                                ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, 0);
-
-                        // AccessToken should not be null.
-                        assert null != dllInfo.accessTokenBytes;
-                        byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
-
-                        String accessToken = new String(accessTokenFromDLL, UTF_16LE);
-                        Date now = new Date();
-                        now.setTime(now.getTime() + (dllInfo.expiresIn * 1000));
-                        fedAuthToken = new SqlAuthenticationToken(accessToken, now);
-
-                        // Break out of the retry loop in successful case.
+                    if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
+                        fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
+                                managedIdentityClientId, millisecondsRemaining);
                         break;
-                    } catch (DLLException adalException) {
+                    }
 
-                        // the mssql-jdbc_auth DLL return -1 for errorCategory, if unable to load the adalsql DLL
-                        int errorCategory = adalException.getCategory();
-                        if (-1 == errorCategory) {
-                            MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_UnableLoadADALSqlDll"));
-                            Object[] msgArgs = {Integer.toHexString(adalException.getState())};
-                            throw new SQLServerException(form.format(msgArgs), null);
-                        }
+                    fedAuthToken = SQLServerSecurityUtility.getManagedIdentityCredAuthToken(fedAuthInfo.spn,
+                            activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()),
+                            millisecondsRemaining);
 
-                        millisecondsRemaining = timerRemaining(timerExpire);
-                        if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TRANSIENT_ERROR != errorCategory
-                                || timerHasExpired(timerExpire) || (fedauthSleepInterval >= millisecondsRemaining)) {
+                    // Break out of the retry loop in successful case.
+                    break;
+                } else if (authenticationString
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL.toString())) {
 
-                            String errorStatus = Integer.toHexString(adalException.getStatus());
+                    // aadPrincipalID and aadPrincipalSecret is deprecated replaced by username and password
+                    if (aadPrincipalID != null && !aadPrincipalID.isEmpty() && aadPrincipalSecret != null
+                            && !aadPrincipalSecret.isEmpty()) {
+                        fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo, aadPrincipalID,
+                                aadPrincipalSecret, authenticationString, millisecondsRemaining);
+                    } else {
+                        fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipal(fedAuthInfo,
+                                activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
+                                activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
+                                authenticationString, millisecondsRemaining);
+                    }
 
-                            if (connectionlogger.isLoggable(Level.FINER)) {
-                                connectionlogger.fine(
-                                        toString() + " SQLServerConnection.getFedAuthToken.AdalException category:"
-                                                + errorCategory + " error: " + errorStatus);
+                    // Break out of the retry loop in successful case.
+                    break;
+                } else if (authenticationString
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString())) {
+
+                    // clientCertificate property is used to specify path to certificate file
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipalCertificate(fedAuthInfo,
+                            activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
+                            servicePrincipalCertificate,
+                            activeConnectionProperties.getProperty(SQLServerDriverStringProperty.PASSWORD.toString()),
+                            servicePrincipalCertificateKey, servicePrincipalCertificatePassword, authenticationString,
+                            millisecondsRemaining);
+
+                    // Break out of the retry loop in successful case.
+                    break;
+                } else if (authenticationString
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
+                    // If operating system is windows and mssql-jdbc_auth is loaded then choose the DLL authentication.
+                    if (isWindows && AuthenticationJNI.isDllLoaded()) {
+                        try {
+                            FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(
+                                    fedAuthInfo.stsurl, fedAuthInfo.spn, clientConnectionId.toString(),
+                                    ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, 0);
+
+                            // AccessToken should not be null.
+                            assert null != dllInfo.accessTokenBytes;
+                            byte[] accessTokenFromDLL = dllInfo.accessTokenBytes;
+
+                            String accessToken = new String(accessTokenFromDLL, UTF_16LE);
+                            Date now = new Date();
+                            now.setTime(now.getTime() + (dllInfo.expiresIn * 1000));
+                            fedAuthToken = new SqlAuthenticationToken(accessToken, now);
+
+                            // Break out of the retry loop in successful case.
+                            break;
+                        } catch (DLLException adalException) {
+
+                            // the mssql-jdbc_auth DLL return -1 for errorCategory, if unable to load the adalsql DLL
+                            int errorCategory = adalException.getCategory();
+                            if (-1 == errorCategory) {
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_UnableLoadADALSqlDll"));
+                                Object[] msgArgs = {Integer.toHexString(adalException.getState())};
+                                throw new SQLServerException(form.format(msgArgs), null);
                             }
 
-                            MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_ADALAuthenticationMiddleErrorMessage"));
-                            String errorCode = Integer.toHexString(adalException.getStatus()).toUpperCase();
-                            Object[] msgArgs1 = {errorCode, adalException.getState()};
-                            SQLServerException middleException = new SQLServerException(form.format(msgArgs1),
-                                    adalException);
+                            millisecondsRemaining = timerRemaining(timerExpire);
+                            if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TRANSIENT_ERROR != errorCategory
+                                    || timerHasExpired(timerExpire) || (fedauthSleepInterval >= millisecondsRemaining)) {
 
-                            form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
-                            Object[] msgArgs = {user, authenticationString};
-                            throw new SQLServerException(form.format(msgArgs), null, 0, middleException);
+                                String errorStatus = Integer.toHexString(adalException.getStatus());
+
+                                if (connectionlogger.isLoggable(Level.FINER)) {
+                                    connectionlogger.fine(
+                                            toString() + " SQLServerConnection.getFedAuthToken.AdalException category:"
+                                                    + errorCategory + " error: " + errorStatus);
+                                }
+
+                                MessageFormat form = new MessageFormat(
+                                        SQLServerException.getErrString("R_ADALAuthenticationMiddleErrorMessage"));
+                                String errorCode = Integer.toHexString(adalException.getStatus()).toUpperCase();
+                                Object[] msgArgs1 = {errorCode, adalException.getState()};
+                                SQLServerException middleException = new SQLServerException(form.format(msgArgs1),
+                                        adalException);
+
+                                form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
+                                Object[] msgArgs = {user, authenticationString};
+                                throw new SQLServerException(form.format(msgArgs), null, 0, middleException);
+                            }
+
+                            if (connectionlogger.isLoggable(Level.FINER)) {
+                                connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken sleeping: "
+                                        + fedauthSleepInterval + " milliseconds.");
+                                connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken remaining: "
+                                        + millisecondsRemaining + " milliseconds.");
+                            }
+
+                            sleepForInterval(fedauthSleepInterval);
+                            fedauthSleepInterval = (fedauthSleepInterval < 500) ? fedauthSleepInterval * 2 : 1000;
+
                         }
-
-                        if (connectionlogger.isLoggable(Level.FINER)) {
-                            connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken sleeping: "
-                                    + fedauthSleepInterval + " milliseconds.");
-                            connectionlogger.fine(toString() + " SQLServerConnection.getFedAuthToken remaining: "
-                                    + millisecondsRemaining + " milliseconds.");
+                    }
+                    // else choose MSAL4J for integrated authentication. This option is supported for both windows and unix,
+                    // so we don't need to check the
+                    // OS version here.
+                    else {
+                        // Check if MSAL4J library is available
+                        if (!msalContextExists()) {
+                            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DLLandMSALMissing"));
+                            Object[] msgArgs = {SQLServerDriver.AUTH_DLL_NAME, authenticationString};
+                            throw new SQLServerException(form.format(msgArgs), null, 0, null);
                         }
-
-                        sleepForInterval(fedauthSleepInterval);
-                        fedauthSleepInterval = (fedauthSleepInterval < 500) ? fedauthSleepInterval * 2 : 1000;
-
+                        fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString,
+                                millisecondsRemaining);
                     }
-                }
-                // else choose MSAL4J for integrated authentication. This option is supported for both windows and unix,
-                // so we don't need to check the
-                // OS version here.
-                else {
-                    // Check if MSAL4J library is available
-                    if (!msalContextExists()) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_DLLandMSALMissing"));
-                        Object[] msgArgs = {SQLServerDriver.AUTH_DLL_NAME, authenticationString};
-                        throw new SQLServerException(form.format(msgArgs), null, 0, null);
+                    // Break out of the retry loop in successful case.
+                    break;
+                } else if (authenticationString
+                        .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())) {
+                    // interactive flow
+                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenInteractive(fedAuthInfo, user,
+                            authenticationString, millisecondsRemaining);
+
+                    // Break out of the retry loop in successful case.
+                    break;
+                } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT.toString())) {
+                    String managedIdentityClientId = activeConnectionProperties
+                            .getProperty(SQLServerDriverStringProperty.USER.toString());
+
+                    if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
+                        fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
+                                managedIdentityClientId, millisecondsRemaining);
+                        break;
                     }
-                    fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo, authenticationString,
-                            millisecondsRemaining);
-                }
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString
-                    .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTERACTIVE.toString())) {
-                // interactive flow
-                fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenInteractive(fedAuthInfo, user,
-                        authenticationString, millisecondsRemaining);
 
-                // Break out of the retry loop in successful case.
-                break;
-            } else if (authenticationString.equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT.toString())) {
-                String managedIdentityClientId = activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.USER.toString());
-
-                if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
                     fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
-                            managedIdentityClientId, millisecondsRemaining);
+                            activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()),
+                            millisecondsRemaining);
+
                     break;
                 }
-
-                fedAuthToken = SQLServerSecurityUtility.getDefaultAzureCredAuthToken(fedAuthInfo.spn,
-                        activeConnectionProperties.getProperty(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString()),
-                        millisecondsRemaining);
-
-                break;
             }
-        }
 
-        return fedAuthToken;
+            return fedAuthToken;
+        }
     }
 
     private boolean msalContextExists() {
