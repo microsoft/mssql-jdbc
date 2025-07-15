@@ -521,7 +521,7 @@
 				<configuration>
 					<forkCount>3</forkCount>
 					<reuseForks>true</reuseForks>
-					<argLine>${argLine} -Xmx1024m -Djava.library.path=${dllPath}
+					<argLine>${argLine} -Xmx2048m -Djava.library.path=${dllPath}
 					</argLine>
 					<excludedGroups>${excludedGroups}</excludedGroups>
 				</configuration>
