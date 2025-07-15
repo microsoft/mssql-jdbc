@@ -2222,6 +2222,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case microsoft.sql.Types.MONEY:
             case microsoft.sql.Types.SMALLMONEY:
             case microsoft.sql.Types.DATETIMEOFFSET:
+            case microsoft.sql.Types.DATETIME:
+            case microsoft.sql.Types.SMALLDATETIME:
                 tdsWriter.writeByte((byte) 0x00);
                 return;
             case microsoft.sql.Types.SQL_VARIANT:
