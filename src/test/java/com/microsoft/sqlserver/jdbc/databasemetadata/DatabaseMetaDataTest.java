@@ -1151,6 +1151,96 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test to print all functions returned by getFunctions()
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testPrintGetFunctionsResults() throws SQLException {
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData metaData = conn.getMetaData();
+
+            System.out.println("\n=== getFunctions() Results ===");
+            System.out.println(
+                    "FUNCTION_CAT | FUNCTION_SCHEM | FUNCTION_NAME | NUM_INPUT_PARAMS | NUM_OUTPUT_PARAMS | NUM_RESULT_SETS | REMARKS | FUNCTION_TYPE");
+            System.out.println(
+                    "-------------|----------------|---------------|------------------|-------------------|------------------|---------|---------------");
+
+            int count = 0;
+            try (ResultSet rs = metaData.getFunctions(null, null, null)) {
+                while (rs.next()) {
+                    String functionCat = rs.getString("FUNCTION_CAT");
+                    String functionSchem = rs.getString("FUNCTION_SCHEM");
+                    String functionName = rs.getString("FUNCTION_NAME");
+                    int numInputParams = rs.getInt("NUM_INPUT_PARAMS");
+                    int numOutputParams = rs.getInt("NUM_OUTPUT_PARAMS");
+                    int numResultSets = rs.getInt("NUM_RESULT_SETS");
+                    String remarks = rs.getString("REMARKS");
+                    int functionType = rs.getInt("FUNCTION_TYPE");
+
+                    System.out.printf("%-12s | %-14s | %-13s | %-16d | %-17d | %-16d | %-7s | %d%n",
+                            functionCat != null ? functionCat : "NULL",
+                            functionSchem != null ? functionSchem : "NULL",
+                            functionName != null ? functionName : "NULL",
+                            numInputParams,
+                            numOutputParams,
+                            numResultSets,
+                            remarks != null ? remarks : "NULL",
+                            functionType);
+
+                    count++;
+                }
+            }
+            System.out.println("\nTotal functions found: " + count);
+        }
+    }
+
+    /**
+     * Test to print all procedures returned by getProcedures()
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testPrintGetProceduresResults() throws SQLException {
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData metaData = conn.getMetaData();
+
+            System.out.println("\n=== getProcedures() Results ===");
+            System.out.println(
+                    "PROCEDURE_CAT | PROCEDURE_SCHEM | PROCEDURE_NAME | NUM_INPUT_PARAMS | NUM_OUTPUT_PARAMS | NUM_RESULT_SETS | REMARKS | PROCEDURE_TYPE");
+            System.out.println(
+                    "--------------|-----------------|----------------|------------------|-------------------|------------------|---------|---------------");
+
+            int count = 0;
+            try (ResultSet rs = metaData.getProcedures(null, null, null)) {
+                while (rs.next()) {
+                    String procedureCat = rs.getString("PROCEDURE_CAT");
+                    String procedureSchem = rs.getString("PROCEDURE_SCHEM");
+                    String procedureName = rs.getString("PROCEDURE_NAME");
+                    int numInputParams = rs.getInt("NUM_INPUT_PARAMS");
+                    int numOutputParams = rs.getInt("NUM_OUTPUT_PARAMS");
+                    int numResultSets = rs.getInt("NUM_RESULT_SETS");
+                    String remarks = rs.getString("REMARKS");
+                    int procedureType = rs.getInt("PROCEDURE_TYPE");
+
+                    System.out.printf("%-13s | %-15s | %-14s | %-16d | %-17d | %-16d | %-7s | %d%n",
+                            procedureCat != null ? procedureCat : "NULL",
+                            procedureSchem != null ? procedureSchem : "NULL",
+                            procedureName != null ? procedureName : "NULL",
+                            numInputParams,
+                            numOutputParams,
+                            numResultSets,
+                            remarks != null ? remarks : "NULL",
+                            procedureType);
+
+                    count++;
+                }
+            }
+            System.out.println("\nTotal procedures found: " + count);
+        }
+    }
+
     @BeforeAll
     public static void setupTable() throws Exception {
         setConnection();

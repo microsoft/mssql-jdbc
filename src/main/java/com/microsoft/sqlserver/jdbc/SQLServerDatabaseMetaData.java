@@ -432,6 +432,75 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return rs;
     }
 
+    /*
+     * Helper method to dynamically build the IN clause for object types
+     */
+    private void appendObjectTypesFilter(StringBuilder queryBuilder, String[] objectTypes) {
+        queryBuilder.append("'")
+                .append(String.join("', '", objectTypes))
+                .append("') ");
+    }
+
+    /*
+     * Helper method to append catalog, schema, and object name filters to the query
+     */
+    private void appendCatalogSchemaAndPatternFilters(StringBuilder queryBuilder, String catalog, String schemaPattern,
+            String objectNamePattern) {
+        // Add catalog filter
+        if (catalog != null) {
+            queryBuilder.append("AND DB_NAME() = ? ");
+        }
+
+        // Add schema filter
+        if (schemaPattern != null && !schemaPattern.equals("%")) {
+            queryBuilder.append("AND SCHEMA_NAME(o.schema_id) LIKE ? ");
+        }
+
+        // Add object name filter
+        if (objectNamePattern != null && !objectNamePattern.equals("%")) {
+            queryBuilder.append("AND o.name LIKE ? ");
+        }
+    }
+
+    /*
+     * Executes a query against sys.objects to retrieve metadata about database objects.
+     * This method is used for both functions and procedures.
+     */
+    private SQLServerResultSet executeSysObjectsQuery(String catalog, String schemaPattern,
+            String objectNamePattern, String query, String[] columnNames) throws SQLException {
+
+        String orgCat = switchCatalogs(catalog);
+
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(query);
+            pstmt.closeOnCompletion();
+            int paramIndex = 1;
+
+            if (catalog != null) {
+                pstmt.setString(paramIndex++, escapeIDName(catalog));
+            }
+            if (schemaPattern != null && !schemaPattern.equals("%")) {
+                pstmt.setString(paramIndex++, escapeIDName(schemaPattern));
+            }
+            if (objectNamePattern != null && !objectNamePattern.equals("%")) {
+                pstmt.setString(paramIndex++, escapeIDName(objectNamePattern));
+            }
+
+            SQLServerResultSet rs = (SQLServerResultSet) pstmt.executeQuery();
+
+            // Set the column names to match the expected format
+            for (int i = 0; i < columnNames.length; i++) {
+                rs.setColumnName(i + 1, columnNames[i]);
+            }
+            return rs;
+
+        } finally {
+            if (null != orgCat) {
+                connection.setCatalog(orgCat);
+            }
+        }
+    }
+
     /**
      * Switches the database catalogs.
      * 
@@ -947,23 +1016,55 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             String functionNamePattern) throws SQLException {
         checkClosed();
 
-        /*
-         * sp_stored_procedures [ [ @sp_name = ] 'name' ] [ , [ @sp_owner = ] 'schema'] [ , [ @sp_qualifier = ]
-         * 'qualifier' ] [ , [@fUsePattern = ] 'fUsePattern' ]
-         */ // use default ie use pattern matching.
         // catalog cannot be empty in sql server
         if (null != catalog && catalog.length() == 0) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidArgument"));
-            Object[] msgArgs = {"catalog"};
+            Object[] msgArgs = { "catalog" };
             SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, false);
         }
 
-        String[] arguments = new String[3];
-        arguments[0] = escapeIDName(functionNamePattern);
-        arguments[1] = escapeIDName(schemaPattern);
-        arguments[2] = catalog;
-        return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_STORED_PROCEDURES, arguments,
-                getFunctionsColumnNames);
+        return getFunctionsFromSysObjects(catalog, schemaPattern, functionNamePattern, getFunctionsColumnNames);
+    }
+
+    /*
+     * Returns a ResultSet containing metadata about functions in the database.
+     * This method queries the sys.all_objects system view to retrieve
+     * information about functions, including their names, schemas, and types.
+     */
+    private SQLServerResultSet getFunctionsFromSysObjects(String catalog, String schemaPattern,
+            String functionNamePattern, String[] columnNames) throws SQLException {
+
+        // Define function types
+        String[] functionTypes = { "FN", "IF", "TF" };
+
+        // Build the query specifically for functions
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append("SELECT ")
+                .append("DB_NAME() AS FUNCTION_CAT, ")
+                .append("SCHEMA_NAME(o.schema_id) AS FUNCTION_SCHEM, ")
+                .append("o.name AS FUNCTION_NAME, ")
+                .append("-1 AS NUM_INPUT_PARAMS, ")
+                .append("-1 AS NUM_OUTPUT_PARAMS, ")
+                .append("-1 AS NUM_RESULT_SETS, ")
+                .append("CAST(NULL AS VARCHAR(254)) AS REMARKS, ")
+                .append("CASE o.type ")
+                .append("WHEN 'FN' THEN ").append(java.sql.DatabaseMetaData.functionReturnsTable).append(" ")
+                .append("WHEN 'IF' THEN ").append(java.sql.DatabaseMetaData.functionReturnsTable).append(" ")
+                .append("WHEN 'TF' THEN ").append(java.sql.DatabaseMetaData.functionReturnsTable).append(" ")
+                .append("ELSE ").append(java.sql.DatabaseMetaData.functionNoNulls).append(" ")
+                .append("END AS FUNCTION_TYPE ")
+                .append("FROM sys.all_objects o ")
+                .append("WHERE o.type IN (");
+
+        // Add function types dynamically
+        appendObjectTypesFilter(queryBuilder, functionTypes);
+
+        // Add catalog, schema and function name filter
+        appendCatalogSchemaAndPatternFilters(queryBuilder, catalog, schemaPattern, functionNamePattern);
+
+        queryBuilder.append("ORDER BY FUNCTION_CAT, FUNCTION_SCHEM, FUNCTION_NAME");
+
+        return executeSysObjectsQuery(catalog, schemaPattern, functionNamePattern, queryBuilder.toString(), columnNames);
     }
 
     private static final String[] getFunctionsColumnsColumnNames = { /* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
@@ -1540,22 +1641,50 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     @Override
     public java.sql.ResultSet getProcedures(String catalog, String schema,
-            String proc) throws SQLServerException, SQLTimeoutException {
+            String proc) throws SQLServerException, SQLTimeoutException, SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
         }
 
         checkClosed();
-        /*
-         * sp_stored_procedures [ [ @sp_name = ] 'name' ] [ , [ @sp_owner = ] 'schema'] [ , [ @sp_qualifier = ]
-         * 'qualifier' ] [ , [@fUsePattern = ] 'fUsePattern' ]
-         */
-        String[] arguments = new String[3];
-        arguments[0] = escapeIDName(proc);
-        arguments[1] = escapeIDName(schema);
-        arguments[2] = catalog;
-        return getResultSetWithProvidedColumnNames(catalog, CallableHandles.SP_STORED_PROCEDURES, arguments,
-                getProceduresColumnNames);
+
+        return getProceduresFromSysObjects(catalog, schema, proc, getProceduresColumnNames);
+    }
+
+    /*
+     * Returns a ResultSet containing metadata about stored procedures in the database.
+     * This method queries the sys.all_objects system view to retrieve information about
+     * procedures, including their names, schemas, and types.
+     */
+    private SQLServerResultSet getProceduresFromSysObjects(String catalog, String schemaPattern,
+            String procedureNamePattern, String[] columnNames) throws SQLException {
+
+        // Define procedure types
+        String[] procedureTypes = { "P", "PC" };
+
+        // Build the query specifically for procedures
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append("SELECT ")
+                .append("DB_NAME() AS PROCEDURE_CAT, ")
+                .append("SCHEMA_NAME(o.schema_id) AS PROCEDURE_SCHEM, ")
+                .append("o.name AS PROCEDURE_NAME, ")
+                .append("-1 AS NUM_INPUT_PARAMS, ")
+                .append("-1 AS NUM_OUTPUT_PARAMS, ")
+                .append("-1 AS NUM_RESULT_SETS, ")
+                .append("CAST(NULL AS VARCHAR(254)) AS REMARKS, ")
+                .append(java.sql.DatabaseMetaData.procedureNoResult).append(" AS PROCEDURE_TYPE ")
+                .append("FROM sys.all_objects o ")
+                .append("WHERE o.type IN (");
+
+        // Add procedure types dynamically
+        appendObjectTypesFilter(queryBuilder, procedureTypes);
+
+        // Add catalog, schema and procedure name filter
+        appendCatalogSchemaAndPatternFilters(queryBuilder, catalog, schemaPattern, procedureNamePattern);
+
+        queryBuilder.append("ORDER BY PROCEDURE_CAT, PROCEDURE_SCHEM, PROCEDURE_NAME");
+
+        return executeSysObjectsQuery(catalog, schemaPattern, procedureNamePattern, queryBuilder.toString(), columnNames);
     }
 
     @Override
