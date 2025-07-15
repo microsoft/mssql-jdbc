@@ -66,6 +66,10 @@ public abstract class AbstractSQLGenerator {// implements ISQLGenerator {
      * @return escaped literal
      */
     public static String escapeIdentifier(String value) {
+        if(value != null && value.contains(CLOSE_ESCAPE_IDENTIFIER)) {
+            value = value.replace(CLOSE_ESCAPE_IDENTIFIER, CLOSE_ESCAPE_IDENTIFIER + CLOSE_ESCAPE_IDENTIFIER);
+        }
+
         return OPEN_ESCAPE_IDENTIFIER + value + CLOSE_ESCAPE_IDENTIFIER;
     }
 
