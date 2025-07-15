@@ -470,7 +470,6 @@
 				<directory>src/test/resources</directory>
 				<includes>
 					<include>**/*.csv</include>
-					<include>logging.properties</include>
 				</includes>
 			</testResource>
 			<testResource>
