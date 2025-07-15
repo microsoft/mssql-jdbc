@@ -1,6 +1,5 @@
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -9,22 +8,24 @@ public class PerformanceLog {
     static final java.util.logging.Logger perfLoggerConnection = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.PerformanceMetrics.Connection");
 
+    //TODO
+    //More loggers to be added here e.g. com.microsoft.sqlserver.jdbc.PerformanceMetrics.Statement
+    
     public static class Scope implements AutoCloseable {
-        private final Logger logger;
-        private final UUID connId;
-        private final PerformanceActivity activity;
-        private final long startTime;
+        private Logger logger;
+        private String logPrefix;
+        private PerformanceActivity activity;
+        private long startTime;
         private final boolean enabled;
 
-        public Scope(Logger logger, UUID connId, PerformanceActivity activity) {
-            this.logger = logger;
-            this.connId = connId;
-            this.activity = activity;
+        public Scope(Logger logger, String logPrefix, PerformanceActivity activity) {
             this.enabled = logger.isLoggable(Level.INFO);
-            this.startTime = enabled ? System.currentTimeMillis() : 0;
-
             if (enabled) {
-                logger.info(String.format("%d %s %s start", startTime, connId, activity));
+                this.logger = logger;
+                this.logPrefix = logPrefix;
+                this.activity = activity;
+                this.startTime = enabled ? System.currentTimeMillis() : 0;
+                logger.info(String.format("%d %s %s start", startTime, logPrefix, activity));
             }
         }
 
@@ -33,12 +34,12 @@ public class PerformanceLog {
             if (enabled) {
                 long endTime = System.currentTimeMillis();
                 long duration = endTime - startTime;
-                logger.info(String.format("%d %s %s end, duration: %dms", endTime, connId, activity, duration));
+                logger.info(String.format("%d %s %s end, duration: %dms", endTime, logPrefix, activity, duration));
             }
         }
     }
 
-    public static Scope createScope(Logger logger, UUID connId, PerformanceActivity activity) {
-        return new Scope(logger, connId, activity);
+    public static Scope createScope(Logger logger, String logPrefix, PerformanceActivity activity) {
+        return new Scope(logger, logPrefix, activity);
     }
 }
