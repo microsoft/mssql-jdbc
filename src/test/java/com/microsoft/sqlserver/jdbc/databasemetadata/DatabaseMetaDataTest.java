@@ -1308,7 +1308,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 }
             }
         }
-    
+    }
 
     @Test
     public void testDatabaseCapabilityMethods() throws SQLException {
