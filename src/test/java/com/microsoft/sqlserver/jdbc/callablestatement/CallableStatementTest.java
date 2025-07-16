@@ -635,6 +635,7 @@ public class CallableStatementTest extends AbstractTest {
         try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall(
                 "{call " + allOutParamsProcName + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) {
             // Setters for all supported types
+            Calendar istCal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"));
             cs.setString("nchar", "hello     ");
             cs.setBoolean("bit", true);
             cs.setByte("tinyint", (byte) 42);
@@ -645,8 +646,8 @@ public class CallableStatementTest extends AbstractTest {
             cs.setLong("bigint", 9876543210L);
             cs.setInt("int", 12345);
             cs.setShort("smallint", (short) 123);
-            cs.setTime("time", Time.valueOf("12:34:56"));
-            cs.setTimestamp("datetime", Timestamp.valueOf("2024-07-16 12:34:56"));
+            cs.setTime("time", Time.valueOf("12:34:56"), istCal);
+            cs.setTimestamp("datetime", Timestamp.valueOf("2024-07-16 12:34:56"), istCal);
             cs.setTimestamp("smalldatetime", Timestamp.valueOf("2024-07-16 12:34:00"));
             cs.setBigDecimal("decimal", new BigDecimal("123.45"));
             cs.setBigDecimal("money", new BigDecimal("999.99"));
@@ -704,7 +705,6 @@ public class CallableStatementTest extends AbstractTest {
             Timestamp expectedSmallDateTime = Timestamp.valueOf("2024-07-16 12:34:00");
 
             assertEquals(expectedTime, cs.getTime("time"));
-            Calendar istCal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kolkata"));
             assertEquals(Time.valueOf("12:34:56"), cs.getTime("time", istCal));
 
             assertEquals(expectedTimestamp, cs.getDateTime("datetime"));
