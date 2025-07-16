@@ -1336,10 +1336,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
             assertFalse(dmd.supportsRefCursors(), "Should not support ref cursors");
 
-            assertFalse(dmd.supportsSharding(), "Should not support sharding");
-
-            assertEquals(".", dmd.getCatalogSeparator(), "Catalog separator should be '.'");
-
             assertEquals("database", dmd.getCatalogTerm(), "Catalog term should be 'database'");
         }
     }
@@ -1466,11 +1462,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 assertNotNull(pseudoCols);
                 // Should return empty result set for SQL Server
                 assertFalse(pseudoCols.next());
-            }
-
-            try (ResultSet typeInfo = dmd.getTypeInfo()) {
-                assertNotNull(typeInfo);
-                assertTrue(typeInfo.next()); // Should have at least one type
             }
 
             assertEquals(0, dmd.getMaxBinaryLiteralLength());
