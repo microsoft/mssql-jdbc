@@ -373,8 +373,6 @@ public class JSONFunctionTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("[\"c\",\"b\",\"a\"]", rs.getString("jsonArrayAgg"));
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -394,8 +392,6 @@ public class JSONFunctionTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("[\"a\",\"b\",\"c\"]", rs.getString("jsonArrayAgg"));
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -552,8 +548,6 @@ public class JSONFunctionTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery(update)) {
             assertTrue(rs.next());
             assertEquals(expectedJson, rs.getString("info"));
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -580,8 +574,6 @@ public class JSONFunctionTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery(update)) {
             assertTrue(rs.next());
             assertEquals(expectedJson, rs.getString("product"));
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -608,8 +600,6 @@ public class JSONFunctionTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery(update)) {
             assertTrue(rs.next());
             assertEquals(expectedJson, rs.getString("stats"));
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -668,8 +658,6 @@ public class JSONFunctionTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("{}", rs.getString("jsonObject"));
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -689,8 +677,6 @@ public class JSONFunctionTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("{\"name\":\"value\"}", rs.getString("jsonObject"));
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -710,8 +696,6 @@ public class JSONFunctionTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("{\"name\":\"value\",\"type\":[1,2]}", rs.getString("jsonObject"));
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -732,8 +716,6 @@ public class JSONFunctionTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("{\"name\":\"value\",\"type\":{\"type_id\":1,\"name\":\"a\"}}", rs.getString("jsonObject"));
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -762,8 +744,6 @@ public class JSONFunctionTest extends AbstractTest {
                 assertTrue(info.contains("\"login\":\""));
                 assertTrue(info.contains("\"status\":\""));
             }
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -783,8 +763,6 @@ public class JSONFunctionTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals("{\"key1\":\"c\",\"key2\":\"b\",\"key3\":\"a\"}", rs.getString("jsonObjectAgg"));
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -861,8 +839,6 @@ public class JSONFunctionTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals(1, rs.getInt("pathExists"));
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -885,8 +861,6 @@ public class JSONFunctionTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
             assertEquals(0, rs.getInt("pathExists"));
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -1614,8 +1588,6 @@ public class JSONFunctionTest extends AbstractTest {
             
             assertTrue(filesAreEqual(Path.of(JSON_FILE_PATH), tempFile));
         
-        } catch (Exception e) {
-            fail("Test failed due to: " + e.getMessage());
         } finally {
             try (Connection conn = DriverManager.getConnection(connectionString);
                     Statement stmt = conn.createStatement()) {
@@ -1703,8 +1675,6 @@ public class JSONFunctionTest extends AbstractTest {
             
             assertTrue(filesAreEqual(Path.of(JSON_FILE_PATH), tempFile));
         
-        } catch (Exception e) {
-            fail("Test failed due to: " + e.getMessage());
         } finally {
             try (Connection conn = DriverManager.getConnection(connectionString);
                     Statement stmt = conn.createStatement()) {

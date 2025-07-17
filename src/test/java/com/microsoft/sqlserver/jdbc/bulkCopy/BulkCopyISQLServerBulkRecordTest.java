@@ -186,8 +186,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     assertNotNull(resultVector, "Retrieved vector is null.");
                     assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
                     assertArrayEquals(vectorData, resultVector.getData(), "Vector data mismatch.");
-                } catch (Exception e) {
-                    fail(e.getMessage());
                 } finally {
                     try (Statement stmt = conn.createStatement();) {
                         TestUtils.dropTableIfExists(dstTable, stmt);
@@ -223,8 +221,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     assertTrue(data.equals(rs.getObject(1)));
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -262,9 +258,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     assertTrue(rs.next());
                     assertEquals(data2, rs.getString(1));
                 }
-
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -309,8 +302,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     assertEquals(data3, rs.getString(1));
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -353,8 +344,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     assertTrue(data3.equals(rs.getObject(1)));
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -397,8 +386,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     assertTrue(data2Col2.equals(rs.getObject(2)));
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -441,8 +428,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     assertEquals(data3, rs.getString(1));
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -481,8 +466,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     assertEquals(data, jsonData);
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -531,8 +514,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
 
                 assertEquals(count1, count2);
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
