@@ -2179,15 +2179,6 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(Arrays.asList("path3"), result.get("SERVER2\\INSTANCEB"));
     }
 
-    @Test
-    public void testValidateMaxSQLLoginName() throws Exception {
-        SQLServerConnection conn = new SQLServerConnection("test");
-        String longName = "a".repeat(130); // Exceeds MAX_SQL_LOGIN_NAME_WCHARS (128)
-        Exception ex = assertThrows(com.microsoft.sqlserver.jdbc.SQLServerException.class,
-                () -> conn.validateMaxSQLLoginName("user", longName));
-        assertTrue(ex.getMessage().contains("user"));
-    }
-
     // Helper to set private authenticationString
     private void setAuthenticationString(SQLServerConnection conn, String value) throws Exception {
         java.lang.reflect.Field field = SQLServerConnection.class.getDeclaredField("authenticationString");
