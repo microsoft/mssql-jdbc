@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.NClob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -32,6 +33,7 @@ import java.util.UUID;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.jupiter.api.AfterEach;
@@ -48,7 +50,6 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
-
 
 @RunWith(JUnitPlatform.class)
 public class ResultSetTest extends AbstractTest {
@@ -706,6 +707,87 @@ public class ResultSetTest extends AbstractTest {
         } catch (SQLException e) {
             assertEquals(expectedSqlState, e.getSQLState());
             assertEquals(expectedErrorCode, e.getErrorCode());
+        }
+    }
+
+    /**
+     * Test casting JSON data and retrieving it as various data types.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testCastOnJSON() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+
+        String jsonData = "{\"key\":\"123\"}";
+
+        try (Connection conn = DriverManager.getConnection(connectionString)) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonData JSON)");
+                stmt.executeUpdate("INSERT INTO " + dstTable + " VALUES (CAST('" + jsonData + "' AS JSON))");
+
+                String select = "SELECT JSON_VALUE(jsonData, '$.key') AS c1 FROM " + dstTable;
+
+                // Use executeQuery API
+                try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery(select)) {
+                    rs.next();
+                    assertEquals(123, rs.getShort("c1"));
+                    assertEquals(123, rs.getInt("c1"));
+                    assertEquals(123f, rs.getFloat("c1"));
+                    assertEquals(123L, rs.getLong("c1"));
+                    assertEquals(123d, rs.getDouble("c1"));
+                    assertEquals(new BigDecimal(123), rs.getBigDecimal("c1"));
+                }
+
+                // Use execute API
+                boolean hasResult = stmt.execute(select);
+                assertTrue(hasResult);
+                try (SQLServerResultSet rs = (SQLServerResultSet) stmt.getResultSet()) {
+                    rs.next();
+                    assertEquals(123, rs.getShort("c1"));
+                    assertEquals(123, rs.getInt("c1"));
+                    assertEquals(123f, rs.getFloat("c1"));
+                    assertEquals(123L, rs.getLong("c1"));
+                    assertEquals(123d, rs.getDouble("c1"));
+                    assertEquals(new BigDecimal(123), rs.getBigDecimal("c1"));
+                }
+            } finally {
+                try (Statement stmt = conn.createStatement();) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Tests ResultSet with JSON column type.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.JSONTest)
+    public void testJdbc41ResultSetJsonColumn() throws SQLException {
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+            String table = AbstractSQLGenerator.escapeIdentifier(tableName);
+            stmt.executeUpdate("create table " + table + " (col17 json)");
+
+            try {
+                stmt.executeUpdate("insert into " + table + " values('{\"test\":\"123\"}')");
+                stmt.executeUpdate("insert into " + table + " values(null)");
+
+                try (ResultSet rs = stmt.executeQuery("select * from " + table)) {
+                    assertTrue(rs.next());
+                    assertEquals("{\"test\":\"123\"}", rs.getObject(1).toString());
+
+                    assertTrue(rs.next());
+                    assertNull(rs.getObject(1));
+
+                    assertFalse(rs.next());
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, stmt);
+            }
         }
     }
 

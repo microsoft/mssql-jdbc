@@ -289,6 +289,7 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
             case UDT:
             case XML:
             case VECTOR:
+            case JSON:
                 return false;
 
             default:

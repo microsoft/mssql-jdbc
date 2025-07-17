@@ -581,6 +581,10 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                 columnMetadata.put(positionInSource,
                         new ColumnMetadata(colName, java.sql.Types.LONGNVARCHAR, precision, scale, dateTimeFormatter));
                 break;
+            case microsoft.sql.Types.JSON:
+                columnMetadata.put(positionInSource,
+                        new ColumnMetadata(colName, microsoft.sql.Types.JSON, precision, scale, dateTimeFormatter));
+                break;    
             /*
              * Redirecting Float as Double based on data type mapping
              * https://msdn.microsoft.com/library/ms378878%28v=sql.110%29.aspx
@@ -642,11 +646,13 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         this.escapeDelimiters = escapeDelimiters;
     }
 
+
     private static String[] escapeQuotesRFC4180(String[] tokens) throws SQLServerException {
         if (null == tokens) {
             return tokens;
         }
         for (int i = 0; i < tokens.length; i++) {
+            
             boolean escaped = false;
             int j = 0;
             StringBuilder sb = new StringBuilder();
