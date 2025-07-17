@@ -728,7 +728,21 @@ public class ResultSetTest extends AbstractTest {
 
                 String select = "SELECT JSON_VALUE(jsonData, '$.key') AS c1 FROM " + dstTable;
 
+                // Use executeQuery API
                 try (SQLServerResultSet rs = (SQLServerResultSet) stmt.executeQuery(select)) {
+                    rs.next();
+                    assertEquals(123, rs.getShort("c1"));
+                    assertEquals(123, rs.getInt("c1"));
+                    assertEquals(123f, rs.getFloat("c1"));
+                    assertEquals(123L, rs.getLong("c1"));
+                    assertEquals(123d, rs.getDouble("c1"));
+                    assertEquals(new BigDecimal(123), rs.getBigDecimal("c1"));
+                }
+
+                // Use execute API
+                boolean hasResult = stmt.execute(select);
+                assertTrue(hasResult);
+                try (SQLServerResultSet rs = (SQLServerResultSet) stmt.getResultSet()) {
                     rs.next();
                     assertEquals(123, rs.getShort("c1"));
                     assertEquals(123, rs.getInt("c1"));

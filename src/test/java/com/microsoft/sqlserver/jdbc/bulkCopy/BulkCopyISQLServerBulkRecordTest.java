@@ -395,6 +395,65 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     }
 
     /**
+     * Test bulk copy with sendStringParametersAsUnicode set to true and false for JSON column.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testBulkCopyWithSendStringParametersAsUnicode() throws SQLException {
+        // Unicode scenario
+        String dstTableUnicode = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableUnicode")));
+        try (Connection conn = DriverManager.getConnection(connectionString + ";sendStringParametersAsUnicode=true")) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + dstTableUnicode + " (testCol json);");
+            }
+            com.microsoft.sqlserver.jdbc.SQLServerDataSource ds = new com.microsoft.sqlserver.jdbc.SQLServerDataSource();
+            ds.setURL(connectionString);
+            ds.setSendStringParametersAsUnicode(true);
+            try (Connection dsConn = ds.getConnection();
+                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(dsConn)) {
+                bulkCopy.setDestinationTableName(dstTableUnicode);
+                String data = "{\"key1\":\"value1\"}";
+                bulkCopy.writeToServer(new BulkRecordJSON(data));
+            }
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT testCol FROM " + dstTableUnicode)) {
+                assertTrue(rs.next());
+                assertEquals("{\"key1\":\"value1\"}", rs.getString(1));
+            }
+        } finally {
+            try (Connection conn = DriverManager.getConnection(connectionString + "sendStringParametersAsUnicode=true"); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(dstTableUnicode, stmt);
+            }
+        }
+
+        // Non-Unicode scenario
+        String dstTableNonUnicode = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableNonUnicode")));
+        try (Connection conn = DriverManager.getConnection(connectionString + ";sendStringParametersAsUnicode=false")) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + dstTableNonUnicode + " (testCol JSON);");
+            }
+            com.microsoft.sqlserver.jdbc.SQLServerDataSource ds = new com.microsoft.sqlserver.jdbc.SQLServerDataSource();
+            ds.setURL(connectionString);
+            ds.setSendStringParametersAsUnicode(false);
+            try (Connection dsConn = ds.getConnection();
+                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(dsConn)) {
+                bulkCopy.setDestinationTableName(dstTableNonUnicode);
+                String data = "{\"key1\":\"value1\"}";
+                bulkCopy.writeToServer(new BulkRecordJSON(data));
+            }
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT testCol FROM " + dstTableNonUnicode)) {
+                assertTrue(rs.next());
+                assertEquals("{\"key1\":\"value1\"}", rs.getString(1));
+            }
+        } finally {
+            try (Connection conn = DriverManager.getConnection(connectionString + "sendStringParametersAsUnicode=false"); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(dstTableNonUnicode, stmt);
+            }
+        }
+    }
+
+    /**
      * Test bulk copy with nested JSON documents.
      */
     @Test
@@ -520,6 +579,82 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 }
             }
         }
+    }
+
+    /**
+     * Test table-to-table bulk copy: source table with JSON column (vector as JSON array)
+     * to destination table with VECTOR column.
+     */
+    @Test
+    @Tag(Constants.vectorTest)
+    public void testBulkCopyTableToTableJsonToVector() throws Exception {
+        String srcTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testSrcJsonTable"));
+        String dstTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testDstVectorTable"));
+        String vectorJson = "[1.0, 2.0, 3.0]";
+        Object[] expectedVector = new Float[] { 1.0f, 2.0f, 3.0f };
+
+        // Create source table and insert JSON vector
+        try (Connection conn = DriverManager.getConnection(connectionString);
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + srcTable + " (vectorJsonCol JSON)");
+            stmt.executeUpdate("INSERT INTO " + srcTable + " (vectorJsonCol) VALUES ('" + vectorJson + "')");
+        }
+
+        // Create destination table with VECTOR column
+        try (Connection conn = DriverManager.getConnection(connectionString);
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + dstTable + " (vectorCol VECTOR(3))");
+        }
+
+        // Table-to-table bulk copy: read JSON, parse, and write as VECTOR
+        try (Connection conn = DriverManager.getConnection(connectionString);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT vectorJsonCol FROM " + srcTable);
+             SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+            bulkCopy.setDestinationTableName(dstTable);
+            // For each row, parse JSON and bulk copy as VECTOR
+            while (rs.next()) {
+                String json = rs.getString(1);
+                Object[] vector = parseJsonArrayToFloatArray(json);
+                Vector vectorObj = new Vector(vector.length, VectorDimensionType.FLOAT32, vector);
+                VectorBulkData vectorBulkData = new VectorBulkData(vectorObj, vector.length, VectorDimensionType.FLOAT32);
+                bulkCopy.writeToServer(vectorBulkData);
+            }
+        }
+
+        // Validate the data in the destination table
+        try (Connection conn = DriverManager.getConnection(connectionString);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT vectorCol FROM " + dstTable)) {
+            assertTrue(rs.next(), "No data found in the destination table.");
+            Vector resultVector = rs.getObject(1, Vector.class);
+            assertNotNull(resultVector, "Retrieved vector is null.");
+            assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
+            assertEquals(VectorDimensionType.FLOAT32, resultVector.getVectorDimensionType(), "Vector dimension type mismatch.");
+            assertArrayEquals(expectedVector, resultVector.getData(), "Vector data mismatch.");
+        }
+
+        // Cleanup
+        try (Connection conn = DriverManager.getConnection(connectionString);
+             Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(srcTable, stmt);
+            TestUtils.dropTableIfExists(dstTable, stmt);
+        }
+    }
+
+    // Helper: Parse JSON array string to Float[]
+    private static Object[] parseJsonArrayToFloatArray(String json) {
+        json = json.trim();
+        if (json.startsWith("[") && json.endsWith("]")) {
+            json = json.substring(1, json.length() - 1);
+        }
+        String[] parts = json.split(",");
+        Float[] arr = new Float[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            arr[i] = Float.parseFloat(parts[i].trim());
+        }
+        return arr;
     }
 
     /**

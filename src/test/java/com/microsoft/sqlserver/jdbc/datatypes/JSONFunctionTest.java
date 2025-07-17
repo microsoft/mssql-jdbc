@@ -1761,6 +1761,80 @@ public class JSONFunctionTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test JSON data handling with the `sendStringParametersAsUnicode` connection property.
+     * This test verifies that JSON data can be inserted and retrieved correctly
+     * when the `sendStringParametersAsUnicode` property is set to false or true.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testJSONWithSendStringParameterAsUnicodeFalse() throws SQLException {
+        String dstTable = TestUtils.escapeSingleQuotes(
+            AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"))
+        );
+
+        String validJson = "{\"key1\":\"value1\"}";
+
+        try (Connection conn = DriverManager.getConnection(
+                connectionString + "sendStringParametersAsUnicode=false");
+            Statement stmt = conn.createStatement()) {
+
+            stmt.executeUpdate("CREATE TABLE " + dstTable + " (testCol NVARCHAR(MAX));");
+            stmt.executeUpdate("INSERT INTO " + dstTable + " (testCol) VALUES (N'" + validJson + "')");
+
+            String select = "SELECT testCol, ISJSON(testCol) AS isJsonValid FROM " + dstTable;
+
+            try (ResultSet rs = stmt.executeQuery(select)) {
+                assertTrue(rs.next());
+                assertEquals(validJson, rs.getString("testCol"));
+                assertEquals(1, rs.getInt("isJsonValid"));
+            }
+        } finally {
+            try (Connection cleanupConn = DriverManager.getConnection(
+                    connectionString + "sendStringParametersAsUnicode=false");
+                Statement cleanupStmt = cleanupConn.createStatement()) {
+                TestUtils.dropTableIfExists(dstTable, cleanupStmt);
+            }
+        }
+    }
+
+    /**
+     * Test JSON data handling with the `sendStringParametersAsUnicode` connection property.
+     * This test verifies that JSON data can be inserted and retrieved correctly
+     * when the `sendStringParametersAsUnicode` property is set to true.
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testJSONWithSendStringParameterAsUnicodeTrue() throws SQLException {
+        String dstTable = TestUtils.escapeSingleQuotes(
+            AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"))
+        );
+
+        String validJson = "{\"key1\":\"value1\"}";
+
+        try (Connection conn = DriverManager.getConnection(
+                connectionString + "sendStringParametersAsUnicode=true");
+            Statement stmt = conn.createStatement()) {
+
+            stmt.executeUpdate("CREATE TABLE " + dstTable + " (testCol NVARCHAR(MAX));");
+            stmt.executeUpdate("INSERT INTO " + dstTable + " (testCol) VALUES (N'" + validJson + "')");
+
+            String select = "SELECT testCol, ISJSON(testCol) AS isJsonValid FROM " + dstTable;
+
+            try (ResultSet rs = stmt.executeQuery(select)) {
+                assertTrue(rs.next());
+                assertEquals(validJson, rs.getString("testCol"));
+                assertEquals(1, rs.getInt("isJsonValid"));
+            }
+        } finally {
+            try (Connection cleanupConn = DriverManager.getConnection(
+                    connectionString + "sendStringParametersAsUnicode=true");
+                Statement cleanupStmt = cleanupConn.createStatement()) {
+                TestUtils.dropTableIfExists(dstTable, cleanupStmt);
+            }
+        }
+    }
+
     private void generateHugeJsonFile(long targetSize) {
         File file = new File(JSON_FILE_PATH);
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
