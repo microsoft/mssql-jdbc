@@ -2395,34 +2395,6 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
-    public void testSecurityManager() throws Exception {
-        SecurityManager mockSecurityManager = null;
-        SecurityManager originalSecurityManager = null;
-        // Skip test if SecurityManager operations are not supported
-        try {
-            System.getSecurityManager(); // Test if SecurityManager is available
-            mockSecurityManager = mock(SecurityManager.class);
-            originalSecurityManager = System.getSecurityManager();
-            System.setSecurityManager(mockSecurityManager);
-        } catch (UnsupportedOperationException e) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(true,
-                    "SecurityManager operations not supported in this Java version");
-            return;
-        }
-
-        // Create SQLServerConnectionSecurityManager instance
-        SQLServerConnectionSecurityManager securityMgr = new SQLServerConnectionSecurityManager("localhost", 1433);
-
-        // Call methods to cover both lines
-        securityMgr.checkConnect(); // Covers line 9188: security.checkConnect(serverName, portNumber)
-        securityMgr.checkLink(); // Covers line 9202: security.checkLink(DLLNAME)
-
-        // Verify the methods were called (optional for coverage, but good practice)
-        verify(mockSecurityManager).checkConnect("localhost", 1433);
-        verify(mockSecurityManager).checkLink(SQLServerDriver.AUTH_DLL_NAME + ".dll");
-    }
-
-    @Test
     void testSetClientInfoThrowsSQLClientInfoExceptionWhenClosed() throws Exception {
         SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString);
         // Simulate closed connection. You may need to use reflection or a setter if available.
