@@ -1000,10 +1000,14 @@ public class SQLServerColumnEncryptionAzureKeyVaultProvider extends SQLServerCol
             trustedEndpoints.add("vault.azure.cn");
             trustedEndpoints.add("vault.usgovcloudapi.net");
             trustedEndpoints.add("vault.microsoftazure.de");
+            trustedEndpoints.add("vault.sovcloud-api.fr"); // France (Blue)
+            trustedEndpoints.add("vault.sovcloud-api.de"); // Germany (Delos)
             trustedEndpoints.add("managedhsm.azure.net");
             trustedEndpoints.add("managedhsm.azure.cn");
             trustedEndpoints.add("managedhsm.usgovcloudapi.net");
             trustedEndpoints.add("managedhsm.microsoftazure.de");
+            trustedEndpoints.add("managedhsm.sovcloud-api.fr");
+            trustedEndpoints.add("managedhsm.sovcloud-api.de");
         }
         return trustedEndpoints;
     }
