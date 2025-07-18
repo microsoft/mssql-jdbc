@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
@@ -705,9 +706,17 @@ public class CallableStatementTest extends AbstractTest {
             assertEquals(0, cs.getBigDecimal("decimal").compareTo(new BigDecimal("123.45")));
             assertEquals(0, cs.getMoney("money").compareTo(new BigDecimal("999.99")));
             assertEquals(0, cs.getSmallMoney("smallmoney").compareTo(new BigDecimal("55.55")));
+            try (InputStream is = cs.getBinaryStream("varbinary");
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                
+                byte[] temp = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = is.read(temp)) != -1) {
+                    buffer.write(temp, 0, bytesRead);
+                }
 
-            try (InputStream is = cs.getBinaryStream("varbinary")) {
-                assertArrayEquals(new byte[]{0x11, 0x22, 0x33, 0x44}, is.readAllBytes());
+                byte[] actualBytes = buffer.toByteArray();
+                assertArrayEquals(new byte[]{0x11, 0x22, 0x33, 0x44}, actualBytes);
             }
 
             Blob blob = cs.getBlob("blob");
@@ -888,9 +897,19 @@ public class CallableStatementTest extends AbstractTest {
             assertEquals(0, cs.getMoney(13).compareTo(new BigDecimal("999.99")));
             assertEquals(0, cs.getSmallMoney(14).compareTo(new BigDecimal("55.55")));
 
-            try (InputStream is = cs.getBinaryStream(15)) {
-                assertArrayEquals(new byte[]{0x11, 0x22, 0x33, 0x44}, is.readAllBytes());
+            try (InputStream is = cs.getBinaryStream(15);
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                
+                byte[] temp = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = is.read(temp)) != -1) {
+                    buffer.write(temp, 0, bytesRead);
+                }
+
+                byte[] actualBytes = buffer.toByteArray();
+                assertArrayEquals(new byte[]{0x11, 0x22, 0x33, 0x44}, actualBytes);
             }
+
 
             Blob blob = cs.getBlob(16);
             assertArrayEquals(new byte[]{0x55, 0x66, 0x77, (byte) 0x88}, blob.getBytes(1, (int) blob.length()));
