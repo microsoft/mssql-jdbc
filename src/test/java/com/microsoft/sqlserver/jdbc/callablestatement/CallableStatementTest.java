@@ -98,6 +98,9 @@ public class CallableStatementTest extends AbstractTest {
         .escapeIdentifier(RandomUtil.getIdentifier("SQLTypeOverloadsProc"));
     private static String streamGetterSetterProcName = AbstractSQLGenerator
         .escapeIdentifier(RandomUtil.getIdentifier("streamGetterSetterProc"));
+    private static String tvpProcName = AbstractSQLGenerator
+        .escapeIdentifier(RandomUtil.getIdentifier("TVPProc"));
+    private static String tvpTypeName = "TVPType";
 
     /**
      * Setup before test
@@ -1016,13 +1019,10 @@ public class CallableStatementTest extends AbstractTest {
 
     @Test
     public void testCallableStatementParameterNameAPIs() throws Exception {
-        // Create a dummy procedure with a TVP and a varchar param
-        String tvpProcName = "TVPProc";
-        String tvpTypeName = "TVPType";
         // Cleanup
         try (Statement stmt = connection.createStatement()) {
-            stmt.execute("DROP PROCEDURE IF EXISTS " + tvpProcName);
-            stmt.execute("DROP TYPE IF EXISTS " + tvpTypeName);
+            TestUtils.dropProcedureIfExists(tvpProcName, stmt);
+            TestUtils.dropTypeIfExists(tvpTypeName, stmt);
         }
         try (Statement stmt = connection.createStatement()) {
             // Create a TVP type and procedure if not exists
@@ -1070,10 +1070,9 @@ public class CallableStatementTest extends AbstractTest {
             assertThrows(SQLServerException.class, () -> cs.getURL("val"));
         }
 
-        // Cleanup
         try (Statement stmt = connection.createStatement()) {
-            stmt.execute("DROP PROCEDURE IF EXISTS " + tvpProcName);
-            stmt.execute("DROP TYPE IF EXISTS " + tvpTypeName);
+            TestUtils.dropProcedureIfExists(tvpProcName, stmt);
+            TestUtils.dropTypeIfExists(tvpTypeName, stmt);
         }
     }
 
