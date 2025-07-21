@@ -1083,7 +1083,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
             TestUtils.dropDatabaseIfExists(dbName, connectionString);
         }
     }
-    
     /**
      * Test for VECTOR column metadata
      * 
@@ -1147,6 +1146,51 @@ public class DatabaseMetaDataTest extends AbstractTest {
             // Cleanup: Drop the table
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("DROP TABLE IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(vectorTableName));
+            }
+        }
+    }
+
+    /**
+     * Test for JSON column metadata
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testJSONMetaData() throws SQLException {
+        String jsonTableName = RandomUtil.getIdentifier("try_SQLJSON_Table");
+
+        try (Statement stmt = connection.createStatement()) {
+            String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(jsonTableName)
+                    + " (c1 JSON null);";
+            stmt.execute(sql);
+
+            String query = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(jsonTableName);
+            try (Statement statement = connection.createStatement();
+                    ResultSet resultSet = statement.executeQuery(query)) {
+
+                ResultSetMetaData metaData = resultSet.getMetaData();
+                int columnCount = metaData.getColumnCount();
+                assertEquals(1, columnCount, "Column count should be 1");
+
+                String columnName = metaData.getColumnName(1);
+                assertEquals("c1", columnName, "Column name should be 'c1'");
+
+                String columnType = metaData.getColumnTypeName(1);
+                assertTrue("JSON".equalsIgnoreCase(columnType), "Column type should be 'JSON'");
+
+                int columnTypeInt = metaData.getColumnType(1);
+                assertEquals(microsoft.sql.Types.JSON, columnTypeInt, "Column type should be microsoft.sql.Types.JSON");
+
+                int columnDisplaySize = metaData.getColumnDisplaySize(1);
+                assertTrue(columnDisplaySize > 0, "Column display size should be greater than 0");
+
+                String columnClassName = metaData.getColumnClassName(1);
+                assertEquals(Object.class.getName(), columnClassName, "Column class name should be 'java.lang.Object'");
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("DROP TABLE IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(jsonTableName));
             }
         }
     }
