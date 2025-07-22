@@ -1,16 +1,30 @@
 package com.microsoft.sqlserver.jdbc.callablestatement;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
+import java.sql.NClob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.MessageFormat;
@@ -19,6 +33,7 @@ import java.time.OffsetTime;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Collections;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -34,6 +49,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -75,6 +91,17 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_definedType"));
     private static String zeroParamSproc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("zeroParamSproc"));
+    private static String allOutParamsProcName = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("TestAllOutParams"));
+    private static String getObjectTypesProcName = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("TestGetObjectTypesProc"));
+    private static String sqlTypeOverloadsProcName = AbstractSQLGenerator
+        .escapeIdentifier(RandomUtil.getIdentifier("SQLTypeOverloadsProc"));
+    private static String streamGetterSetterProcName = AbstractSQLGenerator
+        .escapeIdentifier(RandomUtil.getIdentifier("streamGetterSetterProc"));
+    private static String tvpProcName = AbstractSQLGenerator
+        .escapeIdentifier(RandomUtil.getIdentifier("TVPProc"));
+    private static String tvpTypeName = "TVPType";
 
     /**
      * Setup before test
@@ -595,6 +622,476 @@ public class CallableStatementTest extends AbstractTest {
             stmt.registerOutParameter(1, Types.TIMESTAMP);
             stmt.execute();
             stmt.getObject("currentTimeStamp");
+        }
+    }
+
+    @Test
+    public void testAllOutParamGettersByName() throws Exception {
+        TestUtils.dropProcedureIfExists(allOutParamsProcName, connection.createStatement());
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(
+                "CREATE PROCEDURE " + allOutParamsProcName + " " +
+                "@char CHAR(10) OUTPUT, @nchar NCHAR(10) OUTPUT, @bit BIT OUTPUT, @tinyint TINYINT OUTPUT, " +
+                "@binary BINARY(4) OUTPUT, @date DATE OUTPUT, @float FLOAT OUTPUT, @real REAL OUTPUT, " +
+                "@bigint BIGINT OUTPUT, @int INT OUTPUT, @smallint SMALLINT OUTPUT, @decimal DECIMAL(10,2) OUTPUT, " +
+                "@money MONEY OUTPUT, @smallmoney SMALLMONEY OUTPUT, @varbinary VARBINARY(MAX) OUTPUT, " +
+                "@blob VARBINARY(MAX) OUTPUT, @clob VARCHAR(MAX) OUTPUT, @nclob NVARCHAR(MAX) OUTPUT " +
+                "AS BEGIN RETURN END"
+            );
+        }
+
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall(
+                "{call " + allOutParamsProcName + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) {
+
+            cs.setString("char", "charValue", false);
+            cs.setString("nchar", "hello     ");
+            cs.setBoolean("bit", true, false);
+            cs.setByte("tinyint", (byte) 42, false);
+            cs.setBytes("binary", new byte[]{1, 2, 3, 4}, false);
+            cs.setDate("date", Date.valueOf("2024-07-16"));
+            cs.setDouble("float", 123.456, false);
+            cs.setFloat("real", 78.9f, false);
+            cs.setLong("bigint", 9876543210L, false);
+            cs.setInt("int", 12345, false);
+            cs.setShort("smallint", (short) 123, false);
+            cs.setBigDecimal("decimal", new BigDecimal("123.45"), 5, 2);
+            cs.setBigDecimal("money", new BigDecimal("999.99"), 5, 2);
+            cs.setBigDecimal("money", new BigDecimal("999.99"), 5, 2, false);
+            cs.setMoney("money", new BigDecimal("999.99"));
+            cs.setMoney("money", new BigDecimal("999.99"), false);
+            cs.setBigDecimal("smallmoney", new BigDecimal("55.55"));
+            cs.setSmallMoney("smallmoney", new BigDecimal("55.55"));
+            cs.setSmallMoney("smallmoney", new BigDecimal("55.55"), false);
+            cs.setBytes("varbinary", new byte[]{0x11, 0x22, 0x33, 0x44});
+            cs.setBytes("blob", new byte[]{0x55, 0x66, 0x77, (byte) 0x88});
+            cs.setClob("clob", new javax.sql.rowset.serial.SerialClob("ascii-stream".toCharArray()));
+            cs.setNClob("nclob", new java.io.StringReader("nchar-stream"));
+
+            for (int i = 1; i <= 18; i++) {
+                cs.registerOutParameter(i, Types.VARCHAR);
+            }
+            cs.registerOutParameter(1, Types.CHAR);
+            cs.registerOutParameter(2, Types.NCHAR);
+            cs.registerOutParameter(3, Types.BIT);
+            cs.registerOutParameter(4, Types.TINYINT);
+            cs.registerOutParameter(5, Types.BINARY);
+            cs.registerOutParameter(6, Types.DATE);
+            cs.registerOutParameter(7, Types.DOUBLE);
+            cs.registerOutParameter(8, Types.REAL);
+            cs.registerOutParameter(9, Types.BIGINT);
+            cs.registerOutParameter(10, Types.INTEGER);
+            cs.registerOutParameter(11, Types.SMALLINT);
+            cs.registerOutParameter(12, Types.DECIMAL);
+            cs.registerOutParameter(13, Types.DECIMAL);
+            cs.registerOutParameter(14, microsoft.sql.Types.SMALLMONEY);
+            cs.registerOutParameter(15, Types.VARBINARY);
+            cs.registerOutParameter(16, Types.VARBINARY);
+            cs.registerOutParameter(17, Types.VARCHAR);
+            cs.registerOutParameter(18, Types.NVARCHAR);
+
+            cs.execute();
+
+            assertEquals("charValue ", cs.getString("char")); // Covers getString(String)
+            assertEquals("hello     ", cs.getNString("nchar"));
+            assertTrue(cs.getBoolean("bit"));
+            assertEquals((byte) 42, cs.getByte("tinyint"));
+            assertArrayEquals(new byte[]{1, 2, 3, 4}, cs.getBytes("binary"));
+            assertEquals(Date.valueOf("2024-07-16"), cs.getDate("date"));
+            assertEquals(123.456, cs.getDouble("float"), 0.0001);
+            assertEquals(78.9f, cs.getFloat("real"), 0.0001f);
+            assertEquals(9876543210L, cs.getLong("bigint"));
+            assertEquals(12345, cs.getInt("int"));
+            assertEquals((short) 123, cs.getShort("smallint"));
+            assertEquals(0, cs.getBigDecimal("decimal").compareTo(new BigDecimal("123.45")));
+            assertEquals(0, cs.getMoney("money").compareTo(new BigDecimal("999.99")));
+            assertEquals(0, cs.getSmallMoney("smallmoney").compareTo(new BigDecimal("55.55")));
+            try (InputStream is = cs.getBinaryStream("varbinary");
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                
+                byte[] temp = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = is.read(temp)) != -1) {
+                    buffer.write(temp, 0, bytesRead);
+                }
+
+                byte[] actualBytes = buffer.toByteArray();
+                assertArrayEquals(new byte[]{0x11, 0x22, 0x33, 0x44}, actualBytes);
+            }
+
+            Blob blob = cs.getBlob("blob");
+            assertArrayEquals(new byte[]{0x55, 0x66, 0x77, (byte) 0x88}, blob.getBytes(1, (int) blob.length()));
+
+            try (Reader reader = cs.getCharacterStream("clob")) {
+                assertEquals("ascii-stream", new BufferedReader(reader).readLine());
+            }
+
+            try (Reader reader = cs.getNCharacterStream("nclob")) {
+                assertEquals("nchar-stream", new BufferedReader(reader).readLine());
+            }
+
+            // Covers getObject(String, Map)
+            assertThrows(SQLException.class, () -> cs.getObject("char", Collections.emptyMap()));
+
+            // Covers getRef(String)
+            assertThrows(SQLException.class, () -> cs.getRef("char"));
+
+            // Covers getArray(String)
+            assertThrows(SQLException.class, () -> cs.getArray("char"));
+        }
+
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropProcedureIfExists(allOutParamsProcName, stmt);
+        }
+    }
+
+    @Test
+    public void testAllSettersWithParameterName() throws Exception {
+        TestUtils.dropProcedureIfExists(streamGetterSetterProcName, connection.createStatement());
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(
+                "CREATE PROCEDURE " + streamGetterSetterProcName + " " +
+                "@asciiStream VARCHAR(MAX), " +
+                "@binaryStream VARBINARY(MAX), " +
+                "@blob VARBINARY(MAX), " +
+                "@clob VARCHAR(MAX), " +
+                "@nclob NVARCHAR(MAX) OUTPUT, " +         // mark as OUTPUT
+                "@nstring XML OUTPUT " +        // mark as OUTPUT
+                "AS BEGIN " +
+                "SELECT @asciiStream AS asciiStream, @binaryStream AS binaryStream, @blob AS blob, " +
+                "@clob AS clob, @nclob AS nclob, @nstring AS nstring; " +
+                "END"
+            );
+
+        }
+
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement)
+                connection.prepareCall("{call " + streamGetterSetterProcName + " (?, ?, ?, ?, ?, ?)}")) {
+
+            byte[] bytes = "binary-data".getBytes(StandardCharsets.UTF_8);
+            InputStream binaryStream = new ByteArrayInputStream(bytes);
+            InputStream asciiStream = new ByteArrayInputStream("ascii".getBytes(StandardCharsets.US_ASCII));
+            Blob blob = connection.createBlob();
+            blob.setBytes(1, bytes);
+
+            Reader clobReader = new StringReader("clob data");
+            Reader nclobReader = new StringReader("nclob data");
+            NClob nclob = connection.createNClob();
+            nclob.setString(1, "nclob string");
+
+            SQLXML sqlxml = connection.createSQLXML();
+            sqlxml.setString("<root>xml</root>");
+
+            // Set values
+            cs.setAsciiStream("asciiStream", asciiStream);
+            cs.setBinaryStream("binaryStream", binaryStream);
+            cs.setBlob("blob", blob);
+            cs.setClob("clob", clobReader);
+            cs.setNClob("nclob", nclob);
+            cs.setNString("nstring", "nstringValue");
+
+            // Additional API coverage
+            cs.setCharacterStream("clob", new StringReader("updated clob"));
+            cs.setCharacterStream("clob", new StringReader("updated clob"), 12);
+            cs.setNCharacterStream("nclob", new StringReader("updated nclob"));
+            cs.setNCharacterStream("nclob", new StringReader("updated nclob"), 13L);
+            cs.setNull("nstring", Types.NVARCHAR);
+            cs.setSQLXML("nstring", sqlxml); // overwrite nstring
+
+            cs.registerOutParameter("nclob", Types.NVARCHAR);
+            cs.registerOutParameter("nstring", Types.SQLXML);
+
+            cs.execute();
+
+
+            // Validate outputs
+            String returnedNString = cs.getNString("nclob");
+            assertNotNull(returnedNString);
+            assertTrue(returnedNString.contains("updated"));
+
+            SQLXML returnedXML = cs.getSQLXML("nstring");
+            assertNotNull(returnedXML);
+            assertEquals("<root>xml</root>", returnedXML.getString());
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropProcedureIfExists(streamGetterSetterProcName, stmt);
+            }
+        }
+    }
+
+    @Test
+    public void testAllOutParamGettersByIndex() throws Exception {
+        TestUtils.dropProcedureIfExists(allOutParamsProcName, connection.createStatement());
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(
+                "CREATE PROCEDURE " + allOutParamsProcName + " " +
+                "@char CHAR(10) OUTPUT, @nchar NCHAR(10) OUTPUT, @bit BIT OUTPUT, @tinyint TINYINT OUTPUT, " +
+                "@binary BINARY(4) OUTPUT, @date DATE OUTPUT, @float FLOAT OUTPUT, @real REAL OUTPUT, " +
+                "@bigint BIGINT OUTPUT, @int INT OUTPUT, @smallint SMALLINT OUTPUT, @decimal DECIMAL(10,2) OUTPUT, " +
+                "@money MONEY OUTPUT, @smallmoney SMALLMONEY OUTPUT, @varbinary VARBINARY(MAX) OUTPUT, " +
+                "@blob VARBINARY(MAX) OUTPUT, @clob VARCHAR(MAX) OUTPUT, @nclob NVARCHAR(MAX) OUTPUT " +
+                "AS BEGIN RETURN END"
+            );
+        }
+
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall(
+                "{call " + allOutParamsProcName + "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)}")) {
+
+            cs.setObject(1, "charValue ", Types.CHAR);
+            cs.setObject(2, "hello     ", Types.NCHAR);
+            cs.setObject(3, true, Types.BIT);
+            cs.setObject(4, (byte) 42, Types.TINYINT);
+            cs.setObject(5, new byte[]{1, 2, 3, 4}, Types.BINARY);
+            cs.setObject(6, Date.valueOf("2024-07-16"), Types.DATE);
+            cs.setObject(7, 123.456, Types.DOUBLE);
+            cs.setObject(8, 78.9f, Types.REAL);
+            cs.setObject(9, 9876543210L, Types.BIGINT);
+            cs.setObject(10, 12345, Types.INTEGER);
+            cs.setObject(11, (short) 123, Types.SMALLINT);
+            cs.setObject(12, new BigDecimal("123.45"), Types.DECIMAL);
+            cs.setObject(13, new BigDecimal("999.99"), Types.DECIMAL);
+            cs.setObject(14, new BigDecimal("55.55"), microsoft.sql.Types.SMALLMONEY);
+            cs.setObject(15, new byte[]{0x11, 0x22, 0x33, 0x44}, Types.VARBINARY);
+            cs.setObject(16, new byte[]{0x55, 0x66, 0x77, (byte) 0x88}, Types.VARBINARY);
+            cs.setClob(17, new javax.sql.rowset.serial.SerialClob("ascii-stream".toCharArray()));
+            cs.setNClob(18, new java.io.StringReader("nchar-stream"));
+
+            for (int i = 1; i <= 18; i++) {
+                cs.registerOutParameter(i, Types.VARCHAR);
+            }
+            cs.registerOutParameter(1, Types.CHAR);
+            cs.registerOutParameter(2, Types.NCHAR);
+            cs.registerOutParameter(3, Types.BIT);
+            cs.registerOutParameter(4, Types.TINYINT);
+            cs.registerOutParameter(5, Types.BINARY);
+            cs.registerOutParameter(6, Types.DATE);
+            cs.registerOutParameter(7, Types.DOUBLE);
+            cs.registerOutParameter(8, Types.REAL);
+            cs.registerOutParameter(9, Types.BIGINT);
+            cs.registerOutParameter(10, Types.INTEGER);
+            cs.registerOutParameter(11, Types.SMALLINT);
+            cs.registerOutParameter(12, Types.DECIMAL);
+            cs.registerOutParameter(13, Types.DECIMAL);
+            cs.registerOutParameter(14, microsoft.sql.Types.SMALLMONEY);
+            cs.registerOutParameter(15, Types.VARBINARY);
+            cs.registerOutParameter(16, Types.VARBINARY);
+            cs.registerOutParameter(17, Types.VARCHAR);
+            cs.registerOutParameter(18, Types.NVARCHAR);
+
+            cs.execute();
+
+            assertEquals("charValue ", cs.getString(1));
+            assertEquals("hello     ", cs.getNString(2));
+            assertTrue(cs.getBoolean(3));
+            assertEquals((byte) 42, cs.getByte(4));
+            assertArrayEquals(new byte[]{1, 2, 3, 4}, cs.getBytes(5));
+            assertEquals(Date.valueOf("2024-07-16"), cs.getDate(6));
+            assertEquals(123.456, cs.getDouble(7), 0.0001);
+            assertEquals(78.9f, cs.getFloat(8), 0.0001f);
+            assertEquals(9876543210L, cs.getLong(9));
+            assertEquals(12345, cs.getInt(10));
+            assertEquals((short) 123, cs.getShort(11));
+            assertEquals(0, cs.getBigDecimal(12).compareTo(new BigDecimal("123.45")));
+            assertEquals(0, cs.getMoney(13).compareTo(new BigDecimal("999.99")));
+            assertEquals(0, cs.getSmallMoney(14).compareTo(new BigDecimal("55.55")));
+
+            try (InputStream is = cs.getBinaryStream(15);
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream()) {
+                
+                byte[] temp = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = is.read(temp)) != -1) {
+                    buffer.write(temp, 0, bytesRead);
+                }
+
+                byte[] actualBytes = buffer.toByteArray();
+                assertArrayEquals(new byte[]{0x11, 0x22, 0x33, 0x44}, actualBytes);
+            }
+
+
+            Blob blob = cs.getBlob(16);
+            assertArrayEquals(new byte[]{0x55, 0x66, 0x77, (byte) 0x88}, blob.getBytes(1, (int) blob.length()));
+
+            try (Reader reader = cs.getCharacterStream(17)) {
+                assertEquals("ascii-stream", new BufferedReader(reader).readLine());
+            }
+
+            try (Reader reader = cs.getNCharacterStream(18)) {
+                assertEquals("nchar-stream", new BufferedReader(reader).readLine());
+            }
+
+            // Covers getObject(int, Map)
+            assertThrows(SQLException.class, () -> cs.getObject(1, Collections.emptyMap()));
+
+            // Covers getRef(int)
+            assertThrows(SQLException.class, () -> cs.getRef(1));
+
+            // Covers getArray(int)
+            assertThrows(SQLException.class, () -> cs.getArray(1));
+        }
+
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropProcedureIfExists(allOutParamsProcName, stmt);
+        }
+    }
+
+
+
+    @Test
+    public void testGetObjectVariousTypes() throws SQLException {
+        TestUtils.dropProcedureIfExists(getObjectTypesProcName, connection.createStatement());
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(
+                "CREATE PROCEDURE " + getObjectTypesProcName +
+                " @tinyint TINYINT OUTPUT, @smallint SMALLINT OUTPUT, @bigint BIGINT OUTPUT, @decimal DECIMAL(10,2) OUTPUT, @bit BIT OUTPUT, @ldt DATETIME2 OUTPUT AS " +
+                "BEGIN " +
+                // Assign output params from their current values (set by input)
+                "SELECT @tinyint = @tinyint, @smallint = @smallint, @bigint = @bigint, @decimal = @decimal, @bit = @bit, @ldt = @ldt " +
+                "END"
+            );
+        }
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall(
+                "{call " + getObjectTypesProcName + "(?,?,?,?,?,?)}")) {
+            // Register out parameters by name
+            cs.registerOutParameter("tinyint", Types.TINYINT);
+            cs.registerOutParameter("smallint", Types.SMALLINT);
+            cs.registerOutParameter("bigint", Types.BIGINT);
+            cs.registerOutParameter("decimal", Types.DECIMAL);
+            cs.registerOutParameter("bit", Types.BIT);
+            cs.registerOutParameter("ldt", Types.TIMESTAMP);
+
+            // Use all setObject overloads with parameter names
+            cs.setObject("tinyint", (byte) 7); // setObject(String, Object)
+            cs.setObject("smallint", (short) 123, Types.SMALLINT); // setObject(String, Object, int)
+            cs.setObject("bigint", 9876543210L, Types.BIGINT, 0); // setObject(String, Object, int, int)
+            cs.setObject("decimal", new BigDecimal("123.45"), Types.DECIMAL, 2, false); // setObject(String, Object, int, int, boolean)
+            cs.setObject("bit", true, Types.BIT, null, 0); // setObject(String, Object, int, Integer, int)
+            cs.setObject("ldt", null); // setObject(String, Object) with null
+
+            cs.execute();
+
+            // Byte.class
+            Byte byteVal = cs.getObject("tinyint", Byte.class);
+            assertEquals(Byte.valueOf((byte)7), byteVal);
+
+            // Short.class
+            Short shortVal = cs.getObject("smallint", Short.class);
+            assertEquals(Short.valueOf((short)123), shortVal);
+
+            // Long.class
+            Long longVal = cs.getObject("bigint", Long.class);
+            assertEquals(Long.valueOf(9876543210L), longVal);
+
+            // BigDecimal.class
+            BigDecimal bdVal = cs.getObject("decimal", BigDecimal.class);
+            assertEquals(0, bdVal.compareTo(new BigDecimal("123.45")));
+
+            // Boolean.class
+            Boolean boolVal = cs.getObject("bit", Boolean.class);
+            assertEquals(Boolean.TRUE, boolVal);
+
+            // LocalDateTime.class (null case)
+            LocalDateTime ldtVal = cs.getObject("ldt", LocalDateTime.class);
+            assertNull(ldtVal);
+        }
+        TestUtils.dropProcedureIfExists(getObjectTypesProcName, connection.createStatement());
+    }
+
+    @Test
+    public void testSQLTypeOverloads() throws Exception {
+        
+        TestUtils.dropProcedureIfExists(sqlTypeOverloadsProcName, connection.createStatement());
+
+        // Simple procedure with one INOUT parameter
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(
+                "CREATE PROCEDURE " + sqlTypeOverloadsProcName + " @val INT OUTPUT AS BEGIN SET @val = @val + 1 END"
+            );
+        }
+
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall(
+                "{call " + sqlTypeOverloadsProcName + "(?)}")) {
+            // Test setObject with SQLType
+            cs.setObject(1, 41, java.sql.JDBCType.INTEGER);
+            // Test registerOutParameter with SQLType
+            cs.registerOutParameter(1, java.sql.JDBCType.INTEGER);
+            cs.execute();
+            assertEquals(42, cs.getInt(1));
+
+            // Test setObject with parameter name and SQLType
+            cs.setObject("val", 100, java.sql.JDBCType.INTEGER);
+            cs.registerOutParameter("val", java.sql.JDBCType.INTEGER);
+            cs.execute();
+            assertEquals(101, cs.getInt("val"));
+
+            // Test registerOutParameter with scale and typeName
+            cs.registerOutParameter(1, java.sql.JDBCType.INTEGER, 0);
+            cs.registerOutParameter(1, java.sql.JDBCType.INTEGER, "INTEGER");
+            cs.registerOutParameter("val", java.sql.JDBCType.INTEGER, 0);
+            cs.registerOutParameter("val", java.sql.JDBCType.INTEGER, "INTEGER");
+        }
+
+        TestUtils.dropProcedureIfExists(sqlTypeOverloadsProcName, connection.createStatement());
+    }
+
+    @Test
+    public void testCallableStatementParameterNameAPIs() throws Exception {
+        // Cleanup
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropProcedureIfExists(tvpProcName, stmt);
+            TestUtils.dropTypeIfExists(tvpTypeName, stmt);
+        }
+        try (Statement stmt = connection.createStatement()) {
+            // Create a TVP type and procedure if not exists
+            stmt.execute("CREATE TYPE " + tvpTypeName + " AS TABLE (id INT)");
+            stmt.execute("CREATE PROCEDURE " + tvpProcName + " @tvp " + tvpTypeName + " READONLY, @val XML = NULL OUTPUT AS SELECT 1");
+        }
+
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall("{call " + tvpProcName + " (?, ?)}")) {
+            // setNull(String, int, String)
+            cs.setNull("val", java.sql.Types.VARCHAR, "VARCHAR");
+
+            // setURL(String, URL) - expect not supported
+            assertThrows(SQLServerException.class, () -> cs.setURL("val", new java.net.URL("http://example.com")));
+
+            // setStructured(String, String, SQLServerDataTable)
+            com.microsoft.sqlserver.jdbc.SQLServerDataTable tvpTable = new com.microsoft.sqlserver.jdbc.SQLServerDataTable();
+            tvpTable.addColumnMetadata("id", java.sql.Types.INTEGER);
+            tvpTable.addRow(1);
+            cs.setStructured("tvp", tvpTypeName, tvpTable);
+
+            // setStructured(String, String, ResultSet)
+            // Use a minimal ResultSet: create a statement and select from values
+            try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery("SELECT 1 AS id")) {
+                cs.setStructured("tvp", tvpTypeName, rs);
+            }
+
+            // setStructured(String, String, ISQLServerDataRecord)
+            com.microsoft.sqlserver.jdbc.SQLServerDataTable record = new com.microsoft.sqlserver.jdbc.SQLServerDataTable();
+            record.addColumnMetadata("id", java.sql.Types.INTEGER);
+            record.addRow(1);
+            cs.setStructured("tvp", tvpTypeName, record);
+
+            // setSQLXML(String, SQLXML) (already covered, but call again)
+            SQLXML sqlxml = connection.createSQLXML();
+            sqlxml.setString("<root>test</root>");
+            cs.setSQLXML("val", sqlxml);
+
+            // getSQLXML(int)
+            cs.registerOutParameter(2, java.sql.Types.SQLXML);
+            cs.execute();
+            cs.getSQLXML(2);
+
+            // getURL(int) and getURL(String) - expect not supported
+            assertThrows(SQLServerException.class, () -> cs.getURL(2));
+            assertThrows(SQLServerException.class, () -> cs.getURL("val"));
+        }
+
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropProcedureIfExists(tvpProcName, stmt);
+            TestUtils.dropTypeIfExists(tvpTypeName, stmt);
         }
     }
 
