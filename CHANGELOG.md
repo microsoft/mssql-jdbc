@@ -28,7 +28,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Fixed issues
 
-- **Fix for null handling in temporal types with bulk copy** [#2704](https://github.com/microsoft/mssql-jdbc/pull/2704)
+- **Fix for null handling in temporal types with bulk copy** [#2702](https://github.com/microsoft/mssql-jdbc/pull/2702)
   **What was fixed**: Properly handle null values for temporal types when sendTemporalDataTypesAsStringForBulkCopy=false.
   **Who benefits**: Developers using batch insert with native temporal types in bulk copy.
   **Impact**: Prevents failures during bulk inserts, improving reliability of time-sensitive data ingestion.
