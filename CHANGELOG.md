@@ -2,6 +2,42 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
+## [13.1.1] Preview Release
+
+### Added
+
+- **JSON datatype support** [#2558](https://github.com/microsoft/mssql-jdbc/pull/2558)
+  **What was added**: Support for reading and writing JSON columns in SQL Server.
+  **Who benefits**: Developers working with semi-structured data in SQL Server.
+  **Impact**: Enhances application flexibility by natively handling JSON content, reducing need for manual parsing.
+
+- **Add order hints for Bulk Copy operations** [#2701](https://github.com/microsoft/mssql-jdbc/pull/2701)
+  **What was added**: Support for specifying order hints during Bulk Copy.
+  **Who benefits**: Data engineers and DBAs managing large data migrations or ETL jobs.
+  **Impact**: Improves bulk data load performance.
+
+- **Coding best practices and review process** [#2666](https://github.com/microsoft/mssql-jdbc/pull/2666)
+  **What was added**: Introduced contributor guidelines, coding best practices, and review processes.
+  **Who benefits**: Open-source contributors and maintainers of the mssql-jdbc project.
+  **Impact**: Improves code quality, consistency, and onboarding experience for new contributors.
+
+- ** Add new trusted AKV URLs for FR and DE** [#2708](https://github.com/microsoft/mssql-jdbc/pull/2708)
+  **What was added**: Registered four new Azure Key Vault and Managed HSM endpoints for France and Germany.
+  **Who benefits**: Customers in regulated regions (France, Germany) using AKV for encryption.
+  **Impact**: Enables secure key operations via region-specific trusted endpoints.
+
+### Fixed issues
+
+- **Fix for null handling in temporal types with bulk copy** [#2704](https://github.com/microsoft/mssql-jdbc/pull/2704)
+  **What was fixed**: Properly handle null values for temporal types when sendTemporalDataTypesAsStringForBulkCopy=false.
+  **Who benefits**: Developers using batch insert with native temporal types in bulk copy.
+  **Impact**: Prevents failures during bulk inserts, improving reliability of time-sensitive data ingestion.
+
+- **Fix string insertion with bulk copy API when sendStringParametersAsUnicode=false** [#2704](https://github.com/microsoft/mssql-jdbc/pull/2704)
+  **What was fixed**: Resolved issue where strings were inserted as byte arrays in batch bulk copy mode when sendStringParametersAsUnicode is set to false.
+  **Who benefits**: Developers using non-Unicode string inserts in performance-sensitive batch operations.
+  **Impact**:  Ensures string integrity during batch inserts, eliminating silent data corruption.
+
 
 ## [13.1.0] Preview Release
 
