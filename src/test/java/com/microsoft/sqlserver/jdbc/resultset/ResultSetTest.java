@@ -728,7 +728,6 @@ public class ResultSetTest extends AbstractTest {
      * Test getObject() with unsupported type conversion that throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testGetObjectUnsupportedTypeConversion() throws SQLException {
         try (Connection con = getConnection();
                 Statement stmt = con.createStatement()) {
@@ -812,7 +811,6 @@ public class ResultSetTest extends AbstractTest {
      * Test getStatement() method on ResultSet to ensure it returns the correct Statement object.
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testGetStatement() throws SQLException {
         try (Connection con = getConnection();
                 Statement stmt = con.createStatement()) {
@@ -889,7 +887,6 @@ public class ResultSetTest extends AbstractTest {
      * Test setFetchSize validation for negative values
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testSetFetchSizeNegativeValue() throws SQLException {
         try (Connection con = getConnection();
                 Statement stmt = con.createStatement()) {
@@ -917,7 +914,6 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testResultSetGetterMethodsByIndex() throws SQLException {
         try (Connection con = getConnection();
                 Statement stmt = con.createStatement()) {
@@ -993,7 +989,6 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testResultSetGetterMethodsByColumnName() throws SQLException {
         try (Connection con = getConnection();
                 Statement stmt = con.createStatement()) {
@@ -1070,7 +1065,6 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testResultSetUpdateMethods() throws SQLException {
         try (Connection con = getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
@@ -1201,7 +1195,6 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testResultSetUpdateMethodsByColumnName() throws SQLException {
         try (Connection con = getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
@@ -1330,7 +1323,6 @@ public class ResultSetTest extends AbstractTest {
      * This test covers updateAsciiStream, updateBinaryStream, updateCharacterStream, and updateNCharacterStream methods
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testResultSetUpdateStreamMethods() throws SQLException, UnsupportedEncodingException, IOException {
         try (Connection con = getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
@@ -1435,7 +1427,6 @@ public class ResultSetTest extends AbstractTest {
      * Test ResultSet updateClob, updateNClob, updateBlob, and updateSQLXML methods
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testResultSetUpdateClobBlobMethods() throws SQLException, IOException {
         try (Connection con = getConnection();
                 Statement stmt = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
