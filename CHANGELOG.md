@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   **Who benefits**: Open-source contributors and maintainers of the mssql-jdbc project.
   **Impact**: Improves code quality, consistency, and onboarding experience for new contributors.
 
-- ** Add new trusted AKV URLs for FR and DE** [#2708](https://github.com/microsoft/mssql-jdbc/pull/2708)
+- **Add new trusted AKV URLs for FR and DE** [#2708](https://github.com/microsoft/mssql-jdbc/pull/2708)
   **What was added**: Registered four new Azure Key Vault and Managed HSM endpoints for France and Germany.
   **Who benefits**: Customers in regulated regions (France, Germany) using AKV for encryption.
   **Impact**: Enables secure key operations via region-specific trusted endpoints.
