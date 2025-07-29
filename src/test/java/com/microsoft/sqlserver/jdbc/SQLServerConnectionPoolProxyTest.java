@@ -17,9 +17,11 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 public class SQLServerConnectionPoolProxyTest extends AbstractTest {
 
@@ -227,15 +229,24 @@ public class SQLServerConnectionPoolProxyTest extends AbstractTest {
             java.sql.DatabaseMetaData metaData = proxy.getMetaData();
             assertNotNull(metaData);
 
-            proxy.setCatalog("master");
-            assertEquals("master", proxy.getCatalog());
-
             proxy.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
             assertEquals(Connection.TRANSACTION_READ_COMMITTED, proxy.getTransactionIsolation());
 
             java.sql.SQLWarning warnings = proxy.getWarnings();
             assertNull(warnings);
             proxy.clearWarnings(); // This should not throw an exception
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLMI)
+    public void testCatalog() throws SQLException {
+        try (SQLServerConnection conn = getConnection();
+                SQLServerConnectionPoolProxy proxy = new SQLServerConnectionPoolProxy(conn)) {
+            proxy.setCatalog("master");
+            assertEquals("master", proxy.getCatalog());
         }
     }
 
