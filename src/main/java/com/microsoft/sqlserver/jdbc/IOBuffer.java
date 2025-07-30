@@ -1676,7 +1676,10 @@ final class TDSChannel implements Serializable {
                     .getProperty(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
 
             if (StringUtils.isEmpty(trustStoreType)) {
-                trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
+                trustStoreType = System.getProperty("javax.net.ssl.trustStoreType");
+                if (StringUtils.isEmpty(trustStoreType)) {
+                    trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue(); // Default to JKS if not specified
+                }
             }
 
             String serverCert = con.activeConnectionProperties
