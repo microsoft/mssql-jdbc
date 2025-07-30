@@ -102,6 +102,10 @@ public class CallableStatementTest extends AbstractTest {
     private static String tvpProcName = AbstractSQLGenerator
         .escapeIdentifier(RandomUtil.getIdentifier("TVPProc"));
     private static String tvpTypeName = "TVPType";
+    private static String tableNameJSON = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("TestJSONTable"));
+    private static String procedureNameJSON = AbstractSQLGenerator
+	    .escapeIdentifier(RandomUtil.getIdentifier("TestJSONProcedure"));
 
     /**
      * Setup before test
@@ -125,6 +129,8 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
             TestUtils.dropTableIfExists(manyParamsTable, stmt);
+            TestUtils.dropTableIfExists(tableNameJSON, stmt);
+			TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
 
             createGUIDTable(stmt);
             createGUIDStoredProcedure(stmt);
@@ -624,6 +630,51 @@ public class CallableStatementTest extends AbstractTest {
             stmt.getObject("currentTimeStamp");
         }
     }
+    
+    /**
+     * Tests JSON column in a table with setObject
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+	public void testJSONColumnInTableWithSetObject() throws SQLException {
+
+		try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+            createJSONTestTable(stmt);
+			String jsonString = "{\"key\":\"value\"}";
+			try (CallableStatement callableStatement = con
+					.prepareCall("INSERT INTO " + tableNameJSON + " (col1) VALUES (?)")) {
+				callableStatement.setObject(1, jsonString);
+				callableStatement.execute();
+			}
+
+			try (Statement queryStmt = con.createStatement();
+					ResultSet rs = queryStmt.executeQuery("SELECT col1 FROM " + tableNameJSON)) {
+				assertTrue(rs.next());
+				assertEquals(jsonString, rs.getObject(1));
+			}
+		}
+	}
+
+	@Test
+    @Tag(Constants.JSONTest)
+	public void testJSONProcedureWithSetObject() throws SQLException {
+
+		try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+			createJSONStoredProcedure(stmt);
+            String jsonString = "{\"key\":\"value\"}";
+			try (CallableStatement callableStatement = con.prepareCall("{call " + procedureNameJSON + " (?)}")) {
+				callableStatement.setObject(1, jsonString);
+				callableStatement.execute();
+
+				try (ResultSet rs = callableStatement.getResultSet()) {
+					assertTrue(rs.next());
+					assertEquals(jsonString, rs.getObject("col1"));
+				}
+			}
+		}
+	}
 
     @Test
     public void testAllOutParamGettersByName() throws Exception {
@@ -1114,6 +1165,8 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
             TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
+            TestUtils.dropTableIfExists(tableNameJSON, stmt);
+			TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
         }
     }
 
@@ -1212,4 +1265,15 @@ public class CallableStatementTest extends AbstractTest {
             stmt.executeUpdate(TVPCreateCmd);
         }
     }
+    
+    private static void createJSONTestTable(Statement stmt) throws SQLException {
+		String sql = "CREATE TABLE " + tableNameJSON + " (" + "id INT PRIMARY KEY IDENTITY(1,1), " + "col1 JSON)";
+		stmt.execute(sql);
+	}
+
+	private static void createJSONStoredProcedure(Statement stmt) throws SQLException {
+		String sql = "CREATE PROCEDURE " + procedureNameJSON + " (@jsonInput JSON) " + "AS " + "BEGIN "
+				+ "    SELECT @jsonInput AS col1; " + "END";
+		stmt.execute(sql);
+	}
 }
