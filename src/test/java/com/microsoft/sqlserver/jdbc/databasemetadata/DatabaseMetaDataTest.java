@@ -29,8 +29,10 @@ import java.sql.Types;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -1083,7 +1085,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
             TestUtils.dropDatabaseIfExists(dbName, connectionString);
         }
     }
-    
     /**
      * Test for VECTOR column metadata
      * 
@@ -1152,11 +1153,57 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     /**
+     * Test for JSON column metadata
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.JSONTest)
+    public void testJSONMetaData() throws SQLException {
+        String jsonTableName = RandomUtil.getIdentifier("try_SQLJSON_Table");
+
+        try (Statement stmt = connection.createStatement()) {
+            String sql = "create table " + AbstractSQLGenerator.escapeIdentifier(jsonTableName)
+                    + " (c1 JSON null);";
+            stmt.execute(sql);
+
+            String query = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(jsonTableName);
+            try (Statement statement = connection.createStatement();
+                    ResultSet resultSet = statement.executeQuery(query)) {
+
+                ResultSetMetaData metaData = resultSet.getMetaData();
+                int columnCount = metaData.getColumnCount();
+                assertEquals(1, columnCount, "Column count should be 1");
+
+                String columnName = metaData.getColumnName(1);
+                assertEquals("c1", columnName, "Column name should be 'c1'");
+
+                String columnType = metaData.getColumnTypeName(1);
+                assertTrue("JSON".equalsIgnoreCase(columnType), "Column type should be 'JSON'");
+
+                int columnTypeInt = metaData.getColumnType(1);
+                assertEquals(microsoft.sql.Types.JSON, columnTypeInt, "Column type should be microsoft.sql.Types.JSON");
+
+                int columnDisplaySize = metaData.getColumnDisplaySize(1);
+                assertTrue(columnDisplaySize > 0, "Column display size should be greater than 0");
+
+                String columnClassName = metaData.getColumnClassName(1);
+                assertEquals(Object.class.getName(), columnClassName, "Column class name should be 'java.lang.Object'");
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("DROP TABLE IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(jsonTableName));
+            }
+        }
+    }
+
+    /**
      * Test to print all functions returned by getFunctions()
      * 
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testPrintGetFunctionsResults() throws SQLException {
         try (Connection conn = getConnection()) {
             DatabaseMetaData metaData = conn.getMetaData();
@@ -1202,6 +1249,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
     public void testPrintGetProceduresResults() throws SQLException {
         try (Connection conn = getConnection()) {
             DatabaseMetaData metaData = conn.getMetaData();
@@ -1238,6 +1286,250 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 }
             }
             System.out.println("\nTotal procedures found: " + count);
+        }
+    }
+
+    /**
+     * Test to verify getFunctions() metadata structure and FUNCTION_TYPE values
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testGetFunctionsMetadataValidation() throws SQLException {
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData metaData = conn.getMetaData();
+            
+            // Expected column names based on JDBC specification
+            String[] expectedColumnNames = {
+                "FUNCTION_CAT", "FUNCTION_SCHEM", "FUNCTION_NAME", "NUM_INPUT_PARAMS", 
+                "NUM_OUTPUT_PARAMS", "NUM_RESULT_SETS", "REMARKS", "FUNCTION_TYPE"
+            };
+            
+            try (ResultSet rs = metaData.getFunctions(null, "sys", "fn_%")) {
+                ResultSetMetaData rsMetaData = rs.getMetaData();
+                
+                // Verify column count
+                assertEquals(expectedColumnNames.length, rsMetaData.getColumnCount(),
+                    "getFunctions() should return " + expectedColumnNames.length + " columns");
+                
+                // Verify column names
+                for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {
+                    assertEquals(expectedColumnNames[i-1], rsMetaData.getColumnName(i),
+                        "Column " + i + " name should match expected");
+                }
+                
+                // Verify data and FUNCTION_TYPE values
+                boolean foundFunction = false;
+                int rowCount = 0;
+                while (rs.next() && rowCount < 5) {
+                    foundFunction = true;
+                    rowCount++;
+                    
+                    // Verify required fields are not null/empty
+                    assertNotNull(rs.getString("FUNCTION_CAT"));
+                    assertNotNull(rs.getString("FUNCTION_SCHEM"));
+                    assertNotNull(rs.getString("FUNCTION_NAME"));
+                    
+                    // Verify FUNCTION_TYPE - should be 2 for SQL functions
+                    int functionType = rs.getInt("FUNCTION_TYPE");
+                    assertEquals(2, functionType);
+                    
+                    // Verify parameter counts are -1 (unknown) as per JDBC spec
+                    assertEquals(-1, rs.getInt("NUM_INPUT_PARAMS"));
+                    assertEquals(-1, rs.getInt("NUM_OUTPUT_PARAMS"));
+                    assertEquals(-1, rs.getInt("NUM_RESULT_SETS"));
+                }
+                
+                assertTrue(foundFunction, "At least one function should be found in sys schema");
+                System.out.println("Verified " + rowCount + " functions with FUNCTION_TYPE = 2");
+            }
+        }
+    }
+
+    /**
+     * Test to verify getProcedures() metadata structure and PROCEDURE_TYPE values
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testGetProceduresMetadataValidation() throws SQLException {
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData metaData = conn.getMetaData();
+            
+            // Expected column names based on JDBC specification
+            String[] expectedColumnNames = {
+                "PROCEDURE_CAT", "PROCEDURE_SCHEM", "PROCEDURE_NAME", "NUM_INPUT_PARAMS", 
+                "NUM_OUTPUT_PARAMS", "NUM_RESULT_SETS", "REMARKS", "PROCEDURE_TYPE"
+            };
+            
+            try (ResultSet rs = metaData.getProcedures(null, "sys", "sp_%")) {
+                ResultSetMetaData rsMetaData = rs.getMetaData();
+                
+                // Verify column count
+                assertEquals(expectedColumnNames.length, rsMetaData.getColumnCount(),
+                    "getProcedures() should return " + expectedColumnNames.length + " columns");
+                
+                // Verify column names
+                for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {
+                    assertEquals(expectedColumnNames[i-1], rsMetaData.getColumnName(i),
+                        "Column " + i + " name should match expected");
+                }
+                
+                // Verify data and PROCEDURE_TYPE values
+                boolean foundProcedure = false;
+                int rowCount = 0;
+                while (rs.next() && rowCount < 5) {
+                    foundProcedure = true;
+                    rowCount++;
+                    
+                    // Verify required fields are not null/empty
+                    assertNotNull(rs.getString("PROCEDURE_CAT"));
+                    assertNotNull(rs.getString("PROCEDURE_SCHEM"));
+                    assertNotNull(rs.getString("PROCEDURE_NAME"));
+                    
+                    // Verify PROCEDURE_TYPE - should be 1 for procedures that don't return result
+                    int procedureType = rs.getInt("PROCEDURE_TYPE");
+                    assertEquals(1, procedureType);
+                    
+                    // Verify parameter counts are -1 (unknown) as per JDBC spec
+                    assertEquals(-1, rs.getInt("NUM_INPUT_PARAMS"));
+                    assertEquals(-1, rs.getInt("NUM_OUTPUT_PARAMS"));
+                    assertEquals(-1, rs.getInt("NUM_RESULT_SETS"));
+                }
+                
+                assertTrue(foundProcedure, "At least one procedure should be found in sys schema");
+                System.out.println("Verified " + rowCount + " procedures with PROCEDURE_TYPE = 1");
+            }
+        }
+    }
+
+    /**
+     * Test to verify getProcedures() with controlled data using specific procedures
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testGetProceduresWithData() throws SQLException {
+        String testProcedure1 = RandomUtil.getIdentifier("TestProc1");
+        String testProcedure2 = RandomUtil.getIdentifier("TestProc2");
+        
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            // Create two test procedures
+            stmt.execute("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(testProcedure1) + 
+                        " AS BEGIN SELECT 'Test1' as Result END");
+            stmt.execute("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(testProcedure2) + 
+                        " (@param1 INT, @param2 VARCHAR(50)) AS BEGIN SELECT @param1, @param2 END");
+            
+            DatabaseMetaData metaData = conn.getMetaData();
+            
+            // Get procedures with pattern matching our test procedures
+            try (ResultSet rs = metaData.getProcedures(null, "dbo", "TestProc%")) {
+                ResultSetMetaData rsMetaData = rs.getMetaData();
+                
+                // Verify column count and names
+                assertEquals(8, rsMetaData.getColumnCount(), "Should have 8 columns");
+
+                String[] expectedColumns = {
+                    "PROCEDURE_CAT", "PROCEDURE_SCHEM", "PROCEDURE_NAME", "NUM_INPUT_PARAMS", 
+                    "NUM_OUTPUT_PARAMS", "NUM_RESULT_SETS", "REMARKS", "PROCEDURE_TYPE"
+                };
+                
+                for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {
+                    assertEquals(expectedColumns[i-1], rsMetaData.getColumnName(i));
+                }
+                
+                // Collect and verify procedures
+                int procedureCount = 0;
+                Set<String> foundProcedures = new HashSet<>();
+                
+                while (rs.next()) {
+                    procedureCount++;
+                    String procedureName = rs.getString("PROCEDURE_NAME");
+                    foundProcedures.add(procedureName);
+                    
+                    assertEquals(1, rs.getInt("PROCEDURE_TYPE"));
+                    assertEquals("dbo", rs.getString("PROCEDURE_SCHEM"));
+                }
+                
+                // Verify we found exactly our 2 test procedures
+                assertEquals(2, procedureCount, "Should find exactly 2 test procedures");
+                assertTrue(foundProcedures.contains(testProcedure1));
+                assertTrue(foundProcedures.contains(testProcedure2));
+            }
+            
+        } finally {
+            // Cleanup
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                stmt.execute("DROP PROCEDURE IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(testProcedure1));
+                stmt.execute("DROP PROCEDURE IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(testProcedure2));
+            }
+        }
+    }
+
+    /**
+     * Test to verify getFunctions() with controlled data using specific functions  
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testGetFunctionsWithData() throws SQLException {
+        String testFunction1 = RandomUtil.getIdentifier("TestFunc1");
+        String testFunction2 = RandomUtil.getIdentifier("TestFunc2");
+        
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            // Create two test functions
+            stmt.execute("CREATE FUNCTION " + AbstractSQLGenerator.escapeIdentifier(testFunction1) + 
+                        " () RETURNS INT AS BEGIN RETURN 100 END");
+            stmt.execute("CREATE FUNCTION " + AbstractSQLGenerator.escapeIdentifier(testFunction2) + 
+                        " (@param1 INT, @param2 VARCHAR(50)) RETURNS TABLE AS RETURN (SELECT @param1 as col1, @param2 as col2)");
+            
+            DatabaseMetaData metaData = conn.getMetaData();
+            
+            // Get functions with pattern matching our test functions
+            try (ResultSet rs = metaData.getFunctions(null, "dbo", "TestFunc%")) {
+                ResultSetMetaData rsMetaData = rs.getMetaData();
+                
+                // Verify column count and names
+                assertEquals(8, rsMetaData.getColumnCount(), "Should have 8 columns");
+
+                String[] expectedColumns = {
+                    "FUNCTION_CAT", "FUNCTION_SCHEM", "FUNCTION_NAME", "NUM_INPUT_PARAMS", 
+                    "NUM_OUTPUT_PARAMS", "NUM_RESULT_SETS", "REMARKS", "FUNCTION_TYPE"
+                };
+                
+                for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {
+                    assertEquals(expectedColumns[i-1], rsMetaData.getColumnName(i));
+                }
+                
+                // Collect and verify functions
+                int functionCount = 0;
+                Set<String> foundFunctions = new HashSet<>();
+                
+                while (rs.next()) {
+                    functionCount++;
+                    String functionName = rs.getString("FUNCTION_NAME");
+                    foundFunctions.add(functionName);
+                    
+                    assertEquals(2, rs.getInt("FUNCTION_TYPE"));
+                    assertEquals("dbo", rs.getString("FUNCTION_SCHEM"));
+                }
+                
+                // Verify we found exactly our 2 test functions
+                assertEquals(2, functionCount, "Should find exactly 2 test functions");
+                assertTrue(foundFunctions.contains(testFunction1));
+                assertTrue(foundFunctions.contains(testFunction2));
+            }
+            
+        } finally {
+            // Cleanup
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                stmt.execute("DROP FUNCTION IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(testFunction1));
+                stmt.execute("DROP FUNCTION IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(testFunction2));
+            }
         }
     }
 

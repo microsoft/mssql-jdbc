@@ -315,6 +315,38 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "AND ic.key_ordinal = 0 " +
     "ORDER BY t.name, i.name, ic.key_ordinal";
 
+    private static final String GET_FUNCTIONS_QUERY_BASE = "SELECT " +
+            "DB_NAME() AS FUNCTION_CAT, " +
+            "SCHEMA_NAME(o.schema_id) AS FUNCTION_SCHEM, " +
+            "o.name AS FUNCTION_NAME, " +
+            "-1 AS NUM_INPUT_PARAMS, " +
+            "-1 AS NUM_OUTPUT_PARAMS, " +
+            "-1 AS NUM_RESULT_SETS, " +
+            "CAST(NULL AS VARCHAR(254)) AS REMARKS, " +
+            "CASE o.type " +
+            "WHEN 'FN' THEN " + java.sql.DatabaseMetaData.functionReturnsTable + " " +
+            "WHEN 'IF' THEN " + java.sql.DatabaseMetaData.functionReturnsTable + " " +
+            "WHEN 'TF' THEN " + java.sql.DatabaseMetaData.functionReturnsTable + " " +
+            "ELSE " + java.sql.DatabaseMetaData.functionNoNulls + " " +
+            "END AS FUNCTION_TYPE " +
+            "FROM sys.all_objects o " +
+            "WHERE o.type IN (";
+
+    private static final String GET_PROCEDURES_QUERY_BASE = "SELECT " +
+            "DB_NAME() AS PROCEDURE_CAT, " +
+            "SCHEMA_NAME(o.schema_id) AS PROCEDURE_SCHEM, " +
+            "o.name AS PROCEDURE_NAME, " +
+            "-1 AS NUM_INPUT_PARAMS, " +
+            "-1 AS NUM_OUTPUT_PARAMS, " +
+            "-1 AS NUM_RESULT_SETS, " +
+            "CAST(NULL AS VARCHAR(254)) AS REMARKS, " +
+            java.sql.DatabaseMetaData.procedureNoResult + " AS PROCEDURE_TYPE " +
+            "FROM sys.all_objects o " +
+            "WHERE o.type IN (";
+
+    private static final String FUNCTIONS_ORDER_BY = " ORDER BY FUNCTION_CAT, FUNCTION_SCHEM, FUNCTION_NAME";
+    private static final String PROCEDURES_ORDER_BY = " ORDER BY PROCEDURE_CAT, PROCEDURE_SCHEM, PROCEDURE_NAME";
+
     // Use LinkedHashMap to force retrieve elements in order they were inserted
     /** getColumns columns */
     private LinkedHashMap<Integer, String> getColumnsDWColumns = null;
@@ -433,33 +465,39 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     /*
-     * Helper method to dynamically build the IN clause for object types
+     * Builds a filter string for object types based on the provided object types array.
+     * 
+     * @param objectTypes
+     * Array of object types to be included in the filter.
+     * 
+     * @return A string representing the filter for the object types.
      */
-    private void appendObjectTypesFilter(StringBuilder queryBuilder, String[] objectTypes) {
-        queryBuilder.append("'")
-                .append(String.join("', '", objectTypes))
-                .append("') ");
+    private String buildObjectTypesFilter(String[] objectTypes) {
+        return "'" + String.join("', '", objectTypes) + "')";
     }
 
     /*
      * Helper method to append catalog, schema, and object name filters to the query
      */
-    private void appendCatalogSchemaAndPatternFilters(StringBuilder queryBuilder, String catalog, String schemaPattern,
-            String objectNamePattern) {
+    private void appendFiltersAndOrderBy(StringBuilder queryBuilder, String catalog, String schemaPattern,
+            String objectNamePattern, String orderByClause) {
+
         // Add catalog filter
         if (catalog != null) {
-            queryBuilder.append("AND DB_NAME() = ? ");
+            queryBuilder.append(" AND DB_NAME() = ?");
         }
 
         // Add schema filter
         if (schemaPattern != null && !schemaPattern.equals("%")) {
-            queryBuilder.append("AND SCHEMA_NAME(o.schema_id) LIKE ? ");
+            queryBuilder.append(" AND SCHEMA_NAME(o.schema_id) LIKE ?");
         }
 
         // Add object name filter
         if (objectNamePattern != null && !objectNamePattern.equals("%")) {
-            queryBuilder.append("AND o.name LIKE ? ");
+            queryBuilder.append(" AND o.name LIKE ?");
         }
+
+        queryBuilder.append(orderByClause);
     }
 
     /*
@@ -1034,37 +1072,16 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private SQLServerResultSet getFunctionsFromSysObjects(String catalog, String schemaPattern,
             String functionNamePattern, String[] columnNames) throws SQLException {
 
-        // Define function types
         String[] functionTypes = { "FN", "IF", "TF" };
 
-        // Build the query specifically for functions
-        StringBuilder queryBuilder = new StringBuilder();
-        queryBuilder.append("SELECT ")
-                .append("DB_NAME() AS FUNCTION_CAT, ")
-                .append("SCHEMA_NAME(o.schema_id) AS FUNCTION_SCHEM, ")
-                .append("o.name AS FUNCTION_NAME, ")
-                .append("-1 AS NUM_INPUT_PARAMS, ")
-                .append("-1 AS NUM_OUTPUT_PARAMS, ")
-                .append("-1 AS NUM_RESULT_SETS, ")
-                .append("CAST(NULL AS VARCHAR(254)) AS REMARKS, ")
-                .append("CASE o.type ")
-                .append("WHEN 'FN' THEN ").append(java.sql.DatabaseMetaData.functionReturnsTable).append(" ")
-                .append("WHEN 'IF' THEN ").append(java.sql.DatabaseMetaData.functionReturnsTable).append(" ")
-                .append("WHEN 'TF' THEN ").append(java.sql.DatabaseMetaData.functionReturnsTable).append(" ")
-                .append("ELSE ").append(java.sql.DatabaseMetaData.functionNoNulls).append(" ")
-                .append("END AS FUNCTION_TYPE ")
-                .append("FROM sys.all_objects o ")
-                .append("WHERE o.type IN (");
+        // Build the query
+        StringBuilder queryBuilder = new StringBuilder(GET_FUNCTIONS_QUERY_BASE);
+        queryBuilder.append(buildObjectTypesFilter(functionTypes));
 
-        // Add function types dynamically
-        appendObjectTypesFilter(queryBuilder, functionTypes);
+        appendFiltersAndOrderBy(queryBuilder, catalog, schemaPattern, functionNamePattern, FUNCTIONS_ORDER_BY);
 
-        // Add catalog, schema and function name filter
-        appendCatalogSchemaAndPatternFilters(queryBuilder, catalog, schemaPattern, functionNamePattern);
-
-        queryBuilder.append("ORDER BY FUNCTION_CAT, FUNCTION_SCHEM, FUNCTION_NAME");
-
-        return executeSysObjectsQuery(catalog, schemaPattern, functionNamePattern, queryBuilder.toString(), columnNames);
+        return executeSysObjectsQuery(catalog, schemaPattern, functionNamePattern, queryBuilder.toString(),
+                columnNames);
     }
 
     private static final String[] getFunctionsColumnsColumnNames = { /* 1 */ FUNCTION_CAT, /* 2 */ FUNCTION_SCHEM,
@@ -1659,32 +1676,16 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private SQLServerResultSet getProceduresFromSysObjects(String catalog, String schemaPattern,
             String procedureNamePattern, String[] columnNames) throws SQLException {
 
-        // Define procedure types
         String[] procedureTypes = { "P", "PC" };
 
-        // Build the query specifically for procedures
-        StringBuilder queryBuilder = new StringBuilder();
-        queryBuilder.append("SELECT ")
-                .append("DB_NAME() AS PROCEDURE_CAT, ")
-                .append("SCHEMA_NAME(o.schema_id) AS PROCEDURE_SCHEM, ")
-                .append("o.name AS PROCEDURE_NAME, ")
-                .append("-1 AS NUM_INPUT_PARAMS, ")
-                .append("-1 AS NUM_OUTPUT_PARAMS, ")
-                .append("-1 AS NUM_RESULT_SETS, ")
-                .append("CAST(NULL AS VARCHAR(254)) AS REMARKS, ")
-                .append(java.sql.DatabaseMetaData.procedureNoResult).append(" AS PROCEDURE_TYPE ")
-                .append("FROM sys.all_objects o ")
-                .append("WHERE o.type IN (");
+        // Build the query
+        StringBuilder queryBuilder = new StringBuilder(GET_PROCEDURES_QUERY_BASE);
+        queryBuilder.append(buildObjectTypesFilter(procedureTypes));
 
-        // Add procedure types dynamically
-        appendObjectTypesFilter(queryBuilder, procedureTypes);
+        appendFiltersAndOrderBy(queryBuilder, catalog, schemaPattern, procedureNamePattern, PROCEDURES_ORDER_BY);
 
-        // Add catalog, schema and procedure name filter
-        appendCatalogSchemaAndPatternFilters(queryBuilder, catalog, schemaPattern, procedureNamePattern);
-
-        queryBuilder.append("ORDER BY PROCEDURE_CAT, PROCEDURE_SCHEM, PROCEDURE_NAME");
-
-        return executeSysObjectsQuery(catalog, schemaPattern, procedureNamePattern, queryBuilder.toString(), columnNames);
+        return executeSysObjectsQuery(catalog, schemaPattern, procedureNamePattern, queryBuilder.toString(),
+                columnNames);
     }
 
     @Override
