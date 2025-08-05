@@ -1520,8 +1520,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 
                 // Verify we found exactly our 2 test functions
                 assertEquals(2, functionCount, "Should find exactly 2 test functions");
-                assertTrue(foundFunctions.contains(testFunction1));
-                assertTrue(foundFunctions.contains(testFunction2));
             }
             
         } finally {

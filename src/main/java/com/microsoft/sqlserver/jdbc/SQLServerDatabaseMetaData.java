@@ -340,7 +340,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             "-1 AS NUM_OUTPUT_PARAMS, " +
             "-1 AS NUM_RESULT_SETS, " +
             "CAST(NULL AS VARCHAR(254)) AS REMARKS, " +
-            java.sql.DatabaseMetaData.procedureNoResult + " AS PROCEDURE_TYPE " +
+            "1 AS PROCEDURE_TYPE " +
             "FROM sys.all_objects o " +
             "WHERE o.type IN (";
 
