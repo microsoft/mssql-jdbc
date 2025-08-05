@@ -1489,6 +1489,47 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test batch insert using bulk copy with accented string values when setSendStringParametersAsUnicode is false.
+     */
+    @Test
+    public void testBulkInsertWhenNotSentAsUnicodeForAccentedStrings() throws Exception {
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameBulkString)
+                + " (charCol, varcharCol, longvarcharCol, ncharCol, nvarcharCol, longnvarcharCol) VALUES (?, ?, ?, ?, ?, ?)";
+
+        String selectSQL = "SELECT charCol, varcharCol, longvarcharCol, ncharCol, nvarcharCol, longnvarcharCol FROM "
+                + AbstractSQLGenerator.escapeIdentifier(tableNameBulkString);
+
+        try (Connection connection = PrepUtil.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;sendStringParametersAsUnicode=false;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            getCreateTableWithStringData();
+
+            pstmt.setString(1, "Anaïs_Ni");
+            pstmt.setString(2, "café");
+            pstmt.setString(3, "Søren Kierkegaard");
+            pstmt.setString(4, "José Müll");
+            pstmt.setString(5, "José Müller");
+            pstmt.setString(6, "François Saldaña");
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next(), "Expected at least one row in result set");
+                assertEquals("Anaïs_Ni", rs.getString("charCol"));
+                assertEquals("café", rs.getString("varcharCol"));
+                assertEquals("Søren Kierkegaard", rs.getString("longvarcharCol"));
+                assertEquals("José Müll", rs.getString("ncharCol"));
+                assertEquals("José Müller", rs.getString("nvarcharCol"));
+                assertEquals("François Saldaña", rs.getString("longnvarcharCol"));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
     private void getCreateTableWithStringData() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulkString), stmt);

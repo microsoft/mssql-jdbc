@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.Charset;
 import java.sql.Types;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
@@ -34,6 +35,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
     private int batchParamIndex = -1;
     private List<String> columnList;
     private List<String> valueList;
+    private String encoding;
 
     /*
      * Class name for logging.
@@ -62,6 +64,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
         this.columnList = columnList;
         this.valueList = valueList;
         this.columnNameCaseSensitive = columnNameCaseSensitive;
+        this.encoding = encoding;
         columnMetadata = new HashMap<>();
 
         loggerExternal.exiting(loggerPackageName, loggerClassName);
@@ -193,7 +196,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
                  * If the data is already a string, return it as is.
                  */
                 if (data instanceof byte[]) {
-                    return new String((byte[]) data);
+                    return new String((byte[]) data, Charset.forName(encoding));
                 }
                 return data;
             }
