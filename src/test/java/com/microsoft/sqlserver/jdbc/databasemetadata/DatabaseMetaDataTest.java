@@ -1203,7 +1203,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testPrintGetFunctionsResults() throws SQLException {
         try (Connection conn = getConnection()) {
             DatabaseMetaData metaData = conn.getMetaData();
@@ -1249,7 +1248,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testPrintGetProceduresResults() throws SQLException {
         try (Connection conn = getConnection()) {
             DatabaseMetaData metaData = conn.getMetaData();
@@ -1295,7 +1293,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testGetFunctionsMetadataValidation() throws SQLException {
         try (Connection conn = getConnection()) {
             DatabaseMetaData metaData = conn.getMetaData();
@@ -1353,7 +1350,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testGetProceduresMetadataValidation() throws SQLException {
         try (Connection conn = getConnection()) {
             DatabaseMetaData metaData = conn.getMetaData();
@@ -1411,7 +1407,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testGetProceduresWithData() throws SQLException {
         String testProcedure1 = RandomUtil.getIdentifier("TestProc1");
         String testProcedure2 = RandomUtil.getIdentifier("TestProc2");
@@ -1475,7 +1470,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @Tag(Constants.xAzureSQLDW)
     public void testGetFunctionsWithData() throws SQLException {
         String testFunction1 = RandomUtil.getIdentifier("TestFunc1");
         String testFunction2 = RandomUtil.getIdentifier("TestFunc2");
