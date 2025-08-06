@@ -35,7 +35,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
     private int batchParamIndex = -1;
     private List<String> columnList;
     private List<String> valueList;
-    private String encoding;
+    private Charset charset;
 
     /*
      * Class name for logging.
@@ -46,10 +46,10 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
      * Constructs a SQLServerBulkBatchInsertRecord with the batch parameter, column list, value list, and encoding
      */
     SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam, ArrayList<String> columnList,
-            ArrayList<String> valueList, String encoding, boolean columnNameCaseSensitive) throws SQLServerException {
+            ArrayList<String> valueList, Charset charset, boolean columnNameCaseSensitive) throws SQLServerException {
         initLoggerResources();
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
-            loggerExternal.entering(loggerPackageName, loggerClassName, new Object[] {batchParam, encoding});
+            loggerExternal.entering(loggerPackageName, loggerClassName, new Object[] {batchParam, charset.name()});
         }
 
         if (null == batchParam) {
@@ -64,7 +64,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
         this.columnList = columnList;
         this.valueList = valueList;
         this.columnNameCaseSensitive = columnNameCaseSensitive;
-        this.encoding = encoding;
+        this.charset = charset;
         columnMetadata = new HashMap<>();
 
         loggerExternal.exiting(loggerPackageName, loggerClassName);
@@ -196,7 +196,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
                  * If the data is already a string, return it as is.
                  */
                 if (data instanceof byte[]) {
-                    return new String((byte[]) data, Charset.forName(encoding));
+                    return new String((byte[]) data, charset);
                 }
                 return data;
             }

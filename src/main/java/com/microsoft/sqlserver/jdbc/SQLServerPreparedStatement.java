@@ -2219,7 +2219,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                         SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
                                 batchParamValues, bcOperationColumnList, bcOperationValueList, 
-                                connection.getDatabaseCollation().getCharset().name(), isDBColationCaseSensitive());
+                                connection.getDatabaseCollation().getCharset(), isDBColationCaseSensitive());
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2428,7 +2428,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                         SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
                                 batchParamValues, bcOperationColumnList, bcOperationValueList, 
-                                connection.getDatabaseCollation().getCharset().name(), isDBColationCaseSensitive());
+                                connection.getDatabaseCollation().getCharset(), isDBColationCaseSensitive());
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
