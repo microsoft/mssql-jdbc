@@ -30,12 +30,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
-import org.junit.jupiter.api.Tag;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -1413,13 +1413,13 @@ public class JSONFunctionTest extends AbstractTest {
     public void testJsonInputOutputWithUdf() throws SQLException {
         String personsTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Persons")));
-        String udfName = "dbo.GetAgeFromJson";
+        String udfName = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GetAgeFromJson")));
 
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(personsTable, stmt);
-                String dropUdfSQL = "IF OBJECT_ID('" + udfName + "', 'FN') IS NOT NULL DROP FUNCTION " + udfName;
-                stmt.execute(dropUdfSQL);
+                TestUtils.dropFunctionIfExists(udfName, stmt);
                 String createUdfSQL = "CREATE FUNCTION " + udfName + " (@json JSON) " +
                         "RETURNS INT " +
                         "AS BEGIN " +
@@ -1492,13 +1492,13 @@ public class JSONFunctionTest extends AbstractTest {
     public void testUdfReturningJson() throws SQLException {
         String personsTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Persons")));
-        String udfName = "dbo.GetPersonJson";
+        String udfName = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GetPersonJson")));
 
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(personsTable, stmt);
-                String dropUdfSQL = "IF OBJECT_ID('" + udfName + "', 'FN') IS NOT NULL DROP FUNCTION " + udfName;
-                stmt.execute(dropUdfSQL);
+                TestUtils.dropFunctionIfExists(udfName, stmt);
 
                 String createUdfSQL = "CREATE FUNCTION " + udfName + " (@id INT, @name NVARCHAR(100)) " +
                         "RETURNS JSON " +
