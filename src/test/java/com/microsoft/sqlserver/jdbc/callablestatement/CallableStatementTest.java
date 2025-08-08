@@ -14,15 +14,14 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.MessageFormat;
-import java.time.OffsetDateTime;
-import java.time.OffsetTime;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,6 +38,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
@@ -103,7 +103,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
             TestUtils.dropTableIfExists(manyParamsTable, stmt);
             TestUtils.dropTableIfExists(tableNameJSON, stmt);
-			TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
+            TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
 
             createGUIDTable(stmt);
             createGUIDStoredProcedure(stmt);
@@ -186,6 +186,8 @@ public class CallableStatementTest extends AbstractTest {
                     rs.next();
                     assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
                 }
+            } finally {
+                TestUtils.dropProcedureIfExists(procName, statement);
             }
         }
     }
@@ -669,7 +671,9 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropTableIfExists(tableNameJSON, stmt);
-			TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
+            TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
+            TestUtils.dropProcedureIfExists(manyParamProc, stmt);
+            TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
         }
     }
 
