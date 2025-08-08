@@ -2,6 +2,37 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
+## [13.2.0] Stable Release
+
+### Changed
+- **Use sys.all_objects for Accurate Function and Procedure Filtering** [#2705](https://github.com/microsoft/mssql-jdbc/pull/2705)
+  **What changed**: Differentiated stored procedures and functions using sys.all_objects instead of sp_stored_procedures.
+  **Who benefits**: Developers using getProcedures() and getFunctions() in JDBC.
+  **Impact**: Ensures correct metadata retrieval, preventing confusion from mixed results.
+
+### Fixed issues
+
+- **Fix trustStoreType JVM Property Consultation in SSL Connections** [#2724](https://github.com/microsoft/mssql-jdbc/pull/2724)
+  **What was fixed**: Ensured fallback to JVM system property javax.net.ssl.trustStoreType if connection property is unset.
+  **Who benefits**: Users configuring SSL via system properties.
+  **Impact**: Enables proper SSL trust store resolution, improving compatibility with system configurations.
+
+- **Properly Insert Accented Characters with Bulk Copy and Non-Unicode Strings** [#2727](https://github.com/microsoft/mssql-jdbc/pull/2727)
+  **What was fixed**: Used correct database collation to convert byte arrays to strings during bulk insert.
+  **Who benefits**: Users inserting non-ASCII characters with useBulkCopyForBatchInsert=true and sendStringParametersAsUnicode=false.
+  **Impact**: Preserves accented and special characters in the database, fixing encoding issues.
+
+- **Handle SQL Comments at Start of Query in getGenerateKeys() Method** [#2731](https://github.com/microsoft/mssql-jdbc/pull/2731)
+  **What was fixed**: Corrected detection of INSERT statements when preceded by SQL comments.
+  **Who benefits**: Developers using getGeneratedKeys() after commented SQL inserts.
+  **Impact**: Fixes previously failing key retrieval when comments are present before the query.
+
+- **CodeQL Suppression Fixes** [#2728](https://github.com/microsoft/mssql-jdbc/pull/2728)
+  **What was fixed**: Suppressed CodeQL rule [SM05141] with justification for broader usage scenarios.
+  **Who benefits**: Developers maintaining code quality tools like CodeQL.
+  **Impact**: Prevents unnecessary alerts for valid usage in multi-environment libraries.
+
+
 ## [13.1.1] Preview Release
 
 ### Added
