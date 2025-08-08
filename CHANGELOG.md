@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ## [13.2.0] Stable Release
 
 ### Changed
+
 - **Use sys.all_objects for Accurate Function and Procedure Filtering** [#2705](https://github.com/microsoft/mssql-jdbc/pull/2705)
   **What changed**: Differentiated stored procedures and functions using sys.all_objects instead of sp_stored_procedures.
   **Who benefits**: Developers using getProcedures() and getFunctions() in JDBC.
