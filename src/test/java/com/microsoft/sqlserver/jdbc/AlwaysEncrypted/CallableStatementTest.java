@@ -9,10 +9,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.math.BigDecimal;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -160,8 +160,8 @@ public class CallableStatementTest extends AESetup {
 
     @AfterAll
     public static void dropAll() throws Exception {
-        dropTables();
         dropProcedures();
+        dropTables();
     }
 
     @ParameterizedTest

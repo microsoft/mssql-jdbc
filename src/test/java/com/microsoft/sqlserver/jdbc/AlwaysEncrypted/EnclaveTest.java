@@ -4,8 +4,8 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -347,8 +347,12 @@ public class EnclaveTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             createTable(CHAR_TABLE_AE, cekJks, charTable);
-            populateCharNormalCase(createCharValues(false));
-            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekJks);
+            try {
+                populateCharNormalCase(createCharValues(false));
+                testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekJks);
+            } finally {
+                TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
+            }
         }
     }
 
@@ -364,8 +368,12 @@ public class EnclaveTest extends AESetup {
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             createTable(CHAR_TABLE_AE, cekAkv, charTable);
-            populateCharNormalCase(createCharValues(false));
-            testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
+            try {
+                populateCharNormalCase(createCharValues(false));
+                testAlterColumnEncryption(stmt, CHAR_TABLE_AE, charTable, cekAkv);
+            } finally {
+                TestUtils.dropTableIfExists(CHAR_TABLE_AE, connection.createStatement());
+            }
         }
     }
 
@@ -387,6 +395,8 @@ public class EnclaveTest extends AESetup {
             try (PreparedStatement p = c.prepareStatement(sql)) {
                 ParameterMetaData pmd = p.getParameterMetaData();
                 assertTrue(48 == pmd.getParameterCount(), "parameter count: " + pmd.getParameterCount());
+            } finally {
+                TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, s);
             }
         }
     }
@@ -401,14 +411,18 @@ public class EnclaveTest extends AESetup {
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
-            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
-            pstmt.setString(1, "a");
-            pstmt.setString(2, "b");
-            pstmt.setString(3, "test");
-            pstmt.execute();
-            pstmt = c.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE
-                    + " ALTER COLUMN RandomizedVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
-            pstmt.execute();
+            try {
+                PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
+                pstmt.setString(1, "a");
+                pstmt.setString(2, "b");
+                pstmt.setString(3, "test");
+                pstmt.execute();
+                pstmt = c.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE
+                        + " ALTER COLUMN RandomizedVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
+                pstmt.execute();
+            } finally {
+                TestUtils.dropTableIfExists(CHAR_TABLE_AE, s);
+            }
         }
     }
 
@@ -422,19 +436,23 @@ public class EnclaveTest extends AESetup {
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
             createTable(NUMERIC_TABLE_AE, cekJks, numericTableSimple);
-            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + NUMERIC_TABLE_AE + " VALUES (?,?,?)");
-            pstmt.setInt(1, 1);
-            pstmt.setInt(2, 2);
-            pstmt.setInt(3, 3);
-            pstmt.execute();
-            pstmt = c.prepareStatement("SELECT * FROM " + NUMERIC_TABLE_AE + " WHERE RANDOMIZEDInt = ?");
-            pstmt.setInt(1, 3);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    assertTrue(1 == rs.getInt(1), "rs.getInt(1)=" + rs.getInt(1));
-                    assertTrue(2 == rs.getInt(2), "rs.getInt(2)=" + rs.getInt(2));
-                    assertTrue(3 == rs.getInt(3), "rs.getInt(3)=" + rs.getInt(3));
+            try {
+                PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + NUMERIC_TABLE_AE + " VALUES (?,?,?)");
+                pstmt.setInt(1, 1);
+                pstmt.setInt(2, 2);
+                pstmt.setInt(3, 3);
+                pstmt.execute();
+                pstmt = c.prepareStatement("SELECT * FROM " + NUMERIC_TABLE_AE + " WHERE RANDOMIZEDInt = ?");
+                pstmt.setInt(1, 3);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    while (rs.next()) {
+                        assertTrue(1 == rs.getInt(1), "rs.getInt(1)=" + rs.getInt(1));
+                        assertTrue(2 == rs.getInt(2), "rs.getInt(2)=" + rs.getInt(2));
+                        assertTrue(3 == rs.getInt(3), "rs.getInt(3)=" + rs.getInt(3));
+                    }
                 }
+            } finally {
+                TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, s);
             }
         }
     }
@@ -449,20 +467,23 @@ public class EnclaveTest extends AESetup {
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
-
-            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
-            pstmt.setString(1, "a");
-            pstmt.setString(2, "b");
-            pstmt.setString(3, "test");
-            pstmt.execute();
-            pstmt = c.prepareStatement("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDVarchar LIKE ?");
-            pstmt.setString(1, "t%");
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    assertTrue(rs.getString(1).equalsIgnoreCase("a"), "rs.getString(1)=" + rs.getString(1));
-                    assertTrue(rs.getString(2).equalsIgnoreCase("b"), "rs.getString(2)=" + rs.getString(2));
-                    assertTrue(rs.getString(3).equalsIgnoreCase("test"), "rs.getString(3)=" + rs.getString(3));
+            try {
+                PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
+                pstmt.setString(1, "a");
+                pstmt.setString(2, "b");
+                pstmt.setString(3, "test");
+                pstmt.execute();
+                pstmt = c.prepareStatement("SELECT * FROM " + CHAR_TABLE_AE + " WHERE RANDOMIZEDVarchar LIKE ?");
+                pstmt.setString(1, "t%");
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    while (rs.next()) {
+                        assertTrue(rs.getString(1).equalsIgnoreCase("a"), "rs.getString(1)=" + rs.getString(1));
+                        assertTrue(rs.getString(2).equalsIgnoreCase("b"), "rs.getString(2)=" + rs.getString(2));
+                        assertTrue(rs.getString(3).equalsIgnoreCase("test"), "rs.getString(3)=" + rs.getString(3));
+                    }
                 }
+            } finally {
+                TestUtils.dropTableIfExists(CHAR_TABLE_AE, s);
             }
         }
     }
@@ -477,27 +498,35 @@ public class EnclaveTest extends AESetup {
         try (SQLServerConnection c = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement s = c.createStatement()) {
             createTable(CHAR_TABLE_AE, cekJks, varcharTableSimple);
-            PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
-            pstmt.setString(1, "a");
-            pstmt.setString(2, "b");
-            pstmt.setString(3, "test");
-            pstmt.execute();
-        }
-        String testConnectionString = TestUtils.removeProperty(AETestConnectionString,
-                Constants.ENCLAVE_ATTESTATIONURL);
-        testConnectionString = TestUtils.removeProperty(testConnectionString, Constants.ENCLAVE_ATTESTATIONPROTOCOL);
-        try (Connection c = DriverManager.getConnection(testConnectionString)) {
-            PreparedStatement pstmt = c.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE
-                    + " ALTER COLUMN RandomizedVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
-            pstmt.execute();
-        } catch (SQLException e) {
-            assertTrue(e.getMessage().contains(TestResource.getResource("R_enclaveNotEnabled")), e.getMessage());
+            try {
+                PreparedStatement pstmt = c.prepareStatement("INSERT INTO " + CHAR_TABLE_AE + " VALUES (?,?,?)");
+                pstmt.setString(1, "a");
+                pstmt.setString(2, "b");
+                pstmt.setString(3, "test");
+                pstmt.execute();
+
+                String testConnectionString = TestUtils.removeProperty(AETestConnectionString,
+                        Constants.ENCLAVE_ATTESTATIONURL);
+                testConnectionString = TestUtils.removeProperty(testConnectionString,
+                        Constants.ENCLAVE_ATTESTATIONPROTOCOL);
+                try (Connection c = DriverManager.getConnection(testConnectionString)) {
+                    PreparedStatement pstmt = c.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE
+                            + " ALTER COLUMN RandomizedVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
+                    pstmt.execute();
+                } catch (SQLException e) {
+                    assertTrue(e.getMessage().contains(TestResource.getResource("R_enclaveNotEnabled")),
+                            e.getMessage());
+                }
+            } finally {
+                TestUtils.dropTableIfExists(CHAR_TABLE_AE, s);
+            }
         }
     }
 
     @AfterAll
     public static void dropAll() throws Exception {
-        try (Statement stmt = connection.createStatement()) {
+        try (SQLServerConnection cn = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = cn.createStatement()) {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
             TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
             TestUtils.dropTableIfExists(BINARY_TABLE_AE, stmt);
