@@ -571,6 +571,7 @@ public class BatchExecutionTest extends AbstractTest {
             } finally {
                 try (Statement statement = connection.createStatement()) {
                     TestUtils.dropTableIfExists(testTable, statement);
+                    connection.commit();
                 }
             }
         }
