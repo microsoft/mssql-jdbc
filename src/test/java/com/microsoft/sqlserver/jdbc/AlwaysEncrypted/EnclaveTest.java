@@ -509,10 +509,10 @@ public class EnclaveTest extends AESetup {
                         Constants.ENCLAVE_ATTESTATIONURL);
                 testConnectionString = TestUtils.removeProperty(testConnectionString,
                         Constants.ENCLAVE_ATTESTATIONPROTOCOL);
-                try (Connection c = DriverManager.getConnection(testConnectionString)) {
-                    PreparedStatement pstmt = c.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE
+                try (Connection c1 = DriverManager.getConnection(testConnectionString)) {
+                    PreparedStatement pstmt1 = c1.prepareStatement("ALTER TABLE " + CHAR_TABLE_AE
                             + " ALTER COLUMN RandomizedVarchar VARCHAR(20) NULL WITH (ONLINE = ON)");
-                    pstmt.execute();
+                    pstmt1.execute();
                 } catch (SQLException e) {
                     assertTrue(e.getMessage().contains(TestResource.getResource("R_enclaveNotEnabled")),
                             e.getMessage());
