@@ -955,7 +955,7 @@ public class BatchExecutionTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws Exception {
-        dropTable();
         dropProcedure();
+        dropTable();
     }
 }

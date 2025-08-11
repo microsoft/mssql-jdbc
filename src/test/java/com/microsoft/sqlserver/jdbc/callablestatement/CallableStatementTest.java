@@ -99,11 +99,11 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
             TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
-            TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
+            TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
             TestUtils.dropTableIfExists(manyParamsTable, stmt);
             TestUtils.dropTableIfExists(tableNameJSON, stmt);
-            TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
+            TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
 
             createGUIDTable(stmt);
             createGUIDStoredProcedure(stmt);
@@ -659,8 +659,6 @@ public class CallableStatementTest extends AbstractTest {
     @AfterAll
     public static void cleanup() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(tableNameGUID, stmt);
-            TestUtils.dropTableIfExists(manyParamsTable, stmt);
             TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
             TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
             TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
@@ -670,9 +668,11 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
             TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
-            TestUtils.dropTableIfExists(tableNameJSON, stmt);
             TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
+            TestUtils.dropTableIfExists(tableNameGUID, stmt);
+            TestUtils.dropTableIfExists(manyParamsTable, stmt);
+            TestUtils.dropTableIfExists(tableNameJSON, stmt);
             TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
         }
     }
