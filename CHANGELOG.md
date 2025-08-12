@@ -6,29 +6,34 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Changed
 
-- **Use sys.all_objects for Accurate Function and Procedure Filtering** [#2705](https://github.com/microsoft/mssql-jdbc/pull/2705)
+- **Use sys.all_objects for accurate function and procedure filtering** [#2705](https://github.com/microsoft/mssql-jdbc/pull/2705)
   **What changed**: Differentiated stored procedures and functions using sys.all_objects instead of sp_stored_procedures.
   **Who benefits**: Developers using getProcedures() and getFunctions() in JDBC.
   **Impact**: Ensures correct metadata retrieval, preventing confusion from mixed results.
 
 ### Fixed issues
 
-- **Fix trustStoreType JVM Property Consultation in SSL Connections** [#2724](https://github.com/microsoft/mssql-jdbc/pull/2724)
+- **Fix trustStoreType JVM property consultation in SSL Connections** [#2724](https://github.com/microsoft/mssql-jdbc/pull/2724)
   **What was fixed**: Ensured fallback to JVM system property javax.net.ssl.trustStoreType if connection property is unset.
   **Who benefits**: Users configuring SSL via system properties.
   **Impact**: Enables proper SSL trust store resolution, improving compatibility with system configurations.
 
-- **Properly Insert Accented Characters with Bulk Copy and Non-Unicode Strings** [#2727](https://github.com/microsoft/mssql-jdbc/pull/2727)
-  **What was fixed**: Used correct database collation to convert byte arrays to strings during bulk insert.
-  **Who benefits**: Users inserting non-ASCII characters with useBulkCopyForBatchInsert=true and sendStringParametersAsUnicode=false.
-  **Impact**: Preserves accented and special characters in the database, fixing encoding issues.
+- **Addressed a data integrity and performance issue for bulk copy batch inserts with non-Unicode Strings** [#2735](https://github.com/microsoft/mssql-jdbc/pull/2735)
+  **What was fixed**: Resolved performance degradation and incorrect string handling in bulk copy batch inserts when useBulkCopyForBatchInsert=true and sendStringParametersAsUnicode=false.
+  **Who benefits**: Applications using SQL Server JDBC Bulk Copy for high-volume inserts, especially with non-Unicode or accented character data.
+  **Impact**: Restores expected string storage, improves bulk insert performance for bulk copy API.
 
-- **Handle SQL Comments at Start of Query in getGenerateKeys() Method** [#2731](https://github.com/microsoft/mssql-jdbc/pull/2731)
+- **Handle SQL comments at start of query in getGenerateKeys() method** [#2731](https://github.com/microsoft/mssql-jdbc/pull/2731)
   **What was fixed**: Corrected detection of INSERT statements when preceded by SQL comments.
   **Who benefits**: Developers using getGeneratedKeys() after commented SQL inserts.
   **Impact**: Fixes previously failing key retrieval when comments are present before the query.
 
-- **CodeQL Suppression Fixes** [#2728](https://github.com/microsoft/mssql-jdbc/pull/2728)
+- **Fix update count handling for multi-statement queries executed via PreparedStatement execute method.** [#2737](https://github.com/microsoft/mssql-jdbc/pull/2737)
+  **What was fixed**: Corrected update count handling for multi-statement queries run using PreparedStatement execute method, ensuring accurate counts for INSERT and other DML operations.
+  **Who benefits**: Java applications using SQL Server JDBC with multi-statement PreparedStatement executions.
+  **Impact**: Eliminates inconsistent update counts between Statement and PreparedStatement, improving reliability of result processing logic.
+
+- **CodeQL suppression fixes** [#2728](https://github.com/microsoft/mssql-jdbc/pull/2728)
   **What was fixed**: Suppressed CodeQL rule [SM05141] with justification for broader usage scenarios.
   **Who benefits**: Developers maintaining code quality tools like CodeQL.
   **Impact**: Prevents unnecessary alerts for valid usage in multi-environment libraries.
