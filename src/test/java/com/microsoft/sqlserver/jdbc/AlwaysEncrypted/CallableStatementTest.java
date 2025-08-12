@@ -160,6 +160,7 @@ public class CallableStatementTest extends AESetup {
 
     @AfterAll
     public static void dropAll() throws Exception {
+        // Drop procedures before tables or table drop will fail
         dropProcedures();
         dropTables();
     }

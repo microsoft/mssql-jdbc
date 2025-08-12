@@ -525,6 +525,7 @@ public class EnclaveTest extends AESetup {
 
     @AfterAll
     public static void dropAll() throws Exception {
+        // Make sure to clean objects against the AE connection string, not the common connection
         try (SQLServerConnection cn = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement stmt = cn.createStatement()) {
             TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);

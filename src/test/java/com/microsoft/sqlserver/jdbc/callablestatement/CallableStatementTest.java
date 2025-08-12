@@ -90,7 +90,7 @@ public class CallableStatementTest extends AbstractTest {
         setConnection();
 
         try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(tableNameGUID, stmt);
+            // Drop order matters. Can't drop objects still referenced by other objects.
             TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
             TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
             TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
@@ -101,6 +101,7 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
             TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
+            TestUtils.dropTableIfExists(tableNameGUID, stmt);
             TestUtils.dropTableIfExists(manyParamsTable, stmt);
             TestUtils.dropTableIfExists(tableNameJSON, stmt);
             TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
@@ -666,6 +667,7 @@ public class CallableStatementTest extends AbstractTest {
     @AfterAll
     public static void cleanup() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
+            // Drop order matters. Can't drop objects still referenced by other objects.
             TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
             TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
             TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
