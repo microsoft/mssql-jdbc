@@ -32,6 +32,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -1404,6 +1405,54 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             stmt.execute(createTableSQL);
 
+        }
+    }
+
+    /**
+     * Test insert-select fallback to normal execution for bulk copy API
+     */
+    @Test
+    public void testInsertSelectFallbackToNormalExecution() throws Exception {
+        String tableNameSource = AbstractSQLGenerator.escapeIdentifier("SourceTable");
+        String tableNameDestination = AbstractSQLGenerator.escapeIdentifier("DestinationTable");
+
+        String connectStringUrl = connectionString
+                + ";useBulkCopyForBatchInsert=true;sendStringParametersAsUnicode=false;";
+
+        try (Connection connection = PrepUtil.getConnection(connectStringUrl);
+                Statement stmt = connection.createStatement()) {
+
+            TestUtils.dropTableIfExists(tableNameSource, stmt);
+            String createSourceTableSQL = "CREATE TABLE " + tableNameSource + " (id INT, value VARCHAR(50))";
+            stmt.execute(createSourceTableSQL);
+
+            String insertSourceDataSQL = "INSERT INTO " + tableNameSource + " VALUES (1, 'TestValue1'), (2, 'TestValue2')";
+            stmt.execute(insertSourceDataSQL);
+
+            TestUtils.dropTableIfExists(tableNameDestination, stmt);
+            String createDestinationTableSQL = "CREATE TABLE " + tableNameDestination + " (id INT, value VARCHAR(50))";
+            stmt.execute(createDestinationTableSQL);
+
+            // Attempt unsupported INSERT-SELECT query for bulk copy api
+            String insertSelectSQL = "INSERT INTO " + tableNameDestination + " SELECT * FROM " + tableNameSource
+                    + " WHERE id = ?";
+
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement(insertSelectSQL)) {
+                pstmt.setInt(1, 1);
+                pstmt.addBatch();
+                pstmt.executeBatch(); // This should fall back to normal execution flow
+            }
+
+            // Validate inserted data in destination table
+            String selectSQL = "SELECT * FROM " + tableNameDestination;
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next(), "Expected at least one row in result set");
+                assertEquals(1, rs.getInt("id"));
+                assertEquals("TestValue1", rs.getString("value"));
+
+                Assertions.assertFalse(rs.next(), "No more rows expected");
+            }
         }
     }
 
