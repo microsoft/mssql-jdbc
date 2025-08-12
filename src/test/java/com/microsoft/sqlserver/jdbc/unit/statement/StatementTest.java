@@ -2961,7 +2961,7 @@ public class StatementTest extends AbstractTest {
                                 // no more results
                                 break;
                             } else {
-                                assertEquals(count, 3, "update count should have been 6");
+                                assertEquals(count, 3, "update count should have been 3");
                             }
                         } else {
                             // process ResultSet
@@ -2998,7 +2998,7 @@ public class StatementTest extends AbstractTest {
                                 // no more results
                                 break;
                             } else {
-                                assertEquals(count, 1, "update count should have been 2");
+                                assertEquals(count, 1, "update count should have been 1");
                             }
                         } else {
                             // process ResultSet
@@ -3084,6 +3084,244 @@ public class StatementTest extends AbstractTest {
                             }
                         }
                         retval = stmt.getMoreResults();
+                    } while (true);
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        /**
+         * Tests multi-statement PreparedStatement with loop to process all results
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testMultiStatementPreparedStatementLoopResults() {
+            try (Connection con = getConnection()) {
+                try (PreparedStatement ps = con.prepareStatement("DELETE FROM " + tableName + " " +
+                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
+                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
+                        "UPDATE " + tableName + " SET NAME = 'updated' " +
+                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
+                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
+                        "SELECT * FROM " + tableName)) {
+                    
+                    ps.setString(1, "test1");
+                    ps.setString(2, "test2");
+                    ps.setString(3, "test3");
+                    ps.setString(4, "test4");
+
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertTrue(count >= 0, "update count should be non-negative: " + count);
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = ps.getResultSet()) {
+                                int rowCount = 0;
+                                while (rs.next()) {
+                                    String name = rs.getString("NAME");
+                                    assertTrue(name != null, "name should not be null");
+                                    rowCount++;
+                                }
+                                assertEquals(4, rowCount, "Expected 4 rows in result set");
+                            }
+                        }
+                        retval = ps.getMoreResults();
+                    } while (true);
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        /**
+         * Tests PreparedStatement execute for Insert followed by select
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testPreparedStatementExecuteInsertAndSelect() {
+            try (Connection con = getConnection()) {
+                try (PreparedStatement ps = con.prepareStatement("INSERT INTO " + tableName + " (NAME) VALUES(?) SELECT NAME FROM " + tableName + " WHERE ID = 1")) {
+                    ps.setString(1, "test");
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 1, "update count should have been 1");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = ps.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = ps.getMoreResults();
+                    } while (true);
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        /**
+         * Tests PreparedStatement execute for Merge followed by select
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testPreparedStatementExecuteMergeAndSelect() {
+            try (Connection con = getConnection()) {
+                try (PreparedStatement ps = con.prepareStatement("MERGE INTO " + tableName + " AS target USING (VALUES (?)) AS source (name) ON target.name = source.name WHEN NOT MATCHED THEN INSERT (name) VALUES (?); SELECT NAME FROM " + tableName + " WHERE ID = 1")) {
+                    ps.setString(1, "test1");
+                    ps.setString(2, "test1");
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 1, "update count should have been 1");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = ps.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = ps.getMoreResults();
+                    } while (true);
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        /**
+         * Tests PreparedStatement execute two Inserts followed by select
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testPreparedStatementExecuteTwoInsertsRowsAndSelect() {
+            try (Connection con = getConnection()) {
+                try (PreparedStatement ps = con.prepareStatement("INSERT INTO " + tableName + " (NAME) VALUES(?) INSERT INTO " + tableName + " (NAME) VALUES(?) SELECT NAME from " + tableName + " WHERE ID = 1")) {
+                    ps.setString(1, "test");
+                    ps.setString(2, "test");
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 1, "update count should have been 1");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = ps.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = ps.getMoreResults();
+                    } while (true);
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        /**
+         * Tests PreparedStatement execute for Update followed by select
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testPreparedStatementExecuteUpdAndSelect() {
+            try (Connection con = getConnection()) {
+                try (PreparedStatement ps = con.prepareStatement("UPDATE " + tableName + " SET NAME = ? SELECT NAME FROM " + tableName + " WHERE ID = 1")) {
+                    ps.setString(1, "test");
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 3, "update count should have been 3");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = ps.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = ps.getMoreResults();
+                    } while (true);
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        /**
+         * Tests PreparedStatement execute for Delete followed by select
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testPreparedStatementExecuteDelAndSelect() {
+            try (Connection con = getConnection()) {
+                try (PreparedStatement ps = con.prepareStatement("DELETE FROM " + tableName + " WHERE ID = ? SELECT NAME FROM " + tableName + " WHERE ID = 2")) {
+                    ps.setInt(1, 1);
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 1, "update count should have been 1");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = ps.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = ps.getMoreResults();
                     } while (true);
                 }
             } catch (SQLException e) {

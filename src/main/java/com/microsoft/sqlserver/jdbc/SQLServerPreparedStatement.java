@@ -789,6 +789,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
+     * Override TDS token processing behavior for PreparedStatement.
+     * For regular Statement, the execute API for INSERT requires reading an additional explicit 
+     * TDS_DONE token that contains the actual update count returned by the server.
+     * PreparedStatement does not require this additional token processing.
+     */
+    @Override
+    protected boolean hasUpdateCountTDSToken(StreamDone doneToken, int executeMethod) {
+        return false;
+    }
+
+    /**
      * Sends the statement parameters by RPC.
      */
     void sendParamsByRPC(TDSWriter tdsWriter, Parameter[] params) throws SQLServerException {

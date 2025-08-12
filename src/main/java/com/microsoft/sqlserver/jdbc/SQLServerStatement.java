@@ -1601,9 +1601,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                         if (null != procedureName)
                             return false;
 
-                        // For Insert, we must fetch additional TDS_DONE token that comes with the actual update count
-                        if ((StreamDone.CMD_INSERT == doneToken.getCurCmd()) && (-1 != doneToken.getUpdateCount())
-                                && EXECUTE == executeMethod) {
+                        // For Insert operations, check if additional TDS_DONE token processing is required.
+                        if (hasUpdateCountTDSToken(doneToken, executeMethod)) {
                             return true;
                         }
 
@@ -1843,6 +1842,24 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
 
         return false;
+    }
+
+    /**
+     * Determines whether to continue processing additional TDS_DONE tokens for INSERT statements.
+     * For INSERT operations, the driver must fetch an additional TDS_DONE token that contains
+     * the actual update count. This method can be overridden by subclasses to customize 
+     * TDS token processing behavior.
+     * 
+     * @param doneToken The current DONE token being processed
+     * @param executeMethod The execution method used
+     * @return true to continue processing more tokens to get the actual update count, 
+     *         false to stop and return this token
+     */
+    protected boolean hasUpdateCountTDSToken(StreamDone doneToken, int executeMethod) {
+        // For Insert, we must fetch additional TDS_DONE token that comes with the actual update count
+        return (StreamDone.CMD_INSERT == doneToken.getCurCmd()) &&
+               (-1 != doneToken.getUpdateCount()) &&
+               (EXECUTE == executeMethod);
     }
 
     // --------------------------JDBC 2.0-----------------------------
