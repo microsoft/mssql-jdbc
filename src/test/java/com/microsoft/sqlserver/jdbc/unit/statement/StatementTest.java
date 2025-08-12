@@ -2750,6 +2750,31 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
+         * Tests executeUpdate for Insert with comments followed by getGenerateKeys
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testExecuteUpdateInsertWithCommentsAndGenKeys() {
+            try (Connection con = getConnection()) {
+                try(Statement stmt = con.createStatement()) {
+                    String sql = "/* my comment */INSERT INTO " + tableName + " (NAME) VALUES('test')";
+                    List<String> lst = Arrays.asList("ID");
+                    String[] arr = lst.toArray(new String[0]);
+                    stmt.executeUpdate(sql, arr);
+                    try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                        if (generatedKeys.next()) {
+                            int id = generatedKeys.getInt(1);
+                            assertEquals(id, 4, "id should have been 4, but received : " + id);
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        /**
          * Tests executeUpdate using PreparedStatement for Insert followed by getGenerateKeys
          *
          * @throws Exception

@@ -450,7 +450,7 @@ class SQLServerSecurityUtility {
                         dacBuilder.additionallyAllowedTenants(additionallyAllowedTenants);
                     }
 
-                    dac = dacBuilder.build();
+                    dac = dacBuilder.build(); // CodeQL [SM05141] This is a client library supporting all scenarios (dev, test, prod, etc.), not just prod environments.
 
                     Credential credential = new Credential(dac);
                     CREDENTIAL_CACHE.put(key, credential);
