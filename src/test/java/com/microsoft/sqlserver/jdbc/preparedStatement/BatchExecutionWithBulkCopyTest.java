@@ -1435,11 +1435,11 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             // Attempt unsupported INSERT-SELECT query for bulk copy api
             String insertSelectSQL = "INSERT INTO " + tableNameDestination + " SELECT * FROM " + tableNameSource
-                    + " WHERE id = ?";
+                    + " WHERE value = ?";
 
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement(insertSelectSQL)) {
-                pstmt.setInt(1, 1);
+                pstmt.setString(1, "TestValue1");
                 pstmt.addBatch();
                 pstmt.executeBatch(); // This should fall back to normal execution flow
             }
