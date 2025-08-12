@@ -795,7 +795,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * PreparedStatement does not require this additional token processing.
      */
     @Override
-    protected boolean hasUpdateCountTDSToken(StreamDone doneToken, int executeMethod) {
+    protected boolean hasUpdateCountTDSTokenForInsertCmd() {
         return false;
     }
 

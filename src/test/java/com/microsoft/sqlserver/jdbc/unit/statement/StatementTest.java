@@ -3150,7 +3150,9 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testPreparedStatementExecuteInsertAndSelect() {
             try (Connection con = getConnection()) {
-                try (PreparedStatement ps = con.prepareStatement("INSERT INTO " + tableName + " (NAME) VALUES(?) SELECT NAME FROM " + tableName + " WHERE ID = 1")) {
+                String sql = "INSERT INTO " + tableName + " (NAME) VALUES(?) " +
+                            "SELECT NAME FROM " + tableName + " WHERE ID = 1";
+                try (PreparedStatement ps = con.prepareStatement(sql)) {
                     ps.setString(1, "test");
                     boolean retval = ps.execute();
                     do {
@@ -3187,7 +3189,12 @@ public class StatementTest extends AbstractTest {
         @Test
         public void testPreparedStatementExecuteMergeAndSelect() {
             try (Connection con = getConnection()) {
-                try (PreparedStatement ps = con.prepareStatement("MERGE INTO " + tableName + " AS target USING (VALUES (?)) AS source (name) ON target.name = source.name WHEN NOT MATCHED THEN INSERT (name) VALUES (?); SELECT NAME FROM " + tableName + " WHERE ID = 1")) {
+                String sql = "MERGE INTO " + tableName + " AS target " +
+                            "USING (VALUES (?)) AS source (name) " +
+                            "ON target.name = source.name " +
+                            "WHEN NOT MATCHED THEN INSERT (name) VALUES (?); " +
+                            "SELECT NAME FROM " + tableName + " WHERE ID = 1";
+                try (PreparedStatement ps = con.prepareStatement(sql)) {
                     ps.setString(1, "test1");
                     ps.setString(2, "test1");
                     boolean retval = ps.execute();
