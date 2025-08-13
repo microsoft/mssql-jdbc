@@ -3094,10 +3094,10 @@ public class StatementTest extends AbstractTest {
         /**
          * Tests multi-statement PreparedStatement with loop to process all results
          *
-         * @throws Exception
+         * @throws SQLException
          */
         @Test
-        public void testMultiStatementPreparedStatementLoopResults() {
+        public void testMultiStatementPreparedStatementLoopResults() throws SQLException {
             try (Connection con = getConnection()) {
                 try (PreparedStatement ps = con.prepareStatement("DELETE FROM " + tableName + " " +
                         "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
@@ -3137,18 +3137,16 @@ public class StatementTest extends AbstractTest {
                         retval = ps.getMoreResults();
                     } while (true);
                 }
-            } catch (SQLException e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
             }
         }
 
         /**
          * Tests PreparedStatement execute for Insert followed by select
          *
-         * @throws Exception
+         * @throws SQLException
          */
         @Test
-        public void testPreparedStatementExecuteInsertAndSelect() {
+        public void testPreparedStatementExecuteInsertAndSelect() throws SQLException {
             try (Connection con = getConnection()) {
                 String sql = "INSERT INTO " + tableName + " (NAME) VALUES(?) " +
                             "SELECT NAME FROM " + tableName + " WHERE ID = 1";
@@ -3176,18 +3174,16 @@ public class StatementTest extends AbstractTest {
                         retval = ps.getMoreResults();
                     } while (true);
                 }
-            } catch (SQLException e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
             }
         }
 
         /**
          * Tests PreparedStatement execute for Merge followed by select
          *
-         * @throws Exception
+         * @throws SQLException
          */
         @Test
-        public void testPreparedStatementExecuteMergeAndSelect() {
+        public void testPreparedStatementExecuteMergeAndSelect() throws SQLException {
             try (Connection con = getConnection()) {
                 String sql = "MERGE INTO " + tableName + " AS target " +
                             "USING (VALUES (?)) AS source (name) " +
@@ -3219,18 +3215,16 @@ public class StatementTest extends AbstractTest {
                         retval = ps.getMoreResults();
                     } while (true);
                 }
-            } catch (SQLException e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
             }
         }
 
         /**
          * Tests PreparedStatement execute two Inserts followed by select
          *
-         * @throws Exception
+         * @throws SQLException
          */
         @Test
-        public void testPreparedStatementExecuteTwoInsertsRowsAndSelect() {
+        public void testPreparedStatementExecuteTwoInsertsRowsAndSelect() throws SQLException {
             try (Connection con = getConnection()) {
                 try (PreparedStatement ps = con.prepareStatement("INSERT INTO " + tableName + " (NAME) VALUES(?) INSERT INTO " + tableName + " (NAME) VALUES(?) SELECT NAME from " + tableName + " WHERE ID = 1")) {
                     ps.setString(1, "test");
@@ -3257,18 +3251,16 @@ public class StatementTest extends AbstractTest {
                         retval = ps.getMoreResults();
                     } while (true);
                 }
-            } catch (SQLException e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
             }
         }
 
         /**
          * Tests PreparedStatement execute for Update followed by select
          *
-         * @throws Exception
+         * @throws SQLException
          */
         @Test
-        public void testPreparedStatementExecuteUpdAndSelect() {
+        public void testPreparedStatementExecuteUpdAndSelect() throws SQLException {
             try (Connection con = getConnection()) {
                 try (PreparedStatement ps = con.prepareStatement("UPDATE " + tableName + " SET NAME = ? SELECT NAME FROM " + tableName + " WHERE ID = 1")) {
                     ps.setString(1, "test");
@@ -3294,18 +3286,16 @@ public class StatementTest extends AbstractTest {
                         retval = ps.getMoreResults();
                     } while (true);
                 }
-            } catch (SQLException e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
             }
         }
 
         /**
          * Tests PreparedStatement execute for Delete followed by select
          *
-         * @throws Exception
+         * @throws SQLException
          */
         @Test
-        public void testPreparedStatementExecuteDelAndSelect() {
+        public void testPreparedStatementExecuteDelAndSelect() throws SQLException {
             try (Connection con = getConnection()) {
                 try (PreparedStatement ps = con.prepareStatement("DELETE FROM " + tableName + " WHERE ID = ? SELECT NAME FROM " + tableName + " WHERE ID = 2")) {
                     ps.setInt(1, 1);
@@ -3331,8 +3321,6 @@ public class StatementTest extends AbstractTest {
                         retval = ps.getMoreResults();
                     } while (true);
                 }
-            } catch (SQLException e) {
-                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
             }
         }
 
