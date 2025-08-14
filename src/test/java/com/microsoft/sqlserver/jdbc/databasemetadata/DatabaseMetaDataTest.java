@@ -1239,17 +1239,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
-    private void dropObjects(String schemaName, String objectType, String... objectNames) throws SQLException {
-        String escapedSchema = AbstractSQLGenerator.escapeIdentifier(schemaName);
-
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            for (String name : objectNames) {
-                String escapedName = AbstractSQLGenerator.escapeIdentifier(name);
-                stmt.executeUpdate("DROP " + objectType + " " + escapedSchema + "." + escapedName);
-            }
-        }
-    }
-
     /**
      * Test to verify getProcedures() metadata structure and PROCEDURE_TYPE values
      * 
@@ -1306,7 +1295,12 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
             }
         } finally {
-            dropObjects(schemaName, "PROCEDURE", proc1, proc2);
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropProcedureWithSchemaIfExists(schemaName + "." + proc1, stmt);
+                TestUtils.dropProcedureWithSchemaIfExists(schemaName + "." + proc2, stmt);
+
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
+            }
         }
     }
 
@@ -1365,7 +1359,12 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
             }
         } finally {
-            dropObjects(schemaName, "FUNCTION", func1, func2);
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func1, stmt);
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func2, stmt);
+
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
+            }
         }
     }
 
@@ -1395,7 +1394,12 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 assertEquals(Set.of(proc1, proc2), foundProcedures);
             }
         } finally {
-            dropObjects(schemaName, "PROCEDURE", proc1, proc2);
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropProcedureWithSchemaIfExists(schemaName + "." + proc1, stmt);
+                TestUtils.dropProcedureWithSchemaIfExists(schemaName + "." + proc2, stmt);
+
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
+            }
         }
     }
 
@@ -1425,7 +1429,12 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 assertEquals(Set.of(func1, func2), foundFunctions);
             }
         } finally {
-            dropObjects(schemaName, "FUNCTION", func1, func2);
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func1, stmt);
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func2, stmt);
+
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
+            }
         }
     }
 
