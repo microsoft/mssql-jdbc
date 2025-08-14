@@ -1391,7 +1391,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     foundProcedures.add(rs.getString("PROCEDURE_NAME"));
                     assertEquals(1, rs.getInt("PROCEDURE_TYPE"));
                 }
-                assertEquals(Set.of(proc1, proc2), foundProcedures);
+                assertEquals(new HashSet<>(Arrays.asList(proc1, proc2)), foundProcedures);
             }
         } finally {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -1426,7 +1426,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     foundFunctions.add(rs.getString("FUNCTION_NAME"));
                     assertEquals(2, rs.getInt("FUNCTION_TYPE"));
                 }
-                assertEquals(Set.of(func1, func2), foundFunctions);
+                assertEquals(new HashSet<>(Arrays.asList(func1, func2)), foundFunctions);
             }
         } finally {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
