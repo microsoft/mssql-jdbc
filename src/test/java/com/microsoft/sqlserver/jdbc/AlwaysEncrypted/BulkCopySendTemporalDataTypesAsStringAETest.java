@@ -167,7 +167,9 @@ public class BulkCopySendTemporalDataTypesAsStringAETest extends AESetup {
 
     @AfterAll
     public static void cleanTest() throws SQLException {
-        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+        // Make sure to clean objects against the AE connection string, not the common connection
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
             TestUtils.dropTableIfExists(destTableNameAE, stmt);
         }
     }

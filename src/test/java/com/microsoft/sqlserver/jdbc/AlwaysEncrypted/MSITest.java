@@ -16,16 +16,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import com.azure.identity.CredentialUnavailableException;
-import com.azure.identity.ManagedIdentityCredential;
-import com.azure.identity.ManagedIdentityCredentialBuilder;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.azure.identity.CredentialUnavailableException;
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionKeyStoreProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
@@ -454,6 +453,8 @@ public class MSITest extends AESetup {
                     AECommon.testGetBigDecimal(rs, numberOfColumns, values);
                     AECommon.testWithSpecifiedtype(rs, numberOfColumns, values);
                 }
+            } finally {
+                TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
             }
         }
     }
