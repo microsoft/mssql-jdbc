@@ -1375,9 +1375,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testGetProceduresWithData() throws SQLException {
-        String schemaName = "test_schema";
-        String proc1 = "sp_test1";
-        String proc2 = "sp_test2";
+        String schemaName = "test_Schema";
+        String proc1 = "sproc_test1";
+        String proc2 = "sproc_test2";
 
         setupProcedures(schemaName,
                 proc1, "AS BEGIN SELECT 1; END",
@@ -1385,7 +1385,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
         try (Connection conn = getConnection()) {
             DatabaseMetaData metaData = conn.getMetaData();
-            try (ResultSet rs = metaData.getProcedures(null, schemaName, "sp_test%")) {
+            try (ResultSet rs = metaData.getProcedures(null, schemaName, "sproc_test%")) {
                 Set<String> foundProcedures = new HashSet<>();
                 while (rs.next()) {
                     foundProcedures.add(rs.getString("PROCEDURE_NAME"));
@@ -1410,9 +1410,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testGetFunctionsWithData() throws SQLException {
-        String schemaName = "test_schema";
-        String func1 = "fn_test1";
-        String func2 = "fn_test2";
+        String schemaName = "test_Schema";
+        String func1 = "function_test1";
+        String func2 = "function_test2";
 
         setupFunctions(schemaName,
                 func1, "() RETURNS INT AS BEGIN RETURN 42; END",
@@ -1420,7 +1420,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
         try (Connection conn = getConnection()) {
             DatabaseMetaData metaData = conn.getMetaData();
-            try (ResultSet rs = metaData.getFunctions(null, schemaName, "fn_test%")) {
+            try (ResultSet rs = metaData.getFunctions(null, schemaName, "function_test%")) {
                 Set<String> foundFunctions = new HashSet<>();
                 while (rs.next()) {
                     foundFunctions.add(rs.getString("FUNCTION_NAME"));
