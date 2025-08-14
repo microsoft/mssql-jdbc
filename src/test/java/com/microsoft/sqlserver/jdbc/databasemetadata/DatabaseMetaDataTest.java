@@ -1246,9 +1246,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testGetProceduresMetadataValidation() throws SQLException {
-        String schemaName = "test_schema";
-        String proc1 = "sp_test1";
-        String proc2 = "sp_test2";
+        String schemaName = "test_schema" + uuid;
+        String proc1 = "sp_test1" + uuid;
+        String proc2 = "sp_test2" + uuid;
 
         setupProcedures(schemaName,
                 proc1, "AS BEGIN SELECT 1; END",
@@ -1311,9 +1311,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testGetFunctionsMetadataValidation() throws SQLException {
-        String schemaName = "test_schema";
-        String func1 = "fn_test1";
-        String func2 = "fn_test2";
+        String schemaName = "test_schema" + uuid;
+        String func1 = "fn_test1" + uuid;
+        String func2 = "fn_test2" + uuid;
 
         setupFunctions(schemaName,
                 func1, "() RETURNS INT AS BEGIN RETURN 42; END",
@@ -1375,9 +1375,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testGetProceduresWithData() throws SQLException {
-        String schemaName = "test_Schema";
-        String proc1 = "sproc_test1";
-        String proc2 = "sproc_test2";
+        String schemaName = "test_Schema" + uuid;
+        String proc1 = "sproc_test1" + uuid;
+        String proc2 = "sproc_test2" + uuid;
 
         setupProcedures(schemaName,
                 proc1, "AS BEGIN SELECT 1; END",
@@ -1410,9 +1410,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     public void testGetFunctionsWithData() throws SQLException {
-        String schemaName = "test_Schema";
-        String func1 = "function_test1";
-        String func2 = "function_test2";
+        String schemaName = "test_Schema" + uuid;
+        String func1 = "function_test1" + uuid;
+        String func2 = "function_test2" + uuid;
 
         setupFunctions(schemaName,
                 func1, "() RETURNS INT AS BEGIN RETURN 42; END",
