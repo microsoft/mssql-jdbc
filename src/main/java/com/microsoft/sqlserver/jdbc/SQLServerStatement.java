@@ -1746,6 +1746,20 @@ public class SQLServerStatement implements ISQLServerStatement {
                     }
                 }
 
+                // Severity-based escalation: treat critical messages (severity >=
+                // FATAL_ERROR_SEVERITY) received as TDS_MSG as errors
+                // to align with .NET SqlClient behavior and avoid silently ignoring fatal
+                // conditions.
+                if (infoMessage.getErrorSeverity() >= SQLServerException.FATAL_ERROR_SEVERITY) {
+                    addDatabaseError((SQLServerError) infoMessage.toSQLServerError());
+                    if (stmtlogger.isLoggable(java.util.logging.Level.SEVERE)) {
+                        stmtlogger.severe(SQLServerStatement.this + " elevated INFO (severity="
+                                + infoMessage.getErrorSeverity() + ") to error: "
+                                + infoMessage.getErrorNumber() + " - " + infoMessage.getErrorMessage());
+                    }
+                    return true;
+                }
+
                 // Create the SQLWarning and add them to the Warning chain
                 SQLWarning warning = new SQLServerWarning(infoMessage.msg);
 
