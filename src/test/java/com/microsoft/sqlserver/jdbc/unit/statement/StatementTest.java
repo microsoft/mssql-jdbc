@@ -2798,6 +2798,31 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
+         * Tests execute using PreparedStatement for Insert followed by getGenerateKeys
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testPrepStmtExecuteInsertAndGenKeys() {
+            try (Connection con = getConnection()) {
+                String sql = "INSERT INTO " + tableName + " (NAME) VALUES('test');";
+                try(PreparedStatement stmt = con.prepareStatement(sql,PreparedStatement.RETURN_GENERATED_KEYS)) {
+                    stmt.execute();
+                    int updateCount = stmt.getUpdateCount();
+                    assertEquals(updateCount, 1, "updateCount should have been 1, but received : " + updateCount);
+                    try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                        if (generatedKeys.next()) {
+                            int id = generatedKeys.getInt(1);
+                            assertEquals(id, 4, "id should have been 4, but received : " + id);
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        /**
          * Tests executeUpdate using PreparedStatement for Insert followed by getGenerateKeys
          *
          * @throws Exception
@@ -3325,7 +3350,7 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
-         * Tests PreparedStatement with triggers and generated keys to validate PR #2737 fix.
+         * Tests PreparedStatement with triggers and generated keys to validate PR #2742 fix.
          * This test validates that both update counts work correctly AND getGeneratedKeys() 
          * works when triggers are involved.
          *
