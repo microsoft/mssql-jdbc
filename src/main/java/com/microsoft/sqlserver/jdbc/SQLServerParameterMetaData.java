@@ -43,6 +43,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     private static final String SCALE = "SCALE";
     private static final String NULLABLE = "NULLABLE";
     private static final String SS_TYPE_SCHEMA_NAME = "SS_TYPE_SCHEMA_NAME";
+    /** SQL Server system type ID for structured types (Table-Valued Parameters) */
+    private static final int STRUCTURED_TYPE = 243;
 
     private final SQLServerPreparedStatement stmtParent;
     private SQLServerConnection con;
@@ -103,15 +105,32 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
                     if (null == typename) {
                         typename = rsQueryMeta.getString("suggested_user_type_name");
-                        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
-                                "select max_length, precision, scale, is_nullable from sys.assembly_types where name = ?")) {
-                            pstmt.setNString(1, typename);
-                            try (ResultSet assemblyRs = pstmt.executeQuery()) {
-                                if (assemblyRs.next()) {
-                                    qm.parameterTypeName = typename;
-                                    qm.precision = assemblyRs.getInt("max_length");
-                                    qm.scale = assemblyRs.getInt("scale");
-                                    ssType = SSType.UDT;
+                        int systemTypeId = rsQueryMeta.getInt("suggested_system_type_id");
+
+                        // Check if it's a table-valued parameter (system type id 243 is structured/table type)
+                        if (systemTypeId == STRUCTURED_TYPE) {
+                            qm.parameterTypeName = typename;
+                            qm.precision = rsQueryMeta.getInt("suggested_max_length");
+                            qm.scale = rsQueryMeta.getInt("suggested_scale");
+                            // For TVP, we need to set the appropriate type information
+                            qm.parameterType = microsoft.sql.Types.STRUCTURED;
+                            qm.parameterClassName = Object.class.getName();
+                            qm.isNullable = ParameterMetaData.parameterNullableUnknown;
+                            qm.isSigned = false;
+                            queryMetaMap.put(paramOrdinal, qm);
+                            continue; // Skip the ssType processing since we handled it directly
+                        } else {
+                            // If not a table type, check if it's an assembly type
+                            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(
+                                    "select max_length, precision, scale, is_nullable from sys.assembly_types where name = ?")) {
+                                pstmt.setNString(1, typename);
+                                try (ResultSet assemblyRs = pstmt.executeQuery()) {
+                                    if (assemblyRs.next()) {
+                                        qm.parameterTypeName = typename;
+                                        qm.precision = assemblyRs.getInt("max_length");
+                                        qm.scale = assemblyRs.getInt("scale");
+                                        ssType = SSType.UDT;
+                                    }
                                 }
                             }
                         }
