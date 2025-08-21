@@ -1478,6 +1478,98 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test procedure columns retrieval with validation.
+     */
+    @Test
+    public void testGetProcedureColumnsWithValidation() throws SQLException {
+        String schemaName = "test_Schema" + uuid;
+        String proc1 = "sproc_test1" + uuid;
+        String proc2 = "sproc_test2" + uuid;
+
+        // Setup procedures
+        setupProcedures(schemaName,
+                proc1, "@val INT AS BEGIN SELECT @val * 2; END",
+                proc2, "@val INT AS BEGIN SELECT @val * 2; END");
+
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+
+            // Fetch procedure columns
+            try (ResultSet rs = databaseMetaData.getProcedureColumns(null, schemaName, "%", "%")) {
+                int count = 0;
+                while (rs.next()) {
+                    String procedureName = rs.getString("PROCEDURE_NAME");
+                    String schema = rs.getString("PROCEDURE_SCHEM");
+
+                    // Validate procedure name
+                    assertTrue(procedureName.equals(proc1) || procedureName.equals(proc2),
+                            "Unexpected procedure name: " + procedureName);
+
+                    // Validate schema name
+                    assertEquals(schemaName, schema, "Schema name does not match");
+
+                    count++;
+                }
+
+                assertEquals(2, count, "Unexpected number of procedures found");
+            }
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropProcedureWithSchemaIfExists(schemaName + "." + proc1, stmt);
+                TestUtils.dropProcedureWithSchemaIfExists(schemaName + "." + proc2, stmt);
+
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test function columns retrieval with validation.
+     */
+    @Test
+    public void testGetFunctionColumnsWithValidation() throws SQLException {
+        String schemaName = "test_Schema" + uuid;
+        String func1 = "function_test1" + uuid;
+        String func2 = "function_test2" + uuid;
+
+        // Setup functions
+        setupFunctions(schemaName,
+                func1, "() RETURNS INT AS BEGIN RETURN 42; END",
+                func2, "() RETURNS INT AS BEGIN RETURN 42; END");
+
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+
+            // Fetch function columns
+            try (ResultSet rs = databaseMetaData.getFunctionColumns(null, schemaName, "%", "%")) {
+                int count = 0;
+                while (rs.next()) {
+                    String functionName = rs.getString("FUNCTION_NAME");
+                    String schema = rs.getString("FUNCTION_SCHEM");
+
+                    // Validate function name
+                    assertTrue(functionName.equals(func1) || functionName.equals(func2),
+                            "Unexpected function name: " + functionName);
+
+                    // Validate schema name
+                    assertEquals(schemaName, schema, "Schema name does not match");
+
+                    count++;
+                }
+
+                assertEquals(2, count, "Unexpected number of functions found");
+            }
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func1, stmt);
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func2, stmt);
+
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
+            }
+        }
+    }
+
     @BeforeAll
     public static void setupTable() throws Exception {
         setConnection();

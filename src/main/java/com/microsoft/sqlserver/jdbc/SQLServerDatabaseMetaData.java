@@ -1130,6 +1130,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 rs.getColumn(9).setFilter(new ZeroFixupFilter());
                 rs.getColumn(17).setFilter(new ZeroFixupFilter());
             }
+            rs.getColumn(3).setFilter(new ColumnNameFilter());
         }
         return rs;
     }
@@ -2948,14 +2949,14 @@ class ZeroFixupFilter extends IntColumnFilter {
 }
 
 /**
- * Provides filter to remove numbered prefixes from procedure names.
+ * Provides filter to remove numbered prefixes from procedure and function names.
  */
 class ColumnNameFilter extends ColumnFilter {
     @Override
     public Object apply(Object value, JDBCType asJDBCType) throws SQLServerException {
         if (value instanceof String) {
             String name = (String) value;
-            int idx = name.indexOf(';');
+            int idx = name.lastIndexOf(';');
             return (idx > 0) ? name.substring(0, idx) : name;
         }
         return value;
