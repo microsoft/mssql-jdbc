@@ -1438,46 +1438,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
-    @Test
-    public void testGetProcedureColumns() throws SQLException {
-        try (Connection conn = getConnection()) {
-            DatabaseMetaData databaseMetaData = conn.getMetaData();
-            String catalog = null; // Specify catalog if needed
-            String schemaPattern = null; // Specify schema pattern if needed
-            String procedureNamePattern = "%"; // Use '%' to match all procedures
-            String columnNamePattern = "%"; // Use '%' to match all columns
-
-            try (ResultSet rs = databaseMetaData.getProcedureColumns(catalog, schemaPattern, procedureNamePattern,
-                    columnNamePattern)) {
-                System.out.println("Procedure Columns:");
-                System.out.println("--------------------------------------------------");
-                int count = 0;
-                while (rs.next()) {
-                    count++;
-                    String procedureCatalog = rs.getString("PROCEDURE_CAT");
-                    String procedureSchema = rs.getString("PROCEDURE_SCHEM");
-                    String procedureName = rs.getString("PROCEDURE_NAME");
-                    String columnName = rs.getString("COLUMN_NAME");
-                    int columnType = rs.getInt("COLUMN_TYPE");
-                    int dataType = rs.getInt("DATA_TYPE");
-                    String typeName = rs.getString("TYPE_NAME");
-                    int precision = rs.getInt("PRECISION");
-                    int length = rs.getInt("LENGTH");
-                    int scale = rs.getInt("SCALE");
-                    int radix = rs.getInt("RADIX");
-                    int nullable = rs.getInt("NULLABLE");
-                    String remarks = rs.getString("REMARKS");
-
-                    System.out.printf(
-                            "Catalog: %s, Schema: %s, Procedure: %s, Column: %s, Column Type: %d, Data Type: %d, Type Name: %s, Precision: %d, Length: %d, Scale: %d, Radix: %d, Nullable: %d, Remarks: %s%n",
-                            procedureCatalog, procedureSchema, procedureName, columnName, columnType, dataType,
-                            typeName, precision, length, scale, radix, nullable, remarks);
-                }
-                System.out.printf("Total Procedure Columns Found: %d%n", count);
-            }
-        }
-    }
-
     /**
      * Test procedure columns retrieval with validation.
      */
