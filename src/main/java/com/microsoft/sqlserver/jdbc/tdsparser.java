@@ -229,6 +229,28 @@ class TDSTokenHandler {
 
     boolean onEnvChange(TDSReader tdsReader) throws SQLServerException {
         tdsReader.getConnection().processEnvChange(tdsReader);
+
+        if (tdsReader.getConnection().rolledBackTransaction()) {
+            // Debug: This is the critical path you discovered
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(tdsReader.toString() + ": " + logContext +
+                        ": CRITICAL - Transaction rollback detected in ENVCHANGE without preceding ERROR/INFO token. " +
+                        "This may indicate severity 25 sent as standalone ENVCHANGE.");
+            }
+
+            SQLServerError syntheticError = new SQLServerError();
+            syntheticError.setErrorNumber(25001); // Custom error number for tracking
+            syntheticError.setErrorSeverity(25); // Severity 25 as you observed
+
+            addDatabaseError(syntheticError);
+
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.severe(tdsReader.toString() + ": " + logContext +
+                        ": Created synthetic severity 25 error for rollback without explicit error token. " +
+                        "Error Number: " + syntheticError.getErrorNumber() +
+                        ", Severity: " + syntheticError.getErrorSeverity());
+            }
+        }
         return true;
     }
 
