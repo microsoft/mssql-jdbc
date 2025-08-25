@@ -347,6 +347,10 @@ public final class SQLServerError extends StreamPacket implements Serializable, 
         this.errorNumber = newErrorNumber;
     }
 
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
     @Override
     public SQLException toSqlExceptionOrSqlWarning() {
         return new SQLServerException(this);
