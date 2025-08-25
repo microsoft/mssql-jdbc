@@ -168,7 +168,8 @@ final class TDSParser {
 
 
 /**
- * A default TDS token handler with some meaningful default processing. Other token handlers should subclass from this
+ * A default TDS token handler with some meaningful default processing. Other
+ * token handlers should subclass from this
  * one to override the defaults and provide specialized functionality.
  *
  * ENVCHANGE_TOKEN Processes the ENVCHANGE
@@ -177,13 +178,11 @@ final class TDSParser {
  *
  * DONE_TOKEN DONEPROC_TOKEN DONEINPROC_TOKEN Ignores the returned value
  *
- * ERROR_TOKEN Remember the error and throw a SQLServerException with that error on EOF
+ * ERROR_TOKEN Remember the error and throw a SQLServerException with that error
+ * on EOF
  *
- * INFO_TOKEN: Parse and convert to SQLWarning; for critical messages (severity
- * >= SQLServerException.FATAL_ERROR_SEVERITY), upgrade to errors
- * ORDER_TOKEN COLINFO_TOKEN (not COLMETADATA_TOKEN) TABNAME_TOKEN Ignore the
- * token
- *
+ * INFO_TOKEN ORDER_TOKEN COLINFO_TOKEN (not COLMETADATA_TOKEN) TABNAME_TOKEN
+ * Ignore the token
  * EOF Throw a database exception with text from the last error token
  *
  * All other tokens Throw a TDS protocol error exception
