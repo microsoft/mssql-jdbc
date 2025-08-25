@@ -45,7 +45,13 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type")
-@Tag(Constants.vectorTest)
+@Tag(Constants.xSQLv11)
+@Tag(Constants.xSQLv12)
+@Tag(Constants.xSQLv14)
+@Tag(Constants.xSQLv15)
+@Tag(Constants.xSQLv16)
+@Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLMI)
 public class VectorTest extends AbstractTest {
 
     private static final String tableName = RandomUtil.getIdentifier("VECTOR_Test");
