@@ -307,56 +307,7 @@ class TDSTokenHandler {
     }
 
     boolean onInfo(TDSReader tdsReader) throws SQLServerException {
-        // Parse the INFO token to access severity and message details
-        SQLServerInfoMessage infoMessage = new SQLServerInfoMessage();
-        infoMessage.setFromTDS(tdsReader);
-
-        // Allow a custom server message handler (if any) to transform or ignore the
-        // message
-        ISQLServerMessageHandler msgHandler = tdsReader.getConnection().getServerMessageHandler();
-        if (msgHandler != null) {
-            ISQLServerMessage srvMessage = msgHandler.messageHandler(infoMessage);
-
-            // If the message handler chooses to ignore this message, continue parsing
-            if (srvMessage == null) {
-                return true;
-            }
-
-            // If handler upgraded it to an error, record it and continue
-            if (srvMessage.isErrorMessage()) {
-                addDatabaseError((SQLServerError) srvMessage);
-                return true;
-            }
-
-            // If still an info message, use the possibly modified message for severity
-            // decision below
-            if (srvMessage.isInfoMessage()) {
-                infoMessage = (SQLServerInfoMessage) srvMessage;
-            }
-        }
-
-        // Severity-based escalation: SQL Server may send certain critical failures
-        // (severity >= FATAL_ERROR_SEVERITY)
-        // as TDS_MSG tokens. Treat these as errors so they surface to callers
-        // consistently.
-        if (infoMessage.getErrorSeverity() >= SQLServerException.FATAL_ERROR_SEVERITY) {
-            addDatabaseError((SQLServerError) infoMessage.toSQLServerError());
-            if (logger.isLoggable(Level.SEVERE)) {
-                logger.severe(tdsReader.toString() + ": " + logContext +
-                        ": Elevated INFO (severity=" + infoMessage.getErrorSeverity() + ") to error: " +
-                        infoMessage.getErrorNumber() + " - " + infoMessage.getErrorMessage());
-            }
-            return true;
-        }
-
-        // Non-critical info: no-op here. Statement-specific handlers will surface these
-        // as statement-level warnings.
-        // Historically, INFO tokens (TDS_MSG) are attached to the executing Statement's
-        // warning chain, not the
-        // Connection. Leaving this as a no-op avoids leaking warnings to the Connection
-        // (which breaks tests
-        // that assert an empty connection warning chain after operations like USE <db>
-        // or CREATE TABLE).
+        TDSParser.ignoreLengthPrefixedToken(tdsReader);
         return true;
     }
 
