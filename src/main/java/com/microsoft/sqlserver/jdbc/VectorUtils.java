@@ -56,7 +56,7 @@ class VectorUtils {
 
         ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
 
-        buffer.position(getHeaderLength()); // Skip the first 8 bytes (header)
+        ((java.nio.Buffer) buffer).position(getHeaderLength()); // Skip the first 8 bytes (header)
 
         for (int i = 0; i < objectCount; i++) {
             objectArray[i] = buffer.getFloat();
