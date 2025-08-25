@@ -89,11 +89,7 @@ public final class SQLServerException extends java.sql.SQLException {
     static final int DATA_CLASSIFICATION_NOT_EXPECTED = 11;
     static final int DATA_CLASSIFICATION_INVALID_LABEL_INDEX = 12;
     static final int DATA_CLASSIFICATION_INVALID_INFORMATION_TYPE_INDEX = 13;
-    /**
-     * SQL Server error severity at or above which errors are considered fatal and
-     * the connection should be closed.
-     */
-    public static final int FATAL_ERROR_SEVERITY = 20;
+
     static final java.util.logging.Logger exLogger = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerException");
 
@@ -297,9 +293,9 @@ public final class SQLServerException extends java.sql.SQLException {
             }
         }
 
-        // Close the connection if we get a severity FATAL_ERROR_SEVERITY or higher
-        // (nClass is severity of error).
-        if ((sqlServerError.getErrorSeverity() >= FATAL_ERROR_SEVERITY) && (null != con)) {
+        // Close the connection if we get a severity 20 or higher error class (nClass is
+        // severity of error).
+        if ((sqlServerError.getErrorSeverity() >= 20) && (null != con)) {
             con.notifyPooledConnection(theException);
             con.close();
         }

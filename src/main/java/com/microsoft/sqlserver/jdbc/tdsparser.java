@@ -248,34 +248,18 @@ class TDSTokenHandler {
     }
 
     boolean onDone(TDSReader tdsReader) throws SQLServerException {
+        short status = tdsReader.peekStatusFlag();
         StreamDone doneToken = new StreamDone();
         doneToken.setFromTDS(tdsReader);
         if (doneToken.isFinal()) {
             // Response is completely processed hence decrement unprocessed response count.
             tdsReader.getConnection().getSessionRecovery().decrementUnprocessedResponseCount();
         }
-        if (tdsReader.getConnection().rolledBackTransaction()) {
-            // Debug: This is the critical path you discovered
-            if (logger.isLoggable(Level.WARNING)) {
-                logger.warning(tdsReader.toString() + ": " + logContext +
-                        ": CRITICAL - Transaction rollback detected in ENVCHANGE without preceding ERROR/INFO token. " +
-                        "This may indicate severity 25 sent as standalone ENVCHANGE.");
-            }
 
+        if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
             SQLServerError syntheticError = new SQLServerError();
-            syntheticError.setErrorNumber(25001); // Custom error number for tracking
-            syntheticError.setErrorSeverity(25); // Severity 25 as you observed
-            syntheticError.setErrorMessage(
-                    "A severe error occurred on the current command. The results, if any, should be discarded.");
-
+            syntheticError.setErrorMessage(SQLServerException.getErrString("R_serverError"));
             addDatabaseError(syntheticError);
-
-            if (logger.isLoggable(Level.SEVERE)) {
-                logger.severe(tdsReader.toString() + ": " + logContext +
-                        ": Created synthetic severity 25 error for rollback without explicit error token. " +
-                        "Error Number: " + syntheticError.getErrorNumber() +
-                        ", Severity: " + syntheticError.getErrorSeverity());
-            }
         }
         return true;
     }

@@ -135,8 +135,7 @@ public class ExceptionTest extends AbstractTest {
                 assertTrue(stmt.getMoreResults());
                 fail(TestResource.getResource("R_expectedFailPassed"));
             } catch (SQLException e) {
-                assertTrue(
-                                e.getMessage().contains(expectedException) || e.getMessage().contains(expectedException25Sev),
+                assertTrue(e.getMessage().contains(expectedException),
                         TestResource.getResource("R_expectedExceptionNotThrown") + e.getMessage());
             }
         } finally {
