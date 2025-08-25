@@ -107,6 +107,7 @@ public class ExceptionTest extends AbstractTest {
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ISSUE659TABLE"));
         String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ISSUE659PROC"));
         String expectedException = "Error occured during the insert";
+        String expectedException25Sev = "A severe error occurred on the current command. The results, if any, should be discarded.";
         int outputValue = 5;
         String createTableSql = "CREATE TABLE " + tableName + "(FIELD1 VARCHAR (255) NOT NULL);";
         String createProcSql = "CREATE PROCEDURE " + procName
@@ -134,7 +135,8 @@ public class ExceptionTest extends AbstractTest {
                 assertTrue(stmt.getMoreResults());
                 fail(TestResource.getResource("R_expectedFailPassed"));
             } catch (SQLException e) {
-                assertTrue(e.getMessage().contains(expectedException),
+                assertTrue(
+                                e.getMessage().contains(expectedException) || e.getMessage().contains(expectedException25Sev),
                         TestResource.getResource("R_expectedExceptionNotThrown") + e.getMessage());
             }
         } finally {
