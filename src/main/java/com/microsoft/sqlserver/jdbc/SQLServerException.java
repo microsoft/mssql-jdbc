@@ -293,8 +293,7 @@ public final class SQLServerException extends java.sql.SQLException {
             }
         }
 
-        // Close the connection if we get a severity 20 or higher error class (nClass is
-        // severity of error).
+        // Close the connection if we get a severity 20 or higher error class (nClass is severity of error).
         if ((sqlServerError.getErrorSeverity() >= 20) && (null != con)) {
             con.notifyPooledConnection(theException);
             con.close();

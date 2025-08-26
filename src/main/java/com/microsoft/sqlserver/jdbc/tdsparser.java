@@ -168,8 +168,7 @@ final class TDSParser {
 
 
 /**
- * A default TDS token handler with some meaningful default processing. Other
- * token handlers should subclass from this
+ * A default TDS token handler with some meaningful default processing. Other token handlers should subclass from this
  * one to override the defaults and provide specialized functionality.
  *
  * ENVCHANGE_TOKEN Processes the ENVCHANGE
@@ -178,11 +177,10 @@ final class TDSParser {
  *
  * DONE_TOKEN DONEPROC_TOKEN DONEINPROC_TOKEN Ignores the returned value
  *
- * ERROR_TOKEN Remember the error and throw a SQLServerException with that error
- * on EOF
+ * ERROR_TOKEN Remember the error and throw a SQLServerException with that error on EOF
  *
- * INFO_TOKEN ORDER_TOKEN COLINFO_TOKEN (not COLMETADATA_TOKEN) TABNAME_TOKEN
- * Ignore the token
+ * INFO_TOKEN ORDER_TOKEN COLINFO_TOKEN (not COLMETADATA_TOKEN) TABNAME_TOKEN Ignore the token
+ *
  * EOF Throw a database exception with text from the last error token
  *
  * All other tokens Throw a TDS protocol error exception
@@ -247,18 +245,11 @@ class TDSTokenHandler {
     }
 
     boolean onDone(TDSReader tdsReader) throws SQLServerException {
-        short status = tdsReader.peekStatusFlag();
         StreamDone doneToken = new StreamDone();
         doneToken.setFromTDS(tdsReader);
         if (doneToken.isFinal()) {
             // Response is completely processed hence decrement unprocessed response count.
             tdsReader.getConnection().getSessionRecovery().decrementUnprocessedResponseCount();
-        }
-
-        if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
-            SQLServerError syntheticError = new SQLServerError();
-            syntheticError.setErrorMessage(SQLServerException.getErrString("R_severeError"));
-            addDatabaseError(syntheticError);
         }
         return true;
     }

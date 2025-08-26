@@ -58,7 +58,7 @@ public class TDSTokenHandlerTest {
         // The first readShort call is for the status field in StreamDone
         when(mockTdsReader.readShort())
             .thenReturn(severity25ErrorStatus);
-            
+
         // Create token handler to test
         TDSTokenHandler handler = new TDSTokenHandler("Severity25Test");
         
@@ -70,9 +70,9 @@ public class TDSTokenHandlerTest {
         assertNotNull(generatedError, "SQLServerError must be generated for severity 25 error condition");
         
         // Verify the error message is the expected server error message
-        String expectedErrorMessage = SQLServerException.getErrString("R_serverError");
+        String expectedErrorMessage = SQLServerException.getErrString("R_severeError");
         assertEquals(expectedErrorMessage, generatedError.getErrorMessage(), 
-                "Generated error should have R_serverError message for fatal errors");
+                "Generated error should have R_severeError message for fatal errors");
        
     }
 }
