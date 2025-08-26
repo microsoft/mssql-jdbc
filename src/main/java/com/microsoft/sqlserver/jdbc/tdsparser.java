@@ -257,7 +257,7 @@ class TDSTokenHandler {
 
         if ((status & TDS.DONE_ERROR) != 0 || (status & TDS.DONE_SRVERROR) != 0) {
             SQLServerError syntheticError = new SQLServerError();
-            syntheticError.setErrorMessage(SQLServerException.getErrString("R_serverError"));
+            syntheticError.setErrorMessage(SQLServerException.getErrString("R_severeError"));
             addDatabaseError(syntheticError);
         }
         return true;
