@@ -58,8 +58,6 @@ import java.util.Set;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -7540,6 +7538,7 @@ final class TDSReader implements Serializable {
         this.sensitivityClassification = sensitivityClassification;
     }
 }
+
 
 /**
  * TDSCommand encapsulates an interruptable TDS conversation.

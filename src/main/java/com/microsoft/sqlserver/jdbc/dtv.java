@@ -129,7 +129,6 @@ final class DTV {
 
     /** The source (app or server) providing the data for this value. */
     private DTVImpl impl;
-    
     CryptoMetadata cryptoMeta = null;
     JDBCType jdbcTypeSetByUser = null;
     int valueLength = 0;
@@ -159,8 +158,7 @@ final class DTV {
     }
 
     final void skipValue(TypeInfo type, TDSReader tdsReader, boolean isDiscard) throws SQLServerException {
-        
-    	if (null == impl)
+        if (null == impl)
             impl = new ServerDTVImpl();
 
         impl.skipValue(type, tdsReader, isDiscard);
@@ -170,10 +168,9 @@ final class DTV {
         if (null == impl)
             impl = new ServerDTVImpl();
 
-    	impl.initFromCompressedNull();
+        impl.initFromCompressedNull();
     }
 
-    
     final void setStreamSetterArgs(StreamSetterArgs streamSetterArgs) {
         impl.setStreamSetterArgs(streamSetterArgs);
     }
@@ -213,9 +210,9 @@ final class DTV {
      * @return true if impl is not null
      */
     final boolean isInitialized() {
-        return ((null != impl) && impl.isInitialized());
+        return (null != impl);
     }
-    
+
     final void setJdbcType(JDBCType jdbcType) {
         if (null == impl)
             impl = new AppDTVImpl();
@@ -1922,10 +1919,6 @@ final class DTV {
         // typeInfo is null when called from PreparedStatement->Parameter->SendByRPC
         executeOp(new SendByRPCOp(name, typeInfo, collation, precision, outScale, isOutParam, tdsWriter, statement));
     }
-
-	public void reset() {
-		impl.reset();
-	}
 }
 
 
@@ -1940,13 +1933,7 @@ abstract class DTVImpl {
             StreamSetterArgs streamSetterArgs, Calendar cal, Integer scale, SQLServerConnection con,
             boolean forceEncrypt) throws SQLServerException;
 
-    protected abstract boolean isInitialized();
-
-	protected abstract void reset();
-
-	protected abstract void setInitialized();
-
-	abstract void setValue(Object value, JavaType javaType);
+    abstract void setValue(Object value, JavaType javaType);
 
     abstract void setStreamSetterArgs(StreamSetterArgs streamSetterArgs);
 
@@ -2380,22 +2367,6 @@ final class AppDTVImpl extends DTVImpl {
     void setInternalVariant(SqlVariant type) {
         this.internalVariant = type;
     }
-    
-    
-	@Override
-	protected boolean isInitialized() {
-		return true;
-	}
-
-	@Override
-	protected void setInitialized() {
-		//NoOp
-	}
-
-	@Override
-	protected void reset() {
-		//NoOp
-	}
 }
 
 
@@ -3372,7 +3343,6 @@ final class ServerDTVImpl extends DTVImpl {
     final void initFromCompressedNull() {
         assert valueMark == null;
         isNull = true;
-        isInitialized = true;
     }
 
     final void skipValue(TypeInfo type, TDSReader tdsReader, boolean isDiscard) throws SQLServerException {
@@ -3384,8 +3354,7 @@ final class ServerDTVImpl extends DTVImpl {
 
         if (null == valueMark)
             getValuePrep(type, tdsReader);
-
-    	tdsReader.reset(valueMark);
+        tdsReader.reset(valueMark);
         // value length zero means that the stream has been already skipped to the end - adaptive case
         if (valueLength != STREAMCONSUMED) {
             if (valueLength == DataTypes.UNKNOWN_STREAM_LENGTH) {
@@ -3413,6 +3382,7 @@ final class ServerDTVImpl extends DTVImpl {
     private void getValuePrep(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
         // If we've already seen this value before, then we shouldn't be here.
         assert null == valueMark;
+
         // Otherwise, mark the value's location, figure out its length, and determine whether it was NULL.
         switch (typeInfo.getSSLenType()) {
             case PARTLENTYPE:
@@ -3740,6 +3710,7 @@ final class ServerDTVImpl extends DTVImpl {
 
         if (!isNull) {
             tdsReader.reset(valueMark);
+
             if (encrypted) {
                 if (DataTypes.UNKNOWN_STREAM_LENGTH == valueLength) {
                     convertedValue = DDC.convertStreamToObject(
@@ -3920,10 +3891,9 @@ final class ServerDTVImpl extends DTVImpl {
 
         // Postcondition: returned object is null only if value was null.
         assert isNull || null != convertedValue;
-        setInitialized();
         return convertedValue;
     }
-    
+
     SqlVariant getInternalVariant() {
         return internalVariant;
     }
@@ -4187,23 +4157,4 @@ final class ServerDTVImpl extends DTVImpl {
 
         return daysIntoCE;
     }
-
-	@Override
-	protected boolean isInitialized() {
-		return this.isInitialized;
-	}
-
-	@Override
-	protected void setInitialized() {
-		this.isInitialized = true;
-	}
-	
-	@Override
-	protected void reset() {
-    	this.isNull = false;
-    	this.valueMark = null;
-    	this.valueLength = 0;
-    	this.internalVariant = null;
-	    this.isInitialized = false;
-	}
 }
