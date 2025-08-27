@@ -631,10 +631,6 @@ final class TDSChannel implements Serializable {
         return new TDSReader(this, con, command);
     }
 
-    final TDSReader getRowReader(TDSCommand command) {
-        return new TDSRowReader(this, con, command);
-    }
-
     // Socket for raw TCP/IP communications with SQL Server
     private transient Socket tcpSocket;
 
@@ -6671,7 +6667,7 @@ final class TDSWriter {
  */
 final class TDSPacket {
     final byte[] header = new byte[TDS.PACKET_HEADER_SIZE];
-    byte[] payload;
+    final byte[] payload;
     int payloadLength;
     volatile TDSPacket next;
 
@@ -6682,14 +6678,6 @@ final class TDSPacket {
 
     TDSPacket(int size) {
         payload = new byte[size];
-        payloadLength = 0;
-        next = null;
-    }
-    
-    public void reset(int size) {
-        if (payload.length < size) {
-            payload = new byte[size];
-        }
         payloadLength = 0;
         next = null;
     }
@@ -6717,35 +6705,12 @@ final class TDSReaderMark {
     }
 }
 
-final class TDSPacketPool {    
-    private static int INITIAL_SIZE = 2;
-    private final BlockingQueue<TDSPacket> packetQueue = new LinkedBlockingDeque<TDSPacket>();
-    TDSPacketPool() {
-        for (int i = 0; i < INITIAL_SIZE; ++i) {
-            packetQueue.add(new TDSPacket(0));
-        }
-    }
-    
-    TDSPacket get(int packetSize) {
-        if (packetQueue.isEmpty()) {
-            packetQueue.add(new TDSPacket(packetSize));
-        }        
-        TDSPacket p = packetQueue.poll();
-        p.reset(packetSize);
-        return p;
-    }
-    
-    void release(TDSPacket p) {
-        packetQueue.add(p);
-    }
-}
-
 /**
  * TDSReader encapsulates the TDS response data stream.
  *
  * Bytes are read from SQL Server into a FIFO of packets. Reader methods traverse the packets to access the data.
  */
-class TDSReader implements Serializable {
+final class TDSReader implements Serializable {
 
     /**
      * Always update serialVersionUID when prompted.
@@ -6774,9 +6739,9 @@ class TDSReader implements Serializable {
         return con;
     }
 
-    protected transient TDSPacket currentPacket = new TDSPacket(0);
+    private transient TDSPacket currentPacket = new TDSPacket(0);
     private transient TDSPacket lastPacket = currentPacket;
-    protected int payloadOffset = 0;
+    private int payloadOffset = 0;
     private int packetNum = 0;
 
     private boolean isStreaming = true;
@@ -6860,7 +6825,7 @@ class TDSReader implements Serializable {
      *
      * @return true if additional data is available to be read false if no more data is available
      */
-    protected boolean nextPacket() throws SQLServerException {
+    private boolean nextPacket() throws SQLServerException {
         assert null != currentPacket;
 
         // Shouldn't call this function unless we're at the end of the current packet...
@@ -6915,8 +6880,7 @@ class TDSReader implements Serializable {
             assert tdsChannel.numMsgsRcvd < tdsChannel.numMsgsSent : "numMsgsRcvd:" + tdsChannel.numMsgsRcvd
                     + " should be less than numMsgsSent:" + tdsChannel.numMsgsSent;
 
-            TDSPacket newPacket = newPacket(con.getTDSPacketSize());
-            //TDSPacket newPacket = tdsPacketPool.get(con.getTDSPacketSize());
+            TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
             if ((null != command) &&
             // if cancelQueryTimeout is set, we should wait for the total amount of
             // queryTimeout + cancelQueryTimeout to
@@ -7031,10 +6995,6 @@ class TDSReader implements Serializable {
         lastPacket = newPacket;
     }
 
-    protected TDSPacket newPacket(int tdsPacketSize) {
-        return new TDSPacket(tdsPacketSize);
-    }
-
     final TDSReaderMark mark() {
         TDSReaderMark mark = new TDSReaderMark(currentPacket, payloadOffset);
         isStreaming = false;
@@ -7045,34 +7005,12 @@ class TDSReader implements Serializable {
         return mark;
     }
 
-    final TDSPacket markPacket() {
-        isStreaming = false;
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this.toString() + ": Buffering from packet: " + currentPacket.toString());
-        return currentPacket;
-    }
-
-    final int markPacketOffset() {
-        isStreaming = false;
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this.toString() + ": Buffering from packet offset : " + payloadOffset);
-        return payloadOffset;
-    }
-
     final void reset(TDSReaderMark mark) {
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this.toString() + ": Resetting to: " + mark.toString());
 
         currentPacket = mark.packet;
         payloadOffset = mark.payloadOffset;
-    }
-
-    final void reset(TDSPacket markPacket, int markOffset) {
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(this.toString() + ": Resetting to: " + markPacket.toString() + " : " + markOffset);
-
-        currentPacket = markPacket;
-        payloadOffset = markOffset;
     }
 
     final void stream() {
@@ -7601,34 +7539,6 @@ class TDSReader implements Serializable {
     final void trySetSensitivityClassification(SensitivityClassification sensitivityClassification) {
         this.sensitivityClassification = sensitivityClassification;
     }
-}
-
-class TDSRowReader extends TDSReader {
-
-    TDSRowReader(TDSChannel tdsChannel, SQLServerConnection con, TDSCommand command) {
-        super(tdsChannel, con, command);
-    }
-
-    @Override
-    protected TDSPacket newPacket(int tdsPacketSize) {
-        currentPacket.reset(tdsPacketSize);
-        return currentPacket;
-    }
-
-    @Override
-    protected boolean nextPacket() throws SQLServerException {
-        boolean r = readPacket();
-        if (r) {
-            payloadOffset = 0;
-        }
-        return r;
-    }
-
-    @Override
-    protected void linkPackets(TDSPacket newPacket) {
-        //
-    }
-
 }
 
 /**

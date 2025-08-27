@@ -2622,9 +2622,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             return new SQLServerPrefetchedResultSet(this);
         }
         return new SQLServerResultSet(this);
-
     }
-
 }
 
 

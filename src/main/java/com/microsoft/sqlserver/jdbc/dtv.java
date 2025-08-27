@@ -3274,9 +3274,7 @@ final class TypeInfo implements Serializable {
 final class ServerDTVImpl extends DTVImpl {
 	
     private int valueLength;
-    //private TDSReaderMark valueMark;
-    private TDSPacket valueMarkPacket;
-    private int valueMarkOffset;
+    private TDSReaderMark valueMark;
     private boolean isNull;
     private SqlVariant internalVariant;
     private boolean isInitialized = false;
@@ -3305,9 +3303,7 @@ final class ServerDTVImpl extends DTVImpl {
     // whole value of the stream has been consumed.
     // Note this only to be used by the streams returned to the user.
     void setPositionAfterStreamed(TDSReader tdsReader) {
-    	//valueMark = tdsReader.mark();
-    	valueMarkPacket = tdsReader.markPacket();
-        valueMarkOffset = tdsReader.markPacketOffset();
+    	valueMark = tdsReader.mark();
         valueLength = STREAMCONSUMED;
     }
 
@@ -3374,8 +3370,7 @@ final class ServerDTVImpl extends DTVImpl {
     // for the DTV when a null value is
     // received from NBCROW for a particular column
     final void initFromCompressedNull() {
-        //assert valueMark == null;
-    	assert valueMarkPacket == null;
+        assert valueMark == null;
         isNull = true;
         isInitialized = true;
     }
@@ -3383,17 +3378,14 @@ final class ServerDTVImpl extends DTVImpl {
     final void skipValue(TypeInfo type, TDSReader tdsReader, boolean isDiscard) throws SQLServerException {
         // indicates that this value was obtained from NBCROW
         // So, there is nothing else to read from the wire
-        //if (null == valueMark && isNull) {
-        if (null == valueMarkPacket && isNull) {
+        if (null == valueMark && isNull) {
             return;
         }
 
-        //if (null == valueMark)
-    	if (null == valueMarkPacket)
+        if (null == valueMark)
             getValuePrep(type, tdsReader);
 
-    	//tdsReader.reset(valueMark);
-        tdsReader.reset(valueMarkPacket, valueMarkOffset);
+    	tdsReader.reset(valueMark);
         // value length zero means that the stream has been already skipped to the end - adaptive case
         if (valueLength != STREAMCONSUMED) {
             if (valueLength == DataTypes.UNKNOWN_STREAM_LENGTH) {
@@ -3420,8 +3412,7 @@ final class ServerDTVImpl extends DTVImpl {
 
     private void getValuePrep(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
         // If we've already seen this value before, then we shouldn't be here.
-        //assert null == valueMark;
-    	assert null == valueMarkPacket;
+        assert null == valueMark;
         // Otherwise, mark the value's location, figure out its length, and determine whether it was NULL.
         switch (typeInfo.getSSLenType()) {
             case PARTLENTYPE:
@@ -3470,9 +3461,7 @@ final class ServerDTVImpl extends DTVImpl {
         if (valueLength > typeInfo.getMaxLength())
             tdsReader.throwInvalidTDS();
 
-        //valueMark = tdsReader.mark();
-        valueMarkPacket = tdsReader.markPacket();
-        valueMarkOffset = tdsReader.markPacketOffset();
+        valueMark = tdsReader.mark();
     }
 
     Object denormalizedValue(byte[] decryptedValue, JDBCType jdbcType, TypeInfo baseTypeInfo, SQLServerConnection con,
@@ -3718,14 +3707,12 @@ final class ServerDTVImpl extends DTVImpl {
         // If valueMark == null and isNull, it implies that
         // the column is null according to NBCROW and that
         // there is nothing to be read from the wire.
-        //if (null == valueMark && (!isNull))
-        if (null == valueMarkPacket && (!isNull))
+        if (null == valueMark && (!isNull))
             getValuePrep(typeInfo, tdsReader);
 
         // either there should be a valueMark
         // or valueMark should be null and isNull should be set to true(NBCROW case)
-        //assert ((valueMark != null) || (valueMark == null && isNull));
-        assert ((valueMarkPacket != null) || (valueMarkPacket == null && isNull));
+        assert ((valueMark != null) || (valueMark == null && isNull));
 
         if (null != streamGetterArgs) {
             if (!streamGetterArgs.streamType.convertsFrom(typeInfo))
@@ -3752,8 +3739,7 @@ final class ServerDTVImpl extends DTVImpl {
         }
 
         if (!isNull) {
-            //tdsReader.reset(valueMark);
-        	tdsReader.reset(valueMarkPacket, valueMarkOffset);
+            tdsReader.reset(valueMark);
             if (encrypted) {
                 if (DataTypes.UNKNOWN_STREAM_LENGTH == valueLength) {
                     convertedValue = DDC.convertStreamToObject(
@@ -4215,9 +4201,7 @@ final class ServerDTVImpl extends DTVImpl {
 	@Override
 	protected void reset() {
     	this.isNull = false;
-    	//this.valueMark = null;
-    	this.valueMarkPacket = null;
-    	this.valueMarkOffset = 0;
+    	this.valueMark = null;
     	this.valueLength = 0;
     	this.internalVariant = null;
 	    this.isInitialized = false;

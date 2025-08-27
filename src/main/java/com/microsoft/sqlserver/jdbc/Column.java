@@ -140,8 +140,7 @@ final class Column {
      * Clears the values associated with this column.
      */
     final void clear() {
-        //getterDTV.clear();
-        getterDTV.reset();
+        getterDTV.clear();
     }
 
     /**

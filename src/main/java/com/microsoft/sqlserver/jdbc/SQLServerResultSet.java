@@ -233,7 +233,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
      * Skips columns between the last marked column and the target column, inclusive, optionally discarding their values
      * as they are skipped.
      */
-    protected void skipColumns(int columnsToSkip, boolean discardValues) throws SQLServerException {
+    private void skipColumns(int columnsToSkip, boolean discardValues) throws SQLServerException {
         assert lastColumnIndex >= 1;
         assert 0 <= columnsToSkip && columnsToSkip <= columns.length;
 
