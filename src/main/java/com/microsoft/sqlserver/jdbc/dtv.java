@@ -129,6 +129,7 @@ final class DTV {
 
     /** The source (app or server) providing the data for this value. */
     private DTVImpl impl;
+
     CryptoMetadata cryptoMeta = null;
     JDBCType jdbcTypeSetByUser = null;
     int valueLength = 0;
@@ -3243,14 +3244,12 @@ final class TypeInfo implements Serializable {
  * DTV implementation for values set from the TDS response stream.
  */
 final class ServerDTVImpl extends DTVImpl {
-	
     private int valueLength;
     private TDSReaderMark valueMark;
     private boolean isNull;
     private SqlVariant internalVariant;
-    private boolean isInitialized = false;
 
-	/**
+    /**
      * Sets the value of the DTV to an app-specified Java type.
      *
      * Generally, the value cannot be stored back into the TDS byte stream (although this could be done for fixed-length
@@ -3274,7 +3273,7 @@ final class ServerDTVImpl extends DTVImpl {
     // whole value of the stream has been consumed.
     // Note this only to be used by the streams returned to the user.
     void setPositionAfterStreamed(TDSReader tdsReader) {
-    	valueMark = tdsReader.mark();
+        valueMark = tdsReader.mark();
         valueLength = STREAMCONSUMED;
     }
 

@@ -6703,6 +6703,7 @@ final class TDSReaderMark {
     }
 }
 
+
 /**
  * TDSReader encapsulates the TDS response data stream.
  *
@@ -6962,7 +6963,8 @@ final class TDSReader implements Serializable {
 
             ++packetNum;
 
-            linkPackets(newPacket);
+            lastPacket.next = newPacket;
+            lastPacket = newPacket;
 
             // When logging, append the payload to the log buffer and write out the whole thing.
             if (tdsChannel.isLoggingPackets() && logBuffer != null) {
@@ -6986,11 +6988,6 @@ final class TDSReader implements Serializable {
         } finally {
             tdsReaderLock.unlock();
         }
-    }
-
-    protected void linkPackets(TDSPacket newPacket) {
-        lastPacket.next = newPacket;
-        lastPacket = newPacket;
     }
 
     final TDSReaderMark mark() {
