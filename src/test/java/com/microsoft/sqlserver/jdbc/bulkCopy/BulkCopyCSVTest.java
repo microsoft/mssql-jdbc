@@ -49,6 +49,7 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.VectorTag;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 import microsoft.sql.Vector;
@@ -620,7 +621,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestInputWithVector.csv file
      */
     @Test
-    @Tag(Constants.vectorTest)
+    @VectorTag
     public void testBulkCopyVectorFromCSV() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFile;
@@ -697,7 +698,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestInputWithMultipleVectorColumn.csv file
      */
     @Test
-    @Tag(Constants.vectorTest)
+    @VectorTag
     public void testBulkCopyVectorFromCSVWithMultipleColumns() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFileWithMultipleColumn;
