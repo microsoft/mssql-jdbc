@@ -16,7 +16,6 @@ import java.sql.Statement;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -30,7 +29,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.VectorTag;
 
 import microsoft.sql.Vector;
 import microsoft.sql.Vector.VectorDimensionType;
@@ -45,13 +44,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type")
-@Tag(Constants.xSQLv11)
-@Tag(Constants.xSQLv12)
-@Tag(Constants.xSQLv14)
-@Tag(Constants.xSQLv15)
-@Tag(Constants.xSQLv16)
-@Tag(Constants.xAzureSQLDW)
-@Tag(Constants.xAzureSQLMI)
+@VectorTag
 public class VectorTest extends AbstractTest {
 
     private static final String tableName = RandomUtil.getIdentifier("VECTOR_Test");
