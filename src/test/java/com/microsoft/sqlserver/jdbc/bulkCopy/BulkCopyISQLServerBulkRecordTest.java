@@ -89,7 +89,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Test
     public void testBulkCopyDateTimePrecision() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyDt")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement(); SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
@@ -164,7 +164,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.vectorTest)
     public void testBulkCopyVector() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVector")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -202,7 +202,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyJSON() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -236,7 +236,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyWithEmptyJsonDocument() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyEmptyJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -275,7 +275,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyMultipleJsonRowsWithDifferentStructures() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyMulti")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -317,7 +317,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyMultipleJsonRows() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyMulti")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -359,7 +359,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyMultipleJsonRowsAndColumns() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyMulti")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -460,7 +460,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyNestedJsonRows() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyNested")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -502,7 +502,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyWithVariousDataTypes() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVarious")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -540,7 +540,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyWithCountVerification() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyCount")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -664,7 +664,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorNull() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVectorNull")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -692,8 +692,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     assertEquals(1, rowCount, "Row count mismatch after inserting null vector data.");
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);

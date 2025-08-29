@@ -507,8 +507,10 @@ public final class TestUtils {
      * @throws SQLException
      */
     public static void dropUserDefinedTypeIfExists(String typeName, Statement stmt) throws SQLException {
-        stmt.executeUpdate("IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(typeName)
-                + "') DROP TYPE " + typeName);
+        String input = AbstractSQLGenerator.unEscapeIdentifier(typeName);
+        String sql = "IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(input) + "') DROP TYPE "
+                + AbstractSQLGenerator.escapeIdentifier(input);
+        stmt.executeUpdate(sql);
     }
 
     /**

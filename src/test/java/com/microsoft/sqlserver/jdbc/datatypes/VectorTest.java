@@ -5,6 +5,14 @@
 
 package com.microsoft.sqlserver.jdbc.datatypes;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
@@ -13,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -35,14 +44,6 @@ import com.microsoft.sqlserver.testframework.Constants;
 import microsoft.sql.Vector;
 import microsoft.sql.Vector.VectorDimensionType;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type")
 @Tag(Constants.vectorTest)
@@ -52,6 +53,9 @@ public class VectorTest extends AbstractTest {
     private static final String tableNameWithMultipleVectorColumn = RandomUtil.getIdentifier("VECTOR_Test_MultipleColumn");
     private static final String maxVectorDataTableName = RandomUtil.getIdentifier("Max_Vector_Test");
     private static final String procedureName = RandomUtil.getIdentifier("VECTOR_Test_Proc");
+    private static final String functionName = RandomUtil.getIdentifier("VECTOR_Test_Func");
+    private static final String functionTvpName = RandomUtil.getIdentifier("VECTOR_Test_TVP_Func");
+    private static final String vectorUdf = RandomUtil.getIdentifier("VectorUdf");
     private static final String TABLE_NAME = RandomUtil.getIdentifier("VECTOR_TVP_Test");
     private static final String TVP_NAME = RandomUtil.getIdentifier("VECTOR_TVP_Test_Type");
     private static final String TVP = RandomUtil.getIdentifier("VECTOR_TVP_UDF_Test_Type");
@@ -82,6 +86,8 @@ public class VectorTest extends AbstractTest {
             TestUtils.dropTypeIfExists(TVP_NAME, stmt);
             TestUtils.dropTableIfExists(TABLE_NAME, stmt);
             TestUtils.dropProcedureIfExists(procedureName, stmt);
+            TestUtils.dropFunctionIfExists(functionName, stmt);
+            TestUtils.dropFunctionIfExists(functionTvpName, stmt);
         }
     }
 
@@ -541,53 +547,54 @@ public class VectorTest extends AbstractTest {
     @Test
     void testValidateVectorWhenVectorFEIsDisabled() throws SQLException {
         // Setup: create a logs table with VECTOR and VARCHAR columns
-        String logsTable = AbstractSQLGenerator.escapeIdentifier("logs");
+        String logsTable = TestUtils.escapeSingleQuotes(
+                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("vectorLogsFeiDisabled")));
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(logsTable, stmt);
             stmt.executeUpdate("CREATE TABLE " + logsTable + " (v VECTOR(3))");
-        }
 
-        // Insert a row
-        Object[] vectorData = new Float[] { 1.23f, 4.56f, 7.89f };
-        Vector vector = new Vector(3, VectorDimensionType.FLOAT32, vectorData);
-        String insertSql = "INSERT INTO " + logsTable + " (v) VALUES (?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
-            pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
-            pstmt.executeUpdate();
-        }
+            // Insert a row
+            Object[] vectorData = new Float[] { 1.23f, 4.56f, 7.89f };
+            Vector vector = new Vector(3, VectorDimensionType.FLOAT32, vectorData);
+            String insertSql = "INSERT INTO " + logsTable + " (v) VALUES (?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+                pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
 
-        // Use a new connection with disableVectorV1=true
-        try (SQLServerConnection conn = getConnectionWithVectorFlag("off");
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT * FROM " + logsTable)) {
+            // Use a new connection with disableVectorV1=true
+            try (SQLServerConnection conn = getConnectionWithVectorFlag("off");
+                    Statement stmt2 = conn.createStatement();
+                    ResultSet rs = stmt2.executeQuery("SELECT * FROM " + logsTable)) {
 
-            ResultSetMetaData meta = rs.getMetaData();
-            int columnCount = meta.getColumnCount();
+                ResultSetMetaData meta = rs.getMetaData();
+                int columnCount = meta.getColumnCount();
 
-            assertTrue(rs.next(), "No result found in logs table.");
+                assertTrue(rs.next(), "No result found in logs table.");
 
-            for (int i = 1; i <= columnCount; i++) {
-                int columnType = meta.getColumnType(i);
+                for (int i = 1; i <= columnCount; i++) {
+                    int columnType = meta.getColumnType(i);
 
-                Object value = null;
-                switch (columnType) {
-                    case java.sql.Types.VARCHAR: // It will be returned as a string
-                        value = rs.getString(i);
-                        assertEquals("[1.2300000e+000,4.5599999e+000,7.8899999e+000]", value,
-                                "VARCHAR column value mismatch.");
-                        break;
-                    case microsoft.sql.Types.VECTOR:
-                        value = rs.getObject(i, Vector.class);
-                        assertNotNull(value, "Vector column is null.");
-                        assertArrayEquals(vectorData, ((Vector) value).getData(), "Vector data mismatch.");
-                        assertEquals(3, ((Vector) value).getDimensionCount(), "Dimension count mismatch.");
-                        assertEquals(VectorDimensionType.FLOAT32, ((Vector) value).getVectorDimensionType(),
-                                "Dimension type mismatch.");
-                        String expectedToString = "VECTOR(FLOAT32, 3) : [1.23, 4.56, 7.89]";
-                        assertEquals(expectedToString, ((Vector) value).toString(), "Vector toString output mismatch.");
-                        break;
-                    default:
-                        throw new SQLException("Unexpected column type: " + columnType);
+                    Object value = null;
+                    switch (columnType) {
+                        case java.sql.Types.VARCHAR: // It will be returned as a string
+                            value = rs.getString(i);
+                            assertEquals("[1.2300000e+000,4.5599999e+000,7.8899999e+000]", value,
+                                    "VARCHAR column value mismatch.");
+                            break;
+                        case microsoft.sql.Types.VECTOR:
+                            value = rs.getObject(i, Vector.class);
+                            assertNotNull(value, "Vector column is null.");
+                            assertArrayEquals(vectorData, ((Vector) value).getData(), "Vector data mismatch.");
+                            assertEquals(3, ((Vector) value).getDimensionCount(), "Dimension count mismatch.");
+                            assertEquals(VectorDimensionType.FLOAT32, ((Vector) value).getVectorDimensionType(),
+                                    "Dimension type mismatch.");
+                            String expectedToString = "VECTOR(FLOAT32, 3) : [1.23, 4.56, 7.89]";
+                            assertEquals(expectedToString, ((Vector) value).toString(), "Vector toString output mismatch.");
+                            break;
+                        default:
+                            throw new SQLException("Unexpected column type: " + columnType);
+                    }
                 }
             }
         } finally {
@@ -606,53 +613,54 @@ public class VectorTest extends AbstractTest {
     @Test
     void testValidateVectorWhenVectorFEIsEnabled() throws SQLException {
         // Setup: create a logs table with VECTOR and VARCHAR columns
-        String logsTable = AbstractSQLGenerator.escapeIdentifier("logs");
+        String logsTable = TestUtils.escapeSingleQuotes(
+                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("vectorLogsFeiEnabled")));
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(logsTable, stmt);
             stmt.executeUpdate("CREATE TABLE " + logsTable + " (v VECTOR(3))");
-        }
 
-        // Insert a row
-        Object[] vectorData = new Float[] { 1.23f, 4.56f, 7.89f };
-        Vector vector = new Vector(3, VectorDimensionType.FLOAT32, vectorData);
-        String insertSql = "INSERT INTO " + logsTable + " (v) VALUES (?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
-            pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
-            pstmt.executeUpdate();
-        }
+            // Insert a row
+            Object[] vectorData = new Float[] { 1.23f, 4.56f, 7.89f };
+            Vector vector = new Vector(3, VectorDimensionType.FLOAT32, vectorData);
+            String insertSql = "INSERT INTO " + logsTable + " (v) VALUES (?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+                pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
 
-        // Use a new connection with disableVectorV1=false
-        try (SQLServerConnection conn = getConnectionWithVectorFlag("v1");
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery("SELECT * FROM " + logsTable)) {
+            // Use a new connection with disableVectorV1=false
+            try (SQLServerConnection conn = getConnectionWithVectorFlag("v1");
+                    Statement stmt2 = conn.createStatement();
+                    ResultSet rs = stmt2.executeQuery("SELECT * FROM " + logsTable)) {
 
-            ResultSetMetaData meta = rs.getMetaData();
-            int columnCount = meta.getColumnCount();
+                ResultSetMetaData meta = rs.getMetaData();
+                int columnCount = meta.getColumnCount();
 
-            assertTrue(rs.next(), "No result found in logs table.");
+                assertTrue(rs.next(), "No result found in logs table.");
 
-            for (int i = 1; i <= columnCount; i++) {
-                int columnType = meta.getColumnType(i);
+                for (int i = 1; i <= columnCount; i++) {
+                    int columnType = meta.getColumnType(i);
 
-                Object value = null;
-                switch (columnType) {
-                    case java.sql.Types.VARCHAR:
-                        value = rs.getString(i);
-                        assertEquals("[1.2300000e+000,4.5599999e+000,7.8899999e+000]", value,
-                                "VARCHAR column value mismatch.");
-                        break;
-                    case microsoft.sql.Types.VECTOR: // It will be returned as a vector
-                        value = rs.getObject(i, Vector.class);
-                        assertNotNull(value, "Vector column is null.");
-                        assertArrayEquals(vectorData, ((Vector) value).getData(), "Vector data mismatch.");
-                        assertEquals(3, ((Vector) value).getDimensionCount(), "Dimension count mismatch.");
-                        assertEquals(VectorDimensionType.FLOAT32, ((Vector) value).getVectorDimensionType(),
-                                "Dimension type mismatch.");
-                        String expectedToString = "VECTOR(FLOAT32, 3) : [1.23, 4.56, 7.89]";
-                        assertEquals(expectedToString, ((Vector) value).toString(), "Vector toString output mismatch.");
-                        break;
-                    default:
-                        throw new SQLException("Unexpected column type: " + columnType);
+                    Object value = null;
+                    switch (columnType) {
+                        case java.sql.Types.VARCHAR:
+                            value = rs.getString(i);
+                            assertEquals("[1.2300000e+000,4.5599999e+000,7.8899999e+000]", value,
+                                    "VARCHAR column value mismatch.");
+                            break;
+                        case microsoft.sql.Types.VECTOR: // It will be returned as a vector
+                            value = rs.getObject(i, Vector.class);
+                            assertNotNull(value, "Vector column is null.");
+                            assertArrayEquals(vectorData, ((Vector) value).getData(), "Vector data mismatch.");
+                            assertEquals(3, ((Vector) value).getDimensionCount(), "Dimension count mismatch.");
+                            assertEquals(VectorDimensionType.FLOAT32, ((Vector) value).getVectorDimensionType(),
+                                    "Dimension type mismatch.");
+                            String expectedToString = "VECTOR(FLOAT32, 3) : [1.23, 4.56, 7.89]";
+                            assertEquals(expectedToString, ((Vector) value).toString(), "Vector toString output mismatch.");
+                            break;
+                        default:
+                            throw new SQLException("Unexpected column type: " + columnType);
+                    }
                 }
             }
         } finally {
@@ -669,41 +677,42 @@ public class VectorTest extends AbstractTest {
     @Test
     void testInvalidVectorTypeSupportConnectionProperty() throws SQLException {
         // Setup: create a logs table with VECTOR and VARCHAR columns
-        String logsTable = AbstractSQLGenerator.escapeIdentifier("logs");
+        String logsTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("vectorLogs")));
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(logsTable, stmt);
             stmt.executeUpdate("CREATE TABLE " + logsTable + " (v VECTOR(3))");
-        }
 
-        // Insert a row
-        Object[] vectorData = new Float[] { 1.23f, 4.56f, 7.89f };
-        Vector vector = new Vector(3, VectorDimensionType.FLOAT32, vectorData);
-        String insertSql = "INSERT INTO " + logsTable + " (v) VALUES (?)";
-        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
-            pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
-            pstmt.executeUpdate();
-        }
+            // Insert a row
+            Object[] vectorData = new Float[] { 1.23f, 4.56f, 7.89f };
+            Vector vector = new Vector(3, VectorDimensionType.FLOAT32, vectorData);
+            String insertSql = "INSERT INTO " + logsTable + " (v) VALUES (?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+                pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
 
-        // Try to open a connection with an invalid vectorTypeSupport value and check
-        // for failure
-        boolean exceptionThrown = false;
-        try {
-            SQLServerConnection conn = getConnectionWithVectorFlag("1");
-            // If no exception, close the connection and fail the test
-            conn.close();
-            fail("Expected IllegalArgumentException for invalid vectorTypeSupport value, but none was thrown.");
-        } catch (IllegalArgumentException e) {
-            exceptionThrown = true;
-            assertTrue(
-                    e.getMessage().contains("Incorrect connection string property for vectorTypeSupport: 1"),
-                    "Unexpected exception message: " + e.getMessage());
-        }
+            // Try to open a connection with an invalid vectorTypeSupport value and check
+            // for failure
+            boolean exceptionThrown = false;
+            try {
+                SQLServerConnection conn = getConnectionWithVectorFlag("1");
+                // If no exception, close the connection and fail the test
+                conn.close();
+                fail("Expected IllegalArgumentException for invalid vectorTypeSupport value, but none was thrown.");
+            } catch (IllegalArgumentException e) {
+                exceptionThrown = true;
+                assertTrue(
+                        e.getMessage().contains("Incorrect connection string property for vectorTypeSupport: 1"),
+                        "Unexpected exception message: " + e.getMessage());
+            }
 
-        assertTrue(exceptionThrown, "Expected IllegalArgumentException was not thrown.");
-
-        // Cleanup
-        try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(logsTable, stmt);
+            assertTrue(exceptionThrown, "Expected IllegalArgumentException was not thrown.");
+        } finally {
+            // Cleanup
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(logsTable, stmt);
+            }
         }
     }
 
@@ -1006,8 +1015,8 @@ public class VectorTest extends AbstractTest {
      */
     @Test
     public void testStoredProcedureReturnsTVPWithVector() throws SQLException {
-        String tvpTypeName = AbstractSQLGenerator.escapeIdentifier("VectorTVPType");
-        String procName = AbstractSQLGenerator.escapeIdentifier("sp_ReturnVectorTVP");
+        String tvpTypeName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("VectorTVPType"));
+        String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("sp_ReturnVectorTVP"));
 
         // Create TVP type
         try (Statement stmt = connection.createStatement()) {
@@ -1057,7 +1066,7 @@ public class VectorTest extends AbstractTest {
     private static void createVectorUdf() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             String sql =
-                "CREATE OR ALTER FUNCTION " + AbstractSQLGenerator.escapeIdentifier("EchoVectorUdf") + "\n" +
+                "CREATE OR ALTER FUNCTION " + AbstractSQLGenerator.escapeIdentifier(functionName) + "\n" +
                 "(@v VECTOR(3))\n" +
                 "RETURNS VECTOR(3)\n" +
                 "AS\n" +
@@ -1085,7 +1094,7 @@ public class VectorTest extends AbstractTest {
             pstmt.executeUpdate();
         }
 
-        String query = "SELECT dbo." + AbstractSQLGenerator.escapeIdentifier("EchoVectorUdf") + "((SELECT TOP 1 v FROM #vec_input));";
+        String query = "SELECT dbo." + AbstractSQLGenerator.escapeIdentifier(functionName) + "((SELECT TOP 1 v FROM #vec_input));";
         try (PreparedStatement selectStmt = connection.prepareStatement(query);
             ResultSet rs = selectStmt.executeQuery()) {
             assertTrue(rs.next(), "Result set is empty");
@@ -1115,7 +1124,7 @@ public class VectorTest extends AbstractTest {
         tvp.addRow(v1);
         tvp.addRow(v2);
 
-        String query = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier("VectorUdf") + "(?)";
+        String query = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(vectorUdf) + "(?)";
         try (SQLServerPreparedStatement selectStmt = (SQLServerPreparedStatement) connection.prepareStatement(query)) {
             selectStmt.setStructured(1, TVP, tvp);
             try (ResultSet rs = selectStmt.executeQuery()) {
@@ -1133,7 +1142,7 @@ public class VectorTest extends AbstractTest {
                 assertEquals(2, rowCount, "Row count mismatch.");
             } finally {
                 try (Statement stmt = connection.createStatement()) {
-                    TestUtils.dropFunctionIfExists(AbstractSQLGenerator.escapeIdentifier("VectorUdf"), stmt);
+                    TestUtils.dropFunctionIfExists(AbstractSQLGenerator.escapeIdentifier(vectorUdf), stmt);
                 }
             }
         }
@@ -1141,7 +1150,7 @@ public class VectorTest extends AbstractTest {
 
     private static void createTVPReturnUdf() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            String sql = "CREATE OR ALTER FUNCTION " + AbstractSQLGenerator.escapeIdentifier("VectorUdf") +
+            String sql = "CREATE OR ALTER FUNCTION " + AbstractSQLGenerator.escapeIdentifier(vectorUdf) +
                     "(@tvpInput " + AbstractSQLGenerator.escapeIdentifier(TVP) + " READONLY)\n" +
                     "RETURNS TABLE\n" +
                     "AS\n" +
@@ -1157,8 +1166,8 @@ public class VectorTest extends AbstractTest {
      */
     @Test
     public void testSelectIntoForVector() throws SQLException {
-        String sourceTable = AbstractSQLGenerator.escapeIdentifier("srcTableVector");
-        String destinationTable = AbstractSQLGenerator.escapeIdentifier("desTable");
+        String sourceTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("srcTableVector"));
+        String destinationTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("desTable"));
 
         try (Statement stmt = connection.createStatement()) {
             // Create the source table
@@ -1316,7 +1325,8 @@ public class VectorTest extends AbstractTest {
     public void testVectorNormalizeUdf() throws SQLException {
         String vectorsTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Vectors")));
-        String udfName = "dbo.udf2";
+        String udfName = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(functionTvpName));
 
         try (Statement stmt = connection.createStatement()) {
             // Create the UDF
@@ -1374,7 +1384,8 @@ public class VectorTest extends AbstractTest {
     public void testVectorNormalizeScalarFunction() throws SQLException {
         String vectorsTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Vectors")));
-        String udfName = "dbo.svf";
+        String udfName = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("svf")));
 
         try (Statement stmt = connection.createStatement()) {
             // Drop table and UDF if they already exist
@@ -1440,84 +1451,84 @@ public class VectorTest extends AbstractTest {
      */
     @Test
     public void testTransactionRollbackForVector() throws SQLException {
-        String transactionTable = AbstractSQLGenerator.escapeIdentifier("transactionTable");
+        String transactionTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("transactionTable"));
 
         // Create the table
-        try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(transactionTable, stmt);
+        try (Statement outerStmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(transactionTable, outerStmt);
             String createTableSQL = "CREATE TABLE " + transactionTable + " (id INT PRIMARY KEY, v VECTOR(3))";
-            stmt.executeUpdate(createTableSQL);
-        }
+            outerStmt.executeUpdate(createTableSQL);
 
-        // Insert initial data
-        Object[] initialData = new Float[] { 1.0f, 2.0f, 3.0f };
-        Vector initialVector = new Vector(3, VectorDimensionType.FLOAT32, initialData);
-
-        try (PreparedStatement pstmt = connection.prepareStatement(
-                "INSERT INTO " + transactionTable + " (id, v) VALUES (?, ?)")) {
-            pstmt.setInt(1, 1);
-            pstmt.setObject(2, initialVector, microsoft.sql.Types.VECTOR);
-            pstmt.executeUpdate();
-        }
-
-        // Start a transaction
-        connection.setAutoCommit(false);
-        try {
-            // Insert new data
-            Object[] newData = new Float[] { 4.0f, 5.0f, 6.0f };
-            Vector newVector = new Vector(3, VectorDimensionType.FLOAT32, newData);
+            // Insert initial data
+            Object[] initialData = new Float[] { 1.0f, 2.0f, 3.0f };
+            Vector initialVector = new Vector(3, VectorDimensionType.FLOAT32, initialData);
 
             try (PreparedStatement pstmt = connection.prepareStatement(
                     "INSERT INTO " + transactionTable + " (id, v) VALUES (?, ?)")) {
-                pstmt.setInt(1, 2);
-                pstmt.setObject(2, newVector, microsoft.sql.Types.VECTOR);
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, initialVector, microsoft.sql.Types.VECTOR);
                 pstmt.executeUpdate();
             }
 
-            // Update existing data
-            Object[] updatedData = new Float[] { 7.0f, 8.0f, 9.0f };
-            Vector updatedVector = new Vector(3, VectorDimensionType.FLOAT32, updatedData);
+            // Start a transaction
+            connection.setAutoCommit(false);
+            try {
+                // Insert new data
+                Object[] newData = new Float[] { 4.0f, 5.0f, 6.0f };
+                Vector newVector = new Vector(3, VectorDimensionType.FLOAT32, newData);
 
-            try (PreparedStatement pstmt = connection.prepareStatement(
-                    "UPDATE " + transactionTable + " SET v = ? WHERE id = ?")) {
-                pstmt.setObject(1, updatedVector, microsoft.sql.Types.VECTOR);
-                pstmt.setInt(2, 1);
-                pstmt.executeUpdate();
+                try (PreparedStatement pstmt = connection.prepareStatement(
+                        "INSERT INTO " + transactionTable + " (id, v) VALUES (?, ?)")) {
+                    pstmt.setInt(1, 2);
+                    pstmt.setObject(2, newVector, microsoft.sql.Types.VECTOR);
+                    pstmt.executeUpdate();
+                }
+
+                // Update existing data
+                Object[] updatedData = new Float[] { 7.0f, 8.0f, 9.0f };
+                Vector updatedVector = new Vector(3, VectorDimensionType.FLOAT32, updatedData);
+
+                try (PreparedStatement pstmt = connection.prepareStatement(
+                        "UPDATE " + transactionTable + " SET v = ? WHERE id = ?")) {
+                    pstmt.setObject(1, updatedVector, microsoft.sql.Types.VECTOR);
+                    pstmt.setInt(2, 1);
+                    pstmt.executeUpdate();
+                }
+
+                // Delete a row
+                try (PreparedStatement pstmt = connection.prepareStatement(
+                        "DELETE FROM " + transactionTable + " WHERE id = ?")) {
+                    pstmt.setInt(1, 2);
+                    pstmt.executeUpdate();
+                }
+
+                // Simulate a failure
+                throw new RuntimeException("Simulated failure to trigger rollback");
+
+            } catch (RuntimeException e) {
+                // Rollback the transaction
+                connection.rollback();
+                System.out.println("Transaction rolled back due to: " + e.getMessage());
+            } finally {
+                // Restore auto-commit mode
+                connection.setAutoCommit(true);
             }
 
-            // Delete a row
-            try (PreparedStatement pstmt = connection.prepareStatement(
-                    "DELETE FROM " + transactionTable + " WHERE id = ?")) {
-                pstmt.setInt(1, 2);
-                pstmt.executeUpdate();
+            // Validate that the data is restored to its original state
+            String validateSql = "SELECT id, v FROM " + transactionTable + " ORDER BY id";
+            try (Statement stmt = connection.createStatement();
+                    ResultSet rs = stmt.executeQuery(validateSql)) {
+
+                assertTrue(rs.next(), "No data found in the table after rollback.");
+                int id = rs.getInt("id");
+                Vector resultVector = rs.getObject("v", Vector.class);
+
+                assertEquals(1, id, "ID mismatch after rollback.");
+                assertNotNull(resultVector, "Vector is null after rollback.");
+                assertArrayEquals(initialData, resultVector.getData(), "Vector data mismatch after rollback.");
+
+                assertFalse(rs.next(), "Unexpected additional rows found after rollback.");
             }
-
-            // Simulate a failure
-            throw new RuntimeException("Simulated failure to trigger rollback");
-
-        } catch (RuntimeException e) {
-            // Rollback the transaction
-            connection.rollback();
-            System.out.println("Transaction rolled back due to: " + e.getMessage());
-        } finally {
-            // Restore auto-commit mode
-            connection.setAutoCommit(true);
-        }
-
-        // Validate that the data is restored to its original state
-        String validateSql = "SELECT id, v FROM " + transactionTable + " ORDER BY id";
-        try (Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery(validateSql)) {
-
-            assertTrue(rs.next(), "No data found in the table after rollback.");
-            int id = rs.getInt("id");
-            Vector resultVector = rs.getObject("v", Vector.class);
-
-            assertEquals(1, id, "ID mismatch after rollback.");
-            assertNotNull(resultVector, "Vector is null after rollback.");
-            assertArrayEquals(initialData, resultVector.getData(), "Vector data mismatch after rollback.");
-
-            assertFalse(rs.next(), "Unexpected additional rows found after rollback.");
         } finally {
             // Cleanup: Drop the table
             try (Statement stmt = connection.createStatement()) {
@@ -1534,8 +1545,8 @@ public class VectorTest extends AbstractTest {
      */
     @Test
     public void testViewWithVectorDataType() throws SQLException {
-        String tableName = AbstractSQLGenerator.escapeIdentifier("VectorTable");
-        String viewName = AbstractSQLGenerator.escapeIdentifier("VectorView");
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("VectorTable"));
+        String viewName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("VectorView"));
 
         try (Statement stmt = connection.createStatement()) {
             // Create the table

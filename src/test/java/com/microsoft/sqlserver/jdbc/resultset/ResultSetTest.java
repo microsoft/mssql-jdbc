@@ -31,11 +31,6 @@ import java.time.OffsetTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
-import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,10 +41,15 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 @RunWith(JUnitPlatform.class)
 public class ResultSetTest extends AbstractTest {
@@ -716,8 +716,8 @@ public class ResultSetTest extends AbstractTest {
     @Test
     @Tag(Constants.JSONTest)
     public void testCastOnJSON() throws SQLException {
-        String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+        String dstTable = TestUtils.escapeSingleQuotes(
+                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableCastJson")));
 
         String jsonData = "{\"key\":\"123\"}";
 
