@@ -5,6 +5,9 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+/**
+ * Enum representing different performance activities.
+ */
 public enum PerformanceActivity {
     CONNECTION("Connection"),
     TOKEN_ACQUISITION("Token acquisition"),

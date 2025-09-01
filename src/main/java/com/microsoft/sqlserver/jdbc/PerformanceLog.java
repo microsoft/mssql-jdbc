@@ -8,15 +8,33 @@ package com.microsoft.sqlserver.jdbc;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class PerformanceLog {
+class PerformanceLog {
 
     static final java.util.logging.Logger perfLoggerConnection = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.PerformanceMetrics.Connection");
 
     private static PerformanceLogCallback callback;
+    private static boolean callbackInitialized = false;
 
-    public static void setCallback(PerformanceLogCallback cb) {
+    /**
+     * Register a callback for performance log events.
+     *
+     * @param cb The callback to register.
+     */
+    public static synchronized void registerCallback(PerformanceLogCallback cb) {
+        if (callbackInitialized) {
+            throw new IllegalStateException("Callback has already been set");
+        }
         callback = cb;
+        callbackInitialized = true;
+    }
+
+    /**
+     * Unregister the callback for performance log events.
+     */
+    public static synchronized void unregisterCallback() {
+        callback = null;
+        callbackInitialized = false;
     }
 
     //TODO
@@ -33,6 +51,7 @@ public class PerformanceLog {
 
         public Scope(Logger logger, String logPrefix, PerformanceActivity activity) {
 
+            // Check if logging is enabled
             this.enabled = logger.isLoggable(Level.INFO) || (callback != null);
 
             if (enabled) {
@@ -56,11 +75,10 @@ public class PerformanceLog {
 
             long endTime = System.currentTimeMillis();
             long duration = endTime - startTime;
-            String exceptionMsg = (exception != null) ? exception.getMessage() : null;
 
             if (callback != null) {
                 try {
-                    callback.publish(duration, activity, exceptionMsg);
+                    callback.publish(duration, activity, exception);
                 } catch (Exception e) {
                     logger.info(String.format("Failed to publish performance log: %s", e.getMessage()));
                 }
@@ -68,9 +86,9 @@ public class PerformanceLog {
 
             if (logger != null && logger.isLoggable(Level.INFO)) {
                 if (exception != null) {
-                    logger.info(String.format("%d %s %s, duration: %dms, exception: %s", endTime, logPrefix, activity, duration, exceptionMsg));
+                    logger.info(String.format("%s %s, duration: %dms, exception: %s", logPrefix, activity, duration, exception.getMessage()));
                 } else {
-                    logger.info(String.format("%d %s %s, duration: %dms", endTime, logPrefix, activity, duration));
+                    logger.info(String.format("%s %s, duration: %dms", logPrefix, activity, duration));
                 }
             }
 

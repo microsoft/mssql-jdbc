@@ -61,12 +61,12 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
         PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
             @Override
-            public void publish(long durationMs, PerformanceActivity activity, String exceptionMessage) {
+            public void publish(long durationMs, PerformanceActivity activity, Exception exception) {
                 called.set(true);
             }
         };
 
-        PerformanceLog.setCallback(callbackInstance);
+        PerformanceLog.registerCallback(callbackInstance);
 
         try (Connection con = getConnection()) {
             DatabaseMetaData metaData = con.getMetaData();

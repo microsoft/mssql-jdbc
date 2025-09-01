@@ -15,8 +15,8 @@ public interface PerformanceLogCallback {
      *
      * @param durationMs      The duration of the operation in milliseconds.
      * @param activity        The type of activity being logged.
-     * @param exceptionMessage An exception message, if an error occurred.
+     * @param exception       An exception, if an error occurred.
      */
-    void publish(long durationMs, PerformanceActivity activity, String exceptionMessage);
+    void publish(long durationMs, PerformanceActivity activity, Exception exception) throws Exception;
 
 }
