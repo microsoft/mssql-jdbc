@@ -44,12 +44,12 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
-import com.microsoft.sqlserver.testframework.VectorTag;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 import microsoft.sql.Vector;
@@ -621,7 +621,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestInputWithVector.csv file
      */
     @Test
-    @VectorTag
+    @AzureDB
     public void testBulkCopyVectorFromCSV() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFile;
@@ -698,7 +698,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestInputWithMultipleVectorColumn.csv file
      */
     @Test
-    @VectorTag
+    @AzureDB
     public void testBulkCopyVectorFromCSVWithMultipleColumns() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFileWithMultipleColumn;
@@ -765,7 +765,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestWithMultipleVectorColumnWithPipeDelimiter.csv file
      */
     @Test
-    @Tag(Constants.vectorTest)
+    @AzureDB
     public void testBulkCopyVectorFromCSVWithMultipleColumnsWithPipeDelimiter() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFileWithMultipleColumnWithPipeDelimiter;
@@ -832,7 +832,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * metadata.
      */
     @Test
-    @Tag(Constants.vectorTest)
+    @AzureDB
     public void testBulkCopyVectorFromCSVWithIncorrectDimension() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFile;

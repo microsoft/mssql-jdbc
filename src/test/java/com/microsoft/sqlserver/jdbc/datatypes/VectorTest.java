@@ -29,7 +29,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.VectorTag;
+import com.microsoft.sqlserver.testframework.AzureDB;
 
 import microsoft.sql.Vector;
 import microsoft.sql.Vector.VectorDimensionType;
@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type")
-@VectorTag
+@AzureDB
 public class VectorTest extends AbstractTest {
 
     private static final String tableName = RandomUtil.getIdentifier("VECTOR_Test");
