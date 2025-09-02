@@ -8,9 +8,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
@@ -528,43 +528,49 @@ public class BatchExecutionTest extends AbstractTest {
 
     @Test
     public void testBatchStatementCancellation() throws Exception {
+        String testTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("test_table"));
         try (Connection connection = PrepUtil.getConnection(connectionString)) {
             connection.setAutoCommit(false);
 
-            try (PreparedStatement statement = connection
-                    .prepareStatement("if object_id('test_table') is not null drop table test_table")) {
-                statement.execute();
+            try (Statement statement = connection.createStatement()) {
+                TestUtils.dropTableIfExists(testTable, statement);
             }
             connection.commit();
 
-            try (PreparedStatement statement = connection
-                    .prepareStatement("create table test_table (column_name bit)")) {
-                statement.execute();
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("create table " + testTable + " (column_name bit)");
             }
             connection.commit();
 
-            for (long delayInMilliseconds : new long[] {1, 2, 4, 8, 16, 32, 64, 128}) {
-                for (int numberOfCommands : new int[] {1, 2, 4, 8, 16, 32, 64}) {
-                    int parameterCount = 512;
+            try {
+                for (long delayInMilliseconds : new long[] {1, 2, 4, 8, 16, 32, 64, 128}) {
+                    for (int numberOfCommands : new int[] {1, 2, 4, 8, 16, 32, 64}) {
+                        int parameterCount = 512;
 
-                    try (PreparedStatement statement = connection.prepareStatement(
-                            "insert into test_table values (?)" + repeat(",(?)", parameterCount - 1))) {
+                        try (PreparedStatement statement = connection.prepareStatement(
+                                "insert into " + testTable + " values (?)" + repeat(",(?)", parameterCount - 1))) {
 
-                        for (int i = 0; i < numberOfCommands; i++) {
-                            for (int j = 0; j < parameterCount; j++) {
-                                statement.setBoolean(j + 1, true);
+                            for (int i = 0; i < numberOfCommands; i++) {
+                                for (int j = 0; j < parameterCount; j++) {
+                                    statement.setBoolean(j + 1, true);
+                                }
+                                statement.addBatch();
                             }
-                            statement.addBatch();
-                        }
 
-                        Thread cancelThread = cancelAsync(statement, delayInMilliseconds);
-                        try {
-                            statement.executeBatch();
-                        } catch (SQLException e) {
-                            assertEquals(TestResource.getResource("R_queryCanceled"), e.getMessage());
+                            Thread cancelThread = cancelAsync(statement, delayInMilliseconds);
+                            try {
+                                statement.executeBatch();
+                            } catch (SQLException e) {
+                                assertEquals(TestResource.getResource("R_queryCanceled"), e.getMessage());
+                            }
+                            cancelThread.join();
                         }
-                        cancelThread.join();
+                        connection.commit();
                     }
+                }
+            } finally {
+                try (Statement statement = connection.createStatement()) {
+                    TestUtils.dropTableIfExists(testTable, statement);
                     connection.commit();
                 }
             }
@@ -955,6 +961,7 @@ public class BatchExecutionTest extends AbstractTest {
 
     @AfterAll
     public static void terminateVariation() throws Exception {
+        dropProcedure();
         dropTable();
     }
 }

@@ -96,8 +96,9 @@ public class CallableMixedTest extends AbstractTest {
                 }
 
                 try (ResultSet rs = callableStatement.executeQuery()) {}
+            } finally {
+                terminateVariation(statement);
             }
-            terminateVariation(statement);
         }
     }
 
