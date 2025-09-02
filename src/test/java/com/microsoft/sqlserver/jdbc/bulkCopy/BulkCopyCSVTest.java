@@ -622,6 +622,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @AzureDB
+    @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSV() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFile;
@@ -699,6 +700,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @AzureDB
+    @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSVWithMultipleColumns() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFileWithMultipleColumn;
@@ -766,6 +768,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @AzureDB
+    @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSVWithMultipleColumnsWithPipeDelimiter() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFileWithMultipleColumnWithPipeDelimiter;
@@ -833,6 +836,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @AzureDB
+    @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSVWithIncorrectDimension() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
         String fileName = filePath + vectorInputCsvFile;
