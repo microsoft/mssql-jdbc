@@ -5,13 +5,25 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Method;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -28,6 +40,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.sql.ConnectionEvent;
@@ -58,6 +71,9 @@ public class SQLServerConnectionTest extends AbstractTest {
     static String tnirHost = getConfiguredProperty("tnirHost");
 
     String randomServer = RandomUtil.getIdentifier("Server");
+
+    SQLServerConnection mockConnection;
+    Logger mockLogger;
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -324,6 +340,12 @@ public class SQLServerConnectionTest extends AbstractTest {
 
         ds.setKeyStorePrincipalId(stringPropValue);
         assertTrue(ds.getKeyStorePrincipalId().equals(stringPropValue));
+        
+        ds.setQuotedIdentifier(stringPropValue);
+        assertTrue(ds.getQuotedIdentifier().equals(stringPropValue));
+        
+        ds.setConcatNullYieldsNull(stringPropValue);
+        assertTrue(ds.getConcatNullYieldsNull().equals(stringPropValue));
     }
 
     @Test
@@ -458,6 +480,128 @@ public class SQLServerConnectionTest extends AbstractTest {
             // make sure that connection is closed.
             if (null != pooledConnection)
                 pooledConnection.close();
+        }
+    }
+
+    /**
+     * Test connection properties: CONCAT_NULL_YIELDS_NULL with SQLServerXADataSource for new connection and pooled connection
+     * @throws SQLException
+     */
+    @Test
+    public void testConcatNullYieldsNull() throws SQLException {
+        // Server default is CONCAT_NULL_YIELDS_NULL = ON  
+        int expectedResultFlagOff = 0;
+        int expectedResultFlagOn = 1;
+        String sessionPropertyName = "CONCAT_NULL_YIELDS_NULL";
+        
+        // Test for concatNullYieldsNull flag is OFF
+        SQLServerDataSource dsWithOff = new SQLServerDataSource();
+        dsWithOff.setURL(connectionString);
+        dsWithOff.setConcatNullYieldsNull("OFF");
+        testSessionPropertyValueHelper(dsWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
+        // Test pooled connections
+        SQLServerXADataSource pdsWithOff = new SQLServerXADataSource();
+        pdsWithOff.setURL(connectionString);
+        pdsWithOff.setConcatNullYieldsNull("OFF");
+
+        PooledConnection pcWithOff = pdsWithOff.getPooledConnection();
+        try {
+            testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
+            // Repeat getConnection to put the physical connection through a RESETCONNECTION
+            testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);            
+        } finally {
+            if (null != pcWithOff) {
+                pcWithOff.close();
+            }
+        }
+        // Test for concatNullYieldsNull flag is ON
+        SQLServerDataSource dsWithOn = new SQLServerDataSource();
+        dsWithOn.setURL(connectionString);
+        dsWithOn.setConcatNullYieldsNull("ON");
+        testSessionPropertyValueHelper(dsWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
+        // Test pooled connections
+        SQLServerXADataSource pdsWithOn = new SQLServerXADataSource();
+        pdsWithOn.setURL(connectionString);
+        pdsWithOn.setConcatNullYieldsNull("ON");
+
+        PooledConnection pcWithOn = pdsWithOn.getPooledConnection();
+        try {
+            testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
+            // Repeat getConnection to put the physical connection through a RESETCONNECTION
+            testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);            
+        } finally {
+            if (null != pcWithOn) {
+                pcWithOn.close();
+            }
+        }
+    }
+
+    public void testSessionPropertyValueHelper(Connection con, String propName, int expectedResult) throws SQLException {
+        String sqlSelect = "SELECT SESSIONPROPERTY('" + propName + "')";
+        try (Statement statement = con.createStatement()) {
+            try (ResultSet rs = statement.executeQuery(sqlSelect)) {
+                if (rs.next()) {
+                    int actualResult = rs.getInt(1);
+                    MessageFormat form1 = new MessageFormat(
+                            TestResource.getResource("R_sessionPropertyFailed"));
+                    Object[] msgArgs1 = {expectedResult, propName, actualResult};
+                    assertEquals(expectedResult, actualResult, form1.format(msgArgs1));
+                } else {
+                    assertTrue(false, "Expected row of data was not found.");
+                }
+            }
+        }
+    }
+
+    /**
+     * Test connection properties: QUOTED_IDENTIFIER with SQLServerXADataSource for new connection and pooled connection
+     * @throws SQLException
+     */
+    @Test
+    public void testQuptedIdentifier() throws SQLException {
+        // Server default is QUOTED_IDENTIFIER = ON  
+        int expectedResultFlagOff = 0;
+        int expectedResultFlagOn = 1;
+        String sessionPropertyName = "QUOTED_IDENTIFIER";
+        
+        //Test for quotedIdentifier flag is OFF
+        SQLServerDataSource dsWithOff = new SQLServerDataSource();
+        dsWithOff.setURL(connectionString);
+        dsWithOff.setQuotedIdentifier("OFF");
+        testSessionPropertyValueHelper(dsWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
+        // Test pooled connections
+        SQLServerXADataSource pdsWithOff = new SQLServerXADataSource();
+        pdsWithOff.setURL(connectionString);
+        pdsWithOff.setQuotedIdentifier("OFF");
+        PooledConnection pcWithOff = pdsWithOff.getPooledConnection();
+        try {
+            testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);
+            // Repeat getConnection to put the physical connection through a RESETCONNECTION
+            testSessionPropertyValueHelper(pcWithOff.getConnection(), sessionPropertyName, expectedResultFlagOff);         
+        } finally {
+            if (null != pcWithOff) {
+                pcWithOff.close();
+            }
+        }
+
+        // Test for quotedIdentifier flag is ON
+        SQLServerDataSource dsWithOn = new SQLServerDataSource();
+        dsWithOn.setURL(connectionString);
+        dsWithOn.setQuotedIdentifier("ON");
+        testSessionPropertyValueHelper(dsWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
+        // Test pooled connections
+        SQLServerXADataSource pdsWithOn = new SQLServerXADataSource();
+        pdsWithOn.setURL(connectionString);
+        pdsWithOn.setQuotedIdentifier("ON");
+        PooledConnection pcWithOn = pdsWithOn.getPooledConnection();
+        try {
+            testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);
+            // Repeat getConnection to put the physical connection through a RESETCONNECTION
+            testSessionPropertyValueHelper(pcWithOn.getConnection(), sessionPropertyName, expectedResultFlagOn);         
+        } finally {
+            if (null != pcWithOn) {
+                pcWithOn.close();
+            }
         }
     }
 
@@ -1368,6 +1512,80 @@ public class SQLServerConnectionTest extends AbstractTest {
         	//test pass
             assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
         }        
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLMI)
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xSQLv16)
+    public void testManagedIdentityWithEncryptStrict() {
+        SQLServerDataSource ds = new SQLServerDataSource();
+
+        String connectionUrl = connectionString;
+        if (connectionUrl.contains("user=")) {
+            connectionUrl = TestUtils.removeProperty(connectionUrl, "user");
+        }
+        if (connectionUrl.contains("password=")) {
+            connectionUrl = TestUtils.removeProperty(connectionUrl, "password");
+        }
+
+        ds.setURL(connectionUrl);
+        ds.setAuthentication("ActiveDirectoryMSI");
+        ds.setEncrypt("strict");
+        ds.setHostNameInCertificate("*.database.windows.net"); 
+
+        try (Connection con = ds.getConnection()) {
+            assertNotNull(con);
+        } catch (SQLException e) {
+            fail("Connection failed: " + e.getMessage());
+        }
+    }
+
+    public Method mockedConnectionRecoveryCheck() throws Exception {
+        mockConnection = spy(new SQLServerConnection("test"));
+        mockLogger = mock(Logger.class);
+        doReturn(true).when(mockLogger).isLoggable(Level.WARNING);
+        doNothing().when(mockConnection).terminate(anyInt(), anyString());
+
+        Method method = SQLServerConnection.class.getDeclaredMethod("connectionReconveryCheck", boolean.class,
+                boolean.class, ServerPortPlaceHolder.class);
+        method.setAccessible(true);
+        return method;
+    }
+
+    @Test
+    void testConnectionRecoveryCheckThrowsWhenAllConditionsMet() throws Exception {
+        Method method = mockedConnectionRecoveryCheck();
+        method.invoke(mockConnection, true, false, null);
+        verify(mockConnection, times(1)).terminate(eq(SQLServerException.DRIVER_ERROR_INVALID_TDS),
+                eq(SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin")));
+    }
+
+    @Test
+    void testConnectionRecoveryCheckDoesNotThrowWhenNotReconnectRunning() throws Exception {
+        Method method = mockedConnectionRecoveryCheck();
+        method.invoke(mockConnection, false, false, null);
+        verify(mockConnection, never()).terminate(anyInt(), anyString());
+    }
+
+    @Test
+    void testConnectionRecoveryCheckDoesNotThrowWhenRecoveryPossible() throws Exception {
+        Method method = mockedConnectionRecoveryCheck();
+        method.invoke(mockConnection, true, true, null);
+        verify(mockConnection, never()).terminate(anyInt(), anyString());
+    }
+
+    @Test
+    void testConnectionRecoveryCheckDoesNotThrowWhenRoutingDetailsNotNull() throws Exception {
+        Method method = mockedConnectionRecoveryCheck();
+        ServerPortPlaceHolder routingDetails = mock(ServerPortPlaceHolder.class);
+        method.setAccessible(true);
+        method.invoke(mockConnection, true, false, routingDetails);
+        verify(mockConnection, never()).terminate(anyInt(), anyString());
     }
 
 }

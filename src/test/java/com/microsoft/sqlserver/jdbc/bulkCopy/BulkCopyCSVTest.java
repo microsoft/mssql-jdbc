@@ -5,14 +5,16 @@
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.StackOverflowError;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -37,6 +39,7 @@ import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -47,6 +50,8 @@ import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
+
+import microsoft.sql.Vector;
 
 
 /**
@@ -64,9 +69,15 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 public class BulkCopyCSVTest extends AbstractTest {
 
     static String inputFile = "BulkCopyCSVTestInput.csv";
+    static String jsonInputFile = "BulkCopyCSVTestInputWithJson.csv";
     static String inputFileNoColumnName = "BulkCopyCSVTestInputNoColumnName.csv";
     static String inputFileDelimiterEscape = "BulkCopyCSVTestInputDelimiterEscape.csv";
+    static String inputFileDelimiterEscapeNoNewLineAtEnd = "BulkCopyCSVTestInputDelimiterEscapeNoNewLineAtEnd.csv";
     static String inputFileMultipleDoubleQuotes = "BulkCopyCSVTestInputMultipleDoubleQuotes.csv";
+    static String computeColumnCsvFile = "BulkCopyCSVTestInputComputeColumn.csv";
+    static String vectorInputCsvFile = "BulkCopyCSVTestInputWithVector.csv";
+    static String vectorInputCsvFileWithMultipleColumn = "BulkCopyCSVTestInputWithMultipleVectorColumn.csv";
+    static String vectorInputCsvFileWithMultipleColumnWithPipeDelimiter = "BulkCopyCSVTestWithMultipleVectorColumnWithPipeDelimiter.csv";
     static String encoding = "UTF-8";
     static String delimiter = ",";
 
@@ -197,9 +208,67 @@ public class BulkCopyCSVTest extends AbstractTest {
                     assertEquals(expectedEscaped[i][3], rs.getString("c4"));
                     i++;
                 }
+                assertEquals(i, 12, "Expected to load 12 records, but loaded " + i + " records");
             }
 
             TestUtils.dropTableIfExists(tableName, stmt);
+        }
+    }
+
+    @Test
+    @DisplayName("Test setEscapeColumnDelimitersCSVNoNewLineAtEnd")
+    public void testEscapeColumnDelimitersCSVNoNewLineAtEnd() throws Exception {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
+        String fileName = filePath + inputFileDelimiterEscapeNoNewLineAtEnd;
+        /*
+         * The list below is the copy of inputFileDelimiterEsc ape with quotes removed.
+         */
+        String[][] expectedEscaped = new String[12][4];
+        expectedEscaped[0] = new String[] {"test", " test\"", "no@split", " testNoQuote", ""};
+        expectedEscaped[1] = new String[] {null, null, null, null, ""};
+        expectedEscaped[2] = new String[] {"\"", "test\"test", "test@\"  test", null, ""};
+        expectedEscaped[3] = new String[] {"testNoQuote  ", " testSpaceAround ", " testSpaceInside ",
+                "  testSpaceQuote\" ", ""};
+        expectedEscaped[4] = new String[] {null, null, null, " testSpaceInside ", ""};
+        expectedEscaped[5] = new String[] {"1997", "Ford", "E350", "E63", ""};
+        expectedEscaped[6] = new String[] {"1997", "Ford", "E350", "E63", ""};
+        expectedEscaped[7] = new String[] {"1997", "Ford", "E350", "Super@ luxurious truck", ""};
+        expectedEscaped[8] = new String[] {"1997", "Ford", "E350", "Super@ \"luxurious\" truck", ""};
+        expectedEscaped[9] = new String[] {"1997", "Ford", "E350", "E63", ""};
+        expectedEscaped[10] = new String[] {"1997", "Ford", "E350", " Super luxurious truck ", ""};
+        expectedEscaped[11] = new String[] {"1997", "F\r\no\r\nr\r\nd", "E350", "\"Super\" \"luxurious\" \"truck\"",
+                ""};
+
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, "@",
+                        false)) {
+            bulkCopy.setDestinationTableName(tableName);
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+            fileRecord.addColumnMetadata(1, null, java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(2, null, java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(3, null, java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(4, null, java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(5, null, java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(6, null, java.sql.Types.VARCHAR, 50, 0);
+            stmt.executeUpdate("CREATE TABLE " + tableName
+                    + " (id INT IDENTITY(1,1), c1 VARCHAR(50), c2 VARCHAR(50), c3 VARCHAR(50), c4 VARCHAR(50), c5 VARCHAR(50))");
+            bulkCopy.writeToServer(fileRecord);
+
+            int i = 0;
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName + " ORDER BY id");
+                    BufferedReader br = new BufferedReader(new FileReader(fileName));) {
+                while (rs.next()) {
+                    assertEquals(expectedEscaped[i][0], rs.getString("c1"));
+                    assertEquals(expectedEscaped[i][1], rs.getString("c2"));
+                    assertEquals(expectedEscaped[i][2], rs.getString("c3"));
+                    assertEquals(expectedEscaped[i][3], rs.getString("c4"));
+                    i++;
+                }
+                assertEquals(i, 12, "Expected to load 12 records, but loaded " + i + " records");
+            } finally {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
         }
     }
 
@@ -384,6 +453,420 @@ public class BulkCopyCSVTest extends AbstractTest {
             fail("Stack overflow: " + e.getMessage());
         } catch (SQLException e) {
             fail("SQL exception: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Test bulk copy with JSON data type
+     * 
+     * This test reads a CSV file with JSON data and performs a bulk copy into a table with a JSON column.
+     * It verifies that the data is copied correctly by comparing the values in the table with the expected values.
+     */
+    @Test
+    @DisplayName("Test Bulk Copy with JSON Data")
+    @Tag(Constants.JSONTest)
+    public void testBulkCopyWithJson() throws Exception {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkJsonTest"));
+        String fileName = filePath + jsonInputFile;
+
+        // Expected values as read from the CSV file
+        String[][] expectedValues = new String[][]{
+            {"0", "testing", "{\"age\":25,\"address\":{\"pincode\":123456,\"state\":\"NY\"}}"},
+            {"1","test }","{\"age\":25,\"city\":\"Los Angeles\"}"},
+            {"0","test {0}","{\"age\":40,\"city\":\"Chicago\"}"}
+        };
+
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+            SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",", false)) {
+            bulkCopy.setDestinationTableName(tableName);
+
+            // Define column metadata
+            fileRecord.addColumnMetadata(1, null, java.sql.Types.BIT, 0, 0);
+            fileRecord.addColumnMetadata(2, null, java.sql.Types.NCHAR, 10, 0);
+            fileRecord.addColumnMetadata(3, null, microsoft.sql.Types.JSON, 0, 0); // JSON column
+
+            // Create table
+            stmt.executeUpdate("CREATE TABLE " + tableName + " ("
+                    + "c1 BIT, c2 nchar(50), c3 JSON)");
+
+            // Perform bulk copy
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+            bulkCopy.writeToServer(fileRecord);
+
+            // Verify the data
+            int i = 0;
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+                BufferedReader br = new BufferedReader(new FileReader(fileName))) {
+
+                while (rs.next()) {
+                    for (int j = 1; j <= 3; j++) {
+                        String actual = rs.getString(j);
+                        String expected = expectedValues[i][j - 1];
+                        assertEquals(expected.trim(), actual.trim(), "Mismatch in column " + j);
+                    }
+                    i++;
+                }
+            } finally {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test to perform bulk copy with a computed column as the last column in the table.
+     */
+    @Test
+    @DisplayName("Test bulk copy with computed column as last column")
+    public void testBulkCopyWithComputedColumnAsLastColumn() {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
+        String fileName = filePath + computeColumnCsvFile;
+
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",", true)) {
+
+            String createTableSQL = "CREATE TABLE " + tableName + " (" + "[NAME] varchar(50) NOT NULL,"
+                    + "[AGE] int NULL," + "[CAL_COL] numeric(17, 2) NULL," + "[ORIGINAL] varchar(50) NOT NULL,"
+                    + "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED" + ")";
+            stmt.executeUpdate(createTableSQL);
+
+            fileRecord.addColumnMetadata(1, "NAME", java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(2, "AGE", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(3, "CAL_COL", java.sql.Types.NUMERIC, 17, 2);
+            fileRecord.addColumnMetadata(4, "ORIGINAL", java.sql.Types.VARCHAR, 50, 0);
+
+            bulkCopy.setDestinationTableName(tableName);
+
+            bulkCopy.addColumnMapping("NAME", "NAME");
+            bulkCopy.addColumnMapping("AGE", "AGE");
+            bulkCopy.addColumnMapping("CAL_COL", "CAL_COL");
+            bulkCopy.addColumnMapping("ORIGINAL", "ORIGINAL");
+
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            bulkCopy.setBulkCopyOptions(options);
+
+            bulkCopy.writeToServer(fileRecord);
+
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                if (rs.next()) {
+                    int rowCount = rs.getInt(1);
+                    assertTrue(rowCount > 0);
+                }
+            } finally {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test to perform bulk copy with a computed column not as the last column in the table.
+     */
+    @Test
+    @DisplayName("Test bulk copy with computed column not as last column")
+    public void testBulkCopyWithComputedColumnNotAsLastColumn() {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
+        String fileName = filePath + computeColumnCsvFile;
+
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, encoding, ",", true)) {
+
+            String createTableSQL = "CREATE TABLE " + tableName + " (" + "[NAME] varchar(50) NOT NULL,"
+                    + "[AGE] int NULL," + "[CAL_COL] numeric(17, 2) NULL," + "[ORIGINAL] varchar(50) NOT NULL,"
+                    + "[COMPUTED_COL] AS (right([NAME], 8)) PERSISTED," + "[LAST_COL] varchar(50) NULL" + ")";
+            stmt.executeUpdate(createTableSQL);
+
+            fileRecord.addColumnMetadata(1, "NAME", java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(2, "AGE", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(3, "CAL_COL", java.sql.Types.NUMERIC, 17, 2);
+            fileRecord.addColumnMetadata(4, "ORIGINAL", java.sql.Types.VARCHAR, 50, 0);
+            fileRecord.addColumnMetadata(5, "LAST_COL", java.sql.Types.VARCHAR, 50, 0);
+
+            bulkCopy.setDestinationTableName(tableName);
+
+            bulkCopy.addColumnMapping("NAME", "NAME");
+            bulkCopy.addColumnMapping("AGE", "AGE");
+            bulkCopy.addColumnMapping("CAL_COL", "CAL_COL");
+            bulkCopy.addColumnMapping("ORIGINAL", "ORIGINAL");
+            bulkCopy.addColumnMapping("LAST_COL", "LAST_COL");
+
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            bulkCopy.setBulkCopyOptions(options);
+
+            bulkCopy.writeToServer(fileRecord);
+
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                if (rs.next()) {
+                    int rowCount = rs.getInt(1);
+                    assertTrue(rowCount > 0);
+                }
+            } finally {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test bulk copy with different format of vector data in
+     * BulkCopyCSVTestInputWithVector.csv file
+     */
+    @Test
+    @Tag(Constants.vectorTest)
+    public void testBulkCopyVectorFromCSV() throws SQLException {
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
+        String fileName = filePath + vectorInputCsvFile;
+
+        try (Connection con = getConnection();
+                Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, null, ",", true)) {
+
+            // Create the destination table
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (id INT, vectorCol VECTOR(3));");
+
+            // Add column metadata for the CSV file
+            fileRecord.addColumnMetadata(1, "id", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(2, "vectorCol", microsoft.sql.Types.VECTOR, 3, 4);
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+
+            // Set the destination table name
+            bulkCopy.setDestinationTableName(dstTable);
+
+            // Configure bulk copy options
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            options.setBulkCopyTimeout(60);
+            bulkCopy.setBulkCopyOptions(options);
+
+            // Perform the bulk copy
+            bulkCopy.writeToServer(fileRecord);
+
+            // Validate the data
+            String selectQuery = "SELECT id, vectorCol FROM " + dstTable;
+            try (ResultSet rs = stmt.executeQuery(selectQuery)) {
+                int rowCount = 0;
+
+                // Expected data from the CSV file
+                List<Object[]> expectedData = Arrays.asList(
+                        new Object[] { 1, new Object[] { 1.0f, 2.0f, 3.0f } },
+                        new Object[] { 2, new Object[] { 4.0f, 5.0f, 6.0f } },
+                        new Object[] { 3, null });
+
+                while (rs.next()) {
+                    int id = rs.getInt("id");
+                    Vector vectorObject = rs.getObject("vectorCol", Vector.class);
+
+                    // Validate ID
+                    assertEquals(expectedData.get(rowCount)[0], id, "Mismatch in ID at row " + (rowCount + 1));
+
+                    // Validate vector data
+                    if (expectedData.get(rowCount)[1] == null) {
+                        assertEquals(null, vectorObject.getData(), "Expected null vector at row " + (rowCount + 1));
+                    } else {
+                        assertNotNull(vectorObject, "Expected non-null vector at row " + (rowCount + 1));
+                        assertArrayEquals((Object[]) expectedData.get(rowCount)[1], vectorObject.getData(),
+                                "Mismatch in vector data at row " + (rowCount + 1));
+                    }
+
+                    rowCount++;
+                }
+
+                // Validate row count
+                assertEquals(expectedData.size(), rowCount, "Row count mismatch.");
+            } finally {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test bulk copy with multiple columns of vector data in
+     * BulkCopyCSVTestInputWithMultipleVectorColumn.csv file
+     */
+    @Test
+    @Tag(Constants.vectorTest)
+    public void testBulkCopyVectorFromCSVWithMultipleColumns() throws SQLException {
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
+        String fileName = filePath + vectorInputCsvFileWithMultipleColumn;
+
+        try (Connection con = getConnection();
+                Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, null, ",", true)) {
+
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (vectorCol1 VECTOR(3), vectorCol2 VECTOR(3));");
+
+            fileRecord.addColumnMetadata(1, "vectorCol1", microsoft.sql.Types.VECTOR, 3, 4);
+            fileRecord.addColumnMetadata(2, "vectorCol2", microsoft.sql.Types.VECTOR, 3, 4);
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+
+            // Set the destination table name
+            bulkCopy.setDestinationTableName(dstTable);
+
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            options.setBulkCopyTimeout(60);
+            bulkCopy.setBulkCopyOptions(options);
+
+            bulkCopy.writeToServer(fileRecord);
+
+            // Validate the data
+            String selectQuery = "SELECT * FROM " + dstTable;
+            try (ResultSet rs = stmt.executeQuery(selectQuery)) {
+                int rowCount = 0;
+
+                // Expected data from the CSV file
+                List<String[]> expectedData = Arrays.asList(
+                        new String[] { "null", "null" },
+                        new String[] { "[1.0, 2.0, 3.0]", "[1.0, 2.0, 3.0]" },
+                        new String[] { "[3.0, 4.0, 5.0]", "[6.0, 7.0, 8.0]" });
+
+                while (rs.next()) {
+                    Vector vectorCol1 = rs.getObject("vectorCol1", Vector.class);
+                    Vector vectorCol2 = rs.getObject("vectorCol2", Vector.class);
+
+                    assertEquals(expectedData.get(rowCount)[0],
+                            vectorCol1 == null ? "null" : Arrays.toString(vectorCol1.getData()),
+                            "Mismatch in vectorCol1 data at row " + (rowCount + 1));
+                    assertEquals(expectedData.get(rowCount)[1],
+                            vectorCol2 == null ? "null" : Arrays.toString(vectorCol2.getData()),
+                            "Mismatch in vectorCol2 data at row " + (rowCount + 1));
+                    rowCount++;
+                }
+
+                // Validate row count
+                assertEquals(expectedData.size(), rowCount, "Row count mismatch.");
+            } finally {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test bulk copy with multiple columns of vector data with pipe delimiter in
+     * BulkCopyCSVTestWithMultipleVectorColumnWithPipeDelimiter.csv file
+     */
+    @Test
+    @Tag(Constants.vectorTest)
+    public void testBulkCopyVectorFromCSVWithMultipleColumnsWithPipeDelimiter() throws SQLException {
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
+        String fileName = filePath + vectorInputCsvFileWithMultipleColumnWithPipeDelimiter;
+
+        try (Connection con = getConnection();
+                Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, null, "|", true)) {
+
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (vectorCol1 VECTOR(3), vectorCol2 VECTOR(3));");
+
+            fileRecord.addColumnMetadata(1, "vectorCol1", microsoft.sql.Types.VECTOR, 3, 4);
+            fileRecord.addColumnMetadata(2, "vectorCol2", microsoft.sql.Types.VECTOR, 3, 4);
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+
+            // Set the destination table name
+            bulkCopy.setDestinationTableName(dstTable);
+
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            options.setBulkCopyTimeout(60);
+            bulkCopy.setBulkCopyOptions(options);
+
+            bulkCopy.writeToServer(fileRecord);
+
+            // Validate the data
+            String selectQuery = "SELECT * FROM " + dstTable;
+            try (ResultSet rs = stmt.executeQuery(selectQuery)) {
+                int rowCount = 0;
+
+                // Expected data from the CSV file
+                List<String[]> expectedData = Arrays.asList(
+                        new String[] { "null", "null" },
+                        new String[] { "[1.0, 2.0, 3.0]", "[1.0, 2.0, 3.0]" },
+                        new String[] { "[3.0, 4.0, 5.0]", "[6.0, 7.0, 8.0]" });
+
+                while (rs.next()) {
+                    Vector vectorCol1 = rs.getObject("vectorCol1", Vector.class);
+                    Vector vectorCol2 = rs.getObject("vectorCol2", Vector.class);
+
+                    assertEquals(expectedData.get(rowCount)[0],
+                            vectorCol1 == null ? "null" : Arrays.toString(vectorCol1.getData()),
+                            "Mismatch in vectorCol1 data at row " + (rowCount + 1));
+                    assertEquals(expectedData.get(rowCount)[1],
+                            vectorCol2 == null ? "null" : Arrays.toString(vectorCol2.getData()),
+                            "Mismatch in vectorCol2 data at row " + (rowCount + 1));
+                    rowCount++;
+                }
+
+                // Validate row count
+                assertEquals(expectedData.size(), rowCount, "Row count mismatch.");
+            } finally {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Test bulk copy with mismatched vector dimensions in file and provided column
+     * metadata.
+     */
+    @Test
+    @Tag(Constants.vectorTest)
+    public void testBulkCopyVectorFromCSVWithIncorrectDimension() throws SQLException {
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
+        String fileName = filePath + vectorInputCsvFile;
+
+        try (Connection con = getConnection();
+                Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, null, ",", true)) {
+
+            // Create the destination table
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (id INT, vectorCol VECTOR(3));");
+
+            // Add column metadata for the CSV file
+            fileRecord.addColumnMetadata(1, "id", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(2, "vectorCol", microsoft.sql.Types.VECTOR, 4, 4);
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+
+            // Set the destination table name
+            bulkCopy.setDestinationTableName(dstTable);
+
+            // Configure bulk copy options
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            options.setBulkCopyTimeout(60);
+            bulkCopy.setBulkCopyOptions(options);
+
+            // Perform the bulk copy
+            bulkCopy.writeToServer(fileRecord);
+
+            fail("Expected an exception due to vector data type mismatch, but none was thrown.");
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("The vector dimensions 4 and 3 do not match."),
+                    "Unexpected error message: " + e.getMessage());
         }
     }
 

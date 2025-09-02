@@ -47,9 +47,26 @@ final class Util {
     static final String SYSTEM_JRE = System.getProperty("java.vendor") + " " + System.getProperty("java.version");
     private static final Lock LOCK = new ReentrantLock();
 
+    private static Boolean isIBM = null;
+
     static boolean isIBM() {
+        if (isIBM != null) {
+            return isIBM;
+        }
+
         String vmName = System.getProperty("java.vm.name");
-        return SYSTEM_JRE.startsWith("IBM") && vmName.startsWith("IBM");
+        if (vmName != null && vmName.startsWith("IBM")) {
+            isIBM = true;
+            return isIBM;
+        }
+
+        try {
+            Class.forName("com.ibm.security.auth.module.Krb5LoginModule");
+            isIBM = true;
+        } catch (ClassNotFoundException ex) {
+            isIBM = false;
+        }
+        return isIBM;
     }
 
     static String getJVMArchOnWindows() {

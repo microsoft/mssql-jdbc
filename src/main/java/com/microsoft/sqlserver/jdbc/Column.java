@@ -8,7 +8,6 @@ package com.microsoft.sqlserver.jdbc;
 import java.text.MessageFormat;
 import java.util.Calendar;
 
-
 /**
  * Column represents a database column definition (meta data) within a result set.
  */
@@ -337,7 +336,7 @@ final class Column {
 
         // Update of Unicode SSType from textual JDBCType: Use Unicode.
         if ((SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType
-                || SSType.NTEXT == ssType || SSType.XML == ssType) &&
+                || SSType.NTEXT == ssType || SSType.XML == ssType || SSType.JSON == ssType) &&
 
                 (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.LONGVARCHAR == jdbcType
                         || JDBCType.CLOB == jdbcType)) {
@@ -346,7 +345,7 @@ final class Column {
 
         // Update of binary SSType from textual JDBCType: Convert hex to binary.
         else if ((SSType.BINARY == ssType || SSType.VARBINARY == ssType || SSType.VARBINARYMAX == ssType
-                || SSType.IMAGE == ssType || SSType.UDT == ssType) &&
+                || SSType.IMAGE == ssType || SSType.UDT == ssType || SSType.VECTOR == ssType) &&
 
                 (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.LONGVARCHAR == jdbcType)) {
             jdbcType = JDBCType.VARBINARY;

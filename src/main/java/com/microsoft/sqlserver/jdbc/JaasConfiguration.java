@@ -19,26 +19,36 @@ public class JaasConfiguration extends Configuration {
     private final Configuration delegate;
     private AppConfigurationEntry[] defaultValue;
 
-    private static AppConfigurationEntry[] generateDefaultConfiguration() {
-        if (Util.isIBM()) {
+    private static AppConfigurationEntry[] generateDefaultConfiguration() throws SQLServerException {
+        try {
+            if (Util.isIBM()) {
+                return loadIbmModule();
+            }
+            Class.forName("com.sun.security.auth.module.Krb5LoginModule");
+            Map<String, String> confDetails = new HashMap<>();
+            confDetails.put("useTicketCache", "true");
+            return new AppConfigurationEntry[] {
+                    new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
+                            AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, confDetails)};
+        } catch (ClassNotFoundException e) {
+            throw new SQLServerException(SQLServerException.getErrString("R_moduleNotFound"), null);
+        }
+    }
+
+    private static AppConfigurationEntry[] loadIbmModule() throws SQLServerException {
+        try {
+            Class.forName("com.ibm.security.auth.module.Krb5LoginModule");
             Map<String, String> confDetailsWithoutPassword = new HashMap<>();
             confDetailsWithoutPassword.put("useDefaultCcache", "true");
             Map<String, String> confDetailsWithPassword = new HashMap<>();
-            // We generated a two configurations fallback that is suitable for password and password-less authentication
-            // See
-            // https://www.ibm.com/support/knowledgecenter/SSYKE2_8.0.0/com.ibm.java.security.component.80.doc/security-component/jgssDocs/jaas_login_user.html
             final String ibmLoginModule = "com.ibm.security.auth.module.Krb5LoginModule";
             return new AppConfigurationEntry[] {
                     new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
                             confDetailsWithoutPassword),
                     new AppConfigurationEntry(ibmLoginModule, AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
                             confDetailsWithPassword)};
-        } else {
-            Map<String, String> confDetails = new HashMap<>();
-            confDetails.put("useTicketCache", "true");
-            return new AppConfigurationEntry[] {
-                    new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
-                            AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, confDetails)};
+        } catch (ClassNotFoundException ex) {
+            throw new SQLServerException(SQLServerException.getErrString("R_ibmModuleNotFound"), null);
         }
     }
 
@@ -47,8 +57,10 @@ public class JaasConfiguration extends Configuration {
      * 
      * @param delegate
      *        a possibly null delegate
+     * @throws SQLServerException
+     *         if neither Kerberos module is found: com.sun.security.auth.module.Krb5LoginModule or com.ibm.security.auth.module.Krb5LoginModule
      */
-    JaasConfiguration(Configuration delegate) {
+    JaasConfiguration(Configuration delegate) throws SQLServerException {
         this.delegate = delegate;
         this.defaultValue = generateDefaultConfiguration();
     }

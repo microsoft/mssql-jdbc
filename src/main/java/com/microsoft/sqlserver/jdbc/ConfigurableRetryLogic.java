@@ -12,6 +12,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -36,11 +39,12 @@ public class ConfigurableRetryLogic {
             .getLogger("com.microsoft.sqlserver.jdbc.ConfigurableRetryLogic");
     private static final String SEMI_COLON = ";";
     private static final String COMMA = ",";
-    private static final String FORWARD_SLASH = "/";
     private static final String EQUALS_SIGN = "=";
+    private static final String FORWARD_SLASH = "/";
     private static final String RETRY_EXEC = "retryExec";
     private static final String RETRY_CONN = "retryConn";
     private static final String STATEMENT = "statement";
+    private static final String CLASS_FILES_SUFFIX = "target/classes/";
     private static boolean replaceFlag = false; // Are we replacing the list of transient errors?
     /**
      * The time the properties file was last modified.
@@ -283,16 +287,39 @@ public class ConfigurableRetryLogic {
     private static String getCurrentClassPath() throws SQLServerException {
         String location = "";
         String className = "";
+        String uriToString = "";
 
         try {
             className = new Object() {}.getClass().getEnclosingClass().getName();
             location = Class.forName(className).getProtectionDomain().getCodeSource().getLocation().getPath();
-            location = location.substring(0, location.length() - 16);
-            URI uri = new URI(location + FORWARD_SLASH);
-            return uri.getPath() + DEFAULT_PROPS_FILE; // For now, we only allow "mssql-jdbc.properties" as file name.
+            URI uri = ConfigurableRetryLogic.class.getProtectionDomain().getCodeSource().getLocation()
+                    .toURI();
+
+            uriToString = uri.toString();
+            
+            int initialIndexOfForwardSlash = uriToString.indexOf(FORWARD_SLASH);
+            
+            if (!uri.getScheme().isEmpty() && initialIndexOfForwardSlash > 0) {
+                // If the URI has a scheme, i.e. jar:file:, jar:, or file: then we create a substring from the
+                // forward slash onwards.
+                uriToString = uriToString.substring(initialIndexOfForwardSlash + 1);
+            }
+
+            if (Files.isDirectory(Paths.get(uriToString))) {
+                // We check if the Path we get from the CodeSource location is a directory. If so, we are running
+                // from class files and should remove a suffix (i.e. the props file is in a different location from the
+                // location returned)
+                location = location.substring(0, location.length() - CLASS_FILES_SUFFIX.length());
+            }
+
+            return new URI(location).getPath() + DEFAULT_PROPS_FILE; // TODO: Allow custom paths
+        } catch (InvalidPathException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_PathInvalid"));
+            Object[] msgArgs = {uriToString};
+            throw new SQLServerException(form.format(msgArgs), null, 0, e);
         } catch (URISyntaxException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_URLInvalid"));
-            Object[] msgArgs = {location + FORWARD_SLASH};
+            Object[] msgArgs = {location};
             throw new SQLServerException(form.format(msgArgs), null, 0, e);
         } catch (ClassNotFoundException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnableToFindClass"));
@@ -309,10 +336,10 @@ public class ConfigurableRetryLogic {
      *         if unable to read from the file
      */
     private static LinkedList<String> readFromFile(String connectionStringProperty) throws SQLServerException {
-        String filePath = getCurrentClassPath();
+        String filePath = "";
         LinkedList<String> list = new LinkedList<>();
-
         try {
+            filePath = getCurrentClassPath();
             File f = new File(filePath);
             try (BufferedReader buffer = new BufferedReader(new FileReader(f))) {
                 String readLine;
@@ -327,13 +354,22 @@ public class ConfigurableRetryLogic {
         } catch (FileNotFoundException e) {
             // If the file is not found either A) We're not using CRL OR B) the path is wrong. Do not error out, instead
             // log a message.
-            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINER)) {
-                CONFIGURABLE_RETRY_LOGGER.finest("File not found at path - \"" + filePath + "\"");
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINE)) {
+                CONFIGURABLE_RETRY_LOGGER.fine("File not found at path - \"" + filePath + "\"");
+            }
+        } catch (InvalidPathException e) {
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINE)) {
+                CONFIGURABLE_RETRY_LOGGER.fine("Invalid path specified - \"" + filePath + "\"");
             }
         } catch (IOException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
             Object[] msgArgs = {e.getMessage() + ", from path - \"" + filePath + "\""};
             throw new SQLServerException(form.format(msgArgs), null, 0, e);
+        } catch (Exception e) {
+            // General exception handling
+            if (CONFIGURABLE_RETRY_LOGGER.isLoggable(java.util.logging.Level.FINE)) {
+                CONFIGURABLE_RETRY_LOGGER.fine("An unexpected error occurred while reading from file: " + e.getMessage());
+            }
         }
         return list;
     }

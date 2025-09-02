@@ -26,6 +26,7 @@ public class KerberosTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
+        Configuration.setConfiguration(new JaasConfiguration(Configuration.getConfiguration()));
         setConnection();
     }
 
@@ -89,6 +90,45 @@ public class KerberosTest extends AbstractTest {
             ResultSet rs = conn.createStatement().executeQuery(authSchemeQuery);
             rs.next();
             Assertions.assertEquals(kerberosAuth, rs.getString(1));
+        }
+    }
+
+    /**
+     * Test to verify the Kerberos module used 
+     */
+    @Test
+    public void testKerberosConnectionWithDefaultJaasConfig() {
+        try {
+            // Set a mock JAAS configuration using the existing method
+            overwriteJaasConfig();
+
+            String connectionString = connectionStringKerberos + ";useDefaultJaasConfig=true;";
+            createKerberosConnection(connectionString);
+
+            Configuration config = Configuration.getConfiguration();
+            AppConfigurationEntry[] entries = config.getAppConfigurationEntry("CLIENT_CONTEXT_NAME");
+            Assertions.assertNotNull(entries);
+            Assertions.assertTrue(entries.length > 0);
+            if (Util.isIBM()) {
+                Assertions.assertEquals("com.ibm.security.auth.module.Krb5LoginModule", entries[0].getLoginModuleName());
+            } else {
+                Assertions.assertEquals("com.sun.security.auth.module.Krb5LoginModule", entries[0].getLoginModuleName());
+            }
+        } catch (Exception e) {
+            Assertions.fail("Exception was thrown: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Test to verify the JaasConfiguration constructor
+     */
+    @Test
+    public void testJaasConfigurationConstructor() {
+        try {
+            JaasConfiguration config = new JaasConfiguration(Configuration.getConfiguration());
+            Assertions.assertNotNull(config);
+        } catch (SQLServerException e) {
+            Assertions.fail("Exception was thrown: " + e.getMessage());
         }
     }
 

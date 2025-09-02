@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,10 +17,13 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import microsoft.sql.Vector;
 
 
 /**
@@ -275,8 +279,12 @@ public final class SQLServerDataTable {
 
                     // java.sql.Date, java.sql.Time and java.sql.Timestamp are subclass of java.util.Date
                     if (val instanceof java.util.Date || val instanceof microsoft.sql.DateTimeOffset
-                            || val instanceof OffsetDateTime || val instanceof OffsetTime)
+                            || val instanceof OffsetTime)
                         rowValues[key] = val.toString();
+                    else if (val instanceof OffsetDateTime)
+                        // avoid calling OffsetDateTime#toString() because when there are no seconds we would get
+                        // a format which is incompatible with the server - see LocalTime#toString()
+                        rowValues[key] = ((OffsetDateTime)val).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
                     else
                         rowValues[key] = val;
                     break;
@@ -300,6 +308,7 @@ public final class SQLServerDataTable {
                 case LONGVARCHAR:
                 case LONGNVARCHAR:
                 case SQLXML:
+                case JSON:
                     if (val instanceof UUID)
                         val = val.toString();
                     nValueLen = (2 * ((String) val).length());
@@ -316,6 +325,24 @@ public final class SQLServerDataTable {
                     JavaType javaType = JavaType.of(val);
                     internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
                     internalAddrow(internalJDBCType, val, rowValues, pair);
+                    break;
+
+                case VECTOR:
+                    Vector vectorVal = (Vector) val;
+                    nValueLen = VectorUtils.getVectorLength(vectorVal);
+                    int scaleByte = VectorUtils.getScaleByte(vectorVal.getVectorDimensionType());
+                    int scale = VectorUtils.getBytesPerDimensionFromScale(scaleByte);
+                    precision = vectorVal.getDimensionCount();
+                    if (scale > currentColumnMetadata.scale || precision > currentColumnMetadata.precision) {
+                        if (scale > currentColumnMetadata.scale) {
+                            currentColumnMetadata.scale = scale;
+                        }
+                        if (precision > currentColumnMetadata.precision) {
+                            currentColumnMetadata.precision = precision;
+                        }
+                        columnMetadata.put(pair.getKey(), currentColumnMetadata);
+                    }
+                    rowValues[key] = VectorUtils.toBytes(vectorVal);
                     break;
 
                 default:
@@ -392,10 +419,10 @@ public final class SQLServerDataTable {
                 boolean equalColumnMetadata = columnMetadata.equals(aSQLServerDataTable.columnMetadata);
                 boolean equalColumnNames = columnNames.equals(aSQLServerDataTable.columnNames);
                 boolean equalRowData = compareRows(aSQLServerDataTable.rows);
+                boolean equalTvpName = Objects.equals(tvpName, aSQLServerDataTable.tvpName);
 
                 return (rowCount == aSQLServerDataTable.rowCount && columnCount == aSQLServerDataTable.columnCount
-                        && tvpName == aSQLServerDataTable.tvpName && equalColumnMetadata && equalColumnNames
-                        && equalRowData);
+                        && equalTvpName && equalColumnMetadata && equalColumnNames && equalRowData);
             }
         }
         return false;

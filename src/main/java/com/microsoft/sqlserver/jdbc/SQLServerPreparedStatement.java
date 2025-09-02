@@ -646,7 +646,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     parameterNames);
             encryptionMetadataIsRetrieved = true;
             setMaxRowsAndMaxFieldSize();
-            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
+            buildPreparedStrings(inOutParam, true);
         }
 
         if ((Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection)) && (0 < inOutParam.length)
@@ -664,7 +664,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // fix an issue when inserting unicode into non-encrypted nchar column using setString() and AE is on on
             // Connection
-            hasNewTypeDefinitions = buildPreparedStrings(inOutParam, true);
+            buildPreparedStrings(inOutParam, true);
         }
 
         boolean needsPrepare = true;
@@ -687,6 +687,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 startResults();
                 getNextResult(true);
             } catch (SQLException e) {
+                if (connection.isAEv2() && (e.getErrorCode() == SQLServerException.INVAID_ENCLAVE_SESSION_HANDLE_ERROR)) {
+                    //If the exception received is as below then just invalidate the cache 
+                    //code = '33195', SQL state = 'S0001': Internal enclave error. Enclave was provided with an invalid session handle. For more information, contact Customer Support Services..
+                    //
+                    connection.invalidateEnclaveSessionCache();
+                }
                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false)) {
                     continue;
                 } else if (!inRetry && connection.doesServerSupportEnclaveRetry()) {
@@ -705,7 +711,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (EXECUTE_QUERY == executeMethod && null == resultSet) {
             SQLServerException.makeFromDriverError(connection, this, SQLServerException.getErrString("R_noResultset"),
                     null, true);
-        } else if (EXECUTE_UPDATE == executeMethod && null != resultSet) {
+        } else if ((EXECUTE_UPDATE == executeMethod) && (null != resultSet) && !bRequestedGeneratedKeys) {
             SQLServerException.makeFromDriverError(connection, this,
                     SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
         }
@@ -780,6 +786,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         return false;
+    }
+
+    /**
+     * Override TDS token processing behavior for PreparedStatement.
+     * For regular Statement, the execute API for INSERT requires reading an additional explicit 
+     * TDS_DONE token that contains the actual update count returned by the server.
+     * PreparedStatement does not require this additional token processing, unless
+     * generated keys were requested (which requires processing additional TDS tokens).
+     */
+    @Override
+    protected boolean hasUpdateCountTDSTokenForInsertCmd() {
+        // When generated keys are requested, we need to process additional TDS tokens
+        // to properly locate the ResultSet containing the generated keys
+        return bRequestedGeneratedKeys;
     }
 
     /**
@@ -1675,7 +1695,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (microsoft.sql.Types.STRUCTURED == jdbcType) {
             tvpName = getTVPNameFromObject(n, obj);
         }
-        setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), null, null, false, n, tvpName);
+        Integer precision = null, scale = null;
+        if (microsoft.sql.Types.VECTOR == jdbcType && obj instanceof microsoft.sql.Vector) {
+            microsoft.sql.Vector vector = (microsoft.sql.Vector) obj;
+            precision = vector.getDimensionCount();
+            scale = (int) VectorUtils.getScaleByte(vector.getVectorDimensionType());
+        }
+        
+        if (microsoft.sql.Types.JSON == jdbcType) {
+            setObjectNoType(n, obj, false);
+        } else {
+            setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), scale, precision, false, n, tvpName);
+        } 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
@@ -1692,12 +1723,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For all other types, this value will be ignored.
 
+        Integer precision = null;
+        if (microsoft.sql.Types.VECTOR == targetSqlType && x instanceof microsoft.sql.Vector) {
+            precision = ((microsoft.sql.Vector) x).getDimensionCount();
+        }
+
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
                         || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
                         || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
-                        || Reader.class.isInstance(x)) ? scaleOrLength : null,
-                null, false, parameterIndex, null);
+                        || Reader.class.isInstance(x)
+                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scaleOrLength : null,
+                precision, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
@@ -1717,7 +1754,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
-                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
+                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)
+                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scale : null,
                 precision, false, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
@@ -1738,7 +1776,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
                 (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
-                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)) ? scale : null,
+                        || InputStream.class.isInstance(x) || Reader.class.isInstance(x)
+                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scale : null,
                 precision, forceEncrypt, parameterIndex, null);
 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
@@ -2193,7 +2232,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
 
                         SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
-                                batchParamValues, bcOperationColumnList, bcOperationValueList, null);
+                                batchParamValues, bcOperationColumnList, bcOperationValueList, null, isDBColationCaseSensitive());
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2210,7 +2249,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 jdbctype = ti.getSSType().getJDBCType().getIntValue();
                             }
                             if (null != bcOperationColumnList && !bcOperationColumnList.isEmpty()) {
-                                int columnIndex = bcOperationColumnList.indexOf(c.getColumnName());
+                                // connection contains database name
+                                boolean isCaseSensitive = isDBColationCaseSensitive();
+                                int columnIndex = -1;
+                                if (isCaseSensitive) {
+                                    columnIndex = bcOperationColumnList.indexOf(c.getColumnName());
+                                } else {
+                                    // find index ignore case
+                                    for (int opi = 0; opi < bcOperationColumnList.size(); opi++) {
+                                        String opCol = bcOperationColumnList.get(opi);
+                                        if (opCol != null && opCol.equalsIgnoreCase(c.getColumnName())) {
+                                            columnIndex = opi;
+                                            break;
+                                        }
+                                    }
+                                }
+
                                 if (columnIndex > -1) {
                                     columnMappings.put(columnIndex + 1, i);
                                     batchRecord.addColumnMetadata(columnIndex + 1, c.getColumnName(), jdbctype,
@@ -2224,7 +2278,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                         if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
-                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions(connection);
                             option.setBulkCopyTimeout(queryTimeout);
                             bcOperation.setBulkCopyOptions(option);
                             bcOperation.setDestinationTableName(bcOperationTableName);
@@ -2386,7 +2440,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
 
                         SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
-                                batchParamValues, bcOperationColumnList, bcOperationValueList, null);
+                                batchParamValues, bcOperationColumnList, bcOperationValueList, null, isDBColationCaseSensitive());
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2405,7 +2459,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                         if (null == bcOperation) {
                             bcOperation = new SQLServerBulkCopy(connection);
-                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions();
+                            SQLServerBulkCopyOptions option = new SQLServerBulkCopyOptions(connection);
                             option.setBulkCopyTimeout(queryTimeout);
                             bcOperation.setBulkCopyOptions(option);
                             bcOperation.setDestinationTableName(bcOperationTableName);
@@ -2478,21 +2532,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
+    private boolean isDBColationCaseSensitive() throws SQLServerException {
+        if (null == connection.getDatabaseCollation())
+            return false;
+        return connection.getDatabaseCollation().getIsCaseSensitive();
+    }
+
     private void checkValidColumns(TypeInfo ti) throws SQLServerException {
         int jdbctype = ti.getSSType().getJDBCType().getIntValue();
         String typeName;
         MessageFormat form;
         switch (jdbctype) {
+            case microsoft.sql.Types.DATETIME:
+            case microsoft.sql.Types.SMALLDATETIME:
             case microsoft.sql.Types.MONEY:
             case microsoft.sql.Types.SMALLMONEY:
             case java.sql.Types.DATE:
-            case microsoft.sql.Types.DATETIME:
-            case microsoft.sql.Types.DATETIMEOFFSET:
-            case microsoft.sql.Types.SMALLDATETIME:
             case java.sql.Types.TIME:
+            case microsoft.sql.Types.DATETIMEOFFSET:
                 typeName = ti.getSSTypeName();
-                form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupportedDW"));
-                throw new IllegalArgumentException(form.format(new Object[] {typeName}));
+                if (connection.isAzureDW()) {
+                    // Azure DW does not support these data types.
+                    form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupportedDW"));
+                    throw new IllegalArgumentException(form.format(new Object[] { typeName }));
+                }
             case java.sql.Types.INTEGER:
             case java.sql.Types.SMALLINT:
             case java.sql.Types.BIGINT:
@@ -2512,6 +2575,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             case java.sql.Types.BINARY:
             case java.sql.Types.LONGVARBINARY:
             case java.sql.Types.VARBINARY:
+            case microsoft.sql.Types.VECTOR:
+            case microsoft.sql.Types.JSON:
                 // Spatial datatypes fall under Varbinary, check if the UDT is geometry/geography.
                 typeName = ti.getSSTypeName();
                 if ("geometry".equalsIgnoreCase(typeName) || "geography".equalsIgnoreCase(typeName)) {
@@ -3119,6 +3184,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         assert numBatchesExecuted == numBatchesPrepared;
                     }
                 } catch (SQLException e) {
+                    if (connection.isAEv2() && (e.getErrorCode() == SQLServerException.INVAID_ENCLAVE_SESSION_HANDLE_ERROR)) {
+                        //If the exception received is as below then just invalidate the cache 
+                        //code = '33195', SQL state = 'S0001': Internal enclave error. Enclave was provided with an invalid session handle. For more information, contact Customer Support Services..
+                        //
+                        connection.invalidateEnclaveSessionCache();
+                    }
                     if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, true)
                             && connection.isStatementPoolingEnabled()) {
                         // Reset number of batches prepared.

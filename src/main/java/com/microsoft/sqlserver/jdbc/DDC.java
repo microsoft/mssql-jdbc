@@ -726,6 +726,7 @@ final class DDC {
                 case VARBINARY:
                 case LONGVARBINARY:
                 case BLOB:
+                case VECTOR:
                     // Where allowed, streams convert directly to binary representation
                     if (StreamType.BINARY == getterArgs.streamType)
                         return stream;
@@ -796,6 +797,10 @@ final class DDC {
                             return new BufferedReader(new InputStreamReader(stream, typeInfo.getCharset()));
                         else
                             return new StringReader(new String(stream.getBytes(), typeInfo.getCharset()));
+                    }
+
+                    if (typeInfo.getSSType() == SSType.VECTOR) {
+                        throw new SQLServerException(SQLServerException.getErrString("R_getStringNotSupportedForVector"), null, 0, null);
                     }
 
                     // None of the special/fast textual conversion cases applied. Just go the normal route of converting

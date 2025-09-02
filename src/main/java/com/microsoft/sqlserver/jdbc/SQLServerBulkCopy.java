@@ -5,7 +5,6 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import static com.microsoft.sqlserver.jdbc.SQLServerConnection.BULK_COPY_OPERATION_CACHE;
 import static com.microsoft.sqlserver.jdbc.Util.getHashedSecret;
 import static java.nio.charset.StandardCharsets.UTF_16LE;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -19,8 +18,6 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.ResultSet;
@@ -41,6 +38,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -57,6 +55,7 @@ import java.util.logging.Level;
 import javax.sql.RowSet;
 
 import microsoft.sql.DateTimeOffset;
+import microsoft.sql.Vector;
 
 
 /**
@@ -113,6 +112,22 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
+    private class ColumnOrderHint implements Serializable {
+        /**
+         * Always update serialVersionUID when prompted.
+         */
+        private static final long serialVersionUID = 6132627333120344137L;
+
+        String columnName = null;
+
+        SQLServerSortOrder sortOrder;
+
+        ColumnOrderHint(String columnName, SQLServerSortOrder sortOrder) {
+            this.columnName = columnName;
+            this.sortOrder = sortOrder;
+        }
+    }
+
     /**
      * Class name for logging.
      */
@@ -137,6 +152,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      * Mappings between columns in the data source and columns in the destination
      */
     private List<ColumnMapping> columnMappings;
+
+    /**
+     * Column order hints describe the sort order of columns in the clustered index of the destination
+     */
+    private List<ColumnOrderHint> columnOrderHints;
 
     /**
      * Flag if SQLServerBulkCopy owns the connection and should close it when Close is called
@@ -459,6 +479,43 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         loggerExternal.exiting(loggerClassName, "clearColumnMappings");
     }
 
+     /**
+     * Adds a new column order hint, specify the column name and sort order
+     * 
+     * @param columnName
+     *        Column name.
+     * @param sortOrder
+     *        Column sort order.
+     * @throws SQLServerException
+     *         If the column order hint is invalid
+     */
+    public void addColumnOrderHint(String columnName, SQLServerSortOrder sortOrder) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "addColumnOrderHint",
+                    new Object[] {columnName, sortOrder});
+        }
+
+        if (null == columnName || columnName.isEmpty()) {
+            throwInvalidArgument("columnName");
+        } else if (null == sortOrder || SQLServerSortOrder.UNSPECIFIED == sortOrder) {
+            throwInvalidArgument("sortOrder");
+        }
+        columnOrderHints.add(new ColumnOrderHint(columnName, sortOrder));
+
+        loggerExternal.exiting(loggerClassName, "addColumnOrderHint");
+    }
+
+     /**
+     * Clears the contents of the column order hints
+     */
+    public void clearColumnOrderHints() {
+        loggerExternal.entering(loggerClassName, "clearColumnOrderHints");
+
+        columnOrderHints.clear();
+
+        loggerExternal.exiting(loggerClassName, "clearColumnOrderHints");
+    }
+
     /**
      * Closes the SQLServerBulkCopy instance
      */
@@ -648,6 +705,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      */
     private void initializeDefaults() {
         columnMappings = new ArrayList<>();
+        columnOrderHints = new ArrayList<>();
         destinationTableName = null;
         serverBulkData = null;
         sourceResultSet = null;
@@ -780,7 +838,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             collation = connection.getDatabaseCollation();
 
         if ((java.sql.Types.NCHAR == bulkJdbcType) || (java.sql.Types.NVARCHAR == bulkJdbcType)
-                || (java.sql.Types.LONGNVARCHAR == bulkJdbcType)) {
+                || (java.sql.Types.LONGNVARCHAR == bulkJdbcType)
+                || (microsoft.sql.Types.JSON == bulkJdbcType)) {
             isStreaming = (DataTypes.SHORT_VARTYPE_MAX_CHARS < bulkPrecision)
                     || (DataTypes.SHORT_VARTYPE_MAX_CHARS < destPrecision);
         } else {
@@ -837,7 +896,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             int baseDestPrecision = destCryptoMeta.baseTypeInfo.getPrecision();
 
             if ((java.sql.Types.NCHAR == baseDestJDBCType) || (java.sql.Types.NVARCHAR == baseDestJDBCType)
-                    || (java.sql.Types.LONGNVARCHAR == baseDestJDBCType))
+                    || (java.sql.Types.LONGNVARCHAR == baseDestJDBCType)
+                    || (microsoft.sql.Types.JSON == baseDestJDBCType))
                 isStreaming = (DataTypes.SHORT_VARTYPE_MAX_CHARS < baseDestPrecision);
             else
                 isStreaming = (DataTypes.SHORT_VARTYPE_MAX_BYTES < baseDestPrecision);
@@ -997,6 +1057,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case java.sql.Types.LONGVARCHAR:
             case java.sql.Types.VARCHAR: // 0xA7
+            case microsoft.sql.Types.JSON:
                 if (unicodeConversionRequired(srcJdbcType, destSSType)) {
                     tdsWriter.writeByte(TDSType.NVARCHAR.byteValue());
                     if (isStreaming) {
@@ -1025,7 +1086,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
                 collation.writeCollation(tdsWriter);
                 break;
-
             case java.sql.Types.BINARY: // 0xAD
                 tdsWriter.writeByte(TDSType.BIGBINARY.byteValue());
                 tdsWriter.writeShort((short) (srcPrecision));
@@ -1040,6 +1100,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 } else {
                     tdsWriter.writeShort((short) (srcPrecision));
                 }
+                break;
+
+            case microsoft.sql.Types.VECTOR: // 0xF5
+                tdsWriter.writeByte(TDSType.VECTOR.byteValue());
+                tdsWriter.writeShort((short) (VectorUtils.getVectorLength(srcScale, srcPrecision))); //length
+                byte srcByte = (byte) (VectorUtils.getScaleByte(srcScale));
+                tdsWriter.writeByte((byte) srcByte); //scale
                 break;
 
             case microsoft.sql.Types.DATETIME:
@@ -1389,14 +1456,20 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 else
                     return SSType.VARBINARY.toString() + "(" + bulkPrecision + ")";
 
+            case microsoft.sql.Types.VECTOR:
+                return SSType.VECTOR.toString() + "(" + bulkPrecision + ")";
             case microsoft.sql.Types.DATETIME:
             case microsoft.sql.Types.SMALLDATETIME:
             case java.sql.Types.TIMESTAMP:
                 switch (destSSType) {
                     case SMALLDATETIME:
                         if (null != serverBulkData && connection.getSendTemporalDataTypesAsStringForBulkCopy()) {
+                            /*
+                             * Fallback to maximum precision when sending smalldatetime as varchar.
+                             * The default precision (16) is too small for the full string value and will cause issue.
+                             */
                             return SSType.VARCHAR.toString() + "("
-                                    + ((0 == bulkPrecision) ? SOURCE_BULK_RECORD_TEMPORAL_MAX_PRECISION : bulkPrecision)
+                                    + SOURCE_BULK_RECORD_TEMPORAL_MAX_PRECISION
                                     + ")";
                         } else {
                             return SSType.SMALLDATETIME.toString();
@@ -1470,6 +1543,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 }
             case microsoft.sql.Types.SQL_VARIANT:
                 return SSType.SQL_VARIANT.toString();
+            case microsoft.sql.Types.JSON:
+                return SSType.JSON.toString();    
             default: {
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_BulkTypeNotSupported"));
                 Object[] msgArgs = {JDBCType.of(bulkJdbcType).toString().toLowerCase(Locale.ENGLISH)};
@@ -1482,6 +1557,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     private String createInsertBulkCommand(TDSWriter tdsWriter) throws SQLServerException {
         StringBuilder bulkCmd = new StringBuilder();
         List<String> bulkOptions = new ArrayList<>();
+        Set<String> destColumns = new HashSet<>();
         String endColumn = " , ";
         bulkCmd.append("INSERT BULK ").append(destinationTableName).append(" (");
 
@@ -1490,8 +1566,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 endColumn = " ) ";
             }
             ColumnMapping colMapping = columnMappings.get(i);
-            String columnCollation = destColumnMetadata
-                    .get(columnMappings.get(i).destinationColumnOrdinal).collationName;
+
+            BulkColumnMetaData columnMetaData = destColumnMetadata
+                    .get(columnMappings.get(i).destinationColumnOrdinal);
+            destColumns.add(columnMetaData.columnName);
+
+            String columnCollation = columnMetaData.collationName;
             String addCollate = "";
 
             String destType = getDestTypeFromSrcType(colMapping.sourceColumnOrdinal,
@@ -1534,6 +1614,36 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         if (copyOptions.isAllowEncryptedValueModifications()) {
             bulkOptions.add("ALLOW_ENCRYPTED_VALUE_MODIFICATIONS");
+        }
+
+        if (0 < columnOrderHints.size()) {
+            StringBuilder orderHintText = new StringBuilder("ORDER(");
+
+            for (ColumnOrderHint columnOrderHint : columnOrderHints) {
+                String columnName = columnOrderHint.columnName;
+                
+                if (!destColumns.contains(columnName)) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidColumn"));
+                    Object[] msgArgs = { columnName };
+                    throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND,
+                            DriverError.NOT_SET, null);
+                }
+
+                String sortOrderText = columnOrderHint.sortOrder == SQLServerSortOrder.DESCENDING ? "DESC" : "ASC";
+
+                if (columnName.contains("]")) {
+                    String escapedColumnName = columnName.replaceAll("]", "]]");
+                    orderHintText.append("[").append(escapedColumnName).append("] ").append(sortOrderText).append(", ");
+                } else {
+                    orderHintText.append("[").append(columnName).append("] ").append(sortOrderText).append(", ");
+                } 
+            }
+
+            orderHintText.setLength(orderHintText.length() - 2);
+            orderHintText.append(")");
+            
+            bulkOptions.add(orderHintText.toString());
         }
 
         Iterator<String> it = bulkOptions.iterator();
@@ -1731,19 +1841,19 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         String escapedDestinationTableName = Util.escapeSingleQuotes(destinationTableName);
         String key = null;
-
+        HashMap<String, Map<Integer, SQLServerBulkCopy.BulkColumnMetaData>> bulkCopyOperationCache = connection.getBulkCopyOperationCache();
         if (connection.getcacheBulkCopyMetadata()) {
             String databaseName = connection.activeConnectionProperties
                     .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
             key = getHashedSecret(new String[] {escapedDestinationTableName, databaseName});
-            destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
+            destColumnMetadata = bulkCopyOperationCache.get(key);
         }
 
         if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
             if (connection.getcacheBulkCopyMetadata()) {
                 DESTINATION_COL_METADATA_LOCK.lock();
                 try {
-                    destColumnMetadata = BULK_COPY_OPERATION_CACHE.get(key);
+                    destColumnMetadata = bulkCopyOperationCache.get(key);
 
                     if (null == destColumnMetadata || destColumnMetadata.isEmpty()) {
                         setDestinationColumnMetadata(escapedDestinationTableName);
@@ -1758,23 +1868,23 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         // driver will not be aware of this and the inserted data will likely be corrupted. In such
                         // scenario, we can't detect this without making an additional metadata query, which would
                         // defeat the purpose of caching.
-                        BULK_COPY_OPERATION_CACHE.put(key, destColumnMetadata);
+                        bulkCopyOperationCache.put(key, destColumnMetadata);
                     }
                 } finally {
                     DESTINATION_COL_METADATA_LOCK.unlock();
                 }
 
                 if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer(this.toString() + " Acquiring existing destination column metadata " +
-                            "from cache for bulk copy");
+                    loggerExternal.finer(this.toString() + " Acquiring existing destination column metadata "
+                            + "from cache for bulk copy");
                 }
 
             } else {
                 setDestinationColumnMetadata(escapedDestinationTableName);
 
                 if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer(this.toString() + " cacheBulkCopyMetadata=false - Querying server " +
-                            "for destination column metadata");
+                    loggerExternal.finer(this.toString() + " cacheBulkCopyMetadata=false - Querying server "
+                            + "for destination column metadata");
                 }
             }
         }
@@ -1914,7 +2024,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                 // Generate default column mappings
                 ColumnMapping cm;
-                for (int i = 1; i <= srcColumnCount; ++i) {
+                for (Integer i : destColumnMetadata.keySet()) {
                     // Only skip identity column mapping if KEEP IDENTITY OPTION is FALSE
                     if (!(destColumnMetadata.get(i).isIdentity && !copyOptions.isKeepIdentity())) {
                         cm = new ColumnMapping(i, i);
@@ -1968,7 +2078,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     if (-1 == cm.destinationColumnOrdinal) {
                         boolean foundColumn = false;
 
-                        for (int j = 1; j <= destColumnCount; ++j) {
+                        for (Integer j : destColumnMetadata.keySet()) {
                             if (destColumnMetadata.get(j).columnName.equals(cm.destinationColumnName)) {
                                 foundColumn = true;
                                 cm.destinationColumnOrdinal = j;
@@ -2090,6 +2200,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case java.sql.Types.LONGVARCHAR:
             case java.sql.Types.LONGNVARCHAR:
             case java.sql.Types.LONGVARBINARY:
+            case microsoft.sql.Types.VECTOR:
+            case microsoft.sql.Types.JSON:
                 if (isStreaming) {
                     tdsWriter.writeLong(PLPInputStream.PLP_NULL);
                 } else {
@@ -2115,6 +2227,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             case microsoft.sql.Types.MONEY:
             case microsoft.sql.Types.SMALLMONEY:
             case microsoft.sql.Types.DATETIMEOFFSET:
+            case microsoft.sql.Types.DATETIME:
+            case microsoft.sql.Types.SMALLDATETIME:
                 tdsWriter.writeByte((byte) 0x00);
                 return;
             case microsoft.sql.Types.SQL_VARIANT:
@@ -2129,7 +2243,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
     private void writeColumnToTdsWriter(TDSWriter tdsWriter, int bulkPrecision, int bulkScale, int bulkJdbcType,
             boolean bulkNullable, // should it be destNullable instead?
-            int srcColOrdinal, int destColOrdinal, boolean isStreaming, Object colValue, Calendar cal) throws SQLServerException {
+            int srcColOrdinal, int destColOrdinal, boolean isStreaming, Object colValue,
+            Calendar cal) throws SQLServerException {
         SSType destSSType = destColumnMetadata.get(destColOrdinal).ssType;
 
         bulkPrecision = validateSourcePrecision(bulkPrecision, bulkJdbcType,
@@ -2161,6 +2276,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.TIME:
                 case java.sql.Types.TIMESTAMP:
                 case microsoft.sql.Types.DATETIMEOFFSET:
+                case microsoft.sql.Types.DATETIME:
+                case microsoft.sql.Types.SMALLDATETIME:
                     bulkJdbcType = java.sql.Types.VARCHAR;
                     break;
                 default:
@@ -2318,10 +2435,26 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     }
                     break;
 
+                case microsoft.sql.Types.VECTOR:
+                    
+                    if (null == colValue) {
+                        writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                    } else {
+                        Vector vector = (Vector) colValue;
+                        if (vector.getData() == null) {
+                            writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
+                        } else {
+                            tdsWriter.writeShort((short) (VectorUtils.getVectorLength(vector))); // Actual length
+                            tdsWriter.writeBytes(VectorUtils.toBytes(vector)); // Write vector data
+                        } 
+                    }
+                    break;
+
                 case microsoft.sql.Types.GUID:
                 case java.sql.Types.LONGVARCHAR:
                 case java.sql.Types.CHAR: // Fixed-length, non-Unicode string data.
                 case java.sql.Types.VARCHAR: // Variable-length, non-Unicode string data.
+                case microsoft.sql.Types.JSON:
                     if (isStreaming) // PLP
                     {
                         // PLP_BODY rule in TDS
@@ -2460,7 +2593,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         }
                     }
                     break;
-
                 case java.sql.Types.LONGVARBINARY:
                 case java.sql.Types.BINARY:
                 case java.sql.Types.VARBINARY:
@@ -2957,6 +3089,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.FLOAT:
                     return sourceResultSet.getObject(srcColOrdinal);
 
+                case microsoft.sql.Types.VECTOR:
+                    return sourceResultSet.getObject(srcColOrdinal, Vector.class);
                 case microsoft.sql.Types.MONEY:
                 case microsoft.sql.Types.SMALLMONEY:
                 case java.sql.Types.DECIMAL:
@@ -2986,6 +3120,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.LONGNVARCHAR:
                 case java.sql.Types.NCHAR:
                 case java.sql.Types.NVARCHAR:
+                case microsoft.sql.Types.JSON:
                     // PLP if stream type and both the source and destination are not encrypted
                     // This is because AE does not support streaming types.
                     // Therefore an encrypted source or destination means the data must not actually be streaming data
@@ -3046,8 +3181,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Reads the given column from the result set current row and writes the data to tdsWriter.
      */
-    private void writeColumn(TDSWriter tdsWriter, int srcColOrdinal, int destColOrdinal,
-            Object colValue, Calendar cal) throws SQLServerException {
+    private void writeColumn(TDSWriter tdsWriter, int srcColOrdinal, int destColOrdinal, Object colValue,
+            Calendar cal) throws SQLServerException {
         String destName = destColumnMetadata.get(destColOrdinal).columnName;
         int srcPrecision, srcScale, destPrecision, srcJdbcType;
         SSType destSSType = null;
@@ -3060,7 +3195,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         destPrecision = destColumnMetadata.get(destColOrdinal).precision;
 
         if ((java.sql.Types.NCHAR == srcJdbcType) || (java.sql.Types.NVARCHAR == srcJdbcType)
-                || (java.sql.Types.LONGNVARCHAR == srcJdbcType)) {
+                || (java.sql.Types.LONGNVARCHAR == srcJdbcType)
+                || (microsoft.sql.Types.JSON == srcJdbcType)) {
             isStreaming = (DataTypes.SHORT_VARTYPE_MAX_CHARS < srcPrecision)
                     || (DataTypes.SHORT_VARTYPE_MAX_CHARS < destPrecision);
         } else {
@@ -3097,7 +3233,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     || (java.sql.Types.TIMESTAMP == srcJdbcType) || (microsoft.sql.Types.DATETIMEOFFSET == srcJdbcType)
                     || (2013 == srcJdbcType) || (2014 == srcJdbcType)) {
                 colValue = getTemporalObjectFromCSV(colValue, srcJdbcType, srcColOrdinal);
-            } else if ((java.sql.Types.NUMERIC == srcJdbcType) || (java.sql.Types.DECIMAL == srcJdbcType)) {
+            } else if ((java.sql.Types.NUMERIC == srcJdbcType) || (java.sql.Types.DECIMAL == srcJdbcType)
+                    || (microsoft.sql.Types.VECTOR == srcJdbcType)) {
                 int baseDestPrecision = destCryptoMeta.baseTypeInfo.getPrecision();
                 int baseDestScale = destCryptoMeta.baseTypeInfo.getScale();
                 if ((srcScale != baseDestScale) || (srcPrecision != baseDestPrecision)) {
@@ -3554,6 +3691,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
                     }
                     return byteArrayValue;
+                case VECTOR:
+                    Vector vector = (Vector) value;
+                    byteValue = VectorUtils.toBytes(vector);
+                    if (byteValue.length > VectorUtils.getVectorLength(vector)) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidDataForAE"));
+                        Object[] msgArgs = {srcJdbcType, destJdbcType, destName};
+                        throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
+                    }
+                    return byteValue;
                 case GUID:
                     return Util.asGuidByteArray(UUID.fromString((String) value));
 
@@ -3699,8 +3845,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // Loop for each destination column. The mappings is a many to one mapping
                 // where multiple source columns can be mapped to one destination column.
                 for (ColumnMapping columnMapping : columnMappings) {
-                    writeColumn(tdsWriter, columnMapping.sourceColumnOrdinal, columnMapping.destinationColumnOrdinal, null,
-                            null // cell
+                    writeColumn(tdsWriter, columnMapping.sourceColumnOrdinal, columnMapping.destinationColumnOrdinal,
+                            null, null // cell
                     // value is
                     // retrieved
                     // inside
@@ -3771,6 +3917,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     private boolean unicodeConversionRequired(int jdbcType, SSType ssType) {
         return ((java.sql.Types.CHAR == jdbcType || java.sql.Types.VARCHAR == jdbcType
                 || java.sql.Types.LONGNVARCHAR == jdbcType)
-                && (SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType));
+                && (SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType
+                || SSType.JSON == ssType));
     }
 }

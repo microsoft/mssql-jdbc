@@ -170,7 +170,7 @@ public class SQLServerDataSource
     @Override
     public String getApplicationName() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.APPLICATION_NAME.toString(),
-                SQLServerDriver.constructedAppName);
+        SQLServerDriverStringProperty.APPLICATION_NAME.getDefaultValue());
     }
 
     /**
@@ -948,17 +948,15 @@ public class SQLServerDataSource
 
     @Override
     public void setcacheBulkCopyMetadata(boolean cacheBulkCopyMetadata) {
-        setBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),
                 cacheBulkCopyMetadata);
     }
 
     @Override
     public boolean getcacheBulkCopyMetadata() {
-        boolean defaultValue = SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE
-                .getDefaultValue();
-        return getBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(), defaultValue);
+        boolean defaultValue = SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.getDefaultValue();
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),
+                defaultValue);
     }
 
     @Override
@@ -1023,6 +1021,110 @@ public class SQLServerDataSource
         return getBooleanProperty(connectionProps,
                 SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.toString(),
                 SQLServerDriverBooleanProperty.USE_BULK_COPY_FOR_BATCH_INSERT.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertBatchSize(int bulkCopyForBatchInsertBatchSize) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.toString(),
+                bulkCopyForBatchInsertBatchSize);
+    }
+
+    @Override
+    public int getBulkCopyForBatchInsertBatchSize() {
+        return getIntProperty(connectionProps,
+                SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.toString(),
+                SQLServerDriverIntProperty.BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.toString(),
+                bulkCopyForBatchInsertCheckConstraints);
+    }
+
+    @Override
+    public boolean getBulkCopyForBatchInsertCheckConstraints() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_CHECK_CONSTRAINTS.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertFireTriggers(boolean bulkCopyForBatchInsertFireTriggers) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.toString(),
+                bulkCopyForBatchInsertFireTriggers);
+    }
+
+    @Override
+    public boolean getBulkCopyForBatchInsertFireTriggers() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_FIRE_TRIGGERS.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertKeepIdentity(boolean bulkCopyForBatchInsertKeepIdentity) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY.toString(),
+                bulkCopyForBatchInsertKeepIdentity);
+    }
+
+    @Override
+    public boolean getBulkCopyForBatchInsertKeepIdentity() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_IDENTITY.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertKeepNulls(boolean bulkCopyForBatchInsertKeepNulls) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.toString(),
+                bulkCopyForBatchInsertKeepNulls);
+    }
+
+    @Override
+    public boolean getBulkCopyForBatchInsertKeepNulls() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_KEEP_NULLS.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertTableLock(boolean bulkCopyForBatchInsertTableLock) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.toString(),
+                bulkCopyForBatchInsertTableLock);
+    }
+
+    @Override
+    public boolean getBulkCopyForBatchInsertTableLock() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_TABLE_LOCK.getDefaultValue());
+    }
+
+    @Override
+    public void setBulkCopyForBatchInsertAllowEncryptedValueModifications(boolean bulkCopyForBatchInsertAllowEncryptedValueModifications) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
+                bulkCopyForBatchInsertAllowEncryptedValueModifications);
+    }
+
+    @Override
+    public boolean getBulkCopyForBatchInsertAllowEncryptedValueModifications() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.toString(),
+                SQLServerDriverBooleanProperty.BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS.getDefaultValue());
+    }
+    
+    @Override
+    public void setVectorTypeSupport(String vectorTypeSupport) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.toString(),
+                vectorTypeSupport);
+    }
+
+    @Override
+    public String getVectorTypeSupport() {
+        return getStringProperty(connectionProps,
+                SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.toString(),
+                SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.getDefaultValue());
     }
 
     /**
@@ -1302,7 +1404,6 @@ public class SQLServerDataSource
     @Override
     public void setUseFlexibleCallableStatements(boolean enable) {}
 
-
     /**
      * useFlexibleCallableStatements is temporarily removed.
      * This method is a no-op for backwards compatibility only.
@@ -1402,6 +1503,29 @@ public class SQLServerDataSource
     @Override
     public String getRetryExec() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.RETRY_EXEC.toString(), null);
+    }
+
+    @Override
+    public String getQuotedIdentifier() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString(),
+                SQLServerDriverStringProperty.QUOTED_IDENTIFIER.getDefaultValue());
+    }
+
+    @Override
+    public void setQuotedIdentifier(String quotedIdentifier) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString(), quotedIdentifier);
+    }
+
+    @Override
+    public String getConcatNullYieldsNull() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString(),
+                SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.getDefaultValue());
+    }
+
+    @Override
+    public void setConcatNullYieldsNull(String concatNullYieldNull) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString(),
+                concatNullYieldNull);
     }
 
     /**

@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,6 +40,8 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 import com.microsoft.sqlserver.jdbc.JavaType.SetterConversionAE;
+
+import microsoft.sql.Vector;
 
 
 /**
@@ -115,6 +116,8 @@ abstract class DTVExecuteOp {
     abstract void execute(DTV dtv, TVP tvpValue) throws SQLServerException;
 
     abstract void execute(DTV dtv, SqlVariant sqlVariantValue) throws SQLServerException;
+
+    abstract void execute(DTV dtv, Vector vectorValue) throws SQLServerException;
 }
 
 
@@ -246,12 +249,14 @@ final class DTV {
     Object getValue(JDBCType jdbcType, int scale, InputStreamGetterArgs streamGetterArgs, Calendar cal,
             TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader,
             SQLServerStatement statement) throws SQLServerException {
-        if (impl == null) {
+        if (null == impl) {
             impl = new ServerDTVImpl();
         } else if (impl.isNull()) {
             return null;
         }
-        return impl.getValue(this, jdbcType, scale, streamGetterArgs, cal, typeInfo, cryptoMetadata, tdsReader,statement);
+
+        return impl.getValue(this, jdbcType, scale, streamGetterArgs, cal, typeInfo, cryptoMetadata, tdsReader,
+                statement);
     }
 
     Object getSetterValue() {
@@ -296,6 +301,8 @@ final class DTV {
         void execute(DTV dtv, String strValue) throws SQLServerException {
             if (dtv.getJdbcType() == JDBCType.GUID) {
                 tdsWriter.writeRPCUUID(name, UUID.fromString(strValue), isOutParam);
+            } else if (dtv.getJdbcType() == JDBCType.JSON) {
+                tdsWriter.writeRPCJson(name, strValue, isOutParam);
             } else {
                 tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
             }
@@ -1110,6 +1117,10 @@ final class DTV {
             tdsWriter.writeRPCUUID(name, uuidValue, isOutParam);
         }
 
+        void execute(DTV dtv, Vector vectorValue) throws SQLServerException {
+            tdsWriter.writeRPCVector(name, vectorValue, isOutParam, outScale, valueLength);
+        }
+
         void execute(DTV dtv, byte[] byteArrayValue) throws SQLServerException {
             if (null != cryptoMeta) {
                 tdsWriter.writeRPCNameValType(name, isOutParam, TDSType.BIGVARBINARY);
@@ -1136,7 +1147,6 @@ final class DTV {
 
                     writeEncryptData(dtv, true);
                 }
-
             } else
                 tdsWriter.writeRPCByteArray(name, byteArrayValue, isOutParam, dtv.getJdbcType(), collation);
 
@@ -1461,6 +1471,7 @@ final class DTV {
                 case NVARCHAR:
                 case LONGNVARCHAR:
                 case NCLOB:
+                case JSON:
                     if (null != cryptoMeta)
                         op.execute(this, (byte[]) null);
                     else
@@ -1584,6 +1595,10 @@ final class DTV {
 
                 case SQL_VARIANT:
                     op.execute(this, (SqlVariant) null);
+                    break;
+                
+                case VECTOR:
+                    op.execute(this, (Vector) value);
                     break;
 
                 case UNKNOWN:
@@ -1811,6 +1826,10 @@ final class DTV {
                         op.execute(this, (byte[]) value);
                     break;
 
+                case VECTOR:
+                    op.execute(this, (Vector) value);
+                    break;
+
                 case BYTE:
                     // for tinyint
                     if (null != cryptoMeta) {
@@ -1873,6 +1892,15 @@ final class DTV {
                 case CLOB:
                 case NCLOB:
                     op.execute(this, (Clob) value);
+                    break;
+
+                case UUID:
+                    if (null != cryptoMeta) {
+                        byte[] bArray = Util.asGuidByteArray((UUID) value);
+                        op.execute(this, bArray);
+                    } else {
+                        op.execute(this, (UUID) value);
+                    }
                     break;
 
                 case INPUTSTREAM:
@@ -2036,7 +2064,8 @@ final class AppDTVImpl extends DTVImpl {
             // then do the conversion now so that the decision to use a "short" or "long"
             // SSType (i.e. VARCHAR vs. TEXT/VARCHAR(max)) is based on the exact length of
             // the MBCS value (in bytes).
-            else if (null != collation && (JDBCType.CHAR == type || JDBCType.VARCHAR == type
+            // If useBulkCopyForBatchInsert is true, conversion to byte array is not done due to performance
+            else if (!con.getUseBulkCopyForBatchInsert() && null != collation && (JDBCType.CHAR == type || JDBCType.VARCHAR == type
                     || JDBCType.LONGVARCHAR == type || JDBCType.CLOB == type)) {
                 byte[] nativeEncoding = null;
 
@@ -2069,6 +2098,8 @@ final class AppDTVImpl extends DTVImpl {
         void execute(DTV dtv, Byte byteValue) throws SQLServerException {}
 
         void execute(DTV dtv, Integer intValue) throws SQLServerException {}
+
+        void execute(DTV dtv, Vector vectorValue) throws SQLServerException {}
 
         void execute(DTV dtv, java.sql.Time timeValue) throws SQLServerException {
             if (dtv.getJdbcType().isTextual()) {
@@ -2991,6 +3022,47 @@ final class TypeInfo implements Serializable {
                 typeInfo.maxLength = tdsReader.readInt();
                 typeInfo.ssType = SSType.SQL_VARIANT;
             }
+        }),
+        
+        VECTOR(TDSType.VECTOR, new Strategy() {
+            /**
+             * Sets the fields of typeInfo to the correct values
+             * 
+             * @param typeInfo
+             *        the TypeInfo whos values are being corrected
+             * @param tdsReader
+             *        the TDSReader used to set the fields of typeInfo to the correct values
+             * @throws SQLServerException
+             *         when an error occurs
+             */
+            public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
+                typeInfo.ssLenType = SSLenType.USHORTLENTYPE;
+                typeInfo.maxLength = tdsReader.readUnsignedShort();
+                typeInfo.displaySize = typeInfo.maxLength;
+                typeInfo.ssType = SSType.VECTOR;
+                int scaleByte = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
+                typeInfo.scale = VectorUtils.getBytesPerDimensionFromScale(scaleByte);
+                typeInfo.precision = VectorUtils.getPrecision(typeInfo.maxLength, typeInfo.scale);
+            }
+        }),
+
+        JSON(TDSType.JSON, new Strategy() {
+            /**
+             * Sets the fields of typeInfo to the correct values
+             * 
+             * @param typeInfo
+             *        the TypeInfo whos values are being corrected
+             * @param tdsReader
+             *        the TDSReader used to set the fields of typeInfo to the correct values
+             * @throws SQLServerException
+             *         when an error occurs
+             */
+            public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
+                typeInfo.ssLenType = SSLenType.PARTLENTYPE; 
+                typeInfo.ssType = SSType.JSON;
+                typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE;
+                typeInfo.charset = Encoding.UTF8.charset();
+            }
         });
 
         private final TDSType tdsType;
@@ -3550,6 +3622,7 @@ final class ServerDTVImpl extends DTVImpl {
             case BINARY:
             case VARBINARY:
             case VARBINARYMAX:
+            case VECTOR:
                 return DDC.convertBytesToObject(decryptedValue, jdbcType, baseTypeInfo);
 
             case DATE:
@@ -3739,6 +3812,7 @@ final class ServerDTVImpl extends DTVImpl {
                 case VARBINARYMAX:
                 case VARCHARMAX:
                 case NVARCHARMAX:
+                case JSON:
                 case UDT: {
                     convertedValue = DDC.convertStreamToObject(
                             PLPInputStream.makeStream(tdsReader, streamGetterArgs, this), typeInfo, jdbcType,
@@ -3768,6 +3842,7 @@ final class ServerDTVImpl extends DTVImpl {
                 case BINARY:
                 case VARBINARY:
                 case TIMESTAMP: // A special BINARY(8)
+                case VECTOR:
                 {
                     convertedValue = DDC.convertStreamToObject(
                             new SimpleInputStream(tdsReader, valueLength, streamGetterArgs, this), typeInfo, jdbcType,
