@@ -1268,6 +1268,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      */
     @Test
     @AzureDB
+    @Tag(Constants.vectorTest)
     public void testInsertVectorWithBulkCopy() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkCopyVectorTest");
         String sqlString = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (vectorCol) values (?)";
@@ -1306,6 +1307,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      */
     @Test
     @AzureDB
+    @Tag(Constants.vectorTest)
     public void testInsertNullVectorWithBulkCopy() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkCopyVectorTest");
         String sqlString = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (vectorCol) values (?)";
@@ -1345,6 +1347,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      */
     @Test
     @AzureDB
+    @Tag(Constants.vectorTest)
     public void testInsertWithBulkCopyPerformance() throws SQLException {
         String tableName = AbstractSQLGenerator.escapeIdentifier("BulkCopyVectorPerformanceTest");
         // For testing, we can use a smaller set of records to avoid long execution time

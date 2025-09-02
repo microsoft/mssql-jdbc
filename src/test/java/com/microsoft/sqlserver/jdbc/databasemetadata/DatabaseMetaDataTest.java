@@ -1093,6 +1093,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      */
     @Test
     @AzureDB
+    @Tag(Constants.vectorTest)
     public void testVectorMetaData() throws SQLException {
         String vectorTableName = RandomUtil.getIdentifier("vectorTable");
 
