@@ -5041,7 +5041,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "refreshRow");
     }
 
-    private void doRefreshRow() throws SQLServerException {
+    protected void doRefreshRow() throws SQLServerException {
         assert hasCurrentRow();
 
         // Save off the current row offset into the fetch buffer so that we can attempt to
