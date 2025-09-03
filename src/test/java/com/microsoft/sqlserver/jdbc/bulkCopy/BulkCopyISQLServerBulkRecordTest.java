@@ -591,58 +591,54 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyTableToTableJsonToVector() throws Exception {
-        String srcTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testSrcJsonTable"));
-        String dstTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testDstVectorTable"));
+        String srcTable = TestUtils.escapeSingleQuotes(
+                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testSrcJsonTable")));
+        String dstTable = TestUtils.escapeSingleQuotes(
+                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testDstVectorTable")));
         String vectorJson = "[1.0, 2.0, 3.0]";
         Object[] expectedVector = new Float[] { 1.0f, 2.0f, 3.0f };
 
-        // Create source table and insert JSON vector
         try (Connection conn = DriverManager.getConnection(connectionString);
              Statement stmt = conn.createStatement()) {
+
+            // Create source table and insert JSON vector
             stmt.executeUpdate("CREATE TABLE " + srcTable + " (vectorJsonCol JSON)");
             stmt.executeUpdate("INSERT INTO " + srcTable + " (vectorJsonCol) VALUES ('" + vectorJson + "')");
-        }
 
-        // Create destination table with VECTOR column
-        try (Connection conn = DriverManager.getConnection(connectionString);
-             Statement stmt = conn.createStatement()) {
+            // Create destination table with VECTOR column
             stmt.executeUpdate("CREATE TABLE " + dstTable + " (vectorCol VECTOR(3))");
-        }
 
-        // Table-to-table bulk copy: read JSON, parse, and write as VECTOR
-        try (Connection conn = DriverManager.getConnection(connectionString);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT vectorJsonCol FROM " + srcTable);
-             SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+            // Table-to-table bulk copy: read JSON, parse, and write as VECTOR
+            try (ResultSet rs = stmt.executeQuery("SELECT vectorJsonCol FROM " + srcTable);
+                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
-            bulkCopy.setDestinationTableName(dstTable);
-            // For each row, parse JSON and bulk copy as VECTOR
-            while (rs.next()) {
-                String json = rs.getString(1);
-                Object[] vector = parseJsonArrayToFloatArray(json);
-                Vector vectorObj = new Vector(vector.length, VectorDimensionType.FLOAT32, vector);
-                VectorBulkData vectorBulkData = new VectorBulkData(vectorObj, vector.length, VectorDimensionType.FLOAT32);
-                bulkCopy.writeToServer(vectorBulkData);
+                bulkCopy.setDestinationTableName(dstTable);
+                // For each row, parse JSON and bulk copy as VECTOR
+                while (rs.next()) {
+                    String json = rs.getString(1);
+                    Object[] vector = parseJsonArrayToFloatArray(json);
+                    Vector vectorObj = new Vector(vector.length, VectorDimensionType.FLOAT32, vector);
+                    VectorBulkData vectorBulkData = new VectorBulkData(vectorObj, vector.length, VectorDimensionType.FLOAT32);
+                    bulkCopy.writeToServer(vectorBulkData);
+                }
             }
-        }
 
-        // Validate the data in the destination table
-        try (Connection conn = DriverManager.getConnection(connectionString);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT vectorCol FROM " + dstTable)) {
-            assertTrue(rs.next(), "No data found in the destination table.");
-            Vector resultVector = rs.getObject(1, Vector.class);
-            assertNotNull(resultVector, "Retrieved vector is null.");
-            assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
-            assertEquals(VectorDimensionType.FLOAT32, resultVector.getVectorDimensionType(), "Vector dimension type mismatch.");
-            assertArrayEquals(expectedVector, resultVector.getData(), "Vector data mismatch.");
-        }
-
-        // Cleanup
-        try (Connection conn = DriverManager.getConnection(connectionString);
-             Statement stmt = conn.createStatement()) {
-            TestUtils.dropTableIfExists(srcTable, stmt);
-            TestUtils.dropTableIfExists(dstTable, stmt);
+            // Validate the data in the destination table
+            try (ResultSet rs = stmt.executeQuery("SELECT vectorCol FROM " + dstTable)) {
+                assertTrue(rs.next(), "No data found in the destination table.");
+                Vector resultVector = rs.getObject(1, Vector.class);
+                assertNotNull(resultVector, "Retrieved vector is null.");
+                assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
+                assertEquals(VectorDimensionType.FLOAT32, resultVector.getVectorDimensionType(), "Vector dimension type mismatch.");
+                assertArrayEquals(expectedVector, resultVector.getData(), "Vector data mismatch.");
+            }
+        } finally {
+            // Cleanup
+            try (Connection conn = DriverManager.getConnection(connectionString);
+                 Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(srcTable, stmt);
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
         }
     }
 
