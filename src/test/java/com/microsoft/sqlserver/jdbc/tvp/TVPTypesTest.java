@@ -34,6 +34,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
@@ -155,6 +156,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testJSON() throws SQLException {
         createTables("json");
@@ -386,6 +388,7 @@ public class TVPTypesTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testTVPJSONStoredProcedure() throws SQLException {
         createTables("json");
@@ -759,6 +762,7 @@ public class TVPTypesTest extends AbstractTest {
     }
     
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testJSONTVPCallableAPI() throws SQLException {
         createTables("json");
