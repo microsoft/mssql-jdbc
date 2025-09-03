@@ -451,6 +451,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * It verifies that the data is copied correctly by comparing the values in the table with the expected values.
      */
     @Test
+    @AzureDB
     @DisplayName("Test Bulk Copy with JSON Data")
     @Tag(Constants.JSONTest)
     public void testBulkCopyWithJson() throws Exception {
