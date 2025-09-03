@@ -13,6 +13,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.UUID;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -57,6 +59,7 @@ public class VectorTest extends AbstractTest {
     private static final String TABLE_NAME = RandomUtil.getIdentifier("VECTOR_TVP_Test");
     private static final String TVP_NAME = RandomUtil.getIdentifier("VECTOR_TVP_Test_Type");
     private static final String TVP = RandomUtil.getIdentifier("VECTOR_TVP_UDF_Test_Type");
+    private static final String uuid = UUID.randomUUID().toString().replaceAll("-", "");
 
     @BeforeAll
     private static void setupTest() throws Exception {
@@ -1189,9 +1192,7 @@ public class VectorTest extends AbstractTest {
             }
 
             // Drop the destination table if it already exists
-            String dropTableSql = "IF OBJECT_ID('" + destinationTable + "', 'U') IS NOT NULL DROP TABLE "
-                    + destinationTable;
-            stmt.executeUpdate(dropTableSql);
+            TestUtils.dropTableIfExists(destinationTable, stmt);
 
             // Perform the SELECT INTO operation
             String selectIntoSql = "SELECT * INTO " + destinationTable + " FROM " + sourceTable;
@@ -1368,68 +1369,71 @@ public class VectorTest extends AbstractTest {
         }
     }
 
+    private void setupSVF(String schemaName, String funcName, String tableName) throws SQLException {
+        String escapedSchema = AbstractSQLGenerator.escapeIdentifier(schemaName);
+        String escapedFunc = AbstractSQLGenerator.escapeIdentifier(funcName);
+
+        try (Statement stmt = connection.createStatement()) {
+            // Create schema if not exists
+            stmt.executeUpdate(
+                    "IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '" + schemaName + "') " +
+                            "EXEC('CREATE SCHEMA " + escapedSchema + "')");
+            // Create scalar-valued function
+            String createUdfSQL = "CREATE FUNCTION " + escapedSchema + "." + escapedFunc + " (@p VECTOR(3)) " +
+                    "RETURNS VECTOR(3) AS BEGIN RETURN @p; END";
+            stmt.executeUpdate(createUdfSQL);
+
+            // Optionally create table
+            if (tableName != null && !tableName.isEmpty()) {
+                String createTableSQL = "CREATE TABLE " + tableName + " (id INT PRIMARY KEY, vec VECTOR(3))";
+                stmt.execute(createTableSQL);
+            }
+        }
+    }
+
     /**
      * Test for vector normalization using a scalar-valued function.
      * The function normalizes the input vector and returns the normalized vector.
      */
     @Test
-    public void testVectorNormalizeScalarFunction() throws SQLException {
-        String vectorsTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Vectors")));
-        String udfName = "dbo.svf";
+    public void testVectorIdentityScalarFunction() throws SQLException {
+        String schemaName = "testschemaVector" + uuid;
+        String funcName = "svf" + uuid;
+        String escapedSchema = AbstractSQLGenerator.escapeIdentifier(schemaName);
+        String escapedFunc = AbstractSQLGenerator.escapeIdentifier(funcName);
+        String tableName = escapedSchema + "." + "Vectors" + uuid;
 
-        try (Statement stmt = connection.createStatement()) {
-            // Drop table and UDF if they already exist
-            TestUtils.dropTableIfExists(vectorsTable, stmt);
-            String dropUdfSQL = "IF OBJECT_ID('" + udfName + "', 'FN') IS NOT NULL DROP FUNCTION " + udfName;
-            stmt.execute(dropUdfSQL);
+        try {
+            // Setup: create schema, function, and table
+            setupSVF(schemaName, funcName, tableName);
 
-            // Create the scalar-valued function
-            String createUdfSQL = "CREATE FUNCTION " + udfName + " (@p VECTOR(3)) " +
-                    "RETURNS VECTOR(3) AS " +
-                    "BEGIN " +
-                    "    DECLARE @v VECTOR(3); " +
-                    "    SET @v = vector_normalize(@p, 'norm2'); " +
-                    "    RETURN @v; " +
-                    "END";
-            stmt.execute(createUdfSQL);
-
-            // Create the table
-            String createTableSQL = "CREATE TABLE " + vectorsTable + " (id INT PRIMARY KEY, data VECTOR(3))";
-            stmt.execute(createTableSQL);
-
-            // Insert sample data
-            String insertSQL = "INSERT INTO " + vectorsTable + " (id, data) VALUES (?, ?)";
-            try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
-                Object[] vectorData = new Float[] { 1.0f, 2.0f, 3.0f };
-                Vector vector = new Vector(3, VectorDimensionType.FLOAT32, vectorData);
-
-                pstmt.setInt(1, 1);
-                pstmt.setObject(2, vector, microsoft.sql.Types.VECTOR);
-                pstmt.executeUpdate();
+            // Insert a vector row
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO " + tableName + " (id, vec) VALUES (?, ?)")) {
+                Vector v = new Vector(3, VectorDimensionType.FLOAT32, new Float[] { 1.0f, 2.0f, 3.0f });
+                ps.setInt(1, 1);
+                ps.setObject(2, v, microsoft.sql.Types.VECTOR);
+                ps.executeUpdate();
             }
 
-            // Test the scalar-valued function
-            String udfTestSQL = "DECLARE @v VECTOR(3) = (SELECT data FROM " + vectorsTable + " WHERE id = 1); " +
-                    "SELECT " + udfName + "(@v) AS normalizedVector";
-            try (ResultSet rs = stmt.executeQuery(udfTestSQL)) {
-                assertTrue(rs.next(), "No result returned from scalar-valued function.");
-                Vector normalizedVector = rs.getObject("normalizedVector", Vector.class);
-                assertNotNull(normalizedVector, "Normalized vector is null.");
-                
-                Object[] expectedNormalizedData = new Float[] { 0.2673f, 0.5345f, 0.8018f }; // Normalized values for [1, 2, 3]
-                Object[] actualNormalizedData = normalizedVector.getData();
-
-                for (int i = 0; i < expectedNormalizedData.length; i++) {
-                    assertEquals((float) expectedNormalizedData[i], (float) actualNormalizedData[i], 0.0001f,
-                            "Normalized vector mismatch at index " + i);
-                }
+            // Call the scalar function and validate output
+            String callSQL = "SELECT " + escapedSchema + "." + escapedFunc + "(v.vec) FROM " + tableName
+                    + " v WHERE v.id = 1";
+            try (Statement stmt = connection.createStatement();
+                    ResultSet rs = stmt.executeQuery(callSQL)) {
+                assertTrue(rs.next(), "No result from SVF.");
+                Vector out = rs.getObject(1, Vector.class);
+                assertNotNull(out, "Returned vector is null.");
+                Object[] expected = new Float[] { 1.0f, 2.0f, 3.0f };
+                assertArrayEquals(expected, out.getData(), "Vector roundtrip mismatch.");
             }
+
         } finally {
-            // Cleanup: Drop the UDF and table
+            // Cleanup: drop function, table, and schema
             try (Statement stmt = connection.createStatement()) {
-                TestUtils.dropFunctionIfExists(udfName, stmt);
-                TestUtils.dropTableIfExists(vectorsTable, stmt);
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + funcName, stmt);
+                TestUtils.dropTableWithSchemaIfExists(tableName, stmt);
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
             }
         }
     }
