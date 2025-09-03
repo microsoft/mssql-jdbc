@@ -44,6 +44,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
@@ -609,6 +610,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestInputWithVector.csv file
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSV() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVectorCsv"));
@@ -686,6 +688,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestInputWithMultipleVectorColumn.csv file
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSVWithMultipleColumns() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableVectorCsvMulti"));
@@ -753,6 +756,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestWithMultipleVectorColumnWithPipeDelimiter.csv file
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSVWithMultipleColumnsWithPipeDelimiter() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVectorCsvMultiPipe"));
@@ -820,6 +824,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * metadata.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSVWithIncorrectDimension() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVectorCsvBadDim"));

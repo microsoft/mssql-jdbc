@@ -39,6 +39,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 
 import microsoft.sql.Vector;
@@ -46,6 +47,7 @@ import microsoft.sql.Vector.VectorDimensionType;
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type")
+@AzureDB
 @Tag(Constants.vectorTest)
 public class VectorTest extends AbstractTest {
 
