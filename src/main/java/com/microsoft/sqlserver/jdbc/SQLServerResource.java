@@ -575,6 +575,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_vectorByteArrayLength", "Vector byte array length must be at least 8 bytes."},
         {"R_invalidVectorData", "The provided type of data is not supported for vector."},
         {"R_vectorByteArrayMultipleOfBytesPerDimension", "Byte array length must be a multiple of {0} for vector of type {1}."},
+        {"R_severeError", "A severe error occurred on the current command.  The results, if any, should be discarded."},
+           
     };
 }
 // @formatter:on
