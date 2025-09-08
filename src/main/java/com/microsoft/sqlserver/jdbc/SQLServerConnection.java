@@ -2228,9 +2228,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
+    public int getConnectionID() {
+        return Integer.parseInt(traceID.replace("ConnectionID:", ""));
+    }
+
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
         try (PerformanceLog.Scope connectScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                traceID, PerformanceActivity.CONNECTION)) {
+                getConnectionID(), PerformanceActivity.CONNECTION)) {
             try {
                 int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
                 if (propsIn != null) {
@@ -3701,8 +3705,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     private void login(String primary, String primaryInstanceName, int primaryPortNumber, String mirror,
             FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
-        try (PerformanceLog.Scope loginScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection, traceID,
-                PerformanceActivity.LOGIN)) {
+        try (PerformanceLog.Scope loginScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
+                getConnectionID(), PerformanceActivity.LOGIN)) {
             try {
                 // standardLogin would be false only for db mirroring scenarios. It would be
                 // true
@@ -4319,7 +4323,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     void prelogin(String serverName, int portNumber) throws SQLServerException {
         try (PerformanceLog.Scope preLoginScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                traceID, PerformanceActivity.PRELOGIN)) {
+                getConnectionID(), PerformanceActivity.PRELOGIN)) {
             try {
                 // Build a TDS Pre-Login packet to send to the server.
                 if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString()))
@@ -6519,7 +6523,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void onFedAuthInfo(SqlFedAuthInfo fedAuthInfo, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
 
         try (PerformanceLog.Scope fedAuthScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                traceID, PerformanceActivity.TOKEN_ACQUISITION)) {
+                getConnectionID(), PerformanceActivity.TOKEN_ACQUISITION)) {
             try {
                 assert (null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                         && null != activeConnectionProperties

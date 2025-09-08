@@ -12,11 +12,11 @@ public interface PerformanceLogCallback {
 
     /**
      * Publish a performance log entry.
-     *
-     * @param durationMs      The duration of the operation in milliseconds.
      * @param activity        The type of activity being logged.
+     * @param connectionId    The ID of the connection.
+     * @param durationMs      The duration of the operation in milliseconds.
      * @param exception       An exception, if an error occurred.
      */
-    void publish(long durationMs, PerformanceActivity activity, Exception exception) throws Exception;
+    void publish(PerformanceActivity activity, int connectionId, long durationMs, Exception exception) throws Exception;
 
 }

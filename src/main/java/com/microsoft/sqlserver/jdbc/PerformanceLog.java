@@ -42,21 +42,21 @@ class PerformanceLog {
     
     public static class Scope implements AutoCloseable {
         private Logger logger;
-        private String logPrefix;
+        private int connectionId;
         private PerformanceActivity activity;
         private long startTime;
         private final boolean enabled;
 
         private Exception exception;
 
-        public Scope(Logger logger, String logPrefix, PerformanceActivity activity) {
+        public Scope(Logger logger, int connectionId, PerformanceActivity activity) {
 
             // Check if logging is enabled
             this.enabled = logger.isLoggable(Level.INFO) || (callback != null);
 
             if (enabled) {
                 this.logger = logger;
-                this.logPrefix = logPrefix;
+                this.connectionId = connectionId;
                 this.activity = activity;
                 this.startTime = System.currentTimeMillis();
             }
@@ -64,6 +64,10 @@ class PerformanceLog {
 
         public void setException(Exception e) {
             this.exception = e;
+        }
+
+        private String getTraceId() {
+            return "ConnectionID:" + connectionId;
         }
 
         @Override
@@ -78,7 +82,7 @@ class PerformanceLog {
 
             if (callback != null) {
                 try {
-                    callback.publish(duration, activity, exception);
+                    callback.publish(activity, connectionId, duration, exception);
                 } catch (Exception e) {
                     logger.info(String.format("Failed to publish performance log: %s", e.getMessage()));
                 }
@@ -86,16 +90,16 @@ class PerformanceLog {
 
             if (logger != null && logger.isLoggable(Level.INFO)) {
                 if (exception != null) {
-                    logger.info(String.format("%s %s, duration: %dms, exception: %s", logPrefix, activity, duration, exception.getMessage()));
+                    logger.info(String.format("%s %s, duration: %dms, exception: %s", getTraceId(), activity, duration, exception.getMessage()));
                 } else {
-                    logger.info(String.format("%s %s, duration: %dms", logPrefix, activity, duration));
+                    logger.info(String.format("%s %s, duration: %dms", getTraceId(), activity, duration));
                 }
             }
 
         }
     }
 
-    public static Scope createScope(Logger logger, String logPrefix, PerformanceActivity activity) {
-        return new Scope(logger, logPrefix, activity);
+    public static Scope createScope(Logger logger, int connectionId, PerformanceActivity activity) {
+        return new Scope(logger, connectionId, activity);
     }
 }

@@ -61,7 +61,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
         PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
             @Override
-            public void publish(long durationMs, PerformanceActivity activity, Exception exception) {
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs, Exception exception) {
                 called.set(true);
             }
         };
