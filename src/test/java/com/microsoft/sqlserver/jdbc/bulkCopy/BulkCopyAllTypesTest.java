@@ -225,14 +225,8 @@ public class BulkCopyAllTypesTest extends AbstractTest {
     public void testMoneyWithBulkCopy() throws Exception {
         try (Connection conn = PrepUtil.getConnection(connectionString)) {
             testMoneyLimits(Constants.MIN_VALUE_SMALLMONEY - 1, Constants.MAX_VALUE_MONEY - 1, conn); // 1 less than SMALLMONEY MIN
-        }
-        try (Connection conn = PrepUtil.getConnection(connectionString)) {
             testMoneyLimits(Constants.MAX_VALUE_SMALLMONEY + 1, Constants.MAX_VALUE_MONEY - 1, conn); // 1 more than SMALLMONEY MAX
-        }
-        try (Connection conn = PrepUtil.getConnection(connectionString)) {
             testMoneyLimits(Constants.MAX_VALUE_SMALLMONEY - 1, Constants.MIN_VALUE_MONEY - 1, conn); // 1 less than MONEY MIN
-        }
-        try (Connection conn = PrepUtil.getConnection(connectionString)) {
             testMoneyLimits(Constants.MAX_VALUE_SMALLMONEY - 1, Constants.MAX_VALUE_MONEY + 1, conn); // 1 more than MONEY MAX
         }
     }
