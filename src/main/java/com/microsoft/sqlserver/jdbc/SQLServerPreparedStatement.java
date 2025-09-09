@@ -789,6 +789,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
+     * Override TDS token processing behavior for PreparedStatement.
+     * For regular Statement, the execute API for INSERT requires reading an additional explicit 
+     * TDS_DONE token that contains the actual update count returned by the server.
+     * PreparedStatement does not require this additional token processing, unless
+     * generated keys were requested (which requires processing additional TDS tokens).
+     */
+    @Override
+    protected boolean hasUpdateCountTDSTokenForInsertCmd() {
+        // When generated keys are requested, we need to process additional TDS tokens
+        // to properly locate the ResultSet containing the generated keys
+        return bRequestedGeneratedKeys;
+    }
+
+    /**
      * Sends the statement parameters by RPC.
      */
     void sendParamsByRPC(TDSWriter tdsWriter, Parameter[] params) throws SQLServerException {
@@ -2218,8 +2232,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
 
                         SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
-                                batchParamValues, bcOperationColumnList, bcOperationValueList, 
-                                connection.getDatabaseCollation().getCharset(), isDBColationCaseSensitive());
+                                batchParamValues, bcOperationColumnList, bcOperationValueList, null, isDBColationCaseSensitive());
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);
@@ -2427,8 +2440,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         }
 
                         SQLServerBulkBatchInsertRecord batchRecord = new SQLServerBulkBatchInsertRecord(
-                                batchParamValues, bcOperationColumnList, bcOperationValueList, 
-                                connection.getDatabaseCollation().getCharset(), isDBColationCaseSensitive());
+                                batchParamValues, bcOperationColumnList, bcOperationValueList, null, isDBColationCaseSensitive());
 
                         for (int i = 1; i <= rs.getColumnCount(); i++) {
                             Column c = rs.getColumn(i);

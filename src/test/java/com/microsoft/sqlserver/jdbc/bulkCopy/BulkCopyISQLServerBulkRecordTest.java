@@ -42,6 +42,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -89,7 +90,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Test
     public void testBulkCopyDateTimePrecision() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyDt")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement(); SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
@@ -161,10 +162,11 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with a single Vector row.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVector() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVector")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -202,7 +204,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyJSON() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -236,7 +238,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyWithEmptyJsonDocument() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyEmptyJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -275,7 +277,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyMultipleJsonRowsWithDifferentStructures() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyMulti")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -317,7 +319,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyMultipleJsonRows() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyMulti")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -359,7 +361,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyMultipleJsonRowsAndColumns() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyMulti")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -460,7 +462,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyNestedJsonRows() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyNested")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -502,7 +504,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyWithVariousDataTypes() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVarious")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -540,7 +542,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testBulkCopyWithCountVerification() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyCount")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -586,60 +588,57 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * to destination table with VECTOR column.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyTableToTableJsonToVector() throws Exception {
-        String srcTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testSrcJsonTable"));
-        String dstTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testDstVectorTable"));
+        String srcTable = TestUtils.escapeSingleQuotes(
+                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testSrcJsonTable")));
+        String dstTable = TestUtils.escapeSingleQuotes(
+                AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testDstVectorTable")));
         String vectorJson = "[1.0, 2.0, 3.0]";
         Object[] expectedVector = new Float[] { 1.0f, 2.0f, 3.0f };
 
-        // Create source table and insert JSON vector
         try (Connection conn = DriverManager.getConnection(connectionString);
              Statement stmt = conn.createStatement()) {
+
+            // Create source table and insert JSON vector
             stmt.executeUpdate("CREATE TABLE " + srcTable + " (vectorJsonCol JSON)");
             stmt.executeUpdate("INSERT INTO " + srcTable + " (vectorJsonCol) VALUES ('" + vectorJson + "')");
-        }
 
-        // Create destination table with VECTOR column
-        try (Connection conn = DriverManager.getConnection(connectionString);
-             Statement stmt = conn.createStatement()) {
+            // Create destination table with VECTOR column
             stmt.executeUpdate("CREATE TABLE " + dstTable + " (vectorCol VECTOR(3))");
-        }
 
-        // Table-to-table bulk copy: read JSON, parse, and write as VECTOR
-        try (Connection conn = DriverManager.getConnection(connectionString);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT vectorJsonCol FROM " + srcTable);
-             SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+            // Table-to-table bulk copy: read JSON, parse, and write as VECTOR
+            try (ResultSet rs = stmt.executeQuery("SELECT vectorJsonCol FROM " + srcTable);
+                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
-            bulkCopy.setDestinationTableName(dstTable);
-            // For each row, parse JSON and bulk copy as VECTOR
-            while (rs.next()) {
-                String json = rs.getString(1);
-                Object[] vector = parseJsonArrayToFloatArray(json);
-                Vector vectorObj = new Vector(vector.length, VectorDimensionType.FLOAT32, vector);
-                VectorBulkData vectorBulkData = new VectorBulkData(vectorObj, vector.length, VectorDimensionType.FLOAT32);
-                bulkCopy.writeToServer(vectorBulkData);
+                bulkCopy.setDestinationTableName(dstTable);
+                // For each row, parse JSON and bulk copy as VECTOR
+                while (rs.next()) {
+                    String json = rs.getString(1);
+                    Object[] vector = parseJsonArrayToFloatArray(json);
+                    Vector vectorObj = new Vector(vector.length, VectorDimensionType.FLOAT32, vector);
+                    VectorBulkData vectorBulkData = new VectorBulkData(vectorObj, vector.length, VectorDimensionType.FLOAT32);
+                    bulkCopy.writeToServer(vectorBulkData);
+                }
             }
-        }
 
-        // Validate the data in the destination table
-        try (Connection conn = DriverManager.getConnection(connectionString);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT vectorCol FROM " + dstTable)) {
-            assertTrue(rs.next(), "No data found in the destination table.");
-            Vector resultVector = rs.getObject(1, Vector.class);
-            assertNotNull(resultVector, "Retrieved vector is null.");
-            assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
-            assertEquals(VectorDimensionType.FLOAT32, resultVector.getVectorDimensionType(), "Vector dimension type mismatch.");
-            assertArrayEquals(expectedVector, resultVector.getData(), "Vector data mismatch.");
-        }
-
-        // Cleanup
-        try (Connection conn = DriverManager.getConnection(connectionString);
-             Statement stmt = conn.createStatement()) {
-            TestUtils.dropTableIfExists(srcTable, stmt);
-            TestUtils.dropTableIfExists(dstTable, stmt);
+            // Validate the data in the destination table
+            try (ResultSet rs = stmt.executeQuery("SELECT vectorCol FROM " + dstTable)) {
+                assertTrue(rs.next(), "No data found in the destination table.");
+                Vector resultVector = rs.getObject(1, Vector.class);
+                assertNotNull(resultVector, "Retrieved vector is null.");
+                assertEquals(3, resultVector.getDimensionCount(), "Dimension count mismatch.");
+                assertEquals(VectorDimensionType.FLOAT32, resultVector.getVectorDimensionType(), "Vector dimension type mismatch.");
+                assertArrayEquals(expectedVector, resultVector.getData(), "Vector data mismatch.");
+            }
+        } finally {
+            // Cleanup
+            try (Connection conn = DriverManager.getConnection(connectionString);
+                 Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(srcTable, stmt);
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
         }
     }
 
@@ -661,10 +660,11 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with null Vector data.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorNull() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVectorNull")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
@@ -692,8 +692,6 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     assertEquals(1, rowCount, "Row count mismatch after inserting null vector data.");
                 }
 
-            } catch (Exception e) {
-                fail(e.getMessage());
             } finally {
                 try (Statement stmt = conn.createStatement();) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
@@ -708,6 +706,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * incompatible with vector".
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorUsingBulkCopySourceAsVarBinary() {
         String varbinaryTable = TestUtils
@@ -769,6 +768,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * incompatible with varbinary(max)".
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorUsingBulkCopyDestinationAsVarBinary() {
         String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
@@ -836,6 +836,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * The operation should succeed, and the data should be validated.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorUsingBulkCopySourceAsVarchar() {
         String varcharTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarcharTable"));
@@ -903,6 +904,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * The operation should succeed, and the data should be validated.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorUsingBulkCopyDestinationAsVarchar() {
         String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
@@ -973,6 +975,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * The operation should fail with an error: "The vector dimensions 3 and 4 do not match."
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorWithMismatchedDimensions() {
         String srcTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testSrcTable"));
@@ -1031,6 +1034,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with a large number of records to check performance.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyPerformance() throws SQLException {
         String tableName = AbstractSQLGenerator.escapeIdentifier("srcTable");

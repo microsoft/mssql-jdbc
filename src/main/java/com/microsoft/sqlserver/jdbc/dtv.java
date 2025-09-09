@@ -2063,7 +2063,8 @@ final class AppDTVImpl extends DTVImpl {
             // then do the conversion now so that the decision to use a "short" or "long"
             // SSType (i.e. VARCHAR vs. TEXT/VARCHAR(max)) is based on the exact length of
             // the MBCS value (in bytes).
-            else if (null != collation && (JDBCType.CHAR == type || JDBCType.VARCHAR == type
+            // If useBulkCopyForBatchInsert is true, conversion to byte array is not done due to performance
+            else if (!con.getUseBulkCopyForBatchInsert() && null != collation && (JDBCType.CHAR == type || JDBCType.VARCHAR == type
                     || JDBCType.LONGVARCHAR == type || JDBCType.CLOB == type)) {
                 byte[] nativeEncoding = null;
 

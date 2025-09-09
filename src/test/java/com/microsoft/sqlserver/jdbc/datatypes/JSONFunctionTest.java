@@ -30,12 +30,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
-import org.junit.jupiter.api.Tag;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -64,7 +64,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testISJSON() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -101,7 +101,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testISJSONWithVariousInputs() throws SQLException {
         String dstTable = TestUtils
-            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+            .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement stmt = conn.createStatement()) {
@@ -152,7 +152,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONArrayWithoutNulls() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -185,7 +185,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONArrayWithNulls() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -219,7 +219,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONArrayWithMixedElements() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -252,7 +252,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONArrayWithVariablesAndExpressions() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -291,7 +291,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONArrayPerRow() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -332,7 +332,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONArrayAgg() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -406,7 +406,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONArrayAggWithTwoColumns() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement stmt = conn.createStatement()) {
@@ -458,7 +458,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONModify() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -614,7 +614,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONModifyUpdateJsonColumn() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -780,7 +780,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONObjectAggWithColumnNamesAndIDs() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement stmt = conn.createStatement()) {
@@ -875,7 +875,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONQueryFragment() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -922,7 +922,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONQueryForJSONClause() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -972,7 +972,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONValueInQueryResults() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -1021,7 +1021,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONValueComputedColumns() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -1072,7 +1072,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testOpenJsonParseJson() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -1112,7 +1112,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testOpenJsonParseNestedJson() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -1152,7 +1152,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testOpenJsonParseArray() throws SQLException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (Statement dstStmt = conn.createStatement()) {
@@ -1413,13 +1413,13 @@ public class JSONFunctionTest extends AbstractTest {
     public void testJsonInputOutputWithUdf() throws SQLException {
         String personsTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Persons")));
-        String udfName = "dbo.GetAgeFromJson";
+        String udfName = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GetAgeFromJson")));
 
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(personsTable, stmt);
-                String dropUdfSQL = "IF OBJECT_ID('" + udfName + "', 'FN') IS NOT NULL DROP FUNCTION " + udfName;
-                stmt.execute(dropUdfSQL);
+                TestUtils.dropFunctionIfExists(udfName, stmt);
                 String createUdfSQL = "CREATE FUNCTION " + udfName + " (@json JSON) " +
                         "RETURNS INT " +
                         "AS BEGIN " +
@@ -1492,13 +1492,13 @@ public class JSONFunctionTest extends AbstractTest {
     public void testUdfReturningJson() throws SQLException {
         String personsTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("Persons")));
-        String udfName = "dbo.GetPersonJson";
+        String udfName = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GetPersonJson")));
 
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(personsTable, stmt);
-                String dropUdfSQL = "IF OBJECT_ID('" + udfName + "', 'FN') IS NOT NULL DROP FUNCTION " + udfName;
-                stmt.execute(dropUdfSQL);
+                TestUtils.dropFunctionIfExists(udfName, stmt);
 
                 String createUdfSQL = "CREATE FUNCTION " + udfName + " (@id INT, @name NVARCHAR(100)) " +
                         "RETURNS JSON " +
@@ -1551,7 +1551,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testInsert1GBJson() throws SQLException, IOException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
         
         Path tempFile = Files.createTempFile("json_output", ".json");
         
@@ -1638,7 +1638,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testInsertHugeJsonData() throws SQLException, IOException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
         
         Path tempFile = Files.createTempFile("json_output", ".json");
         
@@ -1694,7 +1694,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testInsert2GBData() throws SQLException, FileNotFoundException, IOException {
         String dstTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
         try (Connection conn = DriverManager.getConnection(connectionString);
                 Statement stmt = conn.createStatement()) {
@@ -1770,7 +1770,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONWithSendStringParameterAsUnicodeFalse() throws SQLException {
         String dstTable = TestUtils.escapeSingleQuotes(
-            AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"))
+            AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON"))
         );
 
         String validJson = "{\"key1\":\"value1\"}";
@@ -1807,7 +1807,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Tag(Constants.JSONTest)
     public void testJSONWithSendStringParameterAsUnicodeTrue() throws SQLException {
         String dstTable = TestUtils.escapeSingleQuotes(
-            AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"))
+            AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON"))
         );
 
         String validJson = "{\"key1\":\"value1\"}";

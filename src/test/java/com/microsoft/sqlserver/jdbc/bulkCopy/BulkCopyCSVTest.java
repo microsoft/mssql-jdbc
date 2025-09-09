@@ -44,6 +44,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
@@ -102,7 +103,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord")
-    public void testCSV() {
+    public void testCSV() throws Exception {
         String fileName = filePath + inputFile;
         try (SQLServerBulkCSVFileRecord f1 = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter, true);
                 SQLServerBulkCSVFileRecord f2 = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter, true);) {
@@ -110,8 +111,6 @@ public class BulkCopyCSVTest extends AbstractTest {
 
             f2.setEscapeColumnDelimitersCSV(true);
             testBulkCopyCSV(f2, true);
-        } catch (SQLException e) {
-            fail(e.getMessage());
         }
     }
 
@@ -120,7 +119,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord First line not being column name")
-    public void testCSVFirstLineNotColumnName() {
+    public void testCSVFirstLineNotColumnName() throws Exception {
         String fileName = filePath + inputFileNoColumnName;
         try (SQLServerBulkCSVFileRecord f1 = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter, false);
                 SQLServerBulkCSVFileRecord f2 = new SQLServerBulkCSVFileRecord(fileName, encoding, delimiter, false)) {
@@ -128,8 +127,6 @@ public class BulkCopyCSVTest extends AbstractTest {
 
             f2.setEscapeColumnDelimitersCSV(true);
             testBulkCopyCSV(f2, false);
-        } catch (SQLException e) {
-            fail(e.getMessage());
         }
     }
 
@@ -140,15 +137,13 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord with passing file from url")
-    public void testCSVFromURL() throws SQLException {
+    public void testCSVFromURL() throws Exception {
         try (InputStream csvFileInputStream = new URL(
                 "https://raw.githubusercontent.com/Microsoft/mssql-jdbc/master/src/test/resources/BulkCopyCSVTestInput.csv")
                         .openStream();
                 SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(csvFileInputStream, encoding,
                         delimiter, true)) {
             testBulkCopyCSV(fileRecord, true);
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -210,8 +205,10 @@ public class BulkCopyCSVTest extends AbstractTest {
                 }
                 assertEquals(i, 12, "Expected to load 12 records, but loaded " + i + " records");
             }
-
-            TestUtils.dropTableIfExists(tableName, stmt);
+        } finally {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
         }
     }
 
@@ -278,7 +275,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord GitHb 1391")
-    public void testCSV1391() {
+    public void testCSV1391() throws Exception {
         String fileName = filePath + inputFile;
         try (SQLServerBulkCSVFileRecord f1 = new BulkData1391(fileName, encoding, delimiter, true);
                 SQLServerBulkCSVFileRecord f2 = new BulkData1391(fileName, encoding, delimiter, true);) {
@@ -286,8 +283,6 @@ public class BulkCopyCSVTest extends AbstractTest {
 
             f2.setEscapeColumnDelimitersCSV(true);
             testBulkCopyCSV(f2, true);
-        } catch (SQLException e) {
-            fail(e.getMessage());
         }
     }
 
@@ -309,7 +304,8 @@ public class BulkCopyCSVTest extends AbstractTest {
         }
     }
 
-    private void testBulkCopyCSV(SQLServerBulkCSVFileRecord fileRecord, boolean firstLineIsColumnNames) {
+    private void testBulkCopyCSV(SQLServerBulkCSVFileRecord fileRecord,
+            boolean firstLineIsColumnNames) throws Exception {
         DBTable destTable = null;
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(filePath + inputFile), encoding))) {
@@ -363,8 +359,6 @@ public class BulkCopyCSVTest extends AbstractTest {
             else
                 validateValuesFromCSV(destTable, inputFileNoColumnName);
 
-        } catch (Exception e) {
-            fail(e.getMessage());
         } finally {
             if (null != destTable) {
                 stmt.dropTable(destTable);
@@ -377,7 +371,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * 
      * @param destinationTable
      */
-    static void validateValuesFromCSV(DBTable destinationTable, String inputFile) {
+    static void validateValuesFromCSV(DBTable destinationTable, String inputFile) throws Exception {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(filePath + inputFile), encoding))) {
             if (inputFile.equalsIgnoreCase("BulkCopyCSVTestInput.csv"))
@@ -403,8 +397,6 @@ public class BulkCopyCSVTest extends AbstractTest {
                     }
                 }
             }
-        } catch (Exception e) {
-            fail("CSV validation failed with " + e.getMessage());
         }
     }
 
@@ -415,7 +407,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @DisplayName("Test SQLServerBulkCSVFileRecord GitHb 2400")
-    public void testCSV2400() {
+    public void testCSV2400() throws Exception {
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
         String fileName = filePath + inputFileMultipleDoubleQuotes;
 
@@ -449,10 +441,6 @@ public class BulkCopyCSVTest extends AbstractTest {
             bulkCopy.writeToServer(fileRecord);
 
             TestUtils.dropTableIfExists(tableName, stmt);
-        } catch (StackOverflowError e) {
-            fail("Stack overflow: " + e.getMessage());
-        } catch (SQLException e) {
-            fail("SQL exception: " + e.getMessage());
         }
     }
 
@@ -507,7 +495,9 @@ public class BulkCopyCSVTest extends AbstractTest {
                     }
                     i++;
                 }
-            } finally {
+            }
+        } finally {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
@@ -518,7 +508,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @DisplayName("Test bulk copy with computed column as last column")
-    public void testBulkCopyWithComputedColumnAsLastColumn() {
+    public void testBulkCopyWithComputedColumnAsLastColumn() throws SQLException {
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
         String fileName = filePath + computeColumnCsvFile;
 
@@ -555,11 +545,11 @@ public class BulkCopyCSVTest extends AbstractTest {
                     int rowCount = rs.getInt(1);
                     assertTrue(rowCount > 0);
                 }
-            } finally {
+            }
+        } finally {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -568,7 +558,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      */
     @Test
     @DisplayName("Test bulk copy with computed column not as last column")
-    public void testBulkCopyWithComputedColumnNotAsLastColumn() {
+    public void testBulkCopyWithComputedColumnNotAsLastColumn() throws SQLException {
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkEscape"));
         String fileName = filePath + computeColumnCsvFile;
 
@@ -607,11 +597,11 @@ public class BulkCopyCSVTest extends AbstractTest {
                     int rowCount = rs.getInt(1);
                     assertTrue(rowCount > 0);
                 }
-            } finally {
+            }
+        } finally {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -620,9 +610,10 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestInputWithVector.csv file
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSV() throws SQLException {
-        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVectorCsv"));
         String fileName = filePath + vectorInputCsvFile;
 
         try (Connection con = getConnection();
@@ -684,11 +675,11 @@ public class BulkCopyCSVTest extends AbstractTest {
 
                 // Validate row count
                 assertEquals(expectedData.size(), rowCount, "Row count mismatch.");
-            } finally {
+            }
+        } finally {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, stmt);
             }
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -697,9 +688,10 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestInputWithMultipleVectorColumn.csv file
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSVWithMultipleColumns() throws SQLException {
-        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableVectorCsvMulti"));
         String fileName = filePath + vectorInputCsvFileWithMultipleColumn;
 
         try (Connection con = getConnection();
@@ -751,11 +743,11 @@ public class BulkCopyCSVTest extends AbstractTest {
 
                 // Validate row count
                 assertEquals(expectedData.size(), rowCount, "Row count mismatch.");
-            } finally {
+            }
+        } finally {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, stmt);
             }
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -764,9 +756,10 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestWithMultipleVectorColumnWithPipeDelimiter.csv file
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSVWithMultipleColumnsWithPipeDelimiter() throws SQLException {
-        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVectorCsvMultiPipe"));
         String fileName = filePath + vectorInputCsvFileWithMultipleColumnWithPipeDelimiter;
 
         try (Connection con = getConnection();
@@ -818,11 +811,11 @@ public class BulkCopyCSVTest extends AbstractTest {
 
                 // Validate row count
                 assertEquals(expectedData.size(), rowCount, "Row count mismatch.");
-            } finally {
+            }
+        } finally {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, stmt);
             }
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 
@@ -831,9 +824,10 @@ public class BulkCopyCSVTest extends AbstractTest {
      * metadata.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSVWithIncorrectDimension() throws SQLException {
-        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable"));
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVectorCsvBadDim"));
         String fileName = filePath + vectorInputCsvFile;
 
         try (Connection con = getConnection();
@@ -867,6 +861,10 @@ public class BulkCopyCSVTest extends AbstractTest {
         } catch (SQLException e) {
             assertTrue(e.getMessage().contains("The vector dimensions 4 and 3 do not match."),
                     "Unexpected error message: " + e.getMessage());
+        } finally {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
         }
     }
 

@@ -2798,6 +2798,31 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
+         * Tests execute using PreparedStatement for Insert followed by getGenerateKeys
+         *
+         * @throws Exception
+         */
+        @Test
+        public void testPrepStmtExecuteInsertAndGenKeys() {
+            try (Connection con = getConnection()) {
+                String sql = "INSERT INTO " + tableName + " (NAME) VALUES('test');";
+                try(PreparedStatement stmt = con.prepareStatement(sql,PreparedStatement.RETURN_GENERATED_KEYS)) {
+                    stmt.execute();
+                    int updateCount = stmt.getUpdateCount();
+                    assertEquals(updateCount, 1, "updateCount should have been 1, but received : " + updateCount);
+                    try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                        if (generatedKeys.next()) {
+                            int id = generatedKeys.getInt(1);
+                            assertEquals(id, 4, "id should have been 4, but received : " + id);
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        /**
          * Tests executeUpdate using PreparedStatement for Insert followed by getGenerateKeys
          *
          * @throws Exception
@@ -2961,7 +2986,7 @@ public class StatementTest extends AbstractTest {
                                 // no more results
                                 break;
                             } else {
-                                assertEquals(count, 3, "update count should have been 6");
+                                assertEquals(count, 3, "update count should have been 3");
                             }
                         } else {
                             // process ResultSet
@@ -2998,7 +3023,7 @@ public class StatementTest extends AbstractTest {
                                 // no more results
                                 break;
                             } else {
-                                assertEquals(count, 1, "update count should have been 2");
+                                assertEquals(count, 1, "update count should have been 1");
                             }
                         } else {
                             // process ResultSet
@@ -3088,6 +3113,295 @@ public class StatementTest extends AbstractTest {
                 }
             } catch (SQLException e) {
                 fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+            }
+        }
+
+        /**
+         * Tests multi-statement PreparedStatement with loop to process all results
+         *
+         * @throws SQLException
+         */
+        @Test
+        public void testMultiStatementPreparedStatementLoopResults() throws SQLException {
+            try (Connection con = getConnection()) {
+                try (PreparedStatement ps = con.prepareStatement("DELETE FROM " + tableName + " " +
+                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
+                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
+                        "UPDATE " + tableName + " SET NAME = 'updated' " +
+                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
+                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
+                        "SELECT * FROM " + tableName)) {
+                    
+                    ps.setString(1, "test1");
+                    ps.setString(2, "test2");
+                    ps.setString(3, "test3");
+                    ps.setString(4, "test4");
+
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertTrue(count >= 0, "update count should be non-negative: " + count);
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = ps.getResultSet()) {
+                                int rowCount = 0;
+                                while (rs.next()) {
+                                    String name = rs.getString("NAME");
+                                    assertTrue(name != null, "name should not be null");
+                                    rowCount++;
+                                }
+                                assertEquals(4, rowCount, "Expected 4 rows in result set");
+                            }
+                        }
+                        retval = ps.getMoreResults();
+                    } while (true);
+                }
+            }
+        }
+
+        /**
+         * Tests PreparedStatement execute for Insert followed by select
+         *
+         * @throws SQLException
+         */
+        @Test
+        public void testPreparedStatementExecuteInsertAndSelect() throws SQLException {
+            try (Connection con = getConnection()) {
+                String sql = "INSERT INTO " + tableName + " (NAME) VALUES(?) " +
+                            "SELECT NAME FROM " + tableName + " WHERE ID = 1";
+                try (PreparedStatement ps = con.prepareStatement(sql)) {
+                    ps.setString(1, "test");
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 1, "update count should have been 1");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = ps.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = ps.getMoreResults();
+                    } while (true);
+                }
+            }
+        }
+
+        /**
+         * Tests PreparedStatement execute for Merge followed by select
+         *
+         * @throws SQLException
+         */
+        @Test
+        public void testPreparedStatementExecuteMergeAndSelect() throws SQLException {
+            try (Connection con = getConnection()) {
+                String sql = "MERGE INTO " + tableName + " AS target " +
+                            "USING (VALUES (?)) AS source (name) " +
+                            "ON target.name = source.name " +
+                            "WHEN NOT MATCHED THEN INSERT (name) VALUES (?); " +
+                            "SELECT NAME FROM " + tableName + " WHERE ID = 1";
+                try (PreparedStatement ps = con.prepareStatement(sql)) {
+                    ps.setString(1, "test1");
+                    ps.setString(2, "test1");
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 1, "update count should have been 1");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = ps.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = ps.getMoreResults();
+                    } while (true);
+                }
+            }
+        }
+
+        /**
+         * Tests PreparedStatement execute two Inserts followed by select
+         *
+         * @throws SQLException
+         */
+        @Test
+        public void testPreparedStatementExecuteTwoInsertsRowsAndSelect() throws SQLException {
+            try (Connection con = getConnection()) {
+                try (PreparedStatement ps = con.prepareStatement("INSERT INTO " + tableName + " (NAME) VALUES(?) INSERT INTO " + tableName + " (NAME) VALUES(?) SELECT NAME from " + tableName + " WHERE ID = 1")) {
+                    ps.setString(1, "test");
+                    ps.setString(2, "test");
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 1, "update count should have been 1");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = ps.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = ps.getMoreResults();
+                    } while (true);
+                }
+            }
+        }
+
+        /**
+         * Tests PreparedStatement execute for Update followed by select
+         *
+         * @throws SQLException
+         */
+        @Test
+        public void testPreparedStatementExecuteUpdAndSelect() throws SQLException {
+            try (Connection con = getConnection()) {
+                try (PreparedStatement ps = con.prepareStatement("UPDATE " + tableName + " SET NAME = ? SELECT NAME FROM " + tableName + " WHERE ID = 1")) {
+                    ps.setString(1, "test");
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 3, "update count should have been 3");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = ps.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = ps.getMoreResults();
+                    } while (true);
+                }
+            }
+        }
+
+        /**
+         * Tests PreparedStatement execute for Delete followed by select
+         *
+         * @throws SQLException
+         */
+        @Test
+        public void testPreparedStatementExecuteDelAndSelect() throws SQLException {
+            try (Connection con = getConnection()) {
+                try (PreparedStatement ps = con.prepareStatement("DELETE FROM " + tableName + " WHERE ID = ? SELECT NAME FROM " + tableName + " WHERE ID = 2")) {
+                    ps.setInt(1, 1);
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertEquals(count, 1, "update count should have been 1");
+                            }
+                        } else {
+                            // process ResultSet
+                            try (ResultSet rs = ps.getResultSet()) {
+                                if (rs.next()) {
+                                    String val = rs.getString(1);
+                                    assertEquals(val, "test", "read value should have been 'test'");
+                                }
+                            }
+                        }
+                        retval = ps.getMoreResults();
+                    } while (true);
+                }
+            }
+        }
+
+        /**
+         * Tests PreparedStatement with triggers and generated keys to validate PR #2742 fix.
+         * This test validates that both update counts work correctly AND getGeneratedKeys() 
+         * works when triggers are involved.
+         *
+         * @throws SQLException
+         */
+        @Test
+        public void testPreparedStatementWithTriggersAndGeneratedKeys() throws SQLException {
+            // Create separate test tables to avoid conflicts with existing setup
+            String testTableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TriggerTestTableA"));
+            String testTableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TriggerTestTableB"));
+            String testTrigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TriggerTestTrigger"));
+
+            try (Connection conn = getConnection();
+                 Statement stmt = conn.createStatement()) {
+
+                // Cleanup any existing objects
+                TestUtils.dropTriggerIfExists(testTrigger, stmt);
+                TestUtils.dropTableIfExists(testTableB, stmt);
+                TestUtils.dropTableIfExists(testTableA, stmt);
+
+                // Create schema
+                stmt.executeUpdate("CREATE TABLE " + testTableA + " (ID int NOT NULL IDENTITY(1,1) PRIMARY KEY, NAME varchar(32))");
+                stmt.executeUpdate("CREATE TABLE " + testTableB + " (ID int NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                stmt.executeUpdate("CREATE TRIGGER " + testTrigger + " ON " + testTableA + " FOR INSERT AS "
+                        + "INSERT INTO " + testTableB + " DEFAULT VALUES");
+
+                // Insert row into TABLE_A requesting generated keys
+                String sql = "INSERT INTO " + testTableA + " (NAME) VALUES (?)";
+                try (PreparedStatement ps = conn.prepareStatement(sql, new String[]{"ID"})) {
+                    ps.setString(1, "test");
+
+                    // Execute the insert + trigger
+                    ps.execute();
+
+                    // Validate update count is correct (should be 1 for the INSERT)
+                    int updateCount = ps.getUpdateCount();
+                    assertEquals(1, updateCount, "Update count should be 1 for single INSERT");
+
+                    // Validate generated keys can be retrieved (this was broken before the fix)
+                    try (ResultSet rs = ps.getGeneratedKeys()) {
+                        assertTrue(rs.next(), "Generated keys ResultSet should have at least one row");
+                        int generatedKey = rs.getInt(1);
+                        assertTrue(generatedKey > 0, "Generated key should be a positive integer, got: " + generatedKey);
+                    }
+                }
+
+                // Cleanup
+                TestUtils.dropTriggerIfExists(testTrigger, stmt);
+                TestUtils.dropTableIfExists(testTableB, stmt);
+                TestUtils.dropTableIfExists(testTableA, stmt);
+
             }
         }
 
