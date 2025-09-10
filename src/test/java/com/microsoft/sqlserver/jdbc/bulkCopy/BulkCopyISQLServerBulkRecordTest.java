@@ -42,6 +42,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
@@ -161,6 +162,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with a single Vector row.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVector() throws SQLException {
         String dstTable = TestUtils
@@ -586,6 +588,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * to destination table with VECTOR column.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyTableToTableJsonToVector() throws Exception {
         String srcTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testSrcJsonTable"));
@@ -661,6 +664,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with null Vector data.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorNull() throws SQLException {
         String dstTable = TestUtils
@@ -708,6 +712,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * incompatible with vector".
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorUsingBulkCopySourceAsVarBinary() {
         String varbinaryTable = TestUtils
@@ -769,6 +774,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * incompatible with varbinary(max)".
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorUsingBulkCopyDestinationAsVarBinary() {
         String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
@@ -836,6 +842,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * The operation should succeed, and the data should be validated.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorUsingBulkCopySourceAsVarchar() {
         String varcharTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarcharTable"));
@@ -903,6 +910,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * The operation should succeed, and the data should be validated.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorUsingBulkCopyDestinationAsVarchar() {
         String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
@@ -973,6 +981,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * The operation should fail with an error: "The vector dimensions 3 and 4 do not match."
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorWithMismatchedDimensions() {
         String srcTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testSrcTable"));
@@ -1031,6 +1040,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with a large number of records to check performance.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testBulkCopyPerformance() throws SQLException {
         String tableName = AbstractSQLGenerator.escapeIdentifier("srcTable");
