@@ -42,33 +42,33 @@ public class TDSTokenHandlerTest {
     }
     
     /**
-     * Simplified test case specifically for Severity 25 fatal error simulation.
-     * This test mocks the TDS status flags to simulate a severity 25 error
+     * Simplified test case specifically for Severity 20 fatal error simulation.
+     * This test mocks the TDS status flags to simulate a severity 20 error
      * and verifies that SQLServerError is properly generated.
      */
     @Test
-    void testSeverity25FatalErrorSimulation() throws SQLServerException {
-        // Arrange - Simulate severity 25 fatal error with DONE_ERROR status
-        short severity25ErrorStatus = (short) (TDS.DONE_ERROR); // 0x0002 - indicates error condition
+    void testSeverity20FatalErrorSimulation() throws SQLServerException {
+        // Arrange - Simulate severity 20 fatal error with DONE_SRVERROR status
+        short severity20ErrorStatus = (short) (TDS.DONE_SRVERROR);
         
-        // Mock TDSReader to return the error status that would be set for severity 25 errors
-        when(mockTdsReader.peekStatusFlag()).thenReturn(severity25ErrorStatus);
+        // Mock TDSReader to return the error status that would be set for severity 20 errors
+        when(mockTdsReader.peekStatusFlag()).thenReturn(severity20ErrorStatus);
         
         // Override the readShort to return the error status for the StreamDone.setFromTDS() call
         // The first readShort call is for the status field in StreamDone
         when(mockTdsReader.readShort())
-            .thenReturn(severity25ErrorStatus);
+            .thenReturn(severity20ErrorStatus);
 
         // Create token handler to test
-        TDSTokenHandler handler = new TDSTokenHandler("Severity25Test");
+        TDSTokenHandler handler = new TDSTokenHandler("Severity20Test");
         
         // Act - Call onDone method which should detect the error status and create SQLServerError
         handler.onDone(mockTdsReader);
         
         // Verify that SQLServerError was generated due to the error status
         SQLServerError generatedError = handler.getDatabaseError();
-        assertNotNull(generatedError, "SQLServerError must be generated for severity 25 error condition");
-        
+        assertNotNull(generatedError, "SQLServerError must be generated for severity 20 error condition");
+
         // Verify the error message is the expected server error message
         String expectedErrorMessage = SQLServerException.getErrString("R_severeError");
         assertEquals(expectedErrorMessage, generatedError.getErrorMessage(), 
