@@ -268,15 +268,24 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     private static final String SQL_KEYWORDS = createSqlKeyWords();
 
-    private static final String INDEX_INFO_QUERY = "SELECT db_name() AS TABLE_CAT, " +
-    "sch.name AS TABLE_SCHEM, " +
-    "t.name AS TABLE_NAME, " +
-    "i.is_unique AS NON_UNIQUE, " +
-    "t.name AS INDEX_QUALIFIER, " +
-    "i.name AS INDEX_NAME, " +
-    "i.type AS TYPE, " +
-    "ic.key_ordinal AS ORDINAL_POSITION, " +
-    "c.name AS COLUMN_NAME, " +
+    // Combined query using UNION ALL to merge sp_statistics and columnstore index results
+    private static final String INDEX_INFO_COMBINED_QUERY = 
+    "DECLARE @temp_sp_statistics TABLE(" +
+    "TABLE_QUALIFIER sysname NULL, TABLE_OWNER sysname NULL, TABLE_NAME sysname NULL, " +
+    "NON_UNIQUE smallint NULL, INDEX_QUALIFIER sysname NULL, INDEX_NAME sysname NULL, " +
+    "TYPE smallint NULL, ORDINAL_POSITION smallint NULL, COLUMN_NAME sysname NULL, " +
+    "ASC_OR_DESC varchar(1) NULL, CARDINALITY int NULL, PAGES int NULL, FILTER_CONDITION varchar(128) NULL" +
+    "); " +
+    "INSERT INTO @temp_sp_statistics " +
+    "EXEC sp_statistics ?, ?, ?, ?, ?, ?; " +
+    "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, " +
+    "TABLE_NAME, NON_UNIQUE, INDEX_QUALIFIER, INDEX_NAME, TYPE, " +
+    "ORDINAL_POSITION, COLUMN_NAME, ASC_OR_DESC, CARDINALITY, PAGES, FILTER_CONDITION " +
+    "FROM @temp_sp_statistics " +
+    "UNION ALL " +
+    "SELECT db_name() AS TABLE_CAT, sch.name AS TABLE_SCHEM, t.name AS TABLE_NAME, " +
+    "i.is_unique AS NON_UNIQUE, t.name AS INDEX_QUALIFIER, i.name AS INDEX_NAME, " +
+    "i.type AS TYPE, ic.key_ordinal AS ORDINAL_POSITION, c.name AS COLUMN_NAME, " +
     "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
     "CASE WHEN i.index_id <= 1 THEN ps.row_count ELSE NULL END AS CARDINALITY, " +
     "CASE WHEN i.index_id <= 1 THEN ps.used_page_count ELSE NULL END AS PAGES, " +
@@ -287,11 +296,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "INNER JOIN sys.tables t ON i.object_id = t.object_id " +
     "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
     "LEFT JOIN sys.dm_db_partition_stats ps ON ps.object_id = i.object_id AND ps.index_id = i.index_id AND ps.index_id IN (0,1) " +
-    "WHERE t.name = ? " +
-    "AND sch.name = ? " +
-    "AND ic.key_ordinal = 0 " +
-    "ORDER BY t.name, i.name, ic.key_ordinal";
+    "WHERE t.name = ? AND sch.name = ? AND ic.key_ordinal = 0 " +
+    "ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, INDEX_NAME, ORDINAL_POSITION";
 
+    // Azure DW compatible query that includes both regular AND columnstore indexes and maintains all original sp_statistics columns
     private static final String INDEX_INFO_QUERY_DW = "SELECT db_name() AS TABLE_CAT, " +
     "sch.name AS TABLE_SCHEM, " +
     "t.name AS TABLE_NAME, " +
@@ -312,7 +320,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
     "WHERE t.name = ? " +
     "AND sch.name = ? " +
-    "AND ic.key_ordinal = 0 " +
     "ORDER BY t.name, i.name, ic.key_ordinal";
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
@@ -1278,44 +1285,36 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             arguments[5] = "Q";
         else
             arguments[5] = "E";
-        ResultSet spStatsResultSet = getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_STATISTICS, arguments,
-                getIndexInfoColumnNames);
-        
         /*
-        * This change was made to address the issue of missing Columnstore indexes in the
-        * sp_statistics result set. The original implementation relied on the sp_statistics
-        * stored procedure to retrieve index information, which did not include Columnstore
-        * indexes. As a result, the query was limited to only Clustered and NonClustered indexes.
-        * 
-        * GitHub Issue: #2546 - Columnstore indexes were missing from sp_statistics results.
-        */
-        String columnstoreIndexQuery = this.connection.isAzureDW() ? INDEX_INFO_QUERY_DW : INDEX_INFO_QUERY;
-        PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(columnstoreIndexQuery);
-        pstmt.setString(1, table);
-        pstmt.setString(2, schema);
-        ResultSet customResultSet = pstmt.executeQuery();
-
-        /*
-         * Create a CachedRowSet to hold the results of the sp_statistics query and
-         * the custom query. The CachedRowSet allows us to combine the results from both
-         * queries into a single result set.
+         * Fix for GitHub Issue #2546: Missing Columnstore indexes in sp_statistics results.
+         * 
+         * Problem: The sp_statistics stored procedure does not return Columnstore indexes,
+         * limiting results to only Clustered and Nonclustered B-tree indexes.
+         * 
+         * Solution:
+         * - Azure DW: Query sys.indexes directly using INDEX_INFO_QUERY_DW to include all index types
+         * - Regular SQL Server: Use INDEX_INFO_COMBINED_QUERY with UNION ALL to merge sp_statistics 
+         *   results with sys.indexes data, ensuring comprehensive index coverage including Columnstore
          */
-        CachedRowSet rowSet = RowSetProvider.newFactory().createCachedRowSet();
-        // Populate with first result set
-        rowSet.populate(spStatsResultSet);
-
-        while (customResultSet.next()) {
-            rowSet.moveToInsertRow();
-            for (String columnName : getIndexInfoColumnNames) {
-                Object value = customResultSet.getObject(columnName);
-                rowSet.updateObject(columnName, value);
-            }
-            rowSet.insertRow();
+        
+        String query = this.connection.isAzureDW() ? INDEX_INFO_QUERY_DW : INDEX_INFO_COMBINED_QUERY;
+        PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(query);
+        
+        if (!this.connection.isAzureDW()) {
+            pstmt.setString(1, arguments[0]);  // table name for sp_statistics
+            pstmt.setString(2, arguments[1]);  // schema name for sp_statistics
+            pstmt.setString(3, arguments[2]);  // catalog for sp_statistics
+            pstmt.setString(4, arguments[3]);  // index name pattern for sp_statistics
+            pstmt.setString(5, arguments[4]);  // is_unique for sp_statistics
+            pstmt.setString(6, arguments[5]);  // accuracy for sp_statistics
+            pstmt.setString(7, table);
+            pstmt.setString(8, schema);
+        } else {
+            pstmt.setString(1, table);
+            pstmt.setString(2, schema);
         }
-        rowSet.moveToCurrentRow();
-        rowSet.beforeFirst();
-
-        return rowSet;
+        
+        return pstmt.executeQuery();
     }
 
     @Override
