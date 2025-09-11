@@ -1160,6 +1160,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testJSONMetaData() throws SQLException {
         String jsonTableName = RandomUtil.getIdentifier("try_SQLJSON_Table");

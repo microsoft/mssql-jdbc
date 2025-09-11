@@ -201,6 +201,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with a single JSON row.
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testBulkCopyJSON() throws SQLException {
         String dstTable = TestUtils
@@ -235,6 +236,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with empty JSON document
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testBulkCopyWithEmptyJsonDocument() throws SQLException {
         String dstTable = TestUtils
@@ -274,6 +276,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * and compared using getString(columnIndex)
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testBulkCopyMultipleJsonRowsWithDifferentStructures() throws SQLException {
         String dstTable = TestUtils
@@ -316,6 +319,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with multiple JSON rows.
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testBulkCopyMultipleJsonRows() throws SQLException {
         String dstTable = TestUtils
@@ -358,6 +362,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with multiple JSON rows and columns.
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testBulkCopyMultipleJsonRowsAndColumns() throws SQLException {
         String dstTable = TestUtils
@@ -400,6 +405,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with sendStringParametersAsUnicode set to true and false for JSON column.
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testBulkCopyWithSendStringParametersAsUnicode() throws SQLException {
         // Unicode scenario
@@ -459,6 +465,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with nested JSON documents.
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testBulkCopyNestedJsonRows() throws SQLException {
         String dstTable = TestUtils
@@ -501,6 +508,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with various data types in JSON.
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testBulkCopyWithVariousDataTypes() throws SQLException {
         String dstTable = TestUtils
@@ -539,6 +547,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
      * Test bulk copy with count verification.
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testBulkCopyWithCountVerification() throws SQLException {
         String dstTable = TestUtils
