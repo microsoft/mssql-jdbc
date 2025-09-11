@@ -425,30 +425,10 @@ public final class TestUtils {
                 "IF OBJECT_ID('" + tableNameWithSchema + "', 'U') IS NOT NULL DROP TABLE " + tableNameWithSchema + ";");
     }
 
-    /**
-     * Drops a procedure with schema if it exists.
-     *
-     * @param procedureWithSchema
-     * @param stmt
-     * @throws SQLException
-     */
     public static void dropProcedureWithSchemaIfExists(String procedureWithSchema,
             java.sql.Statement stmt) throws SQLException {
         stmt.execute("IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'" + procedureWithSchema
                 + "') AND type in (N'P', N'PC')) DROP PROCEDURE " + procedureWithSchema + ";");
-    }
-
-    /**
-     * Drops a function with schema if it exists.
-     *
-     * @param functionWithSchema
-     * @param stmt
-     * @throws SQLException
-     */
-    public static void dropFunctionWithSchemaIfExists(String functionWithSchema,
-            java.sql.Statement stmt) throws SQLException {
-        stmt.execute("IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'" + functionWithSchema
-                + "') AND type in (N'FN', N'IF', N'TF')) DROP FUNCTION " + functionWithSchema + ";");
     }
 
     /**
