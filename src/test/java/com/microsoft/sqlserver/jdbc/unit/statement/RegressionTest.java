@@ -27,6 +27,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
@@ -244,6 +245,7 @@ public class RegressionTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testJsonQuery() throws SQLException {
         try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
