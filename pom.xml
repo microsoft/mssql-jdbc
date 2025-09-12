@@ -235,19 +235,6 @@
 		</dependency>
 	</dependencies>
 	<repositories>
-    	<!-- Public Maven Central -->
-    	<repository>
-        	<id>central</id>
-        	<url>https://repo.maven.apache.org/maven2</url>
-        	<releases>
-            	<enabled>true</enabled>
-        	</releases>
-        	<snapshots>
-            	<enabled>false</enabled>
-        	</snapshots>
-    	</repository>
-
-    	<!-- Azure DevOps feed (only for mssql-jdbc) -->
     	<repository>
         	<id>mssql-jdbc</id>
         	<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
@@ -259,19 +246,7 @@
         	</snapshots>
     	</repository>
 	</repositories>
-
 	<pluginRepositories>
-    	<pluginRepository>
-        	<id>central</id>
-        	<url>https://repo.maven.apache.org/maven2</url>
-        	<releases>
-            	<enabled>true</enabled>
-        	</releases>
-        	<snapshots>
-            	<enabled>false</enabled>
-        	</snapshots>
-    	</pluginRepository>
-
     	<pluginRepository>
         	<id>mssql-jdbc</id>
         	<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
