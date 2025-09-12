@@ -819,6 +819,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test inserting complex JSON data using prepared statement with bulk copy enabled.
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testInsertJsonWithBulkCopy() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkCopyComplexJsonTest");
@@ -869,6 +870,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test select, update, create, and delete operations on JSON data and verify at each step.
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testCRUDOperationsWithJson() throws Exception {
         String tableName = RandomUtil.getIdentifier("CRUDJsonTest");
