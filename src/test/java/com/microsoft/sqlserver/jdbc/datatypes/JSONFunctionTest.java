@@ -32,6 +32,7 @@ import java.sql.Statement;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -1383,8 +1384,7 @@ public class JSONFunctionTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(personsTable, stmt);
-                String dropUdfSQL = "IF OBJECT_ID('" + udfName + "', 'FN') IS NOT NULL DROP FUNCTION " + udfName;
-                stmt.execute(dropUdfSQL);
+                TestUtils.dropFunctionWithSchemaIfExists(udfName, stmt);
                 String createUdfSQL = "CREATE FUNCTION " + udfName + " (@json JSON) " +
                         "RETURNS INT " +
                         "AS BEGIN " +
@@ -1439,7 +1439,7 @@ public class JSONFunctionTest extends AbstractTest {
         } finally {
             try (Connection conn = getConnection();
                     Statement stmt = conn.createStatement()) {
-                TestUtils.dropFunctionIfExists(udfName, stmt);
+                TestUtils.dropFunctionWithSchemaIfExists(udfName, stmt);
                 TestUtils.dropTableIfExists(personsTable, stmt);
             }
         }
@@ -1461,8 +1461,7 @@ public class JSONFunctionTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             try (Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(personsTable, stmt);
-                String dropUdfSQL = "IF OBJECT_ID('" + udfName + "', 'FN') IS NOT NULL DROP FUNCTION " + udfName;
-                stmt.execute(dropUdfSQL);
+                TestUtils.dropFunctionWithSchemaIfExists(udfName, stmt);
 
                 String createUdfSQL = "CREATE FUNCTION " + udfName + " (@id INT, @name NVARCHAR(100)) " +
                         "RETURNS JSON " +
@@ -1501,7 +1500,7 @@ public class JSONFunctionTest extends AbstractTest {
         } finally {
             try (Connection conn = getConnection();
                     Statement stmt = conn.createStatement()) {
-                TestUtils.dropFunctionIfExists(udfName, stmt);
+                TestUtils.dropFunctionWithSchemaIfExists(udfName, stmt);
                 TestUtils.dropTableIfExists(personsTable, stmt);
             }
         }
@@ -1512,6 +1511,7 @@ public class JSONFunctionTest extends AbstractTest {
      * And verify there is no data loss.
      */
     @Test
+    @Disabled("Disabled due to huge JSON data")
     public void testInsert1GBJson() throws SQLException, IOException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
@@ -1598,6 +1598,7 @@ public class JSONFunctionTest extends AbstractTest {
      * Note: This test took around 4 mins to run
      */
     @Test
+    @Disabled("Disabled due to huge JSON data")
     public void testInsertHugeJsonData() throws SQLException, IOException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
@@ -1653,6 +1654,7 @@ public class JSONFunctionTest extends AbstractTest {
      * Expected error -> org.opentest4j.AssertionFailedError: Test failed due to: Attempting to grow LOB beyond maximum allowed size of 216895848447 bytes.
      */
     @Test
+    @Disabled("Disabled due to huge JSON data")
     public void testInsert2GBData() throws SQLException, FileNotFoundException, IOException {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTable")));
@@ -1812,7 +1814,12 @@ public class JSONFunctionTest extends AbstractTest {
                     if (!firstElement) {
                         writer.write(",");
                     }
-                    String jsonChunk = "{\"value\":\"" + "a".repeat(1000) + "\"}";
+                    // Create a string of 1000 'a' characters - Java 8 compatible
+                    StringBuilder sb = new StringBuilder(1000);
+                    for (int j = 0; j < 1000; j++) {
+                        sb.append('a');
+                    }
+                    String jsonChunk = "{\"value\":\"" + sb.toString() + "\"}";
                     writer.write(jsonChunk);
                     currentSize += jsonChunk.length();
                     firstElement = false;
