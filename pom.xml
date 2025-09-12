@@ -236,7 +236,7 @@
 	</dependencies>
 	<repositories>
     	<repository>
-        	<id>mssql-jdbc</id>
+        	<id>central</id>
         	<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
         	<releases>
             	<enabled>true</enabled>
@@ -248,7 +248,7 @@
 	</repositories>
 	<pluginRepositories>
     	<pluginRepository>
-        	<id>mssql-jdbc</id>
+        	<id>central</id>
         	<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
         	<releases>
             	<enabled>true</enabled>
