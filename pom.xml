@@ -283,7 +283,7 @@
         	</snapshots>
     	</pluginRepository>
 	</pluginRepositories>
-
+	<profiles>
 		<profile>
 			<id>jre8</id>
 			<build>
