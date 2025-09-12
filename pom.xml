@@ -235,30 +235,55 @@
 		</dependency>
 	</dependencies>
 	<repositories>
-		<repository>
-			<id>central</id>
-			<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
+    	<!-- Public Maven Central -->
+    	<repository>
+        	<id>central</id>
+        	<url>https://repo1.maven.org/maven2</url>
+        	<releases>
+            	<enabled>true</enabled>
+        	</releases>
+        	<snapshots>
+            	<enabled>false</enabled>
+        	</snapshots>
+    	</repository>
+
+    	<!-- Azure DevOps feed (only for mssql-jdbc) -->
+    	<repository>
+        	<id>mssql-jdbc</id>
+        	<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
+        	<releases>
+            	<enabled>true</enabled>
+        	</releases>
+        	<snapshots>
+            	<enabled>true</enabled>
+        	</snapshots>
+    	</repository>
 	</repositories>
+
 	<pluginRepositories>
-		<pluginRepository>
-			<id>central</id>
-			<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</pluginRepository>
+    	<pluginRepository>
+        	<id>central</id>
+        	<url>https://repo1.maven.org/maven2</url>
+        	<releases>
+            	<enabled>true</enabled>
+        	</releases>
+        	<snapshots>
+            	<enabled>false</enabled>
+        	</snapshots>
+    	</pluginRepository>
+
+    	<pluginRepository>
+        	<id>mssql-jdbc</id>
+        	<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
+        	<releases>
+            	<enabled>true</enabled>
+        	</releases>
+        	<snapshots>
+            	<enabled>true</enabled>
+        	</snapshots>
+    	</pluginRepository>
 	</pluginRepositories>
-	<profiles>
+
 		<profile>
 			<id>jre8</id>
 			<build>
