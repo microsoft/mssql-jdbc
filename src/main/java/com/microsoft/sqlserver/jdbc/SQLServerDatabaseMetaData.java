@@ -271,7 +271,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String INDEX_INFO_QUERY = "SELECT db_name() AS TABLE_CAT, " +
     "sch.name AS TABLE_SCHEM, " +
     "t.name AS TABLE_NAME, " +
-    "i.is_unique AS NON_UNIQUE, " +
+    "CASE WHEN i.is_unique = 1 THEN 0 ELSE 1 END AS NON_UNIQUE, " +
     "t.name AS INDEX_QUALIFIER, " +
     "i.name AS INDEX_NAME, " +
     "i.type AS TYPE, " +
@@ -295,7 +295,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String INDEX_INFO_QUERY_DW = "SELECT db_name() AS TABLE_CAT, " +
     "sch.name AS TABLE_SCHEM, " +
     "t.name AS TABLE_NAME, " +
-    "i.is_unique AS NON_UNIQUE, " +
+    "CASE WHEN i.is_unique = 1 THEN 0 ELSE 1 END AS NON_UNIQUE, " +
     "t.name AS INDEX_QUALIFIER, " +
     "i.name AS INDEX_NAME, " +
     "i.type AS TYPE, " +
