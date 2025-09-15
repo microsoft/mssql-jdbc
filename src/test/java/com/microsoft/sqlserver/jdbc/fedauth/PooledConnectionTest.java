@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc.fedauth;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -32,7 +31,6 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerPooledConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -41,7 +39,6 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 @Tag("slow")
 @Tag(Constants.fedAuth)
-@Tag(Constants.requireSecret)
 public class PooledConnectionTest extends FedauthCommon {
 
     static String charTable = TestUtils.escapeSingleQuotes(
@@ -54,22 +51,23 @@ public class PooledConnectionTest extends FedauthCommon {
 
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnectADPassword() throws SQLException {
-        // suspend 60 secs
-        testPooledConnectionAccessTokenExpiredThenReconnect(60, SqlAuthentication.ActiveDirectoryPassword);
+        // suspend 5 mins
+        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, SqlAuthentication.ActiveDirectoryPassword);
 
         // get another token
         getFedauthInfo();
 
         // suspend until access token expires
-        testPooledConnectionAccessTokenExpiredThenReconnect(60, SqlAuthentication.ActiveDirectoryPassword);
+        testPooledConnectionAccessTokenExpiredThenReconnect(secondsBeforeExpiration,
+                SqlAuthentication.ActiveDirectoryPassword);
     }
 
     @Test
     public void testPooledConnectionAccessTokenExpiredThenReconnectADIntegrated() throws SQLException {
         org.junit.Assume.assumeTrue(enableADIntegrated);
 
-        // suspend 60 secs
-        testPooledConnectionAccessTokenExpiredThenReconnect(60, SqlAuthentication.ActiveDirectoryIntegrated);
+        // suspend 5 mins
+        testPooledConnectionAccessTokenExpiredThenReconnect((long) 5 * 60, SqlAuthentication.ActiveDirectoryIntegrated);
 
         // get another token
         getFedauthInfo();
@@ -98,12 +96,6 @@ public class PooledConnectionTest extends FedauthCommon {
         try {
             // create pooled connection
             PooledConnection pc = ds.getPooledConnection();
-            SQLServerPooledConnection spc = (SQLServerPooledConnection) pc;
-            Field physicalConnectionField = SQLServerPooledConnection.class.getDeclaredField("physicalConnection");
-            physicalConnectionField.setAccessible(true);
-            Object con = physicalConnectionField.get(spc);
-            TestUtils.setAccessTokenExpiry(con, accessToken);
-            secondsBeforeExpiration = TestUtils.TEST_TOKEN_EXPIRY_SECONDS;
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection(); Statement stmt = connection1.createStatement()) {
@@ -118,7 +110,8 @@ public class PooledConnectionTest extends FedauthCommon {
                     TestUtils.dropTableIfExists(charTable, stmt);
                 }
             }
-            Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds + 5)); // give 5 more to make sure the access token is expired.
+            Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds));
+            Thread.sleep(TimeUnit.SECONDS.toMillis(2)); // give 2 mins more to make sure the access token is expired.
 
             // get second connection from pool
             try (Connection connection2 = pc.getConnection(); Statement stmt = connection2.createStatement()) {
@@ -134,7 +127,6 @@ public class PooledConnectionTest extends FedauthCommon {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
             fail(e.getMessage());
         }
     }
@@ -170,18 +162,13 @@ public class PooledConnectionTest extends FedauthCommon {
         try {
             // create pooled connection
             final PooledConnection pc = ds.getPooledConnection();
-            SQLServerPooledConnection spc = (SQLServerPooledConnection) pc;
-            Field physicalConnectionField = SQLServerPooledConnection.class.getDeclaredField("physicalConnection");
-            physicalConnectionField.setAccessible(true);
-            Object con = physicalConnectionField.get(spc);
-            TestUtils.setAccessTokenExpiry(con, accessToken);
-            secondsBeforeExpiration = TestUtils.TEST_TOKEN_EXPIRY_SECONDS;
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection(); Statement stmt = connection1.createStatement()) {
                 testUserName(connection1, azureUserName, authentication);
             }
-            Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds + 5)); // give 5 more to make sure the access token is expired.
+            Thread.sleep(TimeUnit.SECONDS.toMillis(testingTimeInSeconds));
+            Thread.sleep(TimeUnit.SECONDS.toMillis(2)); // give 2 mins more to make sure the access token is expired.
 
             Callable<Void> c = () -> {
                 try (Connection connection2 = pc.getConnection()) {
@@ -198,7 +185,7 @@ public class PooledConnectionTest extends FedauthCommon {
             };
 
             Random rand = new Random();
-            int numberOfThreadsForEachType = (rand.nextInt(5) + 1) * 3; // 3 to 15
+            int numberOfThreadsForEachType = (rand.nextInt(15) + 1) * 3; // 3 to 45
             ExecutorService es = Executors.newFixedThreadPool(3);
             List<Future<Void>> results = new ArrayList<>(numberOfThreadsForEachType);
             for (int i = 0; i < numberOfThreadsForEachType; i++) {
@@ -207,7 +194,7 @@ public class PooledConnectionTest extends FedauthCommon {
 
             // get is blocking, will wait for thread to finish
             for (Future<Void> f : results) {
-                f.get(TestUtils.TEST_TOKEN_EXPIRY_SECONDS, TimeUnit.SECONDS);
+                f.get();
             }
             es.shutdown();
         } catch (Exception e) {
@@ -227,12 +214,6 @@ public class PooledConnectionTest extends FedauthCommon {
 
             // create pooled connection
             final PooledConnection pc = ds.getPooledConnection();
-            SQLServerPooledConnection spc = (SQLServerPooledConnection) pc;
-            Field physicalConnectionField = SQLServerPooledConnection.class.getDeclaredField("physicalConnection");
-            physicalConnectionField.setAccessible(true);
-            Object con = physicalConnectionField.get(spc);
-            TestUtils.setAccessTokenExpiry(con, accessToken);
-            secondsBeforeExpiration = TestUtils.TEST_TOKEN_EXPIRY_SECONDS;
 
             // get first connection from pool
             try (Connection connection1 = pc.getConnection()) {
@@ -258,7 +239,7 @@ public class PooledConnectionTest extends FedauthCommon {
 
             // get is blocking, will wait for thread to finish
             for (Future<Void> f : results) {
-                f.get(TestUtils.TEST_TOKEN_EXPIRY_SECONDS, TimeUnit.SECONDS);
+                f.get();
             }
             es.shutdown();
         } catch (Exception e) {

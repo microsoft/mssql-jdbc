@@ -5,23 +5,30 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.Optional;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Level;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import com.azure.core.credential.AccessToken;
-import com.azure.core.credential.TokenRequestContext;
-import com.azure.identity.ManagedIdentityCredential;
-import com.azure.identity.ManagedIdentityCredentialBuilder;
-import com.azure.identity.DefaultAzureCredential;
-import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
 
 
 /**
@@ -29,8 +36,8 @@ import com.azure.identity.DefaultAzureCredentialBuilder;
  *
  */
 class SQLServerSecurityUtility {
-    static final private java.util.logging.Logger logger = java.util.logging.Logger
-            .getLogger("com.microsoft.sqlserver.jdbc.SQLServerSecurityUtility");
+    static final private java.util.logging.Logger connectionlogger = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
 
     static final int GONE = 410;
     static final int TOO_MANY_RESQUESTS = 429;
@@ -39,12 +46,6 @@ class SQLServerSecurityUtility {
     static final int NETWORK_CONNECT_TIMEOUT_ERROR = 599;
 
     static final String WINDOWS_KEY_STORE_NAME = "MSSQL_CERTIFICATE_STORE";
-
-    // Environment variable for intellij keepass database path
-    private static final String INTELLIJ_KEEPASS_PASS = "INTELLIJ_KEEPASS_PATH";
-
-    // Environment variable for additionally allowed tenants. The tenantIds are comma delimited
-    private static final String ADDITIONALLY_ALLOWED_TENANTS = "ADDITIONALLY_ALLOWED_TENANTS";
 
     /**
      * Give the hash of given plain text
@@ -122,8 +123,8 @@ class SQLServerSecurityUtility {
         String serverName = connection.getTrustedServerNameAE();
         assert null != serverName : "serverName should not be null in getKey.";
 
-        if (logger.isLoggable(java.util.logging.Level.FINEST)) {
-            logger.finest("Checking trusted master key path...");
+        if (connectionlogger.isLoggable(java.util.logging.Level.FINE)) {
+            connectionlogger.fine("Checking trusted master key path...");
         }
         Boolean[] hasEntry = new Boolean[1];
         List<String> trustedKeyPaths = SQLServerConnection.getColumnEncryptionTrustedMasterKeyPaths(serverName,
@@ -318,113 +319,197 @@ class SQLServerSecurityUtility {
         }
     }
 
+    private static SimpleTtlCache<String, SqlFedAuthToken> msiTokenCache = new SimpleTtlCache<>();
+
     /**
-     * Get Managed Identity Authentication token through a ManagedIdentityCredential
+     * Get Managed Identity Authentication token
      * 
      * @param resource
-     *        Token resource.
-     * @param managedIdentityClientId
-     *        Client ID of the user-assigned Managed Identity.
+     *        token resource
+     * @param msiClientId
+     *        Managed Identity or User Assigned Managed Identity
+     * @param tokenCacheTtl
+     *        The number of seconds the token should remain in the cache
      * @return fedauth token
      * @throws SQLServerException
      */
-    static SqlFedAuthToken getManagedIdentityCredAuthToken(String resource,
-            String managedIdentityClientId) throws SQLServerException {
-        ManagedIdentityCredential mic = null;
-
-        if (logger.isLoggable(java.util.logging.Level.FINEST)) {
-            logger.finest("Getting Managed Identity authentication token for: " + managedIdentityClientId);
+    static SqlFedAuthToken getMSIAuthToken(String resource, String msiClientId,
+            int tokenCacheTtl) throws SQLServerException {
+        String cacheKey = "resource:" + resource + "|clientid:" + msiClientId;
+        SqlFedAuthToken token = msiTokenCache.get(cacheKey);
+        if (token != null) {
+            if (connectionlogger.isLoggable(Level.FINER)) {
+                connectionlogger.finer("Using cached Managed Identity auth token: " + token.toString());
+            }
+            return token;
         }
 
-        if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
-            mic = new ManagedIdentityCredentialBuilder().clientId(managedIdentityClientId).build();
+        // IMDS upgrade time can take up to 70s
+        final int imdsUpgradeTimeInMs = 70 * 1000;
+        final List<Integer> retrySlots = new ArrayList<>();
+
+        StringBuilder urlString = new StringBuilder();
+        int retry = 1, maxRetry = 1;
+
+        // MSI_ENDPOINT and MSI_SECRET can be used instead of IDENTITY_ENDPOINT and IDENTITY_HEADER
+        String identityEndpoint = System.getenv("IDENTITY_ENDPOINT");
+        if (null == identityEndpoint || identityEndpoint.trim().isEmpty()) {
+            identityEndpoint = System.getenv("MSI_ENDPOINT");
+        }
+
+        String identityHeader = System.getenv("IDENTITY_HEADER");
+        if (null == identityHeader || identityHeader.trim().isEmpty()) {
+            identityHeader = System.getenv("MSI_SECRET");
+        }
+
+        /*
+         * isAzureFunction is used for identifying if the current client application is running in a Virtual Machine
+         * (without Managed Identity environment variables) or App Service/Function (with Managed Identity environment
+         * variables) as the APIs to be called for acquiring MSI Token are different for both cases.
+         */
+        boolean isAzureFunction = null != identityEndpoint && !identityEndpoint.isEmpty() && null != identityHeader
+                && !identityHeader.isEmpty();
+
+        if (isAzureFunction) {
+            urlString.append(identityEndpoint).append("?api-version=2019-08-01&resource=").append(resource);
         } else {
-            mic = new ManagedIdentityCredentialBuilder().build();
+            urlString.append(ActiveDirectoryAuthentication.AZURE_REST_MSI_URL).append("&resource=").append(resource);
+            // Retry acquiring access token up to 20 times due to possible IMDS upgrade (Applies to VM only)
+            maxRetry = 20;
+            // Simplified variant of Exponential BackOff
+            for (int x = 0; x < maxRetry; x++) {
+                retrySlots.add(INTERNAL_SERVER_ERROR * ((2 << x) - 1) / 1000);
+            }
         }
 
-        TokenRequestContext tokenRequestContext = new TokenRequestContext();
-        String scope = resource.endsWith(SQLServerMSAL4JUtils.SLASH_DEFAULT) ? resource : resource
-                + SQLServerMSAL4JUtils.SLASH_DEFAULT;
-        tokenRequestContext.setScopes(Arrays.asList(scope));
-
-        SqlFedAuthToken sqlFedAuthToken = null;
-
-        Optional<AccessToken> accessTokenOptional = mic.getToken(tokenRequestContext).blockOptional();
-
-        if (!accessTokenOptional.isPresent()) {
-            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
-                    null);
-        } else {
-            AccessToken accessToken = accessTokenOptional.get();
-            sqlFedAuthToken = new SqlFedAuthToken(accessToken.getToken(), accessToken.getExpiresAt().toEpochSecond());
+        // Append Client Id if available
+        if (null != msiClientId && !msiClientId.isEmpty()) {
+            urlString.append("&client_id=").append(msiClientId);
         }
 
-        if (logger.isLoggable(java.util.logging.Level.FINEST)) {
-            logger.finest("Got fedAuth token, expiry: " + sqlFedAuthToken.getExpiresOn().toString());
+        // Loop while maxRetry reaches its limit
+        while (retry <= maxRetry) {
+            HttpURLConnection connection = null;
+
+            try {
+                connection = (HttpURLConnection) new URL(urlString.toString()).openConnection();
+                connection.setRequestMethod("GET");
+
+                if (isAzureFunction) {
+                    connection.setRequestProperty("X-IDENTITY-HEADER", identityHeader);
+                    if (connectionlogger.isLoggable(Level.FINER)) {
+                        connectionlogger.finer("Using Azure Function/App Service Managed Identity auth: " + urlString);
+                    }
+                } else {
+                    connection.setRequestProperty("Metadata", "true");
+                    if (connectionlogger.isLoggable(Level.FINER)) {
+                        connectionlogger.finer("Using Azure Managed Identity auth: " + urlString);
+                    }
+                }
+
+                connection.connect();
+
+                try (InputStream stream = connection.getInputStream()) {
+
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(stream, UTF_8), 100);
+                    StringBuilder result = new StringBuilder(reader.readLine());
+
+                    int startIndex_AT = result.indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER)
+                            + ActiveDirectoryAuthentication.ACCESS_TOKEN_IDENTIFIER.length();
+
+                    String accessToken = result.substring(startIndex_AT, result.indexOf("\"", startIndex_AT + 1));
+
+                    int startIndex_ATX;
+                    long accessTokenExpiry;
+                    Date expiryDate;
+
+                    int expiryInIndex = result
+                            .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER);
+
+                    if (expiryInIndex == -1) {
+                        startIndex_ATX = result
+                                .indexOf(ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER)
+                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_ON_IDENTIFIER.length();
+                        accessTokenExpiry = Long
+                                .parseLong(result.substring(startIndex_ATX, result.indexOf("\"", startIndex_ATX + 1)));
+                        expiryDate = new Date(accessTokenExpiry * 1000);
+
+                    } else {
+                        startIndex_ATX = expiryInIndex
+                                + ActiveDirectoryAuthentication.ACCESS_TOKEN_EXPIRES_IN_IDENTIFIER.length();
+                        accessTokenExpiry = Long
+                                .parseLong(result.substring(startIndex_ATX, result.indexOf("\"", startIndex_ATX + 1)));
+
+                        expiryDate = new Date(System.currentTimeMillis() + (accessTokenExpiry * 1000));
+                    }
+
+                    token = new SqlFedAuthToken(accessToken, expiryDate);
+
+                    if (connectionlogger.isLoggable(Level.FINER)) {
+                        connectionlogger.finer("Obtained new Managed Identity auth token: " + token.toString());
+                    }
+
+                    if (tokenCacheTtl > 0) {
+                        // Cache the token for up to tokenCacheTtl but not longer than 5 minutes less than the token's
+                        // expiration, in case we are given a token with a very short lifetime.
+                        msiTokenCache.put(cacheKey, token,
+                                Duration.ofSeconds(Math.min(tokenCacheTtl, accessTokenExpiry - 300)));
+                    }
+
+                    return token;
+                }
+            } catch (Exception e) {
+                retry++;
+                // Below code applicable only when !isAzureFunctcion (VM)
+                if (retry > maxRetry) {
+                    // Do not retry if maxRetry limit has been reached.
+                    break;
+                } else {
+                    try {
+                        int responseCode = connection.getResponseCode();
+                        // Check Error Response Code from Connection
+                        if (GONE == responseCode || TOO_MANY_RESQUESTS == responseCode || NOT_FOUND == responseCode
+                                || (INTERNAL_SERVER_ERROR <= responseCode
+                                        && NETWORK_CONNECT_TIMEOUT_ERROR >= responseCode)) {
+                            try {
+                                int retryTimeoutInMs = retrySlots.get(ThreadLocalRandom.current().nextInt(retry - 1));
+                                // Error code 410 indicates IMDS upgrade is in progress, which can take up to 70s
+                                retryTimeoutInMs = (responseCode == 410
+                                        && retryTimeoutInMs < imdsUpgradeTimeInMs) ? imdsUpgradeTimeInMs
+                                                                                   : retryTimeoutInMs;
+                                Thread.sleep(retryTimeoutInMs);
+                            } catch (InterruptedException ex) {
+                                // re-interrupt thread
+                                Thread.currentThread().interrupt();
+
+                                // Throw runtime exception as driver must not be interrupted here
+                                throw new RuntimeException(ex);
+                            }
+                        } else {
+                            if (null != msiClientId && !msiClientId.isEmpty()) {
+                                throw new SQLServerException(
+                                        SQLServerException.getErrString("R_MSITokenFailureImdsClientId"), null);
+                            } else {
+                                throw new SQLServerException(SQLServerException.getErrString("R_MSITokenFailureImds"),
+                                        null);
+                            }
+                        }
+                    } catch (IOException io) {
+                        // Throw error as unexpected if response code not available
+                        throw new SQLServerException(SQLServerException.getErrString("R_MSITokenFailureUnexpected"),
+                                null);
+                    }
+                }
+            } finally {
+                if (connection != null) {
+                    connection.disconnect();
+                }
+            }
         }
-
-        return sqlFedAuthToken;
-    }
-
-    /**
-     * Get Managed Identity Authentication token through the DefaultAzureCredential
-     *
-     * @param resource
-     *        Token resource.
-     * @param managedIdentityClientId
-     *        Client ID of the user-assigned Managed Identity.
-     * @return fedauth token
-     * @throws SQLServerException
-     */
-    static SqlFedAuthToken getDefaultAzureCredAuthToken(String resource,
-            String managedIdentityClientId) throws SQLServerException {
-        String intellijKeepassPath = System.getenv(INTELLIJ_KEEPASS_PASS);
-        String[] additionallyAllowedTenants = getAdditonallyAllowedTenants();
-
-        DefaultAzureCredentialBuilder dacBuilder = new DefaultAzureCredentialBuilder();
-        DefaultAzureCredential dac = null;
-
-        if (null != managedIdentityClientId && !managedIdentityClientId.isEmpty()) {
-            dacBuilder.managedIdentityClientId(managedIdentityClientId);
+        if (retry > maxRetry) {
+            throw new SQLServerException(SQLServerException
+                    .getErrString(isAzureFunction ? "R_MSITokenFailureEndpoint" : "R_MSITokenFailureImds"), null);
         }
-
-        if (null != intellijKeepassPath && !intellijKeepassPath.isEmpty()) {
-            dacBuilder.intelliJKeePassDatabasePath(intellijKeepassPath);
-        }
-
-        if (null != additionallyAllowedTenants && additionallyAllowedTenants.length != 0) {
-            dacBuilder.additionallyAllowedTenants(additionallyAllowedTenants);
-        }
-
-        dac = dacBuilder.build();
-
-        TokenRequestContext tokenRequestContext = new TokenRequestContext();
-        String scope = resource.endsWith(SQLServerMSAL4JUtils.SLASH_DEFAULT) ? resource : resource
-                + SQLServerMSAL4JUtils.SLASH_DEFAULT;
-        tokenRequestContext.setScopes(Arrays.asList(scope));
-
-        SqlFedAuthToken sqlFedAuthToken = null;
-
-        Optional<AccessToken> accessTokenOptional = dac.getToken(tokenRequestContext).blockOptional();
-
-        if (!accessTokenOptional.isPresent()) {
-            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
-                    null);
-        } else {
-            AccessToken accessToken = accessTokenOptional.get();
-            sqlFedAuthToken = new SqlFedAuthToken(accessToken.getToken(), accessToken.getExpiresAt().toEpochSecond());
-        }
-
-        return sqlFedAuthToken;
-    }
-
-    private static String[] getAdditonallyAllowedTenants() {
-        String additonallyAllowedTenants = System.getenv(ADDITIONALLY_ALLOWED_TENANTS);
-
-        if (null != additonallyAllowedTenants && !additonallyAllowedTenants.isEmpty()) {
-            return System.getenv(ADDITIONALLY_ALLOWED_TENANTS).split(",");
-        }
-
         return null;
     }
 }

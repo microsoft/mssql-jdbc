@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc.fedauth;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,9 +17,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Collections;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,8 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.microsoft.aad.msal4j.IAuthenticationResult;
-import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -41,7 +36,6 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.fedAuth)
-@Tag(Constants.requireSecret)
 public class FedauthTest extends FedauthCommon {
     static String charTable = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("JDBC_FedAuthTest")));
@@ -284,8 +278,8 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testAADServicePrincipalAuthDeprecated() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";AADSecurePrincipalId=" + applicationClientID
-                + ";AADSecurePrincipalSecret=" + applicationKey;
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";AADSecurePrincipalId=" + azureAADPrincipialId
+                + ";AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
         String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
@@ -306,8 +300,8 @@ public class FedauthTest extends FedauthCommon {
     @Test
     public void testAADServicePrincipalAuth() {
         String url = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
-                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + applicationClientID + ";Password="
-                + applicationKey;
+                + SqlAuthentication.ActiveDirectoryServicePrincipal + ";Username=" + azureAADPrincipialId + ";Password="
+                + azureAADPrincipialSecret;
         String urlEncrypted = url + ";encrypt=true;trustServerCertificate=true;";
         SQLServerDataSource ds = new SQLServerDataSource();
         updateDataSource(url, ds);
@@ -329,31 +323,32 @@ public class FedauthTest extends FedauthCommon {
         String baseUrl = "jdbc:sqlserver://" + azureServer + ";database=" + azureDatabase + ";authentication="
                 + SqlAuthentication.ActiveDirectoryServicePrincipal + ";";
         // Wrong AADSecurePrincipalSecret provided.
-        String url = baseUrl + "AADSecurePrincipalId=" + applicationClientID + ";AADSecurePrincipalSecret=wrongSecret";
+        String url = baseUrl + "AADSecurePrincipalId=" + azureAADPrincipialId + ";AADSecurePrincipalSecret=wrongSecret";
         validateException(url, "R_MSALExecution");
 
         // Wrong AADSecurePrincipalId provided.
-        url = baseUrl + "AADSecurePrincipalId=wrongId;AADSecurePrincipalSecret=" + applicationKey;
+        url = baseUrl + "AADSecurePrincipalId=wrongId;AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
         validateException(url, "R_MSALExecution");
 
         // AADSecurePrincipalSecret/password not provided.
-        url = baseUrl + "AADSecurePrincipalId=" + applicationClientID;
+        url = baseUrl + "AADSecurePrincipalId=" + azureAADPrincipialId;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
-        url = baseUrl + "Username=" + applicationClientID;
+        url = baseUrl + "Username=" + azureAADPrincipialId;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
 
         // AADSecurePrincipalId/username not provided.
-        url = baseUrl + "AADSecurePrincipalSecret=" + applicationKey;
+        url = baseUrl + "AADSecurePrincipalSecret=" + azureAADPrincipialSecret;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
-        url = baseUrl + "password=" + applicationKey;
+        url = baseUrl + "password=" + azureAADPrincipialSecret;
         validateException(url, "R_NoUserPasswordForActiveServicePrincipal");
 
         // Both AADSecurePrincipalId/username and AADSecurePrincipalSecret/password not provided.
         validateException(baseUrl, "R_NoUserPasswordForActiveServicePrincipal");
 
         // both username/password and AADSecurePrincipalId/AADSecurePrincipalSecret provided
-        url = baseUrl + "Username=" + applicationClientID + ";password=" + applicationKey + ";AADSecurePrincipalId="
-                + applicationClientID + ";AADSecurePrincipalSecret=" + applicationKey;
+        url = baseUrl + "Username=" + azureAADPrincipialId + ";password=" + azureAADPrincipialSecret
+                + ";AADSecurePrincipalId=" + azureAADPrincipialId + ";AADSecurePrincipalSecret="
+                + azureAADPrincipialSecret;
         validateException(url, "R_BothUserPasswordandDeprecated");
     }
 
@@ -361,8 +356,7 @@ public class FedauthTest extends FedauthCommon {
         try (Connection conn = DriverManager.getConnection(url)) {
             fail(TestResource.getResource("R_expectedFailPassed"));
         } catch (SQLException e) {
-            assertTrue(e.getMessage().replaceAll("\r\n", "").matches(TestUtils.formatErrorMsg(resourceKey)),
-                    e.getMessage());
+            assertTrue(e.getMessage().replaceAll("\r\n", "").matches(TestUtils.formatErrorMsg(resourceKey)));
         }
     }
 

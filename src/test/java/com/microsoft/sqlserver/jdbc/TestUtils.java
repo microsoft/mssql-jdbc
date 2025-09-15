@@ -8,8 +8,11 @@ package com.microsoft.sqlserver.jdbc;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.*;
-import java.lang.reflect.Field;
+import java.io.ByteArrayInputStream;
+import java.io.CharArrayReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.net.URI;
 import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
@@ -20,15 +23,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 
-import com.microsoft.aad.msal4j.*;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
-import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBigInt;
 import com.microsoft.sqlserver.testframework.sqlType.SqlBinary;
@@ -57,7 +59,6 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinary;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarBinaryMax;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarChar;
 import com.microsoft.sqlserver.testframework.sqlType.SqlVarCharMax;
-import org.junit.Assert;
 
 
 /**
@@ -73,60 +74,6 @@ public final class TestUtils {
     static final int ENGINE_EDITION_FOR_SQL_AZURE = 5;
     static final int ENGINE_EDITION_FOR_SQL_AZURE_DW = 6;
     static final int ENGINE_EDITION_FOR_SQL_AZURE_MI = 8;
-    public static final int TEST_TOKEN_EXPIRY_SECONDS = 120; // token expiry time in secs
-
-    public static String ACCESS_TOKEN_CALLBACK = null;
-
-    static String applicationKey;
-    static String applicationClientID;
-
-    static {
-        try (InputStream input = new FileInputStream(Constants.CONFIG_PROPERTIES_FILE)) {
-            Properties configProperties = new Properties();
-            configProperties.load(input);
-            applicationKey = configProperties.getProperty("applicationKey");
-            applicationClientID = configProperties.getProperty("applicationClientID");
-        } catch (IOException e) {
-            // No config file found
-        }
-    }
-
-    public static boolean expireTokenToggle = false;
-
-    public static void setAccessTokenExpiry(Object con, String accessToken) {
-        Field fedAuthTokenField;
-        try {
-            fedAuthTokenField = SQLServerConnection.class.getDeclaredField("fedAuthToken");
-            fedAuthTokenField.setAccessible(true);
-
-            Date newExpiry = new Date(
-                    System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(TEST_TOKEN_EXPIRY_SECONDS));
-            SqlFedAuthToken newFedAuthToken = new SqlFedAuthToken(accessToken, newExpiry);
-            fedAuthTokenField.set(con, newFedAuthToken);
-        } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-            Assert.fail("Failed to set token expiry: " + e.getMessage());
-        }
-    }
-
-    public static void setAccessTokenExpiry(Object con) {
-        Field fedAuthTokenField;
-        Field wrappedConnection;
-        try {
-            fedAuthTokenField = SQLServerConnection.class.getDeclaredField("fedAuthToken");
-            fedAuthTokenField.setAccessible(true);
-
-            wrappedConnection = SQLServerConnectionPoolProxy.class.getDeclaredField("wrappedConnection");
-            wrappedConnection.setAccessible(true);
-            Object wrappedConnectionObj = wrappedConnection.get(con);
-
-            Date newExpiry = new Date(
-                    System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(TEST_TOKEN_EXPIRY_SECONDS));
-            SqlFedAuthToken newFedAuthToken = new SqlFedAuthToken(ACCESS_TOKEN_CALLBACK, newExpiry);
-            fedAuthTokenField.set(wrappedConnectionObj, newFedAuthToken);
-        } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-            Assert.fail("Failed to set token expiry: " + e.getMessage());
-        }
-    }
 
     private TestUtils() {}
 
@@ -655,8 +602,6 @@ public final class TestUtils {
      * 
      * @param connection
      *        connection object
-     * @param sql
-     *        SQL string
      * @return
      */
     public static Statement getScrollableStatement(Connection connection) throws SQLException {
@@ -684,6 +629,8 @@ public final class TestUtils {
      * 
      * @param connection
      *        connection object
+     * @param sql
+     *        SQL string
      * @param stmtColEncSetting
      *        SQLServerStatementColumnEncryptionSetting object
      * @return
@@ -1017,13 +964,4 @@ public final class TestUtils {
             return cf.generateCertificate(is);
         }
     }
-
-    public static void freeProcCache(Statement stmt) {
-        try {
-            stmt.execute("DBCC FREEPROCCACHE");
-        } catch (Exception e) {
-            // ignore error - some tests fails due to permission issues from managed identity, this does not seem to affect tests
-        }
-    }
-    
 }

@@ -29,7 +29,6 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.fedAuth)
-@Tag(Constants.requireSecret)
 public class ConnectionEncryptionTest extends FedauthCommon {
 
     static String charTable = TestUtils.escapeSingleQuotes(
@@ -37,8 +36,8 @@ public class ConnectionEncryptionTest extends FedauthCommon {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        // Turn off default encrypt true
-        connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", "false");
+        //Turn off default encrypt true
+        connectionString = TestUtils.addOrOverrideProperty(connectionString,"encrypt", "false");
         setConnection();
     }
 
@@ -57,7 +56,6 @@ public class ConnectionEncryptionTest extends FedauthCommon {
                 TestUtils.dropTableIfExists(charTable, stmt);
             }
         } catch (Exception e) {
-            e.printStackTrace();
             fail(e.getMessage());
         }
     }
@@ -65,14 +63,16 @@ public class ConnectionEncryptionTest extends FedauthCommon {
     @Test
     public void testWrongCertificate() throws SQLException {
         try (Connection conn = DriverManager
-                .getConnection(adPasswordConnectionStr + ";encrypt=false;HostNameInCertificate=WrongCertificate")) {
+                .getConnection(adPasswordConnectionStr + ";HostNameInCertificate=WrongCertificate")) {
             fail(EXPECTED_EXCEPTION_NOT_THROWN);
         } catch (Exception e) {
             if (!(e instanceof SQLServerException)) {
                 fail(EXPECTED_EXCEPTION_NOT_THROWN);
             }
 
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_sslFailed")));
+            MessageFormat form = new MessageFormat(TestUtils.R_BUNDLE.getString("R_sslFailed"));
+            Object[] msgArgs = {e.getCause().getLocalizedMessage()};
+            assertTrue(INVALID_EXCEPTION_MSG + ": " + e.getMessage(), e.getMessage().contains(form.format(msgArgs)));
         }
     }
 
