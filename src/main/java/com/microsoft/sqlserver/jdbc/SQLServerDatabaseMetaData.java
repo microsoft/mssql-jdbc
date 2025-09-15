@@ -1611,7 +1611,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         }
         checkClosed();
         String s = "SELECT 'VIEW' 'TABLE_TYPE' UNION SELECT 'TABLE' UNION SELECT 'SYSTEM TABLE'";
-        return getResultSetFromInternalQueries(null, s);
+        SQLServerResultSet rs = getResultSetFromInternalQueries(null, s);
+        return rs;
     }
 
     @Override

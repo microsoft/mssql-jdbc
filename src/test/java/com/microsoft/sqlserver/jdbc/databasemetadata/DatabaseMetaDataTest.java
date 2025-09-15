@@ -155,10 +155,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
     public void testDBUserLogin() throws SQLException {
-        String auth = TestUtils.getProperty(connectionString, "authentication");
-        org.junit.Assume.assumeTrue(auth != null
-                && (auth.equalsIgnoreCase("SqlPassword") || auth.equalsIgnoreCase("ActiveDirectoryPassword")));
         try (Connection conn = getConnection()) {
             DatabaseMetaData databaseMetaData = conn.getMetaData();
             String connectionString = getConnectionString();
@@ -182,8 +181,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
 
             assertNotNull(userName, TestResource.getResource("R_userNameNull"));
             assertTrue(userName.equalsIgnoreCase(userFromConnectionString),
-        TestResource.getResource("R_userNameNotMatch") + "userName: " + userName + "from connectio string: "
-                + userFromConnectionString);
+                    TestResource.getResource("R_userNameNotMatch"));
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
         }

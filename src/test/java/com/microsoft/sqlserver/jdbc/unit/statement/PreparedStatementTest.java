@@ -28,7 +28,6 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
-import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -156,9 +155,7 @@ public class PreparedStatementTest extends AbstractTest {
             con.setStatementPoolingCacheSize(0);
 
             // Clean-up proc cache
-            try (Statement stmt = con.createStatement()) {
-                TestUtils.freeProcCache(stmt);
-            }
+            this.executeSQL(con, "DBCC FREEPROCCACHE;");
 
             String lookupUniqueifier = UUID.randomUUID().toString();
 

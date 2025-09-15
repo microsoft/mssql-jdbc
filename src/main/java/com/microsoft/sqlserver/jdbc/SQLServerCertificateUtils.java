@@ -321,18 +321,20 @@ final class SQLServerCertificateUtils {
     private static final String RC4_ALG = "RC4";
     private static final String RSA_ALG = "RSA";
 
-    static KeyStore loadPKCS12KeyStore(String certPath,
-            String keyPassword) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, SQLServerException {
-        KeyStore keyStore = KeyStore.getInstance(PKCS12_ALG);
+    private static KeyManager[] readPKCS12Certificate(String certPath,
+            String keyPassword) throws NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, UnrecoverableKeyException, KeyStoreException, SQLServerException {
+        KeyStore keystore = KeyStore.getInstance(PKCS12_ALG);
         try (FileInputStream certStream = new FileInputStream(certPath)) {
-            keyStore.load(certStream, (keyPassword != null) ? keyPassword.toCharArray() : null);
+            keystore.load(certStream, keyPassword.toCharArray());
         } catch (FileNotFoundException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_readCertError"), null, 0, null);
+            throw new SQLServerException(SQLServerException.getErrString("R_clientCertError"), null, 0, null);
         }
-        return keyStore;
+        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(SUN_X_509);
+        keyManagerFactory.init(keystore, keyPassword.toCharArray());
+        return keyManagerFactory.getKeyManagers();
     }
 
-    static KeyManager[] readPKCS8Certificate(String certPath, String keyPath,
+    private static KeyManager[] readPKCS8Certificate(String certPath, String keyPath,
             String keyPassword) throws IOException, GeneralSecurityException, SQLServerException {
         Certificate clientCertificate = loadCertificate(certPath);
         ((X509Certificate) clientCertificate).checkValidity();
@@ -346,16 +348,6 @@ final class SQLServerCertificateUtils {
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         kmf.init(keyStore, keyPassword.toCharArray());
         return kmf.getKeyManagers();
-    }
-
-    private static KeyManager[] readPKCS12Certificate(String certPath,
-            String keyPassword) throws NoSuchAlgorithmException, CertificateException, IOException, 
-                UnrecoverableKeyException, KeyStoreException, SQLServerException {
-
-        KeyStore keyStore = loadPKCS12KeyStore(certPath, keyPassword);
-        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(SUN_X_509);
-        keyManagerFactory.init(keyStore, (keyPassword != null) ? keyPassword.toCharArray() : null);
-        return keyManagerFactory.getKeyManagers();
     }
 
     private static PrivateKey loadPrivateKeyFromPKCS8(
@@ -450,7 +442,7 @@ final class SQLServerCertificateUtils {
         }
     }
 
-    static Certificate loadCertificate(
+    private static Certificate loadCertificate(
             String certificatePem) throws IOException, GeneralSecurityException, SQLServerException {
         CertificateFactory certificateFactory = CertificateFactory.getInstance("X509");
         try (InputStream certStream = fileToStream(certificatePem)) {
@@ -458,7 +450,7 @@ final class SQLServerCertificateUtils {
         }
     }
 
-    static PrivateKey loadPrivateKey(String privateKeyPemPath,
+    private static PrivateKey loadPrivateKey(String privateKeyPemPath,
             String privateKeyPassword) throws GeneralSecurityException, IOException, SQLServerException {
         String privateKeyPem = getStringFromFile(privateKeyPemPath);
 
@@ -522,7 +514,7 @@ final class SQLServerCertificateUtils {
             dis.readFully(bytes);
             return new ByteArrayInputStream(bytes);
         } catch (FileNotFoundException e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_readCertError"), null, 0, null);
+            throw new SQLServerException(SQLServerException.getErrString("R_clientCertError"), null, 0, null);
         }
     }
 

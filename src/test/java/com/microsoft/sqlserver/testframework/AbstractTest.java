@@ -5,8 +5,6 @@
 
 package com.microsoft.sqlserver.testframework;
 
-import static org.junit.jupiter.api.Assertions.fail;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,7 +32,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
-import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
@@ -68,10 +65,6 @@ public abstract class AbstractTest {
     protected static String[] enclaveAttestationUrl = null;
     protected static String[] enclaveAttestationProtocol = null;
 
-
-    protected static String kerberosServer = null;
-    protected static String kerberosServerPort = null;
-
     protected static String clientCertificate = null;
     protected static String clientKey = null;
     protected static String clientKeyPassword = "";
@@ -89,8 +82,8 @@ public abstract class AbstractTest {
     protected static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static boolean isKspRegistered = false;
 
-    // properties needed for Managed Identity
-    protected static String managedIdentityClientId = null;
+    // properties needed for MSI
+    protected static String msiClientId = null;
     protected static String keyStorePrincipalId = null;
     protected static String keyStoreSecret = null;
 
@@ -102,9 +95,6 @@ public abstract class AbstractTest {
     protected static Connection connectionAzure = null;
     protected static String connectionString = null;
     protected static String connectionStringNTLM;
-    protected static String connectionStringKerberos;
-
-    protected static ConfidentialClientApplication fedauthClientApp = null;
 
     private static boolean determinedSqlAzureOrSqlServer = false;
     private static boolean determinedSqlOS = false;
@@ -120,12 +110,6 @@ public abstract class AbstractTest {
     private static Properties configProperties = null;
 
     protected static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
-
-    /**
-     * Retries due to server throttling
-     */
-    protected static final int THROTTLE_RETRY_COUNT = 3; // max number of throttling retries
-    protected static final int THROTTLE_RETRY_INTERVAL = 60000; // default throttling retry interval in ms
 
     public static Properties properties = null;
 
@@ -190,9 +174,6 @@ public abstract class AbstractTest {
 
         clientKeyPassword = getConfiguredProperty("clientKeyPassword", "");
 
-        kerberosServer = getConfiguredProperty("kerberosServer", null);
-        kerberosServerPort = getConfiguredProperty("kerberosServerPort", null);
-
         trustStore = getConfiguredProperty("trustStore", "");
         if (!trustStore.trim().isEmpty()) {
             connectionString = TestUtils.addOrOverrideProperty(connectionString, "trustStore", trustStore);
@@ -236,7 +217,7 @@ public abstract class AbstractTest {
         }
 
         // MSI properties
-        managedIdentityClientId = getConfiguredProperty("msiClientId");
+        msiClientId = getConfiguredProperty("msiClientId");
         keyStorePrincipalId = getConfiguredProperty("keyStorePrincipalId");
         keyStoreSecret = getConfiguredProperty("keyStoreSecret");
     }
@@ -244,7 +225,7 @@ public abstract class AbstractTest {
     protected static void setupConnectionString() {
         connectionStringNTLM = connectionString;
 
-        // If these properties are defined then NTLM is desired, modify connection string accordingly
+        // if these properties are defined then NTLM is desired, modify connection string accordingly
         String domain = getConfiguredProperty("domainNTLM");
         String user = getConfiguredProperty("userNTLM");
         String password = getConfiguredProperty("passwordNTLM");
@@ -267,22 +248,13 @@ public abstract class AbstractTest {
             connectionStringNTLM = TestUtils.addOrOverrideProperty(connectionStringNTLM, "integratedSecurity", "true");
         }
 
-        if (null != kerberosServer && null != kerberosServerPort) {
-            connectionStringKerberos = "jdbc:sqlserver://" + kerberosServer + ":" + kerberosServerPort + ";";
-            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "authenticationScheme", "JavaKerberos");
-            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "integratedSecurity", "true");
-            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "trustServerCertificate", "true");
-            connectionStringKerberos = TestUtils.addOrOverrideProperty(connectionStringKerberos, "encrypt", "false");
-        }
-
         ds = updateDataSource(connectionString, new SQLServerDataSource());
         dsXA = updateDataSource(connectionString, new SQLServerXADataSource());
         dsPool = updateDataSource(connectionString, new SQLServerConnectionPoolDataSource());
     }
 
     protected static void setConnection() throws Exception {
-        try {
-            setupConnectionString();
+        setupConnectionString();
 
         Assertions.assertNotNull(connectionString, TestResource.getResource("R_ConnectionStringNull"));
         Class.forName(Constants.MSSQL_JDBC_PACKAGE + ".SQLServerDriver");
@@ -294,10 +266,7 @@ public abstract class AbstractTest {
         }
         isSqlAzureOrAzureDW(connection);
 
-            checkSqlOS(connection);
-        } catch (Exception e) {
-            fail("setConnection failed, connectionString=" + connectionString + "\nException: " + e.getMessage());
-        }
+        checkSqlOS(connection);
     }
 
     /**
@@ -439,6 +408,9 @@ public abstract class AbstractTest {
                             break;
                         case Constants.PREPARE_METHOD:
                             ds.setPrepareMethod(value);
+                            break;
+                        case Constants.MSITOKENCACHETTL:
+                            ds.setMsiTokenCacheTtl(Integer.parseInt(value));
                             break;
                         default:
                             break;
