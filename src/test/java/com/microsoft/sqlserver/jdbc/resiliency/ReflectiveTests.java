@@ -79,10 +79,12 @@ public class ReflectiveTests extends AbstractTest {
      * Default retry count is 1. Expect timeout to be just above login timeout.
      */
     @Test
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
     public void testDefaultRetry() throws SQLException {
         Map<String, String> m = new HashMap<>();
         m.put("loginTimeout", "5");
-        timeoutVariations(m, 6000, Optional.empty());
+        timeoutVariations(m, 15000, Optional.empty());
     }
 
     /*

@@ -79,7 +79,7 @@
 		<dbcp2.version>2.7.0</dbcp2.version>
 		<slf4j.nop.version>1.7.30</slf4j.nop.version>
 		<gemini.mock.version>2.1.0.RELEASE</gemini.mock.version>
-		<h2.version>2.1.210</h2.version>
+		<h2.version>2.2.220</h2.version>
 
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -241,7 +241,30 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
+	<repositories>
+		<repository>
+			<id>central</id>
+			<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>central</id>
+			<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</pluginRepository>
+	</pluginRepositories>
 	<profiles>
 		<profile>
 			<id>jre8</id>
@@ -539,7 +562,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.8</version>
+				<version>0.8.12</version>
 				<executions>
 					<execution>
 						<id>pre-test</id>

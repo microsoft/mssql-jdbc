@@ -154,5 +154,5 @@ dependencies {
 			'com.azure:azure-security-keyvault-keys:4.2.8',
 			'com.azure:azure-identity:1.7.0-beta.2',
 			'com.microsoft.azure:adal4j:1.6.7',
-			'com.h2database:h2:1.4.200'
+			'com.h2database:h2:2.2.220'
 }
