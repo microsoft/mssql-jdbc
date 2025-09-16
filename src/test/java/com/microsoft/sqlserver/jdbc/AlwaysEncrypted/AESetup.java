@@ -184,10 +184,19 @@ public class AESetup extends AbstractTest {
             if (enclaveServer.length > 1) {
                 System.out.println("Testing enclave: " + enclaveProperties);
             }
+
+            // remove the password in connection string
+            // this is necessary as updateDataSource will only use 1st occurrence
+            String password = getConfiguredProperty("enclaveServerPassword");
+            AETestConnectionString = TestUtils.removeProperty(AETestConnectionString, Constants.PASSWORD);
+            AETestConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, Constants.PASSWORD,
+                    password);
         } else {
-            AETestConnectionString = connectionString + ";sendTimeAsDateTime=false"
-                    + ";columnEncryptionSetting=enabled";
+            AETestConnectionString = connectionString + ";sendTimeAsDateTime=false;columnEncryptionSetting=enabled;";
         }
+
+        // TODO: update AE test servers to support
+        AETestConnectionString += ";encrypt=false;trustServerCertificate=true;";
     }
 
     @BeforeAll
@@ -328,7 +337,7 @@ public class AESetup extends AbstractTest {
             TestUtils.dropTableIfExists(tableName, stmt);
             sql = String.format(createSql, tableName, sql);
             stmt.execute(sql);
-            stmt.execute("DBCC FREEPROCCACHE");
+            TestUtils.freeProcCache(stmt);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -362,7 +371,7 @@ public class AESetup extends AbstractTest {
             }
             sql = String.format(createSql, tableName, sql);
             stmt.execute(sql);
-            stmt.execute("DBCC FREEPROCCACHE");
+            TestUtils.freeProcCache(stmt);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
@@ -390,7 +399,7 @@ public class AESetup extends AbstractTest {
 
             sql = String.format(createSql, tableName, sql);
             stmt.execute(sql);
-            stmt.execute("DBCC FREEPROCCACHE");
+            TestUtils.freeProcCache(stmt);
         } catch (SQLException e) {
             fail(e.getMessage());
         }
