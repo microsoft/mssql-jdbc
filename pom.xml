@@ -50,13 +50,15 @@
 			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
-			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default) 
-			reqExternalSetup  - For tests requiring external setup (excluded by default)
-			clientCertAuth  - - For tests requiring client certificate authentication setup (excluded by default)
+			NTLM - - - For tests using NTLM Authentication mode (excluded by default)
+			kerberos  - - - - For tests using Kerberos authentication (excluded by default)
+			reqExternalSetup - For tests requiring external setup (excluded by default)
+			clientCertAuth - - For tests requiring client certificate authentication 
+			setup (excluded by default) - - - - - - - - - - - - - - - - - - - - - - -
+			requireSecret - For tests requiring setting up secrets manually
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
-		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth</excludedGroups>
-
+		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth,kerberos,requireSecret</excludedGroups>
 		<!-- Use -preview for preview release, leave empty for official release. -->
 		<releaseExt></releaseExt>
 
@@ -232,7 +234,30 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
+	<repositories>
+    	<repository>
+        	<id>central</id>
+        	<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
+        	<releases>
+            	<enabled>true</enabled>
+        	</releases>
+        	<snapshots>
+            	<enabled>true</enabled>
+        	</snapshots>
+    	</repository>
+	</repositories>
+	<pluginRepositories>
+    	<pluginRepository>
+        	<id>central</id>
+        	<url>https://sqlclientdrivers.pkgs.visualstudio.com/public/_packaging/mssql-jdbc/maven/v1</url>
+        	<releases>
+            	<enabled>true</enabled>
+        	</releases>
+        	<snapshots>
+            	<enabled>true</enabled>
+        	</snapshots>
+    	</pluginRepository>
+	</pluginRepositories>
 	<profiles>
 		<profile>
 			<id>jre8</id>

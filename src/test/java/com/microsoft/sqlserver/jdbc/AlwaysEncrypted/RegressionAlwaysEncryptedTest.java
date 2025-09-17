@@ -29,6 +29,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
+@Tag(Constants.reqExternalSetup)
 public class RegressionAlwaysEncryptedTest extends AESetup {
     static String numericTable[][] = {{"Bit", "bit"}, {"Tinyint", "tinyint"}, {"Smallint", "smallint"},};
 

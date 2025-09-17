@@ -7,7 +7,15 @@ package com.microsoft.sqlserver.jdbc.fedauth;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.microsoft.aad.msal4j.ClientCredentialFactory;
+import com.microsoft.aad.msal4j.ClientCredentialParameters;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.MsalThrottlingException;
 import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.aad.msal4j.UserNamePasswordParameters;
 import java.sql.Connection;
@@ -42,11 +50,7 @@ public class FedauthCommon extends AbstractTest {
     static String azureUserName = null;
     static String azurePassword = null;
     static String azureGroupUserName = null;
-    static String azureAADPrincipialId = null;
-    static String azureAADPrincipialSecret = null;
-
     static boolean enableADIntegrated = false;
-
     static String spn = null;
     static String stsurl = null;
     static String fedauthClientId = null;
@@ -72,6 +76,8 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_HAS_CLOSED = TestResource.getResource("R_hasClosed");
     static final String ERR_MSG_HAS_BEEN_CLOSED = TestResource.getResource("R_hasBeenClosed");
     static final String ERR_MSG_SIGNIN_TOO_MANY = TestResource.getResource("R_signinTooManyTimes");
+    static final String ERR_FAULT_ID3342 = "FaultMessage: ID3242";
+    static final String ERR_FAULT_AUTH_FAIL = "FaultMessage: Authentication Failure";
     static final String ERR_MSG_NOT_AUTH_AND_IS = TestUtils.R_BUNDLE
             .getString("R_SetAuthenticationWhenIntegratedSecurityTrue");
     static final String ERR_MSG_NOT_AUTH_AND_USER_PASSWORD = TestUtils.R_BUNDLE
@@ -80,6 +86,8 @@ public class FedauthCommon extends AbstractTest {
     static final String ERR_MSG_RESULTSET_IS_CLOSED = TestUtils.R_BUNDLE.getString("R_resultsetClosed");
     static final String ERR_MSG_SOCKET_CLOSED = TestResource.getResource("R_socketClosed");
     static final String ERR_TCPIP_CONNECTION = TestResource.getResource("R_tcpipConnectionToHost");
+    static final String ERR_MSG_REQUEST_THROTTLED = "Request was throttled";
+    static final String ERR_FAILED_FEDAUTH = TestResource.getResource("R_failedFedauth");
 
     enum SqlAuthentication {
         NotSpecified,
@@ -124,8 +132,6 @@ public class FedauthCommon extends AbstractTest {
         azureUserName = getConfiguredProperty("azureUserName");
         azurePassword = getConfiguredProperty("azurePassword");
         azureGroupUserName = getConfiguredProperty("azureGroupUserName");
-        azureAADPrincipialId = getConfiguredProperty("AADSecurePrincipalId");
-        azureAADPrincipialSecret = getConfiguredProperty("AADSecurePrincipalSecret");
 
         String prop = getConfiguredProperty("enableADIntegrated");
         enableADIntegrated = (null != prop && prop.equalsIgnoreCase("true")) ? true : false;
@@ -153,22 +159,50 @@ public class FedauthCommon extends AbstractTest {
      * 
      */
     static void getFedauthInfo() {
-        try {
+        int retry = 0;
+        long interval = THROTTLE_RETRY_INTERVAL;
+        ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
+                .clientId(akvProviderManagedClientId).build();
 
-            final PublicClientApplication clientApplication = PublicClientApplication.builder(fedauthClientId)
-                    .executorService(Executors.newFixedThreadPool(1)).authority(stsurl).build();
-            final CompletableFuture<IAuthenticationResult> future = clientApplication
-                    .acquireToken(UserNamePasswordParameters.builder(Collections.singleton(spn + "/.default"),
-                            azureUserName, azurePassword.toCharArray()).build());
+        while (retry <= THROTTLE_RETRY_COUNT) {
+            try {
+                TokenRequestContext requestContext = new TokenRequestContext()
+                        .setScopes(Collections.singletonList(spn + "/.default"));
 
-            final IAuthenticationResult authenticationResult = future.get();
+                AccessToken token = credential.getToken(requestContext).block();
 
-            secondsBeforeExpiration = TimeUnit.MILLISECONDS
-                    .toSeconds(authenticationResult.expiresOnDate().getTime() - new Date().getTime());
-            accessToken = authenticationResult.accessToken();
-        } catch (Exception e) {
-            fail(e.getMessage());
+                if (token != null) {
+                    secondsBeforeExpiration = TimeUnit.MILLISECONDS
+                            .toSeconds(token.getExpiresAt().toInstant().toEpochMilli() - new Date().getTime());
+                    accessToken = token.getToken();
+                }
+
+                retry = THROTTLE_RETRY_COUNT + 1;
+            } catch (MsalThrottlingException te) {
+                interval = te.retryInMs();
+                if (!checkForRetry(te, retry++, interval)) {
+                    te.printStackTrace();
+                    fail(ERR_FAILED_FEDAUTH + "no more retries: " + te.getMessage());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail(ERR_FAILED_FEDAUTH + e.getMessage());
+            }
         }
+    }
+
+    static boolean checkForRetry(Exception e, int retry, long interval) {
+        if (retry > THROTTLE_RETRY_COUNT) {
+            return false;
+        }
+        try {
+            Thread.sleep(interval);
+        } catch (InterruptedException ex) {
+            e.printStackTrace();
+
+            fail(ERR_FAILED_FEDAUTH + ex.getMessage());
+        }
+        return true;
     }
 
     void testUserName(Connection conn, String user, SqlAuthentication authentication) throws SQLException {
