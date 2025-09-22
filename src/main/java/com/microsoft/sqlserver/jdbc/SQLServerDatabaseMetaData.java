@@ -1294,24 +1294,33 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          *   results with sys.indexes data, ensuring comprehensive index coverage including Columnstore
          */
         
-        String query = this.connection.isAzureDW() ? INDEX_INFO_QUERY_DW : INDEX_INFO_COMBINED_QUERY;
-        PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(query);
-        
-        if (!this.connection.isAzureDW()) {
-            pstmt.setString(1, arguments[0]);  // table name for sp_statistics
-            pstmt.setString(2, arguments[1]);  // schema name for sp_statistics
-            pstmt.setString(3, arguments[2]);  // catalog for sp_statistics
-            pstmt.setString(4, arguments[3]);  // index name pattern for sp_statistics
-            pstmt.setString(5, arguments[4]);  // is_unique for sp_statistics
-            pstmt.setString(6, arguments[5]);  // accuracy for sp_statistics
-            pstmt.setString(7, table);
-            pstmt.setString(8, schema);
-        } else {
-            pstmt.setString(1, table);
-            pstmt.setString(2, schema);
+        String orgCat = null;
+        try {
+            orgCat = switchCatalogs(cat);
+            
+            String query = this.connection.isAzureDW() ? INDEX_INFO_QUERY_DW : INDEX_INFO_COMBINED_QUERY;
+            PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(query);
+            
+            if (!this.connection.isAzureDW()) {
+                pstmt.setString(1, arguments[0]);  // table name for sp_statistics
+                pstmt.setString(2, arguments[1]);  // schema name for sp_statistics
+                pstmt.setString(3, arguments[2]);  // catalog for sp_statistics
+                pstmt.setString(4, arguments[3]);  // index name pattern for sp_statistics
+                pstmt.setString(5, arguments[4]);  // is_unique for sp_statistics
+                pstmt.setString(6, arguments[5]);  // accuracy for sp_statistics
+                pstmt.setString(7, table);
+                pstmt.setString(8, schema);
+            } else {
+                pstmt.setString(1, table);
+                pstmt.setString(2, schema);
+            }
+            
+            return pstmt.executeQuery();
+        } finally {
+            if (null != orgCat) {
+                connection.setCatalog(orgCat);
+            }
         }
-        
-        return pstmt.executeQuery();
     }
 
     @Override
