@@ -294,7 +294,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
     "LEFT JOIN sys.dm_db_partition_stats ps ON ps.object_id = i.object_id AND ps.index_id = i.index_id AND ps.index_id IN (0,1) " +
     "WHERE t.name = ? AND sch.name = ? AND ic.key_ordinal = 0 " +
-    "ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, INDEX_NAME, ORDINAL_POSITION";
+    "ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION";
 
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
@@ -1390,7 +1390,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                 if (0 == azureDwSelectBuilder.length()) {
                     azureDwSelectBuilder.append(generateAzureDWEmptyRS(getIndexInfoDWColumns));
                 } else {
-                    azureDwSelectBuilder.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, INDEX_NAME, ORDINAL_POSITION");
+                    azureDwSelectBuilder.append(" ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION");
                 }
 
                 resultPstmt = (SQLServerPreparedStatement) this.connection
