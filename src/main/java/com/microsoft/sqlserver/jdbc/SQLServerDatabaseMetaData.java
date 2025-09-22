@@ -296,28 +296,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "WHERE t.name = ? AND sch.name = ? AND ic.key_ordinal = 0 " +
     "ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, INDEX_NAME, ORDINAL_POSITION";
 
-    // Azure DW compatible query that includes both regular AND columnstore indexes and maintains all original sp_statistics columns
-    private static final String INDEX_INFO_QUERY_DW = "SELECT db_name() AS TABLE_CAT, " +
-    "sch.name AS TABLE_SCHEM, " +
-    "t.name AS TABLE_NAME, " +
-    "CASE WHEN i.is_unique = 1 THEN 0 ELSE 1 END AS NON_UNIQUE, " +
-    "t.name AS INDEX_QUALIFIER, " +
-    "i.name AS INDEX_NAME, " +
-    "i.type AS TYPE, " +
-    "ic.key_ordinal AS ORDINAL_POSITION, " +
-    "c.name AS COLUMN_NAME, " +
-    "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
-    "NULL AS CARDINALITY, " +
-    "NULL AS PAGES, " +
-    "NULL AS FILTER_CONDITION " +
-    "FROM sys.indexes i " +
-    "INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id " +
-    "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
-    "INNER JOIN sys.tables t ON i.object_id = t.object_id " +
-    "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
-    "WHERE t.name = ? " +
-    "AND sch.name = ? " +
-    "ORDER BY t.name, i.name, ic.key_ordinal";
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
     /** getColumns columns */
@@ -1289,7 +1267,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          * limiting results to only Clustered and Nonclustered B-tree indexes.
          * 
          * Solution:
-         * - Azure DW: Query sys.indexes directly using INDEX_INFO_QUERY_DW to include all index types
+         * - Azure DW: Execute sp_statistics separately and build dynamic result set with UNION ALL
          * - Regular SQL Server: Use INDEX_INFO_COMBINED_QUERY with UNION ALL to merge sp_statistics 
          *   results with sys.indexes data, ensuring comprehensive index coverage including Columnstore
          */
@@ -1298,28 +1276,141 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         try {
             orgCat = switchCatalogs(cat);
             
-            String query = this.connection.isAzureDW() ? INDEX_INFO_QUERY_DW : INDEX_INFO_COMBINED_QUERY;
-            PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(query);
-            
-            if (!this.connection.isAzureDW()) {
+            if (this.connection.isAzureDW()) {
+                return getIndexInfoAzureDW(arguments, table, schema);
+            } else {
+                PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(INDEX_INFO_COMBINED_QUERY);
                 pstmt.setString(1, arguments[0]);  // table name for sp_statistics
                 pstmt.setString(2, arguments[1]);  // schema name for sp_statistics
                 pstmt.setString(3, arguments[2]);  // catalog for sp_statistics
                 pstmt.setString(4, arguments[3]);  // index name pattern for sp_statistics
                 pstmt.setString(5, arguments[4]);  // is_unique for sp_statistics
                 pstmt.setString(6, arguments[5]);  // accuracy for sp_statistics
-                pstmt.setString(7, table);
-                pstmt.setString(8, schema);
-            } else {
-                pstmt.setString(1, table);
-                pstmt.setString(2, schema);
+                pstmt.setString(7, table);         // table name for columnstore query
+                pstmt.setString(8, schema);        // schema name for columnstore query
+
+                return pstmt.executeQuery();
             }
-            
-            return pstmt.executeQuery();
         } finally {
             if (null != orgCat) {
                 connection.setCatalog(orgCat);
             }
+        }
+    }
+
+    /**
+     * Azure DW specific implementation for getIndexInfo that executes sp_statistics 
+     * and combines results with columnstore indexes from sys.indexes using UNION ALL.
+     * 
+     * This approach works around Azure DW JDBC limitations with INSERT INTO...EXEC syntax
+     * by executing sp_statistics separately and building a dynamic result set.
+     */
+    private java.sql.ResultSet getIndexInfoAzureDW(String[] arguments, String table, String schema) throws SQLException {
+        // Use LinkedHashMap for index info columns in the correct order
+        LinkedHashMap<Integer, String> getIndexInfoDWColumns = new LinkedHashMap<>();
+        getIndexInfoDWColumns.put(1, TABLE_CAT);
+        getIndexInfoDWColumns.put(2, TABLE_SCHEM);
+        getIndexInfoDWColumns.put(3, TABLE_NAME);
+        getIndexInfoDWColumns.put(4, NON_UNIQUE);
+        getIndexInfoDWColumns.put(5, INDEX_QUALIFIER);
+        getIndexInfoDWColumns.put(6, INDEX_NAME);
+        getIndexInfoDWColumns.put(7, TYPE);
+        getIndexInfoDWColumns.put(8, ORDINAL_POSITION);
+        getIndexInfoDWColumns.put(9, COLUMN_NAME);
+        getIndexInfoDWColumns.put(10, ASC_OR_DESC);
+        getIndexInfoDWColumns.put(11, CARDINALITY);
+        getIndexInfoDWColumns.put(12, PAGES);
+        getIndexInfoDWColumns.put(13, FILTER_CONDITION);
+
+        LinkedHashMap<Integer, String> getIndexInfoTypesDWColumns = new LinkedHashMap<>();
+        getIndexInfoTypesDWColumns.put(1, NVARCHAR); // TABLE_CAT
+        getIndexInfoTypesDWColumns.put(2, NVARCHAR); // TABLE_SCHEM
+        getIndexInfoTypesDWColumns.put(3, NVARCHAR); // TABLE_NAME
+        getIndexInfoTypesDWColumns.put(4, SMALLINT); // NON_UNIQUE
+        getIndexInfoTypesDWColumns.put(5, NVARCHAR); // INDEX_QUALIFIER
+        getIndexInfoTypesDWColumns.put(6, NVARCHAR); // INDEX_NAME
+        getIndexInfoTypesDWColumns.put(7, SMALLINT); // TYPE
+        getIndexInfoTypesDWColumns.put(8, SMALLINT); // ORDINAL_POSITION
+        getIndexInfoTypesDWColumns.put(9, NVARCHAR); // COLUMN_NAME
+        getIndexInfoTypesDWColumns.put(10, VARCHAR); // ASC_OR_DESC
+        getIndexInfoTypesDWColumns.put(11, INTEGER); // CARDINALITY
+        getIndexInfoTypesDWColumns.put(12, INTEGER); // PAGES
+        getIndexInfoTypesDWColumns.put(13, VARCHAR); // FILTER_CONDITION
+
+        try (PreparedStatement storedProcPstmt = this.connection
+                .prepareStatement("EXEC sp_statistics ?,?,?,?,?,?;")) {
+            storedProcPstmt.setString(1, arguments[0]); // table name
+            storedProcPstmt.setString(2, arguments[1]); // schema
+            storedProcPstmt.setString(3, arguments[2]); // catalog
+            storedProcPstmt.setString(4, arguments[3]); // index name pattern
+            storedProcPstmt.setString(5, arguments[4]); // is_unique
+            storedProcPstmt.setString(6, arguments[5]); // accuracy
+
+            SQLServerResultSet userRs = null;
+            PreparedStatement resultPstmt = null;
+            try (ResultSet rs = storedProcPstmt.executeQuery()) {
+                StringBuilder azureDwSelectBuilder = new StringBuilder();
+                boolean isFirstRow = true;
+                
+                // Process sp_statistics results
+                while (rs.next()) {
+                    if (!isFirstRow) {
+                        azureDwSelectBuilder.append(" UNION ALL ");
+                    }
+                    azureDwSelectBuilder.append(generateAzureDWSelect(rs, getIndexInfoDWColumns, getIndexInfoTypesDWColumns));
+                    isFirstRow = false;
+                }
+
+                // Add columnstore indexes from sys.indexes
+                if (!isFirstRow) {
+                    azureDwSelectBuilder.append(" UNION ALL ");
+                }
+                azureDwSelectBuilder.append(
+                    "SELECT db_name() AS TABLE_CAT, " +
+                    "sch.name AS TABLE_SCHEM, " +
+                    "t.name AS TABLE_NAME, " +
+                    "CASE WHEN i.is_unique = 1 THEN 0 ELSE 1 END AS NON_UNIQUE, " +
+                    "t.name AS INDEX_QUALIFIER, " +
+                    "i.name AS INDEX_NAME, " +
+                    "i.type AS TYPE, " +
+                    "ic.key_ordinal AS ORDINAL_POSITION, " +
+                    "c.name AS COLUMN_NAME, " +
+                    "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
+                    "NULL AS CARDINALITY, " +
+                    "NULL AS PAGES, " +
+                    "NULL AS FILTER_CONDITION " +
+                    "FROM sys.indexes i " +
+                    "INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id " +
+                    "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
+                    "INNER JOIN sys.tables t ON i.object_id = t.object_id " +
+                    "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
+                    "WHERE t.name = '" + table + "' AND sch.name = '" + schema + "' AND ic.key_ordinal = 0"
+                );
+
+                if (0 == azureDwSelectBuilder.length()) {
+                    azureDwSelectBuilder.append(generateAzureDWEmptyRS(getIndexInfoDWColumns));
+                } else {
+                    azureDwSelectBuilder.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, INDEX_NAME, ORDINAL_POSITION");
+                }
+
+                resultPstmt = (SQLServerPreparedStatement) this.connection
+                        .prepareStatement(azureDwSelectBuilder.toString());
+                userRs = (SQLServerResultSet) resultPstmt.executeQuery();
+                resultPstmt.closeOnCompletion();
+            } catch (SQLException e) {
+                if (null != resultPstmt) {
+                    try {
+                        resultPstmt.close();
+                    } catch (SQLServerException ignore) {
+                        if (loggerExternal.isLoggable(Level.FINER)) {
+                            loggerExternal.finer(
+                                    "getIndexInfo() threw an exception when attempting to close PreparedStatement");
+                        }
+                    }
+                }
+                throw e;
+            }
+            return userRs;
         }
     }
 
