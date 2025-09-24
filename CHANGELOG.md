@@ -2,6 +2,60 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
+## [13.2.1] Stable Release
+
+### Added
+
+- **Enable Vector data type tests on Azure SQL Database** [#2762](https://github.com/microsoft/mssql-jdbc/pull/2762)
+  **What was added**: Vector data type tests are now enabled to run against Azure SQL Database.
+  **Who benefits**: Developers testing VECTOR functionality in Azure SQL DB environments.
+  **Impact**: Ensures VECTOR data type support test coverage.
+
+- **Enable JSON data type tests on Azure SQL Database** [#2756](https://github.com/microsoft/mssql-jdbc/pull/2756)
+  **What was added**: JSON data type tests are now enabled to run against Azure SQL Database.
+  **Who benefits**: Developers testing JSON functionality in Azure SQL DB environments.
+  **Impact**: Ensures JSON data type support test coverage.
+ 
+### Changed
+
+- **Revert function/procedure filtering via sys.all_objects** [#2751](https://github.com/microsoft/mssql-jdbc/pull/2751)
+  **What changed**: Reverted #2705 change that used sys.all_objects for filtering. Restores previous behavior to maintain consistency across metadata APIs.
+  **Who benefits**: Developers using getProcedures() and getFunctions() in JDBC.
+  **Impact**: Preserves compatibility with numbered procedures and avoids discrepancies between APIs.
+
+### Fixed issues
+
+- **JDK 8 compatibility for vector datatype handling** [#2750](https://github.com/microsoft/mssql-jdbc/pull/2750)
+  **What was fixed**: Ensured fallback to JVM system property javax.net.ssl.trustStoreType if connection property is unset.
+  **Who benefits**: Users configuring SSL via system properties.
+  **Impact**: Enables proper SSL trust store resolution, improving compatibility with system configurations.
+
+- **PreparedStatement getGeneratedKeys() failure with triggers** [#2742](https://github.com/microsoft/mssql-jdbc/pull/2742)
+  **What was fixed**: Fixed error "The statement must be executed before any results can be obtained" when using insert triggers with generated keys.
+  **Who benefits**: Developers retrieving generated keys from inserts with triggers.
+  **Impact**: Restores correct behavior for both update count accuracy and generated keys retrieval in trigger scenarios.
+
+- **Byte Buddy dependency scope** [#2755](https://github.com/microsoft/mssql-jdbc/pull/2755)
+  **What was fixed**: Corrected Byte Buddy (1.15.11) dependency scope to test instead of compile.
+  **Who benefits**: Developers and users of runtime artifacts.
+  **Impact**: Reduces runtime artifact size (~8 MB) and ensures Byte Buddy is only included for unit tests.
+
+- **DatabaseMetaData.getIndexInfo() NON_UNIQUE value inconsistency** [#2773](https://github.com/microsoft/mssql-jdbc/pull/2773)
+  **What was fixed**: Fixed incorrect NON_UNIQUE values due to mismatched handling of sp_statistics and sys.indexes.
+  **Who benefits**: Applications depending on accurate index metadata.
+  **Impact**: Provides consistent value of NON_UNIQUE field across SQL Server and Azure Synapse Analytics.
+
+- **DatabaseMetaData.getIndexInfo() invalid cursor position exception** [2763](https://github.com/microsoft/mssql-jdbc/pull/2763)
+  **What was fixed**: Fixed SQLException: Invalid cursor position caused when calling ResultSet.next() after exhaustion due to CachedRowSet strict cursor validation.
+  **Who benefits**: Developers consuming metadata via DatabaseMetaData.getIndexInfo() on SQL Server or Azure Synapse DW.
+  **Impact**: Replaces CachedRowSet merging with a UNION ALL query, ensuring standard JDBC cursor behavior while maintaining columnstore index support.
+
+- **Address a hostname validation vulnerability by securely parsing certificate common names.**
+  **What was fixed**: Secure hostname validation is enforced by replacing the vulnerable CN parsing logic in SQLServerCertificateUtils.java, preventing spoofing attacks.
+  **Who benefits**:  All users of the SQL Server JDBC driver, especially those relying on TLS for secure connections, benefit from improved certificate validation.
+  **Impact**: This fix closes a security gap, protecting applications from man-in-the-middle attacks and ensuring compliance with security best practices.
+
+
 ## [13.2.0] Stable Release
 
 ### Changed
