@@ -17,6 +17,9 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.azure.identity.CredentialUnavailableException;
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -42,6 +45,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  */
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.MSI)
+@Tag(Constants.requireSecret)
 public class MSITest extends AESetup {
 
     /*
@@ -457,11 +461,20 @@ public class MSITest extends AESetup {
 
     @BeforeEach
     public void registerAKVProvider() throws Exception {
+        try {
         // unregister the custom providers registered in AESetup
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        if (null != applicationClientID && null != applicationKey) {
+        if (null != akvProviderManagedClientId) {
+            System.out.println("ManagedIdentityCredential: registering akvProvider");
+
+            ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
+                    .clientId(akvProviderManagedClientId).build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            System.out.println("ManagedIdentityCredential: registered akvProvider");
+        } else if (null != applicationClientID && null != applicationKey) {
             File file = null;
             try {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
@@ -478,8 +491,12 @@ public class MSITest extends AESetup {
                     file.delete();
                 }
             }
+            System.out.println("applicationClientID: registered akvProvider");
         }
 
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
+        } catch (Exception e) {
+            System.out.println("MSITest registerAKVProvider exception: " +e.getMessage());
+        }
     }
 }
