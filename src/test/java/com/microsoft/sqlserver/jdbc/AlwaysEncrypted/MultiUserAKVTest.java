@@ -59,6 +59,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.reqExternalSetup)
+@Tag(Constants.requireSecret)
 public class MultiUserAKVTest extends AESetup {
 
     private static Map<String, SQLServerColumnEncryptionKeyStoreProvider> requiredKeyStoreProvider = new HashMap<>();
@@ -100,7 +101,7 @@ public class MultiUserAKVTest extends AESetup {
             tempMap.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null != akvProvider && null != applicationClientID && null != applicationKey) {
+        if (null != akvProvider) {
             tempMap.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         }
 
@@ -112,7 +113,7 @@ public class MultiUserAKVTest extends AESetup {
     @Test
     @Tag(Constants.reqExternalSetup)
     public void decryptedCekIsCachedDuringDecryption() throws Exception {
-        SQLServerColumnEncryptionAzureKeyVaultProvider provider = createAKVProvider();
+        SQLServerColumnEncryptionAzureKeyVaultProvider provider = akvProvider;
 
         if (null == provider) {
             fail(TestResource.getResource("R_AKVProviderNull"));
@@ -152,8 +153,9 @@ public class MultiUserAKVTest extends AESetup {
 
     @Test
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.requireSecret)
     public void signatureVerificationResultIsCachedDuringVerification() throws Exception {
-        SQLServerColumnEncryptionAzureKeyVaultProvider provider = createAKVProvider();
+        SQLServerColumnEncryptionAzureKeyVaultProvider provider = akvProvider;
 
         if (provider == null) {
             fail(TestResource.getResource("R_AKVProviderNull"));
@@ -185,7 +187,7 @@ public class MultiUserAKVTest extends AESetup {
     @Test
     @Tag(Constants.reqExternalSetup)
     public void cekCacheEntryIsEvictedAfterTtlExpires() throws Exception {
-        SQLServerColumnEncryptionAzureKeyVaultProvider provider = createAKVProvider();
+        SQLServerColumnEncryptionAzureKeyVaultProvider provider = akvProvider;
 
         if (provider == null) {
             fail(TestResource.getResource("R_AKVProviderNull"));
@@ -213,7 +215,7 @@ public class MultiUserAKVTest extends AESetup {
     @Test
     @Tag(Constants.reqExternalSetup)
     public void cekCacheShouldBeDisabledWhenAkvProviderIsRegisteredGlobally() throws Exception {
-        SQLServerColumnEncryptionAzureKeyVaultProvider provider = createAKVProvider();
+        SQLServerColumnEncryptionAzureKeyVaultProvider provider = akvProvider;
 
         if (provider == null) {
             fail(TestResource.getResource("R_AKVProviderNull"));
@@ -257,8 +259,9 @@ public class MultiUserAKVTest extends AESetup {
 
     @Test
     @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.requireSecret)
     public void testLocalCekCacheIsScopedToProvider() throws Exception {
-        SQLServerColumnEncryptionAzureKeyVaultProvider provider = createAKVProvider();
+        SQLServerColumnEncryptionAzureKeyVaultProvider provider = akvProvider;
 
         if (provider == null) {
             fail(TestResource.getResource("R_AKVProviderNull"));
@@ -268,6 +271,8 @@ public class MultiUserAKVTest extends AESetup {
             Object[] msgArg = {"master key path"};
             fail((new MessageFormat(TestResource.getResource("R_objectNullOrEmpty"))).format(msgArg));
         }
+
+        SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> providerMap = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
@@ -326,7 +331,7 @@ public class MultiUserAKVTest extends AESetup {
                 }
                 fail(TestResource.getResource("R_expectedExceptionNotThrown"));
             } catch (SQLServerException ex) {
-                assertTrue(ex.getMessage().contains("AADSTS700016"));
+                org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("AADSTS700016"), ex.getMessage());
             }
         } finally {
             dropObject(AETestConnectionString, "TABLE", customProviderTableName);
@@ -608,32 +613,5 @@ public class MultiUserAKVTest extends AESetup {
         method.setAccessible(true);
 
         return (int) method.invoke(provider);
-    }
-
-    private SQLServerColumnEncryptionAzureKeyVaultProvider createAKVProvider() throws Exception {
-
-        SQLServerColumnEncryptionAzureKeyVaultProvider azureKeyVaultProvider = null;
-
-        if (null != applicationClientID && null != applicationKey) {
-            File file = null;
-            try {
-                file = new File(Constants.MSSQL_JDBC_PROPERTIES);
-                try (OutputStream os = new FileOutputStream(file);) {
-                    Properties props = new Properties();
-                    // Append to the list of hardcoded endpoints
-                    props.setProperty(Constants.AKV_TRUSTED_ENDPOINTS_KEYWORD, ";vault.azure.net");
-                    props.store(os, "");
-                }
-                azureKeyVaultProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(applicationClientID,
-                        applicationKey);
-
-            } finally {
-                if (null != file) {
-                    file.delete();
-                }
-            }
-        }
-
-        return azureKeyVaultProvider;
     }
 }
