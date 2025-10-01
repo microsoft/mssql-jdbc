@@ -32,6 +32,11 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
+import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.azure.identity.ManagedIdentityCredential;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.sqlserver.jdbc.ISQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionJavaKeyStoreProvider;
@@ -58,8 +63,10 @@ public abstract class AbstractTest {
 
     protected static String applicationClientID = null;
     protected static String applicationKey = null;
+    protected static String servicePrincipalCertificateApplicationClientId = null;
     protected static String tenantID;
     protected static String[] keyIDs = null;
+    protected static String akvProviderManagedClientId = null;
 
     protected static String[] enclaveServer = null;
     protected static String[] enclaveAttestationUrl = null;
@@ -72,13 +79,15 @@ public abstract class AbstractTest {
     protected static String trustStore = "";
     protected static String trustStorePassword = "";
 
+    protected static String serverCertificate = "";
+
     protected static String encrypt = "";
     protected static String trustServerCertificate = "";
 
     protected static String windowsKeyPath = null;
     protected static String javaKeyPath = null;
     protected static String javaKeyAliases = null;
-    protected static SQLServerColumnEncryptionKeyStoreProvider jksProvider = null;
+    protected static SQLServerColumnEncryptionJavaKeyStoreProvider jksProvider = null;
     protected static SQLServerColumnEncryptionAzureKeyVaultProvider akvProvider = null;
     static boolean isKspRegistered = false;
 
@@ -101,6 +110,8 @@ public abstract class AbstractTest {
     protected static String connectionString = null;
     protected static String connectionStringNTLM;
 
+    protected static ConfidentialClientApplication fedauthClientApp = null;
+
     private static boolean determinedSqlAzureOrSqlServer = false;
     private static boolean determinedSqlOS = false;
     private static boolean isSqlAzure = false;
@@ -115,6 +126,12 @@ public abstract class AbstractTest {
     private static Properties configProperties = null;
 
     protected static boolean isWindows = System.getProperty("os.name").startsWith("Windows");
+
+    /**
+     * Retries due to server throttling
+     */
+    protected static final int THROTTLE_RETRY_COUNT = 3; // max number of throttling retries
+    protected static final int THROTTLE_RETRY_INTERVAL = 60000; // default throttling retry interval in ms
 
     public static Properties properties = null;
 
@@ -141,7 +158,12 @@ public abstract class AbstractTest {
 
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");
+
+        akvProviderManagedClientId = getConfiguredProperty("akvProviderManagedClientId");
+
         tenantID = getConfiguredProperty("tenantID");
+        servicePrincipalCertificateApplicationClientId = getConfiguredProperty(
+                "servicePrincipalCertificateApplicationClientId");
 
         accessTokenClientId = getConfiguredProperty("accessTokenClientId");
         accessTokenSecret = getConfiguredProperty("accessTokenSecret");
@@ -193,6 +215,12 @@ public abstract class AbstractTest {
                     trustStorePassword);
         }
 
+        serverCertificate = getConfiguredProperty("serverCertificate", "");
+        if (!serverCertificate.trim().isEmpty()) {
+            connectionString = TestUtils.addOrOverrideProperty(connectionString, "serverCertificate",
+                    serverCertificate);
+        }
+
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         if (null == jksProvider) {
             jksProvider = new SQLServerColumnEncryptionJavaKeyStoreProvider(javaKeyPath,
@@ -200,7 +228,12 @@ public abstract class AbstractTest {
             map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null == akvProvider && null != applicationClientID && null != applicationKey) {
+        if (null == akvProvider && null != akvProviderManagedClientId) {
+            ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
+                    .clientId(akvProviderManagedClientId).build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+        } else if (null == akvProvider && null != applicationClientID && null != applicationKey) {
             File file = null;
             try {
                 file = new File(Constants.MSSQL_JDBC_PROPERTIES);
