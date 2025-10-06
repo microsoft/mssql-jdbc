@@ -360,6 +360,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_UnrequestedFeatureAckReceived", "Unrequested feature acknowledge is received. Feature ID: {0}."},
         {"R_FedAuthFeatureAckContainsExtraData", "Federated authentication feature extension ack for ADAL and Security Token includes extra data."},
         {"R_FedAuthFeatureAckUnknownLibraryType", "Attempting to use unknown federated authentication library. Library ID: {0}."},
+        {"R_enhancedRoutingFeatureAckContainsExtraData", "Enhanced routing feature extension ack should not contain any data."},
         {"R_UnknownFeatureAck", "Unknown feature acknowledge is received."},
         {"R_SetAuthenticationWhenIntegratedSecurityTrue", "Cannot set \"Authentication\" with \"IntegratedSecurity\" set to \"true\"."},
         {"R_NtlmNoUserPasswordDomain", "\"User\" (or \"UserName\") and \"Password\" connection properties must be specified for NTLM authentication."},

@@ -170,6 +170,9 @@ final class TDS {
     static final byte TDS_FEATURE_EXT_AZURESQLDNSCACHING = 0x0B;
     static final byte TDS_FEATURE_EXT_SESSIONRECOVERY = 0x01;
 
+    // Enhanced Routing support
+    static final byte TDS_FEATURE_EXT_ENHANCEDROUTING = 0x10;
+
     // Vector support
     static final byte TDS_FEATURE_EXT_VECTORSUPPORT = 0x0E;
     static final byte VECTORSUPPORT_NOT_SUPPORTED = 0x00;

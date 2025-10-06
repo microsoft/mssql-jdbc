@@ -1259,6 +1259,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return serverSupportsJSON;
     }
 
+    /** whether server supports Enhanced Routing */
+    private boolean serverSupportsEnhancedRouting = false;
+
+    boolean getServerSupportsEnhancedRouting() {
+        return serverSupportsEnhancedRouting;
+    }
+
     /** Boolean that indicates whether LOB objects created by this connection should be loaded into memory */
     private boolean delayLoadingLobs = SQLServerDriverBooleanProperty.DELAY_LOADING_LOBS.getDefaultValue();
 
@@ -5734,6 +5741,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return len;
     }
 
+    /**
+     * Writes the Enhanced Routing feature request.
+     * 
+     * @param write true to write the request, false to just calculate the length
+     * @param tdsWriter the TDS writer
+     * @return The length of the feature request in bytes
+     * @throws SQLServerException
+     */
+    int writeEnhancedRoutingFeatureRequest(boolean write, /* if false just calculates the length */
+            TDSWriter tdsWriter) throws SQLServerException {
+        int len = 5; // 1byte = featureID, 4bytes = featureData length (0 bytes, no payload)
+        if (write) {
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_ENHANCEDROUTING);
+            tdsWriter.writeInt(0); // No payload for enhanced routing
+        }
+        return len;
+    }
+
     int writeIdleConnectionResiliencyRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
         SessionStateTable ssTable = sessionRecovery.getSessionStateTable();
         int len = 1;
@@ -5964,6 +5989,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private static final int ENVCHANGE_RESET_COMPLETE = 18;
     private static final int ENVCHANGE_USER_INFO = 19;
     private static final int ENVCHANGE_ROUTING = 20;
+    private static final int ENVCHANGE_ENHANCED_ROUTING = 21;
 
     final void processEnvChange(TDSReader tdsReader) throws SQLServerException {
         tdsReader.readUnsignedByte(); // token type
@@ -6078,18 +6104,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     connectionlogger.finer(toString() + " Ignored env change: " + envchange);
                 break;
             case ENVCHANGE_ROUTING:
-
-                // initialize to invalid values
-                int routingDataValueLength, routingProtocol, routingPortNumber, routingServerNameLength;
+            case ENVCHANGE_ENHANCED_ROUTING:
+                // Enhanced routing should only be processed if the feature was successfully negotiated
+                boolean isEnhancedRouting = (envchange == ENVCHANGE_ENHANCED_ROUTING);
+                if (isEnhancedRouting && !serverSupportsEnhancedRouting) {
+                    if (connectionlogger.isLoggable(Level.WARNING)) {
+                        connectionlogger.warning(toString() + " Received enhanced routing ENVCHANGE but feature was not negotiated");
+                    }
+                    throwInvalidTDS();
+                }
+                int routingDataValueLength, routingProtocol, routingPortNumber, routingServerNameLength, routingDatabaseNameLength = -1;
                 routingDataValueLength = routingProtocol = routingPortNumber = routingServerNameLength = -1;
 
                 String routingServerName = null;
+                String routingDatabaseName = null;
 
                 try {
                     routingDataValueLength = tdsReader.readUnsignedShort();
-                    if (routingDataValueLength <= 5)// (5 is the no of bytes in protocol + port number+ length field of
-                                                    // server name)
-                    {
+                    int minDataLength = isEnhancedRouting ? 7 : 5; // Enhanced routing requires additional database name field
+                    if (routingDataValueLength <= minDataLength) {
                         throwInvalidTDS();
                     }
 
@@ -6111,12 +6144,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     routingServerName = tdsReader.readUnicodeString(routingServerNameLength);
                     assert routingServerName != null;
 
+                    // Enhanced routing includes database name
+                    if (isEnhancedRouting) {
+                        routingDatabaseNameLength = tdsReader.readUnsignedShort();
+                        if (routingDatabaseNameLength <= 0 || routingDatabaseNameLength > 128) {
+                            throwInvalidTDS();
+                        }
+
+                        routingDatabaseName = tdsReader.readUnicodeString(routingDatabaseNameLength);
+                        assert routingDatabaseName != null;
+                    }
+
                 } finally {
                     if (connectionlogger.isLoggable(Level.FINER)) {
                         connectionlogger.finer(toString() + " Received routing ENVCHANGE with the following values."
                                 + " routingDataValueLength:" + routingDataValueLength + " protocol:" + routingProtocol
                                 + " portNumber:" + routingPortNumber + " serverNameLength:" + routingServerNameLength
-                                + " serverName:" + ((routingServerName != null) ? routingServerName : "null"));
+                                + " serverName:" + ((routingServerName != null) ? routingServerName : "null") 
+                                + " routingDatabaseName:" + ((routingDatabaseName != null) ? routingDatabaseName : "null"));
                     }
                 }
 
@@ -6148,13 +6193,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         activeConnectionProperties.setProperty("hostNameInCertificate", newHostName);
 
                         if (connectionlogger.isLoggable(Level.FINER)) {
-                            connectionlogger.finer(toString() + "Using new host to validate the SSL certificate");
+                            connectionlogger.finer(toString() + "Using new host to validate the SSL certificate" 
+                                    + (isEnhancedRouting ? " for enhanced routing" : ""));
                         }
                     }
                 }
 
                 isRoutedInCurrentAttempt = true;
-                routingInfo = new ServerPortPlaceHolder(routingServerName, routingPortNumber, null, integratedSecurity);
+                // For enhanced routing, include the database name in the routing info
+                routingInfo = new ServerPortPlaceHolder(routingServerName, routingPortNumber, null, routingDatabaseName, integratedSecurity);
                 break;
 
             // Error on unrecognized, unused ENVCHANGES
@@ -6903,6 +6950,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             }
 
+            case TDS.TDS_FEATURE_EXT_ENHANCEDROUTING: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for Enhanced Routing.");
+                }
+
+                // Enhanced Routing feature extension should have no payload in the ack
+                if (0 != data.length) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_enhancedRoutingFeatureAckContainsExtraData"), null);
+                }
+                
+                serverSupportsEnhancedRouting = true;
+                break;
+            }
+
             default: {
                 // Unknown feature ack
                 throw new SQLServerException(SQLServerException.getErrString("R_UnknownFeatureAck"), null);
@@ -7123,8 +7184,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 .getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString());
         String interfaceLibName = "Microsoft JDBC Driver " + SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR;
         // String interfaceLibName = SQLServerDriver.constructedAppName;
-        String databaseName = activeConnectionProperties
-                .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
+        String databaseName;
+        // For enhanced routing, use the database name from the routing information if available
+        if (null != currentConnectPlaceHolder && null != currentConnectPlaceHolder.getDatabaseName()) {
+            databaseName = currentConnectPlaceHolder.getDatabaseName();
+            if (connectionlogger.isLoggable(Level.FINER)) {
+                connectionlogger.finer(toString() + " Using database name from enhanced routing: " + databaseName);
+            }
+        } else {
+            databaseName = activeConnectionProperties
+                    .getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
+        }
 
         String serverName;
         if (null != currentConnectPlaceHolder) {
@@ -7207,6 +7277,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         len += writeVectorSupportFeatureRequest(false, tdsWriter);
         // request JSON support
         len += writeJSONSupportFeatureRequest(false, tdsWriter);
+        // request Enhanced Routing support (always sent)
+        len += writeEnhancedRoutingFeatureRequest(false, tdsWriter);
 
         len = len + 1; // add 1 to length because of FeatureEx terminator
 
@@ -7406,6 +7478,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         writeDNSCacheFeatureRequest(true, tdsWriter);
         writeVectorSupportFeatureRequest(true, tdsWriter);
         writeJSONSupportFeatureRequest(true, tdsWriter);
+        writeEnhancedRoutingFeatureRequest(true, tdsWriter);
 
         // Idle Connection Resiliency is requested
         if (connectRetryCount > 0) {
