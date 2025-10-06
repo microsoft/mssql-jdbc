@@ -47,16 +47,19 @@
 			xSQLv12 - - - - - - For tests not compatible with SQL Server 2008 R2 - 2014 
 			xSQLv14 - - - - - - For tests not compatible with SQL Server 2016 - 2017 
 			xSQLv15 - - - - - - For tests not compatible with SQL Server 2019 - - - - 
+			xSQLv16 - - - - - - For tests not compatible with SQL Server 2022 - - - - 
 			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 
-			NTLM - - - - - - For tests using NTLM Authentication mode (excluded by default) 
-			reqExternalSetup - For tests requiring external setup (excluded by default) 
+			NTLM  - - - - - - - For tests using NTLM Authentication mode (excluded by default)
+			kerberos  - - - - - For tests using Kerberos authentication (excluded by default)
+			reqExternalSetup - For tests requiring external setup (excluded by default)
 			clientCertAuth - - For tests requiring client certificate authentication 
 			setup (excluded by default) - - - - - - - - - - - - - - - - - - - - - - - 
+			requireSecret - For tests requiring setting up secrets manually
 			- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
-		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth</excludedGroups>
+		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth,kerberos,requireSecret</excludedGroups>
 
 		<!-- Use -preview for preview release, leave empty for official release. -->
 		<releaseExt></releaseExt>
