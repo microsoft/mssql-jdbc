@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
-## [12.8.2] Stable Release
+## [12.8.2] Hotfix & Stable Release
 ### Fixed issues
 - **Address a hostname validation vulnerability by securely parsing certificate common names.**
   **What was fixed**: Secure hostname validation is enforced by replacing the vulnerable CN parsing logic in SQLServerCertificateUtils.java, preventing spoofing attacks.
