@@ -254,6 +254,8 @@ final class TDS {
                 return "TDS_FEATURE_EXT_VECTORSUPPORT (0x0E)";
             case TDS_FEATURE_EXT_JSONSUPPORT:
                 return "TDS_FEATURE_EXT_JSONSUPPORT (0x0D)";
+            case TDS_FEATURE_EXT_ENHANCEDROUTING:
+                return "TDS_FEATURE_EXT_ENHANCEDROUTING (0x10)";
 
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
