@@ -261,7 +261,7 @@ final class TDS {
                 return "TDS_FEATURE_EXT_JSONSUPPORT (0x0D)";
             case TDS_FEATURE_EXT_USERAGENT:
                 return "TDS_FEATURE_EXT_USERAGENT (0x10)";
-                
+
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
