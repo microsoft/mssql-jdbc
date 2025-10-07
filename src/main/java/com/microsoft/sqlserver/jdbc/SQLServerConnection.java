@@ -369,8 +369,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     static String sanitizeField(String field, int maxLength) {
-        String sanitized = field.replaceAll("[^A-Za-z0-9 .+_-]", "").trim();
-        return sanitized.isEmpty() ? "Unknown" : sanitized.substring(0, Math.min(sanitized.length(), maxLength));
+        return field.isEmpty() ? "Unknown" : field.substring(0, Math.min(field.length(), maxLength));
     }
 
     //TODO
