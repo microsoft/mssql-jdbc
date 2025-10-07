@@ -170,7 +170,7 @@ final class TDS {
     static final byte TDS_FEATURE_EXT_SESSIONRECOVERY = 0x01;
 
     // Driver Info Telemetry support
-    static final byte TDS_FEATURE_EXT_USERAGENT = 0x0F;
+    static final byte TDS_FEATURE_EXT_USERAGENT = 0x10;
     static final byte MAX_USERAGENT_VERSION = 0x01;
     static final byte USERAGENT_NOT_SUPPORTED = 0x00;
 

@@ -5713,9 +5713,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     int writeUserAgentFeatureRequest(boolean write, /* if false just calculates the length */
             TDSWriter tdsWriter) throws SQLServerException {
         String userAgentToSend = getUserAgentToSend();
-        //
-        //TODO: use UTF-8 encoding for JSON
-        //
         byte[] userAgentToSendBytes = toUCS16(userAgentToSend);
         int len = userAgentToSendBytes.length + 6; // 1byte = featureID, 1byte = version, 4byte = feature data length in bytes, remaining bytes: feature data
         if (write) {
