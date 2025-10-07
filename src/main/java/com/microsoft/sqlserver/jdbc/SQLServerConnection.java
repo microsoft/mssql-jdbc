@@ -216,9 +216,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** sendTemporalDataTypesAsStringForBulkCopy flag */
     private boolean sendTemporalDataTypesAsStringForBulkCopy = true;
 
-    /** application attributes set by application */
-    private HashMap<ApplicationAttribute, String> applicationAttributes = new HashMap<ApplicationAttribute, String>();
-
     /**
      * https://docs.microsoft.com/sql/t-sql/functions/serverproperty-transact-sql
      */
@@ -317,10 +314,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private static final Lock sLock = new ReentrantLock();
 
     static final String USER_AGENT_TEMPLATE = "{\"driver\":\"%s\",\"version\":\"%s\",\"os\":{\"type\":\"%s\",\"details\":\"%s\"},\"arch\":\"%s\",\"runtime\":\"%s\"$1}";
-    static final String constructedUserAgent;
+    static final String userAgentStr;
 
     static {
-        constructedUserAgent = getUserAgent();
+        userAgentStr = getUserAgent();
     }
 
     static String getUserAgent() {
@@ -374,32 +371,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static String sanitizeField(String field, int maxLength) {
         String sanitized = field.replaceAll("[^A-Za-z0-9 .+_-]", "").trim();
         return sanitized.isEmpty() ? "Unknown" : sanitized.substring(0, Math.min(sanitized.length(), maxLength));
-    }
-
-    private final String getUserAgentToSend() {
-        String applicationAttributesJSON = getApplicationAttributesJSON();
-        return constructedUserAgent.replace("$1", applicationAttributesJSON);
-    }
-
-    private final String getApplicationAttributesJSON() {
-        if (applicationAttributes.isEmpty()) {
-            return "";
-        } else {
-            StringBuilder b = new StringBuilder();
-            //Note: not relying on any third party json library here.
-            //
-            b.append(",\"ext\":{");
-            for (Map.Entry<ApplicationAttribute, String> e : applicationAttributes.entrySet()) {
-                b.append("\"");
-                b.append(e.getKey());
-                b.append("\":");
-                b.append("\"");
-                b.append(e.getValue());
-                b.append("\"");
-            }
-            b.append("}");
-            return b.toString();
-        }
     }
 
     //TODO
@@ -5795,8 +5766,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     int writeUserAgentFeatureRequest(boolean write, /* if false just calculates the length */
             TDSWriter tdsWriter) throws SQLServerException {
-        String userAgentToSend = getUserAgentToSend();
-        byte[] userAgentToSendBytes = toUCS16(userAgentToSend);
+        byte[] userAgentToSendBytes = toUCS16(userAgentStr);
         int len = userAgentToSendBytes.length + 6; // 1byte = featureID, 1byte = version, 4byte = feature data length in bytes, remaining bytes: feature data
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_USERAGENT);
