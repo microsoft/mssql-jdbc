@@ -7289,6 +7289,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         int aeOffset = len;
+
+        len = len + writeUserAgentFeatureRequest(false, tdsWriter);
+
         // AE is always ON
         len += writeAEFeatureRequest(false, tdsWriter);
         if (federatedAuthenticationInfoRequested || federatedAuthenticationRequested) {
@@ -7302,7 +7305,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         len = len + writeDNSCacheFeatureRequest(false, tdsWriter);
 
-        len = len + writeUserAgentFeatureRequest(false, tdsWriter);
         // request vector support
         len += writeVectorSupportFeatureRequest(false, tdsWriter);
         // request JSON support
@@ -7314,7 +7316,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (connectRetryCount > 0) {
             len = len + writeIdleConnectionResiliencyRequest(false, tdsWriter);
         }
-
 
         // Length of entire Login 7 packet
         tdsWriter.writeInt(len);
@@ -7495,6 +7496,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             tdsWriter.writeBytes(secBlob, 0, secBlob.length);
         }
 
+        writeUserAgentFeatureRequest(true, tdsWriter);
+
         // AE is always ON
         writeAEFeatureRequest(true, tdsWriter);
 
@@ -7505,7 +7508,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         writeDataClassificationFeatureRequest(true, tdsWriter);
         writeUTF8SupportFeatureRequest(true, tdsWriter);
         writeDNSCacheFeatureRequest(true, tdsWriter);
-        writeUserAgentFeatureRequest(true, tdsWriter);
         writeVectorSupportFeatureRequest(true, tdsWriter);
         writeJSONSupportFeatureRequest(true, tdsWriter);
 
