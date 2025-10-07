@@ -23,6 +23,8 @@ import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import microsoft.sql.Vector;
+
 
 /**
  * Represents the data table for SQL Server.
@@ -306,6 +308,7 @@ public final class SQLServerDataTable {
                 case LONGVARCHAR:
                 case LONGNVARCHAR:
                 case SQLXML:
+                case JSON:
                     if (val instanceof UUID)
                         val = val.toString();
                     nValueLen = (2 * ((String) val).length());
@@ -322,6 +325,24 @@ public final class SQLServerDataTable {
                     JavaType javaType = JavaType.of(val);
                     internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
                     internalAddrow(internalJDBCType, val, rowValues, pair);
+                    break;
+
+                case VECTOR:
+                    Vector vectorVal = (Vector) val;
+                    nValueLen = VectorUtils.getVectorLength(vectorVal);
+                    int scaleByte = VectorUtils.getScaleByte(vectorVal.getVectorDimensionType());
+                    int scale = VectorUtils.getBytesPerDimensionFromScale(scaleByte);
+                    precision = vectorVal.getDimensionCount();
+                    if (scale > currentColumnMetadata.scale || precision > currentColumnMetadata.precision) {
+                        if (scale > currentColumnMetadata.scale) {
+                            currentColumnMetadata.scale = scale;
+                        }
+                        if (precision > currentColumnMetadata.precision) {
+                            currentColumnMetadata.precision = precision;
+                        }
+                        columnMetadata.put(pair.getKey(), currentColumnMetadata);
+                    }
+                    rowValues[key] = VectorUtils.toBytes(vectorVal);
                     break;
 
                 default:

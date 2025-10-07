@@ -9,10 +9,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.math.BigDecimal;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -160,8 +160,9 @@ public class CallableStatementTest extends AESetup {
 
     @AfterAll
     public static void dropAll() throws Exception {
-        dropTables();
+        // Drop procedures before tables or table drop will fail
         dropProcedures();
+        dropTables();
     }
 
     @ParameterizedTest
@@ -700,8 +701,8 @@ public class CallableStatementTest extends AESetup {
             callableStatement.setNString(4, charValues[3]);
             callableStatement.setNString(5, charValues[4]);
             callableStatement.setNString(6, charValues[5]);
-            callableStatement.setString(7, charValues[7]);
-            callableStatement.setNString(8, charValues[8]);
+            callableStatement.setString(7, charValues[8]);
+            callableStatement.setNString(8, charValues[9]);
 
             try (SQLServerResultSet rs = (SQLServerResultSet) callableStatement.executeQuery()) {
                 rs.next();
@@ -712,8 +713,8 @@ public class CallableStatementTest extends AESetup {
                 assertEquals(rs.getString(4).trim(), charValues[3], TestResource.getResource("R_inputParamFailed"));
                 assertEquals(rs.getString(5).trim(), charValues[4], TestResource.getResource("R_inputParamFailed"));
                 assertEquals(rs.getString(6).trim(), charValues[5], TestResource.getResource("R_inputParamFailed"));
-                assertEquals(rs.getString(7).trim(), charValues[7], TestResource.getResource("R_inputParamFailed"));
-                assertEquals(rs.getString(8).trim(), charValues[8], TestResource.getResource("R_inputParamFailed"));
+                assertEquals(rs.getString(7).trim(), charValues[8], TestResource.getResource("R_inputParamFailed"));
+                assertEquals(rs.getString(8).trim(), charValues[9], TestResource.getResource("R_inputParamFailed"));
             }
         } catch (Exception e) {
             fail(e.getMessage());
@@ -1534,10 +1535,10 @@ public class CallableStatementTest extends AESetup {
             assertEquals(nvarcharValuemax, charValues[5], TestResource.getResource("R_outputParamFailed"));
 
             String varcharValue8000 = callableStatement.getString(8).trim();
-            assertEquals(varcharValue8000, charValues[7], TestResource.getResource("R_outputParamFailed"));
+            assertEquals(varcharValue8000, charValues[8], TestResource.getResource("R_outputParamFailed"));
 
             String nvarcharValue4000 = callableStatement.getNString(9).trim();
-            assertEquals(nvarcharValue4000, charValues[8], TestResource.getResource("R_outputParamFailed"));
+            assertEquals(nvarcharValue4000, charValues[9], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
             fail(e.getMessage());
@@ -1587,10 +1588,10 @@ public class CallableStatementTest extends AESetup {
             assertEquals(nvarcharValuemax.trim(), charValues[5], TestResource.getResource("R_outputParamFailed"));
 
             String varcharValue8000 = (String) callableStatement.getObject(8);
-            assertEquals(varcharValue8000, charValues[7], TestResource.getResource("R_outputParamFailed"));
+            assertEquals(varcharValue8000, charValues[8], TestResource.getResource("R_outputParamFailed"));
 
             String nvarcharValue4000 = (String) callableStatement.getObject(9);
-            assertEquals(nvarcharValue4000, charValues[8], TestResource.getResource("R_outputParamFailed"));
+            assertEquals(nvarcharValue4000, charValues[9], TestResource.getResource("R_outputParamFailed"));
 
         } catch (Exception e) {
             fail(e.getMessage());

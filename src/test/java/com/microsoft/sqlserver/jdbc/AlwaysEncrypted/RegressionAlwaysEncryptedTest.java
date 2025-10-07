@@ -40,6 +40,10 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
     static String charTable[][] = {{"Char", "char(20) COLLATE Latin1_General_BIN2"},
             {"Varchar", "varchar(50) COLLATE Latin1_General_BIN2"},};
 
+    static String stringTable[][] = {{"VarcharMax", "varchar(max)"},};
+
+    static String stringVaryLengthTable[][] = {{"VarcharMax", "varchar(max) COLLATE Latin1_General_BIN2"},};
+
     @ParameterizedTest
     @MethodSource("enclaveParams")
     public void alwaysEncrypted1(String serverName, String url, String protocol) throws Exception {
@@ -48,25 +52,26 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
                 .getConnection(AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
+            try {
+                createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
 
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
+                populateNumericTable(connection);
+                verifyNumericTable(connection, false);
 
-            populateNumericTable(connection);
-            verifyNumericTable(connection, false);
+                dropTables(stmt);
+                createTable(DATE_TABLE_AE, cekJks, dateTable);
 
-            dropTables(stmt);
-            createTable(DATE_TABLE_AE, cekJks, dateTable);
+                populateDateTable(connection);
+                verifyDateTable(connection);
 
-            populateDateTable(connection);
-            verifyDateTable(connection);
+                dropTables(stmt);
+                createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
 
-            dropTables(stmt);
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
-
-            populateNumericTableWithNull(connection);
-            verifyNumericTable(connection, true);
-
-            dropTables(stmt);
+                populateNumericTableWithNull(connection);
+                verifyNumericTable(connection, true);
+            } finally {
+                dropTables(stmt);
+            }
         }
     }
 
@@ -78,22 +83,23 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
                 .getConnection(AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
                 Statement stmt = connection.createStatement()) {
             dropTables(stmt);
+            try {
+                createTable(CHAR_TABLE_AE, cekJks, charTable);
+                populateCharTable(connection);
+                verifyCharTable(connection);
 
-            createTable(CHAR_TABLE_AE, cekJks, charTable);
-            populateCharTable(connection);
-            verifyCharTable(connection);
+                dropTables(stmt);
+                createTable(DATE_TABLE_AE, cekJks, dateTable);
+                populateDateTable(connection);
+                verifyDateTable(connection);
 
-            dropTables(stmt);
-            createTable(DATE_TABLE_AE, cekJks, dateTable);
-            populateDateTable(connection);
-            verifyDateTable(connection);
-
-            dropTables(stmt);
-            createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
-            populateNumericTableSpecificSetter(connection);
-            verifyNumericTable(connection, false);
-
-            dropTables(stmt);
+                dropTables(stmt);
+                createTable(NUMERIC_TABLE_AE, cekJks, numericTable);
+                populateNumericTableSpecificSetter(connection);
+                verifyNumericTable(connection, false);
+            } finally {
+                dropTables(stmt);
+            }
         }
     }
 
@@ -228,9 +234,83 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
         }
     }
 
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testStringColumnEncryptWithVaryLength(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+        try (Connection connection = PrepUtil
+                .getConnection(AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
+                Statement stmt = connection.createStatement()) {
+            dropTables(stmt);
+
+            createTable(VARY_STRING_TABLE_AE, cekJks, stringVaryLengthTable);
+
+            try {
+                verifyStringTable(connection, false);
+            } finally {
+                dropTables(stmt);
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testStringColumnEncryptWithVaryLengthClearParam(String serverName, String url,
+            String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+        try (Connection connection = PrepUtil
+                .getConnection(AETestConnectionString + ";columnEncryptionSetting=enabled;", AEInfo);
+                Statement stmt = connection.createStatement()) {
+            dropTables(stmt);
+
+            createTable(VARY_STRING_TABLE_AE, cekJks, stringVaryLengthTable);
+            try {
+                verifyStringTable(connection, true);
+            } finally {
+                dropTables(stmt);
+            }
+        }
+    }
+
+    private void verifyStringTable(Connection connection, boolean enableClearParameters) throws SQLException {
+        String sql = "insert into " + VARY_STRING_TABLE_AE + " values(?, ?, ?)";
+
+        try (PreparedStatement sqlPstmt = connection.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY, connection.getHoldability())) {
+            String data1 = "a";
+
+            if (enableClearParameters) {
+                sqlPstmt.clearParameters();
+            }
+            sqlPstmt.setString(1, data1);
+            sqlPstmt.setString(2, data1);
+            sqlPstmt.setString(3, data1);
+            sqlPstmt.executeUpdate();
+
+            String data2 = data1 + "aa";
+            if (enableClearParameters) {
+                sqlPstmt.clearParameters();
+            }
+            sqlPstmt.setString(1, data2);
+            sqlPstmt.setString(2, data2);
+            sqlPstmt.setString(3, data2);
+            sqlPstmt.executeUpdate();
+
+            String data3 = data2 + "aaa";
+            if (enableClearParameters) {
+                sqlPstmt.clearParameters();
+            }
+            sqlPstmt.setString(1, data3);
+            sqlPstmt.setString(2, data3);
+            sqlPstmt.setString(3, data3);
+            sqlPstmt.executeUpdate();
+        }
+    }
+
     public static void dropTables(Statement stmt) throws SQLException {
         TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
         TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
         TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
+        TestUtils.dropTableIfExists(VARY_STRING_TABLE_AE, stmt);
     }
 }

@@ -288,6 +288,8 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
             case NTEXT:
             case UDT:
             case XML:
+            case VECTOR:
+            case JSON:
                 return false;
 
             default:

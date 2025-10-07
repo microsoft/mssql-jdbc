@@ -82,6 +82,7 @@ import javax.net.ssl.X509TrustManager;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.FedAuthTokenCommand;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
+import microsoft.sql.Vector;
 
 final class TDS {
     // application protocol
@@ -169,7 +170,15 @@ final class TDS {
     static final byte TDS_FEATURE_EXT_AZURESQLDNSCACHING = 0x0B;
     static final byte TDS_FEATURE_EXT_SESSIONRECOVERY = 0x01;
 
-    // Driver Info Telemetry support
+    // Vector support
+    static final byte TDS_FEATURE_EXT_VECTORSUPPORT = 0x0E;
+    static final byte VECTORSUPPORT_NOT_SUPPORTED = 0x00;
+    static final byte MAX_VECTORSUPPORT_VERSION = 0x01;
+    // JSON support
+    static final byte TDS_FEATURE_EXT_JSONSUPPORT = 0x0D;
+    static final byte JSONSUPPORT_NOT_SUPPORTED = 0x00;
+    static final byte MAX_JSONSUPPORT_VERSION = 0x01;
+    // User agent telemetry support
     static final byte TDS_FEATURE_EXT_USERAGENT = 0x10;
     static final byte MAX_USERAGENT_VERSION = 0x01;
     static final byte USERAGENT_NOT_SUPPORTED = 0x00;
@@ -242,8 +251,13 @@ final class TDS {
                 return "TDS_FEATURE_EXT_AZURESQLDNSCACHING (0x0B)";
             case TDS_FEATURE_EXT_SESSIONRECOVERY:
                 return "TDS_FEATURE_EXT_SESSIONRECOVERY (0x01)";
+            case TDS_FEATURE_EXT_VECTORSUPPORT:
+                return "TDS_FEATURE_EXT_VECTORSUPPORT (0x0E)";
+            case TDS_FEATURE_EXT_JSONSUPPORT:
+                return "TDS_FEATURE_EXT_JSONSUPPORT (0x0D)";
             case TDS_FEATURE_EXT_USERAGENT:
-                return "TDS_FEATURE_EXT_DRIVERINFOTELEMETRY (0x0F)";
+                return "TDS_FEATURE_EXT_DRIVERINFOTELEMETRY (0x10)";
+                
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
@@ -1668,7 +1682,10 @@ final class TDSChannel implements Serializable {
                     .getProperty(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
 
             if (StringUtils.isEmpty(trustStoreType)) {
-                trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
+                trustStoreType = System.getProperty("javax.net.ssl.trustStoreType");
+                if (StringUtils.isEmpty(trustStoreType)) {
+                    trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue(); // Default to JKS if not specified
+                }
             }
 
             String serverCert = con.activeConnectionProperties
@@ -4863,6 +4880,26 @@ final class TDSWriter {
         writeRPCStringUnicode(null, sValue, false, null);
     }
 
+    void writeRPCJson(String sName, String sValue, boolean bOut) throws SQLServerException {
+        boolean bValueNull = (sValue == null);
+        int nValueLen = bValueNull ? 0 : (2 * sValue.length());
+
+        writeRPCNameValType(sName, bOut, TDSType.JSON);
+
+        // PLP encoding is used for JSON values.
+        writeVMaxHeader(nValueLen, bValueNull, /* collation = */ null);
+
+        if (!bValueNull) {
+            if (nValueLen > 0) {
+                writeInt(nValueLen);
+                writeString(sValue);
+            }
+
+            // PLP terminator
+            writeInt(0);
+        }
+    }
+
     /**
      * Writes a string value as Unicode for RPC
      * 
@@ -5248,6 +5285,7 @@ final class TDSWriter {
             case LONGVARCHAR:
             case LONGNVARCHAR:
             case SQLXML:
+            case JSON:
                 isShortValue = (2L * columnPair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                 isNull = (null == currentColumnStringValue);
                 dataLength = isNull ? 0 : currentColumnStringValue.length() * 2;
@@ -5381,6 +5419,15 @@ final class TDSWriter {
                 internalJDBCType = javaType.getJDBCType(SSType.UNKNOWN, jdbcType);
                 writeInternalTVPRowValues(internalJDBCType, currentColumnStringValue, currentObject, columnPair, true);
                 break;
+
+            case VECTOR:
+                byte[] bValue = (currentObject == null) ? null : (byte[]) currentObject;
+                writeShort((short) (bValue == null ? -1 : bValue.length));
+                if (bValue != null) {
+                    writeBytes(bValue);
+                }
+                break;
+
             default:
                 assert false : "Unexpected JDBC type " + jdbcType.toString();
         }
@@ -5483,6 +5530,7 @@ final class TDSWriter {
                 case LONGVARCHAR:
                 case LONGNVARCHAR:
                 case SQLXML:
+                case JSON:
                     writeByte(TDSType.NVARCHAR.byteValue());
                     isShortValue = (2L * pair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
@@ -5513,6 +5561,13 @@ final class TDSWriter {
                     writeByte(TDSType.SQL_VARIANT.byteValue());
                     writeInt(TDS.SQL_VARIANT_LENGTH);// write length of sql variant 8009
 
+                    break;
+                
+                case VECTOR:
+                    writeByte(TDSType.VECTOR.byteValue());
+                    writeShort((short) (VectorUtils.getVectorLength(pair.getValue().scale,  pair.getValue().precision))); // max length
+                    byte scaleByte = (byte) (VectorUtils.getScaleByte(pair.getValue().scale));
+                    writeByte((byte) scaleByte); // scale
                     break;
 
                 default:
@@ -5639,6 +5694,30 @@ final class TDSWriter {
         writeByte(cryptoMeta.normalizationRuleVersion);
     }
 
+    void writeRPCVector(String sName, Vector vectorValue, boolean bOut, int scale, int precision)
+            throws SQLServerException {
+        boolean vectorValueNull = (vectorValue == null);
+        byte[] bValue = vectorValueNull ? null : VectorUtils.toBytes(vectorValue);
+
+        writeRPCNameValType(sName, bOut, TDSType.VECTOR);
+
+        if (vectorValueNull) {
+            writeShort((short) (VectorUtils.getVectorLength(scale, precision))); // max length
+            byte scaleByte = (byte) (VectorUtils.getScaleByte(scale));
+            writeByte((byte) scaleByte); // scale (dimension type)
+            writeShort((short) -1); // actual len
+        } else {
+            writeShort((short) VectorUtils.getVectorLength(vectorValue)); // max length
+            writeByte((byte) VectorUtils.getScaleByte(vectorValue.getVectorDimensionType())); // scale (dimension type)
+            if (vectorValue.getData() == null) {
+                writeShort((short) -1); // actual len
+            } else {
+                writeShort((short) VectorUtils.getVectorLength(vectorValue)); // actual len
+                writeBytes(bValue); // data
+            }
+        }
+    }
+    
     void writeRPCByteArray(String sName, byte[] bValue, boolean bOut, JDBCType jdbcType,
             SQLCollation collation) throws SQLServerException {
         boolean bValueNull = (bValue == null);

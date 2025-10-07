@@ -1084,6 +1084,24 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @return whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
      */
     boolean getBulkCopyForBatchInsertAllowEncryptedValueModifications();
+
+    /**
+     * Sets the value of the vectorTypeSupport connection property.
+     *
+     * @param vectorTypeSupport
+     * A string that indicates the vector type support during connection initialization.
+     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type FLOAT32 are returned as vectors). 
+     * Default is "v1".
+     */
+    void setVectorTypeSupport(String vectorTypeSupport);
+
+    /**
+     * Returns the value of the vectorTypeSupport connection property.
+     *
+     * @return vectorTypeSupport
+     *         The current vector type support setting ("off" or "v1").
+     */
+    String getVectorTypeSupport();
         
     /**
      * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.

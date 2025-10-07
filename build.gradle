@@ -11,7 +11,7 @@
 
 apply plugin: 'java'
 
-version = '12.10.0'
+version = '13.2.0'
 def releaseExt = ''
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
@@ -29,7 +29,7 @@ allprojects {
 
 test {
     useJUnitPlatform {
-        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth','kerberos')
+        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth','kerberos','vectorTest','JSONTest')
     }
 }
 
@@ -44,6 +44,11 @@ if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile
 	}
 	sourceCompatibility = 23
 	targetCompatibility = 23
+	test {
+    useJUnitPlatform {
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
+    }
+}
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre21") {
@@ -57,6 +62,11 @@ if (hasProperty('buildProfile') && buildProfile == "jre21") {
 	}
 	sourceCompatibility = 21
 	targetCompatibility = 21
+	test {
+    useJUnitPlatform {
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
+    }
+}
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre17") {
@@ -70,6 +80,11 @@ if (hasProperty('buildProfile') && buildProfile == "jre17") {
 	}
 	sourceCompatibility = 17
 	targetCompatibility = 17
+	test {
+    useJUnitPlatform {
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
+    }
+}
 }
 
 if (hasProperty('buildProfile') && buildProfile == "jre11") {
@@ -83,6 +98,11 @@ if (hasProperty('buildProfile') && buildProfile == "jre11") {
 	}
 	sourceCompatibility = 11
 	targetCompatibility = 11
+	test {
+    useJUnitPlatform {
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
+    }
+}
 }
 
 if(hasProperty('buildProfile') && buildProfile == "jre8") {
@@ -94,7 +114,7 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	targetCompatibility = 1.8
 	test {
 		useJUnitPlatform {
-			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42')
+			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42','vectorTest','JSONTest')
 		}
 	}
 }

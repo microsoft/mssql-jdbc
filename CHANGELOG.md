@@ -2,6 +2,201 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
+## [13.2.0] Stable Release
+
+### Changed
+
+- **Use sys.all_objects for accurate function and procedure filtering** [#2705](https://github.com/microsoft/mssql-jdbc/pull/2705)
+  **What changed**: Differentiated stored procedures and functions using sys.all_objects instead of sp_stored_procedures.
+  **Who benefits**: Developers using getProcedures() and getFunctions() in JDBC.
+  **Impact**: Ensures correct metadata retrieval, preventing confusion from mixed results.
+
+### Fixed issues
+
+- **Fix trustStoreType JVM property consultation in SSL Connections** [#2724](https://github.com/microsoft/mssql-jdbc/pull/2724)
+  **What was fixed**: Ensured fallback to JVM system property javax.net.ssl.trustStoreType if connection property is unset.
+  **Who benefits**: Users configuring SSL via system properties.
+  **Impact**: Enables proper SSL trust store resolution, improving compatibility with system configurations.
+
+- **Addressed a data integrity and performance issue for bulk copy batch inserts with non-Unicode Strings** [#2735](https://github.com/microsoft/mssql-jdbc/pull/2735)
+  **What was fixed**: Resolved performance degradation and incorrect string handling in bulk copy batch inserts when useBulkCopyForBatchInsert=true and sendStringParametersAsUnicode=false.
+  **Who benefits**: Applications using SQL Server JDBC Bulk Copy for high-volume inserts, especially with non-Unicode or accented character data.
+  **Impact**: Restores expected string storage, improves bulk insert performance for bulk copy API.
+
+- **Handle SQL comments at start of query in getGenerateKeys() method** [#2731](https://github.com/microsoft/mssql-jdbc/pull/2731)
+  **What was fixed**: Corrected detection of INSERT statements when preceded by SQL comments.
+  **Who benefits**: Developers using getGeneratedKeys() after commented SQL inserts.
+  **Impact**: Fixes previously failing key retrieval when comments are present before the query.
+
+- **Fix update count handling for multi-statement queries executed via PreparedStatement execute method.** [#2737](https://github.com/microsoft/mssql-jdbc/pull/2737)
+  **What was fixed**: Corrected update count handling for multi-statement queries run using PreparedStatement execute method, ensuring accurate counts for INSERT and other DML operations.
+  **Who benefits**: Java applications using SQL Server JDBC with multi-statement PreparedStatement executions.
+  **Impact**: Eliminates inconsistent update counts between Statement and PreparedStatement, improving reliability of result processing logic.
+
+- **CodeQL suppression fixes** [#2728](https://github.com/microsoft/mssql-jdbc/pull/2728)
+  **What was fixed**: Suppressed CodeQL rule [SM05141] with justification for broader usage scenarios.
+  **Who benefits**: Developers maintaining code quality tools like CodeQL.
+  **Impact**: Prevents unnecessary alerts for valid usage in multi-environment libraries.
+
+
+## [13.1.1] Preview Release
+
+### Added
+
+- **JSON datatype support** [#2558](https://github.com/microsoft/mssql-jdbc/pull/2558)
+  **What was added**: Support for reading and writing JSON columns in SQL Server.
+  **Who benefits**: Developers working with semi-structured data in SQL Server.
+  **Impact**: Enhances application flexibility by natively handling JSON content, reducing need for manual parsing.
+
+- **Add order hints for Bulk Copy operations** [#2701](https://github.com/microsoft/mssql-jdbc/pull/2701)
+  **What was added**: Support for specifying order hints during Bulk Copy.
+  **Who benefits**: Data engineers and DBAs managing large data migrations or ETL jobs.
+  **Impact**: Improves bulk data load performance.
+
+- **Coding best practices and review process** [#2666](https://github.com/microsoft/mssql-jdbc/pull/2666)
+  **What was added**: Introduced contributor guidelines, coding best practices, and review processes.
+  **Who benefits**: Open-source contributors and maintainers of the mssql-jdbc project.
+  **Impact**: Improves code quality, consistency, and onboarding experience for new contributors.
+
+- **Add new trusted AKV URLs for FR and DE** [#2708](https://github.com/microsoft/mssql-jdbc/pull/2708)
+  **What was added**: Registered four new Azure Key Vault and Managed HSM endpoints for France and Germany.
+  **Who benefits**: Customers in regulated regions (France, Germany) using AKV for encryption.
+  **Impact**: Enables secure key operations via region-specific trusted endpoints.
+
+### Fixed issues
+
+- **Fix for null handling in temporal types with bulk copy** [#2702](https://github.com/microsoft/mssql-jdbc/pull/2702)
+  **What was fixed**: Properly handle null values for temporal types when sendTemporalDataTypesAsStringForBulkCopy=false.
+  **Who benefits**: Developers using batch insert with native temporal types in bulk copy.
+  **Impact**: Prevents failures during bulk inserts, improving reliability of time-sensitive data ingestion.
+
+- **Fix string insertion with bulk copy API when sendStringParametersAsUnicode=false** [#2704](https://github.com/microsoft/mssql-jdbc/pull/2704)
+  **What was fixed**: Resolved issue where strings were inserted as byte arrays in batch bulk copy mode when sendStringParametersAsUnicode is set to false.
+  **Who benefits**: Developers using non-Unicode string inserts in performance-sensitive batch operations.
+  **Impact**:  Ensures string integrity during batch inserts, eliminating silent data corruption.
+
+
+## [13.1.0] Preview Release
+
+### Added
+
+- **Vector datatype support** [#2634](https://github.com/microsoft/mssql-jdbc/pull/2634)  
+  **What was added**: Native support for SQL Server’s new `VECTOR` data type with APIs for inserts, selects, stored procedures, and bulk copy.  
+  **Who benefits**: Developers building AI/ML workloads or semantic search applications using vector data in SQL Server.  
+  **Impact**: Enables native vector storage and access via JDBC, eliminating the performance overhead of managing vector data as strings.  
+
+
+- **New connection options, `quotedIdentifier` and `concatNullYieldsNull`** [#2618](https://github.com/microsoft/mssql-jdbc/pull/2618)  
+  **What was added**: ) New connection options, `quotedIdentifier` and `concatNullYieldsNull`, to control QUOTED_IDENTIFIER and CONCAT_NULL_YIELDS_NULL session settings for both new and pooled connections.  
+  **Who benefits**: Developers needing Sybase-default behavior for their applications.  
+  **Impact**: Reduces Sybase migration effort by allowing control of these session values.  
+
+
+- **Support for temporal and money datatypes when using bulk copy for batch insert operations** [#2670](https://github.com/microsoft/mssql-jdbc/pull/2670)  
+  **What was added**: Support for batch inserts of `DATETIME`, `DATE`, `MONEY`, etc., when using the `useBulkCopyForBatchInsert` option.  
+  **Who benefits**: High-volume data insert users.  
+  **Impact**: Improves performance for previously unsupported types (except in Azure Synapse Analytics (formerly Azure SQL DW).  
+
+
+- **Mockito integration into JDBC driver tests** [#2644](https://github.com/microsoft/mssql-jdbc/pull/2644)  
+  **What was added**: Mockito added as a test dependency.  
+  **Who benefits**: Developers and contributors writing unit tests.  
+  **Impact**: Enables better control and test coverage.  
+
+
+### Changed
+
+- **`releaseSavepoint` exception type standardized to `SQLFeatureNotSupported`** [#2583](https://github.com/microsoft/mssql-jdbc/pull/2583)  
+  **What changed**: SQLServerException replaced with SQLFeatureNotSupportedException to comply with JDBC specification.  
+  **Who benefits**: Developers expecting JDBC standard exceptions.  
+  **Impact**: Enables better exception handling in client code.  
+
+
+- **`ActiveDirectoryPassword` authentication deprecated** [#2624](https://github.com/microsoft/mssql-jdbc/pull/2624)  
+  **What changed**: Added deprecation warning for Microsoft Entra ID password authentication method.  
+  **Who benefits**: Microsoft Entra ID authentication users.  
+  **Impact**: Encourages migration to more secure methods.  
+
+
+- **Include Columnstore indexes in `getIndexInfo()`** [#2598](https://github.com/microsoft/mssql-jdbc/pull/2598)  
+  **What changed**: Replaced `sp_statistics` with a custom query to support all index types.  
+  **Who benefits**: Developers using metadata APIs.  
+  **Impact**: More accurate index metadata.  
+
+
+- **Corrected schema filtering in `getSchemas()`** [#2643](https://github.com/microsoft/mssql-jdbc/pull/2643)  
+  **What changed**: Ensured schemas are properly filtered when a catalog name is provided.  
+  **Who benefits**: Users of metadata functions.  
+  **Impact**: Complies with JDBC specification and avoids confusion.  
+
+
+- **Increased redirection limit** [#2659](https://github.com/microsoft/mssql-jdbc/pull/2659)  
+  **What changed**: Raised maximum redirection hops from 1 to 10.  
+  **Who benefits**: Azure SQL Fabric users.  
+  **Impact**: Enables successful multi-hop connection scenarios.  
+
+
+### Fixed issues
+
+- **Session recovery with Entra ID authentication and redirect mode** [#2668](https://github.com/microsoft/mssql-jdbc/pull/2668)  
+  **What was fixed**: Redirect information is now followed during session recovery when using Entra ID authentication.  
+  **Who benefits**: Azure SQL DB users using Entra ID and connection resiliency.  
+  **Impact**: Prevents connection recovery failures.  
+
+
+- **Javadoc build warnings** [#2640](https://github.com/microsoft/mssql-jdbc/pull/2640)  
+  **What was fixed**: Cleaned up invalid Javadoc syntax.  
+  **Who benefits**: Developers building the driver.  
+  **Impact**: Cleaner builds, better docs.  
+
+
+- **OffsetDateTime formatting in SQLServerDataTable** [#2652](https://github.com/microsoft/mssql-jdbc/pull/2652)  
+  **What was fixed**: The `OffsetDateTime` `toString()` method was omitting seconds when seconds are zero, which resulted in the server rejecting those records. Used `DateTimeFormatter` to avoid this invalid format.  
+  **Who benefits**: Users inserting `OffsetDateTime` values.  
+  **Impact**: Prevents conversion errors.  
+
+
+- **String comparison in SQLServerDataTable.equals()** [#2653](https://github.com/microsoft/mssql-jdbc/pull/2653)  
+  **What was fixed**: Replaced `==` with `.equals()` for strings.  
+  **Who benefits**: Anyone comparing data tables.  
+  **Impact**: Accurate comparison behavior.  
+
+
+- **PreparedStatement metadata caching for encrypted columns** [#2663](https://github.com/microsoft/mssql-jdbc/pull/2663)  
+  **What was fixed**: Fixed loss of type metadata across `PreparedStatement` reuse.  
+  **Who benefits**: Users of Always Encrypted with secure enclaves.  
+  **Impact**: Prevents insert failures in batch encryption.  
+
+
+- **Make IBM security module optional** [#2636](https://github.com/microsoft/mssql-jdbc/pull/2636)  
+  **What was fixed**: IBM security dependency is now optional.  
+  **Who benefits**: Applications not using IBM modules.  
+  **Impact**: Avoids classloading issues.  
+
+
+- **Invalidate enclave session on reconnect** [#2638](https://github.com/microsoft/mssql-jdbc/pull/2638)  
+  **What was fixed**: Enclave session cache no longer reused across reconnects.  
+  **Who benefits**: Users of Always Encrypted with secure enclaves in failover configurations.  
+  **Impact**: Prevents internal enclave errors due to invalid enclave session references after failover.  
+
+
+- **File path error handling in `ConfigurableRetryLogic`** [#2650](https://github.com/microsoft/mssql-jdbc/pull/2650)  
+  **What was fixed**: Robust error handling for missing/unreadable retry config files.  
+  **Who benefits**: All users.  
+  **Impact**: Prevents driver errors due to application file path issues.  
+
+
+- **Suppressed CodeQL warnings for crypto usages** [#2677](https://github.com/microsoft/mssql-jdbc/pull/2677)  
+  **What was fixed**: Suppressed CodeQL security warnings for cryptographic use cases.  
+  **Who benefits**: Reviewers using CodeQL.  
+  **Impact**: Maintains compatibility and audit clarity.  
+
+
+- **Batch insert fix for case-sensitive column name mismatch** [#2695](https://github.com/microsoft/mssql-jdbc/pull/2695)  
+  **What was fixed**: `executeBatch()` now respects case sensitivity of collations when matching column names.  
+  **Who benefits**: Applications using case-sensitive/case-insensitive schemas.  
+  **Impact**: Avoids metadata retrieval failures during batch inserts.  
+
 
 ## [12.10.0] Stable Release
 ### Added

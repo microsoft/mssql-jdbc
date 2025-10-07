@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import microsoft.sql.Vector;
+
 
 /**
  * Provides a simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java
@@ -421,6 +423,40 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             break;
                         }
 
+                        // For vector data type, allowed format in csv file is : "[1.0, 2.0, 3.0]"
+                        case microsoft.sql.Types.VECTOR: {
+                            int dimensionCount = cm.precision;
+                        
+                            if (dimensionCount <= 0) {
+                                throw new SQLServerException(SQLServerException.getErrString("R_InvalidVectorDimensionCount"), null, 0, null);
+                            }
+                        
+                            String vectorData = data[pair.getKey() - 1].trim();
+                            Vector.VectorDimensionType vectorDimensionType = VectorUtils.getVectorDimensionType(cm.scale);
+                        
+                            if ("NULL".equalsIgnoreCase(vectorData) || "\"NULL\"".equalsIgnoreCase(vectorData)) {
+                                dataRow[pair.getKey() - 1] = new Vector(dimensionCount, vectorDimensionType, null);
+                            } else {
+                                // Remove enclosing brackets or braces if present
+                                if ((vectorData.startsWith("[") && vectorData.endsWith("]"))) {
+                                    vectorData = vectorData.substring(1, vectorData.length() - 1);
+                                }
+                        
+                                String[] vectorElements = vectorData.split(",");
+                                if (vectorElements.length != dimensionCount) {
+                                    throw new SQLServerException(SQLServerException.getErrString("R_VectorDimensionCountMismatch"), null, 0, null);
+                                }
+                        
+                                Float[] vectorArray = new Float[dimensionCount];
+                                for (int i = 0; i < dimensionCount; i++) {
+                                    vectorArray[i] = Float.parseFloat(vectorElements[i].trim());
+                                }
+                        
+                                dataRow[pair.getKey() - 1] = new Vector(dimensionCount, vectorDimensionType, vectorArray);
+                            }
+                            break;
+                        }
+                        
                         case java.sql.Types.TIME_WITH_TIMEZONE: {
                             OffsetTime offsetTimeValue;
 
@@ -545,6 +581,10 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                 columnMetadata.put(positionInSource,
                         new ColumnMetadata(colName, java.sql.Types.LONGNVARCHAR, precision, scale, dateTimeFormatter));
                 break;
+            case microsoft.sql.Types.JSON:
+                columnMetadata.put(positionInSource,
+                        new ColumnMetadata(colName, microsoft.sql.Types.JSON, precision, scale, dateTimeFormatter));
+                break;    
             /*
              * Redirecting Float as Double based on data type mapping
              * https://msdn.microsoft.com/library/ms378878%28v=sql.110%29.aspx
@@ -558,6 +598,11 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             case java.sql.Types.BOOLEAN:
                 columnMetadata.put(positionInSource,
                         new ColumnMetadata(colName, java.sql.Types.BIT, precision, scale, dateTimeFormatter));
+                break;
+
+            case microsoft.sql.Types.VECTOR:
+                columnMetadata.put(positionInSource,
+                        new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));
                 break;
 
             default:
@@ -601,11 +646,13 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         this.escapeDelimiters = escapeDelimiters;
     }
 
+
     private static String[] escapeQuotesRFC4180(String[] tokens) throws SQLServerException {
         if (null == tokens) {
             return tokens;
         }
         for (int i = 0; i < tokens.length; i++) {
+            
             boolean escaped = false;
             int j = 0;
             StringBuilder sb = new StringBuilder();

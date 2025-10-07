@@ -83,7 +83,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.10.0.jre11</version>
+	<version>13.2.0.jre11</version>
 </dependency>
 ```
 The driver can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc). For driver version 12.1.0 and greater, please use the jre11 version when using Java 11 or greater, and the jre8 version when using Java 8.
@@ -94,7 +94,7 @@ To get the latest version of the driver, add the following to your POM file:
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.10.0.jre11</version>
+	<version>13.2.0.jre11</version>
 </dependency>
 ```
 
@@ -129,7 +129,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.10.0.jre11</version>
+	<version>13.2.0.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -147,7 +147,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.10.0.jre11</version>
+	<version>13.2.0.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -174,7 +174,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.10.0.jre11</version>
+	<version>13.2.0.jre11</version>
 </dependency>
 
 <dependency>
@@ -183,6 +183,17 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 	<version>4.9.3</version>
 </dependency>
 ```
+
+## Helpful Links
+
+| Topic | Link to File |
+| :---- | :------------- |
+| Coding Guidelines | [coding-guidelines.md](/coding-guidelines.md) |
+| Best Practices | [coding-best-practices.md](/coding-best-practices.md) |
+| Review Process | [review-process.md](/review-process.md) |
+| Security Guidelines | [security.md](/security.md) |
+| Changelog | [CHANGELOG.md](CHANGELOG.md) |
+| Code of Conduct | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) |
 
 ## Guidelines for Creating Pull Requests
 We love contributions from the community.  To help improve the quality of our code, we encourage you to use the mssql-jdbc_formatter.xml formatter provided on all pull requests.
