@@ -313,7 +313,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      **/
     private static final Lock sLock = new ReentrantLock();
 
-    static final String USER_AGENT_TEMPLATE = "{\"driver\":\"%s\",\"version\":\"%s\",\"os\":{\"type\":\"%s\",\"details\":\"%s\"},\"arch\":\"%s\",\"runtime\":\"%s\"$1}";
+    static final String USER_AGENT_TEMPLATE = "{\"driver\":\"%s\",\"version\":\"%s\",\"os\":{\"type\":\"%s\",\"details\":\"%s\"},\"arch\":\"%s\",\"runtime\":\"%s\"}";
     static final String userAgentStr;
 
     static {
@@ -339,14 +339,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static String getJDBCVersion() {
         return sanitizeField(SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "." + SQLJdbcVersion.PATCH + "." + SQLJdbcVersion.BUILD + SQLJdbcVersion.RELEASE_EXT, 16);
     }
+
     static String getOSType() {
         String osName = System.getProperty("os.name", "Unknown").trim();
         String osNameToReturn = "Unknown";
-        if (osName.startsWith("Windows")) osNameToReturn = "Windows";
-        if (osName.startsWith("Linux")) osNameToReturn = "Linux";
-        if (osName.startsWith("Mac")) osNameToReturn = "macOS";
-        if (osName.startsWith("FreeBSD")) osNameToReturn = "FreeBSD";
-        if (osName.startsWith("Android")) osNameToReturn = "Android";
+        if (osName.startsWith("Windows")) {
+            osNameToReturn = "Windows";
+        } else if (osName.startsWith("Linux")) {
+            osNameToReturn = "Linux";
+        } else if (osName.startsWith("Mac")) { 
+            osNameToReturn = "macOS";
+        } else if (osName.startsWith("FreeBSD")) {
+            osNameToReturn = "FreeBSD";
+        } else if (osName.startsWith("Android")) {
+            osNameToReturn = "Android";
+        }
         return sanitizeField(osNameToReturn, 16);
     }
 
@@ -369,7 +376,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     static String sanitizeField(String field, int maxLength) {
-        return field.isEmpty() ? "Unknown" : field.substring(0, Math.min(field.length(), maxLength));
+        return (field == null || field.isEmpty()) ? "Unknown" : field.substring(0, Math.min(field.length(), maxLength));
     }
 
     //TODO
@@ -7290,7 +7297,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         int aeOffset = len;
 
-        len = len + writeUserAgentFeatureRequest(false, tdsWriter);
+        len += writeUserAgentFeatureRequest(false, tdsWriter);
 
         // AE is always ON
         len += writeAEFeatureRequest(false, tdsWriter);
