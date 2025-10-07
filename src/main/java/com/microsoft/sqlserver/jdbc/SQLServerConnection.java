@@ -379,16 +379,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return (field == null || field.isEmpty()) ? "Unknown" : field.substring(0, Math.min(field.length(), maxLength));
     }
 
-    //TODO
-    //Rework the API and enable after privacy implications discussion
-    //
-    /*
-    public boolean SetApplicationAttribute(ApplicationAttribute attribute, String value) {
-        applicationAttributes.put(attribute, sanitizeField(value, 64));
-        return true;
-    }
-    */
-
     /**
      * Generate a 6 byte random array for netAddress
      * As per TDS spec this is a unique clientID (MAC address) used to identify the client.
