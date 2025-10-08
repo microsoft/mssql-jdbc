@@ -211,7 +211,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                 columnNames = (escapeDelimiters && currentLine.contains("\""))
                                                                                ? escapeQuotesRFC4180(parseString(
                                                                                        currentLine, delimiter))
-                                                                               : parseString(currentLine, delimiter);
+                                                                               : currentLine.split(delimiter, -1);
             }
         }
     }
@@ -299,7 +299,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
             String[] data = (escapeDelimiters && currentLine.contains("\""))
                                                                              ? escapeQuotesRFC4180(parseString(
                                                                                      currentLine, delimiter))
-                                                                             : parseString(currentLine, delimiter);
+                                                                             : currentLine.split(delimiter, -1);
 
             // Cannot go directly from String[] to Object[] and expect it to act as an array.
 
