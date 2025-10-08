@@ -457,16 +457,9 @@ public class BulkCopyCSVTest extends AbstractTest {
 
         // Create test data with isolated quote characters that cause parsing issues
         String testDataContent = String.join("\n",
-                // Normal row (should work fine) - 5 fields
                 "com.company.test\tREMOVE_PRODUCT\tRemove product\t22451\t0",
-                
-                // Problematic row 1 - contains quote at end of field - 5 fields expected
                 "com.company.test\tREMOVE_PRODUCT_START\tDo you wish to remove the product \"\t22451\t1",
-                
-                // Problematic row 2 - contains quote at start of field - 5 fields expected  
                 "com.company.test\tREMOVE_PRODUCT_END\t\" from the report?\t22451\t1",
-                
-                // Normal row (should work fine) - 5 fields
                 "com.company.test\tREPORT\tReport\t22451\t0"
         );
 
