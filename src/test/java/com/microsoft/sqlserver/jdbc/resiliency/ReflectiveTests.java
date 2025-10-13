@@ -51,9 +51,10 @@ public class ReflectiveTests extends AbstractTest {
                 fail("Successfully executed query on a blocked connection.");
             } catch (SQLException e) {
                 double elapsedTime = System.currentTimeMillis() - startTime;
+
                 // Timeout should occur after query timeout and not login timeout
-                assertTrue("Query did not timeout in " + expectedDuration + "ms, elapsed time(ms): " + elapsedTime,
-                        elapsedTime < expectedDuration);
+                assertTrue("Exception: " + e.getMessage() + ": Query did not timeout in " + expectedDuration
+                        + "ms, elapsed time(ms): " + elapsedTime, elapsedTime < expectedDuration);
                 if (expectedErrMsg.isPresent()) {
                     assertTrue(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage(),
                             e.getMessage().matches(TestUtils.formatErrorMsg(expectedErrMsg.get())));
@@ -76,13 +77,18 @@ public class ReflectiveTests extends AbstractTest {
     }
 
     /*
-     * Default retry count is 1. Expect timeout to be just above login timeout.
+     * Default retry count is 1 (for non-Azure). Expect timeout to be just above login timeout.
      */
     @Test
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
     public void testDefaultRetry() throws SQLException {
         Map<String, String> m = new HashMap<>();
         m.put("loginTimeout", "5");
-        timeoutVariations(m, 6000, Optional.empty());
+
+        // ensure count is not set to something else as this test assumes exactly just 1 retry
+        // this is only true for non-Azure as retry counts gets auto changed for Azure servers
+        timeoutVariations(m, 6500, Optional.empty());
     }
 
     /*
