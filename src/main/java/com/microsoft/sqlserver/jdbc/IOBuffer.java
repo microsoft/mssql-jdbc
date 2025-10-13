@@ -181,7 +181,6 @@ final class TDS {
     // User agent telemetry support
     static final byte TDS_FEATURE_EXT_USERAGENT = 0x10;
     static final byte MAX_USERAGENT_VERSION = 0x01;
-    static final byte USERAGENT_NOT_SUPPORTED = 0x00;
 
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
@@ -256,7 +255,7 @@ final class TDS {
             case TDS_FEATURE_EXT_JSONSUPPORT:
                 return "TDS_FEATURE_EXT_JSONSUPPORT (0x0D)";
             case TDS_FEATURE_EXT_USERAGENT:
-                return "TDS_FEATURE_EXT_DRIVERINFOTELEMETRY (0x10)";
+                return "TDS_FEATURE_EXT_USERAGENT (0x10)";
                 
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
