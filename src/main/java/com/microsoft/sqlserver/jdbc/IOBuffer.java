@@ -64,6 +64,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import javax.net.SocketFactory;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
@@ -1524,38 +1527,34 @@ final class TDSChannel implements Serializable {
             this.hostName = hostName.toLowerCase(Locale.ENGLISH);
         }
 
-        // Parse name in RFC 2253 format
-        // Returns the common name if successful, null if failed to find the common name.
-        // The parser tuned to be safe than sorry so if it sees something it cant parse correctly it returns null
-        private String parseCommonName(String distinguishedName) {
-            int index;
-            // canonical name converts entire name to lowercase
-            index = distinguishedName.indexOf("cn=");
-            if (index == -1) {
+        /**
+         * Securely parse the Common Name from an X.509 certificate using RFC2253 format.
+         * This method prevents DN injection attacks by using LdapName/Rdn parsing.
+         * 
+         * @param cert X.509 certificate
+         * @return Common Name from the certificate subject, or null if not found
+         */
+        private String parseCommonNameSecure(X509Certificate cert) {
+            try {
+                String subjectDN = cert.getSubjectX500Principal().getName(); // RFC2253 format
+                LdapName ldapName = new LdapName(subjectDN);
+                
+                // Iterate through RDNs to find CN
+                for (Rdn rdn : ldapName.getRdns()) {
+                    if ("CN".equalsIgnoreCase(rdn.getType())) {
+                        return rdn.getValue().toString();
+                    }
+                }
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(logContext + " No CN found in certificate subject");
+                }
+                return null;
+            } catch (Exception e) {
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.warning(logContext + " Error parsing certificate: " + e.getMessage());
+                }
                 return null;
             }
-            distinguishedName = distinguishedName.substring(index + 3);
-            // Parse until a comma or end is reached
-            // Note the parser will handle gracefully (essentially will return empty string) , inside the quotes (e.g
-            // cn="Foo, bar") however
-            // RFC 952 says that the hostName cant have commas however the parser should not (and will not) crash if it
-            // sees a , within quotes.
-            for (index = 0; index < distinguishedName.length(); index++) {
-                if (distinguishedName.charAt(index) == ',') {
-                    break;
-                }
-            }
-            String commonName = distinguishedName.substring(0, index);
-            // strip any quotes
-            if (commonName.length() > 1 && ('\"' == commonName.charAt(0))) {
-                if ('\"' == commonName.charAt(commonName.length() - 1))
-                    commonName = commonName.substring(1, commonName.length() - 1);
-                else {
-                    // Be safe the name is not ended in " return null so the common Name wont match
-                    commonName = null;
-                }
-            }
-            return commonName;
         }
 
         private boolean validateServerName(String nameInCert) {
@@ -1645,17 +1644,21 @@ final class TDSChannel implements Serializable {
         }
 
         private void validateServerNameInCertificate(X509Certificate cert) throws CertificateException {
-            String nameInCertDN = cert.getSubjectX500Principal().getName("canonical");
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer(logContext + " Validating the server name:" + hostName);
-                logger.finer(logContext + " The DN name in certificate:" + nameInCertDN);
             }
 
             boolean isServerNameValidated;
             String dnsNameInSANCert = "";
 
-            // the name in cert is in RFC2253 format parse it to get the actual subject name
-            String subjectCN = parseCommonName(nameInCertDN);
+            // Use secure RFC2253 parsing to prevent DN injection attacks
+            String subjectCN = parseCommonNameSecure(cert);
+            // X.509 certificate standard requires domain names to be in ASCII.
+            // Even IDN (Unicode) names will be represented here in Punycode (ASCII).
+            // Normalize case for comparison using English to avoid case issues like Turkish i.
+            if (subjectCN != null) {
+                subjectCN = subjectCN.toLowerCase(Locale.ENGLISH);
+            }
 
             isServerNameValidated = validateServerName(subjectCN);
 
