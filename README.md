@@ -81,7 +81,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.6.4.jre11</version>
+	<version>12.6.5.jre11</version>
 </dependency>
 ```
 The driver can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc). For driver version 12.1.0 and greater, please use the jre11 version when using Java 11 or greater, and the jre8 version when using Java 8.
@@ -92,7 +92,7 @@ To get the latest version of the driver, add the following to your POM file:
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.6.4.jre11</version>
+	<version>12.6.5.jre11</version>
 </dependency>
 ```
 
@@ -127,7 +127,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.6.4.jre11</version>
+	<version>12.6.5.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -145,7 +145,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.6.4.jre11</version>
+	<version>12.6.5.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -172,7 +172,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>12.6.4.jre11</version>
+	<version>12.6.5.jre11</version>
 </dependency>
 
 <dependency>

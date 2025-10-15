@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [12.6.5] Hotfix & Stable Release
+### Fixed issues
+- **Address a hostname validation vulnerability by securely parsing certificate common names.**
+  **What was fixed**: Secure hostname validation is enforced by replacing the vulnerable CN parsing logic in SQLServerCertificateUtils.java, preventing spoofing attacks.
+  **Who benefits**:  All users of the SQL Server JDBC driver, especially those relying on TLS for secure connections, benefit from improved certificate validation.
+
 ## [12.6.4] Hotfix & Stable Release
 ### Fixed issues
 - Reverted "Execute Stored Procedures Directly" feature, as well as subsequent changes related to the feature. [#2500](https://github.com/microsoft/mssql-jdbc/pull/2500)
