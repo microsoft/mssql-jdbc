@@ -50,7 +50,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   **Who benefits**: Developers consuming metadata via DatabaseMetaData.getIndexInfo() on SQL Server or Azure Synapse DW.
   **Impact**: Replaces CachedRowSet merging with a UNION ALL query, ensuring standard JDBC cursor behavior while maintaining columnstore index support.
 
-- **Address a hostname validation vulnerability by securely parsing certificate common names.**
+- **Address a hostname validation vulnerability by securely parsing certificate common names.** [#2801](https://github.com/microsoft/mssql-jdbc/pull/2801)
   **What was fixed**: Secure hostname validation is enforced by replacing the vulnerable CN parsing logic in SQLServerCertificateUtils.java, preventing spoofing attacks.
   **Who benefits**:  All users of the SQL Server JDBC driver, especially those relying on TLS for secure connections, benefit from improved certificate validation.
   **Impact**: This fix closes a security gap, protecting applications from man-in-the-middle attacks and ensuring compliance with security best practices.
