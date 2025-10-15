@@ -11,7 +11,7 @@
 
 apply plugin: 'java'
 
-version = '12.8.1'
+version = '12.8.2'
 def releaseExt = ''
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
