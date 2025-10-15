@@ -7,9 +7,16 @@ package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Collection;
+import java.util.List;
+
+import javax.security.auth.x500.X500Principal;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -134,5 +141,75 @@ public class SSLCertificateValidation {
          * Server Name = xn--ms.database.windows.net SAN = xn--ms.database.windows.net Expected result: true
          */
         assertTrue((boolean) method.invoke(hsoObject, "xn--ms.database.windows.net"));
+    }
+
+    // Minimal mock certificate for testing CN parsing security
+    private static X509Certificate mockCert(final X500Principal subject, final Collection<List<?>> sans) {
+        return new X509Certificate() {
+            public X500Principal getSubjectX500Principal() { return subject; }
+            public Collection<List<?>> getSubjectAlternativeNames() { return sans; }
+            public X500Principal getIssuerX500Principal() { return subject; }
+            public java.security.Principal getSubjectDN() { return subject; }
+            public java.security.Principal getIssuerDN() { return subject; }
+            public void checkValidity() {}
+            public void checkValidity(java.util.Date d) {}
+            public int getVersion() { return 3; }
+            public java.math.BigInteger getSerialNumber() { return java.math.BigInteger.ONE; }
+            public java.util.Date getNotBefore() { return new java.util.Date(); }
+            public java.util.Date getNotAfter() { return new java.util.Date(); }
+            public byte[] getTBSCertificate() { return new byte[0]; }
+            public byte[] getSignature() { return new byte[0]; }
+            public String getSigAlgName() { return ""; }
+            public String getSigAlgOID() { return ""; }
+            public byte[] getSigAlgParams() { return null; }
+            public boolean[] getIssuerUniqueID() { return null; }
+            public boolean[] getSubjectUniqueID() { return null; }
+            public boolean[] getKeyUsage() { return null; }
+            public int getBasicConstraints() { return -1; }
+            public byte[] getEncoded() { return new byte[0]; }
+            public void verify(java.security.PublicKey key) {}
+            public void verify(java.security.PublicKey key, String sigProvider) {}
+            public java.security.PublicKey getPublicKey() { return null; }
+            public boolean hasUnsupportedCriticalExtension() { return false; }
+            public java.util.Set<String> getCriticalExtensionOIDs() { return null; }
+            public java.util.Set<String> getNonCriticalExtensionOIDs() { return null; }
+            public byte[] getExtensionValue(String oid) { return null; }
+            public String toString() { return "Mock Certificate"; }
+        };
+    }
+
+    @Test
+    public void testSecureCNParsing_preventsHostnameSpoofing() throws Exception {
+        // Certificate with spoofed CN via OU attribute: "OU=CN\=target.com, CN=attacker.com"
+        X500Principal spoofedSubject = new X500Principal("OU=CN\\=target.com, CN=attacker.com");
+        X509Certificate spoofedCert = mockCert(spoofedSubject, null);
+        
+        // Set up the HostNameOverrideX509TrustManager object using reflection
+        TDSChannel tdsc = new TDSChannel(new SQLServerConnection("someConnectionProperty"));
+        Class<?> hsoClass = Class.forName("com.microsoft.sqlserver.jdbc.TDSChannel$HostNameOverrideX509TrustManager");
+        Constructor<?> constructor = hsoClass.getDeclaredConstructors()[0];
+        constructor.setAccessible(true);
+        
+        // Test rejection against spoofed hostname
+        Object hsoObjectTargetCom = constructor.newInstance(null, tdsc, null, "target.com");
+        Method validateMethod = hsoClass.getDeclaredMethod("validateServerNameInCertificate", X509Certificate.class);
+        validateMethod.setAccessible(true);
+        
+        // Should throw exception when validating against spoofed hostname
+        // Note: Method.invoke() wraps exceptions in InvocationTargetException, so we need to unwrap it
+        try {
+            validateMethod.invoke(hsoObjectTargetCom, spoofedCert);
+            throw new AssertionError("Expected CertificateException to be thrown");
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            // Unwrap and verify it's a CertificateException
+            assertTrue("Expected CertificateException but got: " + e.getCause().getClass().getName(),
+                e.getCause() instanceof CertificateException);
+        }
+        
+        // Should pass when validating against real CN
+        Object hsoObjectAttackerCom = constructor.newInstance(null, tdsc, null, "attacker.com");
+        assertDoesNotThrow(() -> {
+            validateMethod.invoke(hsoObjectAttackerCom, spoofedCert);
+        });
     }
 }
