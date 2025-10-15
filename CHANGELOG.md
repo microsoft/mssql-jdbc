@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ## [12.2.1] Hotfix & Stable Release
 ### Fixed issues
-- **Address a hostname validation vulnerability by securely parsing certificate common names.**
+- **Address a hostname validation vulnerability by securely parsing certificate common names.** [#2798](https://github.com/microsoft/mssql-jdbc/pull/2798)
   **What was fixed**: Secure hostname validation is enforced by replacing the vulnerable CN parsing logic in SQLServerCertificateUtils.java, preventing spoofing attacks.
   **Who benefits**:  All users of the SQL Server JDBC driver, especially those relying on TLS for secure connections, benefit from improved certificate validation.
 
