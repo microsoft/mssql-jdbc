@@ -1160,6 +1160,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testJSONMetaData() throws SQLException {
         String jsonTableName = RandomUtil.getIdentifier("try_SQLJSON_Table");
@@ -1345,6 +1346,39 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     assertEquals(isUnique, rs2.getBoolean("NON_UNIQUE"));
                     assertEquals(columnName, rs2.getString("COLUMN_NAME"));
                     assertEquals(columnOrder, rs2.getInt("ORDINAL_POSITION"));
+                }
+            }
+        }
+
+        @Test
+        public void testGetIndexInfoResultSetNextAfterFalse() throws SQLException {
+            try (Connection connection = getConnection()) {
+                String catalog = connection.getCatalog();
+                String schema = "dbo";
+                String table = "DBMetadataTestTable";
+                DatabaseMetaData dbMetadata = connection.getMetaData();
+                
+                try (ResultSet rs = dbMetadata.getIndexInfo(catalog, schema, table, false, false)) {
+                    // First, enumerate all rows
+                    int rowCount = 0;
+                    while (rs.next()) {
+                        rowCount++;
+                        assertNotNull(rs.getString("TABLE_NAME"));
+                    }
+                    
+                    assertTrue(rowCount > 0, "Expected at least one index row");
+                    
+                    // Now test the critical fix: calling next() after it returned false should not throw exception
+                    boolean hasMore1 = rs.next();
+                    assertFalse(hasMore1, "next() after end of ResultSet should return false");
+                    
+                    // Test multiple calls to next() after end - all should return false without exception
+                    boolean hasMore2 = rs.next();
+                    assertFalse(hasMore2, "Second call to next() after end should also return false");
+                    
+                    // Test the exact pattern from issue #2758 - checking completion with !rs.next()
+                    boolean isComplete = !rs.next();
+                    assertTrue(isComplete, "Pattern from issue: !rs.next() should return true when at end");
                 }
             }
         }
