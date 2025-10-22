@@ -33,17 +33,17 @@ test {
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre23")) {
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre25")) {
 
-	jreVersion = "jre23"
+	jreVersion = "jre25"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 23
-	targetCompatibility = 23
+	sourceCompatibility = 25
+	targetCompatibility = 25
 	test {
     useJUnitPlatform {
         excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
