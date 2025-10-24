@@ -1129,11 +1129,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Manages re-using cached handles.
      */
     private boolean reuseCachedHandle(boolean hasNewTypeDefinitions, boolean discardCurrentCacheItem) {
-        // No caching when prepareMethod=exec since we never prepare statements
-        if (PrepareMethod.EXEC.toString().equals(connection.getPrepareMethod())) {
-            return false;
-        }
-
         // No re-use of caching for cursorable statements (statements that WILL use sp_cursor*)
         if (isCursorable(executeMethod))
             return false;
@@ -1184,59 +1179,45 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
         boolean isPrepareMethodSpPrepExec = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
-        boolean isPrepareMethodExec = connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString());
 
-        // When prepareMethod=exec, always use sp_executesql without preparation (Sybase
-        // compatibility)
-        if (isPrepareMethodExec) {
-            buildExecSQLParams(tdsWriter);
+        // Cursors don't use statement pooling.
+        if (isCursorable(executeMethod)) {
+            if (needsPrepare)
+                buildServerCursorPrepExecParams(tdsWriter);
+            else
+                buildServerCursorExecParams(tdsWriter);
         } else {
-            // Cursors don't use statement pooling.
-            if (isCursorable(executeMethod)) {
-                if (needsPrepare)
-                    buildServerCursorPrepExecParams(tdsWriter);
-                else
-                    buildServerCursorExecParams(tdsWriter);
-            } else {
-                // Move overhead of needing to do prepare & unprepare to only use cases that
-                // need more than one execution.
-                // First execution, use sp_executesql, optimizing for assumption we will not
-                // re-use statement.
-                if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall()
-                        && !isExecutedAtLeastOnce) {
-                    buildExecSQLParams(tdsWriter);
-                    isExecutedAtLeastOnce = true;
-                } else if (needsPrepare) { // Second execution, use prepared statements since we seem to be re-using it.
-                    if (isPrepareMethodSpPrepExec) { // If true, we're using sp_prepexec.
-                        buildPrepExecParams(tdsWriter);
-                    } else { // Otherwise, we're using sp_prepare instead of sp_prepexec.
-                        isSpPrepareExecuted = true;
-                        // If we're preparing for a statement in a batch we just need to call sp_prepare
-                        // because in the
-                        // "batching" code it will start another tds request to execute the statement
-                        // after preparing.
-                        if (executeMethod == EXECUTE_BATCH) {
-                            buildPrepParams(tdsWriter);
-                            return needsPrepare;
-                        } else { // Otherwise, if it is not a batch query, then prepare and start new TDS request
-                                 // to execute
-                                 // the statement.
-                            isSpPrepareExecuted = false;
-                            doPrep(tdsWriter, command);
-                            command.startRequest(TDS.PKT_RPC);
-                            buildExecParams(tdsWriter);
-                        }
+            // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
+            // First execution, use sp_executesql, optimizing for assumption we will not re-use statement.
+            if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
+                buildExecSQLParams(tdsWriter);
+                isExecutedAtLeastOnce = true;
+            } else if (needsPrepare) { // Second execution, use prepared statements since we seem to be re-using it.
+                if (isPrepareMethodSpPrepExec) { // If true, we're using sp_prepexec.
+                    buildPrepExecParams(tdsWriter);
+                } else { // Otherwise, we're using sp_prepare instead of sp_prepexec.
+                    isSpPrepareExecuted = true;
+                    // If we're preparing for a statement in a batch we just need to call sp_prepare because in the
+                    // "batching" code it will start another tds request to execute the statement after preparing.
+                    if (executeMethod == EXECUTE_BATCH) {
+                        buildPrepParams(tdsWriter);
+                        return needsPrepare;
+                    } else { // Otherwise, if it is not a batch query, then prepare and start new TDS request to execute
+                             // the statement.
+                        isSpPrepareExecuted = false;
+                        doPrep(tdsWriter, command);
+                        command.startRequest(TDS.PKT_RPC);
+                        buildExecParams(tdsWriter);
                     }
-                } else {
-                    buildExecParams(tdsWriter);
                 }
+            } else {
+                buildExecParams(tdsWriter);
             }
         }
 
         sendParamsByRPC(tdsWriter, params);
 
-        // For EXEC method, we never prepare so return false
-        return isPrepareMethodExec ? false : needsPrepare;
+        return needsPrepare;
     }
 
     /**

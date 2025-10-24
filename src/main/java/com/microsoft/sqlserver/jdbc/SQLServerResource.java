@@ -213,6 +213,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_packetSizePropertyDescription", "The network packet size used to communicate with SQL Server."},
         {"R_encryptPropertyDescription", "Determines if Secure Sockets Layer (SSL) encryption should be used between the client and the server."},
         {"R_serverCertificatePropertyDescription", "The path to the server certificate file."},
+        {"R_prepareMethodPropertyDescription", "Determines the prepare method used in the driver."},
         {"R_socketFactoryClassPropertyDescription", "The class to instantiate as the SocketFactory for connections"},
         {"R_socketFactoryConstructorArgPropertyDescription", "The optional argument to pass to the constructor specified by socketFactoryClass"},
         {"R_trustServerCertificatePropertyDescription", "Determines if the driver should validate the SQL Server Secure Sockets Layer (SSL) certificate."},
