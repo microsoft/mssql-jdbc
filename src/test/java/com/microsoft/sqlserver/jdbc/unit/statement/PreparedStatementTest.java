@@ -948,5 +948,179 @@ public class PreparedStatementTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName5), stmt);
         }
     }
-    
+
+    @Test
+    public void testPrepareMethodExecConfiguration() throws SQLException {
+        // Test connection property setting
+        String connectionStringExec = connectionString + ";prepareMethod=exec;";
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionStringExec)) {
+            assertEquals("exec", conn.getPrepareMethod());
+        }
+
+        // Test DataSource API
+        SQLServerDataSource ds = new SQLServerDataSource();
+        ds.setURL(connectionString);
+        ds.setPrepareMethod("exec");
+        assertEquals("exec", ds.getPrepareMethod());
+
+        try (SQLServerConnection conn = (SQLServerConnection) ds.getConnection()) {
+            assertEquals("exec", conn.getPrepareMethod());
+        }
+    }
+
+    @Test
+    public void testPreparedStatementWithExecMethod() throws SQLException {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testExecTable"));
+        String sql = "insert into " + tableName + " (c1_nchar, c2_int) values (?, ?)";
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod("exec"); // Use direct execution without preparation
+
+            executeSQL(con, "create table " + tableName + " (c1_nchar nchar(512), c2_int integer)");
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                // First execution should use sp_executesql directly
+                ps.setString(1, "test1");
+                ps.setInt(2, 1);
+                ps.executeUpdate();
+
+                // Subsequent executions should also use sp_executesql (no preparation)
+                ps.setString(1, "test2");
+                ps.setInt(2, 2);
+                ps.executeUpdate();
+
+                ps.setString(1, "test3");
+                ps.setInt(2, 3);
+                ps.executeUpdate();
+
+                // Verify no prepared statement handle was created (should return -1)
+                assertEquals(-1, ps.getPreparedStatementHandle());
+            }
+
+            // Verify data was inserted correctly
+            try (PreparedStatement verifyStmt = con.prepareStatement("SELECT COUNT(*) FROM " + tableName)) {
+                try (ResultSet rs = verifyStmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(3, rs.getInt(1));
+                }
+            }
+
+            executeSQL(con, "drop table " + tableName);
+        }
+    }
+
+    @Test
+    public void testTempTablePersistenceWithExecMethod() throws SQLException {
+        // This test verifies Sybase compatibility: temp tables should persist between
+        // executions
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod("exec"); // Use direct execution for Sybase compatibility
+
+            // Create a temp table in the first statement
+            String createTempTableSql = "CREATE TABLE #tempTest (id int, name varchar(50))";
+            try (SQLServerPreparedStatement ps1 = (SQLServerPreparedStatement) con
+                    .prepareStatement(createTempTableSql)) {
+                ps1.executeUpdate();
+            }
+
+            // Insert data into temp table using a prepared statement
+            String insertSql = "INSERT INTO #tempTest (id, name) VALUES (?, ?)";
+            try (SQLServerPreparedStatement ps2 = (SQLServerPreparedStatement) con.prepareStatement(insertSql)) {
+                ps2.setInt(1, 1);
+                ps2.setString(2, "Test1");
+                ps2.executeUpdate();
+
+                ps2.setInt(1, 2);
+                ps2.setString(2, "Test2");
+                ps2.executeUpdate();
+            }
+
+            // Verify temp table data persists and can be queried
+            String selectSql = "SELECT COUNT(*) FROM #tempTest WHERE name LIKE ?";
+            try (SQLServerPreparedStatement ps3 = (SQLServerPreparedStatement) con.prepareStatement(selectSql)) {
+                ps3.setString(1, "Test%");
+                try (ResultSet rs = ps3.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt(1));
+                }
+            }
+
+            // Clean up temp table
+            try (SQLServerPreparedStatement ps4 = (SQLServerPreparedStatement) con
+                    .prepareStatement("DROP TABLE #tempTest")) {
+                ps4.executeUpdate();
+            }
+        }
+    }
+
+    @Test
+    public void testExecMethodParameterBinding() throws SQLException {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testExecParams"));
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod("exec");
+
+            executeSQL(con, "CREATE TABLE " + tableName
+                    + " (id int, name varchar(100), value decimal(10,2), created datetime)");
+
+            String insertSql = "INSERT INTO " + tableName + " (id, name, value, created) VALUES (?, ?, ?, ?)";
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(insertSql)) {
+
+                // Test various parameter types
+                ps.setInt(1, 1);
+                ps.setString(2, "Test Name");
+                ps.setBigDecimal(3, new java.math.BigDecimal("123.45"));
+                ps.setTimestamp(4, new java.sql.Timestamp(System.currentTimeMillis()));
+                ps.executeUpdate();
+
+                // Test null parameters
+                ps.setInt(1, 2);
+                ps.setNull(2, java.sql.Types.VARCHAR);
+                ps.setNull(3, java.sql.Types.DECIMAL);
+                ps.setNull(4, java.sql.Types.TIMESTAMP);
+                ps.executeUpdate();
+            }
+
+            // Verify data
+            try (PreparedStatement verifyStmt = con.prepareStatement("SELECT COUNT(*) FROM " + tableName)) {
+                try (ResultSet rs = verifyStmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt(1));
+                }
+            }
+
+            executeSQL(con, "DROP TABLE " + tableName);
+        }
+    }
+
+    @Test
+    public void testExecMethodPerformanceCharacteristics() throws SQLException {
+        // This test ensures that exec method behaves as expected without creating
+        // prepared statement handles
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod("exec");
+
+            String sql = "SELECT ? as test_value";
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                // Execute multiple times with different parameters
+                for (int i = 1; i <= 10; i++) {
+                    ps.setInt(1, i);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        assertEquals(i, rs.getInt(1));
+                    }
+                }
+
+                // Verify that no prepared statement handle was ever created
+                assertEquals(-1, ps.getPreparedStatementHandle());
+
+                // Verify that the statement was executed at least once (this should always be
+                // true for exec method)
+                // Note: isExecutedAtLeastOnce is package-private so we test behavior indirectly
+                // by ensuring consistent results across executions
+            }
+        }
+    }
+
 }
