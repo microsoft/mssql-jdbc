@@ -134,13 +134,6 @@
 			<version>${osgi.jdbc.version}</version>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.maven</groupId>
-			<artifactId>maven-parent</artifactId>
-			<version>45</version>
-			<type>pom</type>
-			<scope>provided</scope>
-		</dependency>
 		<!-- dependencies for running tests -->
 		<dependency>
 			<groupId>org.mockito</groupId>
@@ -284,7 +277,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.14.1</version>
+						<version>3.13.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/ISQLServerConnection43.java</exclude>
@@ -337,7 +330,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.14.1</version>
+						<version>3.13.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
@@ -370,7 +363,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.14.1</version>
+						<version>3.13.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
@@ -403,7 +396,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.14.1</version>
+						<version>3.13.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
@@ -439,7 +432,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-compiler-plugin</artifactId>
-						<version>3.14.1</version>
+						<version>3.13.0</version>
 						<configuration>
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
