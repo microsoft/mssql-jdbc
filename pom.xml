@@ -143,24 +143,6 @@
 		</dependency>
 		<!-- dependencies for running tests -->
 		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<version>5.14.2</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>net.bytebuddy</groupId>
-			<artifactId>byte-buddy</artifactId>
-			<version>1.17.5</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>net.bytebuddy</groupId>
-			<artifactId>byte-buddy-agent</artifactId>
-			<version>1.17.5</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-console</artifactId>
 			<version>${junit.platform.version}</version>
@@ -272,6 +254,32 @@
 	<profiles>
 		<profile>
 			<id>jre8</id>
+			<dependencies>
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>4.11.0</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-inline</artifactId>
+					<version>4.11.0</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy</artifactId>
+					<version>1.15.11</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy-agent</artifactId>
+					<version>1.15.11</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre8${releaseExt}</finalName>
 				<plugins>
@@ -325,6 +333,27 @@
 		</profile>
 		<profile>
 			<id>jre11</id>
+			<dependencies>
+				<!-- JDK 11 compatible Mockito -->
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>5.14.2</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy-agent</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre11${releaseExt}</finalName>
 				<plugins>
@@ -358,6 +387,27 @@
 		</profile>
 		<profile>
 			<id>jre17</id>
+			<dependencies>
+				<!-- JDK 17 compatible Mockito -->
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>5.14.2</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy-agent</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre17${releaseExt}</finalName>
 				<plugins>
@@ -391,6 +441,27 @@
 		</profile>
 		<profile>
 			<id>jre21</id>
+			<dependencies>
+				<!-- JDK 21 compatible Mockito -->
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>5.14.2</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy-agent</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre21${releaseExt}</finalName>
 				<plugins>
@@ -427,6 +498,27 @@
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
+			<dependencies>
+				<!-- JDK 25 compatible Mockito -->
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>5.14.2</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy-agent</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre25${releaseExt}</finalName>
 				<plugins>
