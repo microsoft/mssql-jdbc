@@ -178,6 +178,9 @@ final class TDS {
     static final byte TDS_FEATURE_EXT_JSONSUPPORT = 0x0D;
     static final byte JSONSUPPORT_NOT_SUPPORTED = 0x00;
     static final byte MAX_JSONSUPPORT_VERSION = 0x01;
+    // User agent telemetry support
+    static final byte TDS_FEATURE_EXT_USERAGENT = 0x10;
+    static final byte MAX_USERAGENT_VERSION = 0x01;
 
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
@@ -251,7 +254,9 @@ final class TDS {
                 return "TDS_FEATURE_EXT_VECTORSUPPORT (0x0E)";
             case TDS_FEATURE_EXT_JSONSUPPORT:
                 return "TDS_FEATURE_EXT_JSONSUPPORT (0x0D)";
-
+            case TDS_FEATURE_EXT_USERAGENT:
+                return "TDS_FEATURE_EXT_USERAGENT (0x10)";
+                
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
@@ -1676,7 +1681,10 @@ final class TDSChannel implements Serializable {
                     .getProperty(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
 
             if (StringUtils.isEmpty(trustStoreType)) {
-                trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
+                trustStoreType = System.getProperty("javax.net.ssl.trustStoreType");
+                if (StringUtils.isEmpty(trustStoreType)) {
+                    trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue(); // Default to JKS if not specified
+                }
             }
 
             String serverCert = con.activeConnectionProperties

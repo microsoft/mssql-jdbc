@@ -425,10 +425,30 @@ public final class TestUtils {
                 "IF OBJECT_ID('" + tableNameWithSchema + "', 'U') IS NOT NULL DROP TABLE " + tableNameWithSchema + ";");
     }
 
+    /**
+     * Drops a procedure with schema if it exists.
+     *
+     * @param procedureWithSchema
+     * @param stmt
+     * @throws SQLException
+     */
     public static void dropProcedureWithSchemaIfExists(String procedureWithSchema,
             java.sql.Statement stmt) throws SQLException {
         stmt.execute("IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'" + procedureWithSchema
                 + "') AND type in (N'P', N'PC')) DROP PROCEDURE " + procedureWithSchema + ";");
+    }
+
+    /**
+     * Drops a function with schema if it exists.
+     *
+     * @param functionWithSchema
+     * @param stmt
+     * @throws SQLException
+     */
+    public static void dropFunctionWithSchemaIfExists(String functionWithSchema,
+            java.sql.Statement stmt) throws SQLException {
+        stmt.execute("IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'" + functionWithSchema
+                + "') AND type in (N'FN', N'IF', N'TF')) DROP FUNCTION " + functionWithSchema + ";");
     }
 
     /**
@@ -507,8 +527,10 @@ public final class TestUtils {
      * @throws SQLException
      */
     public static void dropUserDefinedTypeIfExists(String typeName, Statement stmt) throws SQLException {
-        stmt.executeUpdate("IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(typeName)
-                + "') DROP TYPE " + typeName);
+        String input = AbstractSQLGenerator.unEscapeIdentifier(typeName);
+        String sql = "IF EXISTS (select * from sys.types where name = '" + escapeSingleQuotes(input) + "') DROP TYPE "
+                + AbstractSQLGenerator.escapeIdentifier(input);
+        stmt.executeUpdate(sql);
     }
 
     /**

@@ -4,8 +4,8 @@
  */
 package com.microsoft.sqlserver.jdbc.datatypes;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -328,6 +328,9 @@ public class DateAndTimeTypeTest extends AbstractTest {
     public static void terminateVariation() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            TestUtils.dropTypeIfExists(timestampTVP, stmt);
+            TestUtils.dropTypeIfExists(dateTVP, stmt);
+            TestUtils.dropTypeIfExists(timeTVP, stmt);
         }
     }
 }

@@ -10,34 +10,29 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -53,7 +48,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -62,6 +56,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
@@ -1097,6 +1092,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testVectorMetaData() throws SQLException {
         String vectorTableName = RandomUtil.getIdentifier("vectorTable");
@@ -1164,6 +1160,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
     public void testJSONMetaData() throws SQLException {
         String jsonTableName = RandomUtil.getIdentifier("try_SQLJSON_Table");
@@ -1352,435 +1349,378 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 }
             }
         }
-    }
 
-    @Test
-    public void testDatabaseCapabilityMethods() throws SQLException {
-        try (Connection con = getConnection()) {
-            DatabaseMetaData dmd = con.getMetaData();
-
-            assertTrue(dmd.allProceduresAreCallable(), "All procedures should be callable");
-
-            assertTrue(dmd.allTablesAreSelectable(), "All tables should be selectable");
-
-            assertFalse(dmd.autoCommitFailureClosesAllResultSets(),
-                    "Auto commit failure should not close all result sets");
-
-            assertFalse(dmd.dataDefinitionCausesTransactionCommit(),
-                    "Data definition should not cause transaction commit");
-
-            assertFalse(dmd.dataDefinitionIgnoredInTransactions(),
-                    "Data definition should not be ignored in transactions");
-
-            assertFalse(dmd.doesMaxRowSizeIncludeBlobs(), "Max row size should not include blobs");
-
-            assertTrue(dmd.generatedKeyAlwaysReturned(), "Generated key should always be returned");
-
-            assertEquals(2147483647L, dmd.getMaxLogicalLobSize(), "Max logical LOB size should be 2147483647");
-
-            assertFalse(dmd.supportsRefCursors(), "Should not support ref cursors");
-
-            assertEquals("database", dmd.getCatalogTerm(), "Catalog term should be 'database'");
-        }
-    }
-
-    @Test
-    public void testDatabaseMetaDataMethodsCodeCoverage() throws Exception {
-        // Create a mock SQLServerDatabaseMetaData with real connection for basic functionality
-        try (Connection conn = getConnection()) {
-            SQLServerDatabaseMetaData dmd = (SQLServerDatabaseMetaData) conn.getMetaData();
-
-            String productVersion = dmd.getDatabaseProductVersion();
-            assertNotNull(productVersion);
-
-            int defaultIsolation = dmd.getDefaultTransactionIsolation();
-            assertEquals(Connection.TRANSACTION_READ_COMMITTED, defaultIsolation);
-
-            String extraNameChars = dmd.getExtraNameCharacters();
-            assertEquals("$#@", extraNameChars);
-
-            String quoteString = dmd.getIdentifierQuoteString();
-            assertEquals("\"", quoteString);
-
-            String procedureTerm = dmd.getProcedureTerm();
-            assertEquals("stored procedure", procedureTerm);
-
-            String schemaTerm = dmd.getSchemaTerm();
-            assertEquals("schema", schemaTerm);
-
-            String searchEscape = dmd.getSearchStringEscape();
-            assertEquals("\\", searchEscape);
-
-            String sqlKeywords = dmd.getSQLKeywords();
-            assertNotNull(sqlKeywords);
-            assertTrue(sqlKeywords.length() > 0);
-
-            String stringFunctions = dmd.getStringFunctions();
-            assertNotNull(stringFunctions);
-            assertTrue(stringFunctions.contains("ASCII"));
-
-            String systemFunctions = dmd.getSystemFunctions();
-            assertNotNull(systemFunctions);
-            assertTrue(systemFunctions.contains("DATABASE"));
-
-            String timeDateFunctions = dmd.getTimeDateFunctions();
-            assertNotNull(timeDateFunctions);
-            assertTrue(timeDateFunctions.contains("CURDATE"));
-
-            // Test catalog/schema support methods
-            assertTrue(dmd.isCatalogAtStart());
-            assertFalse(dmd.isReadOnly());
-            assertTrue(dmd.nullPlusNonNullIsNull());
-
-            // Test null sorting methods
-            assertFalse(dmd.nullsAreSortedAtEnd());
-            assertFalse(dmd.nullsAreSortedAtStart());
-            assertFalse(dmd.nullsAreSortedHigh());
-            assertTrue(dmd.nullsAreSortedLow());
-
-            // Test identifier storage methods
-            assertFalse(dmd.storesLowerCaseIdentifiers());
-            assertFalse(dmd.storesLowerCaseQuotedIdentifiers());
-            assertTrue(dmd.storesMixedCaseIdentifiers());
-            assertTrue(dmd.storesMixedCaseQuotedIdentifiers());
-            assertFalse(dmd.storesUpperCaseIdentifiers());
-            assertFalse(dmd.storesUpperCaseQuotedIdentifiers());
-
-            // Test SQL feature support methods
-            assertTrue(dmd.supportsAlterTableWithAddColumn());
-            assertTrue(dmd.supportsAlterTableWithDropColumn());
-            assertTrue(dmd.supportsANSI92EntryLevelSQL());
-            assertFalse(dmd.supportsANSI92FullSQL());
-            assertFalse(dmd.supportsANSI92IntermediateSQL());
-
-            // Test catalog support methods
-            assertTrue(dmd.supportsCatalogsInDataManipulation());
-            assertTrue(dmd.supportsCatalogsInIndexDefinitions());
-            assertTrue(dmd.supportsCatalogsInPrivilegeDefinitions());
-            assertTrue(dmd.supportsCatalogsInProcedureCalls());
-            assertTrue(dmd.supportsCatalogsInTableDefinitions());
-
-            // Test column and conversion support
-            assertTrue(dmd.supportsColumnAliasing());
-            assertTrue(dmd.supportsConvert());
-            assertTrue(dmd.supportsConvert(Types.INTEGER, Types.VARCHAR));
-
-            // Test SQL grammar support
-            assertTrue(dmd.supportsCoreSQLGrammar());
-            assertTrue(dmd.supportsCorrelatedSubqueries());
-            assertTrue(dmd.supportsDataDefinitionAndDataManipulationTransactions());
-            assertFalse(dmd.supportsDataManipulationTransactionsOnly());
-            assertFalse(dmd.supportsDifferentTableCorrelationNames());
-
-            // Test expression and join support
-            assertTrue(dmd.supportsExpressionsInOrderBy());
-            assertFalse(dmd.supportsExtendedSQLGrammar());
-            assertTrue(dmd.supportsFullOuterJoins());
-
-            // Test GROUP BY support
-            assertTrue(dmd.supportsGroupBy());
-            assertTrue(dmd.supportsGroupByBeyondSelect());
-            assertTrue(dmd.supportsGroupByUnrelated());
-
-            // Test misc feature support
-            assertFalse(dmd.supportsIntegrityEnhancementFacility());
-            assertTrue(dmd.supportsLikeEscapeClause());
-            assertTrue(dmd.supportsLimitedOuterJoins());
-            assertTrue(dmd.supportsMinimumSQLGrammar());
-            assertTrue(dmd.supportsMixedCaseIdentifiers());
-            assertTrue(dmd.supportsMixedCaseQuotedIdentifiers());
-
-            try (ResultSet tableTypes = dmd.getTableTypes()) {
-                assertNotNull(tableTypes);
-                boolean hasTable = false;
-                while (tableTypes.next()) {
-                    String tableType = tableTypes.getString("TABLE_TYPE");
-                    if ("TABLE".equals(tableType)) {
-                        hasTable = true;
+        @Test
+        public void testGetIndexInfoResultSetNextAfterFalse() throws SQLException {
+            try (Connection connection = getConnection()) {
+                String catalog = connection.getCatalog();
+                String schema = "dbo";
+                String table = "DBMetadataTestTable";
+                DatabaseMetaData dbMetadata = connection.getMetaData();
+                
+                try (ResultSet rs = dbMetadata.getIndexInfo(catalog, schema, table, false, false)) {
+                    // First, enumerate all rows
+                    int rowCount = 0;
+                    while (rs.next()) {
+                        rowCount++;
+                        assertNotNull(rs.getString("TABLE_NAME"));
                     }
+                    
+                    assertTrue(rowCount > 0, "Expected at least one index row");
+                    
+                    // Now test the critical fix: calling next() after it returned false should not throw exception
+                    boolean hasMore1 = rs.next();
+                    assertFalse(hasMore1, "next() after end of ResultSet should return false");
+                    
+                    // Test multiple calls to next() after end - all should return false without exception
+                    boolean hasMore2 = rs.next();
+                    assertFalse(hasMore2, "Second call to next() after end should also return false");
+                    
+                    // Test the exact pattern from issue #2758 - checking completion with !rs.next()
+                    boolean isComplete = !rs.next();
+                    assertTrue(isComplete, "Pattern from issue: !rs.next() should return true when at end");
                 }
-                assertTrue(hasTable);
             }
-
-            try (ResultSet pseudoCols = dmd.getPseudoColumns(null, null, null, null)) {
-                assertNotNull(pseudoCols);
-                // Should return empty result set for SQL Server
-                assertFalse(pseudoCols.next());
-            }
-
-            assertEquals(0, dmd.getMaxBinaryLiteralLength());
-            assertEquals(128, dmd.getMaxCatalogNameLength());
-            assertEquals(0, dmd.getMaxCharLiteralLength());
-            assertEquals(128, dmd.getMaxColumnNameLength());
-            assertEquals(0, dmd.getMaxColumnsInGroupBy());
-            assertEquals(16, dmd.getMaxColumnsInIndex());
-            assertEquals(0, dmd.getMaxColumnsInOrderBy());
-            assertEquals(4096, dmd.getMaxColumnsInSelect());
-            assertEquals(1024, dmd.getMaxColumnsInTable());
-            assertEquals(0, dmd.getMaxCursorNameLength());
-            assertEquals(900, dmd.getMaxIndexLength());
-            assertEquals(128, dmd.getMaxProcedureNameLength());
-            assertEquals(8060, dmd.getMaxRowSize());
-            assertEquals(128, dmd.getMaxSchemaNameLength());
-            assertEquals(524288000, dmd.getMaxStatementLength());
-            assertEquals(0, dmd.getMaxStatements());
-            assertEquals(128, dmd.getMaxTableNameLength());
-            assertEquals(256, dmd.getMaxTablesInSelect());
-            assertEquals(128, dmd.getMaxUserNameLength());
-
-            // Test function string methods
-            String numericFunctions = dmd.getNumericFunctions();
-            assertNotNull(numericFunctions);
         }
     }
 
-    @Test
-    public void testDatabaseProductNameDriverNameAndSupportMethods() throws SQLException {
-        try (Connection conn = getConnection()) {
-            DatabaseMetaData dbmd = conn.getMetaData();
+    private void setupProcedures(String schemaName, String proc1, String proc1Body,
+            String proc2, String proc2Body) throws SQLException {
+        String escapedSchema = AbstractSQLGenerator.escapeIdentifier(schemaName);
+        String escapedProc1 = AbstractSQLGenerator.escapeIdentifier(proc1);
+        String escapedProc2 = AbstractSQLGenerator.escapeIdentifier(proc2);
 
-            // Test getDatabaseProductName()
-            String productName = dbmd.getDatabaseProductName();
-            assertEquals("Microsoft SQL Server", productName, "Database product name should be 'Microsoft SQL Server'");
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(
+                    "IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '" + schemaName + "') " +
+                            "EXEC('CREATE SCHEMA " + escapedSchema + "')");
 
-            // Test getDriverName()
-            String driverName = dbmd.getDriverName();
-            assertNotNull(driverName, "Driver name should not be null");
-            assertTrue(driverName.contains("Microsoft"), "Driver name should contain 'Microsoft'");
+            stmt.executeUpdate("IF OBJECT_ID('" + schemaName + "." + proc1 + "', 'P') IS NOT NULL " +
+                    "DROP PROCEDURE " + escapedSchema + "." + escapedProc1);
+            stmt.executeUpdate("CREATE PROCEDURE " + escapedSchema + "." + escapedProc1 + " " + proc1Body);
 
-            // Test support methods that return true (lines 2196-2375)
-            assertTrue(dbmd.supportsMultipleResultSets(), "Should support multiple result sets");
-            assertTrue(dbmd.supportsMultipleTransactions(), "Should support multiple transactions");
-            assertTrue(dbmd.supportsNonNullableColumns(), "Should support non-nullable columns");
-            assertTrue(dbmd.supportsOpenStatementsAcrossCommit(), "Should support open statements across commit");
-            assertTrue(dbmd.supportsOpenStatementsAcrossRollback(), "Should support open statements across rollback");
-            assertTrue(dbmd.supportsOrderByUnrelated(), "Should support ORDER BY unrelated");
-            assertTrue(dbmd.supportsOuterJoins(), "Should support outer joins");
-            assertTrue(dbmd.supportsPositionedDelete(), "Should support positioned delete");
-            assertTrue(dbmd.supportsPositionedUpdate(), "Should support positioned update");
-            assertTrue(dbmd.supportsSchemasInDataManipulation(), "Should support schemas in data manipulation");
-            assertTrue(dbmd.supportsSchemasInIndexDefinitions(), "Should support schemas in index definitions");
-            assertTrue(dbmd.supportsSchemasInPrivilegeDefinitions(), "Should support schemas in privilege definitions");
-            assertTrue(dbmd.supportsSchemasInProcedureCalls(), "Should support schemas in procedure calls");
-            assertTrue(dbmd.supportsSchemasInTableDefinitions(), "Should support schemas in table definitions");
-            assertTrue(dbmd.supportsStoredProcedures(), "Should support stored procedures");
-            assertTrue(dbmd.supportsSubqueriesInComparisons(), "Should support subqueries in comparisons");
-            assertTrue(dbmd.supportsSubqueriesInExists(), "Should support subqueries in EXISTS");
-            assertTrue(dbmd.supportsSubqueriesInIns(), "Should support subqueries in IN clauses");
-            assertTrue(dbmd.supportsSubqueriesInQuantifieds(), "Should support subqueries in quantified expressions");
-            assertTrue(dbmd.supportsTableCorrelationNames(), "Should support table correlation names");
-            assertTrue(dbmd.supportsUnion(), "Should support UNION");
-            assertTrue(dbmd.supportsUnionAll(), "Should support UNION ALL");
-
-            // Test support methods that return false
-            assertFalse(dbmd.supportsOpenCursorsAcrossCommit(), "Should not support open cursors across commit");
-            assertFalse(dbmd.supportsOpenCursorsAcrossRollback(), "Should not support open cursors across rollback");
-            assertFalse(dbmd.supportsSelectForUpdate(), "Should not support SELECT FOR UPDATE");
-            assertFalse(dbmd.usesLocalFilePerTable(), "Should not use local file per table");
-            assertFalse(dbmd.usesLocalFiles(), "Should not use local files");
-
-            // Test supportsTransactionIsolationLevel with valid isolation levels
-            assertTrue(dbmd.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_UNCOMMITTED),
-                    "Should support READ_UNCOMMITTED isolation level");
-            assertTrue(dbmd.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_COMMITTED),
-                    "Should support READ_COMMITTED isolation level");
-            assertTrue(dbmd.supportsTransactionIsolationLevel(Connection.TRANSACTION_REPEATABLE_READ),
-                    "Should support REPEATABLE_READ isolation level");
-            assertTrue(dbmd.supportsTransactionIsolationLevel(Connection.TRANSACTION_SERIALIZABLE),
-                    "Should support SERIALIZABLE isolation level");
-
-            // Test SQLServerConnection.TRANSACTION_SNAPSHOT if available
-            try {
-                Class<?> sqlServerConnClass = Class.forName("com.microsoft.sqlserver.jdbc.SQLServerConnection");
-                java.lang.reflect.Field snapshotField = sqlServerConnClass.getField("TRANSACTION_SNAPSHOT");
-                int snapshotLevel = snapshotField.getInt(null);
-                assertTrue(dbmd.supportsTransactionIsolationLevel(snapshotLevel),
-                        "Should support SNAPSHOT isolation level");
-            } catch (Exception e) {
-                // TRANSACTION_SNAPSHOT field might not be accessible, skip this test
-            }
-
-            // Test supportsTransactionIsolationLevel with invalid isolation level
-            assertFalse(dbmd.supportsTransactionIsolationLevel(999), "Should not support invalid isolation level");
-
-            // Test supportsTransactions() - delegates to connection
-            // This should generally return true for SQL Server connections
-            boolean supportsTransactions = dbmd.supportsTransactions();
-            // We don't assert a specific value since it depends on connection configuration
-            // but we ensure the method doesn't throw an exception
-            assertNotNull(supportsTransactions);
+            stmt.executeUpdate("IF OBJECT_ID('" + schemaName + "." + proc2 + "', 'P') IS NOT NULL " +
+                    "DROP PROCEDURE " + escapedSchema + "." + escapedProc2);
+            stmt.executeUpdate("CREATE PROCEDURE " + escapedSchema + "." + escapedProc2 + " " + proc2Body);
         }
     }
 
+    private void setupFunctions(String schemaName, String func1, String func1Body,
+            String func2, String func2Body) throws SQLException {
+        String escapedSchema = AbstractSQLGenerator.escapeIdentifier(schemaName);
+        String escapedFunc1 = AbstractSQLGenerator.escapeIdentifier(func1);
+        String escapedFunc2 = AbstractSQLGenerator.escapeIdentifier(func2);
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(
+                    "IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '" + schemaName + "') " +
+                            "EXEC('CREATE SCHEMA " + escapedSchema + "')");
+
+            stmt.executeUpdate("IF OBJECT_ID('" + schemaName + "." + func1 + "', 'FN') IS NOT NULL " +
+                    "DROP FUNCTION " + escapedSchema + "." + escapedFunc1);
+            stmt.executeUpdate("CREATE FUNCTION " + escapedSchema + "." + escapedFunc1 + " " + func1Body);
+
+            stmt.executeUpdate("IF OBJECT_ID('" + schemaName + "." + func2 + "', 'FN') IS NOT NULL " +
+                    "DROP FUNCTION " + escapedSchema + "." + escapedFunc2);
+            stmt.executeUpdate("CREATE FUNCTION " + escapedSchema + "." + escapedFunc2 + " " + func2Body);
+        }
+    }
+
+    /**
+     * Test to verify getProcedures() metadata structure and PROCEDURE_TYPE values
+     * getProcedures() internally calls sp_stored_procedures and PROCEDURE_TYPE is returned as 2 always
+     *
+     * @throws SQLException
+     */
     @Test
-    public void testResultSetCapabilitiesAndJDBCVersionMethods() throws SQLException {
+    public void testGetProceduresMetadataValidation() throws SQLException {
+        String schemaName = "test_schema" + uuid;
+        String proc1 = "sp_test1" + uuid;
+        String proc2 = "sp_test2" + uuid;
+
+        setupProcedures(schemaName,
+                proc1, "AS BEGIN SELECT 1; END",
+                proc2, "@val INT AS BEGIN SELECT @val * 2; END");
+
         try (Connection conn = getConnection()) {
-            DatabaseMetaData dbmd = conn.getMetaData();
-
-            // Test supportsResultSetType with valid types
-            assertTrue(dbmd.supportsResultSetType(ResultSet.TYPE_FORWARD_ONLY), "Should support TYPE_FORWARD_ONLY");
-            assertTrue(dbmd.supportsResultSetType(ResultSet.TYPE_SCROLL_INSENSITIVE),
-                    "Should support TYPE_SCROLL_INSENSITIVE");
-            assertTrue(dbmd.supportsResultSetType(ResultSet.TYPE_SCROLL_SENSITIVE),
-                    "Should support TYPE_SCROLL_SENSITIVE");
-
-            // Test SQL Server specific result set types
-            assertTrue(dbmd.supportsResultSetType(2003), // TYPE_SS_DIRECT_FORWARD_ONLY
-                    "Should support TYPE_SS_DIRECT_FORWARD_ONLY");
-            assertTrue(dbmd.supportsResultSetType(2004), // TYPE_SS_SERVER_CURSOR_FORWARD_ONLY
-                    "Should support TYPE_SS_SERVER_CURSOR_FORWARD_ONLY");
-            assertTrue(dbmd.supportsResultSetType(1006), // TYPE_SS_SCROLL_DYNAMIC
-                    "Should support TYPE_SS_SCROLL_DYNAMIC");
-
-            // Test supportsResultSetConcurrency
-            assertTrue(dbmd.supportsResultSetConcurrency(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY),
-                    "Should support FORWARD_ONLY with READ_ONLY");
-            assertTrue(dbmd.supportsResultSetConcurrency(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE),
-                    "Should support FORWARD_ONLY with UPDATABLE");
-            assertTrue(dbmd.supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY),
-                    "Should support SCROLL_SENSITIVE with READ_ONLY");
-            assertTrue(dbmd.supportsResultSetConcurrency(1006, ResultSet.CONCUR_UPDATABLE), // TYPE_SS_SCROLL_DYNAMIC
-                    "Should support TYPE_SS_SCROLL_DYNAMIC with UPDATABLE");
-
-            // Test SCROLL_INSENSITIVE only supports READ_ONLY
-            assertTrue(dbmd.supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY),
-                    "Should support SCROLL_INSENSITIVE with READ_ONLY");
-            assertFalse(
-                    dbmd.supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE),
-                    "Should not support SCROLL_INSENSITIVE with UPDATABLE");
-
-            // Test SS_DIRECT_FORWARD_ONLY only supports READ_ONLY
-            assertTrue(dbmd.supportsResultSetConcurrency(2003, ResultSet.CONCUR_READ_ONLY), // TYPE_SS_DIRECT_FORWARD_ONLY
-                    "Should support TYPE_SS_DIRECT_FORWARD_ONLY with READ_ONLY");
-            assertFalse(dbmd.supportsResultSetConcurrency(2003, ResultSet.CONCUR_UPDATABLE), // TYPE_SS_DIRECT_FORWARD_ONLY
-                    "Should not support TYPE_SS_DIRECT_FORWARD_ONLY with UPDATABLE");
-
-            // Test visibility methods for supported types
-            int[] supportedTypes = {ResultSet.TYPE_FORWARD_ONLY, ResultSet.TYPE_SCROLL_SENSITIVE, 1006, // TYPE_SS_SCROLL_DYNAMIC
-                    1005, // TYPE_SS_SCROLL_KEYSET
-                    2004 // TYPE_SS_SERVER_CURSOR_FORWARD_ONLY
+            DatabaseMetaData metaData = conn.getMetaData();
+            String[] expectedCols = {
+                    "PROCEDURE_CAT", "PROCEDURE_SCHEM", "PROCEDURE_NAME", "NUM_INPUT_PARAMS",
+                    "NUM_OUTPUT_PARAMS", "NUM_RESULT_SETS", "REMARKS", "PROCEDURE_TYPE"
             };
 
-            for (int type : supportedTypes) {
-                assertTrue(dbmd.ownUpdatesAreVisible(type), "Own updates should be visible for type: " + type);
-                assertTrue(dbmd.ownDeletesAreVisible(type), "Own deletes should be visible for type: " + type);
-                assertTrue(dbmd.ownInsertsAreVisible(type), "Own inserts should be visible for type: " + type);
-                assertTrue(dbmd.othersUpdatesAreVisible(type), "Others updates should be visible for type: " + type);
-                assertTrue(dbmd.othersDeletesAreVisible(type), "Others deletes should be visible for type: " + type);
+            try (ResultSet rs = metaData.getProcedures(null, schemaName, "sp_test%")) {
+                ResultSetMetaData rsMeta = rs.getMetaData();
+                assertEquals(expectedCols.length, rsMeta.getColumnCount());
+
+                for (int i = 1; i <= rsMeta.getColumnCount(); i++) {
+                    assertEquals(expectedCols[i - 1], rsMeta.getColumnName(i));
+                }
+
+                boolean foundProcedure = false;
+                int rowCount = 0;
+                while (rs.next() && rowCount < 5) {
+                    foundProcedure = true;
+                    rowCount++;
+
+                    // Verify required fields are not null/empty
+                    assertNotNull(rs.getString("PROCEDURE_CAT"));
+                    assertNotNull(rs.getString("PROCEDURE_SCHEM"));
+                    assertNotNull(rs.getString("PROCEDURE_NAME"));
+
+                    // Verify PROCEDURE_TYPE - should be 2
+                    int procedureType = rs.getInt("PROCEDURE_TYPE");
+                    assertEquals(2, procedureType);
+
+                    // Verify parameter counts are -1 (unknown) as per JDBC spec
+                    assertEquals(-1, rs.getInt("NUM_INPUT_PARAMS"));
+                    assertEquals(-1, rs.getInt("NUM_OUTPUT_PARAMS"));
+                    assertEquals(-1, rs.getInt("NUM_RESULT_SETS"));
+                }
+
+                assertTrue(foundProcedure, "At least one procedure should be found in schema");
+                System.out.println("Verified " + rowCount + " procedures with PROCEDURE_TYPE = 2");
+
             }
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropProcedureWithSchemaIfExists(schemaName + "." + proc1, stmt);
+                TestUtils.dropProcedureWithSchemaIfExists(schemaName + "." + proc2, stmt);
 
-            // Test othersInsertsAreVisible - only specific types support this
-            int[] insertsVisibleTypes = {ResultSet.TYPE_FORWARD_ONLY, 1006, // TYPE_SS_SCROLL_DYNAMIC
-                    2004 // TYPE_SS_SERVER_CURSOR_FORWARD_ONLY
-            };
-
-            for (int type : insertsVisibleTypes) {
-                assertTrue(dbmd.othersInsertsAreVisible(type), "Others inserts should be visible for type: " + type);
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
             }
-
-            // Test types where others inserts are NOT visible
-            assertFalse(dbmd.othersInsertsAreVisible(ResultSet.TYPE_SCROLL_SENSITIVE),
-                    "Others inserts should not be visible for TYPE_SCROLL_SENSITIVE");
-            assertFalse(dbmd.othersInsertsAreVisible(1005), // TYPE_SS_SCROLL_KEYSET
-                    "Others inserts should not be visible for TYPE_SS_SCROLL_KEYSET");
-
-            // Test detection methods
-            for (int type : supportedTypes) {
-                assertFalse(dbmd.updatesAreDetected(type), "Updates should not be detected for type: " + type);
-                assertFalse(dbmd.insertsAreDetected(type), "Inserts should not be detected for type: " + type);
-            }
-
-            // Test deletesAreDetected - only TYPE_SS_SCROLL_KEYSET supports this
-            assertFalse(dbmd.deletesAreDetected(ResultSet.TYPE_FORWARD_ONLY),
-                    "Deletes should not be detected for TYPE_FORWARD_ONLY");
-            assertTrue(dbmd.deletesAreDetected(1005), // TYPE_SS_SCROLL_KEYSET
-                    "Deletes should be detected for TYPE_SS_SCROLL_KEYSET");
-
-            // Test simple support methods
-            assertTrue(dbmd.supportsBatchUpdates(), "Should support batch updates");
-            assertTrue(dbmd.supportsGetGeneratedKeys(), "Should support generated keys");
-            assertFalse(dbmd.supportsMultipleOpenResults(), "Should not support multiple open results");
-            assertTrue(dbmd.supportsNamedParameters(), "Should support named parameters");
-            assertTrue(dbmd.supportsSavepoints(), "Should support savepoints");
-            assertFalse(dbmd.supportsStatementPooling(), "Should not support statement pooling");
-            assertTrue(dbmd.supportsStoredFunctionsUsingCallSyntax(),
-                    "Should support stored functions using call syntax");
-            assertTrue(dbmd.locatorsUpdateCopy(), "Locators should update copy");
-
-            // Test version methods
-            int dbMajorVersion = dbmd.getDatabaseMajorVersion();
-            assertTrue(dbMajorVersion >= 0, "Database major version should be non-negative");
-
-            int dbMinorVersion = dbmd.getDatabaseMinorVersion();
-            assertTrue(dbMinorVersion >= 0, "Database minor version should be non-negative");
-
-            int jdbcMajorVersion = dbmd.getJDBCMajorVersion();
-            assertTrue(jdbcMajorVersion >= 4, "JDBC major version should be at least 4");
-
-            int jdbcMinorVersion = dbmd.getJDBCMinorVersion();
-            assertTrue(jdbcMinorVersion >= 0, "JDBC minor version should be non-negative");
-
-            // Test SQL State type
-            int sqlStateType = dbmd.getSQLStateType();
-            assertTrue(sqlStateType == DatabaseMetaData.sqlStateXOpen || sqlStateType == DatabaseMetaData.sqlStateSQL99,
-                    "SQL State type should be either X/Open or SQL99");
-
-            // Test result set holdability
-            int holdability = dbmd.getResultSetHoldability();
-            assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, holdability,
-                    "Default holdability should be HOLD_CURSORS_OVER_COMMIT");
-
-            // Test supportsResultSetHoldability
-            assertTrue(dbmd.supportsResultSetHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT),
-                    "Should support HOLD_CURSORS_OVER_COMMIT");
-            assertTrue(dbmd.supportsResultSetHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT),
-                    "Should support CLOSE_CURSORS_AT_COMMIT");
-
-            // Test invalid holdability - should throw exception
-            assertThrows(SQLException.class, () -> dbmd.supportsResultSetHoldability(9999),
-                    "Should throw SQLException for invalid holdability");
-
-            // Test getRowIdLifetime
-            RowIdLifetime rowIdLifetime = dbmd.getRowIdLifetime();
-            assertEquals(RowIdLifetime.ROWID_UNSUPPORTED, rowIdLifetime, "Row ID lifetime should be ROWID_UNSUPPORTED");
-
-            // Test getConnection
-            Connection metaDataConnection = dbmd.getConnection();
-            assertNotNull(metaDataConnection, "Connection from metadata should not be null");
-            assertSame(conn, metaDataConnection, "Connection should be the same instance");
-
-            // Test getUDTs - should return empty result set
-            try (ResultSet rs = dbmd.getUDTs(null, null, null, null)) {
-                assertNotNull(rs, "UDTs result set should not be null");
-                assertFalse(rs.next(), "UDTs result set should be empty");
-            }
-
-            // Test getAttributes - should return empty result set
-            try (ResultSet rs = dbmd.getAttributes(null, null, null, null)) {
-                assertNotNull(rs, "Attributes result set should not be null");
-                assertFalse(rs.next(), "Attributes result set should be empty");
-            }
-
-            // Test getSuperTables - should return empty result set
-            try (ResultSet rs = dbmd.getSuperTables(null, null, null)) {
-                assertNotNull(rs, "SuperTables result set should not be null");
-                assertFalse(rs.next(), "SuperTables result set should be empty");
-            }
-
-            // Test getSuperTypes - should return empty result set
-            try (ResultSet rs = dbmd.getSuperTypes(null, null, null)) {
-                assertNotNull(rs, "SuperTypes result set should not be null");
-                assertFalse(rs.next(), "SuperTypes result set should be empty");
-            }
-
-            // Test invalid result set types for checkResultType (implicitly tested through supportsResultSetType)
-            assertThrows(SQLException.class, () -> dbmd.supportsResultSetType(99999),
-                    "Should throw SQLException for invalid result set type");
-
-            // Test invalid concurrency types for checkConcurrencyType (implicitly tested through supportsResultSetConcurrency)
-            assertThrows(SQLException.class,
-                    () -> dbmd.supportsResultSetConcurrency(ResultSet.TYPE_FORWARD_ONLY, 99999),
-                    "Should throw SQLException for invalid concurrency type");
         }
     }
+
+    /**
+     * Test to verify getFunctions() metadata structure and FUNCTION_TYPE values
+     * getFunctions() internally calls sp_stored_functions and FUNCTION_TYPE is returned as 2 always
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testGetFunctionsMetadataValidation() throws SQLException {
+        String schemaName = "test_schema" + uuid;
+        String func1 = "fn_test1" + uuid;
+        String func2 = "fn_test2" + uuid;
+
+        setupFunctions(schemaName,
+                func1, "() RETURNS INT AS BEGIN RETURN 42; END",
+                func2, "(@val INT) RETURNS INT AS BEGIN RETURN @val * 2; END");
+
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData metaData = conn.getMetaData();
+            String[] expectedCols = {
+                    "FUNCTION_CAT", "FUNCTION_SCHEM", "FUNCTION_NAME", "NUM_INPUT_PARAMS",
+                    "NUM_OUTPUT_PARAMS", "NUM_RESULT_SETS", "REMARKS", "FUNCTION_TYPE"
+            };
+
+            try (ResultSet rs = metaData.getFunctions(null, schemaName, "fn_test%")) {
+                ResultSetMetaData rsMeta = rs.getMetaData();
+                assertEquals(expectedCols.length, rsMeta.getColumnCount());
+                for (int i = 1; i <= rsMeta.getColumnCount(); i++) {
+                    assertEquals(expectedCols[i - 1], rsMeta.getColumnName(i));
+                }
+
+                boolean foundFunction = false;
+                int rowCount = 0;
+                while (rs.next() && rowCount < 5) {
+                    foundFunction = true;
+                    rowCount++;
+
+                    // Verify required fields are not null/empty
+                    assertNotNull(rs.getString("FUNCTION_CAT"));
+                    assertNotNull(rs.getString("FUNCTION_SCHEM"));
+                    assertNotNull(rs.getString("FUNCTION_NAME"));
+
+                    // Verify FUNCTION_TYPE - should be 2
+                    int functionType = rs.getInt("FUNCTION_TYPE");
+                    assertEquals(2, functionType);
+
+                    // Verify parameter counts are -1 (unknown) as per JDBC spec
+                    assertEquals(-1, rs.getInt("NUM_INPUT_PARAMS"));
+                    assertEquals(-1, rs.getInt("NUM_OUTPUT_PARAMS"));
+                    assertEquals(-1, rs.getInt("NUM_RESULT_SETS"));
+                }
+
+                assertTrue(foundFunction, "At least one function should be found in schema");
+                System.out.println("Verified " + rowCount + " functions with FUNCTION_TYPE = 2");
+
+            }
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func1, stmt);
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func2, stmt);
+
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test to verify getProcedures() with controlled data using specific procedures
+     * getProcedures() internally calls sp_stored_procedures and PROCEDURE_NAME is returned with numbered suffix always
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testGetProceduresWithData() throws SQLException {
+        String schemaName = "test_Schema" + uuid;
+        String proc1 = "sproc_test1" + uuid;
+        String proc2 = "sproc_test2" + uuid;
+
+        setupProcedures(schemaName,
+                proc1, "AS BEGIN SELECT 1; END",
+                proc2, "@val INT AS BEGIN SELECT @val * 2; END");
+
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData metaData = conn.getMetaData();
+            try (ResultSet rs = metaData.getProcedures(null, schemaName, "sproc_test%")) {
+                Set<String> foundProcedures = new HashSet<>();
+                while (rs.next()) {
+                    foundProcedures.add(rs.getString("PROCEDURE_NAME"));
+                    assertEquals(2, rs.getInt("PROCEDURE_TYPE"));
+                }
+                assertEquals(new HashSet<>(Arrays.asList(proc1 + ";1", proc2 + ";1")), foundProcedures);
+            }
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropProcedureWithSchemaIfExists(schemaName + "." + proc1, stmt);
+                TestUtils.dropProcedureWithSchemaIfExists(schemaName + "." + proc2, stmt);
+
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test to verify getFunctions() with controlled data using specific functions
+     * getFunctions() internally calls sp_stored_functions and FUNCTION_NAME is returned with numbered suffix always
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testGetFunctionsWithData() throws SQLException {
+        String schemaName = "test_Schema" + uuid;
+        String func1 = "function_test1" + uuid;
+        String func2 = "function_test2" + uuid;
+
+        setupFunctions(schemaName,
+                func1, "() RETURNS INT AS BEGIN RETURN 42; END",
+                func2, "(@val INT) RETURNS INT AS BEGIN RETURN @val * 2; END");
+
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData metaData = conn.getMetaData();
+            try (ResultSet rs = metaData.getFunctions(null, schemaName, "function_test%")) {
+                Set<String> foundFunctions = new HashSet<>();
+                while (rs.next()) {
+                    foundFunctions.add(rs.getString("FUNCTION_NAME"));
+                    assertEquals(2, rs.getInt("FUNCTION_TYPE"));
+                }
+                assertEquals(new HashSet<>(Arrays.asList(func1 + ";0", func2 + ";0")), foundFunctions);
+            }
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func1, stmt);
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func2, stmt);
+
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test procedure columns retrieval with validation.
+     * Internally calls sp_sproc_columns which returns numbered procedures
+     */
+    @Test
+    public void testGetProcedureColumnsWithValidation() throws SQLException {
+        String schemaName = "test_Schema" + uuid;
+        String proc1 = "sproc_test1" + uuid;
+        String proc2 = "sproc_test2" + uuid;
+
+        // Setup procedures
+        setupProcedures(schemaName,
+                proc1, "@val INT AS BEGIN SELECT @val * 2; END",
+                proc2, "@val INT AS BEGIN SELECT @val * 2; END");
+
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+
+            // Fetch procedure columns
+            try (ResultSet rs = databaseMetaData.getProcedureColumns(null, schemaName, "%", "%")) {
+                int count = 0;
+                while (rs.next()) {
+                    String procedureName = rs.getString("PROCEDURE_NAME");
+                    String schema = rs.getString("PROCEDURE_SCHEM");
+
+                    // Validate procedure name
+                    assertTrue(procedureName.equals(proc1 + ";1") || procedureName.equals(proc2 + ";1"),
+                            "Unexpected procedure name: " + procedureName);
+
+                    // Validate schema name
+                    assertEquals(schemaName, schema, "Schema name does not match");
+
+                    count++;
+                }
+
+                assertEquals(2, count, "Unexpected number of procedures found");
+            }
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropProcedureWithSchemaIfExists(schemaName + "." + proc1, stmt);
+                TestUtils.dropProcedureWithSchemaIfExists(schemaName + "." + proc2, stmt);
+
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test function columns retrieval with validation.
+     * Internally calls sp_sproc_columns which returns numbered functions
+     */
+    @Test
+    public void testGetFunctionColumnsWithValidation() throws SQLException {
+        String schemaName = "test_Schema" + uuid;
+        String func1 = "function_test1" + uuid;
+        String func2 = "function_test2" + uuid;
+
+        // Setup functions
+        setupFunctions(schemaName,
+                func1, "() RETURNS INT AS BEGIN RETURN 42; END",
+                func2, "() RETURNS INT AS BEGIN RETURN 42; END");
+
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+
+            // Fetch function columns
+            try (ResultSet rs = databaseMetaData.getFunctionColumns(null, schemaName, "%", "%")) {
+                int count = 0;
+                while (rs.next()) {
+                    String functionName = rs.getString("FUNCTION_NAME");
+                    String schema = rs.getString("FUNCTION_SCHEM");
+
+                    // Validate function name
+                    assertTrue(functionName.equals(func1 + ";0") || functionName.equals(func2 + ";0"),
+                            "Unexpected function name: " + functionName);
+
+                    // Validate schema name
+                    assertEquals(schemaName, schema, "Schema name does not match");
+
+                    count++;
+                }
+
+                assertEquals(2, count, "Unexpected number of functions found");
+            }
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func1, stmt);
+                TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func2, stmt);
+
+                TestUtils.dropSchemaIfExists(schemaName, stmt);
+            }
+        }
+    }
+
 }

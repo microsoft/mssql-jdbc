@@ -311,5 +311,6 @@ public class RegressionAlwaysEncryptedTest extends AESetup {
         TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
         TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
         TestUtils.dropTableIfExists(NUMERIC_TABLE_AE, stmt);
+        TestUtils.dropTableIfExists(VARY_STRING_TABLE_AE, stmt);
     }
 }

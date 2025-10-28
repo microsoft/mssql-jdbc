@@ -28,16 +28,15 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.MessageFormat;
-import java.time.OffsetDateTime;
-import java.time.OffsetTime;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Collections;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -54,7 +53,9 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
@@ -91,6 +92,10 @@ public class CallableStatementTest extends AbstractTest {
             .escapeIdentifier(RandomUtil.getIdentifier("manyParam_definedType"));
     private static String zeroParamSproc = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("zeroParamSproc"));
+    private static String tableNameJSON = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("TestJSONTable"));
+    private static String procedureNameJSON = AbstractSQLGenerator
+	    .escapeIdentifier(RandomUtil.getIdentifier("TestJSONProcedure"));
     private static String allOutParamsProcName = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("TestAllOutParams"));
     private static String getObjectTypesProcName = AbstractSQLGenerator
@@ -102,11 +107,7 @@ public class CallableStatementTest extends AbstractTest {
     private static String tvpProcName = AbstractSQLGenerator
         .escapeIdentifier(RandomUtil.getIdentifier("TVPProc"));
     private static String tvpTypeName = "TVPType";
-    private static String tableNameJSON = AbstractSQLGenerator
-            .escapeIdentifier(RandomUtil.getIdentifier("TestJSONTable"));
-    private static String procedureNameJSON = AbstractSQLGenerator
-	    .escapeIdentifier(RandomUtil.getIdentifier("TestJSONProcedure"));
-
+    
     /**
      * Setup before test
      * 
@@ -117,7 +118,7 @@ public class CallableStatementTest extends AbstractTest {
         setConnection();
 
         try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(tableNameGUID, stmt);
+            // Drop order matters. Can't drop objects still referenced by other objects.
             TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
             TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
             TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
@@ -126,9 +127,12 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
             TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
-            TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropProcedureIfExists(manyParamProc, stmt);
+            TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
+            TestUtils.dropTableIfExists(tableNameGUID, stmt);
             TestUtils.dropTableIfExists(manyParamsTable, stmt);
+            TestUtils.dropTableIfExists(tableNameJSON, stmt);
+            TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt);
             TestUtils.dropTableIfExists(tableNameJSON, stmt);
 			TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
 
@@ -213,6 +217,8 @@ public class CallableStatementTest extends AbstractTest {
                     rs.next();
                     assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
                 }
+            } finally {
+                TestUtils.dropProcedureIfExists(procName, statement);
             }
         }
     }
@@ -549,74 +555,81 @@ public class CallableStatementTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLMI)
     public void testFourPartSyntaxCallEscapeSyntax() throws SQLException {
-        String table = "serverList";
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("serverList"));
+        try {
 
-        try (Statement stmt = connection.createStatement()) {
-            stmt.execute("IF OBJECT_ID(N'" + table + "') IS NOT NULL DROP TABLE " + table);
-            stmt.execute("CREATE TABLE " + table
-                    + " (serverName varchar(100),network varchar(100),serverStatus varchar(4000), id int, collation varchar(100), connectTimeout int, queryTimeout int)");
-            stmt.execute("INSERT " + table + " EXEC sp_helpserver");
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(table, stmt);
+                stmt.execute("CREATE TABLE " + table
+                        + " (serverName varchar(100),network varchar(100),serverStatus varchar(4000), id int, collation varchar(100), connectTimeout int, queryTimeout int)");
+                stmt.execute("INSERT " + table + " EXEC sp_helpserver");
 
-            ResultSet rs = stmt
-                    .executeQuery("SELECT COUNT(*) FROM " + table + " WHERE serverName = N'" + linkedServer + "'");
-            rs.next();
+                ResultSet rs = stmt
+                        .executeQuery("SELECT COUNT(*) FROM " + table + " WHERE serverName = N'" + linkedServer + "'");
+                rs.next();
 
-            if (rs.getInt(1) == 1) {
-                stmt.execute("EXEC sp_dropserver @server='" + linkedServer + "';");
+                if (rs.getInt(1) == 1) {
+                    stmt.execute("EXEC sp_dropserver @server='" + linkedServer + "';");
+                }
+
+                stmt.execute("EXEC sp_addlinkedserver @server='" + linkedServer + "';");
+                stmt.execute("EXEC sp_addlinkedsrvlogin @rmtsrvname=N'" + linkedServer + "', @useself=false"
+                        + ", @rmtuser=N'" + linkedServerUser + "', @rmtpassword=N'" + linkedServerPassword + "'");
+                stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc', true;");
+                stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc out', true;");
             }
 
-            stmt.execute("EXEC sp_addlinkedserver @server='" + linkedServer + "';");
-            stmt.execute("EXEC sp_addlinkedsrvlogin @rmtsrvname=N'" + linkedServer + "', @useself=false"
-                    + ", @rmtuser=N'" + linkedServerUser + "', @rmtpassword=N'" + linkedServerPassword + "'");
-            stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc', true;");
-            stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc out', true;");
-        }
+            SQLServerDataSource ds = new SQLServerDataSource();
+            ds.setServerName(linkedServer);
+            ds.setUser(linkedServerUser);
+            ds.setPassword(linkedServerPassword);
+            ds.setEncrypt(false);
+            ds.setTrustServerCertificate(true);
 
-        SQLServerDataSource ds = new SQLServerDataSource();
-        ds.setServerName(linkedServer);
-        ds.setUser(linkedServerUser);
-        ds.setPassword(linkedServerPassword);
-        ds.setEncrypt(false);
-        ds.setTrustServerCertificate(true);
+            try (Connection linkedServerConnection = ds.getConnection();
+                    Statement stmt = linkedServerConnection.createStatement()) {
+                stmt.execute(
+                        "create or alter procedure dbo.TestAdd(@Num1 int, @Num2 int, @Result int output) as begin set @Result = @Num1 + @Num2; end;");
 
-        try (Connection linkedServerConnection = ds.getConnection();
-                Statement stmt = linkedServerConnection.createStatement()) {
-            stmt.execute(
-                    "create or alter procedure dbo.TestAdd(@Num1 int, @Num2 int, @Result int output) as begin set @Result = @Num1 + @Num2; end;");
+                stmt.execute("create or alter procedure dbo.TestReturn(@Num1 int) as select @Num1 return @Num1*3  ");
+            }
 
-            stmt.execute("create or alter procedure dbo.TestReturn(@Num1 int) as select @Num1 return @Num1*3  ");
-        }
+            try (CallableStatement cstmt = connection
+                    .prepareCall("{call [" + linkedServer + "].master.dbo.TestAdd(?,?,?)}")) {
+                int sum = 11;
+                int param0 = 1;
+                int param1 = 10;
+                cstmt.setInt(1, param0);
+                cstmt.setInt(2, param1);
+                cstmt.registerOutParameter(3, Types.INTEGER);
+                cstmt.execute();
+                assertEquals(sum, cstmt.getInt(3));
+            }
 
-        try (CallableStatement cstmt = connection
-                .prepareCall("{call [" + linkedServer + "].master.dbo.TestAdd(?,?,?)}")) {
-            int sum = 11;
-            int param0 = 1;
-            int param1 = 10;
-            cstmt.setInt(1, param0);
-            cstmt.setInt(2, param1);
-            cstmt.registerOutParameter(3, Types.INTEGER);
-            cstmt.execute();
-            assertEquals(sum, cstmt.getInt(3));
-        }
+            try (CallableStatement cstmt = connection
+                    .prepareCall("exec [" + linkedServer + "].master.dbo.TestAdd ?,?,?")) {
+                int sum = 11;
+                int param0 = 1;
+                int param1 = 10;
+                cstmt.setInt(1, param0);
+                cstmt.setInt(2, param1);
+                cstmt.registerOutParameter(3, Types.INTEGER);
+                cstmt.execute();
+                assertEquals(sum, cstmt.getInt(3));
+            }
 
-        try (CallableStatement cstmt = connection.prepareCall("exec [" + linkedServer + "].master.dbo.TestAdd ?,?,?")) {
-            int sum = 11;
-            int param0 = 1;
-            int param1 = 10;
-            cstmt.setInt(1, param0);
-            cstmt.setInt(2, param1);
-            cstmt.registerOutParameter(3, Types.INTEGER);
-            cstmt.execute();
-            assertEquals(sum, cstmt.getInt(3));
-        }
-
-        try (CallableStatement cstmt = connection
-                .prepareCall("{? = call [" + linkedServer + "].master.dbo.TestReturn(?)}")) {
-            int expected = 15;
-            cstmt.registerOutParameter(1, java.sql.Types.INTEGER);
-            cstmt.setInt(2, 5);
-            cstmt.execute();
-            assertEquals(expected, cstmt.getInt(1));
+            try (CallableStatement cstmt = connection
+                    .prepareCall("{? = call [" + linkedServer + "].master.dbo.TestReturn(?)}")) {
+                int expected = 15;
+                cstmt.registerOutParameter(1, java.sql.Types.INTEGER);
+                cstmt.setInt(2, 5);
+                cstmt.execute();
+                assertEquals(expected, cstmt.getInt(1));
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(table, stmt);
+            }
         }
     }
 
@@ -637,6 +650,7 @@ public class CallableStatementTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @AzureDB
     @Tag(Constants.JSONTest)
 	public void testJSONColumnInTableWithSetObject() throws SQLException {
 
@@ -1154,8 +1168,7 @@ public class CallableStatementTest extends AbstractTest {
     @AfterAll
     public static void cleanup() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            TestUtils.dropTableIfExists(tableNameGUID, stmt);
-            TestUtils.dropTableIfExists(manyParamsTable, stmt);
+            // Drop order matters. Can't drop objects still referenced by other objects.
             TestUtils.dropProcedureIfExists(outputProcedureNameGUID, stmt);
             TestUtils.dropProcedureIfExists(setNullProcedureName, stmt);
             TestUtils.dropProcedureIfExists(inputParamsProcedureName, stmt);
@@ -1165,8 +1178,12 @@ public class CallableStatementTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(conditionalSproc, stmt);
             TestUtils.dropProcedureIfExists(simpleRetValSproc, stmt);
             TestUtils.dropProcedureIfExists(zeroParamSproc, stmt);
+            TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
+            TestUtils.dropProcedureIfExists(manyParamProc, stmt);
+            TestUtils.dropTableIfExists(tableNameGUID, stmt);
+            TestUtils.dropTableIfExists(manyParamsTable, stmt);
             TestUtils.dropTableIfExists(tableNameJSON, stmt);
-			TestUtils.dropProcedureIfExists(procedureNameJSON, stmt);
+            TestUtils.dropUserDefinedTypeIfExists(manyParamUserDefinedType, stmt); 
         }
     }
 
