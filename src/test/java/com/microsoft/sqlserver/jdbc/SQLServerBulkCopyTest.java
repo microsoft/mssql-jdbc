@@ -299,16 +299,39 @@ public class SQLServerBulkCopyTest extends AbstractTest {
         // Test default options
         SQLServerBulkCopyOptions options = bulkCopy.getBulkCopyOptions();
         assertNotNull(options);
+        assertEquals(0, options.getBatchSize());
+        assertEquals(60, options.getBulkCopyTimeout());
+        assertFalse(options.isCheckConstraints());
+        assertFalse(options.isFireTriggers());
+        assertFalse(options.isKeepIdentity());
+        assertFalse(options.isKeepNulls());
+        assertFalse(options.isTableLock());
+        assertFalse(options.isUseInternalTransaction());
+        assertFalse(options.isAllowEncryptedValueModifications());
 
         // Test setting new options
         SQLServerBulkCopyOptions newOptions = new SQLServerBulkCopyOptions();
         newOptions.setBatchSize(1000);
         newOptions.setCheckConstraints(true);
+        newOptions.setBulkCopyTimeout(120);
+        newOptions.setFireTriggers(true);
+        newOptions.setKeepIdentity(true);
+        newOptions.setKeepNulls(true);
+        newOptions.setTableLock(true);
+        newOptions.setUseInternalTransaction(true);
+        newOptions.setAllowEncryptedValueModifications(true);
 
         bulkCopy.setBulkCopyOptions(newOptions);
         SQLServerBulkCopyOptions retrievedOptions = bulkCopy.getBulkCopyOptions();
         assertEquals(1000, retrievedOptions.getBatchSize());
+        assertEquals(120, retrievedOptions.getBulkCopyTimeout());
         assertTrue(retrievedOptions.isCheckConstraints());
+        assertTrue(retrievedOptions.isFireTriggers());
+        assertTrue(retrievedOptions.isKeepIdentity());
+        assertTrue(retrievedOptions.isKeepNulls());
+        assertTrue(retrievedOptions.isTableLock());
+        assertTrue(retrievedOptions.isUseInternalTransaction());
+        assertTrue(retrievedOptions.isAllowEncryptedValueModifications());
 
         bulkCopy.close();
     }
