@@ -7,10 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.Date;
@@ -1691,6 +1694,63 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     "ncharCol2 NCHAR(9), " +
                     "nvarcharCol2 NVARCHAR(50), " +
                     "longnvarcharCol2 NVARCHAR(MAX)" + ")";
+
+            stmt.execute(createTableSQL);
+        }
+    }
+
+    /**
+     * Test bulk insert with InputStream data when useBulkCopyForBatchInsert is true.
+     * Added support for InputStream data type with bulk copy batch insert.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testBulkCopyBatchInsertForInputStreamData() throws Exception {
+        String tableName = RandomUtil.getIdentifier("BulkTableForInputStream");
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
+                " (Id, Data) VALUES (?, ?)";
+        String selectSQL = "SELECT Id, Data FROM " + AbstractSQLGenerator.escapeIdentifier(tableName);
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
+
+            getCreateTableInputStream(tableName);
+
+            String data = "Sample string to be inserted as binary data.";
+            byte[] bytes = data.getBytes(StandardCharsets.UTF_8);
+            InputStream inputStream = new ByteArrayInputStream(bytes);
+
+            pstmt.setObject(1, 1);
+            pstmt.setBinaryStream(2, inputStream);
+            
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next());
+
+                assertEquals(1, rs.getInt(1));
+                byte[] retrievedBytes = rs.getBytes(2);
+                String retrievedData = new String(retrievedBytes, StandardCharsets.UTF_8);
+                assertEquals(data, retrievedData);
+                
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    private void getCreateTableInputStream(String tableName) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
+                    "Id INT PRIMARY KEY, " +
+                    "Data VARBINARY(MAX) NULL" + ")";
 
             stmt.execute(createTableSQL);
         }
