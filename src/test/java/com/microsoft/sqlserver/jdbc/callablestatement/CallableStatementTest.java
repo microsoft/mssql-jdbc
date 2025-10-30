@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -158,27 +159,36 @@ public class CallableStatementTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDB)
     public void testCallableStatementManyParameters() throws SQLException {
         String tempPass = UUID.randomUUID().toString();
-        String dropLogin = "IF EXISTS (select * from sys.sql_logins where name = 'NewLogin') DROP LOGIN NewLogin";
-        String dropUser = "IF EXISTS (select * from sys.sysusers where name = 'NewUser') DROP USER NewUser";
-        String createLogin = "USE MASTER;CREATE LOGIN NewLogin WITH PASSWORD=N'" + tempPass + "', "
-                + "DEFAULT_DATABASE = MASTER, DEFAULT_LANGUAGE = US_ENGLISH;ALTER LOGIN NewLogin ENABLE;";
-        String createUser = "USE MASTER;CREATE USER NewUser FOR LOGIN NewLogin WITH DEFAULT_SCHEMA = [DBO];";
-        String grantExecute = "GRANT EXECUTE ON " + manyParamProc + " TO NewUser;";
+        String loginName = "JDBCLogin_" + UUID.randomUUID().toString().replace("-", "");
+        String userName = "JDBCUser_" + UUID.randomUUID().toString().replace("-", "");
 
         // Need to create a user with limited permissions in order to run through the code block we are testing
         // The user created will execute sp_sproc_columns internally by the driver, which should not return all
         // the column names as the user has limited permissions
         try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            String databaseName = conn.getCatalog();
+            String dropUser = "IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = '" + userName
+                    + "') DROP USER [" + userName + "]";
+            String dropLogin = "IF EXISTS (SELECT 1 FROM sys.sql_logins WHERE name = '" + loginName
+                    + "') DROP LOGIN [" + loginName + "]";
+            String createLogin = "CREATE LOGIN [" + loginName + "] WITH PASSWORD=N'" + tempPass
+                    + "', DEFAULT_DATABASE = [" + databaseName
+                    + "], DEFAULT_LANGUAGE = US_ENGLISH, CHECK_POLICY = OFF, CHECK_EXPIRATION = OFF;";
+            String createUser = "CREATE USER [" + userName + "] FOR LOGIN [" + loginName
+                    + "] WITH DEFAULT_SCHEMA = [dbo];";
+            String grantExecute = "GRANT EXECUTE ON " + manyParamProc + " TO [" + userName + "];";
+
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute(dropLogin);
                 stmt.execute(dropUser);
+                stmt.execute(dropLogin);
                 stmt.execute(createLogin);
                 stmt.execute(createUser);
                 stmt.execute(grantExecute);
             }
         }
 
-        try (Connection conn = PrepUtil.getConnection(connectionString + ";user=NewLogin;password=" + tempPass + ";")) {
+        try (Connection conn = PrepUtil.getConnection(
+                connectionString + ";user=" + loginName + ";password=" + tempPass + ";")) {
             BigDecimal money = new BigDecimal("9999.99");
 
             // Should not throw an "Index is out of range error"
@@ -197,6 +207,15 @@ public class CallableStatementTest extends AbstractTest {
                 callableStatement.setObject("@p10", money, microsoft.sql.Types.MONEY);
                 callableStatement.execute();
             }
+        }
+
+        // Clean up the temporary principal after execution
+        try (Connection conn = PrepUtil.getConnection(connectionString);
+                Statement stmt = conn.createStatement()) {
+            stmt.execute("IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = '" + userName
+                    + "') DROP USER [" + userName + "]");
+            stmt.execute("IF EXISTS (SELECT 1 FROM sys.sql_logins WHERE name = '" + loginName
+                    + "') DROP LOGIN [" + loginName + "]");
         }
     }
 
@@ -1284,13 +1303,42 @@ public class CallableStatementTest extends AbstractTest {
     }
     
     private static void createJSONTestTable(Statement stmt) throws SQLException {
-		String sql = "CREATE TABLE " + tableNameJSON + " (" + "id INT PRIMARY KEY IDENTITY(1,1), " + "col1 JSON)";
-		stmt.execute(sql);
-	}
+        enforceJsonDataTypeSupport(stmt.getConnection());
+        String sql = "CREATE TABLE " + tableNameJSON + " (" + "id INT PRIMARY KEY IDENTITY(1,1), " + "col1 JSON)";
+        stmt.execute(sql);
+    }
 
-	private static void createJSONStoredProcedure(Statement stmt) throws SQLException {
-		String sql = "CREATE PROCEDURE " + procedureNameJSON + " (@jsonInput JSON) " + "AS " + "BEGIN "
-				+ "    SELECT @jsonInput AS col1; " + "END";
-		stmt.execute(sql);
-	}
+    private static void createJSONStoredProcedure(Statement stmt) throws SQLException {
+        enforceJsonDataTypeSupport(stmt.getConnection());
+        String sql = "CREATE PROCEDURE " + procedureNameJSON + " (@jsonInput JSON) " + "AS " + "BEGIN "
+                + "    SELECT @jsonInput AS col1; " + "END";
+        stmt.execute(sql);
+    }
+
+    private static void enforceJsonDataTypeSupport(Connection connection) throws SQLException {
+        assumeTrue(isJsonDataTypeSupported(connection), "JSON data type is not supported on this server instance");
+    }
+
+    private static volatile Boolean jsonTypeSupported;
+
+    private static boolean isJsonDataTypeSupported(Connection connection) throws SQLException {
+        Boolean cached = jsonTypeSupported;
+        if (null != cached) {
+            return cached.booleanValue();
+        }
+
+        boolean supported = false;
+        try (ResultSet typeInfo = connection.getMetaData().getTypeInfo()) {
+            while (typeInfo.next()) {
+                String typeName = typeInfo.getString("TYPE_NAME");
+                if (null != typeName && "JSON".equalsIgnoreCase(typeName.trim())) {
+                    supported = true;
+                    break;
+                }
+            }
+        }
+
+        jsonTypeSupported = Boolean.valueOf(supported);
+        return supported;
+    }
 }

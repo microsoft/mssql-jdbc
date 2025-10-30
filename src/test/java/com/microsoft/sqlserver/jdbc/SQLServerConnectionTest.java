@@ -1477,7 +1477,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(emptyServerNameField)) {}
 
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
-                .getConnection(invalidServerNameField)) {} catch (SQLException e) {
+                .getConnection(invalidServerNameField)) {
+        } catch (SQLException e) {
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_errorServerName")));
         }
     }
@@ -1603,25 +1604,29 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testIsAzureSynapseOnDemandEndpoint() throws Exception {
         // Use reflection to instantiate SQLServerConnection with a dummy argument
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
                 .getDeclaredConstructor(String.class);
         ctor.setAccessible(true);
-        SQLServerConnection synapseConn = ctor.newInstance("test");
-        java.util.Properties props = new java.util.Properties();
-        // Typical Synapse OnDemand endpoint pattern
-        props.setProperty("serverName", "myworkspace-ondemand.sql.azuresynapse.net");
-        synapseConn.activeConnectionProperties = props;
-        assertTrue(synapseConn.isAzureSynapseOnDemandEndpoint(), "Should detect Azure Synapse OnDemand endpoint");
+
+        try (SQLServerConnection synapseConn = ctor.newInstance("test")) {
+            java.util.Properties props = new java.util.Properties();
+            // Typical Synapse OnDemand endpoint pattern
+            props.setProperty("serverName", "myworkspace-ondemand.sql.azuresynapse.net");
+            synapseConn.activeConnectionProperties = props;
+            assertTrue(synapseConn.isAzureSynapseOnDemandEndpoint(), "Should detect Azure Synapse OnDemand endpoint");
+        }
 
         // Simulate a regular Azure SQL endpoint
-        SQLServerConnection regularConn = ctor.newInstance("test");
-        java.util.Properties props2 = new java.util.Properties();
-        props2.setProperty("serverName", "myserver.database.windows.net");
-        regularConn.activeConnectionProperties = props2;
-        assertFalse(regularConn.isAzureSynapseOnDemandEndpoint(),
-                "Should not detect regular Azure SQL as Synapse OnDemand endpoint");
+        try (SQLServerConnection regularConn = ctor.newInstance("test")) {
+            java.util.Properties props2 = new java.util.Properties();
+            props2.setProperty("serverName", "myserver.database.windows.net");
+            regularConn.activeConnectionProperties = props2;
+            assertFalse(regularConn.isAzureSynapseOnDemandEndpoint(),
+                    "Should not detect regular Azure SQL as Synapse OnDemand endpoint");
+        }
     }
 
     @Test
@@ -1630,17 +1635,19 @@ public class SQLServerConnectionTest extends AbstractTest {
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
                 .getDeclaredConstructor(String.class);
         ctor.setAccessible(true);
-        SQLServerConnection conn = ctor.newInstance("test");
-        java.util.Properties props = new java.util.Properties();
-        props.setProperty("serverName", "originalServer.database.windows.net");
-        conn.activeConnectionProperties = props;
 
-        // Simulate a redirect: pass a different serverName
-        String redirectedServer = "redirectedServer.database.windows.net";
-        String result = conn.getServerNameString(redirectedServer);
-        // The expected format is: {0} (redirected from {1})
-        String expected = redirectedServer + " (redirected from originalServer.database.windows.net)";
-        assertEquals(expected, result);
+        try (SQLServerConnection conn = ctor.newInstance("test")) {
+            java.util.Properties props = new java.util.Properties();
+            props.setProperty("serverName", "originalServer.database.windows.net");
+            conn.activeConnectionProperties = props;
+
+            // Simulate a redirect: pass a different serverName
+            String redirectedServer = "redirectedServer.database.windows.net";
+            String result = conn.getServerNameString(redirectedServer);
+            // The expected format is: {0} (redirected from {1})
+            String expected = redirectedServer + " (redirected from originalServer.database.windows.net)";
+            assertEquals(expected, result);
+        }
     }
 
     @Test
@@ -1922,26 +1929,29 @@ public class SQLServerConnectionTest extends AbstractTest {
      * This test checks that the method can be called and returns a non-null result for dummy input.
      */
     @Test
+    @Tag("CodeCov")
     public void testGenerateEnclavePackager() throws Exception {
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
                 .getDeclaredConstructor(String.class);
         ctor.setAccessible(true);
-        SQLServerConnection conn = ctor.newInstance("test");
 
-        // Set enclaveProvider to a mock that returns a dummy byte array
-        ISQLServerEnclaveProvider mockProvider = org.mockito.Mockito.mock(ISQLServerEnclaveProvider.class);
-        byte[] dummyPackage = new byte[] {1, 2, 3};
-        org.mockito.Mockito.when(mockProvider.getEnclavePackage(org.mockito.Mockito.anyString(),
-                org.mockito.ArgumentMatchers.<ArrayList<byte[]>>any())).thenReturn(dummyPackage);
-        java.lang.reflect.Field enclaveProviderField = SQLServerConnection.class.getDeclaredField("enclaveProvider");
-        enclaveProviderField.setAccessible(true);
-        enclaveProviderField.set(conn, mockProvider);
+        try (SQLServerConnection conn = ctor.newInstance("test")) {
+            // Set enclaveProvider to a mock that returns a dummy byte array
+            ISQLServerEnclaveProvider mockProvider = org.mockito.Mockito.mock(ISQLServerEnclaveProvider.class);
+            byte[] dummyPackage = new byte[] { 1, 2, 3 };
+            org.mockito.Mockito.when(mockProvider.getEnclavePackage(org.mockito.Mockito.anyString(),
+                    org.mockito.ArgumentMatchers.<ArrayList<byte[]>>any())).thenReturn(dummyPackage);
+            java.lang.reflect.Field enclaveProviderField = SQLServerConnection.class
+                    .getDeclaredField("enclaveProvider");
+            enclaveProviderField.setAccessible(true);
+            enclaveProviderField.set(conn, mockProvider);
 
-        ArrayList<byte[]> enclaveCEKs = new ArrayList<>();
-        enclaveCEKs.add(new byte[] {4, 5, 6});
-        byte[] result = conn.generateEnclavePackage("SELECT 1", enclaveCEKs);
-        assertNotNull(result);
-        assertArrayEquals(dummyPackage, result);
+            ArrayList<byte[]> enclaveCEKs = new ArrayList<>();
+            enclaveCEKs.add(new byte[] { 4, 5, 6 });
+            byte[] result = conn.generateEnclavePackage("SELECT 1", enclaveCEKs);
+            assertNotNull(result);
+            assertArrayEquals(dummyPackage, result);
+        }
     }
 
     /**
@@ -1953,26 +1963,30 @@ public class SQLServerConnectionTest extends AbstractTest {
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
                 .getDeclaredConstructor(String.class);
         ctor.setAccessible(true);
-        SQLServerConnection conn = ctor.newInstance("test");
 
-        // Get the enclaveProvider field via reflection
-        java.lang.reflect.Field enclaveProviderField = SQLServerConnection.class.getDeclaredField("enclaveProvider");
-        enclaveProviderField.setAccessible(true);
+        try (SQLServerConnection conn = ctor.newInstance("test")) {
+            // Get the enclaveProvider field via reflection
+            java.lang.reflect.Field enclaveProviderField = SQLServerConnection.class
+                    .getDeclaredField("enclaveProvider");
+            enclaveProviderField.setAccessible(true);
 
-        // Case 1: enclaveProvider is null, should not throw
-        enclaveProviderField.set(conn, null);
-        try {
+            // Case 1: enclaveProvider is null, should not throw
+            enclaveProviderField.set(conn, null);
+            try {
+                conn.invalidateEnclaveSessionCache();
+            } catch (Exception e) {
+                fail("Should not throw when enclaveProvider is null: " + e.getMessage());
+            }
+
+            // Case 2: enclaveProvider is not null, should call
+            // invalidateEnclaveSessionCache() on provider
+            ISQLServerEnclaveProvider mockProvider = org.mockito.Mockito.mock(ISQLServerEnclaveProvider.class);
+            enclaveProviderField.set(conn, mockProvider);
             conn.invalidateEnclaveSessionCache();
-        } catch (Exception e) {
-            fail("Should not throw when enclaveProvider is null: " + e.getMessage());
+            // Verify that invalidateEnclaveSession() was called on the mock provider when
+            // not null
+            org.mockito.Mockito.verify(mockProvider).invalidateEnclaveSession();
         }
-
-        // Case 2: enclaveProvider is not null, should call invalidateEnclaveSessionCache() on provider
-        ISQLServerEnclaveProvider mockProvider = org.mockito.Mockito.mock(ISQLServerEnclaveProvider.class);
-        enclaveProviderField.set(conn, mockProvider);
-        conn.invalidateEnclaveSessionCache();
-        // Verify that invalidateEnclaveSession() was called on the mock provider when not null
-        org.mockito.Mockito.verify(mockProvider).invalidateEnclaveSession();
     }
 
     /**
@@ -1991,13 +2005,14 @@ public class SQLServerConnectionTest extends AbstractTest {
         java.lang.reflect.Field nLockTimeoutField = SQLServerConnection.class.getDeclaredField("nLockTimeout");
         nLockTimeoutField.setAccessible(true);
 
-        SQLServerConnection connGreater = ctor.newInstance("test");
-        java.util.Properties propsGreater = new java.util.Properties();
-        propsGreater.setProperty(lockTimeoutKey, String.valueOf(defaultLockTimeout + 100));
-        connGreater.activeConnectionProperties = propsGreater;
-        nLockTimeoutField.setInt(connGreater, defaultLockTimeout);
-        assertTrue(connGreater.setLockTimeout());
-        assertEquals(defaultLockTimeout + 100, nLockTimeoutField.getInt(connGreater));
+        try (SQLServerConnection connGreater = ctor.newInstance("test")) {
+            java.util.Properties propsGreater = new java.util.Properties();
+            propsGreater.setProperty(lockTimeoutKey, String.valueOf(defaultLockTimeout + 100));
+            connGreater.activeConnectionProperties = propsGreater;
+            nLockTimeoutField.setInt(connGreater, defaultLockTimeout);
+            assertTrue(connGreater.setLockTimeout());
+            assertEquals(defaultLockTimeout + 100, nLockTimeoutField.getInt(connGreater));
+        }
     }
 
     /**
@@ -2035,6 +2050,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testFeatureExtensionPaths() throws Exception {
         // Test with different feature extensions enabled/disabled
         String[] featureOptions = {";columnEncryptionSetting=Enabled;", ";columnEncryptionSetting=Disabled;",
@@ -2047,8 +2063,12 @@ public class SQLServerConnectionTest extends AbstractTest {
                     // Test basic functionality
                     assertTrue(conn.isValid(5));
                 }
-            } catch (SQLException e) {
-                // Some options may not be supported in test environment
+            } catch (SQLServerException e) {
+                // Some authentication/encryption options may not be supported in test
+                // environment
+                // Log the exception for debugging but continue with other options
+                System.out.println(
+                        "Feature option not supported in test environment: " + option + " - " + e.getMessage());
             }
         }
     }
@@ -2059,30 +2079,33 @@ public class SQLServerConnectionTest extends AbstractTest {
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
                 .getDeclaredConstructor(String.class);
         ctor.setAccessible(true);
-        SQLServerConnection conn = ctor.newInstance("test");
 
-        // Prepare properties for ActiveDirectoryServicePrincipalCertificate with missing user/principalId and missing cert
-        Properties props = new Properties();
-        props.setProperty(com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty.AUTHENTICATION.toString(),
-                com.microsoft.sqlserver.jdbc.SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE
-                        .toString());
-        props.setProperty(com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty.USER.toString(), ""); // empty
-        props.setProperty(com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
-                ""); // empty
-        // No clientCertificate property set
+        try (SQLServerConnection conn = ctor.newInstance("test")) {
+            // Prepare properties for ActiveDirectoryServicePrincipalCertificate with
+            // missing user/principalId and missing cert
+            Properties props = new Properties();
+            props.setProperty(com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty.AUTHENTICATION.toString(),
+                    com.microsoft.sqlserver.jdbc.SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE
+                            .toString());
+            props.setProperty(com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty.USER.toString(), ""); // empty
+            props.setProperty(
+                    com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
+                    ""); // empty
+            // No clientCertificate property set
 
-        // Should throw due to missing user/principalId and missing certificate
-        assertThrows(SQLServerException.class, () -> {
-            conn.connectInternal(props, null);
-        });
+            // Should throw due to missing user/principalId and missing certificate
+            assertThrows(SQLServerException.class, () -> {
+                conn.connectInternal(props, null);
+            });
 
-        // Now set a certificate, but still missing user/principalId
-        props.setProperty(com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(),
-                "dummy123");
-        // Should still throw
-        assertThrows(SQLServerException.class, () -> {
-            conn.connectInternal(props, null);
-        });
+            // Now set a certificate, but still missing user/principalId
+            props.setProperty(com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString(),
+                    "dummy123");
+            // Should still throw
+            assertThrows(SQLServerException.class, () -> {
+                conn.connectInternal(props, null);
+            });
+        }
     }
 
     @Test
