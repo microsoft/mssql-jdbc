@@ -710,7 +710,7 @@ public class CallableStatementTest extends AbstractTest {
 	}
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testAllOutParamGettersByName() throws Exception {
         TestUtils.dropProcedureIfExists(allOutParamsProcName, connection.createStatement());
 
@@ -831,7 +831,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testAllSettersWithParameterName() throws Exception {
         TestUtils.dropProcedureIfExists(streamGetterSetterProcName, connection.createStatement());
 
@@ -906,7 +906,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testAllOutParamGettersByIndex() throws Exception {
         TestUtils.dropProcedureIfExists(allOutParamsProcName, connection.createStatement());
 
@@ -1026,7 +1026,7 @@ public class CallableStatementTest extends AbstractTest {
 
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testGetObjectVariousTypes() throws SQLException {
         TestUtils.dropProcedureIfExists(getObjectTypesProcName, connection.createStatement());
         try (Statement stmt = connection.createStatement()) {
@@ -1087,7 +1087,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testSQLTypeOverloads() throws Exception {
         
         TestUtils.dropProcedureIfExists(sqlTypeOverloadsProcName, connection.createStatement());
@@ -1125,7 +1125,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testCallableStatementParameterNameAPIs() throws Exception {
         // Cleanup
         try (Statement stmt = connection.createStatement()) {

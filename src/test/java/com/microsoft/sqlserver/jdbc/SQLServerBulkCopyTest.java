@@ -28,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import microsoft.sql.DateTimeOffset;
 
 
@@ -48,7 +49,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     private SqlVariant mockSqlVariant;
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testNormalizedValueCodeCoverage() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -240,7 +241,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testClearColumnMappings() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -259,7 +260,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testClearColumnOrderHints() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -277,7 +278,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testGetDestinationTableName() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -298,7 +299,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testGetBulkCopyOptions() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -343,7 +344,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testSetDestinationTableMetadata() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -364,7 +365,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testUnicodeConversionRequired() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -407,7 +408,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testWriteBulkCopySqlVariantHeader() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -428,7 +429,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testGetTemporalObjectFromCSVWithFormatter() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -481,7 +482,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testGetEncryptedTemporalBytes() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -543,7 +544,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testComprehensiveMethodsCoverage() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -583,7 +584,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testSetStmtColumnEncriptionSetting() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -610,7 +611,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testWriteSqlVariant() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -726,7 +727,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testGetTemporalObjectFromCSVWithFormatterUncoveredPaths() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -908,7 +909,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testGetTemporalObjectFromCSVWithFormatterNanoCalculation() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 
@@ -954,7 +955,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
     }
 
     @Test
-        @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testGetTemporalObjectFromCSVWithFormatterTimeZoneEdgeCases() throws Exception {
         SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString);
 

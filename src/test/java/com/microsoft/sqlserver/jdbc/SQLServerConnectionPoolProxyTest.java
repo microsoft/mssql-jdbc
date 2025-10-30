@@ -34,7 +34,7 @@ public class SQLServerConnectionPoolProxyTest extends AbstractTest {
      * Test SQLServerConnectionPoolProxy constructor
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testConnectionPoolProxy() throws SQLException {
         try (SQLServerConnection conn = getConnection()) {
             SQLServerConnectionPoolProxy proxy = new SQLServerConnectionPoolProxy(conn);
@@ -55,7 +55,7 @@ public class SQLServerConnectionPoolProxyTest extends AbstractTest {
      * Tests bulk copy properties and methods on connection pool proxy
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testConnectionPoolProxyBulkCopy() throws SQLException {
         try (SQLServerConnection conn = getConnection();
                 SQLServerConnectionPoolProxy proxy = new SQLServerConnectionPoolProxy(conn)) {
@@ -105,7 +105,7 @@ public class SQLServerConnectionPoolProxyTest extends AbstractTest {
      * Test to check connection property getters and setters.
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testConnectionPoolProxyPropertyMethods() throws SQLException {
         try (SQLServerConnection conn = getConnection();
                 SQLServerConnectionPoolProxy proxy = new SQLServerConnectionPoolProxy(conn)) {
@@ -163,7 +163,7 @@ public class SQLServerConnectionPoolProxyTest extends AbstractTest {
     }
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testConnectionPoolProxyMethods() throws SQLException {
         try (SQLServerConnection conn = getConnection();
                 SQLServerConnectionPoolProxy proxy = new SQLServerConnectionPoolProxy(conn)) {
@@ -228,7 +228,7 @@ public class SQLServerConnectionPoolProxyTest extends AbstractTest {
      * Test connection properties and metadata
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testConnectionPoolProxyProperties() throws SQLException {
         try (SQLServerConnection conn = getConnection();
                 SQLServerConnectionPoolProxy proxy = new SQLServerConnectionPoolProxy(conn)) {
@@ -246,7 +246,7 @@ public class SQLServerConnectionPoolProxyTest extends AbstractTest {
     }
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     @Tag(Constants.xAzureSQLMI)

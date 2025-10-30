@@ -60,7 +60,7 @@ public class SQLServerSQLXMLTest extends AbstractTest {
     }
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     @DisplayName("Test complete SQLXML lifecycle and basic operations")
     void testCompleteLifecycle() throws Exception {
         // Test constructor and toString
@@ -126,7 +126,7 @@ public class SQLServerSQLXMLTest extends AbstractTest {
     }
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     @DisplayName("Test XML transformation support (Results and Sources)")
     void testXMLTransformationSupport() throws SQLException {
         // Test all Result types work on setter
@@ -169,7 +169,7 @@ public class SQLServerSQLXMLTest extends AbstractTest {
     }
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     @DisplayName("Test error conditions and internal state management")
     void testErrorConditionsAndInternalState() throws Exception {
         // Test operations on closed connection
@@ -249,7 +249,7 @@ public class SQLServerSQLXMLTest extends AbstractTest {
     }
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     @DisplayName("Test utility classes and complete coverage")
     void testUtilityClassesAndCompleteCoverage() throws Exception {
         // Test ByteArrayOutputStreamToInputStream utility class

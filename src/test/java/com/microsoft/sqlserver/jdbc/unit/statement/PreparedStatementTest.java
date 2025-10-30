@@ -755,7 +755,7 @@ public class PreparedStatementTest extends AbstractTest {
      * Test various setter methods of PreparedStatement.
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     @SuppressWarnings("deprecation")
     public void testPreparedStatementSetterMethods()
             throws SQLException, UnsupportedEncodingException, MalformedURLException {
@@ -1036,7 +1036,7 @@ public class PreparedStatementTest extends AbstractTest {
      * Test executeLargeUpdate() method for prepared statements.
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testExecuteLargeUpdate() throws SQLException {
         final String testTableName = RandomUtil.getIdentifier("testExecuteLargeUpdate");
 
@@ -1079,7 +1079,7 @@ public class PreparedStatementTest extends AbstractTest {
     }
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testExecuteUpdateCountOutOfRange() throws Exception {
         final String testTableName = RandomUtil.getIdentifier("testUpdateCount");
 
@@ -1114,7 +1114,7 @@ public class PreparedStatementTest extends AbstractTest {
      * Test that executeUpdate, execute, executeQuery and addBatch methods that accept a String argument throw SQLServerException.
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testPreparedStatementStringMethodsThrowException() throws Exception {
         try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
             String sql = "SELECT 1";
@@ -1164,7 +1164,7 @@ public class PreparedStatementTest extends AbstractTest {
      * Test setNull with structured type (Table-Valued Parameter).
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testSetNullWithStructuredType() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
             String typeName = RandomUtil.getIdentifier("TestTVPType");
@@ -1193,7 +1193,7 @@ public class PreparedStatementTest extends AbstractTest {
     }
 
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testSetObjectWithSQLType() throws SQLException {
         final String testTableName = RandomUtil.getIdentifier("testSetObjectSQLType");
 
@@ -1276,7 +1276,7 @@ public class PreparedStatementTest extends AbstractTest {
      * Test clearBatch method functionality.
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testClearBatch() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
             String sql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (col1) VALUES (?)";
@@ -1302,7 +1302,7 @@ public class PreparedStatementTest extends AbstractTest {
      * Executes an empty batch and verifies it returns an empty array.
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testExecuteBatchWithNullBatchValues() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
             String sql = "SELECT 1";
@@ -1318,7 +1318,7 @@ public class PreparedStatementTest extends AbstractTest {
      * Test batch execution with OUT parameters. It will trigger BatchUpdateException.
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testBatchExecutionWithOutputParameters() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
             String procName = RandomUtil.getIdentifier("testOutputProc");
@@ -1350,7 +1350,7 @@ public class PreparedStatementTest extends AbstractTest {
      * Test SQL parsing methods for comments and spaces.
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testSQLParsingWithCommentsAndSpaces() throws Exception {
         try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
             modifyConnectionForBulkCopyAPI(con);
@@ -1379,7 +1379,7 @@ public class PreparedStatementTest extends AbstractTest {
      * Test SELECT statement in batch execution which is not allowed.
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testSelectStatementInBatch() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
             String selectSql = "SELECT ?";
@@ -1403,7 +1403,7 @@ public class PreparedStatementTest extends AbstractTest {
      * This test when a ResultSet is generated during a batch update operation, which is not allowed.
      */
     @Test
-    @Tag("CodeCov")
+    @Tag(Constants.CodeCov)
     public void testResultSetInBatchUpdate() throws SQLException {
         try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
             // Create a procedure that returns a ResultSet instead of update count
