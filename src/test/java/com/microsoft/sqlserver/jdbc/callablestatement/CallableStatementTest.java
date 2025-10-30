@@ -710,6 +710,7 @@ public class CallableStatementTest extends AbstractTest {
 	}
 
     @Test
+    @Tag("CodeCov")
     public void testAllOutParamGettersByName() throws Exception {
         TestUtils.dropProcedureIfExists(allOutParamsProcName, connection.createStatement());
 
@@ -830,6 +831,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testAllSettersWithParameterName() throws Exception {
         TestUtils.dropProcedureIfExists(streamGetterSetterProcName, connection.createStatement());
 
@@ -860,7 +862,6 @@ public class CallableStatementTest extends AbstractTest {
             blob.setBytes(1, bytes);
 
             Reader clobReader = new StringReader("clob data");
-            Reader nclobReader = new StringReader("nclob data");
             NClob nclob = connection.createNClob();
             nclob.setString(1, "nclob string");
 
@@ -905,6 +906,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testAllOutParamGettersByIndex() throws Exception {
         TestUtils.dropProcedureIfExists(allOutParamsProcName, connection.createStatement());
 
@@ -1024,6 +1026,7 @@ public class CallableStatementTest extends AbstractTest {
 
 
     @Test
+    @Tag("CodeCov")
     public void testGetObjectVariousTypes() throws SQLException {
         TestUtils.dropProcedureIfExists(getObjectTypesProcName, connection.createStatement());
         try (Statement stmt = connection.createStatement()) {
@@ -1084,6 +1087,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testSQLTypeOverloads() throws Exception {
         
         TestUtils.dropProcedureIfExists(sqlTypeOverloadsProcName, connection.createStatement());
@@ -1121,6 +1125,7 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testCallableStatementParameterNameAPIs() throws Exception {
         // Cleanup
         try (Statement stmt = connection.createStatement()) {
@@ -1138,7 +1143,8 @@ public class CallableStatementTest extends AbstractTest {
             cs.setNull("val", java.sql.Types.VARCHAR, "VARCHAR");
 
             // setURL(String, URL) - expect not supported
-            assertThrows(SQLServerException.class, () -> cs.setURL("val", new java.net.URL("http://example.com")));
+            java.net.URL testUrl = java.net.URI.create("http://example.com").toURL();
+            assertThrows(SQLServerException.class, () -> cs.setURL("val", testUrl));
 
             // setStructured(String, String, SQLServerDataTable)
             com.microsoft.sqlserver.jdbc.SQLServerDataTable tvpTable = new com.microsoft.sqlserver.jdbc.SQLServerDataTable();

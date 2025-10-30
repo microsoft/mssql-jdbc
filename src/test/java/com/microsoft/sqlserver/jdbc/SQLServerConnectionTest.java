@@ -1573,6 +1573,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     void testConnectionRecoveryCheckThrowsWhenAllConditionsMet() throws Exception {
         Method method = mockedConnectionRecoveryCheck();
         method.invoke(mockConnection, true, false, null);
@@ -1581,6 +1582,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     void testConnectionRecoveryCheckDoesNotThrowWhenNotReconnectRunning() throws Exception {
         Method method = mockedConnectionRecoveryCheck();
         method.invoke(mockConnection, false, false, null);
@@ -1588,6 +1590,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     void testConnectionRecoveryCheckDoesNotThrowWhenRecoveryPossible() throws Exception {
         Method method = mockedConnectionRecoveryCheck();
         method.invoke(mockConnection, true, true, null);
@@ -1595,6 +1598,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     void testConnectionRecoveryCheckDoesNotThrowWhenRoutingDetailsNotNull() throws Exception {
         Method method = mockedConnectionRecoveryCheck();
         ServerPortPlaceHolder routingDetails = mock(ServerPortPlaceHolder.class);
@@ -1630,6 +1634,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testGetServerNameStringRedirected() throws Exception {
         // Use reflection to instantiate SQLServerConnection with a dummy argument
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
@@ -1651,6 +1656,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testFederatedAuthenticationFeatureExtensionDataAuthMatch() throws Exception {
         // Use reflection to access the inner class and constructor
         // Use the String constructor for SQLServerConnection (outer class instance)
@@ -1708,6 +1714,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Test that checkClosed throws an exception when called on a closed connection.
      */
     @Test
+    @Tag("CodeCov")
     public void testCheckClosedThrowsOnClosedConnection() throws Exception {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
             conn.close();
@@ -1728,6 +1735,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Test setKeyStoreSecretAndLocation for exception coverage via reflection.
      */
     @Test
+    @Tag("CodeCov")
     public void testSetKeyStoreSecretAndLocationException() throws Exception {
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
                 .getDeclaredConstructor(String.class);
@@ -1751,6 +1759,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Covers normal, edge, and exception cases.
      */
     @Test
+    @Tag("CodeCov")
     public void testSetSavepointAndRollbackCoverage() throws Exception {
         // Normal use-case: setSavepoint, rollback to savepoint, releaseSavepoint should throw SQLFeatureNotSupportedException
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
@@ -1797,6 +1806,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Test setNetworkTimeout for normal and exception coverage.
      */
     @Test
+    @Tag("CodeCov")
     public void testSetNetworkTimeoutCoverage() throws Exception {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
             // Normal: set network timeout with a valid executor
@@ -1814,6 +1824,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testGetInstancePort() throws Exception {
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
                 .getDeclaredConstructor(String.class);
@@ -1836,6 +1847,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testSetColumnEncryptionKeyCacheTtl() throws Exception {
         // Use reflection to instantiate SQLServerConnection with a dummy argument
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
@@ -1856,6 +1868,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testGetAccessTokenCallbackClass() throws Exception {
         // Use reflection to instantiate SQLServerConnection with a dummy argument
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
@@ -1881,6 +1894,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Covers both Azure Managed Instance and non-Azure cases.
      */
     @Test
+    @Tag("CodeCov")
     public void testIsAzureMI() throws Exception {
         // Use reflection to instantiate SQLServerConnection with a dummy argument
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
@@ -1913,6 +1927,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Test supportsTransactions for coverage.
      */
     @Test
+    @Tag("CodeCov")
     public void testSupportsTransactionsCoverage() throws Exception {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
             // Should return true for SQL Server
@@ -1958,6 +1973,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Covers both null and non-null enclaveProvider cases.
      */
     @Test
+    @Tag("CodeCov")
     public void testInvalidateEnclaveSessionCache() throws Exception {
         // Create SQLServerConnection instance via reflection
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
@@ -1993,6 +2009,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Covers the case where the lock timeout property is set and greater than the default.
      */
     @Test
+    @Tag("CodeCov")
     public void testSetLockTimeout() throws Exception {
         // Use reflection to create SQLServerConnection instance
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
@@ -2038,6 +2055,7 @@ public class SQLServerConnectionTest extends AbstractTest {
      * Test setMaxFieldSize exception cases
      */
     @Test
+    @Tag("CodeCov")
     public void testSetMaxFieldSizeExceptionCase() throws Exception {
         // Test on closed connection
         SQLServerConnection closedConn = (SQLServerConnection) PrepUtil.getConnection(connectionString);
@@ -2074,6 +2092,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testActiveDirectoryServicePrincipalCertificateValidation() throws Exception {
         // Use reflection to instantiate SQLServerConnection with a dummy argument
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
@@ -2109,6 +2128,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testSetColumnEncryptionTrustedMasterKeyPaths() throws Exception {
         // Prepare a map with mixed-case keys and values
         Map<String, List<String>> trustedKeyPaths = new HashMap<>();
@@ -2137,6 +2157,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testUpdateColumnEncryptionTrustedMasterKeyPaths() throws Exception {
         // Prepare a server name and trusted key paths
         String server = "TestServer\\Instance";
@@ -2161,6 +2182,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testRemoveColumnEncryptionTrustedMasterKeyPaths() throws Exception {
         String server = "RemoveServer\\Instance";
         List<String> paths = Arrays.asList("removePath1", "removePath2");
@@ -2183,6 +2205,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testGetColumnEncryptionTrustedMasterKeyPaths() throws Exception {
         // Prepare a map with mixed-case keys and values
         Map<String, List<String>> trustedKeyPaths = new HashMap<>();
@@ -2210,6 +2233,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testConnectNumberFormatExceptionForLoginTimeout() throws Exception {
         SQLServerConnection conn = new SQLServerConnection("test");
         Properties props = new Properties();
@@ -2219,6 +2243,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testConnectActiveDirectoryInteractiveTimeout() throws Exception {
         SQLServerConnection conn = new SQLServerConnection("test");
         setAuthenticationString(conn, "ActiveDirectoryInteractive");
@@ -2232,6 +2257,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testConnectInvalidateEnclaveSessionCacheCalled() throws Exception {
         SQLServerConnection conn = spy(new SQLServerConnection("test"));
         doNothing().when(conn).invalidateEnclaveSessionCache();
@@ -2243,6 +2269,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testValidateTimeoutProperty() throws Exception {
         SQLServerConnection conn = new SQLServerConnection("test");
         // Set up the activeConnectionProperties field via reflection
@@ -2278,6 +2305,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testConnectPropertiesConf() throws Exception {
         Properties props = new Properties();
         props.setProperty("hostNameInCertificate", "certHost");
@@ -2307,6 +2335,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testLogin_DBMirroringFailoverValidation() throws Exception {
         // Subclass to stub connectHelper and avoid real network IO
         class TestConnection extends SQLServerConnection {
@@ -2388,6 +2417,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     public void testPrepareStatementOverloads() throws Exception {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
             // 1. Basic
@@ -2409,6 +2439,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     @Test
+    @Tag("CodeCov")
     void testSetClientInfoThrowsSQLClientInfoExceptionWhenClosed() throws Exception {
         SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString);
         // Simulate closed connection. You may need to use reflection or a setter if available.
