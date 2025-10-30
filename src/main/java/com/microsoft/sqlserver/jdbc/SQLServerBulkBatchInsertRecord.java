@@ -135,7 +135,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
             case Types.BLOB: {
                 if (data instanceof byte[] || data instanceof InputStream) {
                     /*
-                     * if the binary data comes in as a byte array or Input Stream through setBytes/setBinaryStream 
+                     * if the binary data comes in as a byte array or Input Stream through setBytes()/setBinaryStream() 
                      * through Bulk Copy for Batch Insert API, don't turn the binary array into a string.
                      */
                     return data;
