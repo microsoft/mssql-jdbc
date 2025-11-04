@@ -9,7 +9,9 @@
  * PS> gradle build -PbuildProfile=jre11 "-PexcludedGroups=['xSQLv15','xGradle']"
  ****************************************************************/
 
-apply plugin: 'java'
+plugins {
+    id 'java'
+}
 
 version = '13.2.0'
 def releaseExt = ''
@@ -42,8 +44,10 @@ if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 25
-	targetCompatibility = 25
+	java {
+		sourceCompatibility = JavaVersion.VERSION_25
+		targetCompatibility = JavaVersion.VERSION_25
+	}
 	test {
     useJUnitPlatform {
         excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
@@ -60,8 +64,10 @@ if (hasProperty('buildProfile') && buildProfile == "jre21") {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 21
-	targetCompatibility = 21
+	java {
+		sourceCompatibility = JavaVersion.VERSION_21
+		targetCompatibility = JavaVersion.VERSION_21
+	}
 	test {
     useJUnitPlatform {
         excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
@@ -78,8 +84,10 @@ if (hasProperty('buildProfile') && buildProfile == "jre17") {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 17
-	targetCompatibility = 17
+	java {
+		sourceCompatibility = JavaVersion.VERSION_17
+		targetCompatibility = JavaVersion.VERSION_17
+	}
 	test {
     useJUnitPlatform {
         excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
@@ -96,8 +104,10 @@ if (hasProperty('buildProfile') && buildProfile == "jre11") {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 11
-	targetCompatibility = 11
+	java {
+		sourceCompatibility = JavaVersion.VERSION_11
+		targetCompatibility = JavaVersion.VERSION_11
+	}
 	test {
     useJUnitPlatform {
         excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
@@ -110,8 +120,11 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	jreVersion = "jre8"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java'
 	
-	sourceCompatibility = 1.8
-	targetCompatibility = 1.8
+	java {
+		sourceCompatibility = JavaVersion.VERSION_1_8
+		targetCompatibility = JavaVersion.VERSION_1_8
+	}
+	
 	test {
 		useJUnitPlatform {
 			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42','vectorTest','JSONTest')
