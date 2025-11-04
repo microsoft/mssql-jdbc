@@ -2255,7 +2255,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     @Override
     public boolean supportsIntegrityEnhancementFacility() throws SQLServerException {
         checkClosed();
-        return false;
+        return true;
     }
 
     @Override
