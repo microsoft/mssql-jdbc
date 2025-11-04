@@ -124,6 +124,7 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 		sourceCompatibility = JavaVersion.VERSION_1_8
 		targetCompatibility = JavaVersion.VERSION_1_8
 	}
+	
 	test {
 		useJUnitPlatform {
 			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42','vectorTest','JSONTest')
