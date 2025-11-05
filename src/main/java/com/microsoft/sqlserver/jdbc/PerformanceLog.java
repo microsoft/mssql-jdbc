@@ -43,13 +43,20 @@ class PerformanceLog {
     public static class Scope implements AutoCloseable {
         private Logger logger;
         private int connectionId;
+        private int statementId;
         private PerformanceActivity activity;
         private long startTime;
         private final boolean enabled;
 
         private Exception exception;
 
+        // Constructor for connection-level activities
         public Scope(Logger logger, int connectionId, PerformanceActivity activity) {
+            this(logger, connectionId, 0, activity);
+        }
+
+        // Constructor for statement-level activities
+        public Scope(Logger logger, int connectionId, int statementId, PerformanceActivity activity) {
 
             // Check if logging is enabled
             this.enabled = logger.isLoggable(Level.INFO) || (callback != null);
@@ -57,6 +64,7 @@ class PerformanceLog {
             if (enabled) {
                 this.logger = logger;
                 this.connectionId = connectionId;
+                this.statementId = statementId;
                 this.activity = activity;
                 this.startTime = System.currentTimeMillis();
             }
@@ -67,6 +75,9 @@ class PerformanceLog {
         }
 
         private String getTraceId() {
+            if (statementId != 0) {
+                return "ConnectionID:" + connectionId + ", StatementID:" + statementId;
+            }
             return "ConnectionID:" + connectionId;
         }
 
@@ -82,7 +93,15 @@ class PerformanceLog {
 
             if (callback != null) {
                 try {
-                    callback.publish(activity, connectionId, duration, exception);
+                    
+                    if (statementId == 0) {
+                        // Connection-level activity
+                        callback.publish(activity, connectionId, duration, exception);
+                    } else {
+                        // Statement-level activity
+                        callback.publish(activity, connectionId, statementId, duration, exception);
+                    }
+
                 } catch (Exception e) {
                     logger.info(String.format("Failed to publish performance log: %s", e.getMessage()));
                 }
@@ -102,4 +121,9 @@ class PerformanceLog {
     public static Scope createScope(Logger logger, int connectionId, PerformanceActivity activity) {
         return new Scope(logger, connectionId, activity);
     }
+
+    public static Scope createScope(Logger logger, int connectionId, Integer statementId, PerformanceActivity activity) {
+        return new Scope(logger, connectionId, statementId, activity);
+    }
+
 }
