@@ -588,6 +588,9 @@ public class CallableStatementTest extends AbstractTest {
                 rs.next();
 
                 if (rs.getInt(1) == 1) {
+                    // Drop linked server login first
+                    stmt.execute("EXEC sp_droplinkedsrvlogin @rmtsrvname='" + linkedServer + "', @locallogin=NULL;");
+                    // Then drop the linked server
                     stmt.execute("EXEC sp_dropserver @server='" + linkedServer + "';");
                 }
 
