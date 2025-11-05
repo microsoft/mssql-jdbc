@@ -8,7 +8,13 @@ import java.util.Calendar;
 import java.util.Locale;
 import java.util.UUID;
 
+/**
+ * A prefetched result set that caches row data for improved performance.
+ * This class extends SQLServerResultSet to provide cached access to row data,
+ * reducing the number of TDS reader operations needed for repeated column access.
+ */
 public class SQLServerPrefetchedResultSet extends SQLServerResultSet {
+    /** Array to cache the current row data */
     private Object[] row = null;
 
     SQLServerPrefetchedResultSet(SQLServerStatement stmtIn) throws SQLServerException {
@@ -55,6 +61,7 @@ public class SQLServerPrefetchedResultSet extends SQLServerResultSet {
      * Updates the current row with the values in the row cache.
      *
      * @throws SQLException if a database access error occurs
+     * @throws SQLServerException if a database access error occurs
      */
     @Override
     public void updateRow() throws SQLException {
@@ -67,7 +74,7 @@ public class SQLServerPrefetchedResultSet extends SQLServerResultSet {
     /**
      * Updates the current row with the values in the row cache.
      *
-     * @throws SQLException if a database access error occurs
+     * @throws SQLServerException if a database access error occurs
      */
     @Override
     public void updateString(int columnIndex, String stringValue) throws SQLServerException {
@@ -124,7 +131,7 @@ public class SQLServerPrefetchedResultSet extends SQLServerResultSet {
     /**
      * Moves the cursor to the specified row in the result set.
      *
-     * @param row the row number to move to (1-based)
+     * @param rows the number of rows to move (positive for forward, negative for backward)
      * @return true if the cursor is moved to a valid row, false if the row is invalid
      * @throws SQLException if a database access error occurs
      */
