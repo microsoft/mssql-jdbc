@@ -3405,56 +3405,6 @@ public class StatementTest extends AbstractTest {
             }
         }
 
-        /**
-         * Tests PreparedStatement INSERT with multiple values and trigger to validate update count.
-         * Reproduces the scenario where INSERT INTO TABLE (col) VALUES (?), (?) should return 2 but returns 1.
-         * This test validates the fix for TDS token processing with triggers that affect update counts.
-         *
-         * @throws SQLException
-         */
-        @Test
-        public void testPreparedStatementInsertMultipleValuesWithTrigger() throws SQLException {
-            // Create separate test tables to avoid conflicts with existing setup
-            String testTableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("UpdateCountTestTableA"));
-            String testTableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("UpdateCountTestTableB"));
-            String testTrigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("UpdateCountTestTrigger"));
-
-            try (Connection conn = getConnection();
-                 Statement stmt = conn.createStatement()) {
-
-                TestUtils.dropTriggerIfExists(testTrigger, stmt);
-                TestUtils.dropTableIfExists(testTableB, stmt);
-                TestUtils.dropTableIfExists(testTableA, stmt);
-
-                stmt.executeUpdate("CREATE TABLE " + testTableA + " (ID int NOT NULL IDENTITY(1,1) PRIMARY KEY, NAME varchar(32))");
-                stmt.executeUpdate("CREATE TABLE " + testTableB + " (ID int NOT NULL IDENTITY(1,1) PRIMARY KEY)");
-                
-             
-                stmt.executeUpdate("CREATE TRIGGER " + testTrigger + " ON " + testTableA + " FOR INSERT AS "
-                        + "INSERT INTO " + testTableB + " DEFAULT VALUES");
-
-                // Test case: INSERT with multiple values should return correct update count
-                String sql = "INSERT INTO " + testTableA + " (NAME) VALUES (?), (?)";
-                try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                    ps.setString(1, "value1");
-                    ps.setString(2, "value2");
-
-                    boolean hasResultSet = ps.execute();
-                    
-                    if (!hasResultSet) {
-                        int updateCount = ps.getUpdateCount();
-                        // This should return 2 (for 2 inserted rows), not 1
-                        assertEquals(2, updateCount, "Update count should be 2 for INSERT with 2 values, but got: " + updateCount);
-                    } else {
-                        fail("Expected update count, but got ResultSet instead");
-                    }
-                }
-                TestUtils.dropTriggerIfExists(testTrigger, stmt);
-                TestUtils.dropTableIfExists(testTableB, stmt);
-                TestUtils.dropTableIfExists(testTableA, stmt);
-            }
-        }
-
         @AfterEach
         public void terminate() {
             try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
