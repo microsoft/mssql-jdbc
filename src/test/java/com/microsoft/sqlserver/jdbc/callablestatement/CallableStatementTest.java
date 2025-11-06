@@ -599,14 +599,13 @@ public class CallableStatementTest extends AbstractTest {
                 stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc out', true;");
             }
 
-            SQLServerDataSource ds = new SQLServerDataSource();
-            ds.setServerName(linkedServer);
-            ds.setUser(linkedServerUser);
-            ds.setPassword(linkedServerPassword);
-            ds.setEncrypt("false");
-            ds.setTrustServerCertificate(true);
+            String linkedServerConnectionString = "jdbc:sqlserver://" + linkedServer + 
+                ";user=" + linkedServerUser + 
+                ";password=" + linkedServerPassword + 
+                ";encrypt=false" +
+                ";trustServerCertificate=true";
 
-            try (Connection linkedServerConnection = ds.getConnection();
+            try (Connection linkedServerConnection = DriverManager.getConnection(linkedServerConnectionString);
                     Statement stmt = linkedServerConnection.createStatement()) {
                 stmt.execute(
                         "create or alter procedure dbo.TestAdd(@Num1 int, @Num2 int, @Result int output) as begin set @Result = @Num1 + @Num2; end;");
