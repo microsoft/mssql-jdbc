@@ -602,7 +602,7 @@ public class CallableStatementTest extends AbstractTest {
             String linkedServerConnectionString = "jdbc:sqlserver://" + linkedServer + 
                 ";user=" + linkedServerUser + 
                 ";password=" + linkedServerPassword + 
-                ";encrypt=false" +
+                ";encrypt=optional" +
                 ";trustServerCertificate=true";
 
             try (Connection linkedServerConnection = DriverManager.getConnection(linkedServerConnectionString);
