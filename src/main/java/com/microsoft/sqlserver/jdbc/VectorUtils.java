@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.text.MessageFormat;
@@ -56,7 +57,12 @@ class VectorUtils {
 
         ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
 
-        buffer.position(getHeaderLength()); // Skip the first 8 bytes (header)
+        /*
+         * The cast is required for JDK 8 compatibility.
+         * JDK 8 calls method Buffer.position(I)LBuffer,
+         * while in JDK 9+ calls method ByteBuffer.position(I)LByteBuffer
+         */
+        ((Buffer) buffer).position(getHeaderLength()); // Skip the first 8 bytes (header)
 
         for (int i = 0; i < objectCount; i++) {
             objectArray[i] = buffer.getFloat();

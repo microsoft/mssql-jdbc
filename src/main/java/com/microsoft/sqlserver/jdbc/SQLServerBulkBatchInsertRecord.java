@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Types;
@@ -132,10 +133,10 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
             case Types.VARBINARY:
             case Types.LONGVARBINARY:
             case Types.BLOB: {
-                if (data instanceof byte[]) {
+                if (data instanceof byte[] || data instanceof InputStream) {
                     /*
-                     * if the binary data comes in as a byte array through setBytes through Bulk Copy for Batch Insert
-                     * API, don't turn the binary array into a string.
+                     * if the binary data comes in as a byte array or Input Stream through setBytes()/setBinaryStream() 
+                     * through Bulk Copy for Batch Insert API, don't turn the binary array into a string.
                      */
                     return data;
                 } else {
@@ -181,13 +182,13 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
                 return null;
             }
 
-            case Types.DATE:
             case Types.CHAR:
-            case Types.NCHAR:
             case Types.VARCHAR:
-            case Types.NVARCHAR:
             case Types.LONGVARCHAR:
+            case Types.NCHAR:
+            case Types.NVARCHAR:
             case Types.LONGNVARCHAR:
+            case Types.DATE:
             case Types.CLOB:
             default: {
                 // The string is copied as is.

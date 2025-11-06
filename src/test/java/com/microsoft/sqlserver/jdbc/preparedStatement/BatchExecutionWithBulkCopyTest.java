@@ -7,10 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.Date;
@@ -30,10 +33,13 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Random;
 import java.util.UUID;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -51,6 +57,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
@@ -68,6 +75,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     static String doubleQuoteTableName = RandomUtil.getIdentifier("\"BulkCopy\"\"\"\"test\"");
     static String schemaTableName = "\"dbo\"         . /*some comment */     " + squareBracketTableName;
     static String tableNameBulkComputedCols = RandomUtil.getIdentifier("BulkCopyComputedCols");
+    static String tableNameBulkString = RandomUtil.getIdentifier("BulkInsertTable");
 
     private Object[] generateExpectedValues() {
         float randomFloat = RandomData.generateReal(false);
@@ -811,6 +819,124 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     /**
+     * Test inserting complex JSON data using prepared statement with bulk copy enabled.
+     */
+    @Test
+    @AzureDB
+    @Tag(Constants.JSONTest)
+    public void testInsertJsonWithBulkCopy() throws Exception {
+        String tableName = RandomUtil.getIdentifier("BulkCopyComplexJsonTest");
+        String valid = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (jsonCol) values (?)";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+             SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(valid);
+             Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (jsonCol JSON)";
+            stmt.execute(createTable);
+
+            String complexJsonData = "{"
+                    + "\"name\":\"John\","
+                    + "\"age\":30,"
+                    + "\"address\":{"
+                    + "\"street\":\"123 Main St\","
+                    + "\"city\":\"New York\","
+                    + "\"zipcode\":\"10001\""
+                    + "},"
+                    + "\"phoneNumbers\":["
+                    + "{\"type\":\"home\",\"number\":\"212-555-1234\"},"
+                    + "{\"type\":\"work\",\"number\":\"646-555-4567\"}"
+                    + "],"
+                    + "\"children\":["
+                    + "{\"name\":\"Jane\",\"age\":10},"
+                    + "{\"name\":\"Doe\",\"age\":8}"
+                    + "]"
+                    + "}";
+
+            pstmt.setString(1, complexJsonData);
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            try (ResultSet rs = stmt.executeQuery("select jsonCol from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                assertTrue(rs.next());
+                assertEquals(complexJsonData, rs.getString(1));
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Test select, update, create, and delete operations on JSON data and verify at each step.
+     */
+    @Test
+    @AzureDB
+    @Tag(Constants.JSONTest)
+    public void testCRUDOperationsWithJson() throws Exception {
+        String tableName = RandomUtil.getIdentifier("CRUDJsonTest");
+        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id INT PRIMARY KEY, jsonCol JSON)";
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, jsonCol) VALUES (?, ?)";
+        String selectSQL = "SELECT jsonCol FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = ?";
+        String updateSQL = "UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " SET jsonCol = ? WHERE id = ?";
+        String deleteSQL = "DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = ?";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+             Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            stmt.execute(createTableSQL);
+
+            String initialJsonData = "{\"name\":\"John\",\"age\":30}";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+                pstmt.setInt(1, 1);
+                pstmt.setString(2, initialJsonData);
+                pstmt.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt = connection.prepareStatement(selectSQL)) {
+                pstmt.setInt(1, 1);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(initialJsonData, rs.getString(1));
+                }
+            }
+
+            String updatedJsonData = "{\"name\":\"Jane\",\"age\":25}";
+            try (PreparedStatement pstmt = connection.prepareStatement(updateSQL)) {
+                pstmt.setString(1, updatedJsonData);
+                pstmt.setInt(2, 1);
+                pstmt.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt = connection.prepareStatement(selectSQL)) {
+                pstmt.setInt(1, 1);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(updatedJsonData, rs.getString(1));
+                }
+            }
+
+            try (PreparedStatement pstmt = connection.prepareStatement(deleteSQL)) {
+                pstmt.setInt(1, 1);
+                pstmt.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt = connection.prepareStatement(selectSQL)) {
+                pstmt.setInt(1, 1);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    assertFalse(rs.next());
+                }
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    /**
      * Test bulk insert with no space after table name
      * 
      * @throws Exception
@@ -1146,6 +1272,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test inserting vector data using prepared statement with bulk copy enabled.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testInsertVectorWithBulkCopy() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkCopyVectorTest");
@@ -1184,6 +1311,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test inserting null vector data using prepared statement with bulk copy enabled.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testInsertNullVectorWithBulkCopy() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkCopyVectorTest");
@@ -1223,6 +1351,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test inserting vector data using prepared statement with bulk copy enabled for performance.
      */
     @Test
+    @AzureDB
     @Tag(Constants.vectorTest)
     public void testInsertWithBulkCopyPerformance() throws SQLException {
         String tableName = AbstractSQLGenerator.escapeIdentifier("BulkCopyVectorPerformanceTest");
@@ -1290,6 +1419,343 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
+    class FallbackWatcherLogHandler extends Handler implements AutoCloseable {
+
+        Logger stmtLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerStatement");
+        boolean gotFallbackMessage = false;
+
+        public FallbackWatcherLogHandler() {
+            stmtLogger.addHandler(this);
+        }
+
+        @Override
+        public void publish(LogRecord record) {
+            if (record.getMessage().contains("Falling back to the original implementation for Batch Insert.")) {
+                gotFallbackMessage = true;
+            }
+        }
+
+        @Override
+        public void flush() {}
+
+        @Override
+        public void close() throws SecurityException {
+            stmtLogger.removeHandler(this);
+        }
+    }
+
+    /**
+     * Test string values using prepared statement using accented and unicode characters.
+     * This test covers all combinations of useBulkCopyForBatchInsert and sendStringParametersAsUnicode.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testBulkInsertStringAllCombinations() throws Exception {
+        boolean[] bulkCopyOptions = { true, false };
+        boolean[] unicodeOptions = { true, false };
+        for (boolean useBulkCopy : bulkCopyOptions) {
+            for (boolean sendUnicode : unicodeOptions) {
+                runBulkInsertStringTest(useBulkCopy, sendUnicode);
+                runBulkInsertStringTestForceFallback(useBulkCopy, sendUnicode);
+            }
+        }
+    }
+
+    /**
+     * Test batch insert using accented and unicode characters.
+     */
+    public void runBulkInsertStringTest(boolean useBulkCopy, boolean sendUnicode) throws Exception {
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameBulkString)
+                + " (charCol, varcharCol, longvarcharCol, ncharCol1, nvarcharCol1, longnvarcharCol1, "
+                + "ncharCol2, nvarcharCol2, longnvarcharCol2) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        String selectSQL = "SELECT charCol, varcharCol, longvarcharCol, ncharCol1, nvarcharCol1, "
+                + "longnvarcharCol1, ncharCol2, nvarcharCol2, longnvarcharCol2 FROM "
+                + AbstractSQLGenerator.escapeIdentifier(tableNameBulkString);
+
+        try (Connection connection = PrepUtil.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=" + useBulkCopy + ";sendStringParametersAsUnicode="
+                        + sendUnicode + ";");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            getCreateTableWithStringData();
+
+            String charValue = "Anaïs_Ni";
+            String varcharValue = "café";
+            String longVarcharValue = "Sørén Kierkégaard";
+            String ncharValue1 = "José Müll";
+            String nvarcharValue1 = "José Müller";
+            String longNvarcharValue1 = "François Saldaña";
+            String ncharValue2 = "Test1汉字😀";
+            String nvarcharValue2 = "汉字";
+            String longNvarcharValue2 = "日本語";
+
+            pstmt.setString(1, charValue);
+            pstmt.setString(2, varcharValue);
+            pstmt.setString(3, longVarcharValue);
+            pstmt.setString(4, ncharValue1);
+            pstmt.setString(5, nvarcharValue1);
+            pstmt.setString(6, longNvarcharValue1);
+            pstmt.setNString(7, ncharValue2);
+            pstmt.setNString(8, nvarcharValue2);
+            pstmt.setNString(9, longNvarcharValue2);
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next(), "Expected at least one row in result set");
+                assertEquals(charValue, rs.getString("charCol"));
+                assertEquals(varcharValue, rs.getString("varcharCol"));
+                assertEquals(longVarcharValue, rs.getString("longvarcharCol"));
+                assertEquals(ncharValue1, rs.getString("ncharCol1"));
+                assertEquals(nvarcharValue1, rs.getString("nvarcharCol1"));
+                assertEquals(longNvarcharValue1, rs.getString("longnvarcharCol1"));
+                assertEquals(ncharValue2, rs.getString("ncharCol2"));
+                assertEquals(nvarcharValue2, rs.getString("nvarcharCol2"));
+                assertEquals(longNvarcharValue2, rs.getString("longnvarcharCol2"));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /**
+     * Test batch insert using an unsupported statement (falls back to batch mode) with accented and Unicode characters.
+     */
+    public void runBulkInsertStringTestForceFallback(boolean useBulkCopy, boolean sendUnicode) throws Exception {
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameBulkString)
+                + " (charCol, varcharCol, longvarcharCol, ncharCol1, nvarcharCol1, longnvarcharCol1, "
+                + "ncharCol2, nvarcharCol2, longnvarcharCol2) VALUES ('Anaïs_Ni', ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        String selectSQL = "SELECT charCol, varcharCol, longvarcharCol, ncharCol1, nvarcharCol1, "
+                + "longnvarcharCol1, ncharCol2, nvarcharCol2, longnvarcharCol2 FROM "
+                + AbstractSQLGenerator.escapeIdentifier(tableNameBulkString);
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert="
+                + useBulkCopy + ";sendStringParametersAsUnicode=" + sendUnicode + ";");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            getCreateTableWithStringData();
+
+            String charValue = "Anaïs_Ni";
+            String varcharValue = "café";
+            String longVarcharValue = "Sørén Kierkégaard";
+            String ncharValue1 = "José Müll";
+            String nvarcharValue1 = "José Müller";
+            String longNvarcharValue1 = "François Saldaña";
+            String ncharValue2 = "Test1汉字😀";
+            String nvarcharValue2 = "汉字";
+            String longNvarcharValue2 = "日本語";
+
+            pstmt.setString(1, varcharValue);
+            pstmt.setString(2, longVarcharValue);
+            pstmt.setString(3, ncharValue1);
+            pstmt.setString(4, nvarcharValue1);
+            pstmt.setString(5, longNvarcharValue1);
+            pstmt.setNString(6, ncharValue2);
+            pstmt.setNString(7, nvarcharValue2);
+            pstmt.setNString(8, longNvarcharValue2);
+            pstmt.addBatch();
+
+            try (FallbackWatcherLogHandler handler = new FallbackWatcherLogHandler()) {
+                pstmt.executeBatch();
+                if (useBulkCopy) {
+                    assertTrue(handler.gotFallbackMessage);
+                }
+            }
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next(), "Expected at least one row in result set");
+                assertEquals(charValue, rs.getString("charCol"));
+                assertEquals(varcharValue, rs.getString("varcharCol"));
+                assertEquals(longVarcharValue, rs.getString("longvarcharCol"));
+                assertEquals(ncharValue1, rs.getString("ncharCol1"));
+                assertEquals(nvarcharValue1, rs.getString("nvarcharCol1"));
+                assertEquals(longNvarcharValue1, rs.getString("longnvarcharCol1"));
+                assertEquals(ncharValue2, rs.getString("ncharCol2"));
+                assertEquals(nvarcharValue2, rs.getString("nvarcharCol2"));
+                assertEquals(longNvarcharValue2, rs.getString("longnvarcharCol2"));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void testIssue2669Repro() throws Exception {
+        // Original repro
+        testIssue2669Variation(false, true);
+        // Variations
+        testIssue2669Variation(false, false);
+        testIssue2669Variation(true, true);
+        testIssue2669Variation(true, false);
+
+        // Test the same combos except falling back to batch insert
+        testIssue2669VariationForceFallback(false, true);
+        testIssue2669VariationForceFallback(false, false);
+        testIssue2669VariationForceFallback(true, true);
+        testIssue2669VariationForceFallback(true, false);
+    }
+
+    public void testIssue2669Variation(boolean sendStringsAsUnicode,
+            boolean useBulkCopyForBatchInsert) throws Exception {
+        String statesTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("states"));
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(statesTable, stmt);
+            String createTableSQL = "CREATE TABLE " + statesTable + " (" + "StateCode nvarchar(50) NOT NULL " + ")";
+
+            stmt.execute(createTableSQL);
+        }
+
+        String insertSQL = "INSERT INTO " + statesTable + " (StateCode) VALUES (?)";
+
+        String selectSQL = "SELECT StateCode FROM " + statesTable;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert="
+                + useBulkCopyForBatchInsert + ";sendStringParametersAsUnicode=" + sendStringsAsUnicode + ";");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            pstmt.setString(1, "OH");
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next(), "Expected at least one row in result set");
+                assertEquals("OH", rs.getString("StateCode"));
+                assertFalse(rs.next());
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(statesTable, stmt);
+            }
+        }
+    }
+
+    public void testIssue2669VariationForceFallback(boolean sendStringsAsUnicode,
+            boolean useBulkCopyForBatchInsert) throws SQLException {
+        String statesTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("states"));
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(statesTable, stmt);
+            String createTableSQL = "CREATE TABLE " + statesTable
+                    + " (StateCode nvarchar(50), StateCode2 nvarchar(50) NOT NULL " + ")";
+
+            stmt.execute(createTableSQL);
+        }
+
+        // Use an INSERT that forces fall back to plain batch insert
+        String insertSQL = "INSERT INTO " + statesTable + " (StateCode, StateCode2) VALUES ('NA', ?)";
+
+        String selectSQL = "SELECT StateCode, StateCode2 FROM " + statesTable;
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert="
+                + useBulkCopyForBatchInsert + ";sendStringParametersAsUnicode=" + sendStringsAsUnicode + ";");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+                pstmt.setString(1, "OH");
+                pstmt.addBatch();
+
+                try (FallbackWatcherLogHandler handler = new FallbackWatcherLogHandler()) {
+                    pstmt.executeBatch();
+                    if (useBulkCopyForBatchInsert) {
+                        assertTrue(handler.gotFallbackMessage);
+                    }
+                }
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next(), "Expected at least one row in result set");
+                assertEquals("NA", rs.getString("StateCode"));
+                assertEquals("OH", rs.getString("StateCode2"));
+                assertFalse(rs.next());
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(statesTable, stmt);
+            }
+        }
+    }
+
+    private void getCreateTableWithStringData() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulkString), stmt);
+            String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableNameBulkString) + " (" +
+                    "charCol CHAR(8), " +
+                    "varcharCol VARCHAR(50), " +
+                    "longvarcharCol VARCHAR(MAX), " +
+                    "ncharCol1 NCHAR(9), " +
+                    "nvarcharCol1 NVARCHAR(50), " +
+                    "longnvarcharCol1 NVARCHAR(MAX), " +
+                    "ncharCol2 NCHAR(9), " +
+                    "nvarcharCol2 NVARCHAR(50), " +
+                    "longnvarcharCol2 NVARCHAR(MAX)" + ")";
+
+            stmt.execute(createTableSQL);
+        }
+    }
+
+    /**
+     * Test bulk insert with InputStream data when useBulkCopyForBatchInsert is true.
+     * Added support for InputStream data type with bulk copy batch insert.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testBulkCopyBatchInsertForInputStreamData() throws Exception {
+        String tableName = RandomUtil.getIdentifier("BulkTableForInputStream");
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
+                " (Id, Data) VALUES (?, ?)";
+        String selectSQL = "SELECT Id, Data FROM " + AbstractSQLGenerator.escapeIdentifier(tableName);
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
+
+            getCreateTableInputStream(tableName);
+
+            String data = "Sample string to be inserted as binary data.";
+            byte[] bytes = data.getBytes(StandardCharsets.UTF_8);
+            InputStream inputStream = new ByteArrayInputStream(bytes);
+
+            pstmt.setObject(1, 1);
+            pstmt.setBinaryStream(2, inputStream);
+            
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next());
+
+                assertEquals(1, rs.getInt(1));
+                byte[] retrievedBytes = rs.getBytes(2);
+                String retrievedData = new String(retrievedBytes, StandardCharsets.UTF_8);
+                assertEquals(data, retrievedData);
+                
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    private void getCreateTableInputStream(String tableName) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
+                    "Id INT PRIMARY KEY, " +
+                    "Data VARBINARY(MAX) NULL" + ")";
+
+            stmt.execute(createTableSQL);
+        }
+    }
+
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
@@ -1319,6 +1785,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(squareBracketTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(doubleQuoteTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(schemaTableName), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulkString), stmt);
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulkComputedCols), stmt);
         }
     }
 }

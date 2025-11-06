@@ -245,11 +245,19 @@ class TDSTokenHandler {
     }
 
     boolean onDone(TDSReader tdsReader) throws SQLServerException {
+        short status = tdsReader.peekStatusFlag();
         StreamDone doneToken = new StreamDone();
         doneToken.setFromTDS(tdsReader);
         if (doneToken.isFinal()) {
             // Response is completely processed hence decrement unprocessed response count.
             tdsReader.getConnection().getSessionRecovery().decrementUnprocessedResponseCount();
+        }
+
+        if ((status & TDS.DONE_SRVERROR) != 0) {
+            SQLServerError syntheticError = new SQLServerError();
+            syntheticError.setErrorMessage(SQLServerException.getErrString("R_severeError"));
+            syntheticError.setErrorSeverity((byte) 20);
+            addDatabaseError(syntheticError);
         }
         return true;
     }

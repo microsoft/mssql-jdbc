@@ -1687,8 +1687,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             precision = vector.getDimensionCount();
             scale = (int) VectorUtils.getScaleByte(vector.getVectorDimensionType());
         }
-
-        setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), scale, precision, false, n, tvpName);
+        
+        if (microsoft.sql.Types.JSON == jdbcType) {
+            setObjectNoType(n, obj, false);
+        } else {
+            setObject(setterGetParam(n), obj, JavaType.of(obj), JDBCType.of(jdbcType), scale, precision, false, n, tvpName);
+        } 
         loggerExternal.exiting(getClassNameLogging(), "setObject");
     }
 
@@ -2558,6 +2562,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             case java.sql.Types.LONGVARBINARY:
             case java.sql.Types.VARBINARY:
             case microsoft.sql.Types.VECTOR:
+            case microsoft.sql.Types.JSON:
                 // Spatial datatypes fall under Varbinary, check if the UDT is geometry/geography.
                 typeName = ti.getSSTypeName();
                 if ("geometry".equalsIgnoreCase(typeName) || "geography".equalsIgnoreCase(typeName)) {

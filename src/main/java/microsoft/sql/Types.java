@@ -80,4 +80,8 @@ public final class Types {
      * Microsoft SQL type VECTOR.
      */
     public static final int VECTOR = -160;
+    /**
+     * Microsoft SQL type JSON.
+     */
+    public static final int JSON = -159;
 }

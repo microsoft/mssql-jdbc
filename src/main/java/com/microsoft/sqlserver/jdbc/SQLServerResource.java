@@ -314,6 +314,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_AE_NotSupportedByServer", "SQL Server in use does not support column encryption."},
         {"R_InvalidAEVersionNumber", "Received invalid version number \"{0}\" for Always Encrypted."}, // From server
         {"R_InvalidVectorVersionNumber", "Received invalid version number \"{0}\" for vector feature negotiation."},
+        {"R_InvalidJSONVersionNumber", "Received invalid version number \"{0}\" for JSON feature negotiation."},
         {"R_NullEncryptedColumnEncryptionKey", "Internal error. Encrypted column encryption key cannot be null."},
         {"R_EmptyEncryptedColumnEncryptionKey", "Internal error. Empty encrypted column encryption key specified."},
         {"R_InvalidMasterKeyDetails", "Invalid master key details specified."},
@@ -488,6 +489,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_unknownUTF8SupportValue", "Unknown value for UTF8 support."},
         {"R_unknownAzureSQLDNSCachingValue", "Unknown value for Azure SQL DNS Caching."},
         {"R_unknownVectorSupportValue", "Unexpected version value received for vector support feature negotiation."},
+        {"R_unknownJSONSupportValue", "Unexpected version value received for JSON support feature negotiation."},
         {"R_illegalWKT", "Illegal Well-Known text. Please make sure Well-Known text is valid."},
         {"R_illegalTypeForGeometry", "{0} is not supported for Geometry."},
         {"R_illegalWKTposition", "Illegal character in Well-Known text at position {0}."},
@@ -573,6 +575,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_vectorByteArrayLength", "Vector byte array length must be at least 8 bytes."},
         {"R_invalidVectorData", "The provided type of data is not supported for vector."},
         {"R_vectorByteArrayMultipleOfBytesPerDimension", "Byte array length must be a multiple of {0} for vector of type {1}."},
+        {"R_severeError", "A severe error occurred on the current command.  The results, if any, should be discarded."},
+           
     };
 }
 // @formatter:on

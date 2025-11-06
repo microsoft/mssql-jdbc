@@ -300,6 +300,8 @@ final class DTV {
         void execute(DTV dtv, String strValue) throws SQLServerException {
             if (dtv.getJdbcType() == JDBCType.GUID) {
                 tdsWriter.writeRPCUUID(name, UUID.fromString(strValue), isOutParam);
+            } else if (dtv.getJdbcType() == JDBCType.JSON) {
+                tdsWriter.writeRPCJson(name, strValue, isOutParam);
             } else {
                 tdsWriter.writeRPCStringUnicode(name, strValue, isOutParam, collation);
             }
@@ -1468,6 +1470,7 @@ final class DTV {
                 case NVARCHAR:
                 case LONGNVARCHAR:
                 case NCLOB:
+                case JSON:
                     if (null != cryptoMeta)
                         op.execute(this, (byte[]) null);
                     else
@@ -2060,7 +2063,8 @@ final class AppDTVImpl extends DTVImpl {
             // then do the conversion now so that the decision to use a "short" or "long"
             // SSType (i.e. VARCHAR vs. TEXT/VARCHAR(max)) is based on the exact length of
             // the MBCS value (in bytes).
-            else if (null != collation && (JDBCType.CHAR == type || JDBCType.VARCHAR == type
+            // If useBulkCopyForBatchInsert is true, conversion to byte array is not done due to performance
+            else if (!con.getUseBulkCopyForBatchInsert() && null != collation && (JDBCType.CHAR == type || JDBCType.VARCHAR == type
                     || JDBCType.LONGVARCHAR == type || JDBCType.CLOB == type)) {
                 byte[] nativeEncoding = null;
 
@@ -3038,7 +3042,25 @@ final class TypeInfo implements Serializable {
                 int scaleByte = tdsReader.readUnsignedByte(); // Read the dimension type (scale)
                 typeInfo.scale = VectorUtils.getBytesPerDimensionFromScale(scaleByte);
                 typeInfo.precision = VectorUtils.getPrecision(typeInfo.maxLength, typeInfo.scale);
+            }
+        }),
 
+        JSON(TDSType.JSON, new Strategy() {
+            /**
+             * Sets the fields of typeInfo to the correct values
+             * 
+             * @param typeInfo
+             *        the TypeInfo whos values are being corrected
+             * @param tdsReader
+             *        the TDSReader used to set the fields of typeInfo to the correct values
+             * @throws SQLServerException
+             *         when an error occurs
+             */
+            public void apply(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
+                typeInfo.ssLenType = SSLenType.PARTLENTYPE; 
+                typeInfo.ssType = SSType.JSON;
+                typeInfo.displaySize = typeInfo.precision = Integer.MAX_VALUE;
+                typeInfo.charset = Encoding.UTF8.charset();
             }
         });
 
@@ -3789,6 +3811,7 @@ final class ServerDTVImpl extends DTVImpl {
                 case VARBINARYMAX:
                 case VARCHARMAX:
                 case NVARCHARMAX:
+                case JSON:
                 case UDT: {
                     convertedValue = DDC.convertStreamToObject(
                             PLPInputStream.makeStream(tdsReader, streamGetterArgs, this), typeInfo, jdbcType,

@@ -174,6 +174,13 @@ final class TDS {
     static final byte TDS_FEATURE_EXT_VECTORSUPPORT = 0x0E;
     static final byte VECTORSUPPORT_NOT_SUPPORTED = 0x00;
     static final byte MAX_VECTORSUPPORT_VERSION = 0x01;
+    // JSON support
+    static final byte TDS_FEATURE_EXT_JSONSUPPORT = 0x0D;
+    static final byte JSONSUPPORT_NOT_SUPPORTED = 0x00;
+    static final byte MAX_JSONSUPPORT_VERSION = 0x01;
+    // User agent telemetry support
+    static final byte TDS_FEATURE_EXT_USERAGENT = 0x10;
+    static final byte MAX_USERAGENT_VERSION = 0x01;
 
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
@@ -245,6 +252,11 @@ final class TDS {
                 return "TDS_FEATURE_EXT_SESSIONRECOVERY (0x01)";
             case TDS_FEATURE_EXT_VECTORSUPPORT:
                 return "TDS_FEATURE_EXT_VECTORSUPPORT (0x0E)";
+            case TDS_FEATURE_EXT_JSONSUPPORT:
+                return "TDS_FEATURE_EXT_JSONSUPPORT (0x0D)";
+            case TDS_FEATURE_EXT_USERAGENT:
+                return "TDS_FEATURE_EXT_USERAGENT (0x10)";
+                
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
@@ -1669,7 +1681,10 @@ final class TDSChannel implements Serializable {
                     .getProperty(SQLServerDriverStringProperty.TRUST_STORE_TYPE.toString());
 
             if (StringUtils.isEmpty(trustStoreType)) {
-                trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue();
+                trustStoreType = System.getProperty("javax.net.ssl.trustStoreType");
+                if (StringUtils.isEmpty(trustStoreType)) {
+                    trustStoreType = SQLServerDriverStringProperty.TRUST_STORE_TYPE.getDefaultValue(); // Default to JKS if not specified
+                }
             }
 
             String serverCert = con.activeConnectionProperties
@@ -4864,6 +4879,26 @@ final class TDSWriter {
         writeRPCStringUnicode(null, sValue, false, null);
     }
 
+    void writeRPCJson(String sName, String sValue, boolean bOut) throws SQLServerException {
+        boolean bValueNull = (sValue == null);
+        int nValueLen = bValueNull ? 0 : (2 * sValue.length());
+
+        writeRPCNameValType(sName, bOut, TDSType.JSON);
+
+        // PLP encoding is used for JSON values.
+        writeVMaxHeader(nValueLen, bValueNull, /* collation = */ null);
+
+        if (!bValueNull) {
+            if (nValueLen > 0) {
+                writeInt(nValueLen);
+                writeString(sValue);
+            }
+
+            // PLP terminator
+            writeInt(0);
+        }
+    }
+
     /**
      * Writes a string value as Unicode for RPC
      * 
@@ -5249,6 +5284,7 @@ final class TDSWriter {
             case LONGVARCHAR:
             case LONGNVARCHAR:
             case SQLXML:
+            case JSON:
                 isShortValue = (2L * columnPair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                 isNull = (null == currentColumnStringValue);
                 dataLength = isNull ? 0 : currentColumnStringValue.length() * 2;
@@ -5493,6 +5529,7 @@ final class TDSWriter {
                 case LONGVARCHAR:
                 case LONGNVARCHAR:
                 case SQLXML:
+                case JSON:
                     writeByte(TDSType.NVARCHAR.byteValue());
                     isShortValue = (2L * pair.getValue().precision) <= DataTypes.SHORT_VARTYPE_MAX_BYTES;
                     // Use PLP encoding on Yukon and later with long values
