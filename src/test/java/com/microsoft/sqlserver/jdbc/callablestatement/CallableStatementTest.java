@@ -603,7 +603,7 @@ public class CallableStatementTest extends AbstractTest {
             ds.setServerName(linkedServer);
             ds.setUser(linkedServerUser);
             ds.setPassword(linkedServerPassword);
-            ds.setEncrypt(false);
+            ds.setEncrypt("false");
             ds.setTrustServerCertificate(true);
 
             try (Connection linkedServerConnection = ds.getConnection();
