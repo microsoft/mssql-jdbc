@@ -533,7 +533,7 @@ enum SQLServerDriverObjectProperty {
 enum PrepareMethod {
     PREPEXEC("prepexec"), // sp_prepexec, default prepare method
     PREPARE("prepare"),
-    EXEC("exec"); // direct execution without preparation, for Sybase migration compatibility
+    EXEC("exec");
 
     private final String value;
 
@@ -841,7 +841,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.SERVER_CERTIFICATE.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
                     SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(), false,
-                    new String[] {PrepareMethod.PREPEXEC.toString(), PrepareMethod.PREPARE.toString()}),
+                    new String[] {PrepareMethod.PREPEXEC.toString(), PrepareMethod.PREPARE.toString(), PrepareMethod.EXEC.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(),
                     SQLServerDriverStringProperty.FAILOVER_PARTNER.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(),

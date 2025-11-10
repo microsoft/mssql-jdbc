@@ -336,6 +336,28 @@ public class CallableStatementTest extends AESetup {
         }
     }
 
+    @Test
+    public void testCallableStatementExecAE() throws SQLException {
+        AETestConnectionString += ";prepareMethod=exec;";
+
+        try (Statement statement = PrepUtil.getConnection(AETestConnectionString, AEInfo).createStatement();) {
+            statement.executeUpdate("create procedure " + prepareMethodProcedure + " as select 1 --");
+
+            try (CallableStatement callableStatement = PrepUtil.getConnection(AETestConnectionString, AEInfo)
+                    .prepareCall("{call " + prepareMethodProcedure + "}")) {
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+            }
+        }
+    }
+
     private static void dropProcedures() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropProcedureIfExists(multiStatementsProcedure, stmt);

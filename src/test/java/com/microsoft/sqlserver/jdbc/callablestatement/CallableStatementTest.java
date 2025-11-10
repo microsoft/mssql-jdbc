@@ -242,6 +242,29 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testCallableStatementExec() throws SQLException {
+        connection.setPrepareMethod("exec");
+
+        try (Statement statement = connection.createStatement();) {
+            statement.executeUpdate("create procedure " + procName + " as select 1 --");
+
+            try (CallableStatement callableStatement = connection.prepareCall("{call " + procName + "}")) {
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+            } finally {
+                TestUtils.dropProcedureIfExists(procName, statement);
+            }
+        }
+    }
+
     /**
      * Tests CallableStatement.getString() with uniqueidentifier parameter
      * 
@@ -568,90 +591,89 @@ public class CallableStatementTest extends AbstractTest {
         }
     }
 
-    // @Test
-    // @Tag(Constants.reqExternalSetup)
-    // @Tag(Constants.xAzureSQLDB)
-    // @Tag(Constants.xAzureSQLDW)
-    // @Tag(Constants.xAzureSQLMI)
-    // public void testFourPartSyntaxCallEscapeSyntax() throws SQLException {
-    //     String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("serverList"));
-    //     try {
+    @Test
+    @Tag(Constants.reqExternalSetup)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLMI)
+    public void testFourPartSyntaxCallEscapeSyntax() throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("serverList"));
+        try {
 
-    //         try (Statement stmt = connection.createStatement()) {
-    //             TestUtils.dropTableIfExists(table, stmt);
-    //             stmt.execute("CREATE TABLE " + table
-    //                     + " (serverName varchar(100),network varchar(100),serverStatus varchar(4000), id int, collation varchar(100), connectTimeout int, queryTimeout int)");
-    //             stmt.execute("INSERT " + table + " EXEC sp_helpserver");
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(table, stmt);
+                stmt.execute("CREATE TABLE " + table
+                        + " (serverName varchar(100),network varchar(100),serverStatus varchar(4000), id int, collation varchar(100), connectTimeout int, queryTimeout int)");
+                stmt.execute("INSERT " + table + " EXEC sp_helpserver");
 
-    //             ResultSet rs = stmt
-    //                     .executeQuery("SELECT COUNT(*) FROM " + table + " WHERE serverName = N'" + linkedServer + "'");
-    //             rs.next();
+                ResultSet rs = stmt
+                        .executeQuery("SELECT COUNT(*) FROM " + table + " WHERE serverName = N'" + linkedServer + "'");
+                rs.next();
 
-    //             if (rs.getInt(1) == 1) {
-    //                 // Drop all linked logins associated with the server
-    //                 stmt.execute("EXEC sp_dropserver @server='" + linkedServer + "', @droplogins='droplogins';");
-    //             }
+                if (rs.getInt(1) == 1) {
+                    stmt.execute("EXEC sp_dropserver @server='" + linkedServer + "';");
+                }
 
-    //             stmt.execute("EXEC sp_addlinkedserver @server='" + linkedServer + "';");
-    //             stmt.execute("EXEC sp_addlinkedsrvlogin @rmtsrvname=N'" + linkedServer + "', @useself=false"
-    //                     + ", @rmtuser=N'" + linkedServerUser + "', @rmtpassword=N'" + linkedServerPassword + "'");
-    //             stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc', true;");
-    //             stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc out', true;");
-    //         }
+                stmt.execute("EXEC sp_addlinkedserver @server='" + linkedServer + "';");
+                stmt.execute("EXEC sp_addlinkedsrvlogin @rmtsrvname=N'" + linkedServer + "', @useself=false"
+                        + ", @rmtuser=N'" + linkedServerUser + "', @rmtpassword=N'" + linkedServerPassword + "'");
+                stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc', true;");
+                stmt.execute("EXEC sp_serveroption '" + linkedServer + "', 'rpc out', true;");
+            }
 
-    //         SQLServerDataSource ds = new SQLServerDataSource();
-    //         ds.setServerName(linkedServer);
-    //         ds.setUser(linkedServerUser);
-    //         ds.setPassword(linkedServerPassword);
-    //         ds.setEncrypt(false);
-    //         ds.setTrustServerCertificate(true);
+            SQLServerDataSource ds = new SQLServerDataSource();
+            ds.setServerName(linkedServer);
+            ds.setUser(linkedServerUser);
+            ds.setPassword(linkedServerPassword);
+            ds.setEncrypt(false);
+            ds.setTrustServerCertificate(true);
 
-    //         try (Connection linkedServerConnection = ds.getConnection();
-    //                 Statement stmt = linkedServerConnection.createStatement()) {
-    //             stmt.execute(
-    //                     "create or alter procedure dbo.TestAdd(@Num1 int, @Num2 int, @Result int output) as begin set @Result = @Num1 + @Num2; end;");
+            try (Connection linkedServerConnection = ds.getConnection();
+                    Statement stmt = linkedServerConnection.createStatement()) {
+                stmt.execute(
+                        "create or alter procedure dbo.TestAdd(@Num1 int, @Num2 int, @Result int output) as begin set @Result = @Num1 + @Num2; end;");
 
-    //             stmt.execute("create or alter procedure dbo.TestReturn(@Num1 int) as select @Num1 return @Num1*3  ");
-    //         }
+                stmt.execute("create or alter procedure dbo.TestReturn(@Num1 int) as select @Num1 return @Num1*3  ");
+            }
 
-    //         try (CallableStatement cstmt = connection
-    //                 .prepareCall("{call [" + linkedServer + "].master.dbo.TestAdd(?,?,?)}")) {
-    //             int sum = 11;
-    //             int param0 = 1;
-    //             int param1 = 10;
-    //             cstmt.setInt(1, param0);
-    //             cstmt.setInt(2, param1);
-    //             cstmt.registerOutParameter(3, Types.INTEGER);
-    //             cstmt.execute();
-    //             assertEquals(sum, cstmt.getInt(3));
-    //         }
+            try (CallableStatement cstmt = connection
+                    .prepareCall("{call [" + linkedServer + "].master.dbo.TestAdd(?,?,?)}")) {
+                int sum = 11;
+                int param0 = 1;
+                int param1 = 10;
+                cstmt.setInt(1, param0);
+                cstmt.setInt(2, param1);
+                cstmt.registerOutParameter(3, Types.INTEGER);
+                cstmt.execute();
+                assertEquals(sum, cstmt.getInt(3));
+            }
 
-    //         try (CallableStatement cstmt = connection
-    //                 .prepareCall("exec [" + linkedServer + "].master.dbo.TestAdd ?,?,?")) {
-    //             int sum = 11;
-    //             int param0 = 1;
-    //             int param1 = 10;
-    //             cstmt.setInt(1, param0);
-    //             cstmt.setInt(2, param1);
-    //             cstmt.registerOutParameter(3, Types.INTEGER);
-    //             cstmt.execute();
-    //             assertEquals(sum, cstmt.getInt(3));
-    //         }
+            try (CallableStatement cstmt = connection
+                    .prepareCall("exec [" + linkedServer + "].master.dbo.TestAdd ?,?,?")) {
+                int sum = 11;
+                int param0 = 1;
+                int param1 = 10;
+                cstmt.setInt(1, param0);
+                cstmt.setInt(2, param1);
+                cstmt.registerOutParameter(3, Types.INTEGER);
+                cstmt.execute();
+                assertEquals(sum, cstmt.getInt(3));
+            }
 
-    //         try (CallableStatement cstmt = connection
-    //                 .prepareCall("{? = call [" + linkedServer + "].master.dbo.TestReturn(?)}")) {
-    //             int expected = 15;
-    //             cstmt.registerOutParameter(1, java.sql.Types.INTEGER);
-    //             cstmt.setInt(2, 5);
-    //             cstmt.execute();
-    //             assertEquals(expected, cstmt.getInt(1));
-    //         }
-    //     } finally {
-    //         try (Statement stmt = connection.createStatement()) {
-    //             TestUtils.dropTableIfExists(table, stmt);
-    //         }
-    //     }
-    // }
+            try (CallableStatement cstmt = connection
+                    .prepareCall("{? = call [" + linkedServer + "].master.dbo.TestReturn(?)}")) {
+                int expected = 15;
+                cstmt.registerOutParameter(1, java.sql.Types.INTEGER);
+                cstmt.setInt(2, 5);
+                cstmt.execute();
+                assertEquals(expected, cstmt.getInt(1));
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(table, stmt);
+            }
+        }
+    }
 
     @Test
     public void testTimestampStringConversion() throws SQLException {

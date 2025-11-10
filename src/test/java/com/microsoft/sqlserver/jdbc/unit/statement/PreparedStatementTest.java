@@ -56,6 +56,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -114,6 +116,11 @@ public class PreparedStatementTest extends AbstractTest {
             assertEquals("prepare", conn.getPrepareMethod());
         }
 
+        String connectionStringExec = connectionString + ";prepareMethod=exec;";
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionStringExec)) {
+            assertEquals("exec", conn.getPrepareMethod());
+        }
+
         try (SQLServerConnection conn = (SQLServerConnection) getConnection()) {
             assertEquals("prepexec", conn.getPrepareMethod()); // default is prepexec
         }
@@ -137,6 +144,72 @@ public class PreparedStatementTest extends AbstractTest {
                 ps.executeUpdate(); // Takes sp_prepare path
                 ps.executeUpdate();
             }
+        }
+    }
+
+    @Test
+    public void testPreparedStatementWithExec() throws SQLException {
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName4)
+                + " (c1_nchar, c2_int) values (?, ?)";
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod("exec"); // Use exec method
+
+            executeSQL(con, "create table " + AbstractSQLGenerator.escapeIdentifier(tableName4)
+                    + " (c1_nchar nchar(512), c2_int integer)");
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                ps.setString(1, "test");
+                ps.setInt(2, 0);
+                ps.executeUpdate();
+                ps.executeUpdate();
+                ps.executeUpdate();
+            }
+        }
+    }
+    
+    @ParameterizedTest
+    @ValueSource(strings = {"prepexec", "prepare", "exec"})
+    public void testPreparedStatementWithDifferentPrepareMethods(String prepareMethod) throws SQLException {
+        String tableName = RandomUtil.getIdentifier("testTablePrepareMethod");
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (c1_int, c2_nvarchar, c3_datetime, c4_bit) values (?, ?, ?, ?)";
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod(prepareMethod);
+
+            executeSQL(con, "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (c1_int int, c2_nvarchar nvarchar(100), c3_datetime datetime2, c4_bit bit)");
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                // Test with different data types
+                ps.setInt(1, 123);
+                ps.setString(2, "test string");
+                ps.setTimestamp(3, java.sql.Timestamp.valueOf("2023-01-01 12:30:45.123"));
+                ps.setBoolean(4, true);
+                ps.executeUpdate();
+                
+                ps.setInt(1, 456);
+                ps.setString(2, "second test");
+                ps.setTimestamp(3, java.sql.Timestamp.valueOf("2023-01-02 13:31:46.456"));
+                ps.setBoolean(4, false);
+                ps.executeUpdate(); // Second execution should follow the prepare method path
+                
+                ps.setInt(1, 789);
+                ps.setString(2, "third test");
+                ps.setTimestamp(3, java.sql.Timestamp.valueOf("2023-01-03 14:32:47.789"));
+                ps.setBoolean(4, true);
+                ps.executeUpdate(); // Third execution should also follow the prepare method path
+            }
+
+            // Verify data was inserted correctly
+            try (Statement stmt = con.createStatement(); 
+                 ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                rs.next();
+                assertEquals(3, rs.getInt(1), "Should have 3 rows inserted");
+            }
+
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), con.createStatement());
         }
     }
     

@@ -120,6 +120,28 @@ public class BatchExecutionTest extends AbstractTest {
         testBatchUpdateCountWith(5, 4, true, "prepare", expectedUpdateCount);
     }
 
+    /**
+     * This tests the updateCount when the error query does cause a SQL state HY008.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testBatchUpdateCountFalseOnFirstPstmtExec() throws Exception {
+        long[] expectedUpdateCount = {1, 1, 1, 1, -3, -3, -3, -3, -3, -3};
+        testBatchUpdateCountWith(10, 6, false, "exec", expectedUpdateCount);
+    }
+
+    /**
+     * This tests the updateCount when the error query does cause a SQL state HY008.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testBatchUpdateCountTrueOnFirstPstmtExec() throws Exception {
+        long[] expectedUpdateCount = {1, 1, -3, -3, -3};
+        testBatchUpdateCountWith(5, 4, true, "exec", expectedUpdateCount);
+    }
+
     @Test
     public void testSqlServerBulkCopyCachingPstmtLevel() throws Exception {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
@@ -520,6 +542,15 @@ public class BatchExecutionTest extends AbstractTest {
     @Test
     public void testBatchSpPrepare() throws Exception {
         connectionString += ";prepareMethod=prepare;";
+        testAddBatch1();
+        testExecuteBatch1();
+        testAddBatch1UseBulkCopyAPI();
+        testExecuteBatch1UseBulkCopyAPI();
+    }
+
+    @Test
+    public void testBatchExec() throws Exception {
+        connectionString += ";prepareMethod=exec;";
         testAddBatch1();
         testExecuteBatch1();
         testAddBatch1UseBulkCopyAPI();
