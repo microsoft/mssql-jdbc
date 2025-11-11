@@ -74,13 +74,15 @@ public final class SqlServerPreparedStatementExpander {
 
             if (inSingleQuote) {
                 out.append(ch);
-                if (ch == '\'' && prev != '\\') {
-                    // SQL single quote escaping is by doubling '' — but user code may not use backslash.
-                    // To handle doubled single quotes, check next char too in source (but easier: if current is quote and next is also quote, it's escaped)
-                    // We'll allow exit only when next char isn't another single quote.
+                if (ch == '\'') {
+                    // Check if this is an escaped quote (doubled '')
                     if (i + 1 < sql.length() && sql.charAt(i + 1) == '\'') {
-                        // escaped quote -> consume next quote normally (it will be appended in next iteration)
+                        // This is an escaped quote. Append the next quote and skip it in the next
+                        // iteration
+                        i++; // skip next quote
+                        out.append('\'');
                     } else {
+                        // This is the closing quote
                         inSingleQuote = false;
                     }
                 }
@@ -90,10 +92,14 @@ public final class SqlServerPreparedStatementExpander {
 
             if (inDoubleQuote) {
                 out.append(ch);
-                if (ch == '"' && prev != '\\') {
+                if (ch == '"') {
+                    // Check if this is an escaped quote (doubled "")
                     if (i + 1 < sql.length() && sql.charAt(i + 1) == '"') {
-                        // doubled quote -> escape
+                        // This is an escaped quote. Append the next quote and skip it
+                        i++;
+                        out.append('"');
                     } else {
+                        // This is the closing quote
                         inDoubleQuote = false;
                     }
                 }
@@ -148,18 +154,15 @@ public final class SqlServerPreparedStatementExpander {
                 if (tokenEndIndex >= 0) {
                     // single/double char operators
                     char c = sql.charAt(tokenEndIndex);
-                    if (c == '=') {
-                        prevOp = "=";
-                        // find corresponding position in out: we need to remove the '=' and any trailing spaces we already appended after it
-                        opStartInOut = findOpStartInOut(out, "=");
-                    } else if (c == '>' || c == '<' || c == '!') {
-                        // check two-char forms
+                    if (c == '=' || c == '>' || c == '<' || c == '!') {
+                        // Check for two-char operators first
                         char before = tokenEndIndex - 1 >= 0 ? sql.charAt(tokenEndIndex - 1) : 0;
                         String two = (before != 0) ? "" + before + c : null;
                         if ("<>".equals(two) || "!=".equals(two) || "<=".equals(two) || ">=".equals(two)) {
                             prevOp = two;
                             opStartInOut = findOpStartInOut(out, two);
                         } else {
+                            // Single character operator
                             prevOp = String.valueOf(c);
                             opStartInOut = findOpStartInOut(out, String.valueOf(c));
                         }
@@ -239,27 +242,53 @@ public final class SqlServerPreparedStatementExpander {
     // It scans backward from end of out and matches the operator possibly surrounded by whitespace.
     private static int findOpStartInOut(StringBuilder out, String op) {
         if (op == null || out.length() == 0) return -1;
-        int end = out.length() - 1;
-        // skip trailing whitespace
-        while (end >= 0 && Character.isWhitespace(out.charAt(end))) end--;
-        int start = end - op.length() + 1;
-        if (start < 0) return -1;
-        String sub = out.substring(start, start + op.length());
-        if (sub.equals(op)) {
-            // remove trailing spaces before op as well (so "col   =   ?" -> remove spaces and '=')
-            int trimStart = start;
-            while (trimStart - 1 >= 0 && Character.isWhitespace(out.charAt(trimStart - 1))) trimStart--;
-            return trimStart;
+
+        // Scan backwards to find the operator, skipping any trailing whitespace
+        int pos = out.length() - 1;
+
+        // Skip any trailing whitespace at the end of the buffer
+        while (pos >= 0 && Character.isWhitespace(out.charAt(pos))) {
+            pos--;
         }
-        // try case where op might be present but with different spacing, or already removed -> fallback: remove last non-whitespace token
-        // fallback: find last occurrence of op (naive)
-        int idx = out.lastIndexOf(op);
-        if (idx >= 0) {
-            // remove any spaces before it
-            int trimStart = idx;
-            while (trimStart - 1 >= 0 && Character.isWhitespace(out.charAt(trimStart - 1))) trimStart--;
-            return trimStart;
+
+        // Now pos should point to the last non-whitespace character
+        // Check if the operator matches ending at this position
+        int opLen = op.length();
+        if (pos - opLen + 1 < 0)
+            return -1;
+
+        int opStart = pos - opLen + 1;
+        String found = out.substring(opStart, pos + 1);
+
+        if (found.equals(op)) {
+            // Found the operator. Now we need to decide where to truncate.
+            // We want to keep at least one space before where we'll insert the new text
+            // So scan back to find any spaces before the operator
+            int trimPos = opStart;
+            while (trimPos > 0 && Character.isWhitespace(out.charAt(trimPos - 1))) {
+                trimPos--;
+            }
+            // Keep one space
+            if (trimPos < opStart) {
+                trimPos++;
+            }
+            return trimPos;
         }
+
+        // Fallback: search for last occurrence of the operator
+        String outStr = out.toString();
+        int lastIdx = outStr.lastIndexOf(op);
+        if (lastIdx >= 0) {
+            int trimPos = lastIdx;
+            while (trimPos > 0 && Character.isWhitespace(out.charAt(trimPos - 1))) {
+                trimPos--;
+            }
+            if (trimPos < lastIdx) {
+                trimPos++;
+            }
+            return trimPos;
+        }
+
         return -1;
     }
 
@@ -282,9 +311,12 @@ public final class SqlServerPreparedStatementExpander {
             }
         }
         if (idx >= 0) {
-            // trim leading whitespace before the word
+            // Keep one space before the word to maintain proper spacing
             int trim = idx;
             while (trim - 1 >= 0 && Character.isWhitespace(out.charAt(trim - 1))) trim--;
+            if (trim < idx && idx < out.length()) {
+                trim++; // keep one space
+            }
             return trim;
         }
         return -1;
