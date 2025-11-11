@@ -59,7 +59,7 @@ class PerformanceLog {
         public Scope(Logger logger, int connectionId, int statementId, PerformanceActivity activity) {
 
             // Check if logging is enabled
-            this.enabled = logger.isLoggable(Level.INFO) || (callback != null);
+            this.enabled = logger.isLoggable(Level.FINE) || (callback != null);
 
             if (enabled) {
                 this.logger = logger;
@@ -103,15 +103,15 @@ class PerformanceLog {
                     }
 
                 } catch (Exception e) {
-                    logger.info(String.format("Failed to publish performance log: %s", e.getMessage()));
+                    logger.fine(String.format("Failed to publish performance log: %s", e.getMessage()));
                 }
             }
 
-            if (logger != null && logger.isLoggable(Level.INFO)) {
+            if (logger != null && logger.isLoggable(Level.FINE)) {
                 if (exception != null) {
-                    logger.info(String.format("%s %s, duration: %dms, exception: %s", getTraceId(), activity, duration, exception.getMessage()));
+                    logger.fine(String.format("%s %s, duration: %dms, exception: %s", getTraceId(), activity, duration, exception.getMessage()));
                 } else {
-                    logger.info(String.format("%s %s, duration: %dms", getTraceId(), activity, duration));
+                    logger.fine(String.format("%s %s, duration: %dms", getTraceId(), activity, duration));
                 }
             }
 

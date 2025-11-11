@@ -35,7 +35,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
             perfLogHandler = new FileHandler("performance.log", true);
             perfLogHandler.setFormatter(new SimpleFormatter());
             perfLogger.addHandler(perfLogHandler);
-            perfLogger.setLevel(Level.INFO);
+            perfLogger.setLevel(Level.FINE);
             perfLogger.setUseParentHandlers(false);
         } catch (IOException e) {
             e.printStackTrace();
