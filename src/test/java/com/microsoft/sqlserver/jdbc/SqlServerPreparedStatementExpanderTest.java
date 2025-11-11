@@ -416,4 +416,37 @@ public class SqlServerPreparedStatementExpanderTest {
         assertTrue(result.contains("status IS NULL"));
         assertTrue(result.contains("flag IS NOT NULL"));
     }
+
+    /**
+     * Test UPDATE SET clause with NULL value (should NOT be rewritten to IS NULL).
+     */
+    @Test
+    public void testUpdateSetWithNull() {
+        String sql = "UPDATE employees SET manager_id = ?, notes = ? WHERE id = ?";
+        List<Object> params = Arrays.asList(null, null, 123);
+
+        String result = SqlServerPreparedStatementExpander.expand(sql, params);
+
+        // In SET clause, "= NULL" should remain "= NULL", not be rewritten to "IS NULL"
+        assertTrue(result.contains("manager_id = NULL"), "SET clause should use '= NULL'");
+        assertTrue(result.contains("notes = NULL"), "SET clause should use '= NULL'");
+        assertTrue(result.contains("id = 123"), "WHERE clause parameter should be replaced");
+        assertFalse(result.contains("IS NULL"), "SET clause should not use 'IS NULL'");
+    }
+
+    /**
+     * Test UPDATE with NULL in both SET and WHERE clauses.
+     */
+    @Test
+    public void testUpdateSetAndWhereWithNull() {
+        String sql = "UPDATE employees SET status = ? WHERE manager_id = ?";
+        List<Object> params = Arrays.asList(null, null);
+
+        String result = SqlServerPreparedStatementExpander.expand(sql, params);
+
+        // First NULL is in SET clause (keep = NULL)
+        assertTrue(result.contains("SET status = NULL"), "SET clause should use '= NULL'");
+        // Second NULL is in WHERE clause (rewrite to IS NULL)
+        assertTrue(result.contains("WHERE manager_id IS NULL"), "WHERE clause should use 'IS NULL'");
+    }
 }

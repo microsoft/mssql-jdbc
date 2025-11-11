@@ -204,12 +204,17 @@ public final class SqlServerPreparedStatementExpander {
 
                 // Now decide replacement
                 if (val == null) {
-                    // null-specific rewrites
-                    if ("=".equals(prevOp)) {
+                    // For NULL values, check if we're in a SET clause (UPDATE/INSERT context)
+                    // In SET clauses, we should keep "= NULL" as-is, not rewrite to "IS NULL"
+                    boolean inSetClause = isInSetClause(sql, i);
+
+                    // null-specific rewrites (only for WHERE/HAVING/JOIN conditions, not SET
+                    // clauses)
+                    if (!inSetClause && "=".equals(prevOp)) {
                         // remove '=' in output, replace with IS NULL
                         if (opStartInOut >= 0) out.setLength(opStartInOut);
                         out.append("IS NULL");
-                    } else if ("<>".equals(prevOp) || "!=".equals(prevOp)) {
+                    } else if (!inSetClause && ("<>".equals(prevOp) || "!=".equals(prevOp))) {
                         if (opStartInOut >= 0) out.setLength(opStartInOut);
                         out.append("IS NOT NULL");
                     } else if ("IS".equals(prevOp)) {
@@ -410,6 +415,72 @@ public final class SqlServerPreparedStatementExpander {
         sb.append("0x");
         for (byte b : bytes) sb.append(String.format("%02X", b));
         return sb.toString();
+    }
+
+    /**
+     * Check if the current position in SQL is within a SET clause.
+     * This helps determine whether to rewrite "= NULL" to "IS NULL".
+     * In SET clauses (e.g., UPDATE table SET column = NULL), we keep "= NULL"
+     * as-is.
+     * In WHERE/HAVING clauses, we rewrite "= NULL" to "IS NULL".
+     * 
+     * @param sql The SQL string
+     * @param pos Current position (where '?' is located)
+     * @return true if in a SET clause, false otherwise
+     */
+    private static boolean isInSetClause(String sql, int pos) {
+        // Look backwards from current position to find keywords
+        // We're in a SET clause if we find "SET" before any "WHERE", "HAVING", "FROM",
+        // "JOIN"
+        String beforePos = sql.substring(0, pos).toUpperCase(Locale.ROOT);
+
+        // Find the last occurrence of key keywords
+        int lastSet = findKeywordPosition(beforePos, "SET");
+        int lastWhere = findKeywordPosition(beforePos, "WHERE");
+        int lastHaving = findKeywordPosition(beforePos, "HAVING");
+        int lastFrom = findKeywordPosition(beforePos, "FROM");
+        int lastJoin = findKeywordPosition(beforePos, "JOIN");
+        int lastOn = findKeywordPosition(beforePos, "ON");
+
+        // If we found SET and it's the most recent clause keyword, we're in a SET
+        // clause
+        if (lastSet >= 0) {
+            // SET clause ends when we encounter WHERE, HAVING, FROM, JOIN, ON, or another
+            // SET
+            int clauseEnd = Math.max(Math.max(Math.max(Math.max(lastWhere, lastHaving), lastFrom), lastJoin), lastOn);
+            return lastSet > clauseEnd;
+        }
+
+        return false;
+    }
+
+    /**
+     * Find the position of a keyword in SQL, ensuring it's a word boundary (not
+     * part of another word).
+     * 
+     * @param sql     The SQL string (already uppercased)
+     * @param keyword The keyword to find (should be uppercase)
+     * @return Position of the keyword, or -1 if not found
+     */
+    private static int findKeywordPosition(String sql, String keyword) {
+        int pos = 0;
+        while (pos < sql.length()) {
+            int found = sql.indexOf(keyword, pos);
+            if (found == -1)
+                return -1;
+
+            // Check if it's a word boundary (not part of another word)
+            boolean validStart = (found == 0) || !Character.isLetterOrDigit(sql.charAt(found - 1));
+            boolean validEnd = (found + keyword.length() >= sql.length()) ||
+                    !Character.isLetterOrDigit(sql.charAt(found + keyword.length()));
+
+            if (validStart && validEnd) {
+                return found;
+            }
+
+            pos = found + 1;
+        }
+        return -1;
     }
 
     // --- Helper wrapper for InputStream-based binary parameters if you want to pass them in tests
