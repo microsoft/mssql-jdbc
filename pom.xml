@@ -243,6 +243,12 @@
 			<version>${junit.jupiter.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<!--dependency>
+			<groupId>com.sybase.jdbc4.jdbc</groupId>
+			<artifactId>jconn4</artifactId>
+			<version>16.0</version>
+			<scope>test</scope>
+		</dependency-->
 	</dependencies>
 	<repositories>
 		<repository>

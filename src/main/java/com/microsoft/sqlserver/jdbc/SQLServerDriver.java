@@ -532,7 +532,8 @@ enum SQLServerDriverObjectProperty {
 
 enum PrepareMethod {
     PREPEXEC("prepexec"), // sp_prepexec, default prepare method
-    PREPARE("prepare");
+    PREPARE("prepare"),
+    EXEC("exec"); // direct execution without preparation, for Sybase migration compatibility
 
     private final String value;
 

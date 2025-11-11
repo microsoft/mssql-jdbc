@@ -678,7 +678,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // Start the request and detach the response reader so that we can
                 // continue using it after we return.
-                TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
+                // Use PKT_QUERY for exec mode (direct execution), PKT_RPC for prepared
+                // statements
+                boolean isPrepareMethodExec = connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString());
+                TDSWriter tdsWriter = command.startRequest(isPrepareMethodExec ? TDS.PKT_QUERY : TDS.PKT_RPC);
 
                 needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
                         command);
@@ -1133,6 +1136,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (isCursorable(executeMethod))
             return false;
 
+        // No caching for exec method as it always executes directly without preparation
+        if (connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString()))
+            return false;
+
         // If current cache items needs to be discarded or New type definitions found with existing cached handle
         // reference then deregister cached
         // handle.
@@ -1179,6 +1186,24 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
         boolean isPrepareMethodSpPrepExec = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
+        boolean isPrepareMethodExec = connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString());
+
+        // If using exec method, execute directly like regular Statement to mimic Sybase
+        // DYNAMIC_PREPARE=false
+        if (isPrepareMethodExec) {
+            // Build direct SQL using enhanced replaceParameterMarkers with direct values
+            String directSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, false, true);
+            // Note: TDS request already started as PKT_QUERY in caller
+            tdsWriter.writeString(directSQL);
+
+            expectPrepStmtHandle = false;
+            executedSqlDirectly = true;
+            expectCursorOutParams = false;
+            outParamIndexAdjustment = 0;
+            resetPrepStmtHandle(false);
+
+            return false; // No preparation needed
+        }
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
@@ -3081,7 +3106,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         tdsWriter.writeByte((byte) NBATCH_STATEMENT_DELIMITER);
                     } else {
                         resetForReexecute();
-                        tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
+                        // Use PKT_QUERY for exec mode (direct execution), PKT_RPC for prepared
+                        // statements
+                        boolean isPrepareMethodExec = connection.getPrepareMethod()
+                                .equals(PrepareMethod.EXEC.toString());
+                        tdsWriter = batchCommand.startRequest(isPrepareMethodExec ? TDS.PKT_QUERY : TDS.PKT_RPC);
                     }
 
                     // If we have to (re)prepare the statement then we must execute it so

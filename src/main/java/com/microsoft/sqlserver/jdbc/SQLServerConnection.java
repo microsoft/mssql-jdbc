@@ -8386,6 +8386,39 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
             boolean isReturnValueSyntax) {
+        return replaceParameterMarkers(sqlSrc, paramPositions, params, isReturnValueSyntax, false);
+    }
+
+    String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
+            boolean isReturnValueSyntax, boolean useDirectValues) {
+
+        if (useDirectValues) {
+            // EXEC method: substitute actual parameter values directly into SQL
+            if (params == null || params.length == 0) {
+                return sqlSrc;
+            }
+
+            // Convert Parameter array to List<Object> for
+            // SqlServerPreparedStatementExpander
+            List<Object> paramValues = new ArrayList<>(params.length);
+            for (Parameter param : params) {
+                if (param == null || param.isNull()) {
+                    paramValues.add(null);
+                } else {
+                    try {
+                        paramValues.add(param.getSetterValue());
+                    } catch (Exception e) {
+                        paramValues.add(null);
+                    }
+                }
+            }
+
+            // Use SqlServerPreparedStatementExpander for robust parameter replacement
+            // This handles SQL parsing, comments, quotes, and NULL rewrites automatically
+            return SqlServerPreparedStatementExpander.expand(sqlSrc, paramValues);
+        }
+
+        // Existing RPC logic: replace ? with @p1, @p2 parameter names
         final int MAX_PARAM_NAME_LEN = 6;
         char[] sqlDst = new char[sqlSrc.length() + (params.length * (MAX_PARAM_NAME_LEN + OUT.length))
                 + (params.length * 2)];
