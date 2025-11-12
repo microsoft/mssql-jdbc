@@ -1188,6 +1188,24 @@ public final class SQLServerDriver implements java.sql.Driver {
     }
 
     /**
+     * Registers a global performance log callback.
+     *
+     * @param cb The callback to register.
+     * @throws IllegalStateException if a callback is already registered.
+     */
+    public static synchronized void registerPerformanceLogCallback(PerformanceLogCallback cb) {
+        PerformanceLog.registerCallback(cb);
+    }
+
+    /**
+     * Unregisters the global performance log callback.
+     */
+    public static synchronized void unregisterPerformanceLogCallback() {
+        PerformanceLog.unregisterCallback();
+    }
+
+
+    /**
      * Provides Helper function used to fix the case sensitivity, synonyms and remove unknown tokens from the
      * properties.
      */
