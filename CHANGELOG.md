@@ -2,7 +2,6 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
-
 ## [13.3.0] Preview Release
 
 ### Added
@@ -46,12 +45,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   **Who benefits**: Developers using structured or table-valued parameters.
   **Impact**: Restores correct metadata extraction for TVP parameters, ensuring full JDBC metadata compatibility.
 
-
 - **supportsIntegrityEnhancementFacility() Returns Accurate Value** [#2745](https://github.com/microsoft/mssql-jdbc/pull/2745)
   **What was fixed**: Corrected DatabaseMetaData.supportsIntegrityEnhancementFacility() to return true for SQL Server.
   **Who benefits**: Applications querying database metadata for integrity constraint support.
   **Impact**: Accurately reports SQL Server’s full support for primary, foreign key, and check constraints.
-
 
 - **Fix Bulk Copy for Batch Insert to Support InputStream Data** (#2826)(https://github.com/microsoft/mssql-jdbc/pull/2826)
   **What was fixed**: Enabled setBinaryStream() to work correctly with Bulk Copy for Batch Insert into VARBINARY(MAX) columns.
@@ -62,7 +59,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   **What changed**: Added a try–catch fallback in getIndexInfoAzureDW() to query sys.indexes, sys.index_columns, sys.columns, and sys.tables when sp_statistics is unavailable.
   **Who benefits**: Applications retrieving index metadata from Azure Synapse serverless SQL pool or other environments lacking sp_statistics.
   **Impact**: Ensures reliable metadata retrieval through a sys.indexes fallback, consistent NON_UNIQUE mapping, and aligned behavior with Azure SQL Database.
-
 
 - **Test Cleanup** [#2735](https://github.com/microsoft/mssql-jdbc/pull/2735)
   **What changed**: Updated tests to clean up temporary objects post-execution.
