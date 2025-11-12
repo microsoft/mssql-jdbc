@@ -74,7 +74,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
             }
         };
 
-        PerformanceLog.registerCallback(callbackInstance);
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
 
         try (Connection con = getConnection()) {
             DatabaseMetaData metaData = con.getMetaData();
@@ -87,7 +87,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
         assertTrue(Files.exists(logPath), "performance.log file should exist");
         System.out.println("Log file absolute path: " + logPath.toAbsolutePath());
 
-        PerformanceLog.unregisterCallback();
+        SQLServerDriver.unregisterPerformanceLogCallback();
 
     }
 }
