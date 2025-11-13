@@ -12,9 +12,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   **Impact**: Enables visibility into driver-level latencies via com.microsoft.sqlserver.jdbc.PerformanceMetrics.Connection logger and extensible callback infrastructure for future metrics.
 
 - **Test enhancements** [#2712](https://github.com/microsoft/mssql-jdbc/pull/2712)
-  **What changed**: Improved unit test coverage for SQLServerConnectionTest, SQLServerDatabaseMetaData and few more.
+  **What changed**: Improved unit test coverage for SQLServerConnectionTest, SQLServerDatabaseMetaData and few more classes.
   **Who benefits**: Contributors and maintainers.
-  **Impact**: Improves code coverage in junit tests
+  **Impact**: Improves code coverage with junit tests.
   
 ### Changed
 
