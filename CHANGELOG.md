@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   **Who benefits**: Users performing bulk inserts from tab-delimited data containing isolated quotes.
   **Impact**: Ensures isolated quotes are treated as literal characters; improves parsing reliability and consistency.
 
-- **PreparedStatement INSERT Update Count with Triggers and Multi-Value Inserts** [#2717](https://github.com/microsoft/mssql-jdbc/pull/2817)
+- **PreparedStatement INSERT Update Count with Triggers and Multi-Value Inserts** [#2817](https://github.com/microsoft/mssql-jdbc/pull/2817)
   **What was fixed**: Corrected inaccurate update counts returned by PreparedStatement for multi-value INSERT statements with triggers.
   **Who benefits**: Developers relying on accurate update counts in batch or trigger-based inserts.
   **Impact**: Ensures consistent and accurate update count behavior across all INSERT execution scenarios.
