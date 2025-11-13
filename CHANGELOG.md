@@ -2,6 +2,70 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
+## [13.3.0] Preview Release
+
+### Added
+
+- **Performance logger and callback handling mechanism** [#2706](https://github.com/microsoft/mssql-jdbc/pull/2706)
+  **What was added**: Introduced performance logging framework to track critical driver operations such as connection time, prelogin, login, and token acquisition.
+  **Who benefits**: Developers and operators monitoring JDBC driver performance.
+  **Impact**: Enables visibility into driver-level latencies via com.microsoft.sqlserver.jdbc.PerformanceMetrics.Connection logger and extensible callback infrastructure for future metrics.
+
+- **Test enhancements** [#2712](https://github.com/microsoft/mssql-jdbc/pull/2712)
+  **What changed**: Improved unit test coverage for SQLServerConnectionTest, SQLServerDatabaseMetaData and few more classes.
+  **Who benefits**: Contributors and maintainers.
+  **Impact**: Improves code coverage with junit tests.
+  
+### Changed
+
+- **Java 25 (LTS) support and removal of non-LTS versions 22–24** [#2821](https://github.com/microsoft/mssql-jdbc/pull/2821)
+  **What changed**: Added official support for Java 25 (LTS) and removed non-LTS Java versions (22–24) from Maven and Gradle build configurations.
+  **Who benefits**: Developers aligning builds with long-term supported Java versions.
+  **Impact**: Ensures continued compatibility and stability with LTS Java releases; simplifies build maintenance.
+  
+### Fixed
+
+- **Bulk insert parsing of isolated quotes in tab-delimited data** [#2795](https://github.com/microsoft/mssql-jdbc/pull/2795)
+  **What was fixed**: Resolved IndexOutOfBoundsException caused by incorrect quote state handling during tab-delimited bulk copy operations.
+  **Who benefits**: Users performing bulk inserts from tab-delimited data containing isolated quotes.
+  **Impact**: Ensures isolated quotes are treated as literal characters; improves parsing reliability and consistency.
+
+- **PreparedStatement INSERT update Count with triggers and multi-Value inserts** [#2817](https://github.com/microsoft/mssql-jdbc/pull/2817)
+  **What was fixed**: Corrected inaccurate update counts returned by PreparedStatement for multi-value INSERT statements with triggers.
+  **Who benefits**: Developers relying on accurate update counts in batch or trigger-based inserts.
+  **Impact**: Ensures consistent and accurate update count behavior across all INSERT execution scenarios.
+
+- **Fix for fatal error handling in DONE tokens** [#2741](https://github.com/microsoft/mssql-jdbc/pull/2741)
+  **What was fixed**: Corrected TDS message handling to properly detect and propagate fatal severity (25+) errors.
+  **Who benefits**: Applications needing reliable error propagation during critical SQL Server failures.
+  **Impact**: Prevents silent failures and ensures robust TDS stream recovery during fatal error conditions.
+
+- **Fix for getParameterMetaData() crash with table-valued parameters** [#2746](https://github.com/microsoft/mssql-jdbc/pull/2746)
+  **What was fixed**: Prevented SQLServerException when calling getParameterMetaData() on statements using Table-Valued Parameters (TVPs).
+  **Who benefits**: Developers using structured or table-valued parameters.
+  **Impact**: Restores correct metadata extraction for TVP parameters, ensuring full JDBC metadata compatibility.
+
+- **supportsIntegrityEnhancementFacility() returns accurate value** [#2828](https://github.com/microsoft/mssql-jdbc/pull/2828)
+  **What was fixed**: Corrected DatabaseMetaData.supportsIntegrityEnhancementFacility() to return true for SQL Server.
+  **Who benefits**: Applications querying database metadata for integrity constraint support.
+  **Impact**: Accurately reports SQL Server’s full support for primary, foreign key, and check constraints.
+
+- **Fix bulk copy for batch insert to support InputStream data** (#2826)(https://github.com/microsoft/mssql-jdbc/pull/2826)
+  **What was fixed**: Enabled setBinaryStream() to work correctly with Bulk Copy for Batch Insert into VARBINARY(MAX) columns.
+  **Who benefits**: Developers inserting large binary data via streams.
+  **Impact**: Prevents “invalid hex format” errors; ensures InputStream-based binary inserts work seamlessly.
+
+- **Addressed failure on Azure Synapse serverless SQL pool caused by the unsupported sp_statistics procedure** [#2839](https://github.com/microsoft/mssql-jdbc/pull/2839)
+  **What changed**: Added a try–catch fallback in getIndexInfoAzureDW() to query sys.indexes, sys.index_columns, sys.columns, and sys.tables when sp_statistics is unavailable.
+  **Who benefits**: Applications retrieving index metadata from Azure Synapse serverless SQL pool or other environments lacking sp_statistics.
+  **Impact**: Ensures reliable metadata retrieval through a sys.indexes fallback, consistent NON_UNIQUE mapping, and aligned behavior with Azure SQL Database.
+
+- **Test cleanup** [#2734](https://github.com/microsoft/mssql-jdbc/pull/2734)
+  **What changed**: Updated tests to clean up temporary objects post-execution.
+  **Who benefits**: Contributors and maintainers.
+  **Impact**: Reduces test flakiness and improves maintainability of the test suite.
+
+
 ## [13.2.0] Stable Release
 
 ### Changed
