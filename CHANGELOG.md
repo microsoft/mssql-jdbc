@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   **Impact**: Enables visibility into driver-level latencies via com.microsoft.sqlserver.jdbc.PerformanceMetrics.Connection logger and extensible callback infrastructure for future metrics.
 
 - **Test Enhancements** [#2712](https://github.com/microsoft/mssql-jdbc/pull/2712)
-  **What changed**: Improved unit test coverage for SQLServerConnectionTest and SQLServerDatabaseMetaData
+  **What changed**: Improved unit test coverage for SQLServerConnectionTest, SQLServerDatabaseMetaData and few more.
   **Who benefits**: Contributors and maintainers.
   **Impact**: Improves code coverage in junit tests
   
@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   **Who benefits**: Users performing bulk inserts from tab-delimited data containing isolated quotes.
   **Impact**: Ensures isolated quotes are treated as literal characters; improves parsing reliability and consistency.
 
-- **PreparedStatement INSERT Update Count with Triggers and Multi-Value Inserts** [#2734](https://github.com/microsoft/mssql-jdbc/pull/2734)
+- **PreparedStatement INSERT Update Count with Triggers and Multi-Value Inserts** [#2717](https://github.com/microsoft/mssql-jdbc/pull/2817)
   **What was fixed**: Corrected inaccurate update counts returned by PreparedStatement for multi-value INSERT statements with triggers.
   **Who benefits**: Developers relying on accurate update counts in batch or trigger-based inserts.
   **Impact**: Ensures consistent and accurate update count behavior across all INSERT execution scenarios.
@@ -60,7 +60,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   **Who benefits**: Applications retrieving index metadata from Azure Synapse serverless SQL pool or other environments lacking sp_statistics.
   **Impact**: Ensures reliable metadata retrieval through a sys.indexes fallback, consistent NON_UNIQUE mapping, and aligned behavior with Azure SQL Database.
 
-- **Test Cleanup** [#2735](https://github.com/microsoft/mssql-jdbc/pull/2735)
+- **Test Cleanup** [#2734](https://github.com/microsoft/mssql-jdbc/pull/2734)
   **What changed**: Updated tests to clean up temporary objects post-execution.
   **Who benefits**: Contributors and maintainers.
   **Impact**: Reduces test flakiness and improves maintainability of the test suite.
