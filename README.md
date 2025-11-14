@@ -174,7 +174,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.3.0.jre11</version>
+	<version>13.3.0.jre11-preview</version>
 </dependency>
 
 <dependency>
