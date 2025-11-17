@@ -501,7 +501,7 @@
 				</dependency>
 				<dependency>
 					<groupId>net.bytebuddy</groupId>
-					<artifactId>byte-buddy</artifactId>sybase
+					<artifactId>byte-buddy</artifactId>
 					<version>1.17.5</version>
 					<scope>test</scope>
 				</dependency>
