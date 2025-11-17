@@ -31,6 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * Allows configurable statement retry through the use of the 'retryExec' connection property. Each rule read in is
  * converted to ConfigRetryRule objects, which are stored and referenced during statement retry.
  */
+//Testing for sqlserver2025
 public class ConfigurableRetryLogic {
     private static final int INTERVAL_BETWEEN_READS_IN_MS = 30000;
     private static final String DEFAULT_PROPS_FILE = "mssql-jdbc.properties";
@@ -405,3 +406,4 @@ public class ConfigurableRetryLogic {
         return replaceFlag;
     }
 }
+
