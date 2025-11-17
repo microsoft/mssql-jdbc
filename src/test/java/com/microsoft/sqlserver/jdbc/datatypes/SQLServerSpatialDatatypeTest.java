@@ -2122,6 +2122,18 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests Geography almost zero coordinates like 0.0001234. The string representation is "1.234E-4", which
+     * caused a bug when creating a Geography object.
+     */
+    @Test
+    public void testGeographySmallCoordinates() throws SQLException {
+        Geography g = Geography.point(0.0001234, 1.234, 4326);
+
+        assertEquals(0.0001234, g.getLatitude());
+        assertEquals(1.234, g.getLongitude());
+    }
+
     private void beforeEachSetup() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(geomTableName), stmt);
