@@ -11,10 +11,11 @@ import java.util.Calendar;
 /**
  * Column represents a database column definition (meta data) within a result set.
  */
-
+//Testing
 final class Column {
     private TypeInfo typeInfo;
     private CryptoMetadata cryptoMetadata;
+    
     private SqlVariant internalVariant;
 
     final void setInternalVariant(SqlVariant type) {
@@ -471,3 +472,4 @@ final class Column {
 abstract class ColumnFilter {
     abstract Object apply(Object value, JDBCType jdbcType) throws SQLServerException;
 }
+
