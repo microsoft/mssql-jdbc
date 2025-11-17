@@ -9,10 +9,12 @@
  * PS> gradle build -PbuildProfile=jre11 "-PexcludedGroups=['xSQLv15','xGradle']"
  ****************************************************************/
 
-apply plugin: 'java'
+plugins {
+    id 'java'
+}
 
-version = '13.2.0'
-def releaseExt = ''
+version = '13.3.0'
+def releaseExt = '-preview'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'
@@ -33,17 +35,19 @@ test {
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre23")) {
+if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre25")) {
 
-	jreVersion = "jre23"
+	jreVersion = "jre25"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
 	jar {
 		manifest {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 23
-	targetCompatibility = 23
+	java {
+		sourceCompatibility = JavaVersion.VERSION_25
+		targetCompatibility = JavaVersion.VERSION_25
+	}
 	test {
     useJUnitPlatform {
         excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
@@ -60,8 +64,10 @@ if (hasProperty('buildProfile') && buildProfile == "jre21") {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 21
-	targetCompatibility = 21
+	java {
+		sourceCompatibility = JavaVersion.VERSION_21
+		targetCompatibility = JavaVersion.VERSION_21
+	}
 	test {
     useJUnitPlatform {
         excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
@@ -78,8 +84,10 @@ if (hasProperty('buildProfile') && buildProfile == "jre17") {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 17
-	targetCompatibility = 17
+	java {
+		sourceCompatibility = JavaVersion.VERSION_17
+		targetCompatibility = JavaVersion.VERSION_17
+	}
 	test {
     useJUnitPlatform {
         excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
@@ -96,8 +104,10 @@ if (hasProperty('buildProfile') && buildProfile == "jre11") {
 			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
 		}
 	}
-	sourceCompatibility = 11
-	targetCompatibility = 11
+	java {
+		sourceCompatibility = JavaVersion.VERSION_11
+		targetCompatibility = JavaVersion.VERSION_11
+	}
 	test {
     useJUnitPlatform {
         excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
@@ -110,8 +120,11 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	jreVersion = "jre8"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java'
 	
-	sourceCompatibility = 1.8
-	targetCompatibility = 1.8
+	java {
+		sourceCompatibility = JavaVersion.VERSION_1_8
+		targetCompatibility = JavaVersion.VERSION_1_8
+	}
+	
 	test {
 		useJUnitPlatform {
 			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42','vectorTest','JSONTest')
@@ -187,9 +200,20 @@ dependencies {
 			'org.bouncycastle:bcprov-jdk18on:1.79',
 			'com.azure:azure-security-keyvault-keys:4.9.2',
 			'com.azure:azure-identity:1.15.3',
-			'com.h2database:h2:2.2.220',
-			'org.mockito:mockito-core:4.11.0',
-			'org.mockito:mockito-inline:4.11.0',
-			'net.bytebuddy:byte-buddy:1.15.11',
-			'net.bytebuddy:byte-buddy-agent:1.15.11'
+			'com.h2database:h2:2.2.220'
+
+	// Mockito and Byte Buddy dependencies based on JRE version
+	if (hasProperty('buildProfile') && buildProfile == "jre8") {
+		// JRE 8 profile
+		testImplementation 'org.mockito:mockito-core:4.11.0',
+				'org.mockito:mockito-inline:4.11.0',
+				'net.bytebuddy:byte-buddy:1.15.11',
+				'net.bytebuddy:byte-buddy-agent:1.15.11'
+	} else {
+		// JRE 11, 17, 21, 25 profiles (all use same versions)
+		testImplementation 'org.mockito:mockito-core:5.14.2',
+				'net.bytebuddy:byte-buddy:1.17.5',
+				'net.bytebuddy:byte-buddy-agent:1.17.5'
+	}
+
 }

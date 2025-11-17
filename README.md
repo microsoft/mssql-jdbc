@@ -46,7 +46,7 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\target` directory. 
-        * Run `mvn install -Pjre23`. This creates JRE 23 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 23).
+        * Run `mvn install -Pjre25`. This creates JRE 25 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 25).
         * Run `mvn install -Pjre21`. This creates JRE 21 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 21+).
         * Run `mvn install -Pjre17`. This creates JRE 17 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 17+).
         * Run `mvn install -Pjre11`. This creates JRE 11 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 11+).
@@ -55,7 +55,7 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\build\libs` directory. 
-        * Run `gradle build -PbuildProfile=jre23`. This creates JRE 23 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 23).
+        * Run `gradle build -PbuildProfile=jre25`. This creates JRE 25 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 25).
         * Run `gradle build -PbuildProfile=jre21`. This creates JRE 21 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 21+).
         * Run `gradle build -PbuildProfile=jre17`. This creates JRE 17 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 17+).
         * Run `gradle build -PbuildProfile=jre11`. This creates JRE 11 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 11+).
@@ -83,7 +83,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.2.0.jre11</version>
+	<version>13.3.0.jre11-preview</version>
 </dependency>
 ```
 The driver can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc). For driver version 12.1.0 and greater, please use the jre11 version when using Java 11 or greater, and the jre8 version when using Java 8.
@@ -94,7 +94,7 @@ To get the latest version of the driver, add the following to your POM file:
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.2.0.jre11</version>
+	<version>13.3.0.jre11-preview</version>
 </dependency>
 ```
 
@@ -129,7 +129,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.2.0.jre11</version>
+	<version>13.3.0.jre11-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -147,7 +147,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.2.0.jre11</version>
+	<version>13.3.0.jre11-preview</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -174,7 +174,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.2.0.jre11</version>
+	<version>13.3.0.jre11-preview</version>
 </dependency>
 
 <dependency>

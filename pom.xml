@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.2.0</version>
+	<version>13.3.0</version>
 	<packaging>jar</packaging>
 	<name>Microsoft JDBC Driver for SQL Server</name>
 	<description>
@@ -53,7 +53,7 @@
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
 		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth,kerberos,vectorTest,JSONTest</excludedGroups>
 		<!-- Use -preview for preview release, leave empty for official release. -->
-		<releaseExt></releaseExt>
+		<releaseExt>-preview</releaseExt>
 		<!-- Driver Dependencies -->
 		<org.osgi.core.version>6.0.0</org.osgi.core.version>
 		<azure-security-keyvault-keys.version>4.9.2</azure-security-keyvault-keys.version>
@@ -135,30 +135,6 @@
 			<scope>provided</scope>
 		</dependency>
 		<!-- dependencies for running tests -->
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<version>4.11.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-inline</artifactId>
-			<version>4.11.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>net.bytebuddy</groupId>
-			<artifactId>byte-buddy</artifactId>
-			<version>1.15.11</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>net.bytebuddy</groupId>
-			<artifactId>byte-buddy-agent</artifactId>
-			<version>1.15.11</version>
-			<scope>test</scope>
-		</dependency>
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-console</artifactId>
@@ -277,6 +253,32 @@
 	<profiles>
 		<profile>
 			<id>jre8</id>
+			<dependencies>
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>4.11.0</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-inline</artifactId>
+					<version>4.11.0</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy</artifactId>
+					<version>1.15.11</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy-agent</artifactId>
+					<version>1.15.11</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre8${releaseExt}</finalName>
 				<plugins>
@@ -330,6 +332,27 @@
 		</profile>
 		<profile>
 			<id>jre11</id>
+			<dependencies>
+				<!-- JDK 11 compatible Mockito -->
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>5.14.2</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy-agent</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre11${releaseExt}</finalName>
 				<plugins>
@@ -363,6 +386,27 @@
 		</profile>
 		<profile>
 			<id>jre17</id>
+			<dependencies>
+				<!-- JDK 17 compatible Mockito -->
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>5.14.2</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy-agent</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre17${releaseExt}</finalName>
 				<plugins>
@@ -396,6 +440,27 @@
 		</profile>
 		<profile>
 			<id>jre21</id>
+			<dependencies>
+				<!-- JDK 21 compatible Mockito -->
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>5.14.2</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy-agent</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
 			<build>
 				<finalName>${project.artifactId}-${project.version}.jre21${releaseExt}</finalName>
 				<plugins>
@@ -428,12 +493,33 @@
 			</build>
 		</profile>
 		<profile>
-			<id>jre23</id>
+			<id>jre25</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
+			<dependencies>
+				<!-- JDK 25 compatible Mockito -->
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>5.14.2</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy-agent</artifactId>
+					<version>1.17.5</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
 			<build>
-				<finalName>${project.artifactId}-${project.version}.jre23${releaseExt}</finalName>
+				<finalName>${project.artifactId}-${project.version}.jre25${releaseExt}</finalName>
 				<plugins>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
@@ -443,8 +529,8 @@
 							<excludes>
 								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
 							</excludes>
-							<source>23</source>
-							<target>23</target>
+							<source>25</source>
+							<target>25</target>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -609,7 +695,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.12</version>
+				<version>0.8.14</version>
 				<executions>
 					<execution>
 						<id>pre-test</id>
