@@ -5,31 +5,27 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.sql.*;
+import java.sql.Clob;
+import java.sql.Blob;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * Robust SQL Expander for SQL Server.
+ * Robust expandSQL utility that replaces only real parameter placeholders ('?')
+ * — ignores '?' inside string literals, quoted identifiers, bracket
+ * identifiers,
+ * line comments (-- ...) and block comments (/* ... * /).
  *
- * - Accurately replaces '?' placeholders with bound literals.
- * - Skips placeholders inside string literals and comments.
- * - Detects operators/keywords before the placeholder and rewrites
- *   = ?  -> IS NULL
- *   <> ? -> IS NOT NULL
- *   != ? -> IS NOT NULL
- *   IS ? -> IS NULL
- *   IS NOT ? -> IS NOT NULL
- *
- * NOTE: Intended to generate runnable T-SQL (for direct execution with Statement)
- *       Use with care — this writes values inline. Do NOT use for SQL containing
- *       sensitive user-supplied values unless you understand the security implications.
+ * It performs no SQL rewriting (no IS NULL rewriting). It only inlines
+ * parameter
+ * values into the SQL text for debugging or for creating a literal SQL to run
+ * when you know the semantics (use with care).
  */
 public final class SqlServerPreparedStatementExpander {
 
     private static final SimpleDateFormat DATE_FMT = new SimpleDateFormat("yyyy-MM-dd");
     private static final SimpleDateFormat TIME_FMT = new SimpleDateFormat("HH:mm:ss");
-    private static final SimpleDateFormat TIMESTAMP_FMT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    private static final SimpleDateFormat TS_FMT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
     private SqlServerPreparedStatementExpander() {}
 
@@ -50,6 +46,7 @@ public final class SqlServerPreparedStatementExpander {
         // scanning state
         boolean inSingleQuote = false;
         boolean inDoubleQuote = false;
+        boolean inBracketIdentifier = false; // SQL Server [identifier] syntax
         boolean inLineComment = false;
         boolean inBlockComment = false;
 
@@ -68,6 +65,23 @@ public final class SqlServerPreparedStatementExpander {
             if (inBlockComment) {
                 out.append(ch);
                 if (prev == '*' && ch == '/') inBlockComment = false;
+                prev = ch;
+                continue;
+            }
+
+            if (inBracketIdentifier) {
+                out.append(ch);
+                if (ch == ']') {
+                    // Check if this is an escaped bracket (doubled ]])
+                    if (i + 1 < sql.length() && sql.charAt(i + 1) == ']') {
+                        // This is an escaped bracket. Append the next bracket and skip it
+                        i++;
+                        out.append(']');
+                    } else {
+                        // This is the closing bracket
+                        inBracketIdentifier = false;
+                    }
+                }
                 prev = ch;
                 continue;
             }
@@ -118,6 +132,14 @@ public final class SqlServerPreparedStatementExpander {
             if (ch == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '*') {
                 out.append(ch);
                 inBlockComment = true;
+                prev = ch;
+                continue;
+            }
+
+            // detect entering bracket identifier (SQL Server specific)
+            if (ch == '[') {
+                out.append(ch);
+                inBracketIdentifier = true;
                 prev = ch;
                 continue;
             }
@@ -343,8 +365,28 @@ public final class SqlServerPreparedStatementExpander {
             return ((Boolean) value) ? "1" : "0";
         }
 
+        if (value instanceof java.math.BigDecimal) {
+            // Use toPlainString() to avoid scientific notation
+            java.math.BigDecimal bd = (java.math.BigDecimal) value;
+            String plainStr = bd.toPlainString();
+
+            // For very large or high-precision decimals, wrap in CAST to preserve precision
+            // SQL Server decimal max precision is 38, scale max 38
+            int precision = bd.precision();
+            int scale = bd.scale();
+
+            if (precision > 18 || scale > 6) {
+                // Need explicit CAST for high precision numbers
+                // Clamp to SQL Server limits: decimal(38, min(scale, 38))
+                // Ensure scale <= precision
+                int sqlPrecision = Math.min(precision, 38);
+                int sqlScale = Math.min(Math.min(scale, 38), sqlPrecision);
+                return "CAST(" + plainStr + " AS DECIMAL(" + sqlPrecision + "," + sqlScale + "))";
+            }
+            return plainStr;
+        }
         if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long
-            || value instanceof Float || value instanceof Double || value instanceof java.math.BigDecimal) {
+                || value instanceof Float || value instanceof Double) {
             return value.toString();
         }
 
@@ -357,12 +399,12 @@ public final class SqlServerPreparedStatementExpander {
         }
 
         if (value instanceof java.sql.Timestamp) {
-            return "CAST('" + TIMESTAMP_FMT.format((java.util.Date) value) + "' AS DATETIME2)";
+            return "CAST('" + TS_FMT.format((java.util.Date) value) + "' AS DATETIME2)";
         }
 
         if (value instanceof java.util.Date) {
-            // generic date -> timestamp
-            return "CAST('" + TIMESTAMP_FMT.format((java.util.Date) value) + "' AS DATETIME2)";
+            // generic java.util.Date -> timestamp
+            return "CAST('" + TS_FMT.format((java.util.Date) value) + "' AS DATETIME2)";
         }
 
         if (value instanceof byte[]) {

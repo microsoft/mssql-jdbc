@@ -48,6 +48,7 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestResource;
@@ -107,7 +108,9 @@ public class CallableStatementTest extends AbstractTest {
         .escapeIdentifier(RandomUtil.getIdentifier("streamGetterSetterProc"));
     private static String tvpProcName = AbstractSQLGenerator
         .escapeIdentifier(RandomUtil.getIdentifier("TVPProc"));
-    private static String tvpTypeName = "TVPType";
+    // Type names need to be SQL identifiers without special chars - use timestamp
+    // for uniqueness
+    private static String tvpTypeName = "TVPType_" + System.currentTimeMillis();
     
     /**
      * Setup before test
@@ -221,46 +224,50 @@ public class CallableStatementTest extends AbstractTest {
 
     @Test
     public void testCallableStatementSpPrepare() throws SQLException {
-        connection.setPrepareMethod("prepare");
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+            conn.setPrepareMethod("prepare");
 
-        try (Statement statement = connection.createStatement();) {
-            statement.executeUpdate("create procedure " + procName + " as select 1 --");
+            try (Statement statement = conn.createStatement();) {
+                statement.executeUpdate("create procedure " + procName + " as select 1 --");
 
-            try (CallableStatement callableStatement = connection.prepareCall("{call " + procName + "}")) {
-                try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_executesql path
-                    rs.next();
-                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                try (CallableStatement callableStatement = conn.prepareCall("{call " + procName + "}")) {
+                    try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_executesql path
+                        rs.next();
+                        assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                    }
+
+                    try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_prepare path
+                        rs.next();
+                        assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(procName, statement);
                 }
-
-                try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_prepare path
-                    rs.next();
-                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
-                }
-            } finally {
-                TestUtils.dropProcedureIfExists(procName, statement);
             }
         }
     }
 
     @Test
     public void testCallableStatementExec() throws SQLException {
-        connection.setPrepareMethod("exec");
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+            conn.setPrepareMethod("exec");
 
-        try (Statement statement = connection.createStatement();) {
-            statement.executeUpdate("create procedure " + procName + " as select 1 --");
+            try (Statement statement = conn.createStatement();) {
+                statement.executeUpdate("create procedure " + procName + " as select 1 --");
 
-            try (CallableStatement callableStatement = connection.prepareCall("{call " + procName + "}")) {
-                try (ResultSet rs = callableStatement.executeQuery()) {
-                    rs.next();
-                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                try (CallableStatement callableStatement = conn.prepareCall("{call " + procName + "}")) {
+                    try (ResultSet rs = callableStatement.executeQuery()) {
+                        rs.next();
+                        assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                    }
+
+                    try (ResultSet rs = callableStatement.executeQuery()) {
+                        rs.next();
+                        assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(procName, statement);
                 }
-
-                try (ResultSet rs = callableStatement.executeQuery()) {
-                    rs.next();
-                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
-                }
-            } finally {
-                TestUtils.dropProcedureIfExists(procName, statement);
             }
         }
     }
@@ -1151,7 +1158,7 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     @Tag(Constants.CodeCov)
     public void testCallableStatementParameterNameAPIs() throws Exception {
-        // Cleanup
+        // Cleanup - drop procedure first, then type (order is critical!)
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropProcedureIfExists(tvpProcName, stmt);
             TestUtils.dropTypeIfExists(tvpTypeName, stmt);
@@ -1204,6 +1211,7 @@ public class CallableStatementTest extends AbstractTest {
         }
 
         try (Statement stmt = connection.createStatement()) {
+            // Drop procedure first, then type (order matters!)
             TestUtils.dropProcedureIfExists(tvpProcName, stmt);
             TestUtils.dropTypeIfExists(tvpTypeName, stmt);
         }

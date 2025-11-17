@@ -8441,12 +8441,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // SqlServerPreparedStatementExpander
             List<Object> paramValues = new ArrayList<>(params.length);
             for (Parameter param : params) {
-                if (param == null || param.isNull()) {
+                if (param == null) {
                     paramValues.add(null);
                 } else {
                     try {
-                        paramValues.add(param.getSetterValue());
+                        Object value = param.getSetterValue();
+                        paramValues.add(value);
                     } catch (Exception e) {
+                        // If getSetterValue() fails, add null
                         paramValues.add(null);
                     }
                 }
