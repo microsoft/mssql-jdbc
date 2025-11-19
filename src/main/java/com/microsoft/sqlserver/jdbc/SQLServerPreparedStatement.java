@@ -2855,12 +2855,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 continue;
             }
             if (localUserSQL.charAt(0) == ',' || localUserSQL.charAt(0) == ')') {
+
+                if (!"?".equals(sb.toString())) {
+                    // throw IllegalArgumentException and fallback to original logic for batch insert
+                    // Wildcards (?) are the only supported parameters for this functionality
+                    // Does not support functions or literals (e.g. len(), 'string', 1, etc.)
+                    throw new IllegalArgumentException(SQLServerException.getErrString("R_onlyFullParamAllowed"));
+                }
+
                 if (localUserSQL.charAt(0) == ',') {
                     localUserSQL = localUserSQL.substring(1);
-                    if (!"?".equals(sb.toString())) {
-                        // throw IllegalArgumentException and fallback to original logic for batch insert
-                        throw new IllegalArgumentException(SQLServerException.getErrString("R_onlyFullParamAllowed"));
-                    }
                     listOfValues.add(sb.toString());
                     sb.setLength(0);
                 } else {
@@ -2868,6 +2872,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     listOfValues.add(sb.toString());
                     return listOfValues; // reached exit condition.
                 }
+                
             } else {
                 sb.append(localUserSQL.charAt(0));
                 localUserSQL = localUserSQL.substring(1);
