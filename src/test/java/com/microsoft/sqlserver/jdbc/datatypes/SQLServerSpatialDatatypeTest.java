@@ -2128,10 +2128,10 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      */
     @Test
     public void testGeographySmallCoordinates() throws SQLException {
-	// Test 1: Positive small latitude (original test case)
-	Geography g1 = Geography.point(0.0001234, 1.234, 4326);
-	assertEquals(0.0001234, g1.getLatitude(), 1e-10);
-	assertEquals(1.234, g1.getLongitude(), 1e-10);
+        // Test 1: Positive small latitude (original test case)
+        Geography g1 = Geography.point(0.0001234, 1.234, 4326);
+        assertEquals(0.0001234, g1.getLatitude(), 1e-10);
+        assertEquals(1.234, g1.getLongitude(), 1e-10);
 
         // Test 2: Negative small latitude (tests both leading minus and exponent minus)
         Geography g2 = Geography.point(-0.0001234, 1.234, 4326);
