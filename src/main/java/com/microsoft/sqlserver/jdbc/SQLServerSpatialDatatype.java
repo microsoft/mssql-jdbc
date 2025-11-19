@@ -1484,7 +1484,11 @@ abstract class SQLServerSpatialDatatype {
 
             while (currentWktPos < wkt.length()
                     && (Character.isDigit(wkt.charAt(currentWktPos)) || wkt.charAt(currentWktPos) == '.'
-                            || wkt.charAt(currentWktPos) == 'E' || wkt.charAt(currentWktPos) == 'e')) {
+                            || wkt.charAt(currentWktPos) == 'E' || wkt.charAt(currentWktPos) == 'e'
+                            || ((wkt.charAt(currentWktPos) == '-' || wkt.charAt(currentWktPos) == '+')
+                                    && currentWktPos > startPos
+                                    && (wkt.charAt(currentWktPos - 1) == 'E'
+                                            || wkt.charAt(currentWktPos - 1) == 'e')))) {
                 currentWktPos++;
             }
 
