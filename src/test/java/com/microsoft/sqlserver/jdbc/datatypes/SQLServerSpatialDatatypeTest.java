@@ -2128,40 +2128,40 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
      */
     @Test
     public void testGeographySmallCoordinates() throws SQLException {
-            // Test 1: Positive small latitude (original test case)
-            Geography g1 = Geography.point(0.0001234, 1.234, 4326);
-            assertEquals(0.0001234, g1.getLatitude(), 1e-10);
-            assertEquals(1.234, g1.getLongitude(), 1e-10);
+	// Test 1: Positive small latitude (original test case)
+	Geography g1 = Geography.point(0.0001234, 1.234, 4326);
+	assertEquals(0.0001234, g1.getLatitude(), 1e-10);
+	assertEquals(1.234, g1.getLongitude(), 1e-10);
 
-            // Test 2: Negative small latitude (tests both leading minus and exponent minus)
-            Geography g2 = Geography.point(-0.0001234, 1.234, 4326);
-            assertEquals(-0.0001234, g2.getLatitude(), 1e-10);
-            assertEquals(1.234, g2.getLongitude(), 1e-10);
+        // Test 2: Negative small latitude (tests both leading minus and exponent minus)
+        Geography g2 = Geography.point(-0.0001234, 1.234, 4326);
+        assertEquals(-0.0001234, g2.getLatitude(), 1e-10);
+        assertEquals(1.234, g2.getLongitude(), 1e-10);
 
-            // Test 3: Small longitude
-            Geography g3 = Geography.point(45.678, 0.0001234, 4326);
-            assertEquals(45.678, g3.getLatitude(), 1e-10);
-            assertEquals(0.0001234, g3.getLongitude(), 1e-10);
+        // Test 3: Small longitude
+        Geography g3 = Geography.point(45.678, 0.0001234, 4326);
+        assertEquals(45.678, g3.getLatitude(), 1e-10);
+        assertEquals(0.0001234, g3.getLongitude(), 1e-10);
 
-            // Test 4: Negative small longitude
-            Geography g4 = Geography.point(45.678, -0.0001234, 4326);
-            assertEquals(45.678, g4.getLatitude(), 1e-10);
-            assertEquals(-0.0001234, g4.getLongitude(), 1e-10);
+        // Test 4: Negative small longitude
+        Geography g4 = Geography.point(45.678, -0.0001234, 4326);
+        assertEquals(45.678, g4.getLatitude(), 1e-10);
+        assertEquals(-0.0001234, g4.getLongitude(), 1e-10);
 
-            // Test 5: Both coordinates small
-            Geography g5 = Geography.point(0.0001234, 0.0005678, 4326);
-            assertEquals(0.0001234, g5.getLatitude(), 1e-10);
-            assertEquals(0.0005678, g5.getLongitude(), 1e-10);
+        // Test 5: Both coordinates small
+        Geography g5 = Geography.point(0.0001234, 0.0005678, 4326);
+        assertEquals(0.0001234, g5.getLatitude(), 1e-10);
+        assertEquals(0.0005678, g5.getLongitude(), 1e-10);
 
-            // Test 6: Very small value (more extreme scientific notation)
-            Geography g6 = Geography.point(0.00000001234, 90.0, 4326);
-            assertEquals(0.00000001234, g6.getLatitude(), 1e-15);
-            assertEquals(90.0, g6.getLongitude(), 1e-10);
+        // Test 6: Very small value (more extreme scientific notation)
+        Geography g6 = Geography.point(0.00000001234, 90.0, 4326);
+        assertEquals(0.00000001234, g6.getLatitude(), 1e-15);
+        assertEquals(90.0, g6.getLongitude(), 1e-10);
 
-            // Test 7: Both negative and small
-            Geography g7 = Geography.point(-0.0001234, -0.0005678, 4326);
-            assertEquals(-0.0001234, g7.getLatitude(), 1e-10);
-            assertEquals(-0.0005678, g7.getLongitude(), 1e-10);
+        // Test 7: Both negative and small
+        Geography g7 = Geography.point(-0.0001234, -0.0005678, 4326);
+        assertEquals(-0.0001234, g7.getLatitude(), 1e-10);
+        assertEquals(-0.0005678, g7.getLongitude(), 1e-10);
 
         // Test 8: Test with Geometry type as well (note: Geometry uses x,y not lat,lon)
         Geometry geom = Geometry.point(1.234, 0.0001234, 0);
