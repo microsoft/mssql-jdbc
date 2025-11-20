@@ -56,8 +56,8 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
 
 /**
@@ -1092,7 +1092,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.vectorTest)
     public void testVectorMetaData() throws SQLException {
         String vectorTableName = RandomUtil.getIdentifier("vectorTable");
@@ -1160,7 +1160,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.JSONTest)
     public void testJSONMetaData() throws SQLException {
         String jsonTableName = RandomUtil.getIdentifier("try_SQLJSON_Table");

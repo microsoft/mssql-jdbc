@@ -392,6 +392,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Tag(Constants.xSQLv12)
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
+    @Tag(Constants.xSQLv17)
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     @Test
@@ -1537,6 +1538,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
     @Tag(Constants.xSQLv16)
+    @Tag(Constants.xSQLv17)
     public void testManagedIdentityWithEncryptStrict() {
         SQLServerDataSource ds = new SQLServerDataSource();
 
