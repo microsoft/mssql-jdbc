@@ -180,7 +180,6 @@ final class TDS {
     static final byte MAX_JSONSUPPORT_VERSION = 0x01;
     // User agent telemetry support
     static final byte TDS_FEATURE_EXT_USERAGENT = 0x10;
-    static final byte MAX_USERAGENT_VERSION = 0x01;
 
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
