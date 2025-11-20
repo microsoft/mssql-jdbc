@@ -44,12 +44,12 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.vectorJsonTest;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 import microsoft.sql.Vector;
@@ -525,7 +525,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * It verifies that the data is copied correctly by comparing the values in the table with the expected values.
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @DisplayName("Test Bulk Copy with JSON Data")
     @Tag(Constants.JSONTest)
     public void testBulkCopyWithJson() throws Exception {
@@ -685,7 +685,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestInputWithVector.csv file
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSV() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVectorCsv"));
@@ -763,7 +763,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestInputWithMultipleVectorColumn.csv file
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSVWithMultipleColumns() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableVectorCsvMulti"));
@@ -831,7 +831,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * BulkCopyCSVTestWithMultipleVectorColumnWithPipeDelimiter.csv file
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSVWithMultipleColumnsWithPipeDelimiter() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVectorCsvMultiPipe"));
@@ -899,7 +899,7 @@ public class BulkCopyCSVTest extends AbstractTest {
      * metadata.
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorFromCSVWithIncorrectDimension() throws SQLException {
         String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVectorCsvBadDim"));
