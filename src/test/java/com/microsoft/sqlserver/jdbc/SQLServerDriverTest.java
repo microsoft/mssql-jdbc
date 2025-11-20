@@ -266,4 +266,18 @@ public class SQLServerDriverTest extends AbstractTest {
     //     String defaultAppName = SQLServerDriver.getAppName();
     //     assertEquals(SQLServerDriver.DEFAULT_APP_NAME, defaultAppName, "Application name should be the default one");
     // }
+
+    /**
+     * test application name
+     * 
+     * @throws SQLException
+     */
+    
+    @Test
+    public void testDriverUserAgentLength() throws SQLException {
+        String userAgent = SQLServerConnection.getUserAgent();
+        assertTrue(userAgent.length() <= 256, "User agent string length should not be more than 256 characters"); 
+    }
+
+    
 }
