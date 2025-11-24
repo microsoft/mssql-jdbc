@@ -2130,43 +2130,89 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
     public void testGeographySmallCoordinates() throws SQLException {
         // Test 1: Positive small latitude (original test case)
         Geography g1 = Geography.point(0.0001234, 1.234, 4326);
-        assertEquals(0.0001234, g1.getLatitude(), 1e-10);
-        assertEquals(1.234, g1.getLongitude(), 1e-10);
+        assertEquals(0.0001234, g1.getLatitude(), 1e-10, "Latitude should match for positive small value");
+        assertEquals(1.234, g1.getLongitude(), 1e-10, "Longitude should match");
 
         // Test 2: Negative small latitude (tests both leading minus and exponent minus)
         Geography g2 = Geography.point(-0.0001234, 1.234, 4326);
-        assertEquals(-0.0001234, g2.getLatitude(), 1e-10);
-        assertEquals(1.234, g2.getLongitude(), 1e-10);
+        assertEquals(-0.0001234, g2.getLatitude(), 1e-10, "Latitude should match for negative small value");
+        assertEquals(1.234, g2.getLongitude(), 1e-10, "Longitude should match");
 
         // Test 3: Small longitude
         Geography g3 = Geography.point(45.678, 0.0001234, 4326);
-        assertEquals(45.678, g3.getLatitude(), 1e-10);
-        assertEquals(0.0001234, g3.getLongitude(), 1e-10);
+        assertEquals(45.678, g3.getLatitude(), 1e-10, "Latitude should match");
+        assertEquals(0.0001234, g3.getLongitude(), 1e-10, "Longitude should match for positive small value");
 
         // Test 4: Negative small longitude
         Geography g4 = Geography.point(45.678, -0.0001234, 4326);
-        assertEquals(45.678, g4.getLatitude(), 1e-10);
-        assertEquals(-0.0001234, g4.getLongitude(), 1e-10);
+        assertEquals(45.678, g4.getLatitude(), 1e-10, "Latitude should match");
+        assertEquals(-0.0001234, g4.getLongitude(), 1e-10, "Longitude should match for negative small value");
 
         // Test 5: Both coordinates small
         Geography g5 = Geography.point(0.0001234, 0.0005678, 4326);
-        assertEquals(0.0001234, g5.getLatitude(), 1e-10);
-        assertEquals(0.0005678, g5.getLongitude(), 1e-10);
+        assertEquals(0.0001234, g5.getLatitude(), 1e-10, "Latitude should match for small positive value");
+        assertEquals(0.0005678, g5.getLongitude(), 1e-10, "Longitude should match for small positive value");
 
         // Test 6: Very small value (more extreme scientific notation)
         Geography g6 = Geography.point(0.00000001234, 90.0, 4326);
-        assertEquals(0.00000001234, g6.getLatitude(), 1e-15);
-        assertEquals(90.0, g6.getLongitude(), 1e-10);
+        assertEquals(0.00000001234, g6.getLatitude(), 1e-15, "Latitude should match for very small value");
+        assertEquals(90.0, g6.getLongitude(), 1e-10, "Longitude should match");
 
         // Test 7: Both negative and small
         Geography g7 = Geography.point(-0.0001234, -0.0005678, 4326);
-        assertEquals(-0.0001234, g7.getLatitude(), 1e-10);
-        assertEquals(-0.0005678, g7.getLongitude(), 1e-10);
+        assertEquals(-0.0001234, g7.getLatitude(), 1e-10, "Latitude should match for negative small value");
+        assertEquals(-0.0005678, g7.getLongitude(), 1e-10, "Longitude should match for negative small value");
 
         // Test 8: Test with Geometry type as well (note: Geometry uses x,y not lat,lon)
         Geometry geom = Geometry.point(1.234, 0.0001234, 0);
-        assertEquals(1.234, geom.getX(), 1e-10);
-        assertEquals(0.0001234, geom.getY(), 1e-10);
+        assertEquals(1.234, geom.getX(), 1e-10, "X coordinate should match");
+        assertEquals(0.0001234, geom.getY(), 1e-10, "Y coordinate should match for small value");
+
+        // Test 9: Scientific notation with 'e' (lowercase)
+        Geography g9 = Geography.point(1.234e-4, 5.678e-5, 4326);
+        assertEquals(1.234e-4, g9.getLatitude(), 1e-10, "Latitude should match for scientific notation with lowercase e");
+        assertEquals(5.678e-5, g9.getLongitude(), 1e-10, "Longitude should match for scientific notation with lowercase e");
+
+        // Test 10: Scientific notation with 'E' (uppercase)
+        Geography g10 = Geography.point(1.234E-4, 5.678E-5, 4326);
+        assertEquals(1.234E-4, g10.getLatitude(), 1e-10, "Latitude should match for scientific notation with uppercase E");
+        assertEquals(5.678E-5, g10.getLongitude(), 1e-10, "Longitude should match for scientific notation with uppercase E");
+
+        // Test 11: Negative scientific notation
+        Geography g11 = Geography.point(-1.234e-4, -5.678e-5, 4326);
+        assertEquals(-1.234e-4, g11.getLatitude(), 1e-10, "Latitude should match for negative scientific notation");
+        assertEquals(-5.678e-5, g11.getLongitude(), 1e-10, "Longitude should match for negative scientific notation");
+
+        // Test 12: Mix of minus sign and scientific notation
+        Geography g12 = Geography.point(-2.5e-3, 3.7e-2, 4326);
+        assertEquals(-2.5e-3, g12.getLatitude(), 1e-10, "Latitude should match for negative value with scientific notation");
+        assertEquals(3.7e-2, g12.getLongitude(), 1e-10, "Longitude should match for positive scientific notation");
+
+        // Test 13: All four coordinates (X, Y, Z, M) with scientific notation
+        // Note: Geography.STGeomFromText supports Z and M coordinates
+        // WKT format: POINT(longitude latitude altitude measure)
+        String wktWithAllCoords = "POINT(1.234e-4 5.678e-5 1.5e2 2.3e1)";
+        Geography g13 = Geography.STGeomFromText(wktWithAllCoords, 4326);
+        assertEquals(5.678e-5, g13.getLatitude(), 1e-10, "Latitude (Y) should match for WKT with all 4 coordinates");
+        assertEquals(1.234e-4, g13.getLongitude(), 1e-10, "Longitude (X) should match for WKT with all 4 coordinates");
+        assertEquals(1.5e2, g13.getZ(), 1e-10, "Z coordinate should match for WKT with all 4 coordinates");
+        assertEquals(2.3e1, g13.getM(), 1e-10, "M coordinate should match for WKT with all 4 coordinates");
+
+        // Test 14: All four coordinates with mixed signs and scientific notation
+        String wktMixedSigns = "POINT(-1.5e-3 2.7e-2 -1.0e3 5.5e0)";
+        Geography g14 = Geography.STGeomFromText(wktMixedSigns, 4326);
+        assertEquals(2.7e-2, g14.getLatitude(), 1e-10, "Latitude should match for mixed signs");
+        assertEquals(-1.5e-3, g14.getLongitude(), 1e-10, "Longitude should match for mixed signs");
+        assertEquals(-1.0e3, g14.getZ(), 1e-10, "Z coordinate should match for negative value");
+        assertEquals(5.5e0, g14.getM(), 1e-10, "M coordinate should match");
+
+        // Test 15: Four coordinates with NULL M value
+        String wktWithNull = "POINT(0.001 0.002 100.5 NULL)";
+        Geography g15 = Geography.STGeomFromText(wktWithNull, 4326);
+        assertEquals(0.002, g15.getLatitude(), 1e-10, "Latitude should match with NULL M");
+        assertEquals(0.001, g15.getLongitude(), 1e-10, "Longitude should match with NULL M");
+        assertEquals(100.5, g15.getZ(), 1e-10, "Z coordinate should match with NULL M");
+        assertTrue(g15.getM() == null || Double.isNaN(g15.getM()), "M coordinate should be null or NaN when NULL");
     }
 
     private void beforeEachSetup() throws SQLException {
