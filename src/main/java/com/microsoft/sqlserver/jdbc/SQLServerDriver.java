@@ -1212,7 +1212,7 @@ public final class SQLServerDriver implements java.sql.Driver {
     static Properties fixupProperties(Properties props) throws SQLServerException {
         // assert props !=null
         Properties fixedup = new Properties();
-        Enumeration<?> e = props.keys();
+        Enumeration<?> e = props.propertyNames();
         while (e.hasMoreElements()) {
             String name = (String) e.nextElement();
             String newname = getNormalizedPropertyName(name, drLogger);
