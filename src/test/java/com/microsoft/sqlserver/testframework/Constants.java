@@ -21,6 +21,7 @@ public final class Constants {
      * xSQLv14 - - - - - - For tests not compatible with SQL Server 2016 - 2017
      * xSQLv15 - - - - - - For tests not compatible with SQL Server 2019
      * xSQLv16 - - - - - - For tests not compatible with SQL Server 2022
+     * xSQLv17 - - - - - - For tests not compatible with SQL Server 2025
      * xAzureSQLDB - - - - For tests not compatible with Azure SQL Database
      * xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse
      * xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance
@@ -29,6 +30,7 @@ public final class Constants {
      * reqExternalSetup  - For tests requiring external setup
      * clientCertAuth  - - For tests requiring client certificate authentication setup
      * Fedauth - - - - - - For Fedauth tests
+     * vectorTest - - - - -For tests requiring vector setup
      * JSONTest -  - - - - For tests requiring JSON setup
      * CodeCov - - - - - - For tests tracked in coverage-only runs
      * </pre>
@@ -40,6 +42,7 @@ public final class Constants {
     public static final String xSQLv14 = "xSQLv14";
     public static final String xSQLv15 = "xSQLv15";
     public static final String xSQLv16 = "xSQLv16";
+    public static final String xSQLv17 = "xSQLv17";
     public static final String xAzureSQLDB = "xAzureSQLDB";
     public static final String xAzureSQLDW = "xAzureSQLDW";
     public static final String xAzureSQLMI = "xAzureSQLMI";

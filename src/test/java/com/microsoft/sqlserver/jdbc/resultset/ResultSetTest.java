@@ -48,9 +48,9 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
+import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
 @RunWith(JUnitPlatform.class)
 public class ResultSetTest extends AbstractTest {
@@ -715,7 +715,7 @@ public class ResultSetTest extends AbstractTest {
      * Test casting JSON data and retrieving it as various data types.
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.JSONTest)
     public void testCastOnJSON() throws SQLException {
         String dstTable = TestUtils.escapeSingleQuotes(
@@ -767,7 +767,7 @@ public class ResultSetTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.JSONTest)
     public void testJdbc41ResultSetJsonColumn() throws SQLException {

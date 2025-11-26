@@ -39,6 +39,7 @@
 			xSQLv14 - - - - - - For tests not compatible with SQL Server 2016 - 2017 
 			xSQLv15 - - - - - - For tests not compatible with SQL Server 2019 - - - - 
 			xSQLv16 - - - - - - For tests not compatible with SQL Server 2022 - - - - 
+			xSQLv17 - - - - - - For tests not compatible with SQL Server 2025 - - - - 
 			xAzureSQLDB - - - - For tests not compatible with Azure SQL Database - - 
 			xAzureSQLDW - - - - For tests not compatible with Azure Data Warehouse - 
 			xAzureSQLMI - - - - For tests not compatible with Azure SQL Managed Instance 

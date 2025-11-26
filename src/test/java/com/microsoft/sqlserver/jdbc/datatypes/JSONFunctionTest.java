@@ -42,12 +42,12 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Json Functions")
-@AzureDB
+@vectorJsonTest
 @Tag(Constants.JSONTest)
 public class JSONFunctionTest extends AbstractTest {
 
