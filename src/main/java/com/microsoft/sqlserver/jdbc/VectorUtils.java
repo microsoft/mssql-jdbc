@@ -249,6 +249,172 @@ class VectorUtils {
         return "VECTOR(" + precision + ")";
     }
 
+    /**
+     * Serializes a 4-byte float to 2-byte float16 (IEEE 754 half-precision format).
+     * This method converts a 32-bit IEEE 754 float to a 16-bit IEEE 754 half-precision float.
+     * 
+     * float16 bit layout : S (1) | E (5) | M (10) and exponent bias 15
+     * float32 bit layout : S (1) | E (8) | M (23) and exponent bias 127
+     * 
+     * @param value The 4-byte float value to serialize
+     * @return The 2-byte representation as a short
+     */
+    static Short floatToFloat16(Float value) {
+        int bits = Float.floatToIntBits(value);
+
+        int sign = (bits >>> 31) & 0x1;
+        int exponent = (bits >>> 23) & 0xFF;
+        int mantissa = bits & 0x7FFFFF;
+
+        // NaN or Infinity
+        if (exponent == 0xFF) {
+            if (mantissa != 0) {
+                return (short) ((sign << 15) | 0x7E00); // NaN
+            }
+            return (short) ((sign << 15) | 0x7C00); // Infinity
+        }
+
+        // Zero (preserve signed zero)
+        if ((bits & 0x7FFFFFFF) == 0) {
+            return (short) (sign << 15);
+        }
+
+        // Convert exponent
+        int halfExponent = exponent - 127 + 15;
+
+        // Overflow → Infinity
+        if (halfExponent >= 31) {
+            return (short) ((sign << 15) | 0x7C00);
+        }
+
+        // Underflow → Subnormal or Zero
+        if (halfExponent <= 0) {
+            if (halfExponent < -10) {
+                return (short) (sign << 15); // Too small → zero
+            }
+
+            // Convert to subnormal
+            mantissa |= 0x800000;
+            int shift = 1 - halfExponent;
+
+            int mant = mantissa >> (shift + 13);
+
+            // Round to nearest-even
+            int roundBit = (mantissa >> (shift + 12)) & 1;
+            int lostBits = mantissa & ((1 << (shift + 12)) - 1);
+
+            if (roundBit == 1 && (lostBits != 0 || (mant & 1) == 1)) {
+                mant++;
+            }
+
+            return (short) ((sign << 15) | mant);
+        }
+
+        // Normal number
+        int mant = mantissa >> 13;
+
+        // Rounding
+        int roundBit = (mantissa >> 12) & 1;
+        int lostBits = mantissa & 0xFFF;
+
+        if (roundBit == 1 && (lostBits != 0 || (mant & 1) == 1)) {
+            mant++;
+            if (mant == 0x400) { // Mantissa overflow
+                mant = 0;
+                halfExponent++;
+                if (halfExponent >= 31) {
+                    return (short) ((sign << 15) | 0x7C00);
+                }
+            }
+        }
+
+        return (short) ((sign << 15) | (halfExponent << 10) | mant);
+    }
+    
+    /**
+     * Deserializes a 2-byte float16 to a 4-byte float (IEEE 754 single-precision format).
+     * This method converts a 16-bit IEEE 754 half-precision float to a 32-bit IEEE 754 float.
+     * 
+     * float16 bit layout : S (1) | E (5) | M (10) and exponent bias 15
+     * float32 bit layout : S (1) | E (8) | M (23) and exponent bias 127
+     * 
+     * @param value The 2-byte float16 value as a short
+     * @return The 4-byte float representation
+     */
+    static Float float16ToFloat(Short value) {
+        int bits = value & 0xFFFF;
+
+        int sign = (bits >>> 15) & 1;
+        int exponent = (bits >>> 10) & 0x1F;
+        int mantissa = bits & 0x3FF;
+
+        // NaN or Infinity
+        if (exponent == 0x1F) {
+            if (mantissa == 0) {
+                return Float.intBitsToFloat((sign << 31) | 0x7F800000);
+            }
+            return Float.NaN;
+        }
+
+        // Zero
+        if (exponent == 0 && mantissa == 0) {
+            return Float.intBitsToFloat(sign << 31);
+        }
+
+        // Subnormal
+        if (exponent == 0) {
+            while ((mantissa & 0x400) == 0) {
+                mantissa <<= 1;
+                exponent--;
+            }
+            mantissa &= 0x3FF;
+            exponent++;
+        }
+
+        // Convert exponent bias
+        exponent = exponent + (127 - 15);
+
+        int result = (sign << 31) | (exponent << 23) | (mantissa << 13);
+        return Float.intBitsToFloat(result);
+    }
+
+    
+    /**
+     * Converts an array of 4-byte floats to an array of 2-byte float16 values.
+     * 
+     * @param floats Array of 4-byte float values
+     * @return Array of 2-byte values representing float16 format
+     */
+    static Short[] serializeFloat16Array(Float[] float32) {
+        if (float32 == null) {
+            return null;
+        }
+        
+        Short[] result = new Short[float32.length];
+        for (int i = 0; i < float32.length; i++) {
+            result[i] = floatToFloat16(float32[i]);
+        }
+        return result;
+    }
+    
+    /**
+     * Converts an array of 2-byte float16 values to an array of 4-byte floats.
+     * 
+     * @param float16Values Array of 2-byte values in float16 format
+     * @return Array of 4-byte float values
+     */
+    static Float[] deserializeFloat16Array(Short[] float16Values) {
+        if (float16Values == null) {
+            return null;
+        }
+        
+        Float[] result = new Float[float16Values.length];
+        for (int i = 0; i < float16Values.length; i++) {
+            result[i] = float16ToFloat(float16Values[i]);
+        }
+        return result;
+    }
+
     private static IllegalArgumentException vectorException(String resourceKey, Object... args) {
         try {
             MessageFormat form = new MessageFormat(
