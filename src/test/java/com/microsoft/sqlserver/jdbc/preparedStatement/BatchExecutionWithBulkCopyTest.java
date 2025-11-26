@@ -1756,6 +1756,103 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test for GitHub Issue#2825 - PreparedStatement.executeBatch() fails for insert statements 
+     * with SQL functions when useBulkCopyForBatchInsert is true.
+     * This test verifies that SQL functions cause fallback from bulk copy to regular batch execution and succeed.
+     */
+    @Test
+    public void testBulkCopyWithSQLFunctionFallback() throws Exception {
+        String tableName = RandomUtil.getIdentifier("Table_BulkCopy_API_SQLFunction");
+
+        // Insert with sql function as last parameter - this should trigger fallback from bulk copy to regular batch
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (Id, Data) VALUES (?, len(?))";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            createTable_SQLFunction(tableName);
+
+            pstmt.setObject(1, 1);
+            pstmt.setObject(2, "MySecretData123");
+            pstmt.addBatch();
+
+            // Execute with fallback monitoring using existing handler
+            try (FallbackWatcherLogHandler handler = new FallbackWatcherLogHandler()) {
+                pstmt.executeBatch();
+
+                // Verify fallback occurred due to SQL function
+                assertTrue(handler.gotFallbackMessage);
+            }
+
+            // Verify the data was inserted correctly
+            try (ResultSet rs = stmt.executeQuery("SELECT Id, Data FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                assertTrue(rs.next(), "Expected at least one row");
+                assertEquals(1, rs.getInt("Id"));
+                assertEquals(15, rs.getInt("Data"));
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Test for GitHub Issue#2825 - PreparedStatement.executeBatch() fails for insert statements 
+     * with SQL functions when useBulkCopyForBatchInsert is true.
+     * This test verifies that SQL functions cause fallback from bulk copy to regular batch execution and succeed.
+     */
+    @Test
+    public void testBulkCopyWithSQLFunctionFallback_FirstParameter() throws Exception {
+        String tableName = RandomUtil.getIdentifier("Table_BulkCopy_API_SQLFunction");
+
+        // Insert with sql function as first parameter - this should trigger fallback from bulk copy to regular batch
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (Id, Data) VALUES (len(?), ?)";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            createTable_SQLFunction(tableName);
+
+            pstmt.setObject(1, "MySecretData123");
+            pstmt.setObject(2, 1);
+            pstmt.addBatch();
+
+            // Execute with fallback monitoring using existing handler
+            try (FallbackWatcherLogHandler handler = new FallbackWatcherLogHandler()) {
+                pstmt.executeBatch();
+
+                // Verify fallback occurred due to SQL function
+                assertTrue(handler.gotFallbackMessage);
+            }
+
+            // Verify the data was inserted correctly
+            try (ResultSet rs = stmt.executeQuery("SELECT Id, Data FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                assertTrue(rs.next(), "Expected at least one row");
+                assertEquals(15, rs.getInt("Id"));
+                assertEquals(1, rs.getInt("Data"));
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    private void createTable_SQLFunction(String tableName) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) +
+                    " (Id INT PRIMARY KEY, Data INT)";
+            stmt.execute(createTableSQL);
+        }
+    }
+
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
