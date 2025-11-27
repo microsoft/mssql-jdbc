@@ -15,7 +15,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.sql.Blob;
 import java.sql.CallableStatement;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -29,6 +31,7 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -229,6 +232,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private static final int ENGINE_EDITION_SQL_AZURE_SQL_EDGE = 9;
     /** Engine Edition 11 = Azure Synapse serverless SQL pool */
     private static final int ENGINE_EDITION_SQL_AZURE_SYNAPSE_SERVERLESS_SQL_POOL = 11;
+
+    // --- SQL Parameter Expansion Methods ---
+    private static final SimpleDateFormat DATE_FMT = new SimpleDateFormat("yyyy-MM-dd");
+    private static final SimpleDateFormat TIME_FMT = new SimpleDateFormat("HH:mm:ss");
+    private static final SimpleDateFormat TS_FMT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
     /**
      * Azure SQL server endpoints
@@ -8424,12 +8432,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static final char[] OUT = {' ', 'O', 'U', 'T'};
 
     String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
-            boolean isReturnValueSyntax) {
+            boolean isReturnValueSyntax) throws SQLServerException {
         return replaceParameterMarkers(sqlSrc, paramPositions, params, isReturnValueSyntax, false);
     }
 
     String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
-            boolean isReturnValueSyntax, boolean useDirectValues) {
+            boolean isReturnValueSyntax, boolean useDirectValues) throws SQLServerException {
 
         if (useDirectValues) {
             // EXEC method: substitute actual parameter values directly into SQL
@@ -8438,7 +8446,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
 
             // Convert Parameter array to List<Object> for
-            // SqlServerPreparedStatementExpander
+            // SQLServerPreparedStatement.expand()
             List<Object> paramValues = new ArrayList<>(params.length);
             for (Parameter param : params) {
                 if (param == null) {
@@ -8454,9 +8462,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
             }
 
-            // Use SqlServerPreparedStatementExpander for robust parameter replacement
-            // This handles SQL parsing, comments, quotes, and NULL rewrites automatically
-            return SqlServerPreparedStatementExpander.expand(sqlSrc, paramValues);
+            // Expand SQL with parameter values inline for EXEC method
+            return expandSQLWithParameters(sqlSrc, paramValues);
         }
 
         // Existing RPC logic: replace ? with @p1, @p2 parameter names
@@ -8486,6 +8493,270 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         return new String(sqlDst, 0, dstBegin);
+    }
+
+    /**
+     * Expand SQL with '?' placeholders using provided parameters.
+     *
+     * @param sql    The SQL text containing '?' placeholders.
+     * @param params List of bound parameter values in order.
+     * @return Expanded SQL string ready to execute on SQL Server.
+     * @throws SQLServerException if an OutOfMemoryError occurs during parameter
+     *                            replacement
+     */
+    private String expandSQLWithParameters(String sql, List<Object> params) throws SQLServerException {
+        if (sql == null)
+            return null;
+        if (params == null || params.isEmpty())
+            return sql;
+
+        // Preallocate SQLException to safeguard against OOM during parameter
+        // replacement
+        final SQLServerException preallocatedException = new SQLServerException(
+                SQLServerException.getErrString("R_outOfMemory"), null, 0, null);
+
+        try {
+            StringBuilder out = new StringBuilder(sql.length() + params.size() * 20);
+            int paramIdx = 0;
+
+            // scanning state
+            boolean inSingleQuote = false;
+            boolean inDoubleQuote = false;
+            boolean inBracketIdentifier = false; // SQL Server [identifier] syntax
+            boolean inLineComment = false;
+            boolean inBlockComment = false;
+
+            char prev = 0;
+            for (int i = 0; i < sql.length(); i++) {
+                char ch = sql.charAt(i);
+
+                // handle comment/quote entry/exit
+                if (inLineComment) {
+                    out.append(ch);
+                    if (ch == '\n')
+                        inLineComment = false;
+                    prev = ch;
+                    continue;
+                }
+
+                if (inBlockComment) {
+                    out.append(ch);
+                    if (prev == '*' && ch == '/')
+                        inBlockComment = false;
+                    prev = ch;
+                    continue;
+                }
+
+                if (inBracketIdentifier) {
+                    out.append(ch);
+                    if (ch == ']') {
+                        // Check if this is an escaped bracket (doubled ]])
+                        if (i + 1 < sql.length() && sql.charAt(i + 1) == ']') {
+                            // This is an escaped bracket. Append the next bracket and skip it
+                            i++;
+                            out.append(']');
+                        } else {
+                            // This is the closing bracket
+                            inBracketIdentifier = false;
+                        }
+                    }
+                    prev = ch;
+                    continue;
+                }
+
+                if (inSingleQuote) {
+                    out.append(ch);
+                    if (ch == '\'') {
+                        // Check if this is an escaped quote (doubled '')
+                        if (i + 1 < sql.length() && sql.charAt(i + 1) == '\'') {
+                            // This is an escaped quote. Append the next quote and skip it
+                            i++; // skip next quote
+                            out.append('\'');
+                        } else {
+                            // This is the closing quote
+                            inSingleQuote = false;
+                        }
+                    }
+                    prev = ch;
+                    continue;
+                }
+
+                if (inDoubleQuote) {
+                    out.append(ch);
+                    if (ch == '"') {
+                        // Check if this is an escaped quote (doubled "")
+                        if (i + 1 < sql.length() && sql.charAt(i + 1) == '"') {
+                            // This is an escaped quote. Append the next quote and skip it
+                            i++;
+                            out.append('"');
+                        } else {
+                            // This is the closing quote
+                            inDoubleQuote = false;
+                        }
+                    }
+                    prev = ch;
+                    continue;
+                }
+
+                // not inside quotes/comments
+                // detect start of line or block comment
+                if (ch == '-' && i + 1 < sql.length() && sql.charAt(i + 1) == '-') {
+                    out.append(ch);
+                    inLineComment = true;
+                    prev = ch;
+                    continue;
+                }
+                if (ch == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '*') {
+                    out.append(ch);
+                    inBlockComment = true;
+                    prev = ch;
+                    continue;
+                }
+
+                // detect entering bracket identifier (SQL Server specific)
+                if (ch == '[') {
+                    out.append(ch);
+                    inBracketIdentifier = true;
+                    prev = ch;
+                    continue;
+                }
+
+                // detect entering quotes
+                if (ch == '\'') {
+                    out.append(ch);
+                    inSingleQuote = true;
+                    prev = ch;
+                    continue;
+                }
+                if (ch == '"') {
+                    out.append(ch);
+                    inDoubleQuote = true;
+                    prev = ch;
+                    continue;
+                }
+
+                // handle placeholder
+                if (ch == '?' && paramIdx < params.size()) {
+                    Object val = params.get(paramIdx++);
+                    out.append(formatLiteralValue(val));
+                    prev = ch;
+                    continue;
+                }
+
+                // normal char write
+                out.append(ch);
+                prev = ch;
+            } // end for
+
+            return out.toString();
+        } catch (OutOfMemoryError e) {
+            throw preallocatedException;
+        }
+    }
+
+    // Format Java value into a T-SQL literal safe for SQL Server
+    private String formatLiteralValue(Object value) {
+        if (value == null)
+            return "NULL";
+
+        if (value instanceof String) {
+            return "N'" + escapeSQLString((String) value) + "'";
+        }
+
+        if (value instanceof Character) {
+            return "N'" + escapeSQLString(value.toString()) + "'";
+        }
+
+        if (value instanceof Boolean) {
+            return ((Boolean) value) ? "1" : "0";
+        }
+
+        if (value instanceof java.math.BigDecimal) {
+            // Use toPlainString() to avoid scientific notation
+            java.math.BigDecimal bd = (java.math.BigDecimal) value;
+            String plainStr = bd.toPlainString();
+
+            // For very large or high-precision decimals, wrap in CAST to preserve precision
+            // SQL Server decimal max precision is 38, scale max 38
+            int precision = bd.precision();
+            int scale = bd.scale();
+
+            if (precision > 18 || scale > 6) {
+                // Need explicit CAST for high precision numbers
+                // Clamp to SQL Server limits: decimal(38, min(scale, 38))
+                // Ensure scale <= precision
+                int sqlPrecision = Math.min(precision, 38);
+                int sqlScale = Math.min(Math.min(scale, 38), sqlPrecision);
+                return "CAST(" + plainStr + " AS DECIMAL(" + sqlPrecision + "," + sqlScale + "))";
+            }
+            return plainStr;
+        }
+        if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long
+                || value instanceof Float || value instanceof Double) {
+            return value.toString();
+        }
+
+        if (value instanceof java.sql.Date) {
+            return "CAST('" + DATE_FMT.format((java.util.Date) value) + "' AS DATE)";
+        }
+
+        if (value instanceof java.sql.Time) {
+            return "CAST('" + TIME_FMT.format((java.util.Date) value) + "' AS TIME)";
+        }
+
+        if (value instanceof java.sql.Timestamp) {
+            return "CAST('" + TS_FMT.format((java.util.Date) value) + "' AS DATETIME2)";
+        }
+
+        if (value instanceof java.util.Date) {
+            // generic java.util.Date -> timestamp
+            return "CAST('" + TS_FMT.format((java.util.Date) value) + "' AS DATETIME2)";
+        }
+
+        if (value instanceof byte[]) {
+            return bytesToHexLiteral((byte[]) value);
+        }
+
+        if (value instanceof Blob) {
+            try {
+                Blob b = (Blob) value;
+                int len = (int) b.length();
+                byte[] bytes = b.getBytes(1, len);
+                return bytesToHexLiteral(bytes);
+            } catch (Exception e) {
+                return "NULL";
+            }
+        }
+
+        if (value instanceof Clob) {
+            try {
+                Clob c = (Clob) value;
+                String s = c.getSubString(1, (int) c.length());
+                return "N'" + escapeSQLString(s) + "'";
+            } catch (Exception e) {
+                return "NULL";
+            }
+        }
+
+        // fallback
+        return "N'" + escapeSQLString(value.toString()) + "'";
+    }
+
+    private String escapeSQLString(String s) {
+        if (s == null || s.isEmpty())
+            return "";
+        // double single quotes
+        return s.replace("'", "''");
+    }
+
+    private String bytesToHexLiteral(byte[] bytes) {
+        if (bytes == null || bytes.length == 0)
+            return "0x";
+        StringBuilder sb = new StringBuilder(bytes.length * 2 + 2);
+        sb.append("0x");
+        for (byte b : bytes)
+            sb.append(String.format("%02X", b));
+        return sb.toString();
     }
 
     /**
