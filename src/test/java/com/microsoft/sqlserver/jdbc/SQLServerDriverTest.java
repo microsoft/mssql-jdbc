@@ -270,17 +270,21 @@ public class SQLServerDriverTest extends AbstractTest {
     // }
 
     /**
-     * test application name
+     * test user agent string length
      * 
      * @throws SQLException
-     */
-    
+     */    
     @Test
     public void testDriverUserAgentLength() throws SQLException {
         String userAgent = SQLServerConnection.getUserAgent();
         assertTrue(userAgent.length() <= 256, "User agent string length should not be more than 256 characters"); 
     }
 
+    /**
+     * test user agent string OS
+     * 
+     * @throws SQLException
+     */    
     @Test
     public void testDriverUserAgentOS() throws SQLException {
         System.setProperty("os.name", "Linux");
