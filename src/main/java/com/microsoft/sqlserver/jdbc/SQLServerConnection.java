@@ -343,17 +343,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     static String getOSType() {
-        String osName = System.getProperty("os.name", "Unknown").trim();
+        String osName = System.getProperty("os.name", "Unknown").trim().toLowerCase();
         String osNameToReturn = "Unknown";
-        if (osName.startsWith("Windows")) {
+        if (osName.startsWith("windows")) {
             osNameToReturn = "Windows";
-        } else if (osName.startsWith("Linux")) {
+        } else if (osName.startsWith("linux")) {
             osNameToReturn = "Linux";
-        } else if (osName.startsWith("Mac")) { 
+        } else if (osName.startsWith("mac")) {
             osNameToReturn = "macOS";
-        } else if (osName.startsWith("FreeBSD")) {
+        } else if (osName.startsWith("freebsd")) {
             osNameToReturn = "FreeBSD";
-        } else if (osName.startsWith("Android")) {
+        } else if (osName.startsWith("android")) {
             osNameToReturn = "Android";
         }
         return sanitizeField(osNameToReturn, 10);
@@ -366,14 +366,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static String getOSDetails() {
         String osName = System.getProperty("os.name", "").trim();
         String osVersion = System.getProperty("os.version", "").trim();
-        if (osName.isEmpty() && osVersion.isEmpty()) return "Unknown";
+        if (osName.isEmpty() && osVersion.isEmpty()) {
+            return "Unknown";
+        }
         return sanitizeField(osName + " " + osVersion, 44);
     }
 
     static String getRuntimeDetails() {
         String javaVmName = System.getProperty("java.vm.name", "").trim();
         String javaVmVersion = System.getProperty("java.vm.version", "").trim();
-        if (javaVmName.isEmpty() && javaVmVersion.isEmpty()) return "Unknown";
+        if (javaVmName.isEmpty() && javaVmVersion.isEmpty()) {
+            return "Unknown";
+        }
         return sanitizeField(javaVmName + " " + javaVmVersion, 44);
     }
 
