@@ -8747,14 +8747,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             try {
                 Clob c = (Clob) value;
                 String s = c.getSubString(1, (int) c.length());
-                return "N'" + escapeSQLString(s) + "'";
+                String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
+                return prefix + escapeSQLString(s) + "'";
             } catch (Exception e) {
                 return "NULL";
             }
         }
 
         // fallback
-        return "N'" + escapeSQLString(value.toString()) + "'";
+        String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
+        return prefix + escapeSQLString(value.toString()) + "'";
     }
 
     private String escapeSQLString(String s) {
