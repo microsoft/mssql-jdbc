@@ -8660,11 +8660,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             return "NULL";
 
         if (value instanceof String) {
-            return "N'" + escapeSQLString((String) value) + "'";
+            String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
+            return prefix + escapeSQLString((String) value) + "'";
         }
 
         if (value instanceof Character) {
-            return "N'" + escapeSQLString(value.toString()) + "'";
+            String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
+            return prefix + escapeSQLString(value.toString()) + "'";
         }
 
         if (value instanceof Boolean) {
@@ -8691,9 +8693,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
             return plainStr;
         }
-        if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long
-                || value instanceof Float || value instanceof Double) {
+
+        // Integer types can use toString() safely
+        if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long) {
             return value.toString();
+        }
+
+        // Float and Double need special handling to avoid precision loss and scientific
+        // notation
+        if (value instanceof Float) {
+            // Convert Float to BigDecimal for precise representation
+            return new java.math.BigDecimal(value.toString()).toPlainString();
+        }
+
+        if (value instanceof Double) {
+            // Convert Double to BigDecimal for precise representation
+            return new java.math.BigDecimal(value.toString()).toPlainString();
         }
 
         if (value instanceof java.sql.Date) {
