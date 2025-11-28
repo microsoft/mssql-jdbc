@@ -8445,25 +8445,37 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 return sqlSrc;
             }
 
-            // Convert Parameter array to List<Object> for
-            // SQLServerPreparedStatement.expand()
-            List<Object> paramValues = new ArrayList<>(params.length);
-            for (Parameter param : params) {
-                if (param == null) {
-                    paramValues.add(null);
-                } else {
+            // Estimate capacity for the result
+            StringBuilder result = new StringBuilder(sqlSrc.length() + params.length * 20);
+            int srcBegin = 0;
+
+            for (int paramIndex = 0; paramIndex < paramPositions.length; paramIndex++) {
+                int srcEnd = paramPositions[paramIndex];
+
+                // Append SQL text before this parameter marker
+                result.append(sqlSrc, srcBegin, srcEnd);
+
+                // Get parameter value and format it
+                Object value = null;
+                if (params[paramIndex] != null) {
                     try {
-                        Object value = param.getSetterValue();
-                        paramValues.add(value);
+                        value = params[paramIndex].getSetterValue();
                     } catch (Exception e) {
-                        // If getSetterValue() fails, add null
-                        paramValues.add(null);
+                        // If getSetterValue() fails, use null
                     }
                 }
+
+                // Append formatted literal value
+                result.append(formatLiteralValue(value));
+
+                // Move past the '?' marker
+                srcBegin = srcEnd + 1;
             }
 
-            // Expand SQL with parameter values inline for EXEC method
-            return expandSQLWithParameters(sqlSrc, paramValues);
+            // Append remaining SQL after last parameter
+            result.append(sqlSrc, srcBegin, sqlSrc.length());
+
+            return result.toString();
         }
 
         // Existing RPC logic: replace ? with @p1, @p2 parameter names
@@ -8493,165 +8505,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         return new String(sqlDst, 0, dstBegin);
-    }
-
-    /**
-     * Expand SQL with '?' placeholders using provided parameters.
-     *
-     * @param sql    The SQL text containing '?' placeholders.
-     * @param params List of bound parameter values in order.
-     * @return Expanded SQL string ready to execute on SQL Server.
-     * @throws SQLServerException if an OutOfMemoryError occurs during parameter
-     *                            replacement
-     */
-    private String expandSQLWithParameters(String sql, List<Object> params) throws SQLServerException {
-        if (sql == null)
-            return null;
-        if (params == null || params.isEmpty())
-            return sql;
-
-        // Preallocate SQLException to safeguard against OOM during parameter
-        // replacement
-        final SQLServerException preallocatedException = new SQLServerException(
-                SQLServerException.getErrString("R_outOfMemory"), null, 0, null);
-
-        try {
-            StringBuilder out = new StringBuilder(sql.length() + params.size() * 20);
-            int paramIdx = 0;
-
-            // scanning state
-            boolean inSingleQuote = false;
-            boolean inDoubleQuote = false;
-            boolean inBracketIdentifier = false; // SQL Server [identifier] syntax
-            boolean inLineComment = false;
-            boolean inBlockComment = false;
-
-            char prev = 0;
-            for (int i = 0; i < sql.length(); i++) {
-                char ch = sql.charAt(i);
-
-                // handle comment/quote entry/exit
-                if (inLineComment) {
-                    out.append(ch);
-                    if (ch == '\n')
-                        inLineComment = false;
-                    prev = ch;
-                    continue;
-                }
-
-                if (inBlockComment) {
-                    out.append(ch);
-                    if (prev == '*' && ch == '/')
-                        inBlockComment = false;
-                    prev = ch;
-                    continue;
-                }
-
-                if (inBracketIdentifier) {
-                    out.append(ch);
-                    if (ch == ']') {
-                        // Check if this is an escaped bracket (doubled ]])
-                        if (i + 1 < sql.length() && sql.charAt(i + 1) == ']') {
-                            // This is an escaped bracket. Append the next bracket and skip it
-                            i++;
-                            out.append(']');
-                        } else {
-                            // This is the closing bracket
-                            inBracketIdentifier = false;
-                        }
-                    }
-                    prev = ch;
-                    continue;
-                }
-
-                if (inSingleQuote) {
-                    out.append(ch);
-                    if (ch == '\'') {
-                        // Check if this is an escaped quote (doubled '')
-                        if (i + 1 < sql.length() && sql.charAt(i + 1) == '\'') {
-                            // This is an escaped quote. Append the next quote and skip it
-                            i++; // skip next quote
-                            out.append('\'');
-                        } else {
-                            // This is the closing quote
-                            inSingleQuote = false;
-                        }
-                    }
-                    prev = ch;
-                    continue;
-                }
-
-                if (inDoubleQuote) {
-                    out.append(ch);
-                    if (ch == '"') {
-                        // Check if this is an escaped quote (doubled "")
-                        if (i + 1 < sql.length() && sql.charAt(i + 1) == '"') {
-                            // This is an escaped quote. Append the next quote and skip it
-                            i++;
-                            out.append('"');
-                        } else {
-                            // This is the closing quote
-                            inDoubleQuote = false;
-                        }
-                    }
-                    prev = ch;
-                    continue;
-                }
-
-                // not inside quotes/comments
-                // detect start of line or block comment
-                if (ch == '-' && i + 1 < sql.length() && sql.charAt(i + 1) == '-') {
-                    out.append(ch);
-                    inLineComment = true;
-                    prev = ch;
-                    continue;
-                }
-                if (ch == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '*') {
-                    out.append(ch);
-                    inBlockComment = true;
-                    prev = ch;
-                    continue;
-                }
-
-                // detect entering bracket identifier (SQL Server specific)
-                if (ch == '[') {
-                    out.append(ch);
-                    inBracketIdentifier = true;
-                    prev = ch;
-                    continue;
-                }
-
-                // detect entering quotes
-                if (ch == '\'') {
-                    out.append(ch);
-                    inSingleQuote = true;
-                    prev = ch;
-                    continue;
-                }
-                if (ch == '"') {
-                    out.append(ch);
-                    inDoubleQuote = true;
-                    prev = ch;
-                    continue;
-                }
-
-                // handle placeholder
-                if (ch == '?' && paramIdx < params.size()) {
-                    Object val = params.get(paramIdx++);
-                    out.append(formatLiteralValue(val));
-                    prev = ch;
-                    continue;
-                }
-
-                // normal char write
-                out.append(ch);
-                prev = ch;
-            } // end for
-
-            return out.toString();
-        } catch (OutOfMemoryError e) {
-            throw preallocatedException;
-        }
     }
 
     // Format Java value into a T-SQL literal safe for SQL Server
