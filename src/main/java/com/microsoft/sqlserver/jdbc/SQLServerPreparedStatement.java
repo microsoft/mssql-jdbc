@@ -678,7 +678,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // Start the request and detach the response reader so that we can
                 // continue using it after we return.
-                TDSWriter tdsWriter = command.startRequest(TDS.PKT_RPC);
+                // Use PKT_QUERY for exec mode (direct execution), PKT_RPC for prepared
+                // statements
+                boolean isPrepareMethodExec = connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString());
+                TDSWriter tdsWriter = command.startRequest(isPrepareMethodExec ? TDS.PKT_QUERY : TDS.PKT_RPC);
 
                 needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
                         command);
@@ -1119,6 +1122,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (isCursorable(executeMethod))
             return false;
 
+        // No caching for exec method as it always executes directly without preparation
+        if (connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString()))
+            return false;
+
         // If current cache items needs to be discarded or New type definitions found with existing cached handle
         // reference then deregister cached
         // handle.
@@ -1165,6 +1172,31 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
         boolean isPrepareMethodSpPrepExec = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
+        boolean isPrepareMethodExec = connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString());
+
+        // If using exec method, execute directly like regular Statement to mimic Sybase
+        // DYNAMIC_PREPARE=false
+        if (isPrepareMethodExec) {
+            // Build direct SQL using enhanced replaceParameterMarkers with direct values
+            String directSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, false, true);
+            // Note: TDS request already started as PKT_QUERY in caller
+
+            // For batch execution, prepend SET NOCOUNT OFF to ensure we get individual row
+            // counts
+            if (executeMethod == EXECUTE_BATCH) {
+                tdsWriter.writeString("SET NOCOUNT OFF; " + directSQL);
+            } else {
+                tdsWriter.writeString(directSQL);
+            }
+
+            expectPrepStmtHandle = false;
+            executedSqlDirectly = true;
+            expectCursorOutParams = false;
+            outParamIndexAdjustment = 0;
+            resetPrepStmtHandle(false);
+
+            return false; // No preparation needed
+        }
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
@@ -3067,12 +3099,41 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         hasNewTypeDefinitions = false;
                     }
 
+                    boolean isPrepareMethodExec = connection.getPrepareMethod()
+                            .equals(PrepareMethod.EXEC.toString());
+
                     if (numBatchesExecuted < numBatchesPrepared) {
                         // assert null != tdsWriter;
-                        tdsWriter.writeByte((byte) NBATCH_STATEMENT_DELIMITER);
+                        if (isPrepareMethodExec) {
+                            // For EXEC method with batching, each statement must be sent separately
+                            // to get individual update counts. Close current request and start a new one.
+                            ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+
+                            // Process results for previous statement
+                            while (numBatchesExecuted < numBatchesPrepared - 1) {
+                                startResults();
+                                if (!getNextResult(true))
+                                    break;
+                                if (null != resultSet) {
+                                    SQLServerException.makeFromDriverError(connection, this,
+                                            SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null,
+                                            false);
+                                }
+                                batchCommand.updateCounts[numBatchesExecuted++] = getUpdateCount();
+                            }
+
+                            // Start new request for next batch item
+                            resetForReexecute();
+                            tdsWriter = batchCommand.startRequest(TDS.PKT_QUERY);
+                        } else {
+                            // For RPC methods, use batch delimiter
+                            tdsWriter.writeByte((byte) NBATCH_STATEMENT_DELIMITER);
+                        }
                     } else {
                         resetForReexecute();
-                        tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
+                        // Use PKT_QUERY for exec mode (direct execution), PKT_RPC for prepared
+                        // statements
+                        tdsWriter = batchCommand.startRequest(isPrepareMethodExec ? TDS.PKT_QUERY : TDS.PKT_RPC);
                     }
 
                     // If we have to (re)prepare the statement then we must execute it so
