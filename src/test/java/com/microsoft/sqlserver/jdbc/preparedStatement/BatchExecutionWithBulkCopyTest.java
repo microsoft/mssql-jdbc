@@ -7,10 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.Date;
@@ -1692,6 +1695,160 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     "nvarcharCol2 NVARCHAR(50), " +
                     "longnvarcharCol2 NVARCHAR(MAX)" + ")";
 
+            stmt.execute(createTableSQL);
+        }
+    }
+
+    /**
+     * Test bulk insert with InputStream data when useBulkCopyForBatchInsert is true.
+     * Added support for InputStream data type with bulk copy batch insert.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testBulkCopyBatchInsertForInputStreamData() throws Exception {
+        String tableName = RandomUtil.getIdentifier("BulkTableForInputStream");
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) +
+                " (Id, Data) VALUES (?, ?)";
+        String selectSQL = "SELECT Id, Data FROM " + AbstractSQLGenerator.escapeIdentifier(tableName);
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement();
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL)) {
+
+            getCreateTableInputStream(tableName);
+
+            String data = "Sample string to be inserted as binary data.";
+            byte[] bytes = data.getBytes(StandardCharsets.UTF_8);
+            InputStream inputStream = new ByteArrayInputStream(bytes);
+
+            pstmt.setObject(1, 1);
+            pstmt.setBinaryStream(2, inputStream);
+            
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            // Validate inserted data
+            try (ResultSet rs = stmt.executeQuery(selectSQL)) {
+                assertTrue(rs.next());
+
+                assertEquals(1, rs.getInt(1));
+                byte[] retrievedBytes = rs.getBytes(2);
+                String retrievedData = new String(retrievedBytes, StandardCharsets.UTF_8);
+                assertEquals(data, retrievedData);
+                
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    private void getCreateTableInputStream(String tableName) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (" +
+                    "Id INT PRIMARY KEY, " +
+                    "Data VARBINARY(MAX) NULL" + ")";
+
+            stmt.execute(createTableSQL);
+        }
+    }
+
+    /**
+     * Test for GitHub Issue#2825 - PreparedStatement.executeBatch() fails for insert statements 
+     * with SQL functions when useBulkCopyForBatchInsert is true.
+     * This test verifies that SQL functions cause fallback from bulk copy to regular batch execution and succeed.
+     */
+    @Test
+    public void testBulkCopyWithSQLFunctionFallback() throws Exception {
+        String tableName = RandomUtil.getIdentifier("Table_BulkCopy_API_SQLFunction");
+
+        // Insert with sql function as last parameter - this should trigger fallback from bulk copy to regular batch
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (Id, Data) VALUES (?, len(?))";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            createTable_SQLFunction(tableName);
+
+            pstmt.setObject(1, 1);
+            pstmt.setObject(2, "MySecretData123");
+            pstmt.addBatch();
+
+            // Execute with fallback monitoring using existing handler
+            try (FallbackWatcherLogHandler handler = new FallbackWatcherLogHandler()) {
+                pstmt.executeBatch();
+
+                // Verify fallback occurred due to SQL function
+                assertTrue(handler.gotFallbackMessage);
+            }
+
+            // Verify the data was inserted correctly
+            try (ResultSet rs = stmt.executeQuery("SELECT Id, Data FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                assertTrue(rs.next(), "Expected at least one row");
+                assertEquals(1, rs.getInt("Id"));
+                assertEquals(15, rs.getInt("Data"));
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Test for GitHub Issue#2825 - PreparedStatement.executeBatch() fails for insert statements 
+     * with SQL functions when useBulkCopyForBatchInsert is true.
+     * This test verifies that SQL functions cause fallback from bulk copy to regular batch execution and succeed.
+     */
+    @Test
+    public void testBulkCopyWithSQLFunctionFallback_FirstParameter() throws Exception {
+        String tableName = RandomUtil.getIdentifier("Table_BulkCopy_API_SQLFunction");
+
+        // Insert with sql function as first parameter - this should trigger fallback from bulk copy to regular batch
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (Id, Data) VALUES (len(?), ?)";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            createTable_SQLFunction(tableName);
+
+            pstmt.setObject(1, "MySecretData123");
+            pstmt.setObject(2, 1);
+            pstmt.addBatch();
+
+            // Execute with fallback monitoring using existing handler
+            try (FallbackWatcherLogHandler handler = new FallbackWatcherLogHandler()) {
+                pstmt.executeBatch();
+
+                // Verify fallback occurred due to SQL function
+                assertTrue(handler.gotFallbackMessage);
+            }
+
+            // Verify the data was inserted correctly
+            try (ResultSet rs = stmt.executeQuery("SELECT Id, Data FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                assertTrue(rs.next(), "Expected at least one row");
+                assertEquals(15, rs.getInt("Id"));
+                assertEquals(1, rs.getInt("Data"));
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    private void createTable_SQLFunction(String tableName) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName) +
+                    " (Id INT PRIMARY KEY, Data INT)";
             stmt.execute(createTableSQL);
         }
     }

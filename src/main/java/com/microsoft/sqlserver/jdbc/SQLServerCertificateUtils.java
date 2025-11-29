@@ -50,6 +50,9 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
+import javax.security.auth.x500.X500Principal;
 
 import org.bouncycastle.openssl.PEMDecryptorProvider;
 import org.bouncycastle.openssl.PEMEncryptedKeyPair;
@@ -75,45 +78,6 @@ final class SQLServerCertificateUtils {
         } else {
             return readPKCS12Certificate(certPath, keyPassword);
         }
-    }
-
-    /**
-     * Parse name in RFC 2253 format Returns the common name if successful, null if failed to find the common name. The
-     * parser tuned to be safe than sorry so if it sees something it can't parse correctly it returns null
-     * 
-     * @param distinguishedName
-     *        server name to parse
-     * @return subject name
-     */
-    static String parseCommonName(String distinguishedName) {
-        int index;
-        // canonical name converts entire name to lowercase
-        index = distinguishedName.indexOf("cn=");
-        if (index == -1) {
-            return null;
-        }
-        distinguishedName = distinguishedName.substring(index + 3);
-        // Parse until a comma or end is reached
-        // Note the parser will handle gracefully (essentially will return empty string) , inside the quotes (e.g
-        // cn="Foo, bar") however
-        // RFC 952 says that the hostName cant have commas however the parser should not (and will not) crash if it
-        // sees a , within quotes.
-        for (index = 0; index < distinguishedName.length(); index++) {
-            if (distinguishedName.charAt(index) == ',') {
-                break;
-            }
-        }
-        String commonName = distinguishedName.substring(0, index);
-        // strip any quotes
-        if (commonName.length() > 1 && ('\"' == commonName.charAt(0))) {
-            if ('\"' == commonName.charAt(commonName.length() - 1))
-                commonName = commonName.substring(1, commonName.length() - 1);
-            else {
-                // Be safe the name is not ended in " return null so the common Name wont match
-                commonName = null;
-            }
-        }
-        return commonName;
     }
 
     /**
@@ -183,7 +147,11 @@ final class SQLServerCertificateUtils {
      * @throws CertificateException
      */
     static void validateServerNameInCertificate(X509Certificate cert, String hostName) throws CertificateException {
-        String nameInCertDN = cert.getSubjectX500Principal().getName("canonical");
+        // Use RFC2253 format and secure CN parsing to avoid ambiguities introduced by
+        // the "canonical" format (which lowercases and reverses RDN order). We rely
+        // on LdapName/Rdn to securely parse the DN and extract the CN attribute only.
+        X500Principal subjectPrincipal = cert.getSubjectX500Principal();
+        String nameInCertDN = subjectPrincipal.getName(X500Principal.RFC2253);
 
         if (logger.isLoggable(Level.FINER)) {
             logger.finer(logContext + " Validating the server name:" + hostName);
@@ -194,7 +162,13 @@ final class SQLServerCertificateUtils {
         String dnsNameInSANCert = "";
 
         // the name in cert is in RFC2253 format parse it to get the actual subject name
-        String subjectCN = parseCommonName(nameInCertDN);
+        String subjectCN = parseCommonNameSecure(cert);
+        // X.509 certificate standard requires domain names to be in ASCII.
+        // Even IDN (Unicode) names will be represented here in Punycode (ASCII).
+        // Normalize case for comparison using English to avoid case issues like Turkish i.
+        if (subjectCN != null) {
+            subjectCN = subjectCN.toLowerCase(Locale.ENGLISH);
+        }
 
         isServerNameValidated = validateServerName(subjectCN, hostName);
 
@@ -529,5 +503,36 @@ final class SQLServerCertificateUtils {
 
     private static String getStringFromFile(String filePath) throws IOException {
         return new String(Files.readAllBytes(Paths.get(filePath)));
+    }
+
+    /**
+     * Securely parse the Common Name (CN) from the certificate subject using
+     * LdapName/Rdn APIs and RFC2253 string representation to avoid mis-parsing
+     * values that appear inside other attributes when canonical form is used.
+     */
+    static String parseCommonNameSecure(X509Certificate cert) {
+        try {
+            X500Principal subjectPrincipal = cert.getSubjectX500Principal();
+            String dn = subjectPrincipal.getName(X500Principal.RFC2253);
+
+            LdapName ldapDN = new LdapName(dn);
+            for (Rdn rdn : ldapDN.getRdns()) {
+                if ("CN".equalsIgnoreCase(rdn.getType())) {
+                    String cnValue = rdn.getValue().toString();
+                    return cnValue;
+                }
+            }
+
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(logContext + " No CN found in certificate subject");
+            }
+            return null;
+
+        } catch (Exception e) {
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(logContext + " Error parsing certificate: " + e.getMessage());
+            }
+            return null;
+        }
     }
 }

@@ -445,6 +445,80 @@ public class BulkCopyCSVTest extends AbstractTest {
     }
 
     /**
+     * Test bulk copy with tab-delimited data containing isolated quote characters.
+     * This reproduces the issue where parseString method incorrectly handles quote parsing
+     * in tab-delimited files, causing IndexOutOfBoundsException.
+     * Uses InputStream approach to avoid temporary file creation.
+     */
+    @Test
+    @DisplayName("Test bulk copy with tab-delimited data containing quotes")
+    public void testBulkCopyTabDelimitedWithQuotes() throws Exception {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkQuoteTest"));
+
+        // Create test data with isolated quote characters that cause parsing issues
+        String testDataContent = String.join("\n",
+                "com.company.test\tREMOVE_PRODUCT\tRemove product\t22451\t0",
+                "com.company.test\tREMOVE_PRODUCT_START\tDo you wish to remove the product \"\t22451\t1",
+                "com.company.test\tREMOVE_PRODUCT_END\t\" from the report?\t22451\t1",
+                "com.company.test\tREPORT\tReport\t22451\t0"
+        );
+
+        InputStream testDataStream = new java.io.ByteArrayInputStream(testDataContent.getBytes("UTF-8"));
+
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(
+                        testDataStream, "UTF-8", "\t", false)) {
+
+            stmt.executeUpdate("CREATE TABLE " + tableName + " ("
+                    + "namespace VARCHAR(500) NOT NULL, "
+                    + "key_ VARCHAR(500) NOT NULL, "
+                    + "phrase_en VARCHAR(2000) NOT NULL, "
+                    + "taskId VARCHAR(20) NOT NULL, "
+                    + "type INT NOT NULL"
+                    + ")");
+
+            fileRecord.addColumnMetadata(1, "namespace", java.sql.Types.VARCHAR, 500, 0);
+            fileRecord.addColumnMetadata(2, "key_", java.sql.Types.VARCHAR, 500, 0);
+            fileRecord.addColumnMetadata(3, "phrase_en", java.sql.Types.VARCHAR, 2000, 0);
+            fileRecord.addColumnMetadata(4, "taskId", java.sql.Types.VARCHAR, 20, 0);
+            fileRecord.addColumnMetadata(5, "type", java.sql.Types.INTEGER, 10, 0);
+
+            bulkCopy.setDestinationTableName(tableName);
+
+            bulkCopy.writeToServer(fileRecord);
+
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                if (rs.next()) {
+                    int rowCount = rs.getInt(1);
+                    assertEquals(4, rowCount, "Expected 4 rows to be inserted");
+                }
+            }
+
+            try (ResultSet rs = stmt.executeQuery("SELECT phrase_en FROM " + tableName + " ORDER BY phrase_en")) {
+                String[] expectedPhrases = {
+                    "\" from the report?",
+                    "Do you wish to remove the product \"",
+                    "Remove product",
+                    "Report"
+                };
+                
+                int i = 0;
+                while (rs.next() && i < expectedPhrases.length) {
+                    assertEquals(expectedPhrases[i], rs.getString(1),
+                            "Phrase content mismatch at row " + (i + 1));
+                    i++;
+                }
+            }
+
+        } finally {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
+
+    /**
      * Test bulk copy with JSON data type
      * 
      * This test reads a CSV file with JSON data and performs a bulk copy into a table with a JSON column.

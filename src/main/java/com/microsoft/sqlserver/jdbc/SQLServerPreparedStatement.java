@@ -789,20 +789,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Override TDS token processing behavior for PreparedStatement.
-     * For regular Statement, the execute API for INSERT requires reading an additional explicit 
-     * TDS_DONE token that contains the actual update count returned by the server.
-     * PreparedStatement does not require this additional token processing, unless
-     * generated keys were requested (which requires processing additional TDS tokens).
-     */
-    @Override
-    protected boolean hasUpdateCountTDSTokenForInsertCmd() {
-        // When generated keys are requested, we need to process additional TDS tokens
-        // to properly locate the ResultSet containing the generated keys
-        return bRequestedGeneratedKeys;
-    }
-
-    /**
      * Sends the statement parameters by RPC.
      */
     void sendParamsByRPC(TDSWriter tdsWriter, Parameter[] params) throws SQLServerException {
@@ -2869,12 +2855,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 continue;
             }
             if (localUserSQL.charAt(0) == ',' || localUserSQL.charAt(0) == ')') {
+
+                if (!"?".equals(sb.toString())) {
+                    // throw IllegalArgumentException and fallback to original logic for batch insert
+                    // Wildcards (?) are the only supported parameters for this functionality
+                    // Does not support functions or literals (e.g. len(), 'string', 1, etc.)
+                    throw new IllegalArgumentException(SQLServerException.getErrString("R_onlyFullParamAllowed"));
+                }
+
                 if (localUserSQL.charAt(0) == ',') {
                     localUserSQL = localUserSQL.substring(1);
-                    if (!"?".equals(sb.toString())) {
-                        // throw IllegalArgumentException and fallback to original logic for batch insert
-                        throw new IllegalArgumentException(SQLServerException.getErrString("R_onlyFullParamAllowed"));
-                    }
                     listOfValues.add(sb.toString());
                     sb.setLength(0);
                 } else {
@@ -2882,6 +2872,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     listOfValues.add(sb.toString());
                     return listOfValues; // reached exit condition.
                 }
+                
             } else {
                 sb.append(localUserSQL.charAt(0));
                 localUserSQL = localUserSQL.substring(1);
