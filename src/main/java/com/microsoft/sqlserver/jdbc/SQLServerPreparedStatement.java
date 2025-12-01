@@ -1179,15 +1179,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (isPrepareMethodExec) {
             // Build direct SQL using enhanced replaceParameterMarkers with direct values
             String directSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, false, true);
-            // Note: TDS request already started as PKT_QUERY in caller
-
-            // For batch execution, prepend SET NOCOUNT OFF to ensure we get individual row
-            // counts
-            if (executeMethod == EXECUTE_BATCH) {
-                tdsWriter.writeString("SET NOCOUNT OFF; " + directSQL);
-            } else {
-                tdsWriter.writeString(directSQL);
-            }
+            tdsWriter.writeString(directSQL);
 
             expectPrepStmtHandle = false;
             executedSqlDirectly = true;
@@ -3104,8 +3096,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             // to get individual update counts. Close current request and start a new one.
                             ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
-                            // Process results for previous statement
-                            while (numBatchesExecuted < numBatchesPrepared - 1) {
+                            // Process results for previous statements
+                            while (numBatchesExecuted < numBatchesPrepared) {
                                 startResults();
                                 if (!getNextResult(true))
                                     break;
