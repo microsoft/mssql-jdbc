@@ -2989,6 +2989,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int numBatchesPrepared = 0;
         int numBatchesExecuted = 0;
+        boolean timeoutOccurred = false; // Flag to track timeout for exec method
+        boolean isPrepareMethodExec = connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString());
 
         if (isSelect(userSQL)) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -3005,7 +3007,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         Parameter[] batchParam = new Parameter[inOutParam.length];
 
         TDSWriter tdsWriter = null;
-        while (numBatchesExecuted < numBatches) {
+        while (numBatchesExecuted < numBatches && !timeoutOccurred) {
             // Fill in the parameter values for this batch
             Parameter[] paramValues = batchParamValues.get(numBatchesPrepared);
             assert paramValues.length == batchParam.length;
@@ -3086,9 +3088,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         hasNewTypeDefinitions = false;
                     }
 
-                    boolean isPrepareMethodExec = connection.getPrepareMethod()
-                            .equals(PrepareMethod.EXEC.toString());
-
                     if (numBatchesExecuted < numBatchesPrepared) {
                         // assert null != tdsWriter;
                         if (isPrepareMethodExec) {
@@ -3107,18 +3106,57 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                                 SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null,
                                                 false);
                                     }
-                                    batchCommand.updateCounts[numBatchesExecuted++] = getUpdateCount();
+                                    // Apply the same conversion logic as other prepare methods for consistency
+                                    long updateCount = getUpdateCount();
+                                    batchCommand.updateCounts[numBatchesExecuted++] = (-1 == updateCount)
+                                            ? Statement.SUCCESS_NO_INFO
+                                            : updateCount;
                                 } catch (SQLServerException e) {
                                     // Handle individual statement failures for exec method
                                     if (connection.isSessionUnAvailable() || connection.rolledBackTransaction())
                                         throw e;
 
-                                    // Mark this statement as failed and continue with next
+                                    // For timeout (HY008), mark current and all remaining statements as failed to
+                                    // match other prepare methods
+                                    String sqlState = e.getSQLState();
+                                    if (null != sqlState
+                                            && sqlState.equals(SQLState.STATEMENT_CANCELED.getSQLStateCode())) {
+                                        timeoutOccurred = true; // Set flag to prevent further batch processing
+                                        if (null == batchCommand.batchException)
+                                            batchCommand.batchException = e;
+
+                                        // For exec method, adjust timeout position to match prepexec/prepare behavior
+                                        // The timeout actually occurred on the previous statement due to exec method's
+                                        // delayed detection during result processing
+                                        if (isPrepareMethodExec) {
+                                            // For exec method, the timeout should affect the current statement and all
+                                            // subsequent ones
+                                            // but we need to account for the delay in detection
+                                            int timeoutPosition = Math.max(0, numBatchesExecuted - 1);
+                                            // Mark all statements from timeout position onwards as failed
+                                            for (int i = timeoutPosition; i < numBatchesPrepared; i++) {
+                                                batchCommand.updateCounts[i] = Statement.EXECUTE_FAILED;
+                                            }
+                                            // Update execution counter to reflect the timeout position
+                                            numBatchesExecuted = numBatchesPrepared;
+                                        } else {
+                                            // Original logic for non-exec methods
+                                            // Mark current statement as failed (don't increment yet)
+                                            batchCommand.updateCounts[numBatchesExecuted] = Statement.EXECUTE_FAILED;
+                                            numBatchesExecuted++; // Now increment after marking as failed
+
+                                            // Mark all remaining statements in this batch as failed
+                                            while (numBatchesExecuted < numBatchesPrepared) {
+                                                batchCommand.updateCounts[numBatchesExecuted++] = Statement.EXECUTE_FAILED;
+                                            }
+                                        }
+                                        break; // Exit the processing loop
+                                    }
+
+                                    // For non-timeout exceptions, mark this statement as failed and continue
                                     batchCommand.updateCounts[numBatchesExecuted++] = Statement.EXECUTE_FAILED;
                                     if (null == batchCommand.batchException)
                                         batchCommand.batchException = e;
-
-                                    // Continue processing remaining statements
                                     continue;
                                 }
                             }
@@ -3216,6 +3254,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 String sqlState = batchCommand.batchException.getSQLState();
                                 if (null != sqlState
                                         && sqlState.equals(SQLState.STATEMENT_CANCELED.getSQLStateCode())) {
+                                    timeoutOccurred = true; // Set flag for final cleanup
                                     processBatch();
                                     continue;
                                 }
@@ -3223,8 +3262,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                             // In batch execution, we have a special update count
                             // to indicate that no information was returned
-                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
-                                                                                                : updateCount;
+                            // Skip this for exec method timeout cases where we've already set the update
+                            // counts
+                            if (!(timeoutOccurred && isPrepareMethodExec)) {
+                                batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount)
+                                        ? Statement.SUCCESS_NO_INFO
+                                        : updateCount;
+                            }
                             processBatch();
 
                             numBatchesExecuted++;
@@ -3254,10 +3298,34 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         attempt++;
                         continue;
                     } else {
+                        // Check if this is a timeout during batch preparation for exec method
+                        String sqlState = e.getSQLState();
+                        if (null != sqlState && sqlState.equals(SQLState.STATEMENT_CANCELED.getSQLStateCode())) {
+                            if (isPrepareMethodExec) {
+                                // For exec method, timeout during batch preparation should be handled
+                                // the same as timeout during result processing to maintain consistency
+                                timeoutOccurred = true;
+                                if (null == batchCommand.batchException && e instanceof SQLServerException)
+                                    batchCommand.batchException = (SQLServerException) e;
+
+                                // Mark current and remaining batches as failed for consistent behavior
+                                while (numBatchesExecuted < numBatchesPrepared) {
+                                    batchCommand.updateCounts[numBatchesExecuted++] = Statement.EXECUTE_FAILED;
+                                }
+                            }
+                        }
                         throw e;
                     }
                 }
                 break;
+            }
+        }
+
+        // For exec method timeout handling: mark any remaining unprocessed batches as
+        // failed
+        if (timeoutOccurred) {
+            while (numBatchesExecuted < numBatches) {
+                batchCommand.updateCounts[numBatchesExecuted++] = Statement.EXECUTE_FAILED;
             }
         }
     }
