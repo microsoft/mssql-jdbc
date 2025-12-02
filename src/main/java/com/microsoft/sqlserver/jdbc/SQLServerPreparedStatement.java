@@ -3099,14 +3099,28 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             // Process results for previous statements
                             while (numBatchesExecuted < numBatchesPrepared) {
                                 startResults();
-                                if (!getNextResult(true))
-                                    break;
-                                if (null != resultSet) {
-                                    SQLServerException.makeFromDriverError(connection, this,
-                                            SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null,
-                                            false);
+                                try {
+                                    if (!getNextResult(true))
+                                        break;
+                                    if (null != resultSet) {
+                                        SQLServerException.makeFromDriverError(connection, this,
+                                                SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null,
+                                                false);
+                                    }
+                                    batchCommand.updateCounts[numBatchesExecuted++] = getUpdateCount();
+                                } catch (SQLServerException e) {
+                                    // Handle individual statement failures for exec method
+                                    if (connection.isSessionUnAvailable() || connection.rolledBackTransaction())
+                                        throw e;
+
+                                    // Mark this statement as failed and continue with next
+                                    batchCommand.updateCounts[numBatchesExecuted++] = Statement.EXECUTE_FAILED;
+                                    if (null == batchCommand.batchException)
+                                        batchCommand.batchException = e;
+
+                                    // Continue processing remaining statements
+                                    continue;
                                 }
-                                batchCommand.updateCounts[numBatchesExecuted++] = getUpdateCount();
                             }
 
                             // Start new request for next batch item
