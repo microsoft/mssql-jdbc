@@ -33,9 +33,12 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Random;
 import java.util.UUID;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -1399,6 +1402,66 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         long endTime = System.nanoTime();
         long durationMs = (endTime - startTime) / 1_000_000;
         System.out.println("Insert for " + recordCount + " records in " + durationMs + " ms.");
+    }
+
+    /**
+     * GitHub issue 2847 : Persisted Computed Columns Break useBulkCopyForBatchInsert
+     * Test bulk copy batch insert with persisted computed column.
+     * 
+     * @throws Exception
+     */ 
+    @Test
+    public void testBulkCopyBatchInsertWithPersistedComputedColumn() throws Exception {
+
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BulkCopyPersistedComputed"));
+        String insertSQL = "INSERT INTO " + tableName + " (QtyAvailable, UnitPrice) VALUES (?, ?)";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = connection.createStatement()) {
+
+            TestUtils.dropTableIfExists(tableName, stmt);
+
+            // Create table with persisted computed column
+            String createTable = "CREATE TABLE " + tableName + " ("
+                    + "ProductID int IDENTITY(1,1) NOT NULL, "
+                    + "QtyAvailable SMALLINT, "
+                    + "InventoryValue AS QtyAvailable * UnitPrice PERSISTED, "
+                    + "UnitPrice MONEY)";
+            stmt.execute(createTable);
+
+            // Test batch insert
+            pstmt.setInt(1, 10);
+            pstmt.setBigDecimal(2, new BigDecimal("15.99"));
+            pstmt.addBatch();
+
+            pstmt.setInt(1, 20);
+            pstmt.setBigDecimal(2, new BigDecimal("25.50"));
+            pstmt.addBatch();
+
+            int[] updateCounts = pstmt.executeBatch();
+            assertEquals(2, updateCounts.length);
+
+            // Verify data was inserted correctly
+            try (ResultSet rs = stmt.executeQuery("SELECT ProductID, QtyAvailable, InventoryValue, UnitPrice FROM "
+                    + tableName + " ORDER BY ProductID")) {
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals(10, rs.getInt(2));
+                assertEquals(new BigDecimal("159.9000"), rs.getBigDecimal(3));
+                assertEquals(new BigDecimal("15.9900"), rs.getBigDecimal(4));
+
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt(1));
+                assertEquals(20, rs.getInt(2));
+                assertEquals(new BigDecimal("510.0000"), rs.getBigDecimal(3));
+                assertEquals(new BigDecimal("25.5000"), rs.getBigDecimal(4));
+            }
+        } finally {
+            try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
     }
 
     private void getCreateTableTemporalSQL(String tableName) throws SQLException {
