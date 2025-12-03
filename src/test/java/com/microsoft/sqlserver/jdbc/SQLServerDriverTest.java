@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 import java.sql.Connection;
 import java.sql.Driver;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+import org.mockito.MockedStatic;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -266,4 +268,44 @@ public class SQLServerDriverTest extends AbstractTest {
     //     String defaultAppName = SQLServerDriver.getAppName();
     //     assertEquals(SQLServerDriver.DEFAULT_APP_NAME, defaultAppName, "Application name should be the default one");
     // }
+
+    /**
+     * test user agent string length
+     * 
+     * @throws SQLException
+     */    
+    @Test
+    public void testDriverUserAgentLength() throws SQLException {
+        String userAgent = SQLServerConnection.getUserAgent();
+        assertTrue(userAgent.length() <= 256, "User agent string length should not be more than 256 characters"); 
+    }
+
+    /**
+     * test user agent string OS
+     * 
+     * @throws SQLException
+     */    
+    @Test
+    public void testDriverUserAgentOS() throws SQLException {
+        System.setProperty("os.name", "Linux");
+        String userAgent = SQLServerConnection.getUserAgent();
+        assertTrue(userAgent.contains("Linux"), "User agent string must contain Linux");
+
+        System.setProperty("os.name", "Mac");
+        userAgent = SQLServerConnection.getUserAgent();
+        assertTrue(userAgent.contains("macOS"), "User agent string must contain macOS");
+
+        System.setProperty("os.name", "FreeBSD");
+        userAgent = SQLServerConnection.getUserAgent();
+        assertTrue(userAgent.contains("FreeBSD"), "User agent string must contain FreeBSD");
+
+        System.setProperty("os.name", "Android");
+        userAgent = SQLServerConnection.getUserAgent();
+        assertTrue(userAgent.contains("Android"), "User agent string must contain Android");
+
+        System.setProperty("os.name", "Windows");
+        userAgent = SQLServerConnection.getUserAgent();
+        assertTrue(userAgent.contains("Windows"), "User agent string must contain Windows");
+
+    }
 }
