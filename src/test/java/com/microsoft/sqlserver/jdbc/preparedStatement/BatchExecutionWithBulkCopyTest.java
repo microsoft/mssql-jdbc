@@ -33,12 +33,9 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Random;
 import java.util.UUID;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
-import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
