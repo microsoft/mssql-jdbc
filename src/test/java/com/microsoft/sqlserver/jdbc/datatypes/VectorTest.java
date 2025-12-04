@@ -50,6 +50,8 @@ import microsoft.sql.Vector.VectorDimensionType;
 @DisplayName("Test Vector Data Type")
 @vectorJsonTest
 @Tag(Constants.vectorTest)
+// Vector datatype is supported starting with SQL Server 2025. 
+// Earlier versions expose vector values as JSON strings.
 public class VectorTest extends AbstractTest {
 
     private static final String tableName = RandomUtil.getIdentifier("VECTOR_Test");
@@ -1680,5 +1682,6 @@ public class VectorTest extends AbstractTest {
         }
         return (SQLServerConnection) DriverManager.getConnection(connStr);
     }
+
 
 }
