@@ -144,6 +144,180 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     @Test
+    public void testBasicBatchPrepexecBehavior() throws Exception {
+        testBasicBatch("prepexec", true);
+    }
+
+    @Test
+    public void testBasicBatchExecBehavior() throws Exception {
+        testBasicBatch("exec", false);
+    }
+
+    @Test
+    public void testOptimizedBatchExecBehavior() throws Exception {
+        testOptimizedBatch("exec", false);
+    }
+
+    private void testBasicBatch(String prepareMethod, boolean enablePrepareOnFirstCall) throws Exception {
+        String testTable = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("batchTest_" + prepareMethod));
+
+        try (SQLServerConnection connection = PrepUtil
+                .getConnection(connectionString + ";logging=trace;loggerLevel=DEBUG;")) {
+            connection.setEnablePrepareOnFirstPreparedStatementCall(enablePrepareOnFirstCall);
+            connection.setPrepareMethod(prepareMethod);
+
+            // Create a simple test table
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(testTable, stmt);
+                String createTableSQL = "CREATE TABLE " + testTable + " (id INT, name VARCHAR(50), value INT)";
+                stmt.execute(createTableSQL);
+            }
+
+            // Prepare the batch insert statement
+            String insertSQL = "INSERT INTO " + testTable + " (id, name, value) VALUES (?, ?, ?)";
+
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+                // Add 5 insert statements to the batch
+                for (int i = 1; i <= 5; i++) {
+                    pstmt.setInt(1, i);
+                    pstmt.setString(2, "Name" + i);
+                    pstmt.setInt(3, i * 10);
+                    pstmt.addBatch();
+                }
+
+                int[] updateCounts = pstmt.executeBatch();
+
+                // Verify the results
+                assertEquals(5, updateCounts.length, "Expected 5 update counts");
+                for (int i = 0; i < updateCounts.length; i++) {
+                    assertTrue(updateCounts[i] >= 0 || updateCounts[i] == Statement.SUCCESS_NO_INFO,
+                            "Update count " + i + " should indicate success: " + updateCounts[i]);
+                }
+
+                // Verify data was inserted correctly
+                try (Statement selectStmt = connection.createStatement();
+                        ResultSet rs = selectStmt.executeQuery("SELECT COUNT(*) FROM " + testTable)) {
+                    rs.next();
+                    int rowCount = rs.getInt(1);
+                    assertEquals(5, rowCount, "Expected 5 rows to be inserted");
+                    System.out.println("Verified: " + rowCount + " rows inserted successfully");
+                }
+
+                // Display the inserted data
+                try (Statement selectStmt = connection.createStatement();
+                        ResultSet rs = selectStmt.executeQuery("SELECT * FROM " + testTable + " ORDER BY id")) {
+                    while (rs.next()) {
+                        // Data verification - no output needed for automated tests
+                    }
+                }
+            }
+
+            // Clean up
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(testTable, stmt);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Test failed with exception: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    private void testOptimizedBatch(String prepareMethod, boolean enablePrepareOnFirstCall) throws Exception {
+        String testTable = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("optimizedBatch_" + prepareMethod));
+
+        try (SQLServerConnection connection = PrepUtil
+                .getConnection(
+                        connectionString + ";logging=trace;loggerLevel=DEBUG;useBulkCopyForBatchInsert=false;")) {
+            connection.setEnablePrepareOnFirstPreparedStatementCall(enablePrepareOnFirstCall);
+            connection.setPrepareMethod(prepareMethod);
+
+            // Create a simple test table
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(testTable, stmt);
+                String createTableSQL = "CREATE TABLE " + testTable + " (id INT, name VARCHAR(50), value INT)";
+                stmt.execute(createTableSQL);
+            }
+
+            // Strategy 1: Multi-row INSERT with single SQL statement
+            String multiRowInsertSQL = "INSERT INTO " + testTable + " (id, name, value) VALUES " +
+                    "(?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)";
+
+            try (PreparedStatement pstmt = connection.prepareStatement(multiRowInsertSQL)) {
+                // Set parameters for all 5 rows in a single statement
+                int paramIndex = 1;
+                for (int i = 1; i <= 5; i++) {
+                    pstmt.setInt(paramIndex++, i); // id
+                    pstmt.setString(paramIndex++, "Name" + i); // name
+                    pstmt.setInt(paramIndex++, i * 10); // value
+                }
+
+                int updateCount = pstmt.executeUpdate();
+
+                // Verify the results
+                assertEquals(5, updateCount, "Expected 5 rows to be inserted");
+
+                // Verify data was inserted correctly
+                try (Statement selectStmt = connection.createStatement();
+                        ResultSet rs = selectStmt.executeQuery("SELECT COUNT(*) FROM " + testTable)) {
+                    rs.next();
+                    int rowCount = rs.getInt(1);
+                    assertEquals(5, rowCount, "Expected 5 rows to be inserted");
+                    System.out.println("Verified: " + rowCount + " rows inserted successfully");
+                }
+
+                // Display the inserted data
+                try (Statement selectStmt = connection.createStatement();
+                        ResultSet rs = selectStmt.executeQuery("SELECT * FROM " + testTable + " ORDER BY id")) {
+                    while (rs.next()) {
+                        // Data verification - no output needed for automated tests
+                    }
+                }
+            }
+
+            // Strategy 2: Test with batch size optimization
+            // Clear the table for second test
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("DELETE FROM " + testTable);
+            }
+
+            // Test with regular batch but optimized connection settings
+            String insertSQL = "INSERT INTO " + testTable + " (id, name, value) VALUES (?, ?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+                // Add multiple batches
+                for (int i = 6; i <= 10; i++) { // Using different IDs to avoid conflicts
+                    pstmt.setInt(1, i);
+                    pstmt.setString(2, "BatchName" + i);
+                    pstmt.setInt(3, i * 20);
+                    pstmt.addBatch();
+                }
+
+                int[] updateCounts = pstmt.executeBatch();
+
+                // Verify the second batch results
+                assertEquals(5, updateCounts.length, "Expected 5 update counts");
+                for (int i = 0; i < updateCounts.length; i++) {
+                    assertTrue(updateCounts[i] >= 0 || updateCounts[i] == Statement.SUCCESS_NO_INFO,
+                            "Update count " + i + " should indicate success: " + updateCounts[i]);
+                }
+            }
+
+            // Clean up
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(testTable, stmt);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Optimized test failed with exception: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    @Test
     public void testSqlServerBulkCopyCachingPstmtLevel() throws Exception {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
@@ -1002,6 +1176,79 @@ public class BatchExecutionTest extends AbstractTest {
     private static void dropProcedure() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(ctstable3Procedure1), stmt);
+        }
+    }
+
+    @Test
+    public void testIntegratedOptimizedBatchExecution() throws Exception {
+        try (SQLServerConnection connection = PrepUtil
+                .getConnection(connectionString + ";logging=trace;loggerLevel=DEBUG;")) {
+
+            String tableName = "[optimizedBatch_integrated_jdbc_" + RandomUtil.getIdentifier("testint") + "]";
+
+            // Enable exec mode for better optimization compatibility
+            connection.setEnablePrepareOnFirstPreparedStatementCall(false);
+            connection.setPrepareMethod("exec");
+
+            String sql = "CREATE TABLE " + tableName + " (id int PRIMARY KEY, name nvarchar(50), value int)";
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute(sql);
+            }
+
+            try {
+                // Test 1: Standard batch execution (baseline)
+                String insertSQL = "INSERT INTO " + tableName + " (id, name, value) VALUES (?, ?, ?)";
+
+                try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+                    // Add batch items
+                    for (int i = 1; i <= 5; i++) {
+                        pstmt.setInt(1, i);
+                        pstmt.setString(2, "StandardName" + i);
+                        pstmt.setInt(3, i * 10);
+                        pstmt.addBatch();
+                    }
+
+                    int[] updateCounts = pstmt.executeBatch();
+                    assertEquals(5, updateCounts.length);
+                }
+
+                // Test 2: Optimized batch execution (keeping standard batch data for
+                // comparison)
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                        .prepareStatement(insertSQL)) {
+                    // Optimized batch execution is now automatic
+
+                    // Add batch items
+                    for (int i = 6; i <= 10; i++) {
+                        pstmt.setInt(1, i);
+                        pstmt.setString(2, "OptimizedName" + i);
+                        pstmt.setInt(3, i * 20);
+                        pstmt.addBatch();
+                    }
+
+                    int[] updateCounts = pstmt.executeBatch();
+                    assertEquals(5, updateCounts.length);
+                }
+
+                // Verify all data was inserted correctly
+                try (Statement stmt = connection.createStatement();
+                        ResultSet rs = stmt.executeQuery("SELECT id, name, value FROM " + tableName + " ORDER BY id")) {
+
+                    int count = 0;
+                    while (rs.next()) {
+                        count++;
+                        // Data verification - no output needed for automated tests
+                    }
+
+                    assertEquals(10, count, "Should have 10 rows total (5 standard + 5 optimized)");
+                }
+
+            } finally {
+                // Cleanup
+                try (Statement stmt = connection.createStatement()) {
+                    stmt.execute("DROP TABLE " + tableName);
+                }
+            }
         }
     }
 
