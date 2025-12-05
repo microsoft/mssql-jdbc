@@ -54,6 +54,7 @@ public class MSITest extends AESetup {
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
     @Tag(Constants.xSQLv16)
+    @Tag(Constants.xSQLv17)
     @Test
     public void testManagedIdentityAuth() throws SQLException {
         String connStr = connectionString;
@@ -82,6 +83,7 @@ public class MSITest extends AESetup {
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
     @Tag(Constants.xSQLv16)
+    @Tag(Constants.xSQLv17)
     @Test
     public void testManagedIdentityAuthWithManagedIdentityClientId() throws SQLException {
         String connStr = connectionString;
@@ -121,6 +123,7 @@ public class MSITest extends AESetup {
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
     @Tag(Constants.xSQLv16)
+    @Tag(Constants.xSQLv17)
     @Test
     public void testDSManagedIdentityAuth() throws SQLException {
         String connStr = connectionString;
@@ -147,6 +150,7 @@ public class MSITest extends AESetup {
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
     @Tag(Constants.xSQLv16)
+    @Tag(Constants.xSQLv17)
     @Test
     public void testDSManagedIdentityAuthWithManagedIdentityClientId() throws SQLException {
         String connStr = connectionString;
@@ -176,6 +180,7 @@ public class MSITest extends AESetup {
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
     @Tag(Constants.xSQLv16)
+    @Tag(Constants.xSQLv17)
     @Test
     public void testActiveDirectoryDefaultAuth() throws SQLException {
         String connStr = connectionString;
@@ -196,6 +201,7 @@ public class MSITest extends AESetup {
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
     @Tag(Constants.xSQLv16)
+    @Tag(Constants.xSQLv17)
     @Test
     public void testActiveDirectoryDefaultAuthDS() throws SQLException {
         String connStr = connectionString;
@@ -500,3 +506,4 @@ public class MSITest extends AESetup {
         }
     }
 }
+
