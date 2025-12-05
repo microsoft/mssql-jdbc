@@ -2092,7 +2092,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND,
                                     DriverError.NOT_SET, null);
                         }
-                    } else if (0 > cm.destinationColumnOrdinal || destColumnCount < cm.destinationColumnOrdinal) {
+                    } else if (0 > cm.destinationColumnOrdinal || !destColumnMetadata.containsKey(cm.destinationColumnOrdinal)) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidColumn"));
                         Object[] msgArgs = {cm.destinationColumnOrdinal};
                         throw new SQLServerException(form.format(msgArgs), SQLState.COL_NOT_FOUND, DriverError.NOT_SET,
