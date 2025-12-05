@@ -1439,7 +1439,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             int[] updateCounts = pstmt.executeBatch();
             assertEquals(2, updateCounts.length);
 
-            // Verify data was inserted correctly
+            // Validate inserted rows, including computed values
             try (ResultSet rs = stmt.executeQuery("SELECT ProductID, QtyAvailable, InventoryValue, UnitPrice FROM "
                     + tableName + " ORDER BY ProductID")) {
                 assertTrue(rs.next());
