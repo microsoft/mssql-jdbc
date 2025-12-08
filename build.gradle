@@ -212,8 +212,8 @@ dependencies {
 	} else {
 		// JRE 11, 17, 21, 25 profiles (all use same versions)
 		testImplementation 'org.mockito:mockito-core:5.14.2',
-				'net.bytebuddy:byte-buddy:1.18.2',
-				'net.bytebuddy:byte-buddy-agent:1.18.2'
+				'net.bytebuddy:byte-buddy:1.17.5',
+				'net.bytebuddy:byte-buddy-agent:1.17.5'
 	}
 
 }
