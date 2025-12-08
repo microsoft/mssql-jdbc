@@ -1402,11 +1402,15 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     /**
-     * GitHub issue 2847 : Persisted Computed Columns Break useBulkCopyForBatchInsert
-     * Test bulk copy batch insert with persisted computed column.
+     * GitHub issue 2847: Persisted computed columns break useBulkCopyForBatchInsert.
      * 
+     * Verifies that batch inserts using bulk copy work correctly when the target table
+     * contains a persisted computed column. The computed column is not included in the
+     * INSERT statement, and the bulk copy operation correctly ignores it while
+     * inserting the remaining data.
+     *
      * @throws Exception
-     */ 
+     */
     @Test
     public void testBulkCopyBatchInsertWithPersistedComputedColumn() throws Exception {
 
