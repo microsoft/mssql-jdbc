@@ -1298,7 +1298,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // DYNAMIC_PREPARE=false
         if (isPrepareMethodExec) {
             // Build direct SQL using enhanced replaceParameterMarkers with direct values
-            String directSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, false, true);
+            String directSQL = connection.replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params,
+                    false);
             tdsWriter.writeString(directSQL);
 
             expectPrepStmtHandle = false;

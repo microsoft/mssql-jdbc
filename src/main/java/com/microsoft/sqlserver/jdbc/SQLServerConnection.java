@@ -8432,53 +8432,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     static final char[] OUT = {' ', 'O', 'U', 'T'};
 
     String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
-            boolean isReturnValueSyntax) throws SQLServerException {
-        return replaceParameterMarkers(sqlSrc, paramPositions, params, isReturnValueSyntax, false);
-    }
-
-    String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
-            boolean isReturnValueSyntax, boolean useDirectValues) throws SQLServerException {
-
-        if (useDirectValues) {
-            // EXEC method: substitute actual parameter values directly into SQL
-            if (params == null || params.length == 0) {
-                return sqlSrc;
-            }
-
-            // Estimate capacity for the result
-            StringBuilder result = new StringBuilder(sqlSrc.length() + params.length * 20);
-            int srcBegin = 0;
-
-            for (int paramIndex = 0; paramIndex < paramPositions.length; paramIndex++) {
-                int srcEnd = paramPositions[paramIndex];
-
-                // Append SQL text before this parameter marker
-                result.append(sqlSrc, srcBegin, srcEnd);
-
-                // Get parameter value and format it
-                Object value = null;
-                if (params[paramIndex] != null) {
-                    try {
-                        value = params[paramIndex].getSetterValue();
-                    } catch (Exception e) {
-                        // If getSetterValue() fails, use null
-                    }
-                }
-
-                // Append formatted literal value
-                result.append(formatLiteralValue(value));
-
-                // Move past the '?' marker
-                srcBegin = srcEnd + 1;
-            }
-
-            // Append remaining SQL after last parameter
-            result.append(sqlSrc, srcBegin, sqlSrc.length());
-
-            return result.toString();
-        }
-
-        // Existing RPC logic: replace ? with @p1, @p2 parameter names
+            boolean isReturnValueSyntax) {
         final int MAX_PARAM_NAME_LEN = 6;
         char[] sqlDst = new char[sqlSrc.length() + (params.length * (MAX_PARAM_NAME_LEN + OUT.length))
                 + (params.length * 2)];
@@ -8507,26 +8461,67 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return new String(sqlDst, 0, dstBegin);
     }
 
+    String replaceParameterMarkersWithValues(String sqlSrc, int[] paramPositions, Parameter[] params,
+            boolean isReturnValueSyntax) throws SQLServerException {
+
+        // EXEC method: substitute actual parameter values directly into SQL
+        if (params == null || params.length == 0) {
+            return sqlSrc;
+        }
+
+        StringBuilder result = new StringBuilder(sqlSrc.length() + params.length * 20);
+        try {
+            // Estimate capacity for the result
+            int srcBegin = 0;
+
+            for (int paramIndex = 0; paramIndex < paramPositions.length; paramIndex++) {
+                int srcEnd = paramPositions[paramIndex];
+
+                // Append SQL text before this parameter marker
+                result.append(sqlSrc, srcBegin, srcEnd);
+
+                // Get parameter value and format it
+                Object value = null;
+                if (params[paramIndex] != null) {
+                    value = params[paramIndex].getSetterValue();
+                }
+
+                // Append formatted literal value
+                result.append(formatLiteralValue(value));
+
+                // Move past the '?' marker
+                srcBegin = srcEnd + 1;
+            }
+
+            // Append remaining SQL after last parameter
+            result.append(sqlSrc, srcBegin, sqlSrc.length());
+        } catch (Exception e) {
+            throw new SQLServerException("Error during parameter replacement", e);
+        }
+
+        return result.toString();
+    }
+
     // Format Java value into a T-SQL literal safe for SQL Server
-    private String formatLiteralValue(Object value) {
+    private String formatLiteralValue(Object value) throws SQLException {
         if (value == null)
             return "NULL";
 
-        if (value instanceof String) {
+        else if (value instanceof String) {
             String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
             return prefix + escapeSQLString((String) value) + "'";
         }
 
-        if (value instanceof Character) {
+        else if (value instanceof Character) {
             String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
             return prefix + escapeSQLString(value.toString()) + "'";
         }
 
-        if (value instanceof Boolean) {
+        else if (value instanceof Boolean) {
             return ((Boolean) value) ? "1" : "0";
         }
 
-        if (value instanceof java.math.BigDecimal) {
+        else if (value instanceof java.math.BigDecimal) {
             // Use toPlainString() to avoid scientific notation
             java.math.BigDecimal bd = (java.math.BigDecimal) value;
             String plainStr = bd.toPlainString();
@@ -8548,68 +8543,62 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         // Integer types can use toString() safely
-        if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long) {
+        else if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long) {
             return value.toString();
         }
 
         // Float and Double need special handling to avoid precision loss and scientific
         // notation
-        if (value instanceof Float) {
+        else if (value instanceof Float) {
             // Convert Float to BigDecimal for precise representation
             return new java.math.BigDecimal(value.toString()).toPlainString();
         }
 
-        if (value instanceof Double) {
+        else if (value instanceof Double) {
             // Convert Double to BigDecimal for precise representation
             return new java.math.BigDecimal(value.toString()).toPlainString();
         }
 
-        if (value instanceof java.sql.Date) {
+        else if (value instanceof java.sql.Date) {
             return "CAST('" + DATE_FMT.format((java.util.Date) value) + "' AS DATE)";
         }
 
-        if (value instanceof java.sql.Time) {
+        else if (value instanceof java.sql.Time) {
             return "CAST('" + TIME_FMT.format((java.util.Date) value) + "' AS TIME)";
         }
 
-        if (value instanceof java.sql.Timestamp) {
+        else if (value instanceof java.sql.Timestamp) {
             return "CAST('" + TS_FMT.format((java.util.Date) value) + "' AS DATETIME2)";
         }
 
-        if (value instanceof java.util.Date) {
+        else if (value instanceof java.util.Date) {
             // generic java.util.Date -> timestamp
             return "CAST('" + TS_FMT.format((java.util.Date) value) + "' AS DATETIME2)";
         }
 
-        if (value instanceof byte[]) {
+        else if (value instanceof byte[]) {
             return bytesToHexLiteral((byte[]) value);
         }
 
-        if (value instanceof Blob) {
-            try {
-                Blob b = (Blob) value;
-                int len = (int) b.length();
-                byte[] bytes = b.getBytes(1, len);
-                return bytesToHexLiteral(bytes);
-            } catch (Exception e) {
-                return "NULL";
-            }
+        else if (value instanceof Blob) {
+            Blob b = (Blob) value;
+            int len = (int) b.length();
+            byte[] bytes = b.getBytes(1, len);
+            return bytesToHexLiteral(bytes);
         }
 
-        if (value instanceof Clob) {
-            try {
-                Clob c = (Clob) value;
-                String s = c.getSubString(1, (int) c.length());
-                String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
-                return prefix + escapeSQLString(s) + "'";
-            } catch (Exception e) {
-                return "NULL";
-            }
+        else if (value instanceof Clob) {
+            Clob c = (Clob) value;
+            String s = c.getSubString(1, (int) c.length());
+            String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
+            return prefix + escapeSQLString(s) + "'";
         }
 
-        // fallback
-        String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
-        return prefix + escapeSQLString(value.toString()) + "'";
+        else {
+            // fallback
+            String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
+            return prefix + escapeSQLString(value.toString()) + "'";
+        }
     }
 
     private String escapeSQLString(String s) {
