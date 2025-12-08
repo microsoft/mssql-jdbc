@@ -302,6 +302,7 @@ public class BasicConnectionTest extends AbstractTest {
     @Tag(Constants.xSQLv14)
     @Tag(Constants.xSQLv15)
     @Tag(Constants.xSQLv16)
+    @Tag(Constants.xSQLv17)
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.reqExternalSetup)
     @Test

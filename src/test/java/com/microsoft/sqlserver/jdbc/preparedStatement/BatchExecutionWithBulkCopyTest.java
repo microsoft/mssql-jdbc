@@ -57,9 +57,9 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
+import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
 import microsoft.sql.DateTimeOffset;
 import microsoft.sql.Vector;
@@ -822,7 +822,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test inserting complex JSON data using prepared statement with bulk copy enabled.
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.JSONTest)
     public void testInsertJsonWithBulkCopy() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkCopyComplexJsonTest");
@@ -873,7 +873,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test select, update, create, and delete operations on JSON data and verify at each step.
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.JSONTest)
     public void testCRUDOperationsWithJson() throws Exception {
         String tableName = RandomUtil.getIdentifier("CRUDJsonTest");
@@ -1272,7 +1272,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test inserting vector data using prepared statement with bulk copy enabled.
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.vectorTest)
     public void testInsertVectorWithBulkCopy() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkCopyVectorTest");
@@ -1311,7 +1311,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test inserting null vector data using prepared statement with bulk copy enabled.
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.vectorTest)
     public void testInsertNullVectorWithBulkCopy() throws Exception {
         String tableName = RandomUtil.getIdentifier("BulkCopyVectorTest");
@@ -1351,7 +1351,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * Test inserting vector data using prepared statement with bulk copy enabled for performance.
      */
     @Test
-    @AzureDB
+    @vectorJsonTest
     @Tag(Constants.vectorTest)
     public void testInsertWithBulkCopyPerformance() throws SQLException {
         String tableName = AbstractSQLGenerator.escapeIdentifier("BulkCopyVectorPerformanceTest");
