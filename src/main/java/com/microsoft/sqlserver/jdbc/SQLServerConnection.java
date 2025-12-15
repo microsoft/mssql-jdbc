@@ -328,9 +328,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     "1",
                     "MS-JDBC",
                     getJDBCVersion(),
+                    getArchitecture(),
                     getOSType(),
                     getOSDetails(),
-                    getArchitecture(),
                     getRuntimeDetails()
                     );
         } catch(Exception e) {
