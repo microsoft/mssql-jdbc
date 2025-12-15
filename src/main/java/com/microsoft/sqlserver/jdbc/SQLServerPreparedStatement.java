@@ -197,39 +197,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return 0 < prepStmtHandle;
     }
 
-    /**
-     * Checks if statement is suitable for optimized batch execution.
-     * 
-     * @return true if optimization can be applied
-     */
-    private boolean canUseOptimizedBatchExecution() {
-        try {
-            // Must have multiple batch items to optimize
-            if (batchParamValues == null || batchParamValues.size() <= 1) {
-                return false;
-            }
 
-            // Only support INSERT statements for now
-            if (!isInsert(userSQL)) {
-                return false;
-            }
-
-            // Check if any parameters are output parameters
-            if (null != inOutParam) {
-                for (Parameter param : inOutParam) {
-                    if (param != null && param.isOutput()) {
-                        return false;
-                    }
-                }
-            }
-
-            // Must be using EXEC method (not prepexec) for maximum benefit
-            return connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString());
-        } catch (SQLServerException e) {
-            // If there's an error checking conditions, don't use optimization
-            return false;
-        }
-    }
 
     /**
      * Resets the server handle for this prepared statement to no handle.
@@ -545,90 +513,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return sb.toString();
     }
 
-    /**
-     * Executes optimized batch with semicolon-separated statements.
-     * 
-     * @param batchCommand batch command context
-     * @return update counts array
-     * @throws SQLServerException if execution fails
-     */
-    private long[] executeOptimizedBatch(PrepStmtBatchExecCmd batchCommand) throws SQLServerException {
-        if (null == batchParamValues || batchParamValues.isEmpty()) {
-            return new long[0];
-        }
 
-        final int batchSize = batchParamValues.size();
-
-        try {
-            // Create semicolon-separated SQL using PreparedStatement approach
-            StringBuilder combinedSQL = new StringBuilder();
-            String baseSQL = userSQL != null ? userSQL : "";
-
-            // Build semicolon-separated SQL with parameter placeholders
-            for (int i = 0; i < batchSize; i++) {
-                if (i > 0)
-                    combinedSQL.append("; ");
-                combinedSQL.append(baseSQL);
-            }
-
-            // Create and execute a single PreparedStatement with all parameters
-            try (PreparedStatement combinedStmt = connection.prepareStatement(combinedSQL.toString())) {
-
-                // Set all parameters sequentially across all batch items
-                int paramIndex = 1;
-                for (int batchIdx = 0; batchIdx < batchSize; batchIdx++) {
-                    Parameter[] batchParams = batchParamValues.get(batchIdx);
-
-                    for (int paramIdx = 0; paramIdx < batchParams.length; paramIdx++) {
-                        Parameter param = batchParams[paramIdx];
-
-                        // Access the DTV (Data Type Value) to get the actual parameter value
-                        DTV inputDTV = param.getInputDTV();
-                        if (inputDTV != null) {
-                            JDBCType jdbcType = inputDTV.getJdbcType();
-
-                            // Use reflection or existing mechanisms to extract values
-                            // For now, use typical test pattern values as proof of concept
-                            if (jdbcType.getIntValue() == java.sql.Types.INTEGER) {
-                                combinedStmt.setInt(paramIndex, batchIdx + 1); // id: 1, 2, 3, 4, 5
-                            } else if (jdbcType.getIntValue() == java.sql.Types.VARCHAR ||
-                                    jdbcType.getIntValue() == java.sql.Types.NVARCHAR) {
-                                if (paramIdx == 1) { // name parameter
-                                    combinedStmt.setString(paramIndex, "Name" + (batchIdx + 1));
-                                } else {
-                                    combinedStmt.setString(paramIndex, "DefaultValue");
-                                }
-                            } else if (paramIdx == 2) { // value parameter
-                                combinedStmt.setInt(paramIndex, (batchIdx + 1) * 10); // 10, 20, 30, 40, 50
-                            } else {
-                                combinedStmt.setObject(paramIndex, batchIdx + 1);
-                            }
-                        } else {
-                            // Fallback for missing DTV
-                            combinedStmt.setObject(paramIndex, batchIdx + 1);
-                        }
-                        paramIndex++;
-                    }
-                }
-
-                // Execute the combined statement - this should send a single SQL call
-                int totalUpdated = combinedStmt.executeUpdate();
-
-                // Create update counts array
-                long[] updateCounts = new long[batchSize];
-                int affectedPerStatement = Math.max(1, totalUpdated / batchSize);
-                for (int i = 0; i < batchSize; i++) {
-                    updateCounts[i] = affectedPerStatement;
-                }
-
-                return updateCounts;
-            }
-
-        } catch (Exception e) {
-            // Fall back on failure
-            return null; // Signal fallback
-        }
-    }
 
     @Override
     public java.sql.ResultSet executeQuery() throws SQLServerException, SQLTimeoutException {
@@ -2296,42 +2181,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             localUserSQL = userSQL;
 
             try {
-                // Try optimized batch execution first if suitable
-                if (canUseOptimizedBatchExecution() &&
-                        null != batchParamValues && !batchParamValues.isEmpty()) {
-
-                    if (getStatementLogger().isLoggable(Level.FINE)) {
-                        getStatementLogger().fine("Attempting optimized batch execution for " +
-                                batchParamValues.size() + " batch items");
-                    }
-
-                    long[] longUpdateCounts = executeOptimizedBatch(new PrepStmtBatchExecCmd(this));
-                    if (longUpdateCounts != null) {
-                        // Convert long[] to int[] for return
-                        updateCounts = new int[longUpdateCounts.length];
-                        for (int i = 0; i < longUpdateCounts.length; i++) {
-                            if (longUpdateCounts[i] < Integer.MIN_VALUE || longUpdateCounts[i] > Integer.MAX_VALUE) {
-                                throw new SQLServerException(SQLServerException.getErrString("R_updateCountOutofRange"),
-                                        null);
-                            }
-                            updateCounts[i] = (int) longUpdateCounts[i];
-                        }
-
-                        if (getStatementLogger().isLoggable(Level.FINE)) {
-                            getStatementLogger().fine("Optimized batch execution successful, " +
-                                    "reduced from " + batchParamValues.size() + " round trips to 1");
-                        }
-
-                        loggerExternal.exiting(getClassNameLogging(), EXECUTE_BATCH_STRING, updateCounts);
-                        return updateCounts;
-                    } else {
-                        if (getStatementLogger().isLoggable(Level.FINE)) {
-                            getStatementLogger()
-                                    .fine("Optimized batch execution failed, falling back to standard batch");
-                        }
-                    }
-                }
-
                 if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
                     if (null == batchParamValues) {
                         updateCounts = new int[0];
@@ -2542,32 +2391,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             localUserSQL = userSQL;
 
             try {
-                // Try optimized batch execution first if suitable
-                if (canUseOptimizedBatchExecution() &&
-                        null != batchParamValues && !batchParamValues.isEmpty()) {
-
-                    if (getStatementLogger().isLoggable(Level.FINE)) {
-                        getStatementLogger().fine("Attempting optimized large batch execution for " +
-                                batchParamValues.size() + " batch items");
-                    }
-
-                    long[] longUpdateCounts = executeOptimizedBatch(new PrepStmtBatchExecCmd(this));
-                    if (longUpdateCounts != null) {
-                        if (getStatementLogger().isLoggable(Level.FINE)) {
-                            getStatementLogger().fine("Optimized large batch execution successful, " +
-                                    "reduced from " + batchParamValues.size() + " round trips to 1");
-                        }
-
-                        loggerExternal.exiting(getClassNameLogging(), "executeLargeBatch", longUpdateCounts);
-                        return longUpdateCounts;
-                    } else {
-                        if (getStatementLogger().isLoggable(Level.FINE)) {
-                            getStatementLogger()
-                                    .fine("Optimized large batch execution failed, falling back to standard batch");
-                        }
-                    }
-                }
-
                 if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
                     if (null == batchParamValues) {
                         updateCounts = new long[0];
@@ -3151,7 +2974,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         final boolean doExecute() throws SQLServerException {
-            stmt.doExecutePreparedStatementBatch(this);
+            try {
+                stmt.doExecutePreparedStatementBatch(this);
+            } catch (BatchUpdateException e) {
+                throw new SQLServerException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
+            }
             return true;
         }
 
@@ -3162,7 +2989,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
-    final void doExecutePreparedStatementBatch(PrepStmtBatchExecCmd batchCommand) throws SQLServerException {
+    final void doExecutePreparedStatementBatch(PrepStmtBatchExecCmd batchCommand)
+            throws SQLServerException, BatchUpdateException {
         executeMethod = EXECUTE_BATCH;
         batchCommand.batchException = null;
         final int numBatches = batchParamValues.size();
@@ -3182,6 +3010,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Make sure any previous maxRows limitation on the connection is removed.
         connection.setMaxRows(0);
+
+        // For EXEC method, handle batch execution with literal parameter substitution
+        if (isPrepareMethodExec) {
+            doExecuteExecMethodBatchCombined(batchCommand);
+            return;
+        }
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
@@ -3510,6 +3344,209 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             while (numBatchesExecuted < numBatches) {
                 batchCommand.updateCounts[numBatchesExecuted++] = Statement.EXECUTE_FAILED;
             }
+        }
+    }
+
+    /**
+     * Executes batch using EXEC method by replacing parameter markers with literal
+     * values.
+     * 
+     * @param batchCommand the batch command context
+     * @throws SQLServerException if execution fails
+     */
+    final void doExecuteExecMethodBatch(PrepStmtBatchExecCmd batchCommand) throws SQLServerException {
+        final int numBatches = batchParamValues.size();
+        batchCommand.updateCounts = new long[numBatches];
+        for (int i = 0; i < numBatches; i++)
+            batchCommand.updateCounts[i] = Statement.EXECUTE_FAILED;
+
+        int batchesProcessed = 0;
+
+        try {
+            for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
+                try {
+                    Parameter[] batchParams = batchParamValues.get(batchIdx);
+
+                    // Replace parameter markers with literal values for this batch item
+                    String batchSQL = connection.replaceParameterMarkersWithValues(userSQL,
+                            userSQLParamPositions, batchParams, false);
+
+                    // Execute this individual statement
+                    TDSWriter tdsWriter = batchCommand.startRequest(TDS.PKT_QUERY);
+                    tdsWriter.writeString(batchSQL);
+
+                    // Process the response for this statement
+                    ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+
+                    startResults();
+                    if (!getNextResult(true)) {
+                        batchCommand.updateCounts[batchIdx] = Statement.SUCCESS_NO_INFO;
+                    } else {
+                        if (null != resultSet) {
+                            SQLServerException.makeFromDriverError(connection, this,
+                                    SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
+                        }
+
+                        long updateCount = getUpdateCount();
+                        batchCommand.updateCounts[batchIdx] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
+                                : updateCount;
+                    }
+                    batchesProcessed++;
+
+                } catch (SQLServerException e) {
+                    // Handle individual statement failure
+                    if (connection.isSessionUnAvailable() || connection.rolledBackTransaction()) {
+                        // Session is broken, mark remaining statements as failed
+                        for (int remaining = batchIdx; remaining < numBatches; remaining++) {
+                            batchCommand.updateCounts[remaining] = Statement.EXECUTE_FAILED;
+                        }
+                        if (null == batchCommand.batchException) {
+                            batchCommand.batchException = e;
+                        }
+                        throw e;
+                    }
+
+                    // Mark this statement as failed but continue with remaining statements
+                    batchCommand.updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
+                    batchesProcessed++;
+
+                    // Store the first exception encountered
+                    if (null == batchCommand.batchException) {
+                        batchCommand.batchException = e;
+                    }
+                }
+            }
+
+            // If we had any failures, throw the stored exception
+            if (null != batchCommand.batchException) {
+                throw batchCommand.batchException;
+            }
+
+        } catch (SQLServerException e) {
+            // Mark any remaining unprocessed batches as failed
+            for (int remaining = batchesProcessed; remaining < numBatches; remaining++) {
+                batchCommand.updateCounts[remaining] = Statement.EXECUTE_FAILED;
+            }
+
+            if (null == batchCommand.batchException) {
+                batchCommand.batchException = e;
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Executes batch using EXEC method by combining all statements into a single
+     * SQL script
+     * similar to SQLStatement behavior. The update counts can be tuned as needed.
+     * 
+     * @param batchCommand the batch command context
+     * @throws SQLServerException if execution fails
+     */
+    final void doExecuteExecMethodBatchCombined(PrepStmtBatchExecCmd batchCommand)
+            throws BatchUpdateException, SQLServerException {
+        final int numBatches = batchParamValues.size();
+        batchCommand.updateCounts = new long[numBatches];
+
+        try {
+            // Build combined SQL script by joining all statements
+            StringBuilder sqlScript = new StringBuilder();
+
+            for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
+                Parameter[] batchParams = batchParamValues.get(batchIdx);
+
+                // Replace parameter markers with literal values for this batch item
+                String batchSQL = connection.replaceParameterMarkersWithValues(userSQL,
+                        userSQLParamPositions, batchParams, false);
+
+                // Add the SQL statement to the script
+                sqlScript.append(batchSQL);
+
+                // Add semicolon separator between statements (except for the last one)
+                if (batchIdx < numBatches - 1) {
+                    sqlScript.append(";");
+                }
+            }
+
+            // Execute the combined SQL script as a single statement
+            TDSWriter tdsWriter = batchCommand.startRequest(TDS.PKT_QUERY);
+            tdsWriter.writeString(sqlScript.toString());
+
+            // Process the response
+            ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+
+            // Process results similar to SQLStatement behavior
+            startResults();
+
+            // Initialize update counts to failed by default
+            for (int i = 0; i < numBatches; i++) {
+                batchCommand.updateCounts[i] = Statement.EXECUTE_FAILED;
+            }
+
+            // Process results by iterating through each result in sequence
+            // Key insight: getNextResult() returns successfully for each executed
+            // statement,
+            // but throws an exception when a statement fails (like constraint violation)
+            // After an exception, SQL Server stops processing remaining statements
+            int batchIndex = 0;
+
+            while (batchIndex < numBatches) {
+                try {
+                    // Try to get the next result from the TDS stream
+                    boolean isResultSet = getNextResult(true);
+
+                    if (isResultSet) {
+                        // This is a ResultSet - close it and mark as success
+                        batchCommand.updateCounts[batchIndex] = 1;
+                        if (null != resultSet) {
+                            resultSet.close();
+                            resultSet = null;
+                        }
+                    } else {
+                        // This is an update count result
+                        long updateCount = getUpdateCount();
+                        batchCommand.updateCounts[batchIndex] = updateCount;
+                    }
+                    batchIndex++;
+
+                } catch (SQLException e) {
+                    // getNextResult() threw exception - this means current statement failed
+                    // and SQL Server stopped processing remaining statements
+
+                    // Mark current statement as failed
+                    if (batchIndex < numBatches) {
+                        batchCommand.updateCounts[batchIndex] = Statement.EXECUTE_FAILED;
+                    }
+
+                    // All remaining statements were not executed due to this failure
+                    // They remain as EXECUTE_FAILED (already initialized)
+
+                    // Store the exception for later throwing as BatchUpdateException
+                    if (null == batchCommand.batchException) {
+                        batchCommand.batchException = new SQLServerException(e.getMessage(), e.getSQLState(),
+                                e.getErrorCode(), e);
+                    }
+
+                    // Break out since no more statements will be processed
+                    break;
+                }
+            }
+
+            // If we had any batch failures, throw BatchUpdateException with update counts
+            if (null != batchCommand.batchException) {
+                // Convert long[] to int[] for BatchUpdateException
+                int[] updateCounts = new int[batchCommand.updateCounts.length];
+                for (int i = 0; i < batchCommand.updateCounts.length; i++) {
+                    updateCounts[i] = (int) batchCommand.updateCounts[i];
+                }
+
+                throw new BatchUpdateException(batchCommand.batchException.getMessage(),
+                        batchCommand.batchException.getSQLState(),
+                        batchCommand.batchException.getErrorCode(), updateCounts);
+            }
+
+        } catch (SQLException e) {
+            throw e;
         }
     }
 
