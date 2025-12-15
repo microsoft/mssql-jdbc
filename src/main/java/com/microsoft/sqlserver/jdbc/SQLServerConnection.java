@@ -234,9 +234,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private static final int ENGINE_EDITION_SQL_AZURE_SYNAPSE_SERVERLESS_SQL_POOL = 11;
 
     // --- SQL Parameter Expansion Methods ---
-    private static final SimpleDateFormat DATE_FMT = new SimpleDateFormat("yyyy-MM-dd");
-    private static final SimpleDateFormat TIME_FMT = new SimpleDateFormat("HH:mm:ss");
-    private static final SimpleDateFormat TS_FMT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    private static final SimpleDateFormat TS_FMT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US);
 
     /**
      * Azure SQL server endpoints
@@ -8503,7 +8501,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     // Format Java value into a T-SQL literal safe for SQL Server
-    private String formatLiteralValue(Object value) throws SQLException {
+    String formatLiteralValue(Object value) throws SQLException {
         if (value == null)
             return "NULL";
 
@@ -8560,15 +8558,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         else if (value instanceof java.sql.Date) {
-            return "CAST('" + DATE_FMT.format((java.util.Date) value) + "' AS DATE)";
+            return "CAST('" + escapeSQLString(value.toString()) + "' AS DATE)";
         }
 
         else if (value instanceof java.sql.Time) {
-            return "CAST('" + TIME_FMT.format((java.util.Date) value) + "' AS TIME)";
+            return "CAST('" + escapeSQLString(value.toString()) + "' AS TIME)";
         }
 
         else if (value instanceof java.sql.Timestamp) {
-            return "CAST('" + TS_FMT.format((java.util.Date) value) + "' AS DATETIME2)";
+            return "CAST('" + escapeSQLString(value.toString()) + "' AS DATETIME2)";
         }
 
         else if (value instanceof java.util.Date) {
