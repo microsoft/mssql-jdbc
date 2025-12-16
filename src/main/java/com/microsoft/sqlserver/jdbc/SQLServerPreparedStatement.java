@@ -2997,7 +2997,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int numBatchesPrepared = 0;
         int numBatchesExecuted = 0;
-        boolean timeoutOccurred = false; // Flag to track timeout for exec method
         boolean isPrepareMethodExec = connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString());
 
         if (isSelect(userSQL)) {
@@ -3021,7 +3020,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         Parameter[] batchParam = new Parameter[inOutParam.length];
 
         TDSWriter tdsWriter = null;
-        while (numBatchesExecuted < numBatches && !timeoutOccurred) {
+        while (numBatchesExecuted < numBatches) {
             // Fill in the parameter values for this batch
             Parameter[] paramValues = batchParamValues.get(numBatchesPrepared);
             assert paramValues.length == batchParam.length;
@@ -3189,7 +3188,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 String sqlState = batchCommand.batchException.getSQLState();
                                 if (null != sqlState
                                         && sqlState.equals(SQLState.STATEMENT_CANCELED.getSQLStateCode())) {
-                                    timeoutOccurred = true; // Set flag for final cleanup
                                     processBatch();
                                     continue;
                                 }
@@ -3197,9 +3195,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                             // In batch execution, we have a special update count
                             // to indicate that no information was returned
-                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount)
-                                    ? Statement.SUCCESS_NO_INFO
-                                    : updateCount;
+                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO 
+                                                                                                : updateCount;
 
                             processBatch();
 
@@ -3234,14 +3231,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
                 break;
-            }
-        }
-
-        // For exec method timeout handling: mark any remaining unprocessed batches as
-        // failed
-        if (timeoutOccurred) {
-            while (numBatchesExecuted < numBatches) {
-                batchCommand.updateCounts[numBatchesExecuted++] = Statement.EXECUTE_FAILED;
             }
         }
     }
