@@ -8502,24 +8502,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     // Format Java value into a T-SQL literal safe for SQL Server
     String formatLiteralValue(Object value) throws SQLException {
-        if (value == null)
+        if (value == null) {
             return "NULL";
-
-        else if (value instanceof String) {
+        } else if (value instanceof String) {
             String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
             return prefix + escapeSQLString((String) value) + "'";
-        }
-
-        else if (value instanceof Character) {
+        } else if (value instanceof Character) {
             String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
             return prefix + escapeSQLString(value.toString()) + "'";
-        }
-
-        else if (value instanceof Boolean) {
+        } else if (value instanceof Boolean) {
             return ((Boolean) value) ? "1" : "0";
-        }
-
-        else if (value instanceof java.math.BigDecimal) {
+        } else if (value instanceof java.math.BigDecimal) {
             // Use toPlainString() to avoid scientific notation
             java.math.BigDecimal bd = (java.math.BigDecimal) value;
             String plainStr = bd.toPlainString();
@@ -8538,61 +8531,51 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 return "CAST(" + plainStr + " AS DECIMAL(" + sqlPrecision + "," + sqlScale + "))";
             }
             return plainStr;
-        }
-
-        // Integer types can use toString() safely
-        else if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long) {
+        } else if (value instanceof Byte || value instanceof Short || value instanceof Integer
+                || value instanceof Long) {
             return value.toString();
-        }
-
-        // Float and Double need special handling to avoid precision loss and scientific
-        // notation
-        else if (value instanceof Float) {
+        } else if (value instanceof Float) {
+            // Float and Double need special handling to avoid precision loss and scientific
+            // notation
+            Float f = (Float) value;
+            // Handle special float values that cannot be converted to BigDecimal
+            if (f.isInfinite() || f.isNaN()) {
+                String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
+                return prefix + escapeSQLString(f.toString()) + "'";
+            }
             // Convert Float to BigDecimal for precise representation
             return new java.math.BigDecimal(value.toString()).toPlainString();
-        }
-
-        else if (value instanceof Double) {
+        } else if (value instanceof Double) {
+            Double d = (Double) value;
+            // Handle special double values that cannot be converted to BigDecimal
+            if (d.isInfinite() || d.isNaN()) {
+                String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
+                return prefix + escapeSQLString(d.toString()) + "'";
+            }
             // Convert Double to BigDecimal for precise representation
             return new java.math.BigDecimal(value.toString()).toPlainString();
-        }
-
-        else if (value instanceof java.sql.Date) {
+        } else if (value instanceof java.sql.Date) {
             return "CAST('" + escapeSQLString(value.toString()) + "' AS DATE)";
-        }
-
-        else if (value instanceof java.sql.Time) {
+        } else if (value instanceof java.sql.Time) {
             return "CAST('" + escapeSQLString(value.toString()) + "' AS TIME)";
-        }
-
-        else if (value instanceof java.sql.Timestamp) {
+        } else if (value instanceof java.sql.Timestamp) {
             return "CAST('" + escapeSQLString(value.toString()) + "' AS DATETIME2)";
-        }
-
-        else if (value instanceof java.util.Date) {
+        } else if (value instanceof java.util.Date) {
             // generic java.util.Date -> timestamp
             return "CAST('" + TS_FMT.format((java.util.Date) value) + "' AS DATETIME2)";
-        }
-
-        else if (value instanceof byte[]) {
+        } else if (value instanceof byte[]) {
             return bytesToHexLiteral((byte[]) value);
-        }
-
-        else if (value instanceof Blob) {
+        } else if (value instanceof Blob) {
             Blob b = (Blob) value;
             int len = (int) b.length();
             byte[] bytes = b.getBytes(1, len);
             return bytesToHexLiteral(bytes);
-        }
-
-        else if (value instanceof Clob) {
+        } else if (value instanceof Clob) {
             Clob c = (Clob) value;
             String s = c.getSubString(1, (int) c.length());
             String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
             return prefix + escapeSQLString(s) + "'";
-        }
-
-        else {
+        } else {
             // fallback
             String prefix = sendStringParametersAsUnicode() ? "N'" : "'";
             return prefix + escapeSQLString(value.toString()) + "'";

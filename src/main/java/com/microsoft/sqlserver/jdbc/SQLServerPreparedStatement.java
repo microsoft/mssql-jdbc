@@ -1128,8 +1128,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false;
 
         // No caching for exec method as it always executes directly without preparation
-        if (connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString()))
+        if (connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString())) {
             return false;
+        }
 
         // If current cache items needs to be discarded or New type definitions found with existing cached handle
         // reference then deregister cached
@@ -2974,11 +2975,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         final boolean doExecute() throws SQLServerException {
-            try {
-                stmt.doExecutePreparedStatementBatch(this);
-            } catch (BatchUpdateException e) {
-                throw new SQLServerException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
-            }
+            stmt.doExecutePreparedStatementBatch(this);
             return true;
         }
 
@@ -2990,7 +2987,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     final void doExecutePreparedStatementBatch(PrepStmtBatchExecCmd batchCommand)
-            throws SQLServerException, BatchUpdateException {
+            throws SQLServerException {
         executeMethod = EXECUTE_BATCH;
         batchCommand.batchException = null;
         final int numBatches = batchParamValues.size();
@@ -3200,13 +3197,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                             // In batch execution, we have a special update count
                             // to indicate that no information was returned
-                            // Skip this for exec method timeout cases where we've already set the update
-                            // counts
-                            if (!(timeoutOccurred && isPrepareMethodExec)) {
-                                batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount)
-                                        ? Statement.SUCCESS_NO_INFO
-                                        : updateCount;
-                            }
+                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount)
+                                    ? Statement.SUCCESS_NO_INFO
+                                    : updateCount;
+
                             processBatch();
 
                             numBatchesExecuted++;
@@ -3253,94 +3247,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Executes batch using EXEC method by replacing parameter markers with literal
-     * values.
-     * 
-     * @param batchCommand the batch command context
-     * @throws SQLServerException if execution fails
-     */
-    final void doExecuteExecMethodBatch(PrepStmtBatchExecCmd batchCommand) throws SQLServerException {
-        final int numBatches = batchParamValues.size();
-        batchCommand.updateCounts = new long[numBatches];
-        for (int i = 0; i < numBatches; i++)
-            batchCommand.updateCounts[i] = Statement.EXECUTE_FAILED;
-
-        int batchesProcessed = 0;
-
-        try {
-            for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
-                try {
-                    Parameter[] batchParams = batchParamValues.get(batchIdx);
-
-                    // Replace parameter markers with literal values for this batch item
-                    String batchSQL = connection.replaceParameterMarkersWithValues(userSQL,
-                            userSQLParamPositions, batchParams, false);
-
-                    // Execute this individual statement
-                    TDSWriter tdsWriter = batchCommand.startRequest(TDS.PKT_QUERY);
-                    tdsWriter.writeString(batchSQL);
-
-                    // Process the response for this statement
-                    ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
-
-                    startResults();
-                    if (!getNextResult(true)) {
-                        batchCommand.updateCounts[batchIdx] = Statement.SUCCESS_NO_INFO;
-                    } else {
-                        if (null != resultSet) {
-                            SQLServerException.makeFromDriverError(connection, this,
-                                    SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
-                        }
-
-                        long updateCount = getUpdateCount();
-                        batchCommand.updateCounts[batchIdx] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
-                                : updateCount;
-                    }
-                    batchesProcessed++;
-
-                } catch (SQLServerException e) {
-                    // Handle individual statement failure
-                    if (connection.isSessionUnAvailable() || connection.rolledBackTransaction()) {
-                        // Session is broken, mark remaining statements as failed
-                        for (int remaining = batchIdx; remaining < numBatches; remaining++) {
-                            batchCommand.updateCounts[remaining] = Statement.EXECUTE_FAILED;
-                        }
-                        if (null == batchCommand.batchException) {
-                            batchCommand.batchException = e;
-                        }
-                        throw e;
-                    }
-
-                    // Mark this statement as failed but continue with remaining statements
-                    batchCommand.updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
-                    batchesProcessed++;
-
-                    // Store the first exception encountered
-                    if (null == batchCommand.batchException) {
-                        batchCommand.batchException = e;
-                    }
-                }
-            }
-
-            // If we had any failures, throw the stored exception
-            if (null != batchCommand.batchException) {
-                throw batchCommand.batchException;
-            }
-
-        } catch (SQLServerException e) {
-            // Mark any remaining unprocessed batches as failed
-            for (int remaining = batchesProcessed; remaining < numBatches; remaining++) {
-                batchCommand.updateCounts[remaining] = Statement.EXECUTE_FAILED;
-            }
-
-            if (null == batchCommand.batchException) {
-                batchCommand.batchException = e;
-            }
-            throw e;
-        }
-    }
-
-    /**
      * Executes batch using EXEC method by combining all statements into a single
      * SQL script
      * similar to SQLStatement behavior. The update counts can be tuned as needed.
@@ -3349,7 +3255,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @throws SQLServerException if execution fails
      */
     final void doExecuteExecMethodBatchCombined(PrepStmtBatchExecCmd batchCommand)
-            throws BatchUpdateException, SQLServerException {
+            throws SQLServerException {
         final int numBatches = batchParamValues.size();
         batchCommand.updateCounts = new long[numBatches];
 
@@ -3450,6 +3356,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         batchCommand.batchException.getErrorCode(), updateCounts);
             }
 
+        } catch (BatchUpdateException e) {
+            throw new SQLServerException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
         } catch (SQLException e) {
             throw e;
         }
