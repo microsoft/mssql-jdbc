@@ -163,7 +163,11 @@ public class FormatLiteralValueNumericTest {
         assertTrue(result.contains("AS DECIMAL(38,"));
         
         // Test BigDecimal with maximum SQL Server precision (38)
-        String maxPrecisionStr = "1" + "0".repeat(37); // 38 digits
+        StringBuilder sb = new StringBuilder("1");
+        for (int i = 0; i < 37; i++) {
+            sb.append("0");
+        }
+        String maxPrecisionStr = sb.toString(); // 38 digits
         BigDecimal maxPrecisionDecimal = new BigDecimal(maxPrecisionStr);
         result = connection.formatLiteralValue(maxPrecisionDecimal);
         assertTrue(result.startsWith("CAST("));
