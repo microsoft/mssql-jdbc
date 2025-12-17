@@ -8467,9 +8467,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             return sqlSrc;
         }
 
-        StringBuilder result = new StringBuilder(sqlSrc.length() + params.length * 20);
+        // Create exception before any memory allocation to avoid OOM during query
+        // creation
+        SQLServerException ex = new SQLServerException("Error during parameter replacement", null);
+
         try {
-            // Estimate capacity for the result
+            StringBuilder result = new StringBuilder(sqlSrc.length() + params.length * 20);
             int srcBegin = 0;
 
             for (int paramIndex = 0; paramIndex < paramPositions.length; paramIndex++) {
@@ -8493,11 +8496,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             // Append remaining SQL after last parameter
             result.append(sqlSrc, srcBegin, sqlSrc.length());
+            return result.toString();
         } catch (Exception e) {
-            throw new SQLServerException("Error during parameter replacement", e);
+            // Try to set the cause, but if OOM occurs even this may fail
+            try {
+                ex.initCause(e);
+            } catch (OutOfMemoryError oom) {
+                // If we can't even set the cause due to OOM, just throw the pre-allocated
+                // exception
+            }
+            throw ex;
         }
-
-        return result.toString();
     }
 
     // Format Java value into a T-SQL literal safe for SQL Server
@@ -8583,8 +8592,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private String escapeSQLString(String s) {
-        if (s == null || s.isEmpty())
+        if (s == null || s.isEmpty()) {
             return "";
+        }
         // double single quotes
         return s.replace("'", "''");
     }
@@ -8594,8 +8604,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             return "0x";
         StringBuilder sb = new StringBuilder(bytes.length * 2 + 2);
         sb.append("0x");
-        for (byte b : bytes)
+        for (byte b : bytes) {
             sb.append(String.format("%02X", b));
+        }
         return sb.toString();
     }
 
