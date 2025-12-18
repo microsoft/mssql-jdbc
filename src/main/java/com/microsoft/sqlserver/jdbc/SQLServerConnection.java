@@ -6798,7 +6798,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     try {
                         FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(
                                 fedAuthInfo.stsurl, fedAuthInfo.spn, clientConnectionId.toString(),
-                                ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, 0);
+                                ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID);
 
                         // AccessToken should not be null.
                         assert null != dllInfo.accessTokenBytes;
@@ -6811,15 +6811,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                         // Break out of the retry loop in successful case.
                         break;
-                    } catch (DLLException adalException) {
+                    } catch (DLLException dllException) {
 
-                        // the mssql-jdbc_auth DLL return -1 for errorCategory, if unable to load the
-                        // adalsql DLL
-                        int errorCategory = adalException.getCategory();
+                        // The mssql-jdbc_auth DLL returns -1 for errorCategory if unable to load the
+                        // mssql-auth.dll
+                        int errorCategory = dllException.getCategory();
                         if (-1 == errorCategory) {
                             MessageFormat form = new MessageFormat(
-                                    SQLServerException.getErrString("R_UnableLoadADALSqlDll"));
-                            Object[] msgArgs = { Integer.toHexString(adalException.getState()) };
+                                    SQLServerException.getErrString("R_UnableLoadMSSQLAuthDll"));
+                            Object[] msgArgs = { Integer.toHexString(dllException.getState()) };
                             throw new SQLServerException(form.format(msgArgs), null);
                         }
 
@@ -6828,21 +6828,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 || timerHasExpired(timerExpire)
                                 || (fedauthSleepInterval >= millisecondsRemaining)) {
 
-                            String errorStatus = Integer.toHexString(adalException.getStatus());
+                            String errorStatus = Integer.toHexString(dllException.getStatus());
 
                             if (connectionlogger.isLoggable(Level.FINER)) {
                                 connectionlogger.fine(
                                         toString()
-                                                + " SQLServerConnection.getFedAuthToken.AdalException category:"
+                                                + " SQLServerConnection.getFedAuthToken.DLLException category:"
                                                 + errorCategory + " error: " + errorStatus);
                             }
 
                             MessageFormat form = new MessageFormat(
                                     SQLServerException.getErrString("R_ADALAuthenticationMiddleErrorMessage"));
-                            String errorCode = Integer.toHexString(adalException.getStatus()).toUpperCase();
-                            Object[] msgArgs1 = { errorCode, adalException.getState() };
+                            String errorCode = Integer.toHexString(dllException.getStatus()).toUpperCase();
+                            Object[] msgArgs1 = { errorCode, dllException.getState() };
                             SQLServerException middleException = new SQLServerException(form.format(msgArgs1),
-                                    adalException);
+                                    dllException);
 
                             form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
                             Object[] msgArgs = { user, authenticationString };
