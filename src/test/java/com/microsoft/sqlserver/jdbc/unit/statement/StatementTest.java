@@ -3480,10 +3480,9 @@ public class StatementTest extends AbstractTest {
                 TestUtils.dropTableIfExists(testTable, stmt);
 
                 // Create table
-                String createTableSql = String.format("""
-                        CREATE TABLE %s (
-                            id int primary key, column_name varchar(100))
-                        """, testTable);
+                String createTableSql = "CREATE TABLE " + testTable + " ("
+                    + " id int primary key, column_name varchar(100))";
+
 
                 stmt.execute(createTableSql);
 
