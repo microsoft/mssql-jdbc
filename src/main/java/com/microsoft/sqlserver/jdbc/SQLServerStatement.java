@@ -1579,7 +1579,9 @@ public class SQLServerStatement implements ISQLServerStatement {
                     // the DML/DDL update count is not valid, and this result should be skipped
                     // unless it's for a batch where it's ok to report a "done without count"
                     // status (Statement.SUCCESS_NO_INFO)
-                    if (-1 == doneToken.getUpdateCount() && EXECUTE_BATCH != executeMethod)
+
+                    // Prevent driver from skipping a failed DONE token and losing the next statement’s update count.
+                    if (-1 == doneToken.getUpdateCount() && EXECUTE_BATCH != executeMethod && !doneToken.isError())
                         return true;
 
                     if (-1 != doneToken.getUpdateCount() && EXECUTE_QUERY == executeMethod)
