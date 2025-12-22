@@ -1014,7 +1014,7 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.getDefaultValue()),false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.toString(),
-                    SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.getDefaultValue(), false, new String[] {"off", "v1"}),
+                    SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.getDefaultValue(), false, new String[] {"off", "v1", "v2"}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),

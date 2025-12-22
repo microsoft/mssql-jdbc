@@ -173,7 +173,10 @@ final class TDS {
     // Vector support
     static final byte TDS_FEATURE_EXT_VECTORSUPPORT = 0x0E;
     static final byte VECTORSUPPORT_NOT_SUPPORTED = 0x00;
-    static final byte MAX_VECTORSUPPORT_VERSION = 0x01;
+    static final byte VECTORSUPPORT_VERSION_1 = 0x01;
+    static final byte VECTORSUPPORT_VERSION_2 = 0x02;
+    static final byte MAX_VECTORSUPPORT_VERSION = 0x02;
+
     // JSON support
     static final byte TDS_FEATURE_EXT_JSONSUPPORT = 0x0D;
     static final byte JSONSUPPORT_NOT_SUPPORTED = 0x00;
