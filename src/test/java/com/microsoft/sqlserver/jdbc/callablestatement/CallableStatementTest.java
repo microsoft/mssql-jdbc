@@ -107,7 +107,7 @@ public class CallableStatementTest extends AbstractTest {
         .escapeIdentifier(RandomUtil.getIdentifier("streamGetterSetterProc"));
     private static String tvpProcName = AbstractSQLGenerator
         .escapeIdentifier(RandomUtil.getIdentifier("TVPProc"));
-    private static String tvpTypeName = "TVPType";
+    private static String tvpTypeName = RandomUtil.getIdentifier("TVPType");
     
     /**
      * Setup before test
@@ -1135,8 +1135,8 @@ public class CallableStatementTest extends AbstractTest {
         }
         try (Statement stmt = connection.createStatement()) {
             // Create a TVP type and procedure if not exists
-            stmt.execute("CREATE TYPE " + tvpTypeName + " AS TABLE (id INT)");
-            stmt.execute("CREATE PROCEDURE " + tvpProcName + " @tvp " + tvpTypeName + " READONLY, @val XML = NULL OUTPUT AS SELECT 1");
+            stmt.execute("CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpTypeName) + " AS TABLE (id INT)");
+            stmt.execute("CREATE PROCEDURE " + tvpProcName + " @tvp " + AbstractSQLGenerator.escapeIdentifier(tvpTypeName) + " READONLY, @val XML = NULL OUTPUT AS SELECT 1");
         }
 
         try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall("{call " + tvpProcName + " (?, ?)}")) {
