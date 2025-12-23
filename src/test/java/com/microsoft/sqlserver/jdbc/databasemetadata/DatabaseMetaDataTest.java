@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -1379,6 +1380,123 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     // Test the exact pattern from issue #2758 - checking completion with !rs.next()
                     boolean isComplete = !rs.next();
                     assertTrue(isComplete, "Pattern from issue: !rs.next() should return true when at end");
+                }
+            }
+        }
+
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        @Tag(Constants.xAzureSQLDB)
+        public void testGetIndexInfoCollationConflict() throws SQLException {
+            /**
+             * Test case for GitHub Issue #2856: SQLServerDatabaseMetaData getIndexInfo collation conflict reproduction
+             * 
+             * This test reproduces the collation conflict issue where getIndexInfo() fails when 
+             * server collation differs from database collation in INDEX_INFO_COMBINED_QUERY.
+             */
+            
+            UUID id = UUID.randomUUID();
+            String testDbName = "CollationTestDB" + id;
+            String testTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CollationTestTable"));
+            
+            try (Connection masterConnection = getConnection()) {
+                TestUtils.dropDatabaseIfExists(testDbName, connectionString);
+                
+                // Create test database with different collation
+                try (Statement stmt = masterConnection.createStatement()) {
+                    stmt.execute(String.format("CREATE DATABASE [%s] COLLATE Finnish_Swedish_CI_AS", testDbName));
+                }
+                // Connect to the new database and test getIndexInfo
+                testGetIndexInfoInDifferentCollationDatabase(testDbName, testTableName);
+                
+            } catch (Exception e) {
+                fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+            } finally {
+                TestUtils.dropDatabaseIfExists(testDbName, connectionString);
+            }
+        }
+        
+        /**
+         * Test getIndexInfo with the different collation database
+         */
+        private void testGetIndexInfoInDifferentCollationDatabase(String dbName, String tableName) throws SQLException {
+            try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+                // Switch to the test database with different collation
+                stmt.execute(String.format("USE [%s]", dbName));
+                
+                // Create test table and indexes in the different collation database
+                setupTestTableWithIndexes(connection, tableName);
+                
+                DatabaseMetaData dbmd = connection.getMetaData();
+                
+                // Test getIndexInfo - this should trigger INDEX_INFO_COMBINED_QUERY
+                try (ResultSet rs = dbmd.getIndexInfo(null, "dbo", tableName.replaceAll("\\[|\\]", ""), false, false)) {
+                    boolean foundIndexes = false;
+                    int count = 0;
+                    
+                    while (rs.next() && count < 20) {
+                        String indexName = rs.getString("INDEX_NAME");
+                        
+                        if (indexName != null) {
+                            foundIndexes = true;
+                        }
+                        count++;
+                    }
+                    assertTrue(foundIndexes, "Should find indexes on the test table");
+                }
+            }
+        }
+        
+        /**
+         * Create test table with mixed collation columns and indexes
+         */
+        private void setupTestTableWithIndexes(Connection connection, String tableName) throws SQLException {
+            // Clean up any existing test table first
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tableName.replaceAll("\\[|\\]", ""), stmt);
+            }
+            
+            // Create table with mixed collation columns
+            String createTableSql = 
+                "CREATE TABLE " + tableName + " (" +
+                "ID INT IDENTITY(1,1) PRIMARY KEY, " +
+                "NameDefault NVARCHAR(100), " +  // Will inherit Finnish_Swedish_CI_AS
+                "NameLatin1 NVARCHAR(100) COLLATE SQL_Latin1_General_CP1_CI_AS, " +  // Explicit Latin1
+                "NameFinnish NVARCHAR(100), " +  // Will inherit Finnish_Swedish_CI_AS
+                "Description NVARCHAR(255)" +   // Will inherit Finnish_Swedish_CI_AS
+                ")";
+            
+            try (PreparedStatement stmt = connection.prepareStatement(createTableSql)) {
+                stmt.executeUpdate();
+            }
+            
+            // Insert test data
+            String insertSql = "INSERT INTO " + tableName + " (NameDefault, NameLatin1, NameFinnish, Description) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement stmt = connection.prepareStatement(insertSql)) {
+                stmt.setString(1, "Testiarvo1");      // Default (Finnish)
+                stmt.setString(2, "TestValue1");      // Latin1 
+                stmt.setString(3, "Ääkköset1");       // Finnish with special chars
+                stmt.setString(4, "Kuvaus 1");        // Description in Finnish
+                stmt.executeUpdate();
+                
+                stmt.setString(1, "Testiarvo2");      // Default (Finnish)
+                stmt.setString(2, "TestValue2");      // Latin1
+                stmt.setString(3, "Öljytuote2");      // Finnish with special chars  
+                stmt.setString(4, "Kuvaus 2");        // Description in Finnish
+                stmt.executeUpdate();
+            }
+            
+            // Create indexes that may trigger collation conflicts in INDEX_INFO_COMBINED_QUERY
+            String[] indexQueries = {
+                "CREATE NONCLUSTERED INDEX " + AbstractSQLGenerator.escapeIdentifier("IX_CollationTest_Default") + " ON " + tableName + " (NameDefault)",
+                "CREATE NONCLUSTERED INDEX " + AbstractSQLGenerator.escapeIdentifier("IX_CollationTest_Latin1") + " ON " + tableName + " (NameLatin1)", 
+                "CREATE NONCLUSTERED INDEX " + AbstractSQLGenerator.escapeIdentifier("IX_CollationTest_Finnish") + " ON " + tableName + " (NameFinnish)",
+                "CREATE NONCLUSTERED INDEX " + AbstractSQLGenerator.escapeIdentifier("IX_CollationTest_Mixed") + " ON " + tableName + " (NameDefault, NameLatin1, NameFinnish)"
+            };
+            
+            for (String indexSql : indexQueries) {
+                try (PreparedStatement stmt = connection.prepareStatement(indexSql)) {
+                    stmt.executeUpdate();
                 }
             }
         }
