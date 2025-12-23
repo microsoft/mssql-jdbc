@@ -518,20 +518,28 @@ enum VectorTypeSupport {
     }
 
     static VectorTypeSupport valueOfString(String value) throws SQLServerException {
-        VectorTypeSupport vectorType;
-        assert value != null;
-        if (value.equalsIgnoreCase(VectorTypeSupport.OFF.toString())) {
-            vectorType = VectorTypeSupport.OFF;
-        } else if (value.equalsIgnoreCase(VectorTypeSupport.V1.toString())) {
-            vectorType = VectorTypeSupport.V1;
-        } else if (value.equalsIgnoreCase(VectorTypeSupport.V2.toString())) {
-            vectorType = VectorTypeSupport.V2;
-        } else {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
-            Object[] msgArgs = {"vectorTypeSupport", value};
-            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+        if (value == null) {
+            throwInvalid(value);
         }
-        return vectorType;
+
+        switch (value.toLowerCase()) {
+            case "off":
+                return VectorTypeSupport.OFF;
+            case "v1":
+                return VectorTypeSupport.V1;
+            case "v2":
+                return VectorTypeSupport.V2;
+            default:
+                throwInvalid(value);
+                return VectorTypeSupport.OFF;
+        }
+    }
+
+    private static void throwInvalid(String value) throws SQLServerException {
+        MessageFormat form =
+                new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
+        Object[] msgArgs = {"vectorTypeSupport", value};
+        throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
     }
 }
 
