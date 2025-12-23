@@ -503,8 +503,8 @@ enum DatetimeType {
 
 enum VectorTypeSupport {
     OFF("off"),
-    V1("v1"),
-    V2("v2");
+    V1("v1"), //float32 support
+    V2("v2"); //float32 and float16 support
 
     private final String type;
 

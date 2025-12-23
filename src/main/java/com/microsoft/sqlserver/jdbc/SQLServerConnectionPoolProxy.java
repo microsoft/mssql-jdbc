@@ -893,19 +893,25 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     }
 
     /**
-     * Returns the vectorTypeSupport value.
+     * Returns the value of the vectorTypeSupport connection property.
      *
-     * @return the vectorTypeSupport value.
+     * @return vectorTypeSupport
+     *         The current vector type support setting ("off"|"v1"|"v2").
      */
     public String getVectorTypeSupport() {
         return wrappedConnection.getVectorTypeSupport();
     }
 
     /**
-     * Sets the vectorTypeSupport value.
+     * Sets the value of the vectorTypeSupport connection property.
      *
      * @param vectorTypeSupport
-     * the vectorTypeSupport value to set ("off" or "v1").
+     * A string that indicates the vector type support during connection initialization.
+     * Valid values are :
+     * - "off" (vector types are returned as strings)
+     * - "v1" (supports float32 vector type)
+     * - "v2" (supports float32 and float16 vector types)
+     * Default is "v1".
      */
     public void setVectorTypeSupport(String vectorTypeSupport) {
         wrappedConnection.setVectorTypeSupport(vectorTypeSupport);
