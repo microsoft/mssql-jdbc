@@ -24,8 +24,10 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 /**
- * Comprehensive test suite for EXEC prepare method implementation
- * Focus: Sybase ASE compatibility, temp table persistence, parameter substitution, security, edge cases, and performance
+ * Comprehensive test suite for scopeTempTablesToConnection prepare method
+ * implementation
+ * Focus: Sybase ASE compatibility, temp table persistence, parameter
+ * substitution, security, edge cases, and performance
  */
 public class PrepareMethodExecTest extends AbstractTest {
 
@@ -39,12 +41,12 @@ public class PrepareMethodExecTest extends AbstractTest {
      * This is the primary Sybase ASE compatibility requirement
      */
     @Test
-    public void testTempTablePersistenceWithExecMethod() throws SQLException {
+    public void testTempTablePersistenceWithScopeTempTablesToConnection() throws SQLException {
         String tableName = "#temp_exec_test_" + ThreadLocalRandom.current().nextInt(1000, 9999);
         
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            // Set prepare method to EXEC for Sybase compatibility
-            conn.setPrepareMethod("exec");
+            // Set prepare method to scopeTempTablesToConnection for Sybase compatibility
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             // Step 1: Create temp table using EXEC method
             String createTempSql = "CREATE TABLE " + tableName + " (id INT, name VARCHAR(50), value DECIMAL(10,2))";
@@ -60,7 +62,8 @@ public class PrepareMethodExecTest extends AbstractTest {
                 ps2.setString(2, "Test Data");
                 ps2.setBigDecimal(3, new BigDecimal("45.67"));
                 
-                // This should NOT fail with EXEC method (would fail with prepexec/prepare)
+                // This should NOT fail with scopeTempTablesToConnection method (would fail with
+                // prepexec/prepare)
                 int rowsInserted = ps2.executeUpdate();
                 assertEquals(1, rowsInserted, "Should insert 1 row into temp table");
             }
@@ -103,13 +106,15 @@ public class PrepareMethodExecTest extends AbstractTest {
     }
 
     /**
-     * Comprehensive test for ALL data types parameter substitution with EXEC method
-     * Tests VARCHAR, NVARCHAR, INTEGER, DECIMAL, DATETIME, BINARY, and BIT in a single query
+     * Comprehensive test for ALL data types parameter substitution with
+     * scopeTempTablesToConnection method
+     * Tests VARCHAR, NVARCHAR, INTEGER, DECIMAL, DATETIME, BINARY, and BIT in a
+     * single query
      */
     @Test
     public void testAllDataTypesParameterSubstitution() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            conn.setPrepareMethod("exec");
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             // Single comprehensive query testing all data types at once
             String sql = "SELECT ? as test_varchar, ? as test_nvarchar, ? as test_int, " +
@@ -221,7 +226,8 @@ public class PrepareMethodExecTest extends AbstractTest {
                 assertEquals("'; DROP TABLE users; --", rs.getString("test_varchar"));
                 assertEquals("' OR '1'='1", rs.getNString("test_nvarchar"));
                 assertEquals(42, rs.getInt("test_int"));
-                // For EXEC method, BigDecimal values may be formatted differently but are
+                // For scopeTempTablesToConnection method, BigDecimal values may be formatted
+                // differently but are
                 // mathematically equal
                 assertEquals(0, new BigDecimal("1.23E+15").compareTo(rs.getBigDecimal("test_decimal")),
                         "BigDecimal values should be mathematically equal");
@@ -233,12 +239,12 @@ public class PrepareMethodExecTest extends AbstractTest {
     }
 
     /**
-     * Test SQL injection prevention with EXEC method
+     * Test SQL injection prevention with scopeTempTablesToConnection method
      */
     @Test
     public void testSQLInjectionPrevention() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            conn.setPrepareMethod("exec");
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             String sql = "SELECT ? as result";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -267,7 +273,7 @@ public class PrepareMethodExecTest extends AbstractTest {
     @Test
     public void testAdvancedSQLInjectionPrevention() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            conn.setPrepareMethod("exec");
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             String[] advancedAttacks = {
                 "'; WAITFOR DELAY '00:00:05'; --",  // Time-based attack
@@ -307,7 +313,7 @@ public class PrepareMethodExecTest extends AbstractTest {
     })
     public void testNumericPrecisionScale(String value, int precision, int scale) throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            conn.setPrepareMethod("exec");
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             BigDecimal testValue = new BigDecimal(value);
             String sql = "SELECT ? as precise_number";
@@ -332,7 +338,7 @@ public class PrepareMethodExecTest extends AbstractTest {
     @Test
     public void testUnicodeEdgeCases() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            conn.setPrepareMethod("exec");
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             String[] unicodeTests = {
                 "🌟🎯🔥", // Emojis
@@ -364,7 +370,7 @@ public class PrepareMethodExecTest extends AbstractTest {
     @Test
     public void testBinaryEdgeCases() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            conn.setPrepareMethod("exec");
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             String sql = "SELECT ? as binary_data";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -403,7 +409,7 @@ public class PrepareMethodExecTest extends AbstractTest {
     @Test
     public void testNullHandlingAllTypes() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            conn.setPrepareMethod("exec");
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             String sql = "SELECT ? as null_varchar, ? as null_int, ? as null_decimal, " +
                         "? as null_datetime, ? as null_binary, ? as null_bit";
@@ -446,7 +452,7 @@ public class PrepareMethodExecTest extends AbstractTest {
     @Test
     public void testDateTimePrecision() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            conn.setPrepareMethod("exec");
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             String sql = "SELECT ? as precise_time";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -481,7 +487,7 @@ public class PrepareMethodExecTest extends AbstractTest {
     @Test
     public void testLargeNumbers() throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            conn.setPrepareMethod("exec");
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             String sql = "SELECT ? as large_number";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -525,7 +531,7 @@ public class PrepareMethodExecTest extends AbstractTest {
         String tempTable2 = "#customers_" + ThreadLocalRandom.current().nextInt(1000, 9999);
         
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            conn.setPrepareMethod("exec");
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             // Create first temp table
             try (PreparedStatement ps1 = conn.prepareStatement(
@@ -580,14 +586,14 @@ public class PrepareMethodExecTest extends AbstractTest {
     }
 
     /**
-     * Test batch execution with EXEC method
+     * Test batch execution with scopeTempTablesToConnection method
      */
     @Test
     public void testBatchExecution() throws SQLException {
         String tempTable = "#batch_test_" + ThreadLocalRandom.current().nextInt(1000, 9999);
         
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            conn.setPrepareMethod("exec");
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             // Create temp table
             try (PreparedStatement createPs = conn.prepareStatement(
@@ -609,7 +615,8 @@ public class PrepareMethodExecTest extends AbstractTest {
                 int[] batchResults = ps.executeBatch();
                 assertEquals(5, batchResults.length, "Should execute 5 batch statements");
                 for (int result : batchResults) {
-                    // EXEC method may return SUCCESS_NO_INFO (-2) or EXECUTE_FAILED (-3) for batch
+                    // scopeTempTablesToConnection method may return SUCCESS_NO_INFO (-2) or
+                    // EXECUTE_FAILED (-3) for batch
                     // execution
                     // which is valid per JDBC spec, or exact row count (1)
                     assertTrue(result >= -2, "Each batch should succeed (may return SUCCESS_NO_INFO)");
@@ -638,7 +645,7 @@ public class PrepareMethodExecTest extends AbstractTest {
     @ValueSource(ints = {100, 1000, 4000, 8000})
     public void testLongStringParameters(int length) throws SQLException {
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            conn.setPrepareMethod("exec");
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             // Generate string of specified length
             StringBuilder sb = new StringBuilder(length);
@@ -658,7 +665,8 @@ public class PrepareMethodExecTest extends AbstractTest {
     }
 
     /**
-     * Basic performance test for EXEC vs other prepare methods
+     * Basic performance test for scopeTempTablesToConnection vs other prepare
+     * methods
      */
     @Test
     public void testBasicPerformanceComparison() throws SQLException {
@@ -671,29 +679,30 @@ public class PrepareMethodExecTest extends AbstractTest {
         // Test PREPARE method  
         long prepareTime = measureExecutionTime("prepare", sql, ITERATIONS);
         
-        // Test EXEC method
-        long execTime = measureExecutionTime("exec", sql, ITERATIONS);
+        // Test scopeTempTablesToConnection method
+        long execTime = measureExecutionTime("scopeTempTablesToConnection", sql, ITERATIONS);
         
         System.out.println("Performance Results for " + ITERATIONS + " iterations:");
         System.out.println("PREPEXEC: " + prepexecTime + "ms");
         System.out.println("PREPARE:  " + prepareTime + "ms");
-        System.out.println("EXEC:     " + execTime + "ms");
+        System.out.println("scopeTempTablesToConnection:     " + execTime + "ms");
         
         // All methods should complete successfully
         assertTrue(prepexecTime > 0, "PREPEXEC should complete");
         assertTrue(prepareTime > 0, "PREPARE should complete");
-        assertTrue(execTime > 0, "EXEC should complete");
+        assertTrue(execTime > 0, "scopeTempTablesToConnection should complete");
         
-        // EXEC method should be reasonably performant (within 5x of other methods)
+        // scopeTempTablesToConnection method should be reasonably performant (within 5x
+        // of other methods)
         double execVsPrepexec = (double) execTime / prepexecTime;
         double execVsPrepare = (double) execTime / prepareTime;
         
         System.out.println("Performance Ratios:");
-        System.out.println("EXEC vs PREPEXEC: " + String.format("%.2f", execVsPrepexec));
-        System.out.println("EXEC vs PREPARE:  " + String.format("%.2f", execVsPrepare));
+        System.out.println("scopeTempTablesToConnection vs PREPEXEC: " + String.format("%.2f", execVsPrepexec));
+        System.out.println("scopeTempTablesToConnection vs PREPARE:  " + String.format("%.2f", execVsPrepare));
         
-        assertTrue(execVsPrepexec < 5.0, "EXEC should not be more than 5x slower than PREPEXEC");
-        assertTrue(execVsPrepare < 5.0, "EXEC should not be more than 5x slower than PREPARE");
+        assertTrue(execVsPrepexec < 5.0, "scopeTempTablesToConnection should not be more than 5x slower than PREPEXEC");
+        assertTrue(execVsPrepare < 5.0, "scopeTempTablesToConnection should not be more than 5x slower than PREPARE");
     }
 
     /**
@@ -707,17 +716,17 @@ public class PrepareMethodExecTest extends AbstractTest {
         // Test each method with repeated executions on same PreparedStatement
         long prepexecTime = measureRepeatedExecution("prepexec", sql, ITERATIONS);
         long prepareTime = measureRepeatedExecution("prepare", sql, ITERATIONS);
-        long execTime = measureRepeatedExecution("exec", sql, ITERATIONS);
+        long execTime = measureRepeatedExecution("scopeTempTablesToConnection", sql, ITERATIONS);
         
         System.out.println("Repeated Execution Performance (" + ITERATIONS + " executions on same PreparedStatement):");
         System.out.println("PREPEXEC: " + prepexecTime + "ms");
         System.out.println("PREPARE:  " + prepareTime + "ms");
-        System.out.println("EXEC:     " + execTime + "ms");
+        System.out.println("scopeTempTablesToConnection:     " + execTime + "ms");
         
         // All methods should complete
         assertTrue(prepexecTime > 0, "PREPEXEC repeated execution should work");
         assertTrue(prepareTime > 0, "PREPARE repeated execution should work");
-        assertTrue(execTime > 0, "EXEC repeated execution should work");
+        assertTrue(execTime > 0, "scopeTempTablesToConnection repeated execution should work");
     }
 
     /**
