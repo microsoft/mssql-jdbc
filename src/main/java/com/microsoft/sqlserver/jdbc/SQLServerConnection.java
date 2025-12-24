@@ -319,6 +319,79 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      **/
     private static final Lock sLock = new ReentrantLock();
 
+    static final String USER_AGENT_TEMPLATE = "%s|%s|%s|%s|%s|%s|%s";
+    static final String USER_AGENT_EXT_VERSION_AND_DRIVER_NAME = "1|MS-JDBC";
+    static final String userAgentStr;
+
+    static {
+        userAgentStr = getUserAgent();
+    }
+
+    static String getUserAgent() {
+        try {
+            return String.format(
+                    USER_AGENT_TEMPLATE,
+                    "1",
+                    "MS-JDBC",
+                    getJDBCVersion(),
+                    getArchitecture(),
+                    getOSType(),
+                    getOSDetails(),
+                    getRuntimeDetails()
+                    );
+        } catch(Exception e) {
+            return USER_AGENT_EXT_VERSION_AND_DRIVER_NAME;
+        }
+    }
+
+    static String getJDBCVersion() {
+        return sanitizeField(SQLJdbcVersion.MAJOR + "." + SQLJdbcVersion.MINOR + "." + SQLJdbcVersion.PATCH + "." + SQLJdbcVersion.BUILD + SQLJdbcVersion.RELEASE_EXT, 24);
+    }
+
+    static String getOSType() {
+        String osName = System.getProperty("os.name", "Unknown").trim().toLowerCase();
+        String osNameToReturn = "Unknown";
+        if (osName.startsWith("windows")) {
+            osNameToReturn = "Windows";
+        } else if (osName.startsWith("linux")) {
+            osNameToReturn = "Linux";
+        } else if (osName.startsWith("mac")) {
+            osNameToReturn = "macOS";
+        } else if (osName.startsWith("freebsd")) {
+            osNameToReturn = "FreeBSD";
+        } else if (osName.startsWith("android")) {
+            osNameToReturn = "Android";
+        }
+        return sanitizeField(osNameToReturn, 10);
+    }
+
+    static String getArchitecture() {
+        return sanitizeField(System.getProperty("os.arch", "Unknown").trim(), 10);
+    }
+
+    static String getOSDetails() {
+        String osName = System.getProperty("os.name", "").trim();
+        String osVersion = System.getProperty("os.version", "").trim();
+        if (osName.isEmpty() && osVersion.isEmpty()) {
+            return "Unknown";
+        }
+        return sanitizeField(osName + " " + osVersion, 44);
+    }
+
+    static String getRuntimeDetails() {
+        String javaVmName = System.getProperty("java.vm.name", "").trim();
+        String javaVmVersion = System.getProperty("java.vm.version", "").trim();
+        if (javaVmName.isEmpty() && javaVmVersion.isEmpty()) {
+            return "Unknown";
+        }
+        return sanitizeField(javaVmName + " " + javaVmVersion, 44);
+    }
+
+    static String sanitizeField(String field, int maxLength) {
+        String sanitized = field.replaceAll("[^A-Za-z0-9 .+_-]", "").trim();
+        return (sanitized == null || sanitized.isEmpty()) ? "Unknown" : sanitized.substring(0, Math.min(sanitized.length(), maxLength));
+    }
+
     /**
      * Generate a 6 byte random array for netAddress
      * As per TDS spec this is a unique clientID (MAC address) used to identify the client.
@@ -5796,6 +5869,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
+     * Writes the user agent telemetry feature request 
+     * @param write
+     * If true, writes the feature request to the physical state object.
+     * @param tdsWriter
+     * @return
+     * The length of the feature request in bytes, or 0 if vectorTypeSupport is "off".
+     * @throws SQLServerException
+     */
+    int writeUserAgentFeatureRequest(boolean write, /* if false just calculates the length */
+            TDSWriter tdsWriter) throws SQLServerException {
+        byte[] userAgentToSendBytes = toUCS16(userAgentStr);
+        int len = userAgentToSendBytes.length + 5; // 1byte = featureID, 1byte = version, 4byte = feature data length in bytes, remaining bytes: feature data
+        if (write) {
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_USERAGENT);
+            tdsWriter.writeInt(userAgentToSendBytes.length);
+            tdsWriter.writeBytes(userAgentToSendBytes);
+         }
+	     return len;
+    }
+
+    /**
      * Writes the Vector Support feature request to the physical state object,
      * unless vectorTypeSupport is "off". The request includes the feature ID,
      * feature data length, and version number.
@@ -7049,6 +7143,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             }
 
+            case TDS.TDS_FEATURE_EXT_USERAGENT: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(
+                            toString() + " Received feature extension acknowledgement for User agent feature extension. Received byte: " + data[0]);
+                }
+                break;
+            }
+
             default: {
                 // Unknown feature ack
                 throw new SQLServerException(SQLServerException.getErrString("R_UnknownFeatureAck"), null);
@@ -7336,6 +7438,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         int aeOffset = len;
+
+        len += writeUserAgentFeatureRequest(false, tdsWriter);
+
         // AE is always ON
         len += writeAEFeatureRequest(false, tdsWriter);
         if (federatedAuthenticationInfoRequested || federatedAuthenticationRequested) {
@@ -7539,6 +7644,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (integratedSecurity) {
             tdsWriter.writeBytes(secBlob, 0, secBlob.length);
         }
+
+        //Write user agent string
+        writeUserAgentFeatureRequest(true, tdsWriter);
 
         // AE is always ON
         writeAEFeatureRequest(true, tdsWriter);
