@@ -2122,6 +2122,43 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
         }
     }
 
+    /**
+     * Tests Geography almost zero coordinates like 0.0001234. The string representation is "1.234E-4", which
+     * caused a bug when creating a Geography object.
+     */
+    @Test
+    public void testGeographySmallCoordinates() throws SQLException {
+        // Scientific notation with 'e' (lowercase)
+        Geography g1 = Geography.point(1.234e-1, 5.678e-1, 4326);
+        assertEquals(1.234e-1, g1.getLatitude(), "Latitude should match for scientific notation with lowercase e");
+        assertEquals(5.678e-1, g1.getLongitude(), "Longitude should match for scientific notation with lowercase e");
+
+        // Scientific notation with 'E' (uppercase) and positive exponent
+        Geography g2 = Geography.point(1.234E+1, 5.678E+1, 4326);
+        assertEquals(1.234E+1, g2.getLatitude(), "Latitude should match for scientific notation with uppercase E and positive exponent");
+        assertEquals(5.678E+1, g2.getLongitude(), "Longitude should match for scientific notation with uppercase E and positive exponent");
+
+        // Negative scientific notation
+        Geography g3 = Geography.point(-1.234e-1, -5.678e-1, 4326);
+        assertEquals(-1.234e-1, g3.getLatitude(), "Latitude should match for negative scientific notation");
+        assertEquals(-5.678e-1, g3.getLongitude(), "Longitude should match for negative scientific notation");
+
+        // Mix of minus sign and scientific notation
+        Geography g4 = Geography.point(-2.5e-1, 3.7e+1, 4326);
+        assertEquals(-2.5e-1, g4.getLatitude(), "Latitude should match for negative value with scientific notation");
+        assertEquals(3.7e+1, g4.getLongitude(), "Longitude should match for positive scientific notation");
+
+        // All four coordinates (X, Y, Z, M) with scientific notation
+        // Note: Geography.STGeomFromText supports Z and M coordinates
+        // WKT format: POINT(longitude latitude altitude measure)
+        String wktWithAllCoords = "POINT(1.234e-1 5.678e-1 1.5e+1 2.3e+1)";
+        Geography g5 = Geography.STGeomFromText(wktWithAllCoords, 4326);
+        assertEquals(5.678e-1, g5.getLatitude(), "Latitude (Y) should match for WKT with all 4 coordinates");
+        assertEquals(1.234e-1, g5.getLongitude(), "Longitude (X) should match for WKT with all 4 coordinates");
+        assertEquals(1.5e+1, g5.getZ(), "Z coordinate should match for WKT with all 4 coordinates");
+        assertEquals(2.3e+1, g5.getM(), "M coordinate should match for WKT with all 4 coordinates");
+    }
+
     private void beforeEachSetup() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(geomTableName), stmt);

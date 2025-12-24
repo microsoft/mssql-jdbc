@@ -40,16 +40,18 @@ import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
-import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
 import microsoft.sql.Vector;
 import microsoft.sql.Vector.VectorDimensionType;
 
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type")
-@AzureDB
+@vectorJsonTest
 @Tag(Constants.vectorTest)
+// Vector datatype is supported starting with SQL Server 2025. 
+// Earlier versions expose vector values as JSON strings.
 public class VectorTest extends AbstractTest {
 
     private static final String tableName = RandomUtil.getIdentifier("VECTOR_Test");
@@ -1680,5 +1682,6 @@ public class VectorTest extends AbstractTest {
         }
         return (SQLServerConnection) DriverManager.getConnection(connStr);
     }
+
 
 }
