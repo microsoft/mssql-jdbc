@@ -338,7 +338,7 @@ public class CallableStatementTest extends AESetup {
 
     @Test
     public void testCallableStatementExecAE() throws SQLException {
-        AETestConnectionString += ";prepareMethod=exec;";
+        AETestConnectionString += ";prepareMethod=scopeTempTablesToConnection;";
 
         try (Statement statement = PrepUtil.getConnection(AETestConnectionString, AEInfo).createStatement();) {
             statement.executeUpdate("create procedure " + prepareMethodProcedure + " as select 1 --");

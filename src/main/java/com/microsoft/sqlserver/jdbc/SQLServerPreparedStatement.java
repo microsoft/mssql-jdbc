@@ -685,8 +685,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // continue using it after we return.
                 // Use PKT_QUERY for exec mode (direct execution), PKT_RPC for prepared
                 // statements
-                boolean isPrepareMethodExec = connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString());
-                TDSWriter tdsWriter = command.startRequest(isPrepareMethodExec ? TDS.PKT_QUERY : TDS.PKT_RPC);
+                boolean isScopeTempTablesToConnection = connection.getPrepareMethod()
+                        .equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())
+                        && containsTemporaryTableOperations(userSQL);
+                TDSWriter tdsWriter = command.startRequest(isScopeTempTablesToConnection ? TDS.PKT_QUERY : TDS.PKT_RPC);
 
                 needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
                         command);
@@ -1128,7 +1130,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false;
 
         // No caching for exec method as it always executes directly without preparation
-        if (connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString())) {
+        if (connection.getPrepareMethod().equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())) {
             return false;
         }
 
@@ -1173,16 +1175,69 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private ArrayList<byte[]> enclaveCEKs;
 
+    // Pre-compiled regex patterns for temporary table detection (performance
+    // optimization)
+    // Pattern matches both unescaped (#tempTable) and bracketed ([#tempTable]) temp
+    // table identifiers
+    private static final java.util.regex.Pattern TEMP_TABLE_PATTERN = java.util.regex.Pattern.compile(
+            "\\b(?:" +
+                    "(?:from|join)\\s+(?:#\\w+|\\[#[^\\]]+\\])" + "|" + // FROM/JOIN references (most common, check
+                                                                        // first)
+                    "(?:insert\\s+into|update|delete\\s+from)\\s+(?:#\\w+|\\[#[^\\]]+\\])" + "|" + // DML operations
+                    "create\\s+(?:(?:global\\s+)?temp(?:orary)?\\s+table\\s+|table\\s+)(?:#\\w+|\\[#[^\\]]+\\])" + "|" + // CREATE
+                                                                                                                         // patterns
+                    "drop\\s+table\\s+(?:#\\w+|\\[#[^\\]]+\\])" + "|" + // DROP TABLE
+                    "select\\b[^;]*?\\binto\\s+(?:#\\w+|\\[#[^\\]]+\\])" + // SELECT INTO (optimized pattern)
+                    ")",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Detects if the SQL statement contains temporary table operations.
+     * This method uses pre-compiled regex patterns for optimal performance.
+     * 
+     * @param sql The SQL statement to analyze
+     * @return true if temporary table operations are detected, false otherwise
+     */
+    boolean containsTemporaryTableOperations(String sql) {
+        if (sql == null || sql.length() == 0) {
+            return false;
+        }
+
+        // Fast check for global temporary tables (##) - most efficient
+        int globalTempIndex = sql.indexOf("##");
+        if (globalTempIndex >= 0) {
+            return true;
+        }
+
+        // Fast check for any # character - early exit if no temp table markers
+        int hashIndex = sql.indexOf('#');
+        if (hashIndex == -1) {
+            return false;
+        }
+
+        // Additional performance check: ensure # is likely part of a table name
+        // (followed by alphanumeric character, not just any #)
+        if (hashIndex < sql.length() - 1 &&
+                !Character.isLetterOrDigit(sql.charAt(hashIndex + 1))) {
+            return false;
+        }
+
+        // Use pre-compiled pattern for comprehensive temp table detection
+        boolean result = TEMP_TABLE_PATTERN.matcher(sql).find();
+        return result;
+    }
+
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions, TDSCommand command) throws SQLServerException {
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
         boolean isPrepareMethodSpPrepExec = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
-        boolean isPrepareMethodExec = connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString());
+        boolean isScopeTempTablesToConnection = connection.getPrepareMethod()
+                .equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString());
 
-        // If using exec method, execute directly like regular Statement to mimic Sybase
-        // DYNAMIC_PREPARE=false
-        if (isPrepareMethodExec) {
+        // If using scopeTempTablesToConnection method, check if temp tables are present
+        // in the SQLisScopeTempTablesToConnectionns
+        if (isScopeTempTablesToConnection && containsTemporaryTableOperations(userSQL)) {
             // Build direct SQL using enhanced replaceParameterMarkers with direct values
             String directSQL = connection.replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params,
                     false);
@@ -1196,6 +1251,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             return false; // No preparation needed
         }
+        // If scopeTempTablesToConnection is set but no temp tables detected, fall back
+        // to normal behavior
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
@@ -2997,7 +3054,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int numBatchesPrepared = 0;
         int numBatchesExecuted = 0;
-        boolean isPrepareMethodExec = connection.getPrepareMethod().equals(PrepareMethod.EXEC.toString());
+        boolean isScopeTempTablesToConnection = connection.getPrepareMethod().equals(
+                PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString()) && containsTemporaryTableOperations(userSQL);
 
         if (isSelect(userSQL)) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -3007,8 +3065,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Make sure any previous maxRows limitation on the connection is removed.
         connection.setMaxRows(0);
 
-        // For EXEC method, handle batch execution with literal parameter substitution
-        if (isPrepareMethodExec) {
+        // For scopeTempTablesToConnection method, handle batch execution with literal
+        // parameter substitution
+        // only if temp tables are detected in the SQL
+        if (isScopeTempTablesToConnection) {
             doExecuteExecMethodBatchCombined(batchCommand);
             return;
         }
@@ -3252,14 +3312,56 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Build combined SQL script by joining all statements
             StringBuilder sqlScript = new StringBuilder();
 
+            // Separate SQL into non-parameterized prefix and parameterized part
+            // Only the parameterized part (containing ?) should be repeated for each batch
+            String sqlPrefix = "";
+            String parameterizedSQL = userSQL;
+            int[] adjustedParamPositions = userSQLParamPositions;
+
+            // Find the position of the first parameter marker
+            if (userSQLParamPositions != null && userSQLParamPositions.length > 0) {
+                int firstParamPos = userSQLParamPositions[0];
+
+                // Check if there's any non-parameterized SQL before the first parameter
+                if (firstParamPos > 0) {
+                    // Find the last semicolon before the first parameter marker
+                    // This separates non-parameterized prefix from the parameterized statement
+                    int lastSemicolonBeforeParam = userSQL.lastIndexOf(';', firstParamPos - 1);
+
+                    if (lastSemicolonBeforeParam > 0) {
+                        // Split at the semicolon: prefix includes everything up to and including the
+                        // semicolon
+                        sqlPrefix = userSQL.substring(0, lastSemicolonBeforeParam + 1);
+                        String tempSQL = userSQL.substring(lastSemicolonBeforeParam + 1);
+
+                        // Calculate offset BEFORE trimming to preserve correct parameter positions
+                        int offset = lastSemicolonBeforeParam + 1;
+
+                        // Find leading whitespace length to adjust offset after trim
+                        int leadingWhitespaceLength = tempSQL.length() - tempSQL.trim().length();
+                        parameterizedSQL = tempSQL.trim();
+
+                        // Adjust parameter positions for the parameterized part
+                        // Account for both the semicolon split point and any leading whitespace removed
+                        adjustedParamPositions = new int[userSQLParamPositions.length];
+                        for (int i = 0; i < userSQLParamPositions.length; i++) {
+                            adjustedParamPositions[i] = userSQLParamPositions[i] - offset - leadingWhitespaceLength;
+                        }
+
+                        // Add the non-parameterized prefix once at the beginning
+                        sqlScript.append(sqlPrefix);
+                    }
+                }
+            }
+
+            // Process each batch with the parameterized part
             for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
                 Parameter[] batchParams = batchParamValues.get(batchIdx);
 
                 // Replace parameter markers with literal values for this batch item
-                String batchSQL = connection.replaceParameterMarkersWithValues(userSQL,
-                        userSQLParamPositions, batchParams, false);
+                String batchSQL = connection.replaceParameterMarkersWithValues(parameterizedSQL,
+                        adjustedParamPositions, batchParams, false);
 
-                // Add the SQL statement to the script
                 sqlScript.append(batchSQL);
 
                 // Add semicolon separator between statements (except for the last one)
@@ -3290,6 +3392,33 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // After an exception, SQL Server stops processing remaining statements
             int batchIndex = 0;
 
+            // If we had a non-parameterized prefix, consume its result first
+            if (!sqlPrefix.isEmpty()) {
+                try {
+                    boolean isResultSet = getNextResult(true);
+                    if (isResultSet && null != resultSet) {
+                        resultSet.close();
+                        resultSet = null;
+                    }
+                } catch (SQLException e) {
+                    // Prefix execution failed
+                    if (null == batchCommand.batchException) {
+                        batchCommand.batchException = new SQLServerException(e.getMessage(), e.getSQLState(),
+                                e.getErrorCode(), e);
+                    }
+
+                    // Convert long[] to int[] for BatchUpdateException
+                    int[] updateCounts = new int[batchCommand.updateCounts.length];
+                    for (int i = 0; i < batchCommand.updateCounts.length; i++) {
+                        updateCounts[i] = (int) batchCommand.updateCounts[i];
+                    }
+
+                    throw new BatchUpdateException(batchCommand.batchException.getMessage(),
+                            batchCommand.batchException.getSQLState(),
+                            batchCommand.batchException.getErrorCode(), updateCounts);
+                }
+            }
+
             while (batchIndex < numBatches) {
                 try {
                     // Try to get the next result from the TDS stream
@@ -3307,29 +3436,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         long updateCount = getUpdateCount();
                         batchCommand.updateCounts[batchIndex] = updateCount;
                     }
-                    batchIndex++;
-
                 } catch (SQLException e) {
-                    // getNextResult() threw exception - this means current statement failed
-                    // and SQL Server stopped processing remaining statements
-
                     // Mark current statement as failed
                     if (batchIndex < numBatches) {
                         batchCommand.updateCounts[batchIndex] = Statement.EXECUTE_FAILED;
                     }
-
-                    // All remaining statements were not executed due to this failure
-                    // They remain as EXECUTE_FAILED (already initialized)
 
                     // Store the exception for later throwing as BatchUpdateException
                     if (null == batchCommand.batchException) {
                         batchCommand.batchException = new SQLServerException(e.getMessage(), e.getSQLState(),
                                 e.getErrorCode(), e);
                     }
-
-                    // Break out since no more statements will be processed
-                    break;
                 }
+                batchIndex++;
             }
 
             // If we had any batch failures, throw BatchUpdateException with update counts
@@ -3340,15 +3459,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     updateCounts[i] = (int) batchCommand.updateCounts[i];
                 }
 
-                throw new BatchUpdateException(batchCommand.batchException.getMessage(),
+                BatchUpdateException batchException = new BatchUpdateException(
+                                batchCommand.batchException.getMessage(),
                         batchCommand.batchException.getSQLState(),
                         batchCommand.batchException.getErrorCode(), updateCounts);
+
+                // Wrap in SQLServerException to maintain exception hierarchy
+                throw new SQLServerException(batchException.getMessage(),
+                        batchException.getSQLState(),
+                        batchException.getErrorCode(), batchException);
             }
 
-        } catch (BatchUpdateException e) {
-            throw new SQLServerException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
         } catch (SQLException e) {
-            throw e;
+            throw new SQLServerException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
         }
     }
 

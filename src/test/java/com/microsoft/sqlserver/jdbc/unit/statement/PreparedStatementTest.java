@@ -116,7 +116,7 @@ public class PreparedStatementTest extends AbstractTest {
             assertEquals("prepare", conn.getPrepareMethod());
         }
 
-        String connectionStringExec = connectionString + ";prepareMethod=exec;";
+        String connectionStringExec = connectionString + ";prepareMethod=scopeTempTablesToConnection;";
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionStringExec)) {
             assertEquals("exec", conn.getPrepareMethod());
         }

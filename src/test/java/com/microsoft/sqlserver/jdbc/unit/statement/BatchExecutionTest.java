@@ -128,16 +128,21 @@ public class BatchExecutionTest extends AbstractTest {
 
     @Test
     public void testBasicBatchExecBehavior() throws Exception {
-        testBasicBatch("exec", false);
+        testBasicBatch("scopeTempTablesToConnection", false);
     }
 
     @Test
-    public void testConstraintViolationBasicPrepareStatement() throws Exception {
+    public void testConstraintViolationBasicPrepareStatementScopeTemp() throws Exception {
+        testConstraintViolationBasicPrepareStatement("scopeTempTablesToConnection", false);
+    }
+
+    private void testConstraintViolationBasicPrepareStatement(String prepareMethod, boolean enablePrepareOnFirstCall)
+            throws Exception {
         String constraintTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("constraint_exec"));
-        try (SQLServerConnection connection = PrepUtil
-                .getConnection(connectionString)) {
-            connection.setEnablePrepareOnFirstPreparedStatementCall(false);
-            connection.setPrepareMethod("exec");
+
+        try (SQLServerConnection connection = PrepUtil.getConnection(connectionString)) {
+            connection.setEnablePrepareOnFirstPreparedStatementCall(enablePrepareOnFirstCall);
+            connection.setPrepareMethod(prepareMethod);
 
             // Create table with CHECK constraint
             try (Statement stmt = connection.createStatement()) {
@@ -146,40 +151,17 @@ public class BatchExecutionTest extends AbstractTest {
                 stmt.execute(createTableSQL);
             }
 
-            // Test 1: Single SQL statement with multiple inserts
-            String insertSQL = "INSERT INTO " + constraintTable + " VALUES (1); INSERT INTO " + constraintTable
-                    + " VALUES (-1); INSERT INTO " + constraintTable + " VALUES (2); Insert into "
-                    + constraintTable + " VALUES (3);";
-
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                    .prepareStatement(insertSQL)) {
-                pstmt.execute();
-            }
-
-            // Verify that only one row was inserted (before the constraint violation)
-            try (Statement stmt = connection.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + constraintTable)) {
-                rs.next();
-                int rowCount = rs.getInt(1);
-                assertEquals(3, rowCount, "Expected only 1 row to be inserted before constraint violation");
-            }
-
-            // Clean up for next test
-            try (Statement stmt = connection.createStatement()) {
-                stmt.execute("DELETE FROM " + constraintTable);
-            }
-
-            // Test 2: Batch execution with constraint violation and update count validation
+            // Use case 1: PreparedStatement batch execution with constraint violation
+            // Test PreparedStatement batch with constraint violation
             String batchInsertSQL = "INSERT INTO " + constraintTable + " VALUES (?)";
-
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement(batchInsertSQL)) {
-                // Add valid and invalid values to batch
+                // Add 4 statements: 1st valid, 2nd violates constraint, 3rd valid, 4th valid
                 pstmt.setInt(1, 1); // Valid
                 pstmt.addBatch();
-                pstmt.setInt(1, 2); // Valid
-                pstmt.addBatch();
                 pstmt.setInt(1, -1); // Violates constraint C1 > 0
+                pstmt.addBatch();
+                pstmt.setInt(1, 2); // Valid
                 pstmt.addBatch();
                 pstmt.setInt(1, 3); // Valid
                 pstmt.addBatch();
@@ -187,33 +169,101 @@ public class BatchExecutionTest extends AbstractTest {
                 try {
                     pstmt.executeBatch();
                     fail("Expected BatchUpdateException due to constraint violation");
-                } catch (Exception e) {
-                    assertTrue(e.getCause() instanceof BatchUpdateException,
-                            "Expected BatchUpdateException for batch constraint violation");
-                    BatchUpdateException bue = (BatchUpdateException) e.getCause();
-                    long[] updateCounts = bue.getLargeUpdateCounts();
-                    // PreparedStatment
-                    long[] expected = { 1, 1, -3, -3 }; // Success, Success, Fail, Success
-                    assertArrayEquals(expected, updateCounts,
-                            "Basic prepare statement constraint violation - Expected: " +
-                                    Arrays.toString(expected) +
-                                    ", Actual: " + Arrays.toString(updateCounts));
+                } catch (BatchUpdateException bue) {
+                    assertTrue(bue.getMessage().contains("CHECK constraint") ||
+                            (bue.getCause() != null && bue.getCause().getMessage().contains("CHECK constraint")),
+                            "BatchUpdateException should mention CHECK constraint violation");
 
-                    // Verify the exception mentions constraint violation
-                    assertTrue(
-                            e.getMessage().contains("CHECK constraint")
-                                    || e.getCause().getMessage().contains("CHECK constraint"),
-                            "Exception should mention CHECK constraint violation");
+                    // Verify update counts: [1, -3, 1, 1]
+                    int[] expectedCount = { 1, -3, 1, 1 };
+                    int[] updateCounts = bue.getUpdateCounts();
+                    assertArrayEquals(expectedCount, updateCounts, "Update count does not match");
                 }
             }
 
-            // Verify that 3 rows were inserted (excluding the failed one)
-            try (Statement stmt = connection.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + constraintTable)) {
-                rs.next();
-                int rowCount = rs.getInt(1);
-                assertEquals(3, rowCount, "Expected 3 rows to be inserted (excluding constraint violation)");
+            // Verify actual row count and data in table from use case 1
+            validateInsertedRows(constraintTable, "C1", connection, new int[] { 1, 2, 3 },
+                    "Expected 3 rows inserted before constraint violation",
+                    "Row value mismatch in use case 1");
+
+            // Use case 2: Single SQL statement with multiple inserts and constraint
+            // violation
+            try (Statement stmt = connection.createStatement()) {
+                // Clear table for next test
+                stmt.execute("DELETE FROM " + constraintTable);
+
+                // Single statement with 4 inserts: 1st valid, 2nd violates constraint, 3rd
+                // valid, 4th valid
+                String insertSQL = "INSERT INTO " + constraintTable + " VALUES (1); " +
+                        "INSERT INTO " + constraintTable + " VALUES (-1); " +
+                        "INSERT INTO " + constraintTable + " VALUES (2); " +
+                        "INSERT INTO " + constraintTable + " VALUES (3);";
+
+                try {
+                    stmt.execute(insertSQL);
+                } catch (SQLException e) {
+                    assertTrue(e.getMessage().contains("CHECK constraint") || e.getMessage().contains("constraint"),
+                            "SQLException should mention CHECK constraint violation");
+                }
             }
+
+            // Verify row count after single statement
+            validateInsertedRows(constraintTable, "C1", connection, new int[] { 1, 2, 3 },
+                    "Expected 3 rows after both use cases",
+                    "Row value mismatch after use case 2");
+
+            // Use case 3: PreparedStatement batch execution with temp table
+            // Test PreparedStatement batch with temp table and constraint violation
+            String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("#tempConstraintTable"));
+
+            // try (Statement stmt = connection.createStatement()) {
+            // String createTempTableSQL = "CREATE TABLE " + tempTable + " (C1 int check (C1
+            // > 0))";
+            // stmt.execute(createTempTableSQL);
+            // }
+
+            String tempBatchInsertSQL = "CREATE TABLE " + tempTable + " (C1 int check (C1 > 0));" +
+                    "INSERT INTO " + tempTable + " VALUES (?)";
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement(tempBatchInsertSQL)) {
+                // Add 4 statements: 1st valid, 2nd violates constraint, 3rd valid, 4th valid
+                pstmt.setInt(1, 1); // Valid
+                pstmt.addBatch();
+                pstmt.setInt(1, -1); // Violates constraint C1 > 0
+                pstmt.addBatch();
+                pstmt.setInt(1, 2); // Valid
+                pstmt.addBatch();
+                pstmt.setInt(1, 3); // Valid
+                pstmt.addBatch();
+
+                try {
+                    pstmt.executeBatch();
+                    fail("Expected BatchUpdateException due to constraint violation in temp table");
+                } catch (Exception e) {
+                    // Drill down through the exception cause chain to find BatchUpdateException
+                    Throwable cause = e.getCause();
+                    while (cause != null && !(cause instanceof BatchUpdateException)) {
+                        cause = cause.getCause();
+                    }
+
+                    assertTrue(cause instanceof BatchUpdateException,
+                            "Should contain BatchUpdateException in cause chain");
+
+                    BatchUpdateException bue = (BatchUpdateException) cause;
+                    assertTrue(bue.getMessage().contains("CHECK constraint") ||
+                            (bue.getCause() != null && bue.getCause().getMessage().contains("CHECK constraint")),
+                            "BatchUpdateException should mention CHECK constraint violation");
+
+                    int[] expectedCount = { 1, -3, 1, 1 };
+                    int[] updateCounts = bue.getUpdateCounts();
+                    assertArrayEquals(expectedCount, updateCounts, "Update count does not match");
+                }
+            }
+
+            // Verify actual row count and data in temp table
+            validateInsertedRows(tempTable, "C1", connection, new int[] { 1, 2, 3 },
+                    "Expected 3 rows inserted in temp table",
+                    "Row value mismatch in use case 3 (temp table)");
 
             // Clean up
             try (Statement stmt = connection.createStatement()) {
@@ -225,249 +275,146 @@ public class BatchExecutionTest extends AbstractTest {
     @Test
     public void testConstraintViolationBasicStatement() throws Exception {
         String constraintTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("constraint_exec"));
-        String tempTable = "#temp_basic_stmt_" + System.currentTimeMillis();
 
-        try (SQLServerConnection connection = PrepUtil
-                .getConnection(connectionString)) {
-
-            // Test 1: Basic INSERT, UPDATE, DELETE operations with update counts
+        try (SQLServerConnection connection = PrepUtil.getConnection(connectionString)) {
+            // Create table with CHECK constraint
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(constraintTable, stmt);
-                String createTableSQL = "CREATE TABLE " + constraintTable
-                        + " (id INT IDENTITY(1,1), value INT, name VARCHAR(50))";
+                String createTableSQL = "CREATE TABLE " + constraintTable + " (C1 int check (C1 > 0))";
                 stmt.execute(createTableSQL);
-
-                // Test INSERT with update count = 1 (1 row inserted)
-                int insertCount = stmt
-                        .executeUpdate("INSERT INTO " + constraintTable + " (value, name) VALUES (10, 'Test1')");
-                assertEquals(1, insertCount, "INSERT should return update count = 1 (1 row inserted)");
-
-                // Insert more rows for UPDATE/DELETE tests
-                stmt.executeUpdate("INSERT INTO " + constraintTable + " (value, name) VALUES (20, 'Test2')");
-                stmt.executeUpdate("INSERT INTO " + constraintTable + " (value, name) VALUES (30, 'Test3')");
-
-                // Test UPDATE with update count = 1 (1 row updated)
-                int updateCount = stmt
-                        .executeUpdate("UPDATE " + constraintTable + " SET name = 'Updated' WHERE value = 20");
-                assertEquals(1, updateCount, "UPDATE should return update count = 1 (1 row updated)");
-
-                // Test DELETE with update count = 1 (1 row deleted)
-                int deleteCount = stmt.executeUpdate("DELETE FROM " + constraintTable + " WHERE value = 30");
-                assertEquals(1, deleteCount, "DELETE should return update count = 1 (1 row deleted)");
-
-                // Verify final count
-                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + constraintTable)) {
-                    rs.next();
-                    assertEquals(2, rs.getInt(1), "Should have 2 rows remaining after operations");
-                }
             }
 
-            // Test 2: Temp table scenario with basic operations
+            // Use case 1: Statement batch execution with constraint violation
+            // Test Statement batch with constraint violation
             try (Statement stmt = connection.createStatement()) {
-                // Create temp table
-                String createTempSQL = "CREATE TABLE " + tempTable
-                        + " (id INT IDENTITY(1,1), data VARCHAR(100), status INT DEFAULT 1)";
-                int createResult = stmt.executeUpdate(createTempSQL);
-                assertEquals(0, createResult, "CREATE TABLE should return 0 update count");
+                // Add 4 statements: 1st valid, 2nd violates constraint, 3rd valid, 4th valid
+                stmt.addBatch("INSERT INTO " + constraintTable + " VALUES (1)"); // Valid
+                stmt.addBatch("INSERT INTO " + constraintTable + " VALUES (-1)"); // Violates constraint C1 > 0
+                stmt.addBatch("INSERT INTO " + constraintTable + " VALUES (2)"); // Valid
+                stmt.addBatch("INSERT INTO " + constraintTable + " VALUES (3)"); // Valid
 
-                // INSERT into temp table
-                int tempInsertCount = stmt.executeUpdate("INSERT INTO " + tempTable + " (data) VALUES ('TempData1')");
-                assertEquals(1, tempInsertCount, "Temp table INSERT should return update count = 1");
+                try {
+                    stmt.executeBatch();
+                    fail("Expected BatchUpdateException due to constraint violation");
+                } catch (BatchUpdateException bue) {
+                    assertTrue(bue.getMessage().contains("CHECK constraint") ||
+                            (bue.getCause() != null && bue.getCause().getMessage().contains("CHECK constraint")),
+                            "BatchUpdateException should mention CHECK constraint violation");
 
-                // Multiple INSERT operations
-                int multiInsertCount = stmt.executeUpdate(
-                        "INSERT INTO " + tempTable + " (data, status) VALUES ('TempData2', 2); " +
-                                "INSERT INTO " + tempTable + " (data, status) VALUES ('TempData3', 3);");
-                assertTrue(multiInsertCount >= 1,
-                        "Multiple INSERTs should return at least 1 update count (actual: " + multiInsertCount + ")");
-
-                // UPDATE temp table
-                int tempUpdateCount = stmt
-                        .executeUpdate("UPDATE " + tempTable + " SET status = 99 WHERE data = 'TempData2'");
-                assertEquals(1, tempUpdateCount, "Temp table UPDATE should return update count = 1");
-
-                // DELETE from temp table
-                int tempDeleteCount = stmt.executeUpdate("DELETE FROM " + tempTable + " WHERE status = 3");
-                assertEquals(1, tempDeleteCount, "Temp table DELETE should return update count = 1");
-
-                // Verify temp table final state
-                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tempTable)) {
-                    rs.next();
-                    assertEquals(2, rs.getInt(1), "Temp table should have 2 rows remaining");
-                }
-
-                // Verify specific data in temp table
-                try (ResultSet rs = stmt.executeQuery("SELECT data, status FROM " + tempTable + " ORDER BY id")) {
-                    rs.next();
-                    assertEquals("TempData1", rs.getString("data"));
-                    assertEquals(1, rs.getInt("status"));
-
-                    rs.next();
-                    assertEquals("TempData2", rs.getString("data"));
-                    assertEquals(99, rs.getInt("status"));
+                    // Verify update counts: [1, -3, 1, 1]
+                    int[] expectedCount = { 1, -3, 1, 1 };
+                    int[] updateCounts = bue.getUpdateCounts();
+                    assertArrayEquals(expectedCount, updateCounts, "Update count does not match");
                 }
             }
+            // Verify row count after single statement
+            validateInsertedRows(constraintTable, "C1", connection, new int[] { 1, 2, 3 },
+                    "Expected 3 rows after both use cases",
+                    "Row value mismatch after use case 1");
 
-            // Test 3: Constraint violation scenario with update count validation
+            // Use case 2: Single SQL statement with multiple inserts and constraint
+            // violation
             try (Statement stmt = connection.createStatement()) {
-                TestUtils.dropTableIfExists(constraintTable, stmt);
-                String createConstraintSQL = "CREATE TABLE " + constraintTable + " (C1 int check (C1 > 0))";
-                stmt.execute(createConstraintSQL);
+                // Clear table for next test
+                stmt.execute("DELETE FROM " + constraintTable);
 
-                // Test 3a: Basic Statement constraint violation
-                String insertSQL = "INSERT INTO " + constraintTable + " VALUES (1); INSERT INTO " + constraintTable
-                        + " VALUES (-1); INSERT INTO " + constraintTable + " VALUES (2); INSERT INTO "
-                        + constraintTable + " VALUES (3);";
+                // Single statement with 4 inserts: 1st valid, 2nd violates constraint, 3rd
+                // valid, 4th valid
+                String insertSQL = "INSERT INTO " + constraintTable + " VALUES (1); " +
+                        "INSERT INTO " + constraintTable + " VALUES (-1); " +
+                        "INSERT INTO " + constraintTable + " VALUES (2); " +
+                        "INSERT INTO " + constraintTable + " VALUES (3);";
 
                 try {
                     stmt.execute(insertSQL);
                 } catch (SQLException e) {
-                    // Expected constraint violation
                     assertTrue(e.getMessage().contains("CHECK constraint") || e.getMessage().contains("constraint"),
-                            "Should get constraint violation error");
+                            "SQLException should mention CHECK constraint violation");
                 }
-
-                // Verify that some rows were processed (behavior may vary based on SQL Server
-                // transaction handling)
-                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + constraintTable)) {
-                    rs.next();
-                    int rowCount = rs.getInt(1);
-                    assertTrue(rowCount >= 1,
-                            "Expected at least 1 row to be processed before constraint violation (actual: " + rowCount
-                                    + ")");
-                }
-
-                // Clear table for batch test
-                stmt.execute("DELETE FROM " + constraintTable);
             }
 
-            // Test 3b: Batch Statement constraint violation with update count array
-            // validation
+            // Verify row count after single statement
+            validateInsertedRows(constraintTable, "C1", connection, new int[] { 1, 2, 3 },
+                    "Expected 3 rows after both use cases",
+                    "Row value mismatch after use case 2");
+
+            // Use case 3: Statement batch execution with temp table
+            // Test Statement batch with temp table and constraint violation
+            String tempTable = "#tempConstraintTable";
             try (Statement stmt = connection.createStatement()) {
-                // Test batch with addBatch() and executeBatch()
-                stmt.addBatch("INSERT INTO " + constraintTable + " VALUES (1)"); // Success
-                stmt.addBatch("INSERT INTO " + constraintTable + " VALUES (2)"); // Success
-                stmt.addBatch("INSERT INTO " + constraintTable + " VALUES (-1)"); // Constraint violation
-                stmt.addBatch("INSERT INTO " + constraintTable + " VALUES (3)"); // Would succeed but may not execute
+                String createTempTableSQL = "CREATE TABLE " + tempTable + " (C1 int check (C1 > 0))";
+                stmt.execute(createTempTableSQL);
+            }
+
+            try (Statement stmt = connection.createStatement()) {
+                // Add 4 statements: 1st valid, 2nd violates constraint, 3rd valid, 4th valid
+                stmt.addBatch("INSERT INTO " + tempTable + " VALUES (1)"); // Valid
+                stmt.addBatch("INSERT INTO " + tempTable + " VALUES (-1)"); // Violates constraint C1 > 0
+                stmt.addBatch("INSERT INTO " + tempTable + " VALUES (2)"); // Valid
+                stmt.addBatch("INSERT INTO " + tempTable + " VALUES (3)"); // Valid
 
                 try {
-                    int[] updateCounts = stmt.executeBatch();
-                    fail("Expected BatchUpdateException due to constraint violation");
+                    stmt.executeBatch();
+                    fail("Expected BatchUpdateException due to constraint violation in temp table");
                 } catch (BatchUpdateException bue) {
-                    int[] updateCounts = bue.getUpdateCounts();
-                    // Expected update counts: [1, 1, Statement.EXECUTE_FAILED,
-                    // Statement.EXECUTE_FAILED]
-                    // or [1, 1, Statement.EXECUTE_FAILED] depending on implementation
-                    assertTrue(updateCounts.length >= 3, "Should have at least 3 update counts");
-                    assertEquals(1, updateCounts[0], "First INSERT should succeed with update count = 1");
-                    assertEquals(1, updateCounts[1], "Second INSERT should succeed with update count = 1");
-                    assertEquals(Statement.EXECUTE_FAILED, updateCounts[2],
-                            "Third INSERT should fail with EXECUTE_FAILED (-3)");
-
-                    // The fourth statement may or may not be executed depending on driver behavior
-                    // and SQL Server transaction handling
-                    if (updateCounts.length > 3) {
-                        assertTrue(updateCounts[3] == Statement.EXECUTE_FAILED || updateCounts[3] == 1,
-                                "Fourth INSERT should either fail (-3) or succeed (1), actual: " + updateCounts[3]);
-                    }
-
-                    // Verify exception mentions constraint violation
                     assertTrue(bue.getMessage().contains("CHECK constraint") ||
-                            bue.getCause().getMessage().contains("CHECK constraint"),
-                            "BatchUpdateException should mention CHECK constraint violation");
+                            (bue.getCause() != null && bue.getCause().getMessage().contains("CHECK constraint")),
+                                    "BatchUpdateException should mention CHECK constraint violation");
 
-                    System.out.println("Batch Statement Update Counts: " + Arrays.toString(updateCounts));
-                } catch (SQLException e) {
-                    // Alternative: Some drivers may throw SQLException instead of
-                    // BatchUpdateException
-                    assertTrue(e.getMessage().contains("CHECK constraint") || e.getMessage().contains("constraint"),
-                            "Should get constraint violation error");
-                }
-
-                // Verify actual rows inserted (matches update count array behavior)
-                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + constraintTable)) {
-                    rs.next();
-                    int rowCount = rs.getInt(1);
-                    assertTrue(rowCount >= 2, "Expected at least 2 rows to be processed (actual: " + rowCount + ")");
+                    // Verify update counts: [1, -3, 1, 1]
+                    int[] expectedCount = { 1, -3, 1, 1 };
+                    int[] updateCounts = bue.getUpdateCounts();
+                    assertArrayEquals(expectedCount, updateCounts, "Update count does not match for temp table");
                 }
             }
 
-            // Test 3c: PreparedStatement batch constraint violation with update count array
-            try (Statement stmt = connection.createStatement()) {
-                stmt.execute("DELETE FROM " + constraintTable); // Clear for next test
-            }
+            // Verify actual row count and data in temp table
+            validateInsertedRows(tempTable, "C1", connection, new int[] { 1, 2, 3 },
+                    "Expected 3 rows inserted in temp table",
+                    "Row value mismatch in use case 3 (temp table)");
 
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                    .prepareStatement("INSERT INTO " + constraintTable + " VALUES (?)")) {
-
-                // Add batch with constraint violations
-                pstmt.setInt(1, 1); // Valid
-                pstmt.addBatch();
-                pstmt.setInt(1, 2); // Valid
-                pstmt.addBatch();
-                pstmt.setInt(1, -1); // Violates constraint C1 > 0
-                pstmt.addBatch();
-                pstmt.setInt(1, 3); // Valid but may not execute
-                pstmt.addBatch();
-
-                try {
-                    pstmt.executeBatch();
-                    fail("Expected BatchUpdateException due to constraint violation in PreparedStatement");
-                } catch (Exception e) {
-                    BatchUpdateException bue = null;
-                    if (e instanceof BatchUpdateException) {
-                        bue = (BatchUpdateException) e;
-                    } else if (e.getCause() instanceof BatchUpdateException) {
-                        bue = (BatchUpdateException) e.getCause();
-                    }
-
-                    if (bue != null) {
-                        long[] updateCounts = bue.getLargeUpdateCounts();
-                        // Expected: [1, 1, -3, -3] for PreparedStatement batch execution
-                        long[] expected = { 1, 1, Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED };
-
-                        assertTrue(updateCounts.length >= 3, "Should have at least 3 update counts");
-                        assertEquals(expected[0], updateCounts[0], "First INSERT should succeed");
-                        assertEquals(expected[1], updateCounts[1], "Second INSERT should succeed");
-                        assertEquals(Statement.EXECUTE_FAILED, updateCounts[2], "Third INSERT should fail");
-
-                        if (updateCounts.length > 3) {
-                            assertTrue(updateCounts[3] == Statement.EXECUTE_FAILED || updateCounts[3] == 1,
-                                    "Fourth INSERT should either fail (-3) or succeed (1), actual: " + updateCounts[3]);
-                        }
-
-                        System.out.println("PreparedStatement Batch Update Counts: " + Arrays.toString(updateCounts));
-
-                        // Verify the exception mentions constraint violation
-                        assertTrue(bue.getMessage().contains("CHECK constraint") ||
-                                (bue.getCause() != null && bue.getCause().getMessage().contains("CHECK constraint")),
-                                "Exception should mention CHECK constraint violation");
-                    } else {
-                        // Fallback for other exception types
-                        assertTrue(e.getMessage().contains("CHECK constraint") || e.getMessage().contains("constraint"),
-                                "Should get constraint violation error");
-                    }
-                }
-
-                // Verify final row count
-                try (Statement stmt = connection.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + constraintTable)) {
-                    rs.next();
-                    int rowCount = rs.getInt(1);
-                    assertTrue(rowCount >= 2, "Expected at least 2 rows inserted before constraint violation");
-                }
-            }
-
-            // Clean up - temp table will be automatically dropped when connection closes
+            // Clean up
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(constraintTable, stmt);
             }
         }
     }
 
+    /**
+     * Helper method to validate that the actual rows in the database match the
+     * expected values
+     * 
+     * @param tableName       The name of the table to validate
+     * @param columnName      The name of the column to query
+     * @param connection      The database connection to use
+     * @param expectedValues  Array of expected integer values in the column
+     * @param rowCountMessage Error message for row count mismatch
+     * @param valueMessage    Error message prefix for value mismatch
+     * @throws SQLException If database access fails
+     */
+    private void validateInsertedRows(String tableName, String columnName, Connection connection,
+            int[] expectedValues, String rowCountMessage, String valueMessage) throws SQLException {
+        try (Statement stmt = connection.createStatement();
+                ResultSet rs = stmt
+                        .executeQuery("SELECT " + columnName + " FROM " + tableName + " ORDER BY " + columnName)) {
+            int rowCount = 0;
+            int index = 0;
+            while (rs.next()) {
+                int value = rs.getInt(1);
+                assertEquals(expectedValues[index], value,
+                        valueMessage + " at index " + index + ": expected " + expectedValues[index] + " but got "
+                                + value);
+                index++;
+                rowCount++;
+            }
+            assertEquals(expectedValues.length, rowCount,
+                    rowCountMessage + " (expected: " + expectedValues.length + ", actual: " + rowCount + ")");
+        }
+    }
+
     @Test
     public void testOptimizedBatchExecBehavior() throws Exception {
-        testOptimizedBatch("exec", false);
+        testOptimizedBatch("scopeTempTablesToConnection", false);
     }
 
     private void testBasicBatch(String prepareMethod, boolean enablePrepareOnFirstCall) throws Exception {
@@ -1489,9 +1436,9 @@ public class BatchExecutionTest extends AbstractTest {
 
             String tableName = "[optimizedBatch_integrated_jdbc_" + RandomUtil.getIdentifier("testint") + "]";
 
-            // Enable exec mode for better optimization compatibility
+            // Enable scopeTempTablesToConnection mode for better optimization compatibility
             connection.setEnablePrepareOnFirstPreparedStatementCall(false);
-            connection.setPrepareMethod("exec");
+            connection.setPrepareMethod("scopeTempTablesToConnection");
 
             String sql = "CREATE TABLE " + tableName + " (id int PRIMARY KEY, name nvarchar(50), value int)";
             try (Statement stmt = connection.createStatement()) {

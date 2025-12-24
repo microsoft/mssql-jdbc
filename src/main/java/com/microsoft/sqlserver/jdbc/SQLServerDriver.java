@@ -533,7 +533,7 @@ enum SQLServerDriverObjectProperty {
 enum PrepareMethod {
     PREPEXEC("prepexec"), // sp_prepexec, default prepare method
     PREPARE("prepare"),
-    EXEC("exec");
+    SCOPE_TEMP_TABLES_TO_CONNECTION("scopeTempTablesToConnection");
 
     private final String value;
 
@@ -841,8 +841,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.SERVER_CERTIFICATE.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
                     SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(), false,
-                    new String[] {PrepareMethod.PREPEXEC.toString(), PrepareMethod.PREPARE.toString(), PrepareMethod.EXEC.toString()}),
-            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(),
+                    new String[] { PrepareMethod.PREPEXEC.toString(), PrepareMethod.PREPARE.toString(),
+                            PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString() }),
+                    new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(),
                     SQLServerDriverStringProperty.FAILOVER_PARTNER.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(),
                     SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.getDefaultValue(), false, null),
