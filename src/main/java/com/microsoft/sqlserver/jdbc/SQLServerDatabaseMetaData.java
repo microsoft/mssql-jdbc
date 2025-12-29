@@ -275,14 +275,22 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "); " +
     "INSERT INTO @temp_sp_statistics " +
     "EXEC sp_statistics ?, ?, ?, ?, ?, ?; " +
-    "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, " +
-    "TABLE_NAME, NON_UNIQUE, INDEX_QUALIFIER, INDEX_NAME, TYPE, " +
-    "ORDINAL_POSITION, COLUMN_NAME, ASC_OR_DESC, CARDINALITY, PAGES, FILTER_CONDITION " +
+    "SELECT TABLE_QUALIFIER COLLATE DATABASE_DEFAULT AS TABLE_CAT, " +
+    "TABLE_OWNER COLLATE DATABASE_DEFAULT AS TABLE_SCHEM, " +
+    "TABLE_NAME COLLATE DATABASE_DEFAULT AS TABLE_NAME, NON_UNIQUE, " +
+    "INDEX_QUALIFIER COLLATE DATABASE_DEFAULT AS INDEX_QUALIFIER, " +
+    "INDEX_NAME COLLATE DATABASE_DEFAULT AS INDEX_NAME, TYPE, " +
+    "ORDINAL_POSITION, COLUMN_NAME COLLATE DATABASE_DEFAULT AS COLUMN_NAME, ASC_OR_DESC, " +
+    "CARDINALITY, PAGES, FILTER_CONDITION " +
     "FROM @temp_sp_statistics " +
     "UNION ALL " +
-    "SELECT db_name() AS TABLE_CAT, sch.name AS TABLE_SCHEM, t.name AS TABLE_NAME, " +
-    "CASE WHEN i.is_unique = 1 THEN 0 ELSE 1 END AS NON_UNIQUE, t.name AS INDEX_QUALIFIER, i.name AS INDEX_NAME, " +
-    "i.type AS TYPE, ic.key_ordinal AS ORDINAL_POSITION, c.name AS COLUMN_NAME, " +
+    "SELECT db_name() AS TABLE_CAT, sch.name COLLATE DATABASE_DEFAULT AS TABLE_SCHEM, " +
+    "t.name COLLATE DATABASE_DEFAULT AS TABLE_NAME, " +
+    "CASE WHEN i.is_unique = 1 THEN 0 ELSE 1 END AS NON_UNIQUE, " +
+    "t.name COLLATE DATABASE_DEFAULT AS INDEX_QUALIFIER, " +
+    "i.name COLLATE DATABASE_DEFAULT AS INDEX_NAME, " +
+    "i.type AS TYPE, ic.key_ordinal AS ORDINAL_POSITION, " +
+    "c.name COLLATE DATABASE_DEFAULT AS COLUMN_NAME, " +
     "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
     "CASE WHEN i.index_id <= 1 THEN ps.row_count ELSE NULL END AS CARDINALITY, " +
     "CASE WHEN i.index_id <= 1 THEN ps.used_page_count ELSE NULL END AS PAGES, " +
@@ -294,7 +302,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
     "LEFT JOIN sys.dm_db_partition_stats ps ON ps.object_id = i.object_id AND ps.index_id = i.index_id AND ps.index_id IN (0,1) " +
     "WHERE t.name = ? AND sch.name = ? AND ic.key_ordinal = 0 " +
-    "ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION";
+    "ORDER BY NON_UNIQUE, TYPE, INDEX_NAME COLLATE DATABASE_DEFAULT, ORDINAL_POSITION";
 
     private static final String INDEX_INFO_QUERY_DW = "SELECT db_name() AS TABLE_CAT, " +
     "sch.name AS TABLE_SCHEM, " +
@@ -1300,17 +1308,25 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             if (this.connection.isAzureDW()) {
                 return getIndexInfoAzureDW(arguments, table, schema);
             } else {
-                PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(INDEX_INFO_COMBINED_QUERY);
-                pstmt.setString(1, arguments[0]);  // table name for sp_statistics
-                pstmt.setString(2, arguments[1]);  // schema name for sp_statistics
-                pstmt.setString(3, arguments[2]);  // catalog for sp_statistics
-                pstmt.setString(4, arguments[3]);  // index name pattern for sp_statistics
-                pstmt.setString(5, arguments[4]);  // is_unique for sp_statistics
-                pstmt.setString(6, arguments[5]);  // accuracy for sp_statistics
-                pstmt.setString(7, table);         // table name for columnstore query
-                pstmt.setString(8, schema);        // schema name for columnstore query
+                try {
+                    PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(INDEX_INFO_COMBINED_QUERY);
+                    pstmt.setString(1, arguments[0]);  // table name for sp_statistics
+                    pstmt.setString(2, arguments[1]);  // schema name for sp_statistics
+                    pstmt.setString(3, arguments[2]);  // catalog for sp_statistics
+                    pstmt.setString(4, arguments[3]);  // index name pattern for sp_statistics
+                    pstmt.setString(5, arguments[4]);  // is_unique for sp_statistics
+                    pstmt.setString(6, arguments[5]);  // accuracy for sp_statistics
+                    pstmt.setString(7, table);         // table name for columnstore query
+                    pstmt.setString(8, schema);        // schema name for columnstore query
 
-                return pstmt.executeQuery();
+                    return pstmt.executeQuery();
+                } catch (SQLException e) {
+                    if (loggerExternal.isLoggable(Level.FINER)) {
+                        loggerExternal.finer("INDEX_INFO_COMBINED_QUERY failed, falling back to sp_statistics: " + e.getMessage());
+                    }
+                    return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_STATISTICS, arguments,
+                            getIndexInfoColumnNames);
+                }
             }
         } finally {
             if (null != orgCat) {
