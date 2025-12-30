@@ -3565,8 +3565,8 @@ public class StatementTest extends AbstractTest {
                             "but driver bug causes 3rd INSERT update count to be swallowed");
                 
                 // Verify the update counts are correct
-                assertEquals(Integer.valueOf(1), updateCounts.get(0), "First INSERT should affect 1 row");
-                assertEquals(Integer.valueOf(1), updateCounts.get(1), "Third INSERT should affect 1 row");
+                assertEquals(1, updateCounts.get(0), "First INSERT should affect 1 row");
+                assertEquals(1, updateCounts.get(1), "Third INSERT should affect 1 row");
 
                 // Verify final table state
                 try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + testTable)) {
@@ -3580,16 +3580,16 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
-         * Tests executeUpdate with individual statements in a batch-like scenario,
-         * handling primary key violations and verifying update counts are preserved.
+         * Tests executeUpdate() behavior with a multi-statement batch containing a primary key violation.
          * 
-         * This test simulates batch behavior by executing statements individually and 
-         * validates that subsequent statements can still be executed after an error.
+         * The batch contains: INSERT (success) → INSERT (success) → INSERT (PK violation) → SELECT
+         * Expected behavior: executeUpdate() returns 1 (from the last successful INSERT) and 
+         * the table contains 2 rows from the first two successful INSERTs.
          * 
          * @throws SQLException
          */
         @Test
-        public void testIndividualExecuteUpdateAfterError() throws SQLException {
+        public void testExecuteUpdateAfterError() throws SQLException {
             String testTable = AbstractSQLGenerator
                     .escapeIdentifier(RandomUtil.getIdentifier("UpdateCountTest_ExecuteUpdate"));
 
@@ -3601,46 +3601,32 @@ public class StatementTest extends AbstractTest {
                 // Create table
                 stmt.execute("CREATE TABLE " + testTable + " (id int primary key, column_name varchar(100))");
 
-                List<Integer> updateCounts = new ArrayList<>();
-                boolean exceptionCaught = false;
-
-                // Execute statements individually to test recovery behavior
-
-                // 1. First INSERT (should succeed)
-                try {
-                    int count1 = stmt.executeUpdate("INSERT INTO " + testTable + " VALUES (1, 'test')");
-                    updateCounts.add(count1);
-                } catch (SQLException e) {
-                    fail("First INSERT should not fail: " + e.getMessage());
-                }
-
-                // 2. Second INSERT (should fail - duplicate key)
-                try {
-                    int count2 = stmt.executeUpdate("INSERT INTO " + testTable + " VALUES (1, 'test')");
-                    fail("Second INSERT should have failed with duplicate key error");
-                } catch (SQLException e) {
-                    exceptionCaught = true;
-                    assertEquals(2627, e.getErrorCode(), "Expected primary key violation error");
-                }
-
-                // 3. Third INSERT (should succeed - testing recovery after error)
-                try {
-                    int count3 = stmt.executeUpdate("INSERT INTO " + testTable + " VALUES (2, 'test')");
-                    updateCounts.add(count3);
-                } catch (SQLException e) {
-                    fail("Third INSERT should not fail after recovering from previous error: " + e.getMessage());
-                }
-
-                // Verify results
-                assertTrue(exceptionCaught, "Expected exception for duplicate key was not caught");
-                assertEquals(2, updateCounts.size(), "Should have 2 successful update counts");
-                assertEquals(Integer.valueOf(1), updateCounts.get(0), "First INSERT should affect 1 row");
-                assertEquals(Integer.valueOf(1), updateCounts.get(1), "Third INSERT should affect 1 row");
+                String sqlBatch =
+                    "insert into " + testTable + " values (1, 'test'); " +
+                    "insert into " + testTable + " values (2, 'test'); " +
+                    "insert into " + testTable + " values (1, 'test'); " +
+                    "select * from " + testTable + ";";
+                
+                int updateCount = stmt.executeUpdate(sqlBatch);
+                
+                assertEquals(1, updateCount);
 
                 // Verify final table state
                 try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + testTable)) {
                     assertTrue(rs.next());
                     assertEquals(2, rs.getInt(1), "Table should contain exactly 2 rows");
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + testTable)) {
+                    int rowCount = 0;
+                    while (rs.next()) {
+                        rowCount++;
+                        if (rowCount == 1) {
+                            assertEquals(1, rs.getInt("id"));
+                        } else if (rowCount == 2) {
+                            assertEquals(2, rs.getInt("id"));
+                        }
+                    }
+                    assertEquals(2, rowCount, "Table should contain exactly 2 rows");
                 }
 
                 TestUtils.dropTableIfExists(testTable, stmt);
