@@ -3583,7 +3583,7 @@ public class StatementTest extends AbstractTest {
          * Tests executeUpdate() behavior with a multi-statement batch containing a primary key violation.
          * 
          * The batch contains: INSERT (success) → INSERT (success) → INSERT (PK violation) → SELECT
-         * Expected behavior: executeUpdate() returns 1 (from the last successful INSERT) and 
+         * Expected behavior: executeUpdate() returns 1 (from the successful INSERT) and 
          * the table contains 2 rows from the first two successful INSERTs.
          * 
          * @throws SQLException
@@ -3603,13 +3603,82 @@ public class StatementTest extends AbstractTest {
 
                 String sqlBatch =
                     "insert into " + testTable + " values (1, 'test'); " +
-                    "insert into " + testTable + " values (2, 'test'); " +
                     "insert into " + testTable + " values (1, 'test'); " +
+                    "insert into " + testTable + " values (2, 'test'); " +
                     "select * from " + testTable + ";";
                 
                 int updateCount = stmt.executeUpdate(sqlBatch);
                 
                 assertEquals(1, updateCount);
+
+                // Verify final table state
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + testTable)) {
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt(1), "Table should contain exactly 2 rows");
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + testTable)) {
+                    int rowCount = 0;
+                    while (rs.next()) {
+                        rowCount++;
+                        if (rowCount == 1) {
+                            assertEquals(1, rs.getInt("id"));
+                        } else if (rowCount == 2) {
+                            assertEquals(2, rs.getInt("id"));
+                        }
+                    }
+                    assertEquals(2, rowCount, "Table should contain exactly 2 rows");
+                }
+
+                TestUtils.dropTableIfExists(testTable, stmt);
+            }
+        }
+
+        /**
+         * Tests executeQuery() behavior with a multi-statement batch containing a primary key violation.
+         * 
+         * The batch contains: INSERT (success) → INSERT (success) → INSERT (PK violation) → SELECT
+         * Expected behavior: executeQuery() returns resultset (from the SELECT) and 
+         * the table contains 2 rows from the first two successful INSERTs.
+         * 
+         * @throws SQLException
+         */
+        @Test
+        public void testExecuteQueryAfterError() throws SQLException {
+            String testTable = AbstractSQLGenerator
+                    .escapeIdentifier(RandomUtil.getIdentifier("UpdateCountTest_ExecuteQuery"));
+            try (Connection conn = getConnection();
+                    Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(testTable, stmt);
+
+                // Create table
+                stmt.execute("CREATE TABLE " + testTable + " (id int primary key, column_name varchar(100))");
+
+                String sqlBatch =
+                    "insert into " + testTable + " values (1, 'test'); " +
+                    "insert into " + testTable + " values (2, 'test'); " +
+                    "insert into " + testTable + " values (1, 'test'); " +
+                    "select * from " + testTable + ";";
+                boolean exceptionCaught = false;
+
+                try {
+                    stmt.executeQuery(sqlBatch);
+                } catch (SQLException e) {
+                    // Expecting a primary key violation error
+                    exceptionCaught = true;
+                    assertEquals(2627, e.getErrorCode(), "Expected primary key violation error");
+                    assertTrue(e.getMessage().contains("PRIMARY KEY constraint"),
+                            "Expected primary key constraint violation message");
+
+                    try {
+                        // Force move pointer to continue processing the batch
+                        stmt.getMoreResults();
+                    } catch (Exception ex) {
+                        fail("Failed to recover from batch exception: " + ex.getMessage());
+                    }
+                }
+                
+                assertTrue(exceptionCaught, "Expected exception for duplicate key was not caught");
 
                 // Verify final table state
                 try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + testTable)) {
