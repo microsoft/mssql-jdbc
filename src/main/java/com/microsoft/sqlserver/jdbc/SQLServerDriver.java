@@ -501,6 +501,48 @@ enum DatetimeType {
     }
 }
 
+enum VectorTypeSupport {
+    OFF("off"),
+    V1("v1"), //float32 support
+    V2("v2"); //float32 and float16 support
+
+    private final String type;
+
+    VectorTypeSupport(String type) {
+        this.type = type;
+    }
+
+    @Override
+    public String toString() {
+        return type;
+    }
+
+    static VectorTypeSupport valueOfString(String value) throws SQLServerException {
+        if (value == null) {
+            throwInvalid(value);
+        }
+
+        switch (value.toLowerCase()) {
+            case "off":
+                return VectorTypeSupport.OFF;
+            case "v1":
+                return VectorTypeSupport.V1;
+            case "v2":
+                return VectorTypeSupport.V2;
+            default:
+                throwInvalid(value);
+                return VectorTypeSupport.OFF;
+        }
+    }
+
+    private static void throwInvalid(String value) throws SQLServerException {
+        MessageFormat form =
+                new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
+        Object[] msgArgs = {"vectorTypeSupport", value};
+        throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+    }
+}
+
 
 enum SQLServerDriverObjectProperty {
     GSS_CREDENTIAL("gsscredential", null),
@@ -615,7 +657,7 @@ enum SQLServerDriverStringProperty {
     RETRY_CONN("retryConn", ""),
     QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.ON.toString()),
     CONCAT_NULL_YIELDS_NULL("concatNullYieldsNull", OnOffOption.ON.toString()),
-    VECTOR_TYPE_SUPPORT("vectorTypeSupport", "v1");
+    VECTOR_TYPE_SUPPORT("vectorTypeSupport", VectorTypeSupport.V1.toString());
 
     private final String name;
     private final String defaultValue;
@@ -1014,7 +1056,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.getDefaultValue()),false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.toString(),
-                    SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.getDefaultValue(), false, new String[] {"off", "v1"}),
+                    SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.getDefaultValue(), false, 
+                    new String[] {VectorTypeSupport.OFF.toString(), VectorTypeSupport.V1.toString(), VectorTypeSupport.V2.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),

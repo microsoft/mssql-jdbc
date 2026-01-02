@@ -760,8 +760,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    private static final String VECTOR_SUPPORT_OFF = "off";
-    private static final String VECTOR_SUPPORT_V1 = "v1";
+    private static final String VECTOR_SUPPORT_OFF = "off"; // vector not supported; will return json formatted string
+    private static final String VECTOR_SUPPORT_V1 = "v1"; // supports float32 vector type
+    private static final String VECTOR_SUPPORT_V2 = "v2"; // supports float32 and float16 vector types
 
     final static int TNIR_FIRST_ATTEMPT_TIMEOUT_MS = 500; // fraction of timeout to use for fast failover connections
 
@@ -1103,16 +1104,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * A string that indicates the vector type support during connection initialization.
-     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type FLOAT32 are returned as vectors).  
+     * Valid values are : 
+     * - "off" (vector types are returned as strings)
+     * - "v1" (supports float32 vector type)
+     * - "v2" (supports float32 and float16 vector types)
      * Default is "v1".
      */
-    private String vectorTypeSupport = VECTOR_SUPPORT_V1;
+    private String vectorTypeSupport = SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.getDefaultValue();
+
+    /** 
+     * Negotiated vector version between client and server 
+     */
+    private byte negotiatedVectorVersion = TDS.VECTORSUPPORT_NOT_SUPPORTED;
 
     /**
      * Returns the value of the vectorTypeSupport connection property.
      *
      * @return vectorTypeSupport
-     *         The current vector type support setting ("off" or "v1").
+     *         The current vector type support setting ("off"|"v1"|"v2").
      */
     @Override
     public String getVectorTypeSupport() {
@@ -1124,7 +1133,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      *
      * @param vectorTypeSupport
      * A string that indicates the vector type support during connection initialization.
-     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type FLOAT32 are returned as vectors).  
+     * Valid values are :
+     * - "off" (vector types are returned as strings)
+     * - "v1" (supports float32 vector type)
+     * - "v2" (supports float32 and float16 vector types)  
      * Default is "v1".
      */
     @Override
@@ -1137,6 +1149,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         switch (vectorTypeSupport.trim().toLowerCase()) {
             case VECTOR_SUPPORT_OFF:
             case VECTOR_SUPPORT_V1:
+            case VECTOR_SUPPORT_V2:
                 this.vectorTypeSupport = vectorTypeSupport.toLowerCase();
                 break;
             default:
@@ -5904,7 +5917,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_VECTORSUPPORT);
             tdsWriter.writeInt(1);
-            tdsWriter.writeByte(TDS.MAX_VECTORSUPPORT_VERSION);
+
+            byte clientVectorSupportVersion;
+            switch (vectorTypeSupport) {
+                case VECTOR_SUPPORT_V2:
+                    clientVectorSupportVersion = TDS.VECTORSUPPORT_VERSION_2;
+                    break;
+                case VECTOR_SUPPORT_V1:
+                    clientVectorSupportVersion = TDS.VECTORSUPPORT_VERSION_1;
+                    break;
+                case VECTOR_SUPPORT_OFF:
+                default:
+                    // Should not reach here due to prior validation.
+                    clientVectorSupportVersion = TDS.VECTORSUPPORT_VERSION_1;
+                    break;
+            }
+            tdsWriter.writeByte(clientVectorSupportVersion);
         }
         return len;
     }
@@ -7116,7 +7144,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (0 == serverSupportedVectorVersion || serverSupportedVectorVersion > TDS.MAX_VECTORSUPPORT_VERSION) {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidVectorVersionNumber"), null);
                 }
-                serverSupportsVector = true;
+                // Negotiate the vector version between client and server
+                negotiatedVectorVersion = negotiateVectorVersion(vectorTypeSupport, serverSupportedVectorVersion);
+
+                if (negotiatedVectorVersion > TDS.VECTORSUPPORT_NOT_SUPPORTED) {
+                    serverSupportsVector = true;
+
+                    if (connectionlogger.isLoggable(Level.FINE)) {
+                        connectionlogger.fine(toString() + " Vector support negotiated. Client: " + vectorTypeSupport +
+                                ", Server: " + serverSupportedVectorVersion +
+                                ", Negotiated: " + negotiatedVectorVersion);
+                    }
+                } else {
+                    serverSupportsVector = false;
+                }
                 break;
             }
             
@@ -7150,6 +7191,57 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 throw new SQLServerException(SQLServerException.getErrString("R_UnknownFeatureAck"), null);
             }
         }
+    }
+
+    /**
+     * Negotiates the vector version between client and server based on the
+     * following rules:
+     * - If either client or server is "off", negotiated version is "off"
+     * - If both support v2, negotiated version is v2
+     * - If both support v1, negotiated version is v1
+     * - Otherwise, use the minimum supported version
+     *
+     * @param clientVectorSupport The client's vector type support setting
+     * @param serverVersion       The server's supported vector version
+     * @return The negotiated vector version
+     */
+    private byte negotiateVectorVersion(String clientVectorSupport, byte serverVersion) {
+
+        // If server doesn't support vectors, negotiation is off
+        if (serverVersion == TDS.VECTORSUPPORT_NOT_SUPPORTED) {
+            return TDS.VECTORSUPPORT_NOT_SUPPORTED;
+        }
+
+        byte clientMaxVersion;
+
+        switch (clientVectorSupport.toLowerCase()) {
+            case VECTOR_SUPPORT_OFF:
+                return TDS.VECTORSUPPORT_NOT_SUPPORTED;
+
+            case VECTOR_SUPPORT_V2:
+                clientMaxVersion = TDS.VECTORSUPPORT_VERSION_2;
+                break;
+
+            case VECTOR_SUPPORT_V1:
+                clientMaxVersion = TDS.VECTORSUPPORT_VERSION_1;
+                break;
+
+            default:
+                // Invalid client setting
+                return TDS.VECTORSUPPORT_NOT_SUPPORTED;
+        }
+
+        // Negotiate using the minimum supported version
+        return (byte) Math.min(clientMaxVersion, serverVersion);
+    }
+
+    /**
+     * Returns the negotiated vector version between client and server.
+     *
+     * @return The negotiated vector version (0 = off, 1 = v1, 2 = v2)
+     */
+    public byte getNegotiatedVectorVersion() {
+        return negotiatedVectorVersion;
     }
 
     /*
@@ -7450,6 +7542,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // request vector support
         len += writeVectorSupportFeatureRequest(false, tdsWriter);
+        
         // request JSON support
         len += writeJSONSupportFeatureRequest(false, tdsWriter);
 
