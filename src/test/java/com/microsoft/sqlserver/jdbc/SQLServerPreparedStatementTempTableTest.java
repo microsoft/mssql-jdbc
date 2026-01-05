@@ -26,7 +26,10 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
     }
 
     /**
-     * Test the containsTemporaryTableOperations method for detecting temp table operations in SQL.
+     * Test the containsTemporaryTableOperations method for detecting temp table
+     * operations in SQL.
+     * Updated pattern detects CREATE TABLE #temp and SELECT INTO #temp.
+     * Note: SQL Server uses # prefix for temp tables, not TEMPORARY keyword.
      */
     @Test
     public void testContainsTemporaryTableOperations() throws Exception {
@@ -34,42 +37,193 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
             String sql = "SELECT 1"; // Simple SQL to create a statement
             
             try (SQLServerPreparedStatement stmt = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
-                // Test case: SQL with temporary table creation should return true
-                String tempTableSql = "CREATE TABLE #tempTable (id INT, name NVARCHAR(50))";
-                boolean result = stmt.containsTemporaryTableOperations(tempTableSql);
-                assertTrue(result, "Should detect temporary table operations in CREATE TABLE statement");
+                // Test case: CREATE TABLE with # prefix (most common in SQL Server) should
+                // return true
+                String localTempSql = "CREATE TABLE #tempTable (id INT, name NVARCHAR(50))";
+                boolean result = stmt.containsTemporaryTableOperations(localTempSql);
+                assertTrue(result, "Should detect CREATE TABLE #temp statement");
+
+                // Test case: CREATE TABLE with bracketed identifier
+                String bracketedSql = "CREATE TABLE [#tempTable] (id INT)";
+                result = stmt.containsTemporaryTableOperations(bracketedSql);
+                assertTrue(result, "Should detect CREATE TABLE with bracketed temp table identifier");
+
+                // Test case: SELECT INTO temp table should return true
+                String selectIntoSql = "SELECT * INTO #tempTable FROM users WHERE id = 1";
+                result = stmt.containsTemporaryTableOperations(selectIntoSql);
+                assertTrue(result, "Should detect SELECT INTO with temp table");
+
+                // Test case: SELECT INTO with bracketed identifier
+                String bracketedSelectIntoSql = "SELECT 1 INTO [#tempResult]";
+                result = stmt.containsTemporaryTableOperations(bracketedSelectIntoSql);
+                assertTrue(result, "Should detect SELECT INTO with bracketed temp table identifier");
                 
                 // Test case: Regular SQL without temp tables should return false
                 String regularSql = "SELECT * FROM users WHERE id = 1";
                 result = stmt.containsTemporaryTableOperations(regularSql);
                 assertTrue(!result, "Should not detect temporary table operations in regular SELECT statement");
                 
-                // Test case: INSERT into temp table
+                // Test case: CREATE TABLE without # prefix should return false
+                String regularTableSql = "CREATE TABLE users (id INT)";
+                result = stmt.containsTemporaryTableOperations(regularTableSql);
+                assertTrue(!result, "Should not detect CREATE TABLE without # prefix");
+
+                // Test case: Global temp table (##) should return false (not supported)
+                String globalTempSql = "CREATE TABLE ##globalTemp (id INT)";
+                result = stmt.containsTemporaryTableOperations(globalTempSql);
+                assertTrue(!result, "Should not detect global temp table with ##");
+
+                // Test case: Global temp table with bracketed identifier should return false
+                String globalBracketedSql = "CREATE TABLE [##globalTemp] (id INT)";
+                result = stmt.containsTemporaryTableOperations(globalBracketedSql);
+                assertTrue(!result, "Should not detect global temp table with bracketed [##]");
+
+                // Test case: SELECT INTO global temp table should return false
+                String selectIntoGlobalSql = "SELECT * INTO ##globalTemp FROM users";
+                result = stmt.containsTemporaryTableOperations(selectIntoGlobalSql);
+                assertTrue(!result, "Should not detect SELECT INTO global temp table ##");
+
+                // Test case: SELECT INTO global temp with bracketed identifier should return
+                // false
+                String selectIntoGlobalBracketedSql = "SELECT * INTO [##globalResult] FROM users";
+                result = stmt.containsTemporaryTableOperations(selectIntoGlobalBracketedSql);
+                assertTrue(!result, "Should not detect SELECT INTO bracketed global temp [##]");
+
+                // Test case: CREATE GLOBAL TEMP TABLE should return false
+                String createGlobalTempSql = "CREATE GLOBAL TEMP TABLE #temp (id INT)";
+                result = stmt.containsTemporaryTableOperations(createGlobalTempSql);
+                assertTrue(!result, "Should not detect CREATE GLOBAL TEMP TABLE");
+
+                // Test case: CREATE GLOBAL TEMPORARY TABLE should return false
+                String createGlobalTemporarySql = "CREATE GLOBAL TEMPORARY TABLE #temp (id INT)";
+                result = stmt.containsTemporaryTableOperations(createGlobalTemporarySql);
+                assertTrue(!result, "Should not detect CREATE GLOBAL TEMPORARY TABLE");
+
+                // Test case: SELECT INTO regular table should return false
+                String regularSelectIntoSql = "SELECT * INTO regularTable FROM users";
+                result = stmt.containsTemporaryTableOperations(regularSelectIntoSql);
+                assertTrue(!result, "Should not detect SELECT INTO regular table without #");
+
+                // Test case: INSERT into temp table should return false (no longer detected by
+                // simplified pattern)
                 String insertTempSql = "INSERT INTO #tempTable VALUES (1, 'test')";
                 result = stmt.containsTemporaryTableOperations(insertTempSql);
-                assertTrue(result, "Should detect temporary table operations in INSERT statement");
+                assertTrue(!result, "INSERT statements are not detected by simplified pattern");
                 
-                // Test case: UPDATE temp table
+                // Test case: UPDATE temp table should return false (no longer detected)
                 String updateTempSql = "UPDATE #tempTable SET name = 'updated' WHERE id = 1";
                 result = stmt.containsTemporaryTableOperations(updateTempSql);
-                assertTrue(result, "Should detect temporary table operations in UPDATE statement");
+                assertTrue(!result, "UPDATE statements are not detected by simplified pattern");
                 
-                // Test case: DELETE from temp table
+                // Test case: DELETE from temp table should return false (no longer detected)
                 String deleteTempSql = "DELETE FROM #tempTable WHERE id = 1";
                 result = stmt.containsTemporaryTableOperations(deleteTempSql);
-                assertTrue(result, "Should detect temporary table operations in DELETE statement");
+                assertTrue(!result, "DELETE statements are not detected by simplified pattern");
                 
-                // Test case: Bracketed temp table identifier with special characters (single quote, hyphens, GUID)
-                String bracketedTempTableSql = "CREATE TABLE [#tempConstraintTable_jdbc_'2242d9a9-74f3-4643-9f9e-f91015343592] (C1 int check (C1 > 0));INSERT INTO [tempConstraintTable_jdbc_'2242d9a9-74f3-4643-9f9e-f91015343592] VALUES (?)";
+                // Test case: Bracketed temp table identifier with special characters in CREATE
+                // TEMP TABLE
+                String bracketedTempTableSql = "CREATE TABLE [#tempConstraintTable_jdbc_'2242d9a9-74f3-4643-9f9e-f91015343592] (C1 int check (C1 > 0))";
                 result = stmt.containsTemporaryTableOperations(bracketedTempTableSql);
-                assertTrue(result, "Should detect temporary table operations in bracketed temp table identifier with special characters");
+                assertTrue(result, "Should detect CREATE TABLE with bracketed temp table identifier");
+
+                // Test case: SELECT INTO with bracketed identifier and FROM clause
+                String bracketedSelectIntoWithFromSql = "SELECT 1 INTO [#tempResult] FROM DUAL";
+                result = stmt.containsTemporaryTableOperations(bracketedSelectIntoWithFromSql);
+                assertTrue(result, "Should detect SELECT INTO with bracketed temp table identifier");
+
+                // Test case: Mixed case - CREATE Table #temp
+                String mixedCase1 = "CrEaTe TaBlE #tempMixed (id INT)";
+                result = stmt.containsTemporaryTableOperations(mixedCase1);
+                assertTrue(result, "Should detect mixed case CREATE TABLE #temp");
+
+                // Test case: Mixed case - Create Table #temp
+                String mixedCase2 = "create table #tempData (value VARCHAR(50))";
+                result = stmt.containsTemporaryTableOperations(mixedCase2);
+                assertTrue(result, "Should detect mixed case CREATE TABLE #temp");
+
+                // Test case: Mixed case - SELECT into #temp
+                String mixedCase3 = "SeLeCt * InTo #tempOutput FrOm users";
+                result = stmt.containsTemporaryTableOperations(mixedCase3);
+                assertTrue(result, "Should detect mixed case SELECT INTO #temp");
+
+                // Test case: Multiple spaces between keywords
+                String multipleSpaces = "CREATE    TABLE    #tempSpaces    (id INT)";
+                result = stmt.containsTemporaryTableOperations(multipleSpaces);
+                assertTrue(result, "Should detect CREATE TABLE with multiple spaces");
+
+                // Test case: Tabs between keywords
+                String withTabs = "CREATE\tTABLE\t#tempTabs\t(id INT)";
+                result = stmt.containsTemporaryTableOperations(withTabs);
+                assertTrue(result, "Should detect CREATE TABLE with tabs");
+
+                // Test case: Newlines between keywords
+                String withNewlines = "CREATE\nTABLE\n#tempNewlines\n(id INT)";
+                result = stmt.containsTemporaryTableOperations(withNewlines);
+                assertTrue(result, "Should detect CREATE TABLE with newlines");
+
+                // Test case: Mixed whitespace (spaces, tabs, newlines)
+                String mixedWhitespace = "CREATE  \t \n  TABLE   \t\n  #tempMixed  \n\t  (id INT)";
+                result = stmt.containsTemporaryTableOperations(mixedWhitespace);
+                assertTrue(result, "Should detect CREATE TABLE with mixed whitespace");
+
+                // Test case: SELECT INTO with multiple spaces and newlines
+                String selectIntoWhitespace = "SELECT\n  *\n  INTO\n  #tempSelect\n  FROM\n  users";
+                result = stmt.containsTemporaryTableOperations(selectIntoWhitespace);
+                assertTrue(result, "Should detect SELECT INTO with newlines and spaces");
+
+                // Test case: CREATE TABLE not at the beginning - preceded by SELECT
+                String notFirstSql1 = "SELECT * FROM users; CREATE TABLE #tempNotFirst (id INT)";
+                result = stmt.containsTemporaryTableOperations(notFirstSql1);
+                assertTrue(result, "Should detect CREATE TABLE #temp even when not first statement");
+
+                // Test case: Multiple statements with temp table in middle
+                String notFirstSql2 = "UPDATE users SET status = 1; CREATE TABLE #tempMiddle (data VARCHAR(100)); SELECT * FROM #tempMiddle";
+                result = stmt.containsTemporaryTableOperations(notFirstSql2);
+                assertTrue(result, "Should detect CREATE TABLE #temp in middle of multiple statements");
+
+                // Test case: SELECT INTO not at the beginning
+                String notFirstSql3 = "DELETE FROM logs WHERE date < '2024-01-01'; SELECT id, name INTO #tempFromLogs FROM logs";
+                result = stmt.containsTemporaryTableOperations(notFirstSql3);
+                assertTrue(result, "Should detect SELECT INTO #temp even when not first statement");
+
+                // Test case: Temp table creation after comments
+                String afterComments = "-- This is a comment\nCREATE TABLE #tempAfterComment (id INT)";
+                result = stmt.containsTemporaryTableOperations(afterComments);
+                assertTrue(result, "Should detect CREATE TABLE #temp after SQL comments");
+
+                // Test case: Bracketed temp table with mixed case and whitespace
+                String bracketedMixed = "create\t\ntable\t\n[#TempBracketed]\n(col1 INT)";
+                result = stmt.containsTemporaryTableOperations(bracketedMixed);
+                assertTrue(result, "Should detect bracketed temp table with mixed case and whitespace");
+
+                // Test case: Global temp table with mixed case should still be excluded
+                String globalMixedCase = "CrEaTe TaBlE ##GlobalMixed (id INT)";
+                result = stmt.containsTemporaryTableOperations(globalMixedCase);
+                assertTrue(!result, "Should not detect global temp table even with mixed case");
+
+                // Test case: CREATE GLOBAL with mixed case and whitespace should be excluded
+                String globalKeywordMixed = "create\n\tGLOBAL\t\ntable #tempGlobal (id INT)";
+                result = stmt.containsTemporaryTableOperations(globalKeywordMixed);
+                assertTrue(!result, "Should not detect CREATE GLOBAL TABLE with mixed case");
+
+                // Test case: Multiple temp tables in one SQL string
+                String multipleTempTables = "CREATE TABLE #temp1 (id INT); CREATE TABLE #temp2 (name VARCHAR(50))";
+                result = stmt.containsTemporaryTableOperations(multipleTempTables);
+                assertTrue(result, "Should detect when multiple temp tables are created");
+
+                // Test case: Temp table in subquery context
+                String inSubquery = "INSERT INTO users SELECT * FROM #tempData; SELECT * INTO #tempResult FROM (SELECT * FROM #tempData) AS sub";
+                result = stmt.containsTemporaryTableOperations(inSubquery);
+                assertTrue(result, "Should detect SELECT INTO #temp in complex SQL with subqueries");
             }
         }
     }
 
     /**
-     * Test complex scenarios with prepareMethod=scopeTempTablesToConnection including
+     * Test complex scenarios with prepareMethod=scopeTempTablesToConnection
+     * including
      * multiple SQL statements with and without temporary tables.
+     * Note: Simplified pattern only detects CREATE TABLE and SELECT INTO.
      */
     @Test
     public void testScopeTempTablesToConnectionComplexScenarios() throws Exception {
@@ -77,51 +231,63 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
             // Set the prepare method to scopeTempTablesToConnection
             con.setPrepareMethod("scopeTempTablesToConnection");
             
-            // Use Case 1: Multiple SQL statements WITH temporary tables
+            // Use Case 1: CREATE TABLE (detected by pattern)
             String createTempTableSql = "CREATE TABLE #testTemp (id INT, value NVARCHAR(50))";
+
+            try (SQLServerPreparedStatement createStmt = (SQLServerPreparedStatement) con.prepareStatement(createTempTableSql)) {
+                boolean hasTemporaryTables = createStmt.containsTemporaryTableOperations(createTempTableSql);
+                assertTrue(hasTemporaryTables, "Should detect CREATE TABLE statement");
+                createStmt.execute();
+            }
+            
+            // Use Case 2: SELECT INTO temp table (detected by pattern)
+            String selectIntoSql = "SELECT 1 AS id, 'test' AS value INTO #testTemp2";
+
+            try (SQLServerPreparedStatement selectIntoStmt = (SQLServerPreparedStatement) con
+                    .prepareStatement(selectIntoSql)) {
+                boolean hasTemporaryTables = selectIntoStmt.containsTemporaryTableOperations(selectIntoSql);
+                assertTrue(hasTemporaryTables, "Should detect SELECT INTO statement");
+                selectIntoStmt.execute();
+            }
+
+            // Use Case 3: Operations that are NOT detected (INSERT, UPDATE, DELETE, SELECT
+            // FROM)
             String insertTempTableSql = "INSERT INTO #testTemp (id, value) VALUES (?, ?)";
             String selectTempTableSql = "SELECT id, value FROM #testTemp WHERE id = ?";
             String updateTempTableSql = "UPDATE #testTemp SET value = ? WHERE id = ?";
             String deleteTempTableSql = "DELETE FROM #testTemp WHERE id = ?";
-            
-            // Test CREATE TABLE with temp table
-            try (SQLServerPreparedStatement createStmt = (SQLServerPreparedStatement) con.prepareStatement(createTempTableSql)) {
-                boolean hasTemporaryTables = createStmt.containsTemporaryTableOperations(createTempTableSql);
-                assertTrue(hasTemporaryTables, "Should detect temporary table operations in CREATE TABLE statement");
-                createStmt.execute();
-            }
-            
-            // Test INSERT into temp table
+
+            // Test INSERT into temp table (not detected)
             try (SQLServerPreparedStatement insertStmt = (SQLServerPreparedStatement) con.prepareStatement(insertTempTableSql)) {
                 boolean hasTemporaryTables = insertStmt.containsTemporaryTableOperations(insertTempTableSql);
-                assertTrue(hasTemporaryTables, "Should detect temporary table operations in INSERT statement");
+                assertTrue(!hasTemporaryTables, "INSERT statements not detected by simplified pattern");
                 insertStmt.setInt(1, 1);
                 insertStmt.setString(2, "test value");
                 insertStmt.executeUpdate();
             }
             
-            // Test SELECT from temp table
+            // Test SELECT from temp table (not detected)
             try (SQLServerPreparedStatement selectStmt = (SQLServerPreparedStatement) con.prepareStatement(selectTempTableSql)) {
                 boolean hasTemporaryTables = selectStmt.containsTemporaryTableOperations(selectTempTableSql);
-                assertTrue(hasTemporaryTables, "Should detect temporary table operations in SELECT statement");
+                assertTrue(!hasTemporaryTables, "SELECT FROM statements not detected by simplified pattern");
                 selectStmt.setInt(1, 1);
                 boolean hasResultSet = selectStmt.execute();
                 assertTrue(hasResultSet, "Should return true indicating a ResultSet is available");
             }
             
-            // Test UPDATE temp table
+            // Test UPDATE temp table (not detected)
             try (SQLServerPreparedStatement updateStmt = (SQLServerPreparedStatement) con.prepareStatement(updateTempTableSql)) {
                 boolean hasTemporaryTables = updateStmt.containsTemporaryTableOperations(updateTempTableSql);
-                assertTrue(hasTemporaryTables, "Should detect temporary table operations in UPDATE statement");
+                assertTrue(!hasTemporaryTables, "UPDATE statements not detected by simplified pattern");
                 updateStmt.setString(1, "updated value");
                 updateStmt.setInt(2, 1);
                 updateStmt.executeUpdate();
             }
             
-            // Test DELETE from temp table
+            // Test DELETE from temp table (not detected)
             try (SQLServerPreparedStatement deleteStmt = (SQLServerPreparedStatement) con.prepareStatement(deleteTempTableSql)) {
                 boolean hasTemporaryTables = deleteStmt.containsTemporaryTableOperations(deleteTempTableSql);
-                assertTrue(hasTemporaryTables, "Should detect temporary table operations in DELETE statement");
+                assertTrue(!hasTemporaryTables, "DELETE statements not detected by simplified pattern");
                 deleteStmt.setInt(1, 1);
                 deleteStmt.executeUpdate();
             }
@@ -161,6 +327,7 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
     /**
      * Test batch operations with prepareMethod=scopeTempTablesToConnection for both
      * temporary table and non-temporary table scenarios.
+     * Note: Simplified pattern only detects CREATE TABLE and SELECT INTO.
      */
     @Test
     public void testScopeTempTablesToConnectionBatchOperations() throws Exception {
@@ -168,21 +335,22 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
             // Set the prepare method to scopeTempTablesToConnection
             con.setPrepareMethod("scopeTempTablesToConnection");
             
-            // Batch Scenario 1: WITH temporary tables
+            // Batch Scenario 1: CREATE TABLE + INSERT (INSERT not detected by
+            // pattern)
             String createTempSql = "CREATE TABLE #batchTemp (id INT, value NVARCHAR(50))";
             String insertTempSql = "INSERT INTO #batchTemp (id, value) VALUES (?, ?)";
             
-            // Create temp table first
+            // CREATE TABLE first
             try (SQLServerPreparedStatement createStmt = (SQLServerPreparedStatement) con.prepareStatement(createTempSql)) {
                 boolean hasTemporaryTables = createStmt.containsTemporaryTableOperations(createTempSql);
-                assertTrue(hasTemporaryTables, "Should detect temporary table operations in CREATE statement");
+                assertTrue(hasTemporaryTables, "Should detect CREATE TABLE statement");
                 createStmt.execute();
             }
             
-            // Test batch insert into temp table
+            // Test batch insert into temp table (not detected by simplified pattern)
             try (SQLServerPreparedStatement batchTempStmt = (SQLServerPreparedStatement) con.prepareStatement(insertTempSql)) {
                 boolean hasTemporaryTables = batchTempStmt.containsTemporaryTableOperations(insertTempSql);
-                assertTrue(hasTemporaryTables, "Should detect temporary table operations in batch INSERT statement");
+                assertTrue(!hasTemporaryTables, "INSERT statements not detected by simplified pattern");
                 
                 // Add multiple entries to batch
                 batchTempStmt.setInt(1, 1);

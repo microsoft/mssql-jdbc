@@ -1177,17 +1177,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     // Pre-compiled regex patterns for temporary table detection (performance
     // optimization)
-    // Pattern matches both unescaped (#tempTable) and bracketed ([#tempTable]) temp
-    // table identifiers
+    // Matches valid SQL Server local temp table operations (excluding global temp
+    // tables with ##):
+    // 1. CREATE TABLE #temp (local temp table - single #)
+    // 2. SELECT ... INTO #temp (local temp table - single #)
+    // Excludes: CREATE TABLE ##temp (global temp tables - double ##)
+    // Note: SQL Server does NOT support CREATE TEMP/TEMPORARY/GLOBAL TABLE keywords
     private static final java.util.regex.Pattern TEMP_TABLE_PATTERN = java.util.regex.Pattern.compile(
             "\\b(?:" +
-                    "(?:from|join)\\s+(?:#\\w+|\\[#[^\\]]+\\])" + "|" + // FROM/JOIN references (most common, check
-                                                                        // first)
-                    "(?:insert\\s+into|update|delete\\s+from)\\s+(?:#\\w+|\\[#[^\\]]+\\])" + "|" + // DML operations
-                    "create\\s+(?:(?:global\\s+)?temp(?:orary)?\\s+table\\s+|table\\s+)(?:#\\w+|\\[#[^\\]]+\\])" + "|" + // CREATE
-                                                                                                                         // patterns
-                    "drop\\s+table\\s+(?:#\\w+|\\[#[^\\]]+\\])" + "|" + // DROP TABLE
-                    "select\\b[^;]*?\\binto\\s+(?:#\\w+|\\[#[^\\]]+\\])" + // SELECT INTO (optimized pattern)
+                    "create\\s+table\\s+(?:#(?!#)\\w+|\\[#(?!#)[^\\]]+\\])" + "|" + // CREATE TABLE #temp (not ##)
+                    "select\\b[^;]*?\\binto\\s+(?:#(?!#)\\w+|\\[#(?!#)[^\\]]+\\])" + // SELECT INTO #temp (not ##)
                     ")",
             java.util.regex.Pattern.CASE_INSENSITIVE);
 
@@ -1203,12 +1202,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false;
         }
 
-        // Fast check for global temporary tables (##) - most efficient
-        int globalTempIndex = sql.indexOf("##");
-        if (globalTempIndex >= 0) {
-            return true;
-        }
-
         // Fast check for any # character - early exit if no temp table markers
         int hashIndex = sql.indexOf('#');
         if (hashIndex == -1) {
@@ -1217,8 +1210,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Additional performance check: ensure # is likely part of a table name
         // (followed by alphanumeric character, not just any #)
-        if (hashIndex < sql.length() - 1 &&
-                !Character.isLetterOrDigit(sql.charAt(hashIndex + 1))) {
+        if ((hashIndex < sql.length() - 1) &&
+                !(Character.isLetterOrDigit(sql.charAt(hashIndex + 1)))) {
             return false;
         }
 
