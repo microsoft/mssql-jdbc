@@ -1087,6 +1087,44 @@ public class DatabaseMetaDataTest extends AbstractTest {
             TestUtils.dropDatabaseIfExists(dbName, connectionString);
         }
     }
+
+    /**
+     * Test for issue #2863: DatabaseMetaData getSchemas returns only one "dbo" schema with a null TABLE_CATALOG
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testGetSchemasReturnsCorrectCatalogForDbo() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testDb1 = "TestDb1_" + id;
+        String testDb2 = "TestDb2_" + id;
+
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+            TestUtils.dropDatabaseIfExists(testDb1, connectionString);
+            TestUtils.dropDatabaseIfExists(testDb2, connectionString);
+            
+            stmt.execute(String.format("CREATE DATABASE [%s]", testDb1));
+            stmt.execute(String.format("CREATE DATABASE [%s]", testDb2));
+
+            try (ResultSet rs = connection.getMetaData().getSchemas(null, "dbo")) {
+                while (rs.next()) {
+                    String schemaName = rs.getString("TABLE_SCHEM");
+                    String catalogName = rs.getString("TABLE_CATALOG");
+                    
+                    // Issue #2863: TABLE_CATALOG should not be null for dbo schema
+                    assertNotNull(catalogName, 
+                        "TABLE_CATALOG should not be null for schema: " + schemaName);
+                }
+            }
+
+        } finally {
+            TestUtils.dropDatabaseIfExists(testDb1, connectionString);
+            TestUtils.dropDatabaseIfExists(testDb2, connectionString);
+        }
+    }
+
     /**
      * Test for VECTOR column metadata
      * 

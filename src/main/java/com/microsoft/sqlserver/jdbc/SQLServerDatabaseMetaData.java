@@ -1772,13 +1772,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (null != catalog && catalog.length() == 0) {
             s += "null 'TABLE_CATALOG' ";
         } else {
-            s += " CASE WHEN " + schemaName + "  IN " + constSchemas + " THEN null ELSE ";
             if (null != catalog && catalog.length() != 0) {
-                s += "'" + catalog + "' ";
-            } else
-                s += " DB_NAME() ";
-
-            s += " END 'TABLE_CATALOG' ";
+                s += "'" + catalog + "' 'TABLE_CATALOG' ";
+            } else {
+                s += " DB_NAME() 'TABLE_CATALOG' ";
+            }
         }
         s += "   from " + schema;
 
