@@ -1087,6 +1087,191 @@ public class DatabaseMetaDataTest extends AbstractTest {
             TestUtils.dropDatabaseIfExists(dbName, connectionString);
         }
     }
+
+    /**
+     * Test for issue #2863: DatabaseMetaData getSchemas returns only one "dbo" schema with a null TABLE_CATALOG
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testGetSchemasReturnsCorrectCatalogForDbo() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testDb1 = "TestDb1_" + id;
+        String testDb2 = "TestDb2_" + id;
+
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+            TestUtils.dropDatabaseIfExists(testDb1, connectionString);
+            TestUtils.dropDatabaseIfExists(testDb2, connectionString);
+            
+            stmt.execute(String.format("CREATE DATABASE [%s]", testDb1));
+            stmt.execute(String.format("CREATE DATABASE [%s]", testDb2));
+
+            try (ResultSet rs = connection.getMetaData().getSchemas(null, "dbo")) {
+                while (rs.next()) {
+                    String schemaName = rs.getString("TABLE_SCHEM");
+                    String catalogName = rs.getString("TABLE_CATALOG");
+                    
+                    // Issue #2863: TABLE_CATALOG should not be null for dbo schema
+                    assertNotNull(catalogName, 
+                        "TABLE_CATALOG should not be null for schema: " + schemaName);
+                }
+            }
+
+        } finally {
+            TestUtils.dropDatabaseIfExists(testDb1, connectionString);
+            TestUtils.dropDatabaseIfExists(testDb2, connectionString);
+        }
+    }
+
+    /**
+     * Validates that when a non-null catalog is specified, TABLE_CATALOG matches the specified catalog
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testGetSchemasWithSpecificCatalogForConstSchema() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testDb = "TestDbConst_" + id;
+
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+            TestUtils.dropDatabaseIfExists(testDb, connectionString);
+            
+            stmt.execute(String.format("CREATE DATABASE [%s]", testDb));
+            stmt.execute(String.format("USE [%s]", testDb));
+
+            // Test with specific catalog for dbo (const schema)
+            try (ResultSet rs = connection.getMetaData().getSchemas(testDb, "dbo")) {
+                boolean foundDbo = false;
+                while (rs.next()) {
+                    String schemaName = rs.getString("TABLE_SCHEM");
+                    String catalogName = rs.getString("TABLE_CATALOG");
+                    
+                    if ("dbo".equals(schemaName)) {
+                        foundDbo = true;
+                        assertNotNull(catalogName, 
+                            "TABLE_CATALOG should not be null for const schema 'dbo' with specific catalog");
+                        assertEquals(testDb, catalogName,
+                            "TABLE_CATALOG should match specified catalog for const schema 'dbo'");
+                    }
+                }
+                assertTrue(foundDbo, "dbo schema should be found in specified catalog");
+            }
+
+        } finally {
+            TestUtils.dropDatabaseIfExists(testDb, connectionString);
+        }
+    }
+
+    /**
+     * Tests sys, INFORMATION_SCHEMA, guest, and db_owner schemas
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testGetSchemasForOtherConstSchemas() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testDb = "TestDbOtherConst_" + id;
+        String[] otherConstSchemas = {"sys", "INFORMATION_SCHEMA", "guest", "db_owner"};
+
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+            TestUtils.dropDatabaseIfExists(testDb, connectionString);
+            
+            stmt.execute(String.format("CREATE DATABASE [%s]", testDb));
+            stmt.execute(String.format("USE [%s]", testDb));
+
+            for (String schemaName : otherConstSchemas) {
+                try (ResultSet rs = connection.getMetaData().getSchemas(null, schemaName)) {
+                    boolean foundSchema = false;
+                    while (rs.next()) {
+                        String returnedSchemaName = rs.getString("TABLE_SCHEM");
+                        String catalogName = rs.getString("TABLE_CATALOG");
+                        
+                        if (schemaName.equals(returnedSchemaName)) {
+                            foundSchema = true;
+                            assertNotNull(catalogName, 
+                                "TABLE_CATALOG should not be null for const schema: " + schemaName);
+                            assertEquals(testDb, catalogName,
+                                "TABLE_CATALOG should match current database for const schema: " + schemaName);
+                        }
+                    }
+                    assertTrue(foundSchema, "Const schema '" + schemaName + "' should be found");
+                }
+            }
+
+        } finally {
+            TestUtils.dropDatabaseIfExists(testDb, connectionString);
+        }
+    }
+
+    /**
+     * Validates that custom user-created schemas also return correct TABLE_CATALOG
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testGetSchemasWithCatalogForCustomSchema() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testDb = "TestDbCustom_" + id;
+        String customSchema = "CustomSchema_" + id;
+
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+            TestUtils.dropDatabaseIfExists(testDb, connectionString);
+            
+            stmt.execute(String.format("CREATE DATABASE [%s]", testDb));
+            stmt.execute(String.format("USE [%s]", testDb));
+            stmt.execute(String.format("CREATE SCHEMA [%s]", customSchema));
+
+            // Test with specific catalog and custom schema
+            try (ResultSet rs = connection.getMetaData().getSchemas(testDb, customSchema)) {
+                boolean foundCustomSchema = false;
+                while (rs.next()) {
+                    String schemaName = rs.getString("TABLE_SCHEM");
+                    String catalogName = rs.getString("TABLE_CATALOG");
+                    
+                    if (customSchema.equals(schemaName)) {
+                        foundCustomSchema = true;
+                        // Custom schema with specified catalog should have non-null TABLE_CATALOG
+                        assertNotNull(catalogName, 
+                            "TABLE_CATALOG should not be null for custom schema: " + customSchema);
+                        assertEquals(testDb, catalogName,
+                            "TABLE_CATALOG should match specified catalog for custom schema");
+                    }
+                }
+                assertTrue(foundCustomSchema, "Custom schema should be found in specified catalog");
+            }
+
+            // Test with null catalog and custom schema
+            try (ResultSet rs = connection.getMetaData().getSchemas(null, customSchema)) {
+                boolean foundCustomSchema = false;
+                while (rs.next()) {
+                    String schemaName = rs.getString("TABLE_SCHEM");
+                    String catalogName = rs.getString("TABLE_CATALOG");
+                    
+                    if (customSchema.equals(schemaName)) {
+                        foundCustomSchema = true;
+                        // Custom schema should have non-null TABLE_CATALOG even with null catalog parameter
+                        assertNotNull(catalogName, 
+                            "TABLE_CATALOG should not be null for custom schema with null catalog parameter");
+                        assertEquals(testDb, catalogName,
+                            "TABLE_CATALOG should match current database for custom schema");
+                    }
+                }
+                assertTrue(foundCustomSchema, "Custom schema should be found with null catalog parameter");
+            }
+
+        } finally {
+            TestUtils.dropDatabaseIfExists(testDb, connectionString);
+        }
+    }
+
     /**
      * Test for VECTOR column metadata
      * 
