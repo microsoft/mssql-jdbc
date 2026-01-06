@@ -760,10 +760,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    private static final String VECTOR_SUPPORT_OFF = "off"; // vector not supported; will return json formatted string
-    private static final String VECTOR_SUPPORT_V1 = "v1"; // supports float32 vector type
-    private static final String VECTOR_SUPPORT_V2 = "v2"; // supports float32 and float16 vector types
-
     final static int TNIR_FIRST_ATTEMPT_TIMEOUT_MS = 500; // fraction of timeout to use for fast failover connections
 
     /**
@@ -1112,6 +1108,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     private String vectorTypeSupport = SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.getDefaultValue();
 
+    private VectorTypeSupport vectorTypeSupportEnum = VectorTypeSupport.V1;
+
     /** 
      * Negotiated vector version between client and server 
      */
@@ -1146,16 +1144,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             Object[] msgArgs = { "null" };
             throw new IllegalArgumentException(form.format(msgArgs));
         }
-        switch (vectorTypeSupport.trim().toLowerCase()) {
-            case VECTOR_SUPPORT_OFF:
-            case VECTOR_SUPPORT_V1:
-            case VECTOR_SUPPORT_V2:
-                this.vectorTypeSupport = vectorTypeSupport.toLowerCase();
-                break;
-            default:
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
-                Object[] msgArgs = { vectorTypeSupport };
-                throw new IllegalArgumentException(form.format(msgArgs));
+        try {
+            this.vectorTypeSupportEnum = VectorTypeSupport.valueOfString(vectorTypeSupport.trim());
+            this.vectorTypeSupport = vectorTypeSupport.toLowerCase();
+        } catch (SQLServerException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
+            Object[] msgArgs = { vectorTypeSupport };
+            throw new IllegalArgumentException(form.format(msgArgs));
         }
     }
 
@@ -5910,29 +5905,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     int writeVectorSupportFeatureRequest(boolean write,
             TDSWriter tdsWriter) throws SQLServerException {
-        if (VECTOR_SUPPORT_OFF.equalsIgnoreCase(vectorTypeSupport)) {
+
+        // Initialize vectorTypeSupportEnum if not already done.
+        if (vectorTypeSupportEnum == null) {
+            try {
+                vectorTypeSupportEnum = VectorTypeSupport.valueOfString(vectorTypeSupport);
+            } catch (SQLServerException e) {
+                // Fallback to value OFF if invalid value is provided.
+                vectorTypeSupportEnum = VectorTypeSupport.OFF;
+            }
+        }
+
+        if (vectorTypeSupportEnum == VectorTypeSupport.OFF) {
             return 0;
         }
+
         int len = 6; // 1byte = featureID, 4bytes = featureData length, 1 bytes = Version
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_VECTORSUPPORT);
             tdsWriter.writeInt(1);
 
-            byte clientVectorSupportVersion;
-            switch (vectorTypeSupport) {
-                case VECTOR_SUPPORT_V2:
-                    clientVectorSupportVersion = TDS.VECTORSUPPORT_VERSION_2;
-                    break;
-                case VECTOR_SUPPORT_V1:
-                    clientVectorSupportVersion = TDS.VECTORSUPPORT_VERSION_1;
-                    break;
-                case VECTOR_SUPPORT_OFF:
-                default:
-                    // Should not reach here due to prior validation.
-                    clientVectorSupportVersion = TDS.VECTORSUPPORT_VERSION_1;
-                    break;
-            }
-            tdsWriter.writeByte(clientVectorSupportVersion);
+            // write the vector type support version
+            tdsWriter.writeByte(vectorTypeSupportEnum.getTdsValue());
         }
         return len;
     }
@@ -7145,7 +7139,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidVectorVersionNumber"), null);
                 }
                 // Negotiate the vector version between client and server
-                negotiatedVectorVersion = negotiateVectorVersion(vectorTypeSupport, serverSupportedVectorVersion);
+                negotiatedVectorVersion = negotiateVectorVersion(vectorTypeSupportEnum, serverSupportedVectorVersion);
 
                 if (negotiatedVectorVersion > TDS.VECTORSUPPORT_NOT_SUPPORTED) {
                     serverSupportsVector = true;
@@ -7205,34 +7199,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * @param serverVersion       The server's supported vector version
      * @return The negotiated vector version
      */
-    private byte negotiateVectorVersion(String clientVectorSupport, byte serverVersion) {
+    private byte negotiateVectorVersion(VectorTypeSupport clientVectorSupportEnum, byte serverVersion) {
 
         // If server doesn't support vectors, negotiation is off
         if (serverVersion == TDS.VECTORSUPPORT_NOT_SUPPORTED) {
             return TDS.VECTORSUPPORT_NOT_SUPPORTED;
         }
 
-        byte clientMaxVersion;
-
-        switch (clientVectorSupport.toLowerCase()) {
-            case VECTOR_SUPPORT_OFF:
-                return TDS.VECTORSUPPORT_NOT_SUPPORTED;
-
-            case VECTOR_SUPPORT_V2:
-                clientMaxVersion = TDS.VECTORSUPPORT_VERSION_2;
-                break;
-
-            case VECTOR_SUPPORT_V1:
-                clientMaxVersion = TDS.VECTORSUPPORT_VERSION_1;
-                break;
-
-            default:
-                // Invalid client setting
-                return TDS.VECTORSUPPORT_NOT_SUPPORTED;
+        if (clientVectorSupportEnum == VectorTypeSupport.OFF) {
+            return TDS.VECTORSUPPORT_NOT_SUPPORTED;
         }
+
+        byte clientMaxVersion = clientVectorSupportEnum.getTdsValue();
 
         // Negotiate using the minimum supported version
         return (byte) Math.min(clientMaxVersion, serverVersion);
+
     }
 
     /**

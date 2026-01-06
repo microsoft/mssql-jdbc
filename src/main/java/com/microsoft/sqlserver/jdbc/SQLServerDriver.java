@@ -502,18 +502,34 @@ enum DatetimeType {
 }
 
 enum VectorTypeSupport {
-    OFF("off"),
-    V1("v1"), //float32 support
-    V2("v2"); //float32 and float16 support
+    OFF("off", TDS.VECTORSUPPORT_NOT_SUPPORTED),
+    V1("v1", TDS.VECTORSUPPORT_VERSION_1), //float32 support
+    V2("v2", TDS.VECTORSUPPORT_VERSION_2); //float32 and float16 support
 
     private final String type;
+    private final byte tdsValue;
 
-    VectorTypeSupport(String type) {
+    VectorTypeSupport(String type, byte tdsValue) {
         this.type = type;
+        this.tdsValue = tdsValue;
     }
 
     @Override
     public String toString() {
+        return type;
+    }
+
+    /**
+     * Returns the byte value used in TDS communication
+     */
+    public byte getTdsValue() {
+        return tdsValue;
+    }
+
+    /**
+     * Returns the string value of vectorTypeSupport
+     */
+    public String getType() {
         return type;
     }
 
@@ -522,7 +538,7 @@ enum VectorTypeSupport {
             throwInvalid(value);
         }
 
-        switch (value.toLowerCase()) {
+        switch (value.trim().toLowerCase()) {
             case "off":
                 return VectorTypeSupport.OFF;
             case "v1":
@@ -531,7 +547,7 @@ enum VectorTypeSupport {
                 return VectorTypeSupport.V2;
             default:
                 throwInvalid(value);
-                return VectorTypeSupport.OFF;
+                return VectorTypeSupport.OFF; // Never reached
         }
     }
 
