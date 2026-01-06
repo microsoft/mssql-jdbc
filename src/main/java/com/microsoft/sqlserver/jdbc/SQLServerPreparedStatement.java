@@ -1189,6 +1189,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Detects if the SQL statement contains temporary table operations.
      * This method uses pre-compiled regex patterns for optimal performance.
+     * Note: This is a simplified heuristic that may not handle all edge cases
+     * (e.g., temp table references inside string literals or comments).
      * 
      * @param sql The SQL statement to analyze
      * @return true if temporary table operations are detected, false otherwise
@@ -1211,8 +1213,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false;
         }
 
+        // Strip out string literals to avoid false positives
+        // SQL Server uses single quotes for string literals, doubled for escaping:
+        // 'it''s'
+        String sqlWithoutLiterals = sql.replaceAll("'(?:''|[^'])*'", "");
+
         // Use pre-compiled pattern for comprehensive temp table detection
-        boolean result = TEMP_TABLE_PATTERN.matcher(sql).find();
+        boolean result = TEMP_TABLE_PATTERN.matcher(sqlWithoutLiterals).find();
         return result;
     }
 
