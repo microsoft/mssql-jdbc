@@ -65,7 +65,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     static final int UNIQUEIDENTIFIER_SIZE = 36;
 
     enum CallableHandles {
-        SP_COLUMNS("{ call sp_columns(?, ?, ?, ?, ?) }", "{ call sp_columns_100(?, ?, ?, ?, ?, ?) }"),
+        SP_COLUMNS("{ call sp_columns(?, ?, ?, ?, ?) }", "{ call sp_columns_170(?, ?, ?, ?, ?, ?) }"),
         SP_COLUMN_PRIVILEGES("{ call sp_column_privileges(?, ?, ?, ?)}", "{ call sp_column_privileges(?, ?, ?, ?)}"),
         SP_TABLES("{ call sp_tables(?, ?, ?, ?) }", "{ call sp_tables(?, ?, ?, ?) }"),
         SP_SPECIAL_COLUMNS("{ call sp_special_columns (?, ?, ?, ?, ?, ?, ?)}", "{ call sp_special_columns_100 (?, ?, ?, ?, ?, ?, ?)}"),
@@ -698,7 +698,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     + "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_NAME NVARCHAR(128),"
                     + "SS_DATA_TYPE TINYINT);"
 
-                    + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC sp_columns_100 ?,?,?,?,?,?;"
+                    + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC sp_columns_170 ?,?,?,?,?,?;"
 
                     + "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, "
                     + "CAST(DATA_TYPE AS INT) AS DATA_TYPE,TYPE_NAME, PRECISION AS COLUMN_SIZE, LENGTH AS BUFFER_LENGTH, "
@@ -846,7 +846,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             }
 
             try (PreparedStatement storedProcPstmt = this.connection
-                    .prepareStatement("EXEC sp_columns_100 ?,?,?,?,?,?;")) {
+                    .prepareStatement("EXEC sp_columns_170 ?,?,?,?,?,?;")) {
                 storedProcPstmt.setString(1, (null != table && !table.isEmpty()) ? escapeIDName(table) : "%");
                 storedProcPstmt.setString(2, (null != schema && !schema.isEmpty()) ? escapeIDName(schema) : "%");
                 storedProcPstmt.setString(3,
