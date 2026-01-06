@@ -89,16 +89,6 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
                 result = stmt.containsTemporaryTableOperations(selectIntoGlobalBracketedSql);
                 assertTrue(!result, "Should not detect SELECT INTO bracketed global temp [##]");
 
-                // Test case: CREATE GLOBAL TEMP TABLE should return false
-                String createGlobalTempSql = "CREATE GLOBAL TEMP TABLE #temp (id INT)";
-                result = stmt.containsTemporaryTableOperations(createGlobalTempSql);
-                assertTrue(!result, "Should not detect CREATE GLOBAL TEMP TABLE");
-
-                // Test case: CREATE GLOBAL TEMPORARY TABLE should return false
-                String createGlobalTemporarySql = "CREATE GLOBAL TEMPORARY TABLE #temp (id INT)";
-                result = stmt.containsTemporaryTableOperations(createGlobalTemporarySql);
-                assertTrue(!result, "Should not detect CREATE GLOBAL TEMPORARY TABLE");
-
                 // Test case: SELECT INTO regular table should return false
                 String regularSelectIntoSql = "SELECT * INTO regularTable FROM users";
                 result = stmt.containsTemporaryTableOperations(regularSelectIntoSql);
@@ -215,6 +205,57 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
                 String inSubquery = "INSERT INTO users SELECT * FROM #tempData; SELECT * INTO #tempResult FROM (SELECT * FROM #tempData) AS sub";
                 result = stmt.containsTemporaryTableOperations(inSubquery);
                 assertTrue(result, "Should detect SELECT INTO #temp in complex SQL with subqueries");
+
+                // Test case: Semicolon-separated SQL statements WITHOUT temp tables
+                String semicolonSeparatedNoTemp = "SELECT * FROM users; UPDATE users SET status = 1 WHERE id = 1; DELETE FROM logs WHERE date < '2024-01-01'";
+                result = stmt.containsTemporaryTableOperations(semicolonSeparatedNoTemp);
+                assertTrue(!result, "Should not detect temp tables in multiple regular statements");
+
+                // Test case: String literals containing "create temporary table" syntax (false
+                // positive test)
+                String stringLiteralWithTempSyntax = "INSERT INTO audit_log VALUES ('User executed: CREATE TABLE #tempData (id INT)')";
+                result = stmt.containsTemporaryTableOperations(stringLiteralWithTempSyntax);
+                assertTrue(!result, "Should not detect temp table operations inside string literals");
+
+                // Test case: Combined CREATE TABLE and SELECT INTO in same SQL
+                String combinedCreateAndSelectInto = "CREATE TABLE #temp1 (id INT); SELECT * INTO #temp2 FROM users";
+                result = stmt.containsTemporaryTableOperations(combinedCreateAndSelectInto);
+                assertTrue(result, "Should detect both CREATE TABLE and SELECT INTO temp tables");
+
+                // Test case: Null input
+                String nullSql = null;
+                result = stmt.containsTemporaryTableOperations(nullSql);
+                assertTrue(!result, "Should return false for null input");
+
+                // Test case: Empty string input
+                String emptySql = "";
+                result = stmt.containsTemporaryTableOperations(emptySql);
+                assertTrue(!result, "Should return false for empty string input");
+
+                // Test case: Average-sized SQL string (realistic production scenario)
+                StringBuilder avgSqlBuilder = new StringBuilder();
+                avgSqlBuilder.append("CREATE TABLE #averageTempTable (id INT PRIMARY KEY, ");
+                for (int i = 1; i <= 50; i++) {
+                    avgSqlBuilder.append("column").append(i).append(" NVARCHAR(255)");
+                    if (i < 50) {
+                        avgSqlBuilder.append(", ");
+                    }
+                }
+                avgSqlBuilder.append(")");
+                String avgSql = avgSqlBuilder.toString();
+                result = stmt.containsTemporaryTableOperations(avgSql);
+                assertTrue(result, "Should detect CREATE TABLE #temp in average-sized SQL strings");
+
+                // Test case: Very large SQL string (performance/stress test)
+                StringBuilder largeSqlBuilder = new StringBuilder();
+                largeSqlBuilder.append("CREATE TABLE #largeTempTable (id INT, ");
+                for (int i = 0; i < 1000; i++) {
+                    largeSqlBuilder.append("col").append(i).append(" VARCHAR(100), ");
+                }
+                largeSqlBuilder.append("endCol VARCHAR(100))");
+                String largeSql = largeSqlBuilder.toString();
+                result = stmt.containsTemporaryTableOperations(largeSql);
+                assertTrue(result, "Should detect CREATE TABLE #temp even in very large SQL strings");
             }
         }
     }

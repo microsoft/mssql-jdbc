@@ -197,8 +197,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return 0 < prepStmtHandle;
     }
 
-
-
     /**
      * Resets the server handle for this prepared statement to no handle.
      */
@@ -512,8 +510,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
         return sb.toString();
     }
-
-
 
     @Override
     public java.sql.ResultSet executeQuery() throws SQLServerException, SQLTimeoutException {
@@ -3253,8 +3249,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                             // In batch execution, we have a special update count
                             // to indicate that no information was returned
-                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO 
-                                                                                                : updateCount;
+                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount)
+                                    ? Statement.SUCCESS_NO_INFO
+                                    : updateCount;
 
                             processBatch();
 

@@ -8609,9 +8609,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // Try to set the cause, but if OOM occurs even this may fail
             try {
                 ex.initCause(e);
-            } catch (OutOfMemoryError oom) {
-                // If we can't even set the cause due to OOM, just throw the pre-allocated
-                // exception
+            } catch (Exception oom) {
             }
             throw ex;
         }
