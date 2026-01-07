@@ -6798,7 +6798,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     try {
                         FedAuthDllInfo dllInfo = AuthenticationJNI.getAccessTokenForWindowsIntegrated(
                                 fedAuthInfo.stsurl, fedAuthInfo.spn, clientConnectionId.toString(),
-                                ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID);
+                                ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID, 0);
 
                         // AccessToken should not be null.
                         assert null != dllInfo.accessTokenBytes;

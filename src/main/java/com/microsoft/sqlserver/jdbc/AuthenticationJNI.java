@@ -85,11 +85,12 @@ final class AuthenticationJNI extends SSPIAuthentication {
     }
 
     static FedAuthDllInfo getAccessTokenForWindowsIntegrated(String stsURL, String servicePrincipalName,
-            String clientConnectionId, String clientId) throws DLLException {
+            String clientConnectionId, String clientId, long expirationFileTime) throws DLLException {
         try {
             lock.lock();
 
-            return MSQAGetAccessTokenForWindowsIntegrated(stsURL, servicePrincipalName, clientConnectionId, clientId, authLogger);
+            return ADALGetAccessTokenForWindowsIntegrated(stsURL, servicePrincipalName, clientConnectionId, clientId,
+                    expirationFileTime, authLogger);
         } finally {
             lock.unlock();
         }
@@ -163,8 +164,9 @@ final class AuthenticationJNI extends SSPIAuthentication {
 
     private static native int GetDNSName(String address, String[] DNSName, java.util.logging.Logger log);
 
-    private static native FedAuthDllInfo MSQAGetAccessTokenForWindowsIntegrated(String stsURL,
-            String servicePrincipalName, String clientConnectionId, String clientId, java.util.logging.Logger log);
+    private static native FedAuthDllInfo ADALGetAccessTokenForWindowsIntegrated(String stsURL,
+            String servicePrincipalName, String clientConnectionId, String clientId, long expirationFileTime,
+            java.util.logging.Logger log);
 
     static native byte[] DecryptColumnEncryptionKey(String masterKeyPath, String encryptionAlgorithm,
             byte[] encryptedColumnEncryptionKey) throws DLLException;
