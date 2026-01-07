@@ -75,6 +75,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
 		<enforcer.skip>false</enforcer.skip>
+		<bundle.version.suffix>${version}.jre11${releaseExt}</bundle.version.suffix>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -248,6 +249,9 @@
 	<profiles>
 		<profile>
 			<id>jre8</id>
+			<properties>
+				<bundle.version.suffix>${version}.jre8${releaseExt}</bundle.version.suffix>
+			</properties>
 			<dependencies>
 				<dependency>
 					<groupId>org.mockito</groupId>
@@ -648,6 +652,7 @@
 							jdk.net;resolution:=optional,*
 						</Import-Package>
 						<Bundle-Activator>com.microsoft.sqlserver.jdbc.osgi.Activator</Bundle-Activator>
+						<Bundle-Version>${bundle.version.suffix}</Bundle-Version>
 					</instructions>
 				</configuration>
 				<executions>
