@@ -6749,7 +6749,8 @@ final class TDSWriter {
  */
 final class TDSPacket {
     final byte[] header = new byte[TDS.PACKET_HEADER_SIZE];
-    final byte[] payload;
+    byte[] payload;
+    ByteBuffer payloadBuffer;
     int payloadLength;
     volatile TDSPacket next;
 
@@ -6759,7 +6760,8 @@ final class TDSPacket {
     }
 
     TDSPacket(int size) {
-        payload = new byte[size];
+        payloadBuffer = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN);
+        payload = payloadBuffer.array();
         payloadLength = 0;
         next = null;
     }
@@ -7036,8 +7038,9 @@ final class TDSReader implements Serializable {
 
             // Now for the payload...
             for (int payloadBytesRead = 0; payloadBytesRead < newPacket.payloadLength;) {
-                int bytesRead = tdsChannel.read(newPacket.payload, payloadBytesRead,
+                int bytesRead = tdsChannel.read(newPacket.payloadBuffer.array(), payloadBytesRead,
                         newPacket.payloadLength - payloadBytesRead);
+                newPacket.payload = newPacket.payloadBuffer.array();
                 if (bytesRead < 0)
                     con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
                             SQLServerException.getErrString("R_truncatedServerResponse"));
