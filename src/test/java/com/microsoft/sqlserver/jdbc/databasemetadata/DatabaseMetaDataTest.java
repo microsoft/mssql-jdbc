@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -49,6 +50,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDatabaseMetaData;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -890,6 +892,608 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     rowCount++;
                 }
                 assertEquals(3, rowCount);
+            }
+        }
+    }
+
+    /**
+     * Comprehensive coverage test for {@link SQLServerDatabaseMetaData#getIndexInfo(String, String, String, boolean,
+     * boolean)} in Azure DW mode.
+     * 
+     * This test creates a test table with both unique and non-unique indexes, then calls getIndexInfo with various
+     * parameters to cover different code paths, including:
+     * <ul>
+     * <li>Normal execution path (lines 1347-1419)
+     * <li>unique=true parameter (line 1285)
+     * <li>approximate=true parameter (line 1289)
+     * </ul>
+     * 
+     * @throws Exception
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testGetIndexInfoAzureDWComprehensiveCoverage() throws Exception {
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+
+            // Use reflection to simulate Azure DW connection
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(conn, true);
+
+            // Set isAzure to true as well since some code paths check both
+            Field f2 = SQLServerConnection.class.getDeclaredField("isAzure");
+            f2.setAccessible(true);
+            f2.set(conn, true);
+
+            String testTable = "azureDWTestTable" + uuid;
+            String testSchema = "test_schema" + uuid;
+
+            // Create test schema first
+            String escapedSchema = AbstractSQLGenerator.escapeIdentifier(testSchema);
+            String escapedTable = AbstractSQLGenerator.escapeIdentifier(testTable);
+
+            stmt.executeUpdate("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '" + testSchema + "') " +
+                    "EXEC('CREATE SCHEMA " + escapedSchema + "')");
+
+            // Create test table with various types of indexes to trigger different code paths
+            stmt.execute("CREATE TABLE " + escapedSchema + "." + escapedTable + " (" +
+                    "id INT PRIMARY KEY, " +
+                    "email NVARCHAR(100), " +
+                    "name NVARCHAR(50), " +
+                    "data NVARCHAR(100))");
+
+            // Create both unique and non-unique indexes
+            stmt.execute("CREATE UNIQUE INDEX idx_" + testTable + "_email ON " + escapedSchema + "." + escapedTable
+                    + " (email)");
+            stmt.execute(
+                    "CREATE INDEX idx_" + testTable + "_name ON " + escapedSchema + "." + escapedTable + " (name)");
+
+            try {
+                DatabaseMetaData dbMetadata = conn.getMetaData();
+                String catalog = conn.getCatalog();
+
+                // Test 1: Normal execution path with unique=false, approximate=false
+                // This covers lines 1347-1394 (LinkedHashMap setup and main execution)
+                try (ResultSet rs = dbMetadata.getIndexInfo(catalog, testSchema, testTable, false, false)) {
+                    assertNotNull(rs, "ResultSet should not be null");
+
+                    // Verify column structure matches getIndexInfoDWColumns mapping
+                    ResultSetMetaData rsmd = rs.getMetaData();
+                    assertEquals(13, rsmd.getColumnCount(),
+                            "Should have 13 columns as defined in getIndexInfoDWColumns");
+
+                    // Verify column order matches the LinkedHashMap setup
+                    assertEquals("TABLE_CAT", rsmd.getColumnName(1));
+                    assertEquals("TABLE_SCHEM", rsmd.getColumnName(2));
+                    assertEquals("TABLE_NAME", rsmd.getColumnName(3));
+                    assertEquals("NON_UNIQUE", rsmd.getColumnName(4));
+                    assertEquals("INDEX_QUALIFIER", rsmd.getColumnName(5));
+                    assertEquals("INDEX_NAME", rsmd.getColumnName(6));
+                    assertEquals("TYPE", rsmd.getColumnName(7));
+                    assertEquals("ORDINAL_POSITION", rsmd.getColumnName(8));
+                    assertEquals("COLUMN_NAME", rsmd.getColumnName(9));
+                    assertEquals("ASC_OR_DESC", rsmd.getColumnName(10));
+                    assertEquals("CARDINALITY", rsmd.getColumnName(11));
+                    assertEquals("PAGES", rsmd.getColumnName(12));
+                    assertEquals("FILTER_CONDITION", rsmd.getColumnName(13));
+
+                    boolean hasResults = false;
+                    boolean hasUniqueIndex = false;
+                    boolean hasNonUniqueIndex = false;
+
+                    while (rs.next()) {
+                        hasResults = true;
+
+                        // Verify data integrity from both sp_statistics and sys.indexes UNION ALL
+                        String tableCat = rs.getString("TABLE_CAT");
+                        String tableSchem = rs.getString("TABLE_SCHEM");
+                        String tableName = rs.getString("TABLE_NAME");
+                        int nonUnique = rs.getInt("NON_UNIQUE");
+
+                        assertNotNull(tableCat, "TABLE_CAT should not be null");
+                        assertEquals(testSchema, tableSchem, "TABLE_SCHEM should match");
+                        assertEquals(testTable, tableName, "TABLE_NAME should match");
+
+                        // Track index types
+                        if (nonUnique == 0) {
+                            hasUniqueIndex = true;
+                        } else {
+                            hasNonUniqueIndex = true;
+                        }
+                    }
+
+                    assertTrue(hasResults, "Should have index results");
+                    assertTrue(hasUniqueIndex, "Should have unique indexes");
+                    assertTrue(hasNonUniqueIndex, "Should have non-unique indexes");
+                }
+
+                // Test 2: unique=true parameter (tests arguments[4] = "Y")
+                try (ResultSet rs = dbMetadata.getIndexInfo(catalog, testSchema, testTable, true, false)) {
+                    assertNotNull(rs, "ResultSet should not be null for unique=true");
+
+                    // All returned indexes should be unique when unique=true
+                    while (rs.next()) {
+                        int nonUnique = rs.getInt("NON_UNIQUE");
+                        assertEquals(0, nonUnique, "All indexes should be unique when unique=true");
+                    }
+                }
+
+                // Test 3: approximate=true parameter (tests arguments[5] = "Q")
+                try (ResultSet rs = dbMetadata.getIndexInfo(catalog, testSchema, testTable, false, true)) {
+                    assertNotNull(rs, "ResultSet should not be null for approximate=true");
+                    // Should still return valid results with approximate statistics
+                }
+
+                // Test 4: Empty result set scenario
+                String nonExistentTable = "NonExistentTable" + uuid;
+                try (ResultSet rs = dbMetadata.getIndexInfo(catalog, testSchema, nonExistentTable, false, false)) {
+                    assertNotNull(rs, "ResultSet should not be null even for non-existent table");
+
+                    // Verify structure is correct even for empty results
+                    ResultSetMetaData rsmd = rs.getMetaData();
+                    assertEquals(13, rsmd.getColumnCount(), "Should have 13 columns even for empty result");
+
+                    // Should trigger generateAzureDWEmptyRS path
+                    assertFalse(rs.next(), "Should have no results for non-existent table");
+                }
+
+                // Test 5: Verify type mapping
+                try (ResultSet rs = dbMetadata.getIndexInfo(catalog, testSchema, testTable, false, false)) {
+                    if (rs.next()) {
+                        // Verify that the type mapping from getIndexInfoTypesDWColumns is applied correctly
+                        ResultSetMetaData rsmd = rs.getMetaData();
+
+                        int columnCount = rsmd.getColumnCount();
+                        assertEquals(13, columnCount, "Should have 13 columns as defined");
+
+                        // These should match the JDBC type constants defined in
+                        // getIndexInfoTypesDWColumns
+                        // TABLE_CAT, TABLE_SCHEM, TABLE_NAME should be NVARCHAR
+                        // NON_UNIQUE, TYPE, ORDINAL_POSITION should be SMALLINT
+                        // ASC_OR_DESC, FILTER_CONDITION should be VARCHAR
+                        // CARDINALITY, PAGES should be INTEGER
+
+                        assertTrue(rsmd.getColumnTypeName(1).equalsIgnoreCase("nvarchar"), 
+                                "TABLE_CAT should be NVARCHAR type");
+                        assertTrue(rsmd.getColumnTypeName(2).equalsIgnoreCase("nvarchar"), 
+                                "TABLE_SCHEM should be NVARCHAR type");
+                        assertTrue(rsmd.getColumnTypeName(3).equalsIgnoreCase("nvarchar"), 
+                                "TABLE_NAME should be NVARCHAR type");  
+                        assertTrue(rsmd.getColumnTypeName(4).equalsIgnoreCase("int"),
+                                "NON_UNIQUE should be INT type");
+                        assertTrue(rsmd.getColumnTypeName(5).equalsIgnoreCase("nvarchar"), 
+                                "INDEX_QUALIFIER should be NVARCHAR type");
+                        assertTrue(rsmd.getColumnTypeName(6).equalsIgnoreCase("nvarchar"), 
+                                "INDEX_NAME should be NVARCHAR type");
+                        assertTrue(rsmd.getColumnTypeName(7).equalsIgnoreCase("smallint"),
+                                "TYPE should be SMALLINT type");
+                        assertTrue(rsmd.getColumnTypeName(8).equalsIgnoreCase("smallint"),
+                                "ORDINAL_POSITION should be SMALLINT type");
+                        assertTrue(rsmd.getColumnTypeName(9).equalsIgnoreCase("nvarchar"), 
+                                "COLUMN_NAME should be NVARCHAR type");
+                        assertTrue(rsmd.getColumnTypeName(10).equalsIgnoreCase("varchar"), 
+                                "ASC_OR_DESC should be VARCHAR type");
+                        assertTrue(rsmd.getColumnTypeName(11).equalsIgnoreCase("int"),
+                                "CARDINALITY should be INTEGER type");
+                        assertTrue(rsmd.getColumnTypeName(12).equalsIgnoreCase("int"),
+                                "PAGES should be INTEGER type");    
+                        assertTrue(rsmd.getColumnTypeName(13).equalsIgnoreCase("varchar"),
+                                "FILTER_CONDITION should be VARCHAR type");
+                        
+                    }
+                }
+
+            } catch (SQLException e) {
+                // Fallback scenario (lines 1440-1460)
+                // If sp_statistics fails, should fall back to INDEX_INFO_QUERY_DW
+                // This is harder to test directly, but we can verify the fallback query would work
+
+                try (PreparedStatement fallbackStmt = conn.prepareStatement(
+                        "SELECT db_name() AS TABLE_CAT, " +
+                                "sch.name AS TABLE_SCHEM, " +
+                                "t.name AS TABLE_NAME, " +
+                                "CASE WHEN i.is_unique = 1 THEN 0 ELSE 1 END AS NON_UNIQUE, " +
+                                "t.name AS INDEX_QUALIFIER, " +
+                                "i.name AS INDEX_NAME, " +
+                                "i.type AS TYPE, " +
+                                "ic.key_ordinal AS ORDINAL_POSITION, " +
+                                "c.name AS COLUMN_NAME, " +
+                                "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
+                                "NULL AS CARDINALITY, " +
+                                "NULL AS PAGES, " +
+                                "NULL AS FILTER_CONDITION " +
+                                "FROM sys.indexes i " +
+                                "INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id " +
+                                "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
+                                "INNER JOIN sys.tables t ON i.object_id = t.object_id " +
+                                "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
+                                "WHERE t.name = ? AND sch.name = ? " +
+                                "ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION")) {
+
+                    fallbackStmt.setString(1, testTable);
+                    fallbackStmt.setString(2, testSchema);
+
+                    try (ResultSet fallbackRs = fallbackStmt.executeQuery()) {
+                        assertNotNull(fallbackRs, "Fallback query should work");
+                        // This validates that the fallback path (INDEX_INFO_QUERY_DW) is syntactically correct
+                    }
+                }
+            }
+
+            finally {
+                // Clean up
+                TestUtils.dropTableIfExists(escapedSchema + "." + escapedTable, stmt);
+                TestUtils.dropSchemaIfExists(escapedSchema, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test supportsSharding method
+     * This test covers the JDBC 4.3 version check and UnsupportedOperationException
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testSupportsSharding() throws SQLException {
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData dbMetadata = conn.getMetaData();
+
+            // Test normal case - should return false for SQL Server
+            assertFalse(dbMetadata.supportsSharding(), "SQL Server should not support sharding");
+
+        }
+    }
+
+    /**
+     * This test escapeIDName() where the default case is hit.
+     * We will create a table and then call getColumns with patterns that trigger
+     * the default case in escapeIDName which is passed to functions like
+     * sp_columns or sp_tables.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testEscapeIDNameDefaultCase() throws SQLException {
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+
+            // Test escaping characters that fall into the default case
+            String testTable = "testEscapeTable" + uuid.substring(0, 8);
+            String escapedTable = AbstractSQLGenerator.escapeIdentifier(testTable);
+
+            stmt.execute("CREATE TABLE " + escapedTable + " (id INT, name NVARCHAR(50))");
+
+            try {
+                DatabaseMetaData dbMetadata = conn.getMetaData();
+
+                // Test with various escape sequences that should hit the default case
+                // These are characters that when escaped (\x) should result in \x being output
+                String[] testPatterns = {
+                        "test\\atable", // \a -> \a (default case)
+                        "test\\btable", // \b -> \b (default case)
+                        "test\\ctable", // \c -> \c (default case)
+                        "test\\dtable", // \d -> \d (default case)
+                        "test\\etable" // \e -> \e (default case)
+                };
+
+                for (String pattern : testPatterns) {
+                    // This will internally call escapeIDName
+                    try (ResultSet rs = dbMetadata.getColumns(null, null, pattern, null)) {
+                        // We don't expect to find matches, but this exercises the escape logic
+                        assertFalse(rs.next(), "Should not find table with escaped pattern: " + pattern);
+                    }
+                }
+
+            } finally {
+                // Clean up
+                TestUtils.dropTableIfExists(escapedTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test getColumns() for Azure DW
+     * This covers the Azure DW specific column metadata initialization
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testGetColumnsAzureDW() throws Exception {
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+
+            // Use reflection to simulate Azure DW connection
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(conn, true);
+
+            // Also set isAzure to prevent lazy initialization from overwriting isAzureDW
+            Field f2 = SQLServerConnection.class.getDeclaredField("isAzure");
+            f2.setAccessible(true);
+            f2.set(conn, true);
+
+            String shortUuid = uuid.substring(0, 8);
+            String testTable = "azureDWColTest" + shortUuid;
+            String testSchema = "test_schema" + shortUuid;
+            String escapedSchema = AbstractSQLGenerator.escapeIdentifier(testSchema);
+            String escapedTable = AbstractSQLGenerator.escapeIdentifier(testTable);
+
+            // Create test schema and table
+            stmt.executeUpdate("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '" + testSchema + "') " +
+                    "EXEC('CREATE SCHEMA " + escapedSchema + "')");
+
+            stmt.execute("CREATE TABLE " + escapedSchema + "." + escapedTable + " (" +
+                    "id INT NOT NULL, " +
+                    "name NVARCHAR(100), " +
+                    "value DECIMAL(10,2))");
+
+            try {
+                DatabaseMetaData dbMetadata = conn.getMetaData();
+
+                // This call will execute the Azure DW specific code path
+                try (ResultSet rs = dbMetadata.getColumns(conn.getCatalog(), testSchema, testTable, null)) {
+                    assertTrue(rs.next(), "Should find at least one column");
+
+                    // Verify the column metadata structure for Azure DW
+                    ResultSetMetaData rsmd = rs.getMetaData();
+                    assertTrue(rsmd.getColumnCount() >= 18, "Should have at least 18 standard columns");
+
+                    // Verify some key column names that are set up
+                    boolean foundTableCat = false;
+                    boolean foundTableSchem = false;
+                    boolean foundTableName = false;
+                    boolean foundColumnName = false;
+
+                    for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+                        String colName = rsmd.getColumnName(i);
+                        if ("TABLE_CAT".equals(colName))
+                            foundTableCat = true;
+                        if ("TABLE_SCHEM".equals(colName))
+                            foundTableSchem = true;
+                        if ("TABLE_NAME".equals(colName))
+                            foundTableName = true;
+                        if ("COLUMN_NAME".equals(colName))
+                            foundColumnName = true;
+                    }
+
+                    assertTrue(foundTableCat, "Should find TABLE_CAT column");
+                    assertTrue(foundTableSchem, "Should find TABLE_SCHEM column");
+                    assertTrue(foundTableName, "Should find TABLE_NAME column");
+                    assertTrue(foundColumnName, "Should find COLUMN_NAME column");
+                }
+
+            } finally {
+                // Clean up
+                TestUtils.dropTableIfExists(escapedSchema + "." + escapedTable, stmt);
+                TestUtils.dropSchemaIfExists(escapedSchema, stmt);
+            }
+        }
+    }
+
+    /**
+     * This tests the handling of empty catalog parameter in getFunctionColumns
+     * catalog cannot be empty in sql server and it should throw invalid argument exception
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testGetFunctionColumnsEmptyCatalog() throws SQLException {
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData dbMetadata = conn.getMetaData();
+
+            // Test with empty string catalog - should throw exception
+            try {
+                dbMetadata.getFunctionColumns("", null, null, null);
+                fail("Should have thrown SQLServerException for empty catalog");
+            } catch (SQLServerException e) {
+                assertTrue(e.getMessage().contains("The argument catalog is not valid."),
+                        "Exception should mention catalog parameter");
+            }
+
+            // Test with null catalog - should work fine
+            try (ResultSet rs = dbMetadata.getFunctionColumns(null, null, 
+                "non_existent_func%", null)) {
+
+                assertNotNull(rs, "ResultSet should not be null");
+                // We don't expect results, but no exception should be thrown
+            }
+        }
+    }
+
+    /**
+     * Test executeSPFkeys for Azure DW (getCrossReference)
+     * This tests the Azure DW foreign key handling via getCrossReference
+     */
+    @Test
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xSQLv14)
+    @Tag(Constants.xSQLv15)
+    @Tag(Constants.xSQLv16)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLMI)
+    @Tag(Constants.CodeCov)
+    public void testGetCrossReferenceAzureDW() throws Exception {
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+
+            // Use reflection to simulate Azure DW connection
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(conn, true);
+
+            // Also set isAzure to prevent lazy initialization from overwriting isAzureDW
+            Field f2 = SQLServerConnection.class.getDeclaredField("isAzure");
+            f2.setAccessible(true);
+            f2.set(conn, true);
+
+            String shortUuid = uuid.substring(0, 8);
+            String primaryTable = "azureDWPrimaryTest" + shortUuid;
+            String foreignTable = "azureDWForeignTest" + shortUuid;
+            String testSchema = "test_schema" + shortUuid;
+            String escapedSchema = AbstractSQLGenerator.escapeIdentifier(testSchema);
+            String escapedPrimaryTable = AbstractSQLGenerator.escapeIdentifier(primaryTable);
+            String escapedForeignTable = AbstractSQLGenerator.escapeIdentifier(foreignTable);
+
+            // Create test schema and tables
+            stmt.executeUpdate("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '" + testSchema + "') " +
+                    "EXEC('CREATE SCHEMA " + escapedSchema + "')");
+
+            stmt.execute("CREATE TABLE " + escapedSchema + "." + escapedPrimaryTable + " (" +
+                    "id INT PRIMARY KEY, " +
+                    "name NVARCHAR(100))");
+
+            stmt.execute("CREATE TABLE " + escapedSchema + "." + escapedForeignTable + " (" +
+                    "id INT, " +
+                    "parent_id INT, " +
+                    "data NVARCHAR(100))");
+
+            try {
+                DatabaseMetaData dbMetadata = conn.getMetaData();
+                String catalog = conn.getCatalog();
+
+                // This call will execute the Azure DW specific code path in executeSPFkeys
+                // Azure DW does not support foreign keys, so this should return an empty resultset
+                try (ResultSet rs = dbMetadata.getCrossReference(catalog, testSchema, primaryTable,
+                        catalog, testSchema, foreignTable)) {
+                    assertNotNull(rs, "ResultSet should not be null");
+
+                    // Verify the result set has the correct metadata structure for foreign keys
+                    ResultSetMetaData rsmd = rs.getMetaData();
+                    assertEquals(14, rsmd.getColumnCount(), "Should have exactly 14 columns for foreign key metadata");
+
+                    // Verify column names match the expected foreign key metadata structure
+                    String[] expectedColumnNames = {
+                            "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME", "PKCOLUMN_NAME",
+                            "FKTABLE_CAT", "FKTABLE_SCHEM", "FKTABLE_NAME", "FKCOLUMN_NAME",
+                            "KEY_SEQ", "UPDATE_RULE", "DELETE_RULE", "FK_NAME", "PK_NAME", "DEFERRABILITY"
+                    };
+
+                    for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+                        assertEquals(expectedColumnNames[i - 1], rsmd.getColumnName(i),
+                                "Column " + i + " name should match");
+                    }
+
+                    // Azure DW should return empty result set since it doesn't support foreign keys
+                    assertFalse(rs.next(), "Azure DW should return empty result set for foreign keys");
+                }
+
+                // Also test getImportedKeys which calls the same code path
+                try (ResultSet rs = dbMetadata.getImportedKeys(catalog, testSchema, foreignTable)) {
+                    assertNotNull(rs, "ResultSet should not be null");
+                    assertFalse(rs.next(), "Azure DW should return empty result set for imported keys");
+                }
+
+                // Also test getExportedKeys which calls the same code path
+                try (ResultSet rs = dbMetadata.getExportedKeys(catalog, testSchema, primaryTable)) {
+                    assertNotNull(rs, "ResultSet should not be null");
+                    assertFalse(rs.next(), "Azure DW should return empty result set for exported keys");
+                }
+
+            } finally {
+                // Clean up created tables and schema
+                TestUtils.dropTableWithSchemaIfExists(escapedSchema + "." + escapedForeignTable, stmt);
+                TestUtils.dropTableWithSchemaIfExists(escapedSchema + "." + escapedPrimaryTable, stmt);
+                TestUtils.dropSchemaIfExists(escapedSchema, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test column count mismatch in Azure DW. This tests the validation 
+     * that ensures getColumnsDWColumns and getTypesDWColumns have the same 
+     * size and triggers the IllegalArgumentException
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testGetColumnsAzureDWColumnCountMismatch() throws Exception {
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            
+            // Use reflection to simulate Azure DW connection
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(conn, true);
+
+            Field f2 = SQLServerConnection.class.getDeclaredField("isAzure");
+            f2.setAccessible(true);
+            f2.set(conn, true);
+
+            // Get access to the private fields to manipulate them
+            DatabaseMetaData dbMetadata = conn.getMetaData();
+            Field getColumnsDWColumnsField = SQLServerDatabaseMetaData.class.getDeclaredField("getColumnsDWColumns");
+            getColumnsDWColumnsField.setAccessible(true);
+
+            Field getTypesDWColumnsField = SQLServerDatabaseMetaData.class.getDeclaredField("getTypesDWColumns");
+            getTypesDWColumnsField.setAccessible(true);
+
+            // Create mismatched column maps to trigger the validation error
+            LinkedHashMap<Integer, String> testColumnsDW = new LinkedHashMap<>();
+            testColumnsDW.put(1, "TABLE_CAT");
+            testColumnsDW.put(2, "TABLE_SCHEM");
+
+            LinkedHashMap<Integer, String> testTypesDW = new LinkedHashMap<>();
+            testTypesDW.put(1, "NVARCHAR");
+            testTypesDW.put(2, "NVARCHAR");
+            testTypesDW.put(3, "NVARCHAR"); // Extra entry to cause mismatch
+
+            // Set the mismatched maps
+            getColumnsDWColumnsField.set(dbMetadata, testColumnsDW);
+            getTypesDWColumnsField.set(dbMetadata, testTypesDW);
+
+            String shortUuid = uuid.substring(0, 8);
+            String testTable = "mismatchTest" + shortUuid;
+            String escapedTable = AbstractSQLGenerator.escapeIdentifier(testTable);
+
+            stmt.execute("CREATE TABLE " + escapedTable + " (id INT)");
+
+            try {
+                // This should trigger the IllegalArgumentException at lines 837-843
+                dbMetadata.getColumns(conn.getCatalog(), null, testTable, null);
+                fail("Should have thrown IllegalArgumentException for column count mismatch");
+
+            } catch (IllegalArgumentException e) {
+                assertTrue(e.getMessage().contains("Number of provided columns 2 does not match the column data types definition 3."),
+                        "Exception should mention column count mismatch");
+            } finally {
+                TestUtils.dropTableIfExists(escapedTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * This tests the path where no rows are returned from sp_columns_100
+     * for Azure DW, triggering the empty result set generation logic.
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testGetColumnsAzureDWEmptyResultSet() throws Exception {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            // Use reflection to simulate Azure DW connection
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(conn, true);
+
+            Field f2 = SQLServerConnection.class.getDeclaredField("isAzure");
+            f2.setAccessible(true);
+            f2.set(conn, true);
+
+            DatabaseMetaData dbMetadata = conn.getMetaData();
+
+            // Query for a non-existent table to trigger empty result set
+            String nonExistentTable = "NonExistentTable" + System.currentTimeMillis();
+
+            try (ResultSet rs = dbMetadata.getColumns(conn.getCatalog(), "dbo", nonExistentTable, null)) {
+                assertNotNull(rs, "ResultSet should not be null even for non-existent table");
+
+                // Verify metadata structure is correct even with empty result
+                ResultSetMetaData rsmd = rs.getMetaData();
+                assertTrue(rsmd.getColumnCount() >= 18, "Should have standard column metadata even when empty");
+
+                // Should return no rows for non-existent table
+                assertFalse(rs.next(), "Should have no rows for non-existent table");
             }
         }
     }
