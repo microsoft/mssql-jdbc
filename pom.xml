@@ -331,6 +331,9 @@
 		</profile>
 		<profile>
 			<id>jre11</id>
+			<properties>
+				<bundle.version.suffix>${version}.jre11${releaseExt}</bundle.version.suffix>
+			</properties>
 			<dependencies>
 				<!-- JDK 11 compatible Mockito -->
 				<dependency>
@@ -385,6 +388,9 @@
 		</profile>
 		<profile>
 			<id>jre17</id>
+			<properties>
+				<bundle.version.suffix>${version}.jre17${releaseExt}</bundle.version.suffix>
+			</properties>
 			<dependencies>
 				<!-- JDK 17 compatible Mockito -->
 				<dependency>
@@ -439,6 +445,9 @@
 		</profile>
 		<profile>
 			<id>jre21</id>
+			<properties>
+				<bundle.version.suffix>${version}.jre21${releaseExt}</bundle.version.suffix>
+			</properties>
 			<dependencies>
 				<!-- JDK 21 compatible Mockito -->
 				<dependency>
@@ -493,6 +502,9 @@
 		</profile>
 		<profile>
 			<id>jre25</id>
+			<properties>
+				<bundle.version.suffix>${version}.jre25${releaseExt}</bundle.version.suffix>
+			</properties>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
