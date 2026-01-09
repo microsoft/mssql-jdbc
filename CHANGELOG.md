@@ -87,7 +87,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 **Who benefits**: Contributors and CI pipelines.
 **Impact**: Improves test reliability without affecting runtime behavior.
 
-
 ## [13.3.0] Preview Release
 
 ### Added
