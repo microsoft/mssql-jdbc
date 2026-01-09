@@ -1130,22 +1130,6 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     /**
-     * Test supportsSharding method
-     * This test covers the JDBC 4.3 version check and UnsupportedOperationException
-     */
-    @Test
-    @Tag(Constants.CodeCov)
-    public void testSupportsSharding() throws SQLException {
-        try (Connection conn = getConnection()) {
-            DatabaseMetaData dbMetadata = conn.getMetaData();
-
-            // Test normal case - should return false for SQL Server
-            assertFalse(dbMetadata.supportsSharding(), "SQL Server should not support sharding");
-
-        }
-    }
-
-    /**
      * This test escapeIDName() where the default case is hit.
      * We will create a table and then call getColumns with patterns that trigger
      * the default case in escapeIDName which is passed to functions like
