@@ -75,6 +75,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
 		<enforcer.skip>false</enforcer.skip>
+		<bundle.version.suffix>${version}.jre11${releaseExt}</bundle.version.suffix>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -248,6 +249,9 @@
 	<profiles>
 		<profile>
 			<id>jre8</id>
+			<properties>
+				<bundle.version.suffix>${version}.jre8${releaseExt}</bundle.version.suffix>
+			</properties>
 			<dependencies>
 				<dependency>
 					<groupId>org.mockito</groupId>
@@ -327,6 +331,9 @@
 		</profile>
 		<profile>
 			<id>jre11</id>
+			<properties>
+				<bundle.version.suffix>${version}.jre11${releaseExt}</bundle.version.suffix>
+			</properties>
 			<dependencies>
 				<!-- JDK 11 compatible Mockito -->
 				<dependency>
@@ -381,6 +388,9 @@
 		</profile>
 		<profile>
 			<id>jre17</id>
+			<properties>
+				<bundle.version.suffix>${version}.jre17${releaseExt}</bundle.version.suffix>
+			</properties>
 			<dependencies>
 				<!-- JDK 17 compatible Mockito -->
 				<dependency>
@@ -435,6 +445,9 @@
 		</profile>
 		<profile>
 			<id>jre21</id>
+			<properties>
+				<bundle.version.suffix>${version}.jre21${releaseExt}</bundle.version.suffix>
+			</properties>
 			<dependencies>
 				<!-- JDK 21 compatible Mockito -->
 				<dependency>
@@ -489,6 +502,9 @@
 		</profile>
 		<profile>
 			<id>jre25</id>
+			<properties>
+				<bundle.version.suffix>${version}.jre25${releaseExt}</bundle.version.suffix>
+			</properties>
 			<activation>
 				<activeByDefault>true</activeByDefault>
 			</activation>
@@ -648,6 +664,7 @@
 							jdk.net;resolution:=optional,*
 						</Import-Package>
 						<Bundle-Activator>com.microsoft.sqlserver.jdbc.osgi.Activator</Bundle-Activator>
+						<Bundle-Version>${bundle.version.suffix}</Bundle-Version>
 					</instructions>
 				</configuration>
 				<executions>
