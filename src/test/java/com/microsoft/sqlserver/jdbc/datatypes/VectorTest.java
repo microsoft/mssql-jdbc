@@ -1674,7 +1674,7 @@ public class VectorTest extends AbstractTest {
      */
     private SQLServerConnection getConnectionWithVectorFlag(String vectorTypeSupport) throws SQLException {
         String connStr = connectionString;
-        if ("off".equalsIgnoreCase(vectorTypeSupport) || "v1".equalsIgnoreCase(vectorTypeSupport)) {
+        if ("off".equalsIgnoreCase(vectorTypeSupport) || "v1".equalsIgnoreCase(vectorTypeSupport) || "v2".equalsIgnoreCase(vectorTypeSupport)) {
             connStr = connStr + ";vectorTypeSupport=" + vectorTypeSupport;
         } else {
             throw new IllegalArgumentException(
