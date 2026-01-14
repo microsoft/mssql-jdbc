@@ -378,6 +378,7 @@ public class CallableStatementTest extends AESetup {
             TestUtils.dropProcedureIfExists(mixedProcedure2, stmt);
             TestUtils.dropProcedureIfExists(mixedProcedure3, stmt);
             TestUtils.dropProcedureIfExists(mixedProcedureNumericPrecisionScale, stmt);
+            TestUtils.dropProcedureIfExists(prepareMethodProcedure, stmt);
         }
     }
 
