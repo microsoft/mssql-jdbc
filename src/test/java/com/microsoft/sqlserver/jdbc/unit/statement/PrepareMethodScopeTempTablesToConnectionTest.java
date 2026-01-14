@@ -909,6 +909,7 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
      * Test repeated execution performance
      */
     @Test
+    @Tag(Constants.PrepareMethodUseTempTableScopeTest)
     public void testRepeatedExecutionPerformance() throws SQLException {
         final int ITERATIONS = 50;
         String sql = "SELECT ? as repeated_value";
