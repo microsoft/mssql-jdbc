@@ -56,6 +56,7 @@ public final class Constants {
     public static final String vectorTest = "vectorTest";
     public static final String JSONTest = "JSONTest";
     public static final String CodeCov = "CodeCov";
+    public static final String PrepareMethodUseTempTableScopeTest = "PrepareMethodUseTempTableScopeTest";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");

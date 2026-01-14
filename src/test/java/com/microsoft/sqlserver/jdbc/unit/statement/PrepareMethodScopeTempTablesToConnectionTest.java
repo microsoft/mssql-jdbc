@@ -18,18 +18,23 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.platform.runner.JUnitPlatform;
+import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
+import org.junit.jupiter.api.Tag;
 
 /**
  * Comprehensive test suite for scopeTempTablesToConnection prepare method
  * implementation
- * Focus: Sybase ASE compatibility, temp table persistence, parameter
+ * Focus: Temp table persistence, parameter
  * substitution, security, edge cases, and performance
  */
-public class PrepareMethodExecTest extends AbstractTest {
+@RunWith(JUnitPlatform.class)
+public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -37,15 +42,89 @@ public class PrepareMethodExecTest extends AbstractTest {
     }
 
     /**
+     * NEGATIVE TEST: Temp table should FAIL with "prepare" method
+     * Demonstrates that temp tables are scoped to the prepared statement handle,
+     * not the connection, when using traditional prepare method.
+     */
+    @Test
+    public void testTempTableFailureWithPrepareMethod() throws SQLException {
+        String tableName = "#temp_prepare_fail_" + ThreadLocalRandom.current().nextInt(1000, 9999);
+        
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            // Use traditional "prepare" method
+            conn.setPrepareMethod("prepare");
+            
+            // Step 1: Create temp table using prepare method
+            String createTempSql = "CREATE TABLE " + tableName + " (id INT, name VARCHAR(50))";
+            try (PreparedStatement ps1 = conn.prepareStatement(createTempSql)) {
+                ps1.execute();
+                // Temp table is scoped to this prepared statement handle
+            }
+            
+            // Step 2: Try to insert into temp table using different PreparedStatement
+            String insertSql = "INSERT INTO " + tableName + " (id, name) VALUES (?, ?)";
+            try (PreparedStatement ps2 = conn.prepareStatement(insertSql)) {
+                ps2.setInt(1, 123);
+                ps2.setString(2, "Test Data");
+                
+                // This SHOULD FAIL because temp table was scoped to ps1's handle
+                assertThrows(SQLException.class, () -> ps2.executeUpdate(),
+                    "Should fail with 'Invalid object name' when using prepare method");
+            } catch (SQLException e) {
+                // Expected failure: temp table doesn't exist in this prepared statement's scope
+                assertTrue(e.getMessage().contains("Invalid object name") || 
+                          e.getMessage().contains(tableName),
+                    "Should fail with invalid object error for: " + tableName);
+            }
+        }
+    }
+
+    /**
+     * NEGATIVE TEST: Temp table should FAIL with "prepexec" method
+     * Demonstrates that temp tables are scoped to the prepared statement handle,
+     * not the connection, when using sp_prepexec method.
+     */
+    @Test
+    public void testTempTableFailureWithPrepexecMethod() throws SQLException {
+        String tableName = "#temp_prepexec_fail_" + ThreadLocalRandom.current().nextInt(1000, 9999);
+        
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            // Use "prepexec" method
+            conn.setPrepareMethod("prepexec");
+            
+            // Step 1: Create temp table using prepexec method
+            String createTempSql = "CREATE TABLE " + tableName + " (id INT, value DECIMAL(10,2))";
+            try (PreparedStatement ps1 = conn.prepareStatement(createTempSql)) {
+                ps1.execute();
+                // Temp table is scoped to this sp_prepexec handle
+            }
+            
+            // Step 2: Try to query temp table using different PreparedStatement
+            String selectSql = "SELECT id, value FROM " + tableName + " WHERE id = ?";
+            try (PreparedStatement ps2 = conn.prepareStatement(selectSql)) {
+                ps2.setInt(1, 123);
+                
+                // This SHOULD FAIL because temp table was scoped to ps1's handle
+                assertThrows(SQLException.class, () -> ps2.executeQuery(),
+                    "Should fail with 'Invalid object name' when using prepexec method");
+            } catch (SQLException e) {
+                // Expected failure: temp table doesn't exist in this prepared statement's scope
+                assertTrue(e.getMessage().contains("Invalid object name") || 
+                          e.getMessage().contains(tableName),
+                    "Should fail with invalid object error for: " + tableName);
+            }
+        }
+    }
+
+    /**
      * CORE TEST: Temp table persistence across PreparedStatement boundaries
-     * This is the primary Sybase ASE compatibility requirement
      */
     @Test
     public void testTempTablePersistenceWithScopeTempTablesToConnection() throws SQLException {
         String tableName = "#temp_exec_test_" + ThreadLocalRandom.current().nextInt(1000, 9999);
         
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
-            // Set prepare method to scopeTempTablesToConnection for Sybase compatibility
+            // Set prepare method to scopeTempTablesToConnection
             conn.setPrepareMethod("scopeTempTablesToConnection");
             
             // Step 1: Create temp table using EXEC method
@@ -457,13 +536,13 @@ public class PrepareMethodExecTest extends AbstractTest {
             String sql = "SELECT ? as precise_time";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 
-                // Test microsecond precision
+                // Test milliseconds precision
                 Timestamp microTime = Timestamp.valueOf("2023-12-25 15:30:45.123456");
                 ps.setTimestamp(1, microTime);
                 ResultSet rs = ps.executeQuery();
                 assertTrue(rs.next());
                 Timestamp result = rs.getTimestamp("precise_time");
-                assertEquals(microTime.getTime(), result.getTime(), "Microsecond precision should be preserved");
+                assertEquals(microTime.getTime(), result.getTime(), "Milliseconds precision should be preserved");
                 
                 // Test edge dates
                 Timestamp minDate = Timestamp.valueOf("1753-01-01 00:00:00.000");
@@ -523,7 +602,7 @@ public class PrepareMethodExecTest extends AbstractTest {
     }
 
     /**
-     * Test multiple temp table scenario (complex Sybase migration case)
+     * Test multiple temp table scenario
      */
     @Test
     public void testMultipleTempTablesScenario() throws SQLException {
@@ -581,6 +660,126 @@ public class PrepareMethodExecTest extends AbstractTest {
             }
             try (PreparedStatement psCleanup2 = conn.prepareStatement("DROP TABLE " + tempTable2)) {
                 psCleanup2.execute();
+            }
+        }
+    }
+
+    /**
+     * Test temp table lifecycle with ETL/data processing pattern:
+     * Create Temp1 → Insert Temp1 → Create Temp2 → Drop Temp1 → Insert Temp2
+     * 
+     * Real-world use case: Multi-stage data transformation pipeline where intermediate
+     * staging tables are dropped early to free tempdb resources before populating
+     * final result tables. Common in ETL workflows where:
+     * - Temp1 holds large raw/staging data (e.g., 1M rows)
+     * - Data is processed/aggregated
+     * - Temp2 holds final results (e.g., 10K summary rows)
+     * - Drop Temp1 early to free valuable tempdb space
+     * - Continue with only Temp2
+     * 
+     * This validates:
+     * 1. Resource management - dropping intermediate tables mid-workflow
+     * 2. Independence - dropping Temp1 doesn't affect Temp2
+     * 3. Session integrity - connection maintains proper state throughout
+     */
+    @Test
+    public void testTempTableLifecycleWithResourceManagement() throws SQLException {
+        String tempTable1 = "#staging_data_" + ThreadLocalRandom.current().nextInt(1000, 9999);
+        String tempTable2 = "#final_results_" + ThreadLocalRandom.current().nextInt(1000, 9999);
+        
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            conn.setPrepareMethod("scopeTempTablesToConnection");
+            
+            // Step 1: Create Temp1 (staging table for raw data)
+            try (PreparedStatement ps1 = conn.prepareStatement(
+                "CREATE TABLE " + tempTable1 + " (id INT, raw_data VARCHAR(100), category VARCHAR(50))")) {
+                ps1.execute();
+            }
+            
+            // Step 2: Insert into Temp1 (load staging data)
+            try (PreparedStatement ps2 = conn.prepareStatement(
+                "INSERT INTO " + tempTable1 + " (id, raw_data, category) VALUES (?, ?, ?)")) {
+                ps2.setInt(1, 1);
+                ps2.setString(2, "Raw staging data for processing");
+                ps2.setString(3, "CategoryA");
+                int rowsInserted = ps2.executeUpdate();
+                assertEquals(1, rowsInserted, "Should insert 1 row into staging table");
+            }
+            
+            // Verify Temp1 has data before proceeding
+            try (PreparedStatement psVerify1 = conn.prepareStatement(
+                "SELECT COUNT(*) as cnt FROM " + tempTable1)) {
+                ResultSet rs = psVerify1.executeQuery();
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt("cnt"), "Staging table should have 1 row");
+            }
+            
+            // Step 3: Create Temp2 (final results table)
+            try (PreparedStatement ps3 = conn.prepareStatement(
+                "CREATE TABLE " + tempTable2 + " (result_id INT, summary VARCHAR(200), amount DECIMAL(10,2))")) {
+                ps3.execute();
+            }
+            
+            // Step 4: Drop Temp1 (free tempdb resources - critical for large datasets)
+            // In real ETL: Temp1 might have millions of rows, Temp2 only thousands
+            try (PreparedStatement ps4 = conn.prepareStatement("DROP TABLE " + tempTable1)) {
+                ps4.execute();
+            }
+            
+            // Verify Temp1 is dropped
+            try (PreparedStatement psVerifyDropped = conn.prepareStatement(
+                "SELECT COUNT(*) FROM " + tempTable1)) {
+                assertThrows(SQLException.class, () -> psVerifyDropped.executeQuery(),
+                    "Accessing dropped staging table should fail");
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("Invalid object name") || 
+                          e.getMessage().contains(tempTable1),
+                    "Should get 'Invalid object name' error for dropped table");
+            }
+            
+            // Step 5: Insert into Temp2 (populate final results)
+            // This should work even though Temp1 was dropped - demonstrates independence
+            try (PreparedStatement ps5 = conn.prepareStatement(
+                "INSERT INTO " + tempTable2 + " (result_id, summary, amount) VALUES (?, ?, ?)")) {
+                ps5.setInt(1, 100);
+                ps5.setString(2, "Processed final results after staging cleanup");
+                ps5.setBigDecimal(3, new BigDecimal("1234.56"));
+                int rowsInserted = ps5.executeUpdate();
+                assertEquals(1, rowsInserted, "Should insert into final table after dropping staging table");
+            }
+            
+            // Verify Temp2 has correct data and is fully functional
+            try (PreparedStatement psVerify2 = conn.prepareStatement(
+                "SELECT result_id, summary, amount FROM " + tempTable2 + " WHERE result_id = ?")) {
+                psVerify2.setInt(1, 100);
+                ResultSet rs = psVerify2.executeQuery();
+                assertTrue(rs.next(), "Should find data in final results table");
+                assertEquals(100, rs.getInt("result_id"));
+                assertEquals("Processed final results after staging cleanup", rs.getString("summary"));
+                assertEquals(new BigDecimal("1234.56"), rs.getBigDecimal("amount"));
+                assertFalse(rs.next(), "Should have exactly one row");
+            }
+            
+            // Additional validation: Temp2 remains fully operational
+            try (PreparedStatement ps6 = conn.prepareStatement(
+                "INSERT INTO " + tempTable2 + " (result_id, summary, amount) VALUES (?, ?, ?)")) {
+                ps6.setInt(1, 101);
+                ps6.setString(2, "Additional final data");
+                ps6.setBigDecimal(3, new BigDecimal("5678.90"));
+                ps6.executeUpdate();
+            }
+            
+            // Verify Temp2 now has 2 rows
+            try (PreparedStatement psCount = conn.prepareStatement(
+                "SELECT COUNT(*) as total FROM " + tempTable2)) {
+                ResultSet rs = psCount.executeQuery();
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt("total"), "Final table should have 2 rows");
+            }
+            
+            // Cleanup Temp2
+            try (PreparedStatement psCleanup = conn.prepareStatement("DROP TABLE " + tempTable2)) {
+                psCleanup.execute();
             }
         }
     }
@@ -669,6 +868,7 @@ public class PrepareMethodExecTest extends AbstractTest {
      * methods
      */
     @Test
+    @Tag(Constants.PrepareMethodUseTempTableScopeTest)
     public void testBasicPerformanceComparison() throws SQLException {
         final int ITERATIONS = 50;
         String sql = "SELECT ? as test_value, ? as test_number";

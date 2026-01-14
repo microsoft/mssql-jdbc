@@ -13,12 +13,18 @@ import java.math.BigInteger;
 import java.sql.SQLException;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.platform.runner.JUnitPlatform;
+import org.junit.runner.RunWith;
+
+import com.microsoft.sqlserver.testframework.Constants;
 
 /**
  * Test cases for formatLiteralValue method with numeric types including MIN and MAX values
  * This test is in the same package so it can access the package-private formatLiteralValue method directly
  */
+@RunWith(JUnitPlatform.class)
 public class FormatLiteralValueNumericTest {
 
     private SQLServerConnection connection;

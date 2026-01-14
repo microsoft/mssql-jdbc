@@ -216,12 +216,6 @@ public class BatchExecutionTest extends AbstractTest {
             // Test PreparedStatement batch with temp table and constraint violation
             String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("#tempConstraintTable"));
 
-            // try (Statement stmt = connection.createStatement()) {
-            // String createTempTableSQL = "CREATE TABLE " + tempTable + " (C1 int check (C1
-            // > 0))";
-            // stmt.execute(createTempTableSQL);
-            // }
-
             String tempBatchInsertSQL = "CREATE TABLE " + tempTable + " (C1 int check (C1 > 0));" +
                     "INSERT INTO " + tempTable + " VALUES (?)";
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
@@ -422,7 +416,7 @@ public class BatchExecutionTest extends AbstractTest {
                 .escapeIdentifier(RandomUtil.getIdentifier("batchTest_" + prepareMethod));
 
         try (SQLServerConnection connection = PrepUtil
-                .getConnection(connectionString + ";logging=trace;loggerLevel=DEBUG;")) {
+                .getConnection(connectionString)) {
             connection.setEnablePrepareOnFirstPreparedStatementCall(enablePrepareOnFirstCall);
             connection.setPrepareMethod(prepareMethod);
 
@@ -490,7 +484,7 @@ public class BatchExecutionTest extends AbstractTest {
 
         try (SQLServerConnection connection = PrepUtil
                 .getConnection(
-                        connectionString + ";logging=trace;loggerLevel=DEBUG;useBulkCopyForBatchInsert=false;")) {
+                        connectionString + ";useBulkCopyForBatchInsert=false;")) {
             connection.setEnablePrepareOnFirstPreparedStatementCall(enablePrepareOnFirstCall);
             connection.setPrepareMethod(prepareMethod);
 
@@ -1432,7 +1426,7 @@ public class BatchExecutionTest extends AbstractTest {
     @Test
     public void testIntegratedOptimizedBatchExecution() throws Exception {
         try (SQLServerConnection connection = PrepUtil
-                .getConnection(connectionString + ";logging=trace;loggerLevel=DEBUG;")) {
+                .getConnection(connectionString)) {
 
             String tableName = "[optimizedBatch_integrated_jdbc_" + RandomUtil.getIdentifier("testint") + "]";
 

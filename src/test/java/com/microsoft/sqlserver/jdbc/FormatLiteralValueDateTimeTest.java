@@ -13,11 +13,15 @@ import java.sql.Timestamp;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.platform.runner.JUnitPlatform;
+import org.junit.runner.RunWith;
 
 /**
  * Test cases for SQLServerConnection.formatLiteralValue method focusing on Date and Time types
  * This test is in the same package so it can access the package-private formatLiteralValue method directly
  */
+@RunWith(JUnitPlatform.class)
+
 public class FormatLiteralValueDateTimeTest {
 
     private SQLServerConnection connection;
@@ -58,18 +62,19 @@ public class FormatLiteralValueDateTimeTest {
 
     @Test  
     public void testFormatLiteralValuePrecisionImprovement() throws Exception {
-        // Demonstrate that timestamp optimization preserves nanosecond precision vs old TS_FMT
+        // Demonstrate that timestamp optimization preserves DATETIME2 precision (7
+        // digits) vs old TS_FMT
         Timestamp nanoTimestamp = Timestamp.valueOf("2023-12-15 14:30:45.0");
-        nanoTimestamp.setNanos(123456789);
+        nanoTimestamp.setNanos(123456700); // DATETIME2 has precision = 7
         
         String optimizedResult = connection.formatLiteralValue(nanoTimestamp);
-        assertEquals("CAST('2023-12-15 14:30:45.123456789' AS DATETIME2)", optimizedResult);
+        assertEquals("CAST('2023-12-15 14:30:45.1234567' AS DATETIME2)", optimizedResult);
         
         // Compare with what TS_FMT would produce (lost precision)
         java.text.SimpleDateFormat TS_FMT = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         String oldResult = "CAST('" + TS_FMT.format(nanoTimestamp) + "' AS DATETIME2)";
         assertEquals("CAST('2023-12-15 14:30:45.123' AS DATETIME2)", oldResult);
         
-        assertNotEquals(oldResult, optimizedResult, "Optimized version preserves full nanosecond precision");
+        assertNotEquals(oldResult, optimizedResult, "Optimized version preserves DATETIME2 precision (7 digits)");
     }
 }

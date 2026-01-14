@@ -3297,10 +3297,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
+
     /**
-     * Executes batch using EXEC method by combining all statements into a single
-     * SQL script
-     * similar to SQLStatement behavior. The update counts can be tuned as needed.
+     * Executes batch using EXEC method by combining all batch entries into a single
+     * SQL script. For each batch entry, the entire userSQL is repeated with all
+     * parameter markers replaced by their values, then all entries are
+     * concatenated.
      * 
      * @param batchCommand the batch command context
      * @throws SQLServerException if execution fails
@@ -3311,75 +3313,31 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         batchCommand.updateCounts = new long[numBatches];
 
         try {
-            // Build combined SQL script by joining all statements
+            // Build the combined SQL script by repeating the entire userSQL for each batch
             StringBuilder sqlScript = new StringBuilder();
 
-            // Separate SQL into non-parameterized prefix and parameterized part
-            // Only the parameterized part (containing ?) should be repeated for each batch
-            String sqlPrefix = "";
-            String parameterizedSQL = userSQL;
-            int[] adjustedParamPositions = userSQLParamPositions;
-
-            // Find the position of the first parameter marker
-            if (userSQLParamPositions != null && userSQLParamPositions.length > 0) {
-                int firstParamPos = userSQLParamPositions[0];
-
-                // Check if there's any non-parameterized SQL before the first parameter
-                if (firstParamPos > 0) {
-                    // Find the last semicolon before the first parameter marker
-                    // This separates non-parameterized prefix from the parameterized statement
-                    int lastSemicolonBeforeParam = userSQL.lastIndexOf(';', firstParamPos - 1);
-
-                    if (lastSemicolonBeforeParam > 0) {
-                        // Split at the semicolon: prefix includes everything up to and including the
-                        // semicolon
-                        sqlPrefix = userSQL.substring(0, lastSemicolonBeforeParam + 1);
-                        String tempSQL = userSQL.substring(lastSemicolonBeforeParam + 1);
-
-                        // Calculate offset BEFORE trimming to preserve correct parameter positions
-                        int offset = lastSemicolonBeforeParam + 1;
-
-                        // Find leading whitespace length to adjust offset after trim
-                        int leadingWhitespaceLength = tempSQL.length() - tempSQL.trim().length();
-                        parameterizedSQL = tempSQL.trim();
-
-                        // Adjust parameter positions for the parameterized part
-                        // Account for both the semicolon split point and any leading whitespace removed
-                        adjustedParamPositions = new int[userSQLParamPositions.length];
-                        for (int i = 0; i < userSQLParamPositions.length; i++) {
-                            adjustedParamPositions[i] = userSQLParamPositions[i] - offset - leadingWhitespaceLength;
-                        }
-
-                        // Add the non-parameterized prefix once at the beginning
-                        sqlScript.append(sqlPrefix);
-                    }
-                }
-            }
-
-            // Process each batch with the parameterized part
             for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
                 Parameter[] batchParams = batchParamValues.get(batchIdx);
 
-                // Replace parameter markers with literal values for this batch item
-                String batchSQL = connection.replaceParameterMarkersWithValues(parameterizedSQL,
-                        adjustedParamPositions, batchParams, false);
+                // Replace all parameter markers in the entire userSQL with values from this
+                // batch
+                String expandedSQL = connection.replaceParameterMarkersWithValues(
+                        userSQL, userSQLParamPositions, batchParams, false);
 
-                sqlScript.append(batchSQL);
+                sqlScript.append(expandedSQL);
 
-                // Add semicolon separator between statements (except for the last one)
+                // Add semicolon between batches
                 if (batchIdx < numBatches - 1) {
                     sqlScript.append(";");
                 }
             }
 
-            // Execute the combined SQL script as a single statement
+            // Execute the combined SQL script
             TDSWriter tdsWriter = batchCommand.startRequest(TDS.PKT_QUERY);
             tdsWriter.writeString(sqlScript.toString());
 
             // Process the response
             ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
-
-            // Process results similar to SQLStatement behavior
             startResults();
 
             // Initialize update counts to failed by default
@@ -3387,86 +3345,43 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 batchCommand.updateCounts[i] = Statement.EXECUTE_FAILED;
             }
 
-            // Process results by iterating through each result in sequence
-            // Key insight: getNextResult() returns successfully for each executed
-            // statement,
-            // but throws an exception when a statement fails (like constraint violation)
-            // After an exception, SQL Server stops processing remaining statements
-            int batchIndex = 0;
-
-            // If we had a non-parameterized prefix, consume its result first
-            if (!sqlPrefix.isEmpty()) {
+            // Process results for each batch entry
+            for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
                 try {
-                    boolean isResultSet = getNextResult(true);
-                    if (isResultSet && null != resultSet) {
-                        resultSet.close();
-                        resultSet = null;
-                    }
-                } catch (SQLException e) {
-                    // Prefix execution failed
-                    if (null == batchCommand.batchException) {
-                        batchCommand.batchException = new SQLServerException(e.getMessage(), e.getSQLState(),
-                                e.getErrorCode(), e);
-                    }
-
-                    // Convert long[] to int[] for BatchUpdateException
-                    int[] updateCounts = new int[batchCommand.updateCounts.length];
-                    for (int i = 0; i < batchCommand.updateCounts.length; i++) {
-                        updateCounts[i] = (int) batchCommand.updateCounts[i];
-                    }
-
-                    throw new BatchUpdateException(batchCommand.batchException.getMessage(),
-                            batchCommand.batchException.getSQLState(),
-                            batchCommand.batchException.getErrorCode(), updateCounts);
-                }
-            }
-
-            while (batchIndex < numBatches) {
-                try {
-                    // Try to get the next result from the TDS stream
                     boolean isResultSet = getNextResult(true);
 
                     if (isResultSet) {
-                        // This is a ResultSet - close it and mark as success
-                        batchCommand.updateCounts[batchIndex] = 1;
+                        batchCommand.updateCounts[batchIdx] = 1;
                         if (null != resultSet) {
                             resultSet.close();
                             resultSet = null;
                         }
                     } else {
-                        // This is an update count result
                         long updateCount = getUpdateCount();
-                        batchCommand.updateCounts[batchIndex] = updateCount;
+                        batchCommand.updateCounts[batchIdx] = updateCount;
                     }
                 } catch (SQLException e) {
-                    // Mark current statement as failed
-                    if (batchIndex < numBatches) {
-                        batchCommand.updateCounts[batchIndex] = Statement.EXECUTE_FAILED;
-                    }
+                    batchCommand.updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
 
-                    // Store the exception for later throwing as BatchUpdateException
                     if (null == batchCommand.batchException) {
-                        batchCommand.batchException = new SQLServerException(e.getMessage(), e.getSQLState(),
-                                e.getErrorCode(), e);
+                        batchCommand.batchException = new SQLServerException(
+                                e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
                     }
                 }
-                batchIndex++;
             }
 
             // If we had any batch failures, throw BatchUpdateException with update counts
             if (null != batchCommand.batchException) {
-                // Convert long[] to int[] for BatchUpdateException
                 int[] updateCounts = new int[batchCommand.updateCounts.length];
                 for (int i = 0; i < batchCommand.updateCounts.length; i++) {
                     updateCounts[i] = (int) batchCommand.updateCounts[i];
                 }
 
                 BatchUpdateException batchException = new BatchUpdateException(
-                                batchCommand.batchException.getMessage(),
-                        batchCommand.batchException.getSQLState(),
+                        batchCommand.batchException.getMessage(),
+                                batchCommand.batchException.getSQLState(),
                         batchCommand.batchException.getErrorCode(), updateCounts);
 
-                // Wrap in SQLServerException to maintain exception hierarchy
                 throw new SQLServerException(batchException.getMessage(),
                         batchException.getSQLState(),
                         batchException.getErrorCode(), batchException);
