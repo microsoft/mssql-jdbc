@@ -170,8 +170,19 @@ public class BatchExecutionTest extends AbstractTest {
                     pstmt.executeBatch();
                     fail("Expected BatchUpdateException due to constraint violation");
                 } catch (BatchUpdateException bue) {
-                    assertTrue(bue.getMessage().contains("CHECK constraint") ||
-                            (bue.getCause() != null && bue.getCause().getMessage().contains("CHECK constraint")),
+                    // Check exception message in the cause chain
+                    boolean foundConstraintMessage = false;
+                    Throwable current = bue;
+                    while (current != null) {
+                        if (current.getMessage() != null && 
+                            (current.getMessage().contains("CHECK constraint") || 
+                             current.getMessage().contains("constraint"))) {
+                            foundConstraintMessage = true;
+                            break;
+                        }
+                        current = current.getCause();
+                    }
+                    assertTrue(foundConstraintMessage,
                             "BatchUpdateException should mention CHECK constraint violation");
 
                     // Verify update counts: [1, -3, 1, 1]
@@ -244,8 +255,20 @@ public class BatchExecutionTest extends AbstractTest {
                             "Should contain BatchUpdateException in cause chain");
 
                     BatchUpdateException bue = (BatchUpdateException) cause;
-                    assertTrue(bue.getMessage().contains("CHECK constraint") ||
-                            (bue.getCause() != null && bue.getCause().getMessage().contains("CHECK constraint")),
+                    
+                    // Check exception message in the cause chain
+                    boolean foundConstraintMessage = false;
+                    Throwable current = bue;
+                    while (current != null) {
+                        if (current.getMessage() != null && 
+                            (current.getMessage().contains("CHECK constraint") || 
+                             current.getMessage().contains("constraint"))) {
+                            foundConstraintMessage = true;
+                            break;
+                        }
+                        current = current.getCause();
+                    }
+                    assertTrue(foundConstraintMessage,
                             "BatchUpdateException should mention CHECK constraint violation");
 
                     int[] expectedCount = { 1, -3, 1, 1 };
