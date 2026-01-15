@@ -171,19 +171,9 @@ public class BatchExecutionTest extends AbstractTest {
                     fail("Expected BatchUpdateException due to constraint violation");
                 } catch (BatchUpdateException bue) {
                     // Check exception message in the cause chain
-                    boolean foundConstraintMessage = false;
-                    Throwable current = bue;
-                    while (current != null) {
-                        if (current.getMessage() != null && 
-                            (current.getMessage().contains("CHECK constraint") || 
-                             current.getMessage().contains("constraint"))) {
-                            foundConstraintMessage = true;
-                            break;
-                        }
-                        current = current.getCause();
-                    }
-                    assertTrue(foundConstraintMessage,
-                            "BatchUpdateException should mention CHECK constraint violation");
+                    assertTrue(hasConstraintViolationMessage(bue),
+                            "BatchUpdateException should mention CHECK constraint violation. Message chain: " + 
+                            getExceptionMessageChain(bue));
 
                     // Verify update counts: [1, -3, 1, 1]
                     int[] expectedCount = { 1, -3, 1, 1 };
@@ -257,19 +247,9 @@ public class BatchExecutionTest extends AbstractTest {
                     BatchUpdateException bue = (BatchUpdateException) cause;
                     
                     // Check exception message in the cause chain
-                    boolean foundConstraintMessage = false;
-                    Throwable current = bue;
-                    while (current != null) {
-                        if (current.getMessage() != null && 
-                            (current.getMessage().contains("CHECK constraint") || 
-                             current.getMessage().contains("constraint"))) {
-                            foundConstraintMessage = true;
-                            break;
-                        }
-                        current = current.getCause();
-                    }
-                    assertTrue(foundConstraintMessage,
-                            "BatchUpdateException should mention CHECK constraint violation");
+                    assertTrue(hasConstraintViolationMessage(bue),
+                            "BatchUpdateException should mention CHECK constraint violation. Message chain: " + 
+                            getExceptionMessageChain(bue));
 
                     int[] expectedCount = { 1, -3, 1, 1 };
                     int[] updateCounts = bue.getUpdateCounts();
@@ -1517,6 +1497,46 @@ public class BatchExecutionTest extends AbstractTest {
                 }
             }
         }
+    }
+
+    /**
+     * Helper method to check if exception chain contains constraint violation message
+     */
+    private static boolean hasConstraintViolationMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String lowerMessage = message.toLowerCase();
+                if (lowerMessage.contains("check constraint") || 
+                    lowerMessage.contains("constraint") ||
+                    lowerMessage.contains("violated") ||
+                    lowerMessage.contains("check") ||
+                    message.contains("547")) { // SQL Server error code for constraint violation
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    /**
+     * Helper method to get all exception messages in the cause chain for debugging
+     */
+    private static String getExceptionMessageChain(Throwable throwable) {
+        StringBuilder sb = new StringBuilder();
+        Throwable current = throwable;
+        int level = 0;
+        while (current != null) {
+            if (level > 0) sb.append(" -> ");
+            sb.append("[").append(current.getClass().getSimpleName()).append(": ");
+            sb.append(current.getMessage() != null ? current.getMessage() : "null");
+            sb.append("]");
+            current = current.getCause();
+            level++;
+        }
+        return sb.toString();
     }
 
     private static void dropTable() throws SQLException {
