@@ -172,8 +172,8 @@ public class BatchExecutionTest extends AbstractTest {
                 } catch (BatchUpdateException bue) {
                     // Check exception message in the cause chain
                     assertTrue(hasConstraintViolationMessage(bue),
-                            "BatchUpdateException should mention CHECK constraint violation. Message chain: " + 
-                            getExceptionMessageChain(bue));
+                            "BatchUpdateException should mention CHECK constraint violation. Message chain: " +
+                                    getExceptionMessageChain(bue));
 
                     // Verify update counts: [1, -3, 1, 1]
                     int[] expectedCount = { 1, -3, 1, 1 };
@@ -217,8 +217,14 @@ public class BatchExecutionTest extends AbstractTest {
             // Test PreparedStatement batch with temp table and constraint violation
             String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("#tempConstraintTable"));
 
-            String tempBatchInsertSQL = "CREATE TABLE " + tempTable + " (C1 int check (C1 > 0));" +
-                    "INSERT INTO " + tempTable + " VALUES (?)";
+            // Create temp table first (separate from batch inserts)
+            try (Statement stmt = connection.createStatement()) {
+                String createTempTableSQL = "CREATE TABLE " + tempTable + " (C1 int check (C1 > 0))";
+                stmt.execute(createTempTableSQL);
+            }
+
+            // Now batch insert into the temp table
+            String tempBatchInsertSQL = "INSERT INTO " + tempTable + " VALUES (?)";
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement(tempBatchInsertSQL)) {
                 // Add 4 statements: 1st valid, 2nd violates constraint, 3rd valid, 4th valid
@@ -234,22 +240,11 @@ public class BatchExecutionTest extends AbstractTest {
                 try {
                     pstmt.executeBatch();
                     fail("Expected BatchUpdateException due to constraint violation in temp table");
-                } catch (Exception e) {
-                    // Drill down through the exception cause chain to find BatchUpdateException
-                    Throwable cause = e.getCause();
-                    while (cause != null && !(cause instanceof BatchUpdateException)) {
-                        cause = cause.getCause();
-                    }
-
-                    assertTrue(cause instanceof BatchUpdateException,
-                            "Should contain BatchUpdateException in cause chain");
-
-                    BatchUpdateException bue = (BatchUpdateException) cause;
-                    
+                } catch (BatchUpdateException bue) {
                     // Check exception message in the cause chain
                     assertTrue(hasConstraintViolationMessage(bue),
-                            "BatchUpdateException should mention CHECK constraint violation. Message chain: " + 
-                            getExceptionMessageChain(bue));
+                            "BatchUpdateException should mention CHECK constraint violation. Message chain: " +
+                                    getExceptionMessageChain(bue));
 
                     int[] expectedCount = { 1, -3, 1, 1 };
                     int[] updateCounts = bue.getUpdateCounts();
@@ -1500,19 +1495,28 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     /**
-     * Helper method to check if exception chain contains constraint violation message
+     * Helper method to check if exception chain contains constraint violation
+     * message
      */
     private static boolean hasConstraintViolationMessage(Throwable throwable) {
         Throwable current = throwable;
         while (current != null) {
+            // Check SQLException error code (547 = constraint violation)
+            if (current instanceof SQLException) {
+                SQLException sqlEx = (SQLException) current;
+                if (sqlEx.getErrorCode() == 547) {
+                    return true;
+                }
+            }
+
             String message = current.getMessage();
             if (message != null) {
                 String lowerMessage = message.toLowerCase();
-                if (lowerMessage.contains("check constraint") || 
-                    lowerMessage.contains("constraint") ||
-                    lowerMessage.contains("violated") ||
-                    lowerMessage.contains("check") ||
-                    message.contains("547")) { // SQL Server error code for constraint violation
+                if (lowerMessage.contains("check constraint") ||
+                        lowerMessage.contains("constraint") ||
+                        lowerMessage.contains("violated") ||
+                        lowerMessage.contains("check") ||
+                        message.contains("547")) { // SQL Server error code for constraint violation
                     return true;
                 }
             }
@@ -1529,7 +1533,8 @@ public class BatchExecutionTest extends AbstractTest {
         Throwable current = throwable;
         int level = 0;
         while (current != null) {
-            if (level > 0) sb.append(" -> ");
+            if (level > 0)
+                sb.append(" -> ");
             sb.append("[").append(current.getClass().getSimpleName()).append(": ");
             sb.append(current.getMessage() != null ? current.getMessage() : "null");
             sb.append("]");
