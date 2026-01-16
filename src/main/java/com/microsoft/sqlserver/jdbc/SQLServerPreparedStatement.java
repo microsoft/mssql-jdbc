@@ -3259,9 +3259,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                             // In batch execution, we have a special update count
                             // to indicate that no information was returned
-                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount)
-                                    ? Statement.SUCCESS_NO_INFO
-                                    : updateCount;
+                            batchCommand.updateCounts[numBatchesExecuted] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
+                                                                                                : updateCount;
 
                             processBatch();
 
