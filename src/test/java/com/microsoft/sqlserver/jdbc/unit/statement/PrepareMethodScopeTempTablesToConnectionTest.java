@@ -22,6 +22,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
@@ -77,6 +78,10 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                     "Should fail with invalid object error for: " + tableName);
             }
         }
+        // Clean up
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(tableName, stmt);
+        }
     }
 
     /**
@@ -113,6 +118,10 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                           e.getMessage().contains(tableName),
                     "Should fail with invalid object error for: " + tableName);
             }
+        }
+        // Clean up
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(tableName, stmt);
         }
     }
 
@@ -177,9 +186,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 assertEquals(new BigDecimal("99.99"), rs.getBigDecimal("value"));
             }
             
-            // Cleanup
-            try (PreparedStatement psCleanup = conn.prepareStatement("DROP TABLE " + tableName)) {
-                psCleanup.execute();
+            // Clean up
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
     }
@@ -654,12 +663,10 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 assertEquals("John Doe", rs.getString("name"));
             }
             
-            // Cleanup
-            try (PreparedStatement psCleanup1 = conn.prepareStatement("DROP TABLE " + tempTable1)) {
-                psCleanup1.execute();
-            }
-            try (PreparedStatement psCleanup2 = conn.prepareStatement("DROP TABLE " + tempTable2)) {
-                psCleanup2.execute();
+            // Clean up
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tempTable1, stmt);
+                TestUtils.dropTableIfExists(tempTable2, stmt);
             }
         }
     }
@@ -777,9 +784,10 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 assertEquals(2, rs.getInt("total"), "Final table should have 2 rows");
             }
             
-            // Cleanup Temp2
-            try (PreparedStatement psCleanup = conn.prepareStatement("DROP TABLE " + tempTable2)) {
-                psCleanup.execute();
+            // Clean up
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tempTable1, stmt);
+                TestUtils.dropTableIfExists(tempTable2, stmt);
             }
         }
     }
@@ -829,10 +837,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 assertTrue(rs.next());
                 assertEquals(5, rs.getInt("row_count"), "Should have 5 rows inserted via batch");
             }
-            
-            // Cleanup
-            try (PreparedStatement dropPs = conn.prepareStatement("DROP TABLE " + tempTable)) {
-                dropPs.execute();
+            // Clean up
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tempTable, stmt);
             }
         }
     }

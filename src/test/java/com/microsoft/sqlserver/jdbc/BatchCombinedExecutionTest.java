@@ -46,6 +46,7 @@ public class BatchCombinedExecutionTest extends AbstractTest {
             try {
                 stmt.execute("DROP TABLE IF EXISTS " + TEST_TABLE_1);
                 stmt.execute("DROP TABLE IF EXISTS " + TEST_TABLE_2);
+                stmt.execute("DROP TABLE IF EXISTS " + TEMP_TABLE);
             } catch (SQLException e) {
                 // Ignore if tables don't exist
             }
@@ -61,6 +62,7 @@ public class BatchCombinedExecutionTest extends AbstractTest {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute("DROP TABLE IF EXISTS " + TEST_TABLE_1);
             stmt.execute("DROP TABLE IF EXISTS " + TEST_TABLE_2);
+            stmt.execute("DROP TABLE IF EXISTS " + TEMP_TABLE);
         }
     }
 

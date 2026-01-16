@@ -1612,13 +1612,11 @@ public class PreparedStatementTest extends AbstractTest {
                 assertEquals(-1, stmt.getUpdateCount(), "Should be -1 when no more results");
             }
 
-            // Cleanup
-            try {
-                executeSQL(con, "DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
-                executeSQL(con, "DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName2));
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), con.createStatement());
-            } catch (SQLException e) {
-                // Ignore cleanup errors
+            // Clean up
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(procName, stmt);
+                TestUtils.dropTableIfExists(procName2, stmt);
             }
         }
     }
