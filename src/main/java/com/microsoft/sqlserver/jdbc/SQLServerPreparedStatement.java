@@ -1175,26 +1175,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private ArrayList<byte[]> enclaveCEKs;
 
-    // Pre-compiled regex patterns for temporary table detection (performance
+    // Pre-compiled regex pattern for temporary table detection (performance
     // optimization)
+    // This pattern uses alternation to:
+    // 1. Match and skip string literals ('...' including escaped quotes '')
+    // 2. Capture actual temp table operations in group 1
     // Matches valid SQL Server local temp table operations (excluding global temp
     // tables with ##):
-    // 1. CREATE TABLE #temp (local temp table - single #)
-    // 2. SELECT ... INTO #temp (local temp table - single #)
+    // - CREATE TABLE #temp (local temp table - single #)
+    // - SELECT ... INTO #temp (local temp table - single #)
     // Excludes: CREATE TABLE ##temp (global temp tables - double ##)
     // Note: SQL Server does NOT support CREATE TEMP/TEMPORARY/GLOBAL TABLE keywords
     private static final java.util.regex.Pattern TEMP_TABLE_PATTERN = java.util.regex.Pattern.compile(
-            "\\b(?:" +
+            "'(?:''|[^'])*'" + // Match string literals (to skip them)
+                    "|" +
+                    "(\\b(?:" + // Group 1: Actual temp table patterns
                     "create\\s+table\\s+(?:#(?!#)\\w+|\\[#(?!#)[^\\]]+\\])" + "|" + // CREATE TABLE #temp (not ##)
                     "select\\b[^;]*?\\binto\\s+(?:#(?!#)\\w+|\\[#(?!#)[^\\]]+\\])" + // SELECT INTO #temp (not ##)
-                    ")",
-            java.util.regex.Pattern.CASE_INSENSITIVE);
+                    "))",
+                    java.util.regex.Pattern.CASE_INSENSITIVE);
 
     /**
      * Detects if the SQL statement contains temporary table operations.
-     * This method uses pre-compiled regex patterns for optimal performance.
-     * Note: This is a simplified heuristic that may not handle all edge cases
-     * (e.g., temp table references inside string literals or comments).
+     * This method uses a pre-compiled regex pattern that skips string literals
+     * to avoid false positives (e.g., 'CREATE TABLE #temp' inside a string).
      * 
      * @param sql The SQL statement to analyze
      * @return true if temporary table operations are detected, false otherwise
@@ -1209,14 +1213,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false;
         }
 
-        // Strip out string literals to avoid false positives
-        // SQL Server uses single quotes for string literals, doubled for escaping:
-        // 'it''s'
-        String sqlWithoutLiterals = sql.replaceAll("'(?:''|[^'])*'", "");
-
-        // Use pre-compiled pattern for comprehensive temp table detection
-        boolean result = TEMP_TABLE_PATTERN.matcher(sqlWithoutLiterals).find();
-        return result;
+        // Use pre-compiled pattern that skips string literals and captures temp table
+        // operations
+        java.util.regex.Matcher matcher = TEMP_TABLE_PATTERN.matcher(sql);
+        while (matcher.find()) {
+            // If group 1 matched (temp table pattern, not string literal), return true
+            if (matcher.group(1) != null) {
+                return true;
+            }
+            // Otherwise it was a string literal match - continue looking
+        }
+        return false;
     }
 
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
