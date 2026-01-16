@@ -1205,15 +1205,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // Fast check for any # character - early exit if no temp table markers
-        int hashIndex = sql.indexOf('#');
-        if (hashIndex == -1) {
-            return false;
-        }
-
-        // Additional performance check: ensure # is likely part of a table name
-        // (followed by alphanumeric character, not just any #)
-        if ((hashIndex < sql.length() - 1) &&
-                !(Character.isLetterOrDigit(sql.charAt(hashIndex + 1)))) {
+        if (sql.indexOf('#') == -1) {
             return false;
         }
 

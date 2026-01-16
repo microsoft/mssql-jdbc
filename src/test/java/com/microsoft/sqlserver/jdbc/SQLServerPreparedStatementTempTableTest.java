@@ -220,6 +220,20 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
                 result = stmt.containsTemporaryTableOperations(stringLiteralWithTempSyntax);
                 assertFalse(result, "Should not detect temp table operations inside string literals");
 
+                // Test case: ## in string literal data followed by genuine #TempTable
+                // This ensures that ## in data doesn't cause false negatives for real temp
+                // tables
+                String hashInDataBeforeTempTable = "SELECT '##data' AS col1; CREATE TABLE #MyTempTable (id INT)";
+                result = stmt.containsTemporaryTableOperations(hashInDataBeforeTempTable);
+                assertTrue(result, "Should detect real #TempTable even when ## appears in string literal data earlier");
+
+                // Test case: Multiple # symbols in string literal followed by genuine temp
+                // table
+                String multipleHashInData = "INSERT INTO logs VALUES ('#tag1', '##tag2'); SELECT * INTO #RealTemp FROM users";
+                result = stmt.containsTemporaryTableOperations(multipleHashInData);
+                assertTrue(result,
+                        "Should detect SELECT INTO #RealTemp even when multiple # appear in string literals");
+
                 // Test case: Combined CREATE TABLE and SELECT INTO in same SQL
                 String combinedCreateAndSelectInto = "CREATE TABLE #temp1 (id INT); SELECT * INTO #temp2 FROM users";
                 result = stmt.containsTemporaryTableOperations(combinedCreateAndSelectInto);
