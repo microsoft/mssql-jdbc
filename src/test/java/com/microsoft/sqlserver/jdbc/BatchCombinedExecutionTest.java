@@ -8,18 +8,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 
 /**
@@ -32,36 +30,9 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 @RunWith(JUnitPlatform.class)
 public class BatchCombinedExecutionTest extends AbstractTest {
 
-    private static final String TEST_TABLE_1 = "BatchCombinedTest_Table1";
-    private static final String TEST_TABLE_2 = "BatchCombinedTest_Table2";
-    private static final String TEMP_TABLE = "#BatchCombinedTest_Temp";
-
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            // Drop tables if they exist
-            try {
-                TestUtils.dropTableIfExists(TEST_TABLE_1, stmt);
-                TestUtils.dropTableIfExists(TEST_TABLE_2, stmt);
-                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
-            } catch (SQLException e) {
-                // Ignore if tables don't exist
-            }
-
-            // Create test tables
-            stmt.execute("CREATE TABLE " + TEST_TABLE_1 + " (id INT PRIMARY KEY, name NVARCHAR(50), value INT)");
-            stmt.execute("CREATE TABLE " + TEST_TABLE_2 + " (id INT PRIMARY KEY, description NVARCHAR(100))");
-        }
-    }
-
-    @AfterAll
-    public static void cleanupTests() throws Exception {
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            TestUtils.dropTableIfExists(TEST_TABLE_1, stmt);
-            TestUtils.dropTableIfExists(TEST_TABLE_2, stmt);
-            TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
-        }
     }
 
     /**
@@ -70,19 +41,20 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testNonParameterizedAfterParameterized() throws Exception {
+        String tempTable = AbstractSQLGenerator
+                .escapeIdentifier("#" + RandomUtil.getIdentifier("TC1_Temp"));
+
         try (SQLServerConnection conn = getConnection()) {
             // Enable scopeTempTablesToConnection to trigger the combined execution path
             conn.setPrepareMethod("scopeTempTablesToConnection");
             
             // Create temp table first
             try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
-            }
-            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
-                pstmt2.execute();
+                TestUtils.dropTableIfExists(tempTable, stmt);
+                stmt.execute("CREATE TABLE " + tempTable + " (id INT)");
             }
             
-            String sql = "INSERT INTO " + TEMP_TABLE + " VALUES (?); ";
+            String sql = "INSERT INTO " + tempTable + " VALUES (?); ";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 // Add multiple batches
@@ -106,9 +78,14 @@ public class BatchCombinedExecutionTest extends AbstractTest {
 
             // Verify data was inserted correctly
             try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TEMP_TABLE)) {
+                    ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tempTable)) {
                 rs.next();
                 assertEquals(3, rs.getInt(1), "Should have inserted 3 rows");
+            }
+
+            // Cleanup
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(tempTable, stmt);
             }
         }
     }
@@ -119,19 +96,24 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testMultipleParameterizedStatements() throws Exception {
+        String tempTable = AbstractSQLGenerator
+                .escapeIdentifier("#" + RandomUtil.getIdentifier("TC2_Temp"));
+        String testTable1 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TC2_Table1"));
+
         try (SQLServerConnection conn = getConnection()) {
             conn.setPrepareMethod("scopeTempTablesToConnection");
             
-            // Create temp table first
+            // Create tables
             try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
-            }
-            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
-                pstmt2.execute();
+                TestUtils.dropTableIfExists(tempTable, stmt);
+                TestUtils.dropTableIfExists(testTable1, stmt);
+                stmt.execute("CREATE TABLE " + tempTable + " (id INT)");
+                stmt.execute("CREATE TABLE " + testTable1 + " (id INT PRIMARY KEY, name NVARCHAR(50), value INT)");
             }
             
-            String sql = "INSERT INTO " + TEMP_TABLE + " VALUES (?); " +
-                         "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?)";
+            String sql = "INSERT INTO " + tempTable + " VALUES (?); " +
+                    "INSERT INTO " + testTable1 + " VALUES (?, ?, ?)";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 // Batch 1
@@ -154,18 +136,19 @@ public class BatchCombinedExecutionTest extends AbstractTest {
 
             // Verify both tables have data
             try (Statement stmt = conn.createStatement()) {
-                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TEMP_TABLE);
+                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tempTable);
                 rs.next();
                 assertEquals(2, rs.getInt(1));
                 
-                rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TEST_TABLE_1);
+                rs = stmt.executeQuery("SELECT COUNT(*) FROM " + testTable1);
                 rs.next();
                 assertEquals(2, rs.getInt(1));
             }
 
             // Cleanup
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("DELETE FROM " + TEST_TABLE_1);
+                TestUtils.dropTableIfExists(tempTable, stmt);
+                TestUtils.dropTableIfExists(testTable1, stmt);
             }
         }
     }
@@ -176,20 +159,25 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testComplexInterleaving() throws Exception {
+        String tempTable = AbstractSQLGenerator
+                .escapeIdentifier("#" + RandomUtil.getIdentifier("TC3_Temp"));
+        String testTable1 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TC3_Table1"));
+
         try (SQLServerConnection conn = getConnection()) {
             conn.setPrepareMethod("scopeTempTablesToConnection");
 
-            // Create temp table separately before batch
+            // Create tables
             try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
-            }
-            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
-                pstmt2.execute();
+                TestUtils.dropTableIfExists(tempTable, stmt);
+                TestUtils.dropTableIfExists(testTable1, stmt);
+                stmt.execute("CREATE TABLE " + tempTable + " (id INT)");
+                stmt.execute("CREATE TABLE " + testTable1 + " (id INT PRIMARY KEY, name NVARCHAR(50), value INT)");
             }
             
             String sql = "SET NOCOUNT ON; " +
-                         "INSERT INTO " + TEMP_TABLE + " VALUES (?); " +
-                    "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?); ";
+                    "INSERT INTO " + tempTable + " VALUES (?); " +
+                    "INSERT INTO " + testTable1 + " VALUES (?, ?, ?); ";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 // Batch 1
@@ -212,7 +200,8 @@ public class BatchCombinedExecutionTest extends AbstractTest {
 
             // Cleanup
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("DELETE FROM " + TEST_TABLE_1);
+                TestUtils.dropTableIfExists(tempTable, stmt);
+                TestUtils.dropTableIfExists(testTable1, stmt);
             }
         }
     }
@@ -223,23 +212,30 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testNonParameterizedBetweenParameterized() throws Exception {
+        String tempTable = AbstractSQLGenerator
+                .escapeIdentifier("#" + RandomUtil.getIdentifier("TC4_Temp"));
+        String testTable1 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TC4_Table1"));
+        String testTable2 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TC4_Table2"));
+
         try (SQLServerConnection conn = getConnection()) {
             conn.setPrepareMethod("scopeTempTablesToConnection");
             
-            // Create and populate a temp table first
+            // Create and populate tables
             try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
-            }
-            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
-                pstmt2.execute();
-            }
-            try (PreparedStatement pstmt3 = conn.prepareStatement("INSERT INTO " + TEMP_TABLE + " VALUES (999)")) {
-                pstmt3.execute();
+                TestUtils.dropTableIfExists(tempTable, stmt);
+                TestUtils.dropTableIfExists(testTable1, stmt);
+                TestUtils.dropTableIfExists(testTable2, stmt);
+                stmt.execute("CREATE TABLE " + tempTable + " (id INT)");
+                stmt.execute("CREATE TABLE " + testTable1 + " (id INT PRIMARY KEY, name NVARCHAR(50), value INT)");
+                stmt.execute("CREATE TABLE " + testTable2 + " (id INT PRIMARY KEY, description NVARCHAR(100))");
+                stmt.execute("INSERT INTO " + tempTable + " VALUES (999)");
             }
 
-            String sql = "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?); " +
-                         "DELETE FROM " + TEMP_TABLE + "; " +
-                         "INSERT INTO " + TEST_TABLE_2 + " VALUES (?, ?)";
+            String sql = "INSERT INTO " + testTable1 + " VALUES (?, ?, ?); " +
+                    "DELETE FROM " + tempTable + "; " +
+                    "INSERT INTO " + testTable2 + " VALUES (?, ?)";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 // Batch 1
@@ -264,15 +260,16 @@ public class BatchCombinedExecutionTest extends AbstractTest {
 
             // Verify the DELETE was executed (temp table should be empty)
             try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TEMP_TABLE)) {
+                    ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tempTable)) {
                 rs.next();
                 assertEquals(0, rs.getInt(1), "Temp table should be empty after DELETE");
             }
 
             // Cleanup
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("DELETE FROM " + TEST_TABLE_1);
-                stmt.execute("DELETE FROM " + TEST_TABLE_2);
+                TestUtils.dropTableIfExists(tempTable, stmt);
+                TestUtils.dropTableIfExists(testTable1, stmt);
+                TestUtils.dropTableIfExists(testTable2, stmt);
             }
         }
     }
@@ -283,19 +280,24 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testMultipleParametersPerStatement() throws Exception {
+        String testTable1 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TC5_Table1"));
+        String testTable2 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TC5_Table2"));
+
         try (SQLServerConnection conn = getConnection()) {
             conn.setPrepareMethod("scopeTempTablesToConnection");
 
-            // Create temp table separately before batch
+            // Create tables
             try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
-            }
-            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
-                pstmt2.execute();
+                TestUtils.dropTableIfExists(testTable1, stmt);
+                TestUtils.dropTableIfExists(testTable2, stmt);
+                stmt.execute("CREATE TABLE " + testTable1 + " (id INT PRIMARY KEY, name NVARCHAR(50), value INT)");
+                stmt.execute("CREATE TABLE " + testTable2 + " (id INT PRIMARY KEY, description NVARCHAR(100))");
             }
 
-            String sql = "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?); " +
-                         "INSERT INTO " + TEST_TABLE_2 + " VALUES (?, ?)";
+            String sql = "INSERT INTO " + testTable1 + " VALUES (?, ?, ?); " +
+                    "INSERT INTO " + testTable2 + " VALUES (?, ?)";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 // Batch 1
@@ -328,19 +330,19 @@ public class BatchCombinedExecutionTest extends AbstractTest {
 
             // Verify correct number of rows inserted in both tables
             try (Statement stmt = conn.createStatement()) {
-                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TEST_TABLE_1);
+                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + testTable1);
                 rs.next();
                 assertEquals(3, rs.getInt(1), "Table1 should have 3 rows");
                 
-                rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TEST_TABLE_2);
+                rs = stmt.executeQuery("SELECT COUNT(*) FROM " + testTable2);
                 rs.next();
                 assertEquals(3, rs.getInt(1), "Table2 should have 3 rows");
             }
 
             // Cleanup
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("DELETE FROM " + TEST_TABLE_1);
-                stmt.execute("DELETE FROM " + TEST_TABLE_2);
+                TestUtils.dropTableIfExists(testTable1, stmt);
+                TestUtils.dropTableIfExists(testTable2, stmt);
             }
         }
     }
@@ -350,19 +352,20 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testOnlyNonParameterizedStatements() throws Exception {
+        String tempTable = AbstractSQLGenerator
+                .escapeIdentifier("#" + RandomUtil.getIdentifier("TC6_Temp"));
+
         try (SQLServerConnection conn = getConnection()) {
             conn.setPrepareMethod("scopeTempTablesToConnection");
 
-            // Create temp table separately before batch
+            // Create temp table
             try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
-            }
-            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
-                pstmt2.execute();
+                TestUtils.dropTableIfExists(tempTable, stmt);
+                stmt.execute("CREATE TABLE " + tempTable + " (id INT)");
             }
             
             // This SQL has no parameters, but we still call addBatch
-            String sql = "INSERT INTO " + TEMP_TABLE + " VALUES (1); ";
+            String sql = "INSERT INTO " + tempTable + " VALUES (1); ";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.addBatch();
@@ -372,6 +375,11 @@ public class BatchCombinedExecutionTest extends AbstractTest {
                 int[] updateCounts = pstmt.executeBatch();
                 assertEquals(3, updateCounts.length);
             }
+
+            // Cleanup
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(tempTable, stmt);
+            }
         }
     }
 
@@ -380,21 +388,26 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testWithStringLiteralsAndComments() throws Exception {
+        String testTable1 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TC7_Table1"));
+        String testTable2 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TC7_Table2"));
+
         try (SQLServerConnection conn = getConnection()) {
             conn.setPrepareMethod("scopeTempTablesToConnection");
 
-            // Create temp table separately before batch
+            // Create tables
             try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
-            }
-            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
-                pstmt2.execute();
+                TestUtils.dropTableIfExists(testTable1, stmt);
+                TestUtils.dropTableIfExists(testTable2, stmt);
+                stmt.execute("CREATE TABLE " + testTable1 + " (id INT PRIMARY KEY, name NVARCHAR(50), value INT)");
+                stmt.execute("CREATE TABLE " + testTable2 + " (id INT PRIMARY KEY, description NVARCHAR(100))");
             }
             
             String sql = "/* Comment with ; semicolon */ " +
-                         "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, 'Name;with;semicolons', ?); " +
+                    "INSERT INTO " + testTable1 + " VALUES (?, 'Name;with;semicolons', ?); " +
                          "-- Another comment\n" +
-                         "INSERT INTO " + TEST_TABLE_2 + " VALUES (?, 'Desc;test')";
+                    "INSERT INTO " + testTable2 + " VALUES (?, 'Desc;test')";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setInt(1, 701);
@@ -409,8 +422,8 @@ public class BatchCombinedExecutionTest extends AbstractTest {
             // Verify data
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(
-                     "SELECT name, description FROM " + TEST_TABLE_1 + " t1 " +
-                     "JOIN " + TEST_TABLE_2 + " t2 ON t1.id - 700 = t2.id - 800")) {
+                            "SELECT name, description FROM " + testTable1 + " t1 " +
+                                    "JOIN " + testTable2 + " t2 ON t1.id - 700 = t2.id - 800")) {
                 assertTrue(rs.next());
                 assertEquals("Name;with;semicolons", rs.getString(1));
                 assertEquals("Desc;test", rs.getString(2));
@@ -418,8 +431,8 @@ public class BatchCombinedExecutionTest extends AbstractTest {
 
             // Cleanup
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("DELETE FROM " + TEST_TABLE_1);
-                stmt.execute("DELETE FROM " + TEST_TABLE_2);
+                TestUtils.dropTableIfExists(testTable1, stmt);
+                TestUtils.dropTableIfExists(testTable2, stmt);
             }
         }
     }
@@ -429,19 +442,24 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testParameterMappingCorrectness() throws Exception {
+        String testTable1 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TC8_Table1"));
+        String testTable2 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TC8_Table2"));
+
         try (SQLServerConnection conn = getConnection()) {
             conn.setPrepareMethod("scopeTempTablesToConnection");
 
-            // Create temp table separately before batch
+            // Create tables
             try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
-            }
-            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
-                pstmt2.execute();
+                TestUtils.dropTableIfExists(testTable1, stmt);
+                TestUtils.dropTableIfExists(testTable2, stmt);
+                stmt.execute("CREATE TABLE " + testTable1 + " (id INT PRIMARY KEY, name NVARCHAR(50), value INT)");
+                stmt.execute("CREATE TABLE " + testTable2 + " (id INT PRIMARY KEY, description NVARCHAR(100))");
             }
             
-            String sql = "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?); " +
-                         "INSERT INTO " + TEST_TABLE_2 + " VALUES (?, ?)";
+            String sql = "INSERT INTO " + testTable1 + " VALUES (?, ?, ?); " +
+                    "INSERT INTO " + testTable2 + " VALUES (?, ?)";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 // Batch with specific values to verify correct mapping
@@ -458,14 +476,14 @@ public class BatchCombinedExecutionTest extends AbstractTest {
             // Verify the exact values were inserted in correct tables
             try (Statement stmt = conn.createStatement()) {
                 ResultSet rs = stmt.executeQuery(
-                    "SELECT id, name, value FROM " + TEST_TABLE_1 + " WHERE id = 1001");
+                        "SELECT id, name, value FROM " + testTable1 + " WHERE id = 1001");
                 assertTrue(rs.next());
                 assertEquals(1001, rs.getInt("id"));
                 assertEquals("Param2", rs.getString("name"));
                 assertEquals(3, rs.getInt("value"));
                 
                 rs = stmt.executeQuery(
-                    "SELECT id, description FROM " + TEST_TABLE_2 + " WHERE id = 2001");
+                        "SELECT id, description FROM " + testTable2 + " WHERE id = 2001");
                 assertTrue(rs.next());
                 assertEquals(2001, rs.getInt("id"));
                 assertEquals("Param5", rs.getString("description"));
@@ -473,8 +491,8 @@ public class BatchCombinedExecutionTest extends AbstractTest {
 
             // Cleanup
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("DELETE FROM " + TEST_TABLE_1);
-                stmt.execute("DELETE FROM " + TEST_TABLE_2);
+                TestUtils.dropTableIfExists(testTable1, stmt);
+                TestUtils.dropTableIfExists(testTable2, stmt);
             }
         }
     }
@@ -484,18 +502,19 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testBatchWithErrors() throws Exception {
+        String testTable1 = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TC9_Table1"));
+
         try (SQLServerConnection conn = getConnection()) {
             conn.setPrepareMethod("scopeTempTablesToConnection");
 
-            // Create temp table separately before batch
+            // Create table
             try (Statement stmt = conn.createStatement()) {
-                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
-            }
-            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
-                pstmt2.execute();
+                TestUtils.dropTableIfExists(testTable1, stmt);
+                stmt.execute("CREATE TABLE " + testTable1 + " (id INT PRIMARY KEY, name NVARCHAR(50), value INT)");
             }
             
-            String sql = "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?)";
+            String sql = "INSERT INTO " + testTable1 + " VALUES (?, ?, ?)";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 // Batch 1 - success
@@ -531,7 +550,7 @@ public class BatchCombinedExecutionTest extends AbstractTest {
 
             // Cleanup
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("DELETE FROM " + TEST_TABLE_1);
+                TestUtils.dropTableIfExists(testTable1, stmt);
             }
         }
     }
