@@ -12,6 +12,8 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.sql.BatchUpdateException;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -23,7 +25,9 @@ import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
@@ -439,7 +443,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         preparedTypeDefinitions = newTypeDefinitions;
 
         /* Replace the parameter marker '?' with the param numbers @p1, @p2 etc */
-        preparedSQL = connection.replaceParameterMarkers(userSQL, userSQLParamPositions, params, bReturnValueSyntax);
+        preparedSQL = replaceParameterMarkers(userSQL, userSQLParamPositions, params, bReturnValueSyntax);
         if (bRequestedGeneratedKeys)
             preparedSQL = preparedSQL + IDENTITY_QUERY;
 
@@ -1235,7 +1239,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // in the SQLisScopeTempTablesToConnectionns
         if (isScopeTempTablesToConnection && containsTemporaryTableOperations(userSQL)) {
             // Build direct SQL using enhanced replaceParameterMarkers with direct values
-            String directSQL = connection.replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params,
+            String directSQL = replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params,
                     false);
             tdsWriter.writeString(directSQL);
 
@@ -3321,7 +3325,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // Replace all parameter markers in the entire userSQL with values from this
                 // batch
-                String expandedSQL = connection.replaceParameterMarkersWithValues(
+                String expandedSQL = replaceParameterMarkersWithValues(
                         userSQL, userSQLParamPositions, batchParams, false);
 
                 sqlScript.append(expandedSQL);
@@ -3703,5 +3707,229 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (getStatementLogger().isLoggable(Level.FINER)) {
             getStatementLogger().finer(toString() + " cleared cachedPrepStmtHandle!");
         }
+    }
+
+    // Date format for java.util.Date -> DATETIME2 conversion
+    private static final SimpleDateFormat TS_FMT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US);
+
+    // OUT parameter marker for replaceParameterMarkers
+    static final char[] OUT = { ' ', 'O', 'U', 'T' };
+
+    /**
+     * Replaces JDBC syntax parameter markers '?' with SQL Server parameter
+     * markers @p1, @p2 etc...
+     * 
+     * @param sqlSrc
+     *                            the source SQL string
+     * @param paramPositions
+     *                            the positions of parameter markers
+     * @param params
+     *                            the parameters
+     * @param isReturnValueSyntax
+     *                            whether this is return value syntax
+     * @return the SQL string with replaced parameter markers
+     */
+    String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
+            boolean isReturnValueSyntax) {
+        final int MAX_PARAM_NAME_LEN = 6;
+        char[] sqlDst = new char[sqlSrc.length() + (params.length * (MAX_PARAM_NAME_LEN + OUT.length))
+                + (params.length * 2)];
+        int dstBegin = 0;
+        int srcBegin = 0;
+        int nParam = 0;
+
+        int paramIndex = 0;
+        while (true) {
+            int srcEnd = (paramIndex >= paramPositions.length) ? sqlSrc.length() : paramPositions[paramIndex];
+            sqlSrc.getChars(srcBegin, srcEnd, sqlDst, dstBegin);
+            dstBegin += srcEnd - srcBegin;
+
+            if (sqlSrc.length() == srcEnd)
+                break;
+
+            dstBegin += SQLServerConnection.makeParamName(nParam++, sqlDst, dstBegin, true);
+            srcBegin = srcEnd + 1 <= sqlSrc.length() - 1 && sqlSrc.charAt(srcEnd + 1) == ' ' ? srcEnd + 2 : srcEnd + 1;
+
+            if (params[paramIndex++].isOutput() && (!isReturnValueSyntax || paramIndex > 1)) {
+                System.arraycopy(OUT, 0, sqlDst, dstBegin, OUT.length);
+                dstBegin += OUT.length;
+            }
+        }
+
+        return new String(sqlDst, 0, dstBegin);
+    }
+
+    /**
+     * Replaces parameter markers '?' with actual parameter values for direct SQL
+     * execution.
+     * 
+     * @param sqlSrc
+     *                            the source SQL string
+     * @param paramPositions
+     *                            the positions of parameter markers
+     * @param params
+     *                            the parameters
+     * @param isReturnValueSyntax
+     *                            whether this is return value syntax
+     * @return the SQL string with parameter values substituted
+     * @throws SQLServerException
+     *                            if an error occurs
+     */
+    String replaceParameterMarkersWithValues(String sqlSrc, int[] paramPositions, Parameter[] params,
+            boolean isReturnValueSyntax) throws SQLServerException {
+
+        // EXEC method: substitute actual parameter values directly into SQL
+        if (params == null || params.length == 0) {
+            return sqlSrc;
+        }
+
+        // Create exception before any memory allocation to avoid OOM during query
+        // creation
+        SQLServerException ex = new SQLServerException("Error during parameter replacement", null);
+
+        try {
+            StringBuilder result = new StringBuilder(sqlSrc.length() + params.length * 20);
+            int srcBegin = 0;
+
+            for (int paramIndex = 0; paramIndex < paramPositions.length; paramIndex++) {
+                int srcEnd = paramPositions[paramIndex];
+
+                // Append SQL text before this parameter marker
+                result.append(sqlSrc, srcBegin, srcEnd);
+
+                // Get parameter value and format it
+                Object value = null;
+                if (params[paramIndex] != null) {
+                    value = params[paramIndex].getSetterValue();
+                }
+
+                // Append formatted literal value
+                result.append(formatLiteralValue(value));
+
+                // Move past the '?' marker
+                srcBegin = srcEnd + 1;
+            }
+
+            // Append remaining SQL after last parameter
+            result.append(sqlSrc, srcBegin, sqlSrc.length());
+            return result.toString();
+        } catch (Exception e) {
+            // Try to set the cause, but if OOM occurs even this may fail
+            try {
+                ex.initCause(e);
+            } catch (Exception oom) {
+            }
+            throw ex;
+        }
+    }
+
+    /**
+     * Format Java value into a T-SQL literal safe for SQL Server.
+     * This method is package-private to allow testing.
+     * 
+     * @param value
+     *              the value to format
+     * @return the formatted SQL literal string
+     * @throws SQLException
+     *                      if an error occurs
+     */
+    String formatLiteralValue(Object value) throws SQLException {
+        if (value == null) {
+            return "NULL";
+        } else if (value instanceof String) {
+            String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
+            return prefix + escapeSQLString((String) value) + "'";
+        } else if (value instanceof Character) {
+            String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
+            return prefix + escapeSQLString(value.toString()) + "'";
+        } else if (value instanceof Boolean) {
+            return ((Boolean) value) ? "1" : "0";
+        } else if (value instanceof java.math.BigDecimal) {
+            // Use toPlainString() to avoid scientific notation
+            java.math.BigDecimal bd = (java.math.BigDecimal) value;
+            String plainStr = bd.toPlainString();
+
+            // For very large or high-precision decimals, wrap in CAST to preserve precision
+            // SQL Server decimal max precision is 38, scale max 38
+            int precision = bd.precision();
+            int scale = bd.scale();
+
+            if (precision > 18 || scale > 6) {
+                // Need explicit CAST for high precision numbers
+                // Clamp to SQL Server limits: decimal(38, min(scale, 38))
+                // Ensure scale <= precision
+                int sqlPrecision = Math.min(precision, 38);
+                int sqlScale = Math.min(Math.min(scale, 38), sqlPrecision);
+                return "CAST(" + plainStr + " AS DECIMAL(" + sqlPrecision + "," + sqlScale + "))";
+            }
+            return plainStr;
+        } else if (value instanceof Byte || value instanceof Short || value instanceof Integer
+                || value instanceof Long) {
+            return value.toString();
+        } else if (value instanceof Float) {
+            // Float and Double need special handling to avoid precision loss and scientific
+            // notation
+            Float f = (Float) value;
+            // Handle special float values that cannot be converted to BigDecimal
+            if (f.isInfinite() || f.isNaN()) {
+                String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
+                return prefix + escapeSQLString(f.toString()) + "'";
+            }
+            // Convert Float to BigDecimal for precise representation
+            return new java.math.BigDecimal(value.toString()).toPlainString();
+        } else if (value instanceof Double) {
+            Double d = (Double) value;
+            // Handle special double values that cannot be converted to BigDecimal
+            if (d.isInfinite() || d.isNaN()) {
+                String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
+                return prefix + escapeSQLString(d.toString()) + "'";
+            }
+            // Convert Double to BigDecimal for precise representation
+            return new java.math.BigDecimal(value.toString()).toPlainString();
+        } else if (value instanceof java.sql.Date) {
+            return "CAST('" + escapeSQLString(value.toString()) + "' AS DATE)";
+        } else if (value instanceof java.sql.Time) {
+            return "CAST('" + escapeSQLString(value.toString()) + "' AS TIME)";
+        } else if (value instanceof java.sql.Timestamp) {
+            return "CAST('" + escapeSQLString(value.toString()) + "' AS DATETIME2)";
+        } else if (value instanceof java.util.Date) {
+            // generic java.util.Date -> timestamp
+            return "CAST('" + TS_FMT.format((java.util.Date) value) + "' AS DATETIME2)";
+        } else if (value instanceof byte[]) {
+            return bytesToHexLiteral((byte[]) value);
+        } else if (value instanceof Blob) {
+            Blob b = (Blob) value;
+            int len = (int) b.length();
+            byte[] bytes = b.getBytes(1, len);
+            return bytesToHexLiteral(bytes);
+        } else if (value instanceof Clob) {
+            Clob c = (Clob) value;
+            String s = c.getSubString(1, (int) c.length());
+            String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
+            return prefix + escapeSQLString(s) + "'";
+        } else {
+            // fallback
+            String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
+            return prefix + escapeSQLString(value.toString()) + "'";
+        }
+    }
+
+    private String escapeSQLString(String s) {
+        if (s == null || s.isEmpty()) {
+            return "";
+        }
+        // double single quotes
+        return s.replace("'", "''");
+    }
+
+    private String bytesToHexLiteral(byte[] bytes) {
+        if (bytes == null || bytes.length == 0)
+            return "0x";
+        StringBuilder sb = new StringBuilder(bytes.length * 2 + 2);
+        sb.append("0x");
+        for (byte b : bytes) {
+            sb.append(String.format("%02X", b));
+        }
+        return sb.toString();
     }
 }

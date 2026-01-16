@@ -364,8 +364,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
             else {
                 queryMetaMap = new HashMap<>();
                 if (con.getServerMajorVersion() >= SQL_SERVER_2012_VERSION && !st.getUseFmtOnly()) {
-                    String preparedSQL = con.replaceParameterMarkers(stmtParent.userSQL,
-                            stmtParent.userSQLParamPositions, stmtParent.inOutParam, stmtParent.bReturnValueSyntax);
+                    String preparedSQL = stmtParent.replaceParameterMarkers(stmtParent.userSQL,
+                                    stmtParent.userSQLParamPositions, stmtParent.inOutParam, stmtParent.bReturnValueSyntax);
 
                     try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con
                             .prepareCall("exec sp_describe_undeclared_parameters ?")) {
