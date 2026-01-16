@@ -7,7 +7,10 @@ package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -22,11 +25,15 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 import org.junit.jupiter.api.Tag;
+
+import sun.misc.Unsafe;
 
 /**
  * Comprehensive test suite for scopeTempTablesToConnection prepare method
@@ -982,5 +989,384 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
         }
         
         return System.currentTimeMillis() - startTime;
+    }
+
+    // ==================== FormatLiteralValue Tests ====================
+    // Tests for SQLServerPreparedStatement.formatLiteralValue method
+    // These tests use reflection to access the package-private method
+
+    /**
+     * Helper method to create a PreparedStatement for formatLiteralValue testing
+     */
+    private SQLServerPreparedStatement createPreparedStatementForFormatTest() throws Exception {
+        SQLServerConnection conn = PrepUtil.getConnection(connectionString);
+
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) unsafe
+                .allocateInstance(SQLServerPreparedStatement.class);
+
+        Field connField = SQLServerStatement.class.getDeclaredField("connection");
+        connField.setAccessible(true);
+        connField.set(pstmt, conn);
+
+        return pstmt;
+    }
+
+    /**
+     * Helper method to call formatLiteralValue using reflection
+     */
+    private String callFormatLiteralValue(SQLServerPreparedStatement pstmt, Object value) throws Exception {
+        Method formatMethod = SQLServerPreparedStatement.class.getDeclaredMethod("formatLiteralValue", Object.class);
+        formatMethod.setAccessible(true);
+        return (String) formatMethod.invoke(pstmt, value);
+    }
+
+    // ==================== DateTime Formatting Tests ====================
+
+    @Test
+    public void testFormatLiteralValueDateTimeOptimization() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test all date/time types with optimized formatting
+        Date testDate = Date.valueOf("2023-12-15");
+        Time testTime = Time.valueOf("14:30:45");
+        Timestamp testTimestamp = Timestamp.valueOf("2023-12-15 14:30:45.123456789");
+
+        // Verify optimized formatting produces correct SQL CAST syntax
+        assertEquals("CAST('2023-12-15' AS DATE)", callFormatLiteralValue(pstmt, testDate));
+        assertEquals("CAST('14:30:45' AS TIME)", callFormatLiteralValue(pstmt, testTime));
+        assertEquals("CAST('2023-12-15 14:30:45.123456789' AS DATETIME2)",
+                callFormatLiteralValue(pstmt, testTimestamp));
+
+        // Test edge cases - java.sql.Date.toString() always produces ISO format
+        // (yyyy-MM-dd)
+        Date minDate = Date.valueOf("1900-01-01");
+        Date maxDate = Date.valueOf("9999-12-31");
+        Date leapYear = Date.valueOf("2024-02-29");
+        assertEquals("CAST('1900-01-01' AS DATE)", callFormatLiteralValue(pstmt, minDate));
+        assertEquals("CAST('9999-12-31' AS DATE)", callFormatLiteralValue(pstmt, maxDate));
+        assertEquals("CAST('2024-02-29' AS DATE)", callFormatLiteralValue(pstmt, leapYear));
+
+        // Test time edge cases
+        Time midnight = Time.valueOf("00:00:00");
+        Time endOfDay = Time.valueOf("23:59:59");
+        assertEquals("CAST('00:00:00' AS TIME)", callFormatLiteralValue(pstmt, midnight));
+        assertEquals("CAST('23:59:59' AS TIME)", callFormatLiteralValue(pstmt, endOfDay));
+    }
+
+    @Test
+    public void testFormatLiteralValuePrecisionImprovement() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Demonstrate that timestamp optimization preserves DATETIME2 precision (7
+        // digits) vs old TS_FMT
+        Timestamp nanoTimestamp = Timestamp.valueOf("2023-12-15 14:30:45.0");
+        nanoTimestamp.setNanos(123456700); // DATETIME2 has precision = 7
+
+        String optimizedResult = callFormatLiteralValue(pstmt, nanoTimestamp);
+        assertEquals("CAST('2023-12-15 14:30:45.1234567' AS DATETIME2)", optimizedResult);
+
+        // Compare with what TS_FMT would produce (lost precision)
+        java.text.SimpleDateFormat TS_FMT = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        String oldResult = "CAST('" + TS_FMT.format(nanoTimestamp) + "' AS DATETIME2)";
+        assertEquals("CAST('2023-12-15 14:30:45.123' AS DATETIME2)", oldResult);
+
+        assertNotEquals(oldResult, optimizedResult, "Optimized version preserves DATETIME2 precision (7 digits)");
+    }
+
+    // ==================== Numeric Formatting Tests ====================
+
+    @Test
+    public void testFormatLiteralValueByteMinMax() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test Byte.MIN_VALUE
+        assertEquals("-128", callFormatLiteralValue(pstmt, Byte.MIN_VALUE));
+
+        // Test Byte.MAX_VALUE
+        assertEquals("127", callFormatLiteralValue(pstmt, Byte.MAX_VALUE));
+
+        // Test zero
+        assertEquals("0", callFormatLiteralValue(pstmt, (byte) 0));
+    }
+
+    @Test
+    public void testFormatLiteralValueShortMinMax() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test Short.MIN_VALUE
+        assertEquals("-32768", callFormatLiteralValue(pstmt, Short.MIN_VALUE));
+
+        // Test Short.MAX_VALUE
+        assertEquals("32767", callFormatLiteralValue(pstmt, Short.MAX_VALUE));
+    }
+
+    @Test
+    public void testFormatLiteralValueIntegerMinMax() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test Integer.MIN_VALUE
+        assertEquals("-2147483648", callFormatLiteralValue(pstmt, Integer.MIN_VALUE));
+
+        // Test Integer.MAX_VALUE
+        assertEquals("2147483647", callFormatLiteralValue(pstmt, Integer.MAX_VALUE));
+    }
+
+    @Test
+    public void testFormatLiteralValueLongMinMax() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test Long.MIN_VALUE
+        assertEquals("-9223372036854775808", callFormatLiteralValue(pstmt, Long.MIN_VALUE));
+
+        // Test Long.MAX_VALUE
+        assertEquals("9223372036854775807", callFormatLiteralValue(pstmt, Long.MAX_VALUE));
+    }
+
+    @Test
+    public void testFormatLiteralValueFloatMinMax() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test Float.MIN_VALUE (smallest positive value)
+        String result = callFormatLiteralValue(pstmt, Float.MIN_VALUE);
+        assertEquals(new BigDecimal(Float.toString(Float.MIN_VALUE)).toPlainString(), result);
+
+        // Test Float.MAX_VALUE
+        result = callFormatLiteralValue(pstmt, Float.MAX_VALUE);
+        assertEquals(new BigDecimal(Float.toString(Float.MAX_VALUE)).toPlainString(), result);
+
+        // Test negative Float.MAX_VALUE
+        result = callFormatLiteralValue(pstmt, -Float.MAX_VALUE);
+        assertEquals(new BigDecimal(Float.toString(-Float.MAX_VALUE)).toPlainString(), result);
+
+        // Test Float.MIN_NORMAL
+        result = callFormatLiteralValue(pstmt, Float.MIN_NORMAL);
+        assertEquals(new BigDecimal(Float.toString(Float.MIN_NORMAL)).toPlainString(), result);
+    }
+
+    @Test
+    public void testFormatLiteralValueDoubleMinMax() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test Double.MIN_VALUE (smallest positive value)
+        String result = callFormatLiteralValue(pstmt, Double.MIN_VALUE);
+        assertEquals(new BigDecimal(Double.toString(Double.MIN_VALUE)).toPlainString(), result);
+
+        // Test Double.MAX_VALUE
+        result = callFormatLiteralValue(pstmt, Double.MAX_VALUE);
+        assertEquals(new BigDecimal(Double.toString(Double.MAX_VALUE)).toPlainString(), result);
+
+        // Test negative Double.MAX_VALUE
+        result = callFormatLiteralValue(pstmt, -Double.MAX_VALUE);
+        assertEquals(new BigDecimal(Double.toString(-Double.MAX_VALUE)).toPlainString(), result);
+
+        // Test Double.MIN_NORMAL
+        result = callFormatLiteralValue(pstmt, Double.MIN_NORMAL);
+        assertEquals(new BigDecimal(Double.toString(Double.MIN_NORMAL)).toPlainString(), result);
+    }
+
+    @Test
+    public void testFormatLiteralValueBigDecimalPrecision() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test BigDecimal with precision <= 18 and scale <= 6 (no CAST needed)
+        BigDecimal smallDecimal = new BigDecimal("123456789.123456");
+        String result = callFormatLiteralValue(pstmt, smallDecimal);
+        assertEquals("123456789.123456", result);
+
+        // Test BigDecimal with high precision (needs CAST)
+        BigDecimal highPrecisionDecimal = new BigDecimal("1234567890123456789012345678901234567890.123456789");
+        result = callFormatLiteralValue(pstmt, highPrecisionDecimal);
+        assertTrue(result.startsWith("CAST("));
+        assertTrue(result.contains("AS DECIMAL(38,"));
+
+        // Test BigDecimal with high scale (needs CAST)
+        BigDecimal highScaleDecimal = new BigDecimal("123.1234567890123456789");
+        result = callFormatLiteralValue(pstmt, highScaleDecimal);
+        assertTrue(result.startsWith("CAST("));
+        assertTrue(result.contains("AS DECIMAL("));
+    }
+
+    @Test
+    public void testFormatLiteralValueBigDecimalMinMax() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test very large BigDecimal
+        BigDecimal largeDecimal = new BigDecimal("99999999999999999999999999999999999999");
+        String result = callFormatLiteralValue(pstmt, largeDecimal);
+        assertTrue(result.startsWith("CAST("));
+        assertTrue(result.contains("AS DECIMAL(38,"));
+
+        // Test very small BigDecimal
+        BigDecimal smallDecimal = new BigDecimal("-99999999999999999999999999999999999999");
+        result = callFormatLiteralValue(pstmt, smallDecimal);
+        assertTrue(result.startsWith("CAST("));
+        assertTrue(result.contains("AS DECIMAL(38,"));
+
+        // Test BigDecimal with maximum SQL Server precision (38)
+        StringBuilder sb = new StringBuilder("1");
+        for (int i = 0; i < 37; i++) {
+            sb.append("0");
+        }
+        String maxPrecisionStr = sb.toString(); // 38 digits
+        BigDecimal maxPrecisionDecimal = new BigDecimal(maxPrecisionStr);
+        result = callFormatLiteralValue(pstmt, maxPrecisionDecimal);
+        assertTrue(result.startsWith("CAST("));
+        assertTrue(result.contains("AS DECIMAL(38,0)"));
+    }
+
+    @Test
+    public void testFormatLiteralValueBigInteger() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // BigInteger should be handled as fallback (toString with quotes)
+        BigInteger bigInt = new BigInteger("12345678901234567890123456789012345678901234567890");
+        String result = callFormatLiteralValue(pstmt, bigInt);
+        // Should fall through to the fallback case and be treated as string
+        assertTrue(result.startsWith("'") || result.startsWith("N'"));
+        assertTrue(result.endsWith("'"));
+    }
+
+    @Test
+    public void testFormatLiteralValueScientificNotationHandling() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test very small double that might use scientific notation
+        double scientificDouble = 1.23e-100;
+        String result = callFormatLiteralValue(pstmt, scientificDouble);
+        // Should not contain 'E' or 'e' (scientific notation)
+        assertTrue(!result.contains("E") && !result.contains("e"));
+
+        // Test very large double that might use scientific notation
+        double largeDouble = 1.23e100;
+        result = callFormatLiteralValue(pstmt, largeDouble);
+        // Should not contain 'E' or 'e' (scientific notation)
+        assertTrue(!result.contains("E") && !result.contains("e"));
+    }
+
+    @Test
+    public void testFormatLiteralValueFloatSpecialValues() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test Float.POSITIVE_INFINITY - should be formatted as string
+        String result = callFormatLiteralValue(pstmt, Float.POSITIVE_INFINITY);
+        assertTrue(result.startsWith("N'") || result.startsWith("'"));
+        assertTrue(result.contains("Infinity"));
+
+        // Test Float.NEGATIVE_INFINITY - should be formatted as string
+        result = callFormatLiteralValue(pstmt, Float.NEGATIVE_INFINITY);
+        assertTrue(result.startsWith("N'") || result.startsWith("'"));
+        assertTrue(result.contains("-Infinity"));
+
+        // Test Float.NaN - should be formatted as string
+        result = callFormatLiteralValue(pstmt, Float.NaN);
+        assertTrue(result.startsWith("N'") || result.startsWith("'"));
+        assertTrue(result.contains("NaN"));
+    }
+
+    @Test
+    public void testFormatLiteralValueDoubleSpecialValues() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test Double.POSITIVE_INFINITY - should be formatted as string
+        String result = callFormatLiteralValue(pstmt, Double.POSITIVE_INFINITY);
+        assertTrue(result.startsWith("N'") || result.startsWith("'"));
+        assertTrue(result.contains("Infinity"));
+
+        // Test Double.NEGATIVE_INFINITY - should be formatted as string
+        result = callFormatLiteralValue(pstmt, Double.NEGATIVE_INFINITY);
+        assertTrue(result.startsWith("N'") || result.startsWith("'"));
+        assertTrue(result.contains("-Infinity"));
+
+        // Test Double.NaN - should be formatted as string
+        result = callFormatLiteralValue(pstmt, Double.NaN);
+        assertTrue(result.startsWith("N'") || result.startsWith("'"));
+        assertTrue(result.contains("NaN"));
+    }
+
+    @Test
+    public void testFormatLiteralValueBigDecimalSpecialCases() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test BigDecimal.ZERO
+        assertEquals("0", callFormatLiteralValue(pstmt, BigDecimal.ZERO));
+
+        // Test BigDecimal.ONE
+        assertEquals("1", callFormatLiteralValue(pstmt, BigDecimal.ONE));
+
+        // Test BigDecimal.TEN
+        assertEquals("10", callFormatLiteralValue(pstmt, BigDecimal.TEN));
+
+        // Test BigDecimal with trailing zeros
+        BigDecimal trailingZeros = new BigDecimal("123.4500");
+        assertEquals("123.4500", callFormatLiteralValue(pstmt, trailingZeros));
+
+        // Test BigDecimal with leading zeros
+        BigDecimal leadingZeros = new BigDecimal("000123.45");
+        assertEquals("123.45", callFormatLiteralValue(pstmt, leadingZeros));
+    }
+
+    @Test
+    public void testFormatLiteralValuePrecisionAndScaleBoundaries() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test boundary case: precision = 18, scale = 6 (should not need CAST)
+        BigDecimal boundaryDecimal = new BigDecimal("123456789012.123456"); // 18 total digits
+        String result = callFormatLiteralValue(pstmt, boundaryDecimal);
+        assertEquals("123456789012.123456", result);
+
+        // Test boundary case: precision = 19, scale = 6 (should need CAST)
+        BigDecimal overBoundaryDecimal = new BigDecimal("1234567890123456789.123456");
+        result = callFormatLiteralValue(pstmt, overBoundaryDecimal);
+        assertTrue(result.startsWith("CAST("));
+
+        // Test boundary case: precision = 18, scale = 7 (should need CAST)
+        BigDecimal overScaleBoundaryDecimal = new BigDecimal("12345678901234567.1234567");
+        result = callFormatLiteralValue(pstmt, overScaleBoundaryDecimal);
+        assertTrue(result.startsWith("CAST("));
+    }
+
+    @Test
+    public void testFormatLiteralValueNullValue() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        String result = callFormatLiteralValue(pstmt, null);
+        assertEquals("NULL", result);
+    }
+
+    @Test
+    public void testFormatLiteralValueBooleanValues() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test true
+        assertEquals("1", callFormatLiteralValue(pstmt, Boolean.TRUE));
+
+        // Test false
+        assertEquals("0", callFormatLiteralValue(pstmt, Boolean.FALSE));
+
+        // Test boolean primitive true
+        assertEquals("1", callFormatLiteralValue(pstmt, true));
+
+        // Test boolean primitive false
+        assertEquals("0", callFormatLiteralValue(pstmt, false));
+    }
+
+    @Test
+    public void testFormatLiteralValueEdgeCasesForSQLServerLimits() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+
+        // Test decimal with scale > 38 (should be clamped to 38)
+        BigDecimal highScaleDecimal = new BigDecimal("1.123456789012345678901234567890123456789012345678901234567890");
+        String result = callFormatLiteralValue(pstmt, highScaleDecimal);
+        assertTrue(result.startsWith("CAST("));
+        // Scale should be clamped to not exceed precision and SQL Server limits
+        assertTrue(result.contains("AS DECIMAL("));
+
+        // Test decimal where scale would exceed precision after clamping
+        BigDecimal problematicDecimal = new BigDecimal("1.123456789012345678901234567890123456789");
+        result = callFormatLiteralValue(pstmt, problematicDecimal);
+        assertTrue(result.startsWith("CAST("));
     }
 }

@@ -318,7 +318,7 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
             // Test INSERT into temp table (not detected)
             try (SQLServerPreparedStatement insertStmt = (SQLServerPreparedStatement) con.prepareStatement(insertTempTableSql)) {
                 boolean hasTemporaryTables = insertStmt.containsTemporaryTableOperations(insertTempTableSql);
-                assertFalse(hasTemporaryTables, "INSERT statements not detected by simplified pattern");
+                assertFalse(hasTemporaryTables, "Temporary table creation not detected in INSERT statement");
                 insertStmt.setInt(1, 1);
                 insertStmt.setString(2, "test value");
                 insertStmt.executeUpdate();
@@ -327,7 +327,7 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
             // Test SELECT from temp table (not detected)
             try (SQLServerPreparedStatement selectStmt = (SQLServerPreparedStatement) con.prepareStatement(selectTempTableSql)) {
                 boolean hasTemporaryTables = selectStmt.containsTemporaryTableOperations(selectTempTableSql);
-                assertFalse(hasTemporaryTables, "SELECT FROM statements not detected by simplified pattern");
+                assertFalse(hasTemporaryTables, "Temporary table creation not detected in SELECT FROM statement");
                 selectStmt.setInt(1, 1);
                 boolean hasResultSet = selectStmt.execute();
                 assertTrue(hasResultSet, "Should return true indicating a ResultSet is available");
@@ -336,7 +336,7 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
             // Test UPDATE temp table (not detected)
             try (SQLServerPreparedStatement updateStmt = (SQLServerPreparedStatement) con.prepareStatement(updateTempTableSql)) {
                 boolean hasTemporaryTables = updateStmt.containsTemporaryTableOperations(updateTempTableSql);
-                assertFalse(hasTemporaryTables, "UPDATE statements not detected by simplified pattern");
+                assertFalse(hasTemporaryTables, "Temporary table creation not detected in UPDATE statement");
                 updateStmt.setString(1, "updated value");
                 updateStmt.setInt(2, 1);
                 updateStmt.executeUpdate();
@@ -345,7 +345,7 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
             // Test DELETE from temp table (not detected)
             try (SQLServerPreparedStatement deleteStmt = (SQLServerPreparedStatement) con.prepareStatement(deleteTempTableSql)) {
                 boolean hasTemporaryTables = deleteStmt.containsTemporaryTableOperations(deleteTempTableSql);
-                assertFalse(hasTemporaryTables, "DELETE statements not detected by simplified pattern");
+                assertFalse(hasTemporaryTables, "Temporary table creation not detected in DELETE statement");
                 deleteStmt.setInt(1, 1);
                 deleteStmt.executeUpdate();
             }
