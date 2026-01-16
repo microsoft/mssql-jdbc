@@ -138,17 +138,20 @@ public class BatchExecutionTest extends AbstractTest {
 
     private void testConstraintViolationBasicPrepareStatement(String prepareMethod, boolean enablePrepareOnFirstCall)
             throws Exception {
-        String constraintTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("constraint_exec"));
+        String constraintTable = AbstractSQLGenerator
+                .escapeIdentifier("#" + RandomUtil.getIdentifier("constraint_exec"));
 
         try (SQLServerConnection connection = PrepUtil.getConnection(connectionString)) {
             connection.setEnablePrepareOnFirstPreparedStatementCall(enablePrepareOnFirstCall);
             connection.setPrepareMethod(prepareMethod);
 
             // Create table with CHECK constraint
+            String createTableSQL = "CREATE TABLE " + constraintTable + " (C1 int check (C1 > 0))";
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(constraintTable, stmt);
-                String createTableSQL = "CREATE TABLE " + constraintTable + " (C1 int check (C1 > 0))";
-                stmt.execute(createTableSQL);
+            }
+            try (PreparedStatement pstmt = connection.prepareStatement(createTableSQL)) {
+                pstmt.execute();
             }
 
             // Use case 1: PreparedStatement batch execution with constraint violation
@@ -189,19 +192,22 @@ public class BatchExecutionTest extends AbstractTest {
 
             // Use case 2: Single SQL statement with multiple inserts and constraint
             // violation
-            try (Statement stmt = connection.createStatement()) {
-                // Clear table for next test
-                stmt.execute("DELETE FROM " + constraintTable);
+            // Clear table for next test
+            String deleteSQL = "DELETE FROM " + constraintTable;
+            try (PreparedStatement pstmtDelete = connection.prepareStatement(deleteSQL)) {
+                pstmtDelete.execute();
+            }
 
-                // Single statement with 4 inserts: 1st valid, 2nd violates constraint, 3rd
-                // valid, 4th valid
-                String insertSQL = "INSERT INTO " + constraintTable + " VALUES (1); " +
-                        "INSERT INTO " + constraintTable + " VALUES (-1); " +
-                        "INSERT INTO " + constraintTable + " VALUES (2); " +
-                        "INSERT INTO " + constraintTable + " VALUES (3);";
+            // Single statement with 4 inserts: 1st valid, 2nd violates constraint, 3rd
+            // valid, 4th valid
+            String insertSQL = "INSERT INTO " + constraintTable + " VALUES (1); " +
+                    "INSERT INTO " + constraintTable + " VALUES (-1); " +
+                    "INSERT INTO " + constraintTable + " VALUES (2); " +
+                    "INSERT INTO " + constraintTable + " VALUES (3);";
 
+            try (PreparedStatement pstmtInsert = connection.prepareStatement(insertSQL)) {
                 try {
-                    stmt.execute(insertSQL);
+                    pstmtInsert.execute();
                 } catch (SQLException e) {
                     assertTrue(e.getMessage().contains("CHECK constraint") || e.getMessage().contains("constraint"),
                             "SQLException should mention CHECK constraint violation");
@@ -218,9 +224,9 @@ public class BatchExecutionTest extends AbstractTest {
             String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("#tempConstraintTable"));
 
             // Create temp table first (separate from batch inserts)
-            try (Statement stmt = connection.createStatement()) {
-                String createTempTableSQL = "CREATE TABLE " + tempTable + " (C1 int check (C1 > 0))";
-                stmt.execute(createTempTableSQL);
+            String createTempTableSQL = "CREATE TABLE " + tempTable + " (C1 int check (C1 > 0))";
+            try (PreparedStatement pstmtCreate = connection.prepareStatement(createTempTableSQL)) {
+                pstmtCreate.execute();
             }
 
             // Now batch insert into the temp table
@@ -333,9 +339,9 @@ public class BatchExecutionTest extends AbstractTest {
             // Use case 3: Statement batch execution with temp table
             // Test Statement batch with temp table and constraint violation
             String tempTable = "#tempConstraintTable";
-            try (Statement stmt = connection.createStatement()) {
-                String createTempTableSQL = "CREATE TABLE " + tempTable + " (C1 int check (C1 > 0))";
-                stmt.execute(createTempTableSQL);
+            String createTempTableSQL = "CREATE TABLE " + tempTable + " (C1 int check (C1 > 0))";
+            try (Statement stmtCreate = connection.createStatement()) {
+                stmtCreate.execute(createTempTableSQL);
             }
 
             try (Statement stmt = connection.createStatement()) {
@@ -349,9 +355,10 @@ public class BatchExecutionTest extends AbstractTest {
                     stmt.executeBatch();
                     fail("Expected BatchUpdateException due to constraint violation in temp table");
                 } catch (BatchUpdateException bue) {
-                    assertTrue(bue.getMessage().contains("CHECK constraint") ||
-                            (bue.getCause() != null && bue.getCause().getMessage().contains("CHECK constraint")),
-                                    "BatchUpdateException should mention CHECK constraint violation");
+                    // Check exception message in the cause chain
+                    assertTrue(hasConstraintViolationMessage(bue),
+                            "BatchUpdateException should mention CHECK constraint violation. Message chain: " +
+                                    getExceptionMessageChain(bue));
 
                     // Verify update counts: [1, -3, 1, 1]
                     int[] expectedCount = { 1, -3, 1, 1 };
@@ -1433,8 +1440,8 @@ public class BatchExecutionTest extends AbstractTest {
             connection.setPrepareMethod("scopeTempTablesToConnection");
 
             String sql = "CREATE TABLE " + tableName + " (id int PRIMARY KEY, name nvarchar(50), value int)";
-            try (Statement stmt = connection.createStatement()) {
-                stmt.execute(sql);
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                pstmt.execute();
             }
 
             try {

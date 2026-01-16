@@ -4,7 +4,6 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -17,7 +16,6 @@ import java.sql.Statement;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -44,9 +42,9 @@ public class BatchCombinedExecutionTest extends AbstractTest {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             // Drop tables if they exist
             try {
-                stmt.execute("DROP TABLE IF EXISTS " + TEST_TABLE_1);
-                stmt.execute("DROP TABLE IF EXISTS " + TEST_TABLE_2);
-                stmt.execute("DROP TABLE IF EXISTS " + TEMP_TABLE);
+                TestUtils.dropTableIfExists(TEST_TABLE_1, stmt);
+                TestUtils.dropTableIfExists(TEST_TABLE_2, stmt);
+                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
             } catch (SQLException e) {
                 // Ignore if tables don't exist
             }
@@ -60,29 +58,31 @@ public class BatchCombinedExecutionTest extends AbstractTest {
     @AfterAll
     public static void cleanupTests() throws Exception {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.execute("DROP TABLE IF EXISTS " + TEST_TABLE_1);
-            stmt.execute("DROP TABLE IF EXISTS " + TEST_TABLE_2);
-            stmt.execute("DROP TABLE IF EXISTS " + TEMP_TABLE);
+            TestUtils.dropTableIfExists(TEST_TABLE_1, stmt);
+            TestUtils.dropTableIfExists(TEST_TABLE_2, stmt);
+            TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
         }
     }
 
     /**
      * Test Case 1: Non-parameterized SQL after parameterized SQL
-     * SQL: "INSERT INTO table1 VALUES (?); SET NOCOUNT OFF"
+     * SQL: "INSERT INTO table1 VALUES (?);
      */
     @Test
     public void testNonParameterizedAfterParameterized() throws Exception {
-        try (Connection conn = getConnection()) {
+        try (SQLServerConnection conn = getConnection()) {
             // Enable scopeTempTablesToConnection to trigger the combined execution path
-            conn.unwrap(SQLServerConnection.class).setDisableStatementPooling(false);
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             // Create temp table first
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("CREATE TABLE " + TEMP_TABLE + " (id INT)");
+                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
+            }
+            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
+                pstmt2.execute();
             }
             
-            String sql = "INSERT INTO " + TEMP_TABLE + " VALUES (?); " +
-                         "SET NOCOUNT OFF";
+            String sql = "INSERT INTO " + TEMP_TABLE + " VALUES (?); ";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 // Add multiple batches
@@ -119,12 +119,15 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testMultipleParameterizedStatements() throws Exception {
-        try (Connection conn = getConnection()) {
-            conn.unwrap(SQLServerConnection.class).setDisableStatementPooling(false);
+        try (SQLServerConnection conn = getConnection()) {
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             // Create temp table first
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("CREATE TABLE " + TEMP_TABLE + " (id INT)");
+                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
+            }
+            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
+                pstmt2.execute();
             }
             
             String sql = "INSERT INTO " + TEMP_TABLE + " VALUES (?); " +
@@ -173,14 +176,20 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testComplexInterleaving() throws Exception {
-        try (Connection conn = getConnection()) {
-            conn.unwrap(SQLServerConnection.class).setDisableStatementPooling(false);
+        try (SQLServerConnection conn = getConnection()) {
+            conn.setPrepareMethod("scopeTempTablesToConnection");
+
+            // Create temp table separately before batch
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
+            }
+            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
+                pstmt2.execute();
+            }
             
             String sql = "SET NOCOUNT ON; " +
-                         "CREATE TABLE " + TEMP_TABLE + " (id INT); " +
                          "INSERT INTO " + TEMP_TABLE + " VALUES (?); " +
-                         "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?); " +
-                         "SET NOCOUNT OFF";
+                    "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?); ";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 // Batch 1
@@ -214,13 +223,18 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testNonParameterizedBetweenParameterized() throws Exception {
-        try (Connection conn = getConnection()) {
-            conn.unwrap(SQLServerConnection.class).setDisableStatementPooling(false);
+        try (SQLServerConnection conn = getConnection()) {
+            conn.setPrepareMethod("scopeTempTablesToConnection");
             
             // Create and populate a temp table first
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("CREATE TABLE " + TEMP_TABLE + " (id INT)");
-                stmt.execute("INSERT INTO " + TEMP_TABLE + " VALUES (999)");
+                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
+            }
+            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
+                pstmt2.execute();
+            }
+            try (PreparedStatement pstmt3 = conn.prepareStatement("INSERT INTO " + TEMP_TABLE + " VALUES (999)")) {
+                pstmt3.execute();
             }
 
             String sql = "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?); " +
@@ -269,11 +283,18 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testMultipleParametersPerStatement() throws Exception {
-        try (Connection conn = getConnection()) {
-            conn.unwrap(SQLServerConnection.class).setDisableStatementPooling(false);
-            
-            String sql = "CREATE TABLE " + TEMP_TABLE + " (id INT); " +
-                         "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?); " +
+        try (SQLServerConnection conn = getConnection()) {
+            conn.setPrepareMethod("scopeTempTablesToConnection");
+
+            // Create temp table separately before batch
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
+            }
+            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
+                pstmt2.execute();
+            }
+
+            String sql = "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?); " +
                          "INSERT INTO " + TEST_TABLE_2 + " VALUES (?, ?)";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -329,13 +350,19 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testOnlyNonParameterizedStatements() throws Exception {
-        try (Connection conn = getConnection()) {
-            conn.unwrap(SQLServerConnection.class).setDisableStatementPooling(false);
+        try (SQLServerConnection conn = getConnection()) {
+            conn.setPrepareMethod("scopeTempTablesToConnection");
+
+            // Create temp table separately before batch
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
+            }
+            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
+                pstmt2.execute();
+            }
             
             // This SQL has no parameters, but we still call addBatch
-            String sql = "CREATE TABLE " + TEMP_TABLE + " (id INT); " +
-                         "INSERT INTO " + TEMP_TABLE + " VALUES (1); " +
-                         "SET NOCOUNT OFF";
+            String sql = "INSERT INTO " + TEMP_TABLE + " VALUES (1); ";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.addBatch();
@@ -353,11 +380,18 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testWithStringLiteralsAndComments() throws Exception {
-        try (Connection conn = getConnection()) {
-            conn.unwrap(SQLServerConnection.class).setDisableStatementPooling(false);
+        try (SQLServerConnection conn = getConnection()) {
+            conn.setPrepareMethod("scopeTempTablesToConnection");
+
+            // Create temp table separately before batch
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
+            }
+            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
+                pstmt2.execute();
+            }
             
             String sql = "/* Comment with ; semicolon */ " +
-                         "CREATE TABLE " + TEMP_TABLE + " (id INT); " +
                          "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, 'Name;with;semicolons', ?); " +
                          "-- Another comment\n" +
                          "INSERT INTO " + TEST_TABLE_2 + " VALUES (?, 'Desc;test')";
@@ -395,11 +429,18 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testParameterMappingCorrectness() throws Exception {
-        try (Connection conn = getConnection()) {
-            conn.unwrap(SQLServerConnection.class).setDisableStatementPooling(false);
+        try (SQLServerConnection conn = getConnection()) {
+            conn.setPrepareMethod("scopeTempTablesToConnection");
+
+            // Create temp table separately before batch
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
+            }
+            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
+                pstmt2.execute();
+            }
             
-            String sql = "CREATE TABLE " + TEMP_TABLE + " (id INT); " +
-                         "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?); " +
+            String sql = "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?); " +
                          "INSERT INTO " + TEST_TABLE_2 + " VALUES (?, ?)";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -443,11 +484,18 @@ public class BatchCombinedExecutionTest extends AbstractTest {
      */
     @Test
     public void testBatchWithErrors() throws Exception {
-        try (Connection conn = getConnection()) {
-            conn.unwrap(SQLServerConnection.class).setDisableStatementPooling(false);
+        try (SQLServerConnection conn = getConnection()) {
+            conn.setPrepareMethod("scopeTempTablesToConnection");
+
+            // Create temp table separately before batch
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(TEMP_TABLE, stmt);
+            }
+            try (PreparedStatement pstmt2 = conn.prepareStatement("CREATE TABLE " + TEMP_TABLE + " (id INT)")) {
+                pstmt2.execute();
+            }
             
-            String sql = "CREATE TABLE " + TEMP_TABLE + " (id INT); " +
-                         "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?)";
+            String sql = "INSERT INTO " + TEST_TABLE_1 + " VALUES (?, ?, ?)";
 
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 // Batch 1 - success
