@@ -1504,6 +1504,130 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     /**
+     * Tests the interaction between prepareMethod=scopeTempTablesToConnection and
+     * useBulkCopyForBatchInsert=true.
+     * 
+     * When both properties are set:
+     * - If SQL only contains INSERT statements (no temp table DDL), bulk copy
+     * should work fine
+     * - If SQL contains CREATE TABLE #temp or SELECT INTO #temp, bulk copy is not
+     * eligible and
+     * scopeTempTablesToConnection prepareMethod handles the temp table scoping
+     * 
+     * @throws Exception if test fails
+     */
+    @Test
+    public void testScopeTempTablesWithBulkCopyInteraction() throws Exception {
+        String regularTable = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("bulkCopyRegularTable"));
+        String tempTable = "#tempBulkCopyTest";
+
+        // Test with both prepareMethod=scopeTempTablesToConnection and
+        // useBulkCopyForBatchInsert=true
+        try (SQLServerConnection connection = PrepUtil.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;")) {
+            connection.setEnablePrepareOnFirstPreparedStatementCall(false);
+            connection.setPrepareMethod("scopeTempTablesToConnection");
+
+            // Create regular table for bulk copy test
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(regularTable, stmt);
+                stmt.execute("CREATE TABLE " + regularTable + " (id INT, name VARCHAR(50), value INT)");
+            }
+
+            // Scenario 1: INSERT into regular table - bulk copy should work fine
+            String insertSQL = "INSERT INTO " + regularTable + " (id, name, value) VALUES (?, ?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+                for (int i = 1; i <= 5; i++) {
+                    pstmt.setInt(1, i);
+                    pstmt.setString(2, "BulkCopyName" + i);
+                    pstmt.setInt(3, i * 10);
+                    pstmt.addBatch();
+                }
+
+                int[] updateCounts = pstmt.executeBatch();
+                assertEquals(5, updateCounts.length, "Bulk copy batch should insert 5 rows");
+
+                // Verify all rows were inserted
+                try (Statement stmt = connection.createStatement();
+                        ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + regularTable)) {
+                    rs.next();
+                    assertEquals(5, rs.getInt(1), "Regular table should have 5 rows from bulk copy");
+                }
+            }
+
+            // Scenario 2: CREATE TABLE #temp - bulk copy not eligible,
+            // scopeTempTablesToConnection handles it
+            String createTempSQL = "CREATE TABLE " + tempTable + " (id INT, name VARCHAR(50), value INT)";
+            try (PreparedStatement pstmt = connection.prepareStatement(createTempSQL)) {
+                pstmt.execute();
+            }
+
+            // Scenario 3: INSERT into temp table - after CREATE TABLE #temp, inserts should
+            // still work
+            // The scopeTempTablesToConnection prepareMethod ensures temp table is
+            // accessible
+            String insertTempSQL = "INSERT INTO " + tempTable + " (id, name, value) VALUES (?, ?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertTempSQL)) {
+                for (int i = 1; i <= 3; i++) {
+                    pstmt.setInt(1, i);
+                    pstmt.setString(2, "TempName" + i);
+                    pstmt.setInt(3, i * 100);
+                    pstmt.addBatch();
+                }
+
+                int[] updateCounts = pstmt.executeBatch();
+                assertEquals(3, updateCounts.length, "Temp table batch should insert 3 rows");
+
+                // Verify temp table has data
+                try (Statement stmt = connection.createStatement();
+                        ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tempTable)) {
+                    rs.next();
+                    assertEquals(3, rs.getInt(1), "Temp table should have 3 rows");
+                }
+            }
+
+            // Scenario 4: SELECT INTO #newTemp - bulk copy not eligible
+            String newTempTable = "#newTempSelectInto";
+            String selectIntoSQL = "SELECT * INTO " + newTempTable + " FROM " + regularTable + " WHERE id <= 2";
+            try (PreparedStatement pstmt = connection.prepareStatement(selectIntoSQL)) {
+                pstmt.execute();
+
+                // Verify SELECT INTO created the table with correct data
+                try (Statement stmt = connection.createStatement();
+                        ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + newTempTable)) {
+                    rs.next();
+                    assertEquals(2, rs.getInt(1), "SELECT INTO should create temp table with 2 rows");
+                }
+            }
+
+            // Scenario 5: Mixed operations - ensure both features coexist properly
+            // Clear and re-insert into regular table to verify bulk copy still works after
+            // temp table operations
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("DELETE FROM " + regularTable);
+            }
+
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSQL)) {
+                for (int i = 10; i <= 15; i++) {
+                    pstmt.setInt(1, i);
+                    pstmt.setString(2, "MixedName" + i);
+                    pstmt.setInt(3, i * 5);
+                    pstmt.addBatch();
+                }
+
+                int[] updateCounts = pstmt.executeBatch();
+                assertEquals(6, updateCounts.length, "Mixed scenario bulk copy should insert 6 rows");
+            }
+
+            // Cleanup
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(regularTable, stmt);
+            }
+        }
+    }
+
+    /**
      * Helper method to check if exception chain contains constraint violation.
      * Uses SQL Server error code 547 which is reliable across versions and locales.
      */
