@@ -209,8 +209,9 @@ public class BatchExecutionTest extends AbstractTest {
                 try {
                     pstmtInsert.execute();
                 } catch (SQLException e) {
-                    assertTrue(e.getMessage().contains("CHECK constraint") || e.getMessage().contains("constraint"),
-                            "SQLException should mention CHECK constraint violation");
+                    assertTrue(hasConstraintViolationMessage(e),
+                            "SQLException should have error code 547 for constraint violation. Got: "
+                                    + e.getErrorCode());
                 }
             }
 
@@ -295,9 +296,9 @@ public class BatchExecutionTest extends AbstractTest {
                     stmt.executeBatch();
                     fail("Expected BatchUpdateException due to constraint violation");
                 } catch (BatchUpdateException bue) {
-                    assertTrue(bue.getMessage().contains("CHECK constraint") ||
-                            (bue.getCause() != null && bue.getCause().getMessage().contains("CHECK constraint")),
-                            "BatchUpdateException should mention CHECK constraint violation");
+                    assertTrue(hasConstraintViolationMessage(bue),
+                            "BatchUpdateException should have error code 547 for constraint violation. Got: "
+                                    + bue.getErrorCode());
 
                     // Verify update counts: [1, -3, 1, 1]
                     int[] expectedCount = { 1, -3, 1, 1 };
@@ -326,8 +327,9 @@ public class BatchExecutionTest extends AbstractTest {
                 try {
                     stmt.execute(insertSQL);
                 } catch (SQLException e) {
-                    assertTrue(e.getMessage().contains("CHECK constraint") || e.getMessage().contains("constraint"),
-                            "SQLException should mention CHECK constraint violation");
+                    assertTrue(hasConstraintViolationMessage(e),
+                            "SQLException should have error code 547 for constraint violation. Got: "
+                                    + e.getErrorCode());
                 }
             }
 
@@ -1502,28 +1504,17 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     /**
-     * Helper method to check if exception chain contains constraint violation
-     * message
+     * Helper method to check if exception chain contains constraint violation.
+     * Uses SQL Server error code 547 which is reliable across versions and locales.
      */
     private static boolean hasConstraintViolationMessage(Throwable throwable) {
         Throwable current = throwable;
         while (current != null) {
             // Check SQLException error code (547 = constraint violation)
+            // This is more reliable than message text which can vary by locale/version
             if (current instanceof SQLException) {
                 SQLException sqlEx = (SQLException) current;
                 if (sqlEx.getErrorCode() == 547) {
-                    return true;
-                }
-            }
-
-            String message = current.getMessage();
-            if (message != null) {
-                String lowerMessage = message.toLowerCase();
-                if (lowerMessage.contains("check constraint") ||
-                        lowerMessage.contains("constraint") ||
-                        lowerMessage.contains("violated") ||
-                        lowerMessage.contains("check") ||
-                        message.contains("547")) { // SQL Server error code for constraint violation
                     return true;
                 }
             }
