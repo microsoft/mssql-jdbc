@@ -220,6 +220,37 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
                 result = stmt.containsTemporaryTableOperations(stringLiteralWithTempSyntax);
                 assertFalse(result, "Should not detect temp table operations inside string literals");
 
+                // Test case: SELECT with WHERE clause containing temp table syntax in string
+                // literal
+                String selectWithTempInWhere = "SELECT * FROM logs WHERE query_text = 'CREATE TABLE #tmp (id INT)'";
+                result = stmt.containsTemporaryTableOperations(selectWithTempInWhere);
+                assertFalse(result, "Should not detect temp table syntax inside WHERE clause string literal");
+
+                // Test case: UPDATE with SET clause containing temp table syntax in string
+                String updateWithTempInSet = "UPDATE logs SET description = 'SELECT INTO #tempResult FROM users' WHERE id = 1";
+                result = stmt.containsTemporaryTableOperations(updateWithTempInSet);
+                assertFalse(result, "Should not detect temp table syntax inside UPDATE SET string literal");
+
+                // Test case: LIKE clause with temp table pattern in string
+                String likeWithTempPattern = "SELECT * FROM queries WHERE sql_text LIKE '%CREATE TABLE #%'";
+                result = stmt.containsTemporaryTableOperations(likeWithTempPattern);
+                assertFalse(result, "Should not detect temp table syntax inside LIKE pattern string");
+
+                // Test case: Multiple string literals containing temp table syntax
+                String multipleStringsWithTemp = "INSERT INTO audit (action, detail) VALUES ('CREATE TABLE #t1', 'SELECT INTO #t2')";
+                result = stmt.containsTemporaryTableOperations(multipleStringsWithTemp);
+                assertFalse(result, "Should not detect temp table syntax in multiple string literals");
+
+                // Test case: Escaped quotes with temp table syntax inside string
+                String escapedQuotesWithTemp = "SELECT * FROM logs WHERE msg = 'User said ''CREATE TABLE #temp'' failed'";
+                result = stmt.containsTemporaryTableOperations(escapedQuotesWithTemp);
+                assertFalse(result, "Should not detect temp table syntax inside escaped quotes string");
+
+                // Test case: CASE expression with temp table syntax in string
+                String caseWithTempInString = "SELECT CASE WHEN type = 1 THEN 'CREATE TABLE #tmp' ELSE 'normal' END FROM logs";
+                result = stmt.containsTemporaryTableOperations(caseWithTempInString);
+                assertFalse(result, "Should not detect temp table syntax inside CASE expression string");
+
                 // Test case: ## in string literal data followed by genuine #TempTable
                 // This ensures that ## in data doesn't cause false negatives for real temp
                 // tables
@@ -248,6 +279,38 @@ public class SQLServerPreparedStatementTempTableTest extends AbstractTest {
                 String emptySql = "";
                 result = stmt.containsTemporaryTableOperations(emptySql);
                 assertFalse(result, "Should return false for empty string input");
+
+                // Test case: SQL starting with single semicolon followed by CREATE TABLE #temp
+                String singleSemicolonStart = ";CREATE TABLE #tempAfterSemicolon (id INT)";
+                result = stmt.containsTemporaryTableOperations(singleSemicolonStart);
+                assertTrue(result, "Should detect CREATE TABLE #temp after leading semicolon");
+
+                // Test case: SQL starting with multiple semicolons followed by CREATE TABLE
+                // #temp
+                String multipleSemicolonStart = ";;;CREATE TABLE #tempAfterMultipleSemicolons (id INT)";
+                result = stmt.containsTemporaryTableOperations(multipleSemicolonStart);
+                assertTrue(result, "Should detect CREATE TABLE #temp after multiple leading semicolons");
+
+                // Test case: SQL starting with semicolons and whitespace
+                String semicolonWithWhitespace = ";  ; \t;\nCREATE TABLE #tempAfterSemicolonWhitespace (id INT)";
+                result = stmt.containsTemporaryTableOperations(semicolonWithWhitespace);
+                assertTrue(result, "Should detect CREATE TABLE #temp after semicolons with whitespace");
+
+                // Test case: SQL starting with semicolons followed by SELECT INTO #temp
+                String semicolonBeforeSelectInto = ";;SELECT * INTO #tempFromSelect FROM users";
+                result = stmt.containsTemporaryTableOperations(semicolonBeforeSelectInto);
+                assertTrue(result, "Should detect SELECT INTO #temp after leading semicolons");
+
+                // Test case: SQL with only semicolons (no actual statement) - should return
+                // false
+                String onlySemicolons = ";;;";
+                result = stmt.containsTemporaryTableOperations(onlySemicolons);
+                assertFalse(result, "Should return false for SQL with only semicolons");
+
+                // Test case: SQL starting with semicolons but no temp table
+                String semicolonNoTemp = ";;SELECT * FROM users";
+                result = stmt.containsTemporaryTableOperations(semicolonNoTemp);
+                assertFalse(result, "Should not detect temp table in regular SQL after semicolons");
 
                 // Test case: Average-sized SQL string (realistic production scenario)
                 StringBuilder avgSqlBuilder = new StringBuilder();

@@ -1251,11 +1251,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false; // No preparation needed
         } else if (isScopeTempTablesToConnection) {
             // scopeTempTablesToConnection is set but no temp table operations detected in
-            // SQL, fall back to default prepexec behavior
+            // SQL, fall back to default prepexec method
             isPrepareMethodSpPrepExec = true;
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINER)) {
                 getStatementLogger().finer(toString() + ": scopeTempTablesToConnection prepareMethod specified but "
-                        + "no temporary table operations detected in SQL, falling back to prepexec behavior");
+                        + "no temporary table creation detected in SQL, falling back to prepexec method");
             }
         }
 
@@ -3085,10 +3085,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return;
         } else if (isScopeTempTablesToConnectionMethod) {
             // scopeTempTablesToConnection is set but no temp table operations detected in
-            // SQL, fall back to default prepexec behavior
+            // SQL, fall back to default prepexec method
             if (getStatementLogger().isLoggable(java.util.logging.Level.FINER)) {
                 getStatementLogger().finer(toString() + ": scopeTempTablesToConnection prepareMethod specified but "
-                        + "no temporary table operations detected in SQL, falling back to prepexec behavior");
+                        + "no temporary table creation detected in SQL, falling back to prepexec method");
             }
         }
 
