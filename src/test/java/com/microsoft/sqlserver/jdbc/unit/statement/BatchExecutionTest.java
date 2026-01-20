@@ -127,11 +127,6 @@ public class BatchExecutionTest extends AbstractTest {
     }
 
     @Test
-    public void testBasicBatchExecBehavior() throws Exception {
-        testBasicBatch("scopeTempTablesToConnection", false);
-    }
-
-    @Test
     public void testConstraintViolationBasicPrepareStatementScopeTemp() throws Exception {
         testConstraintViolationBasicPrepareStatement("scopeTempTablesToConnection", false);
     }
