@@ -319,6 +319,7 @@ public class CallableStatementTest extends AESetup {
         AETestConnectionString += ";prepareMethod=prepare;";
 
         try (Statement statement = PrepUtil.getConnection(AETestConnectionString, AEInfo).createStatement();) {
+            TestUtils.dropProcedureIfExists(prepareMethodProcedure, statement);
             statement.executeUpdate("create procedure " + prepareMethodProcedure + " as select 1 --");
 
             try (CallableStatement callableStatement = PrepUtil.getConnection(AETestConnectionString, AEInfo)
@@ -341,6 +342,7 @@ public class CallableStatementTest extends AESetup {
         AETestConnectionString += ";prepareMethod=scopeTempTablesToConnection;";
 
         try (Statement statement = PrepUtil.getConnection(AETestConnectionString, AEInfo).createStatement();) {
+            TestUtils.dropProcedureIfExists(prepareMethodProcedure, statement);
             statement.executeUpdate("create procedure " + prepareMethodProcedure + " as select 1 --");
 
             try (CallableStatement callableStatement = PrepUtil.getConnection(AETestConnectionString, AEInfo)

@@ -1249,9 +1249,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             resetPrepStmtHandle(false);
 
             return false; // No preparation needed
+        } else if (isScopeTempTablesToConnection) {
+            // scopeTempTablesToConnection is set but no temp table operations detected in
+            // SQL, fall back to default prepexec behavior
+            isPrepareMethodSpPrepExec = true;
+            if (getStatementLogger().isLoggable(java.util.logging.Level.FINER)) {
+                getStatementLogger().finer(toString() + ": scopeTempTablesToConnection prepareMethod specified but "
+                        + "no temporary table operations detected in SQL, falling back to prepexec behavior");
+            }
         }
-        // If scopeTempTablesToConnection is set but no temp tables detected, fall back
-        // to normal behavior
 
         // Cursors don't use statement pooling.
         if (isCursorable(executeMethod)) {
@@ -3058,8 +3064,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int numBatchesPrepared = 0;
         int numBatchesExecuted = 0;
-        boolean isScopeTempTablesToConnection = connection.getPrepareMethod().equals(
-                PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString()) && containsTemporaryTableOperations(userSQL);
+        boolean isScopeTempTablesToConnectionMethod = connection.getPrepareMethod()
+                .equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString());
+        boolean isScopeTempTablesToConnection = isScopeTempTablesToConnectionMethod
+                && containsTemporaryTableOperations(userSQL);
 
         if (isSelect(userSQL)) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -3075,6 +3083,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (isScopeTempTablesToConnection) {
             doExecuteExecMethodBatchCombined(batchCommand);
             return;
+        } else if (isScopeTempTablesToConnectionMethod) {
+            // scopeTempTablesToConnection is set but no temp table operations detected in
+            // SQL, fall back to default prepexec behavior
+            if (getStatementLogger().isLoggable(java.util.logging.Level.FINER)) {
+                getStatementLogger().finer(toString() + ": scopeTempTablesToConnection prepareMethod specified but "
+                        + "no temporary table operations detected in SQL, falling back to prepexec behavior");
+            }
         }
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
