@@ -319,6 +319,7 @@ public class CallableStatementTest extends AESetup {
         AETestConnectionString += ";prepareMethod=prepare;";
 
         try (Statement statement = PrepUtil.getConnection(AETestConnectionString, AEInfo).createStatement();) {
+            TestUtils.dropProcedureIfExists(prepareMethodProcedure, statement);
             statement.executeUpdate("create procedure " + prepareMethodProcedure + " as select 1 --");
 
             try (CallableStatement callableStatement = PrepUtil.getConnection(AETestConnectionString, AEInfo)
@@ -329,6 +330,29 @@ public class CallableStatementTest extends AESetup {
                 }
 
                 try (ResultSet rs = callableStatement.executeQuery()) { // Takes sp_prepare path
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementExecAE() throws SQLException {
+        AETestConnectionString += ";prepareMethod=scopeTempTablesToConnection;";
+
+        try (Statement statement = PrepUtil.getConnection(AETestConnectionString, AEInfo).createStatement();) {
+            TestUtils.dropProcedureIfExists(prepareMethodProcedure, statement);
+            statement.executeUpdate("create procedure " + prepareMethodProcedure + " as select 1 --");
+
+            try (CallableStatement callableStatement = PrepUtil.getConnection(AETestConnectionString, AEInfo)
+                    .prepareCall("{call " + prepareMethodProcedure + "}")) {
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+
+                try (ResultSet rs = callableStatement.executeQuery()) {
                     rs.next();
                     assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
                 }
@@ -356,6 +380,7 @@ public class CallableStatementTest extends AESetup {
             TestUtils.dropProcedureIfExists(mixedProcedure2, stmt);
             TestUtils.dropProcedureIfExists(mixedProcedure3, stmt);
             TestUtils.dropProcedureIfExists(mixedProcedureNumericPrecisionScale, stmt);
+            TestUtils.dropProcedureIfExists(prepareMethodProcedure, stmt);
         }
     }
 
