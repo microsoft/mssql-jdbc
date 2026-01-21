@@ -1652,8 +1652,20 @@ public class SQLServerStatement implements ISQLServerStatement {
                 }
                 // If the current command (whatever it was) produced an error then stop parsing and propagate it up.
                 // In this case, the command is likely to be a RAISERROR, but it could be anything.
-                if (doneToken.isError())
+                if (doneToken.isError()) {
+                    /*
+                    * For nested stored procedure calls, SQL Server may return multiple DONE tokens
+                    * with errors as the call stack unwinds. We continue parsing intermediate DONE
+                    * tokens so that all related errors are collected and linked via
+                    * SQLException.getNextException().
+                    *
+                    * See GitHub issue #2115: https://github.com/microsoft/mssql-jdbc/issues/2115
+                    */
+                    if (shouldContinueParsingDespiteError(doneToken)) {
+                        return true; // Continue parsing to collect additional errors
+                    }
                     return false;
+                }
 
                 // In all other cases, keep parsing
                 return true;
@@ -1760,6 +1772,34 @@ public class SQLServerStatement implements ISQLServerStatement {
                 }
                 sqlWarnings.add(warning);
                 return true;
+            }
+
+            /**
+             * Determines whether to continue parsing TDS tokens after encountering an error.
+             * 
+             * This method enables proper exception chaining for nested stored procedures (issue #2115)
+             * while preserving fast-fail behavior for simple errors.
+             * 
+             * Example nested procedure scenario:
+             *   P1 calls P2, both use RAISERROR
+             *   TDS stream: TDS_ERR(P2) -> TDS_DONEINPROC -> TDS_ERR(P1) -> TDS_DONEPROC
+             *   We want BOTH errors in the exception chain via SQLException.getNextException()
+             * 
+             * @param doneToken the DONE token that triggered this check
+             * @return true if parsing should continue to collect more errors, false otherwise
+             */
+            private boolean shouldContinueParsingDespiteError(StreamDone doneToken) {
+                // Condition 1: Must be TDS_DONEINPROC (intermediate procedure token)
+                // This distinguishes procedure boundaries from final completion
+                boolean isIntermediateDone = (TDS.TDS_DONEINPROC == doneToken.getTokenType());
+                
+                // Condition 2: Don't continue for batch execution each batch statement should fail independently
+                boolean notBatchExecution = (EXECUTE_BATCH != executeMethod);
+                
+                // Condition 3: Don't continue if this is the final token
+                boolean notFinalToken = !doneToken.isFinal();
+
+                return isIntermediateDone && notBatchExecution && notFinalToken;
             }
         }
 

@@ -3798,4 +3798,112 @@ public class StatementTest extends AbstractTest {
         }
     }
 
+    /**
+     * Test case for GitHub issue #2115: Exception chaining doesn't work in JDBC driver
+     * 
+     * This test verifies that when nested stored procedures raise multiple errors,
+     * the JDBC driver properly chains the exceptions using SQLException.getNextException().
+     * 
+     * Scenario:
+     * - Inner procedure P2 raises an error with RAISERROR and returns 1
+     * - Outer procedure P1 catches the error from P2 and raises another error
+     * - The JDBC client should be able to access both exceptions via exception chaining
+     * 
+     * This confirms SQL Server DOES send both exceptions, but JDBC driver fails to chain them.
+     */
+    @Nested
+    @Tag(Constants.xAzureSQLDW)
+    public class TCExceptionChaining {
+
+        private static final String PROC_P2 = "p2_inner_exception_test";
+        private static final String PROC_P1 = "p1_outer_exception_test";
+
+        /**
+         * Set up test by creating the stored procedures
+         */
+        @BeforeEach
+        public void setupTest() throws Exception {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                
+                // Drop procedures if they exist
+                TestUtils.dropProcedureIfExists(PROC_P2, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P1, stmt);
+
+                // Create inner procedure P2 that raises an error
+                String createP2 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + " AS "
+                        + "BEGIN " + "  RAISERROR('P2 - inner exception text', 16, 1) WITH NOWAIT; " + "  RETURN 1; "
+                        + "END";
+
+                stmt.execute(createP2);
+
+                // Create outer procedure P1 that calls P2 and raises another error
+                String createP1 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P1) + " AS "
+                        + "BEGIN " + "  DECLARE @returnValue INT; " + "  EXEC @returnValue = "
+                        + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + "; " + "  IF @returnValue <> 0 " + "  BEGIN "
+                        + "    RAISERROR('P1 - P2 raised an error', 16, 1) WITH NOWAIT; " + "  END " + "END";
+
+                stmt.execute(createP1);
+            }
+        }
+
+        /**
+         * Test that exception chaining works when nested stored procedures raise multiple errors.
+         * 
+         * This is a reproduction test for issue #2115.
+         */
+        @Test
+        public void testExceptionChaining() throws Exception {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+
+                try {
+                    // Execute the outer procedure which will trigger both exceptions
+                    stmt.execute("EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P1));
+                    fail("Expected SQLException to be thrown");
+                } catch (SQLException e) {
+                    // Verify first exception (from P2 - inner procedure)
+                    assertNotNull(e, "First exception should not be null");
+                    String firstMessage = e.getMessage();
+                    System.out.println("First exception message: " + firstMessage);
+                    assertTrue(firstMessage.contains("P2 - inner exception text"),
+                            "First exception should contain 'P2 - inner exception text', but was: " + firstMessage);
+
+                    // Verify exception chaining - there should be a next exception
+                    SQLException nextException = e.getNextException();
+                    
+                    // This is the main assertion for issue #2115
+                    // According to the issue, getNextException() returns NULL when it should return the second exception
+                    assertNotNull(nextException, 
+                            "Second exception should be chained via getNextException() - this is the bug in issue #2115");
+
+                    if (nextException != null) {
+                        String secondMessage = nextException.getMessage();
+                        System.out.println("Second exception message: " + secondMessage);
+                        assertTrue(secondMessage.contains("P1 - P2 raised an error"),
+                                "Second exception should contain 'P1 - P2 raised an error', but was: " + secondMessage);
+                        
+                        // Print all chained exceptions for debugging
+                        int count = 1;
+                        SQLException ex = e;
+                        System.out.println("\nAll chained exceptions:");
+                        while (ex != null) {
+                            System.out.println("  Exception " + count + ": " + ex.getMessage());
+                            ex = ex.getNextException();
+                            count++;
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
+         * Clean up test by dropping the stored procedures
+         */
+        @AfterEach
+        public void cleanupTest() throws Exception {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropProcedureIfExists(PROC_P2, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P1, stmt);
+            }
+        }
+    }
 }
