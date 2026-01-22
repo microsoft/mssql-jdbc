@@ -1798,8 +1798,23 @@ public class SQLServerStatement implements ISQLServerStatement {
                 
                 // Condition 3: Don't continue if this is the final token
                 boolean notFinalToken = !doneToken.isFinal();
+                
+                // Condition 4: Only continue if we've already collected at least one error
+                boolean hasExistingErrors = (getDatabaseError() != null);
+                
+                // Condition 5: CRITICAL - Don't continue for CallableStatements
+                // CallableStatements may have OUTPUT parameters that follow the error DONEINPROC.
+                // If we continue parsing, we consume RETVALUE tokens meant for parameter handling,
+                // corrupting the parameter metadata and causing "parameter number 0 not set" errors.
+                boolean notCallableStatement = !(SQLServerStatement.this instanceof SQLServerCallableStatement);
+                
+                // Condition 6: CRITICAL - Only continue for EXECUTE method (not EXECUTE_UPDATE)
+                // Nested procedures via EXEC: stmt.execute("EXEC P1") → executeMethod = EXECUTE - continue parsing
+                // Triggers via DML: pstmt.executeUpdate("INSERT...") → executeMethod = EXECUTE_UPDATE - does not continue parsing
+                boolean isExecuteMethod = (EXECUTE == executeMethod);
 
-                return isIntermediateDone && notBatchExecution && notFinalToken;
+                return isIntermediateDone && notBatchExecution && notFinalToken 
+                       && hasExistingErrors && notCallableStatement && isExecuteMethod;
             }
         }
 
