@@ -926,25 +926,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
             setColumnsParameters(storedProcPstmt, table, schema, catalog, col);
 
-            SQLServerPreparedStatement resultPstmt = null;
             try (ResultSet rs = storedProcPstmt.executeQuery()) {
                 if (loggerExternal.isLoggable(Level.FINER)) {
                     loggerExternal.finer("Successfully executed " + spColumnsProcName);
                 }
                 return buildAzureDWResultSet(rs);
-            } catch (SQLException e) {
-                if (null != resultPstmt) {
-                    try {
-                        resultPstmt.close();
-                    } catch (SQLServerException ignore) {
-                        if (loggerExternal.isLoggable(Level.FINER)) {
-                            loggerExternal.finer(
-                                    "getColumns() threw an exception when attempting to close PreparedStatement");
-                        }
-                    }
-                }
-                throw e;
-            }
+            } 
         } catch (SQLException primaryEx) {
 
             // If sp_columns_170 fails on Azure DW, fallback to sp_columns_100
@@ -959,24 +946,11 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
                 setColumnsParameters(storedProcPstmt, table, schema, catalog, col);
                 
-                SQLServerPreparedStatement resultPstmt = null;
                 try (ResultSet rs = storedProcPstmt.executeQuery()) {
                     if (loggerExternal.isLoggable(Level.FINER)) {
                         loggerExternal.finer("Successfully executed " + spColumnsProcName);
                     }
                     return buildAzureDWResultSet(rs);
-                } catch (SQLException e) {
-                    if (null != resultPstmt) {
-                        try {
-                            resultPstmt.close();
-                        } catch (SQLServerException ignore) {
-                            if (loggerExternal.isLoggable(Level.FINER)) {
-                                loggerExternal.finer(
-                                        "getColumns() threw an exception when attempting to close PreparedStatement");
-                            }
-                        }
-                    }
-                    throw e;
                 }
             }
         }
