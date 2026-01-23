@@ -65,7 +65,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     static final int UNIQUEIDENTIFIER_SIZE = 36;
 
     enum CallableHandles {
-        SP_COLUMNS("{ call sp_columns(?, ?, ?, ?, ?) }", "{ call sp_columns_100(?, ?, ?, ?, ?, ?) }"),
+        SP_COLUMNS("{ call sp_columns(?, ?, ?, ?, ?) }", "{ call sp_columns_170(?, ?, ?, ?, ?, ?) }"),
         SP_COLUMN_PRIVILEGES("{ call sp_column_privileges(?, ?, ?, ?)}", "{ call sp_column_privileges(?, ?, ?, ?)}"),
         SP_TABLES("{ call sp_tables(?, ?, ?, ?) }", "{ call sp_tables(?, ?, ?, ?) }"),
         SP_SPECIAL_COLUMNS("{ call sp_special_columns (?, ?, ?, ?, ?, ?, ?)}", "{ call sp_special_columns_100 (?, ?, ?, ?, ?, ?, ?)}"),
@@ -931,7 +931,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private java.sql.ResultSet getColumnsNonAzureDW(String catalog, String schema, String table, String col)
             throws SQLException {
 
-        String spColumnsProcName = "sp_columns_100";
+        String spColumnsProcName = "sp_columns_170";
 
         String spColumnsSqlTemplate = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
             + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
@@ -1120,7 +1120,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         } finally {
             LOCK.unlock();
         }
-        String spColumnsProcName = "sp_columns_100";
+        String spColumnsProcName = "sp_columns_170";
 
         try (PreparedStatement storedProcPstmt = this.connection
                 .prepareStatement("EXEC " + spColumnsProcName + " ?,?,?,?,?,?;")) {
