@@ -102,19 +102,19 @@ public class VectorTest extends AbstractTest {
         DatabaseMetaData metaData = connection.getMetaData();
         assertNotNull(metaData, "DatabaseMetaData should not be null");
 
-        try (ResultSet rs = metaData.getColumns(null, null, tableName, "v")) {
-            
-            ResultSetMetaData rsMetaData = rs.getMetaData();
-            int columnCount = rsMetaData.getColumnCount();
+        try (ResultSet rs = metaData.getColumns(null, null, tableName, "%")) {
 
             while (rs.next()) {
-                for (int i = 1; i <= columnCount; i++) {
-                    System.out.println(rsMetaData.getColumnName(i) + ": " + rs.getString(i));
+                for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
+                    String columnName = rs.getMetaData().getColumnName(i);
+                    String columnValue = rs.getString(i);
+                    // Uncomment the line below to see all column names and values
+                    System.out.println(columnName + " : " + columnValue);
                 }
-                System.out.println();
+                // if ("v".equalsIgnoreCase(rs.getString("COLUMN_NAME"))) {
+                //     assertEquals(microsoft.sql.Types.VECTOR, rs.getInt("DATA_TYPE"));
+                // }
             }
-
-            //assertEquals(microsoft.sql.Types.VECTOR, rsMetaData.getColumnType(columnCount));
         }
     }
 

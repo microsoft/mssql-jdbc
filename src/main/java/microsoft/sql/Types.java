@@ -31,13 +31,13 @@ public final class Types {
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type DATETIME.
      */
-    public static final int DATETIME = -151;
+    public static final int DATETIME = 9;
 
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type SMALLDATETIME.
      */
-    public static final int SMALLDATETIME = -150;
+    public static final int SMALLDATETIME = 10;
 
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
@@ -55,33 +55,33 @@ public final class Types {
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type GUID.
      */
-    public static final int GUID = -145;
+    public static final int GUID = -11;
 
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type SQL_VARIANT.
      */
-    public static final int SQL_VARIANT = -156;
+    public static final int SQL_VARIANT = -150;
 
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type GEOMETRY.
      */
-    public static final int GEOMETRY = -157;
+    public static final int GEOMETRY = -151;
 
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type GEOGRAPHY.
      */
-    public static final int GEOGRAPHY = -158;
+    public static final int GEOGRAPHY = -152;
     
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type VECTOR.
      */
-    public static final int VECTOR = -160;
+    public static final int VECTOR = -156;
     /**
      * Microsoft SQL type JSON.
      */
-    public static final int JSON = -159;
+    public static final int JSON = -160;
 }

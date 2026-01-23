@@ -681,57 +681,466 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     @Override
-    public java.sql.ResultSet getColumns(String catalog, String schema, String table, String col) throws SQLException {
+    public ResultSet getColumns(String catalog, String schema, String table, String col) throws SQLException {
+
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
-            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
+            loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent());
         }
+
         checkClosed();
         String originalCatalog = switchCatalogs(catalog);
-        if (!this.connection.isAzureDW()) {
-            String spColumnsSql = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
-                    + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
-                    + "LENGTH INT, SCALE SMALLINT, RADIX SMALLINT, NULLABLE SMALLINT, REMARKS VARCHAR(254), COLUMN_DEF NVARCHAR(4000),"
-                    + "SQL_DATA_TYPE SMALLINT, SQL_DATETIME_SUB SMALLINT, CHAR_OCTET_LENGTH INT, ORDINAL_POSITION INT,"
-                    + "IS_NULLABLE VARCHAR(254), SS_IS_SPARSE SMALLINT, SS_IS_COLUMN_SET SMALLINT, SS_IS_COMPUTED SMALLINT,"
-                    + "SS_IS_IDENTITY SMALLINT, SS_UDT_CATALOG_NAME NVARCHAR(128), SS_UDT_SCHEMA_NAME NVARCHAR(128),"
-                    + "SS_UDT_ASSEMBLY_TYPE_NAME NVARCHAR(max), SS_XML_SCHEMACOLLECTION_CATALOG_NAME NVARCHAR(128),"
-                    + "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_NAME NVARCHAR(128),"
-                    + "SS_DATA_TYPE TINYINT);"
 
-                    + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC sp_columns_100 ?,?,?,?,?,?;"
+        try {
+            if (!connection.isAzureDW()) {
+                return getColumnsNonAzureDW(catalog, schema, table, col);
+            } else {
+                return getColumnsAzureDW(catalog, schema, table, col);
+            }
+        } finally {
+            if (originalCatalog != null) {
+                connection.setCatalog(originalCatalog);
+            }
+        }
+    }
 
-                    + "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, "
-                    + "CAST(DATA_TYPE AS INT) AS DATA_TYPE,TYPE_NAME, PRECISION AS COLUMN_SIZE, LENGTH AS BUFFER_LENGTH, "
-                    + "CAST(SCALE AS INT) AS DECIMAL_DIGITS, CAST(RADIX AS INT) AS NUM_PREC_RADIX,CAST(NULLABLE AS INT) AS NULLABLE, "
-                    + "CAST(REMARKS AS VARCHAR) AS REMARKS, COLUMN_DEF, CAST(SQL_DATA_TYPE AS INT) AS SQL_DATA_TYPE, "
-                    + "CAST(SQL_DATETIME_SUB AS INT) AS SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE,"
-                    + "CAST(NULL AS VARCHAR) AS SCOPE_CATALOG, CAST(NULL AS VARCHAR) AS SCOPE_SCHEMA, CAST(NULL AS VARCHAR) AS SCOPE_TABLE, "
-                    + "CAST(SS_DATA_TYPE AS SMALLINT) AS SOURCE_DATA_TYPE, "
-                    + "CASE SS_IS_IDENTITY WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_AUTOINCREMENT,"
-                    + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN, "
-                    + "SS_IS_SPARSE, SS_IS_COLUMN_SET, SS_UDT_CATALOG_NAME, SS_UDT_SCHEMA_NAME, SS_UDT_ASSEMBLY_TYPE_NAME,"
-                    + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
-                    + "FROM @mssqljdbc_temp_sp_columns_result ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION;";
-            SQLServerResultSet rs = null;
-            PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
+    // @Override
+    // public java.sql.ResultSet getColumns(String catalog, String schema, String table, String col) throws SQLException {
+    //     if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
+    //         loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
+    //     }
+    //     checkClosed();
+    //     String originalCatalog = switchCatalogs(catalog);
+    //     if (!this.connection.isAzureDW()) {
+    //         String spColumnsSql = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
+    //                 + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
+    //                 + "LENGTH INT, SCALE SMALLINT, RADIX SMALLINT, NULLABLE SMALLINT, REMARKS VARCHAR(254), COLUMN_DEF NVARCHAR(4000),"
+    //                 + "SQL_DATA_TYPE SMALLINT, SQL_DATETIME_SUB SMALLINT, CHAR_OCTET_LENGTH INT, ORDINAL_POSITION INT,"
+    //                 + "IS_NULLABLE VARCHAR(254), SS_IS_SPARSE SMALLINT, SS_IS_COLUMN_SET SMALLINT, SS_IS_COMPUTED SMALLINT,"
+    //                 + "SS_IS_IDENTITY SMALLINT, SS_UDT_CATALOG_NAME NVARCHAR(128), SS_UDT_SCHEMA_NAME NVARCHAR(128),"
+    //                 + "SS_UDT_ASSEMBLY_TYPE_NAME NVARCHAR(max), SS_XML_SCHEMACOLLECTION_CATALOG_NAME NVARCHAR(128),"
+    //                 + "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_NAME NVARCHAR(128),"
+    //                 + "SS_DATA_TYPE TINYINT);"
+
+    //                 + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC sp_columns_100 ?,?,?,?,?,?;"
+
+    //                 + "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, "
+    //                 + "CAST(DATA_TYPE AS INT) AS DATA_TYPE,TYPE_NAME, PRECISION AS COLUMN_SIZE, LENGTH AS BUFFER_LENGTH, "
+    //                 + "CAST(SCALE AS INT) AS DECIMAL_DIGITS, CAST(RADIX AS INT) AS NUM_PREC_RADIX,CAST(NULLABLE AS INT) AS NULLABLE, "
+    //                 + "CAST(REMARKS AS VARCHAR) AS REMARKS, COLUMN_DEF, CAST(SQL_DATA_TYPE AS INT) AS SQL_DATA_TYPE, "
+    //                 + "CAST(SQL_DATETIME_SUB AS INT) AS SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE,"
+    //                 + "CAST(NULL AS VARCHAR) AS SCOPE_CATALOG, CAST(NULL AS VARCHAR) AS SCOPE_SCHEMA, CAST(NULL AS VARCHAR) AS SCOPE_TABLE, "
+    //                 + "CAST(SS_DATA_TYPE AS SMALLINT) AS SOURCE_DATA_TYPE, "
+    //                 + "CASE SS_IS_IDENTITY WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_AUTOINCREMENT,"
+    //                 + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN, "
+    //                 + "SS_IS_SPARSE, SS_IS_COLUMN_SET, SS_UDT_CATALOG_NAME, SS_UDT_SCHEMA_NAME, SS_UDT_ASSEMBLY_TYPE_NAME,"
+    //                 + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
+    //                 + "FROM @mssqljdbc_temp_sp_columns_result ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION;";
+    //         SQLServerResultSet rs = null;
+    //         PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(spColumnsSql);
+    //         pstmt.closeOnCompletion();
+    //         try {
+    //             pstmt.setString(1, (null != table && !table.isEmpty()) ? escapeIDName(table) : "%");
+    //             pstmt.setString(2, (null != schema && !schema.isEmpty()) ? escapeIDName(schema) : "%");
+    //             pstmt.setString(3, (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
+    //             pstmt.setString(4, (null != col && !col.isEmpty()) ? escapeIDName(col) : "%");
+    //             pstmt.setInt(5, 2);// show sparse columns
+    //             pstmt.setInt(6, 3);// odbc version
+
+    //             rs = (SQLServerResultSet) pstmt.executeQuery();
+    //             rs.getColumn(5).setFilter(new DataTypeFilter());
+    //             rs.getColumn(7).setFilter(new ZeroFixupFilter());
+    //             rs.getColumn(8).setFilter(new ZeroFixupFilter());
+    //             rs.getColumn(16).setFilter(new ZeroFixupFilter());
+    //         } catch (SQLException e) {
+    //             if (null != pstmt) {
+    //                 try {
+    //                     pstmt.close();
+    //                 } catch (SQLServerException ignore) {
+    //                     if (loggerExternal.isLoggable(Level.FINER)) {
+    //                         loggerExternal.finer(
+    //                                 "getColumns() threw an exception when attempting to close PreparedStatement");
+    //                     }
+    //                 }
+    //             }
+    //             throw e;
+    //         } finally {
+    //             if (null != originalCatalog) {
+    //                 connection.setCatalog(originalCatalog);
+    //             }
+    //         }
+
+    //         return rs;
+    //     } else {
+    //         /**
+    //          * Can't actually switchCatalogs on Azure DW. This is here to keep consistency in behavior with SQL Azure DB
+    //          * when user provides a different catalog than the one they're currently connected to. Will throw exception
+    //          * when it's different and do nothing if it's the same/null.
+    //          */
+    //         LOCK.lock();
+    //         try {
+    //             if (null == getColumnsDWColumns) {
+    //                 getColumnsDWColumns = new LinkedHashMap<>();
+    //                 getColumnsDWColumns.put(1, TABLE_CAT);
+    //                 getColumnsDWColumns.put(2, TABLE_SCHEM);
+    //                 getColumnsDWColumns.put(3, TABLE_NAME);
+    //                 getColumnsDWColumns.put(4, COLUMN_NAME);
+    //                 getColumnsDWColumns.put(5, DATA_TYPE);
+    //                 getColumnsDWColumns.put(6, TYPE_NAME);
+    //                 getColumnsDWColumns.put(7, COLUMN_SIZE);
+    //                 getColumnsDWColumns.put(8, BUFFER_LENGTH);
+    //                 getColumnsDWColumns.put(9, DECIMAL_DIGITS);
+    //                 getColumnsDWColumns.put(10, NUM_PREC_RADIX);
+    //                 getColumnsDWColumns.put(11, NULLABLE);
+    //                 getColumnsDWColumns.put(12, REMARKS);
+    //                 getColumnsDWColumns.put(13, COLUMN_DEF);
+    //                 getColumnsDWColumns.put(14, SQL_DATA_TYPE);
+    //                 getColumnsDWColumns.put(15, SQL_DATETIME_SUB);
+    //                 getColumnsDWColumns.put(16, CHAR_OCTET_LENGTH);
+    //                 getColumnsDWColumns.put(17, ORDINAL_POSITION);
+    //                 getColumnsDWColumns.put(18, IS_NULLABLE);
+    //                 /*
+    //                  * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
+    //                  * be queried as 'NULL'
+    //                  */
+    //                 getColumnsDWColumns.put(-1, SCOPE_CATALOG);
+    //                 getColumnsDWColumns.put(-2, SCOPE_SCHEMA);
+    //                 getColumnsDWColumns.put(-3, SCOPE_TABLE);
+    //                 getColumnsDWColumns.put(29, SOURCE_DATA_TYPE);
+    //                 getColumnsDWColumns.put(22, IS_AUTOINCREMENT);
+    //                 getColumnsDWColumns.put(21, IS_GENERATEDCOLUMN);
+    //                 getColumnsDWColumns.put(19, SS_IS_SPARSE);
+    //                 getColumnsDWColumns.put(20, SS_IS_COLUMN_SET);
+    //                 getColumnsDWColumns.put(23, SS_UDT_CATALOG_NAME);
+    //                 getColumnsDWColumns.put(24, SS_UDT_SCHEMA_NAME);
+    //                 getColumnsDWColumns.put(25, SS_UDT_ASSEMBLY_TYPE_NAME);
+    //                 getColumnsDWColumns.put(26, SS_XML_SCHEMACOLLECTION_CATALOG_NAME);
+    //                 getColumnsDWColumns.put(27, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME);
+    //                 getColumnsDWColumns.put(28, SS_XML_SCHEMACOLLECTION_NAME);
+    //             }
+    //             if (null == getTypesDWColumns) {
+    //                 getTypesDWColumns = new LinkedHashMap<>();
+    //                 getTypesDWColumns.put(1, NVARCHAR); // TABLE_CAT
+    //                 getTypesDWColumns.put(2, NVARCHAR); // TABLE_SCHEM
+    //                 getTypesDWColumns.put(3, NVARCHAR); // TABLE_NAME
+    //                 getTypesDWColumns.put(4, NVARCHAR); // COLUMN_NAME
+    //                 getTypesDWColumns.put(5, INTEGER); // DATA_TYPE
+    //                 getTypesDWColumns.put(6, NVARCHAR); // TYPE_NAME
+    //                 getTypesDWColumns.put(7, INTEGER); // COLUMN_SIZE
+    //                 getTypesDWColumns.put(8, INTEGER); // BUFFER_LENGTH
+    //                 getTypesDWColumns.put(9, INTEGER); // DECIMAL_DIGITS
+    //                 getTypesDWColumns.put(10, INTEGER); // NUM_PREC_RADIX
+    //                 getTypesDWColumns.put(11, INTEGER); // NULLABLE
+    //                 getTypesDWColumns.put(12, VARCHAR); // REMARKS
+    //                 getTypesDWColumns.put(13, NVARCHAR); // COLUMN_DEF
+    //                 getTypesDWColumns.put(14, INTEGER); // SQL_DATA_TYPE
+    //                 getTypesDWColumns.put(15, INTEGER); // SQL_DATETIME_SUB
+    //                 getTypesDWColumns.put(16, INTEGER); // CHAR_OCTET_LENGTH
+    //                 getTypesDWColumns.put(17, INTEGER); // ORDINAL_POSITION
+    //                 getTypesDWColumns.put(18, VARCHAR); // IS_NULLABLE
+    //                 /*
+    //                  * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
+    //                  * be queried as 'NULL'
+    //                  */
+    //                 getTypesDWColumns.put(-1, VARCHAR); // SCOPE_CATALOG
+    //                 getTypesDWColumns.put(-2, VARCHAR); // SCOPE_SCHEMA
+    //                 getTypesDWColumns.put(-3, VARCHAR); // SCOPE_TABLE
+    //                 getTypesDWColumns.put(29, SMALLINT); // SOURCE_DATA_TYPE
+    //                 getTypesDWColumns.put(22, VARCHAR); // IS_AUTOINCREMENT
+    //                 getTypesDWColumns.put(21, VARCHAR); // IS_GENERATEDCOLUMN
+    //                 getTypesDWColumns.put(19, SMALLINT); // SS_IS_SPARSE
+    //                 getTypesDWColumns.put(20, SMALLINT); // SS_IS_COLUMN_SET
+    //                 getTypesDWColumns.put(23, NVARCHAR); // SS_UDT_CATALOG_NAME
+    //                 getTypesDWColumns.put(24, NVARCHAR); // SS_UDT_SCHEMA_NAME
+    //                 getTypesDWColumns.put(25, NVARCHAR); // SS_UDT_ASSEMBLY_TYPE_NAME
+    //                 getTypesDWColumns.put(26, NVARCHAR); // SS_XML_SCHEMACOLLECTION_CATALOG_NAME
+    //                 getTypesDWColumns.put(27, NVARCHAR); // SS_XML_SCHEMACOLLECTION_SCHEMA_NAME
+    //                 getTypesDWColumns.put(28, NVARCHAR); // SS_XML_SCHEMACOLLECTION_NAME
+    //             }
+
+    //             // Ensure there is a data type for every metadata column
+    //             if (getColumnsDWColumns.size() != getTypesDWColumns.size()) {
+    //                 MessageFormat form = new MessageFormat(
+    //                         SQLServerException.getErrString("R_colCountNotMatchColTypeCount"));
+    //                 Object[] msgArgs = {getColumnsDWColumns.size(), getTypesDWColumns.size()};
+    //                 throw new IllegalArgumentException(form.format(msgArgs));
+    //             }
+    //         } finally {
+    //             LOCK.unlock();
+    //         }
+
+    //         try (PreparedStatement storedProcPstmt = this.connection
+    //                 .prepareStatement("EXEC sp_columns_100 ?,?,?,?,?,?;")) {
+    //             storedProcPstmt.setString(1, (null != table && !table.isEmpty()) ? escapeIDName(table) : "%");
+    //             storedProcPstmt.setString(2, (null != schema && !schema.isEmpty()) ? escapeIDName(schema) : "%");
+    //             storedProcPstmt.setString(3,
+    //                     (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
+    //             storedProcPstmt.setString(4, (null != col && !col.isEmpty()) ? escapeIDName(col) : "%");
+    //             storedProcPstmt.setInt(5, 2);// show sparse columns
+    //             storedProcPstmt.setInt(6, 3);// odbc version
+
+    //             SQLServerResultSet userRs = null;
+    //             PreparedStatement resultPstmt = null;
+    //             try (ResultSet rs = storedProcPstmt.executeQuery()) {
+    //                 StringBuilder azureDwSelectBuilder = new StringBuilder();
+    //                 boolean isFirstRow = true; // less expensive than continuously checking isFirst()
+    //                 while (rs.next()) {
+    //                     if (!isFirstRow) {
+    //                         azureDwSelectBuilder.append(" UNION ALL ");
+    //                     }
+    //                     azureDwSelectBuilder.append(generateAzureDWSelect(rs, getColumnsDWColumns, getTypesDWColumns));
+    //                     isFirstRow = false;
+    //                 }
+
+    //                 if (0 == azureDwSelectBuilder.length()) {
+    //                     azureDwSelectBuilder.append(generateAzureDWEmptyRS(getColumnsDWColumns));
+    //                 } else {
+    //                     azureDwSelectBuilder.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION ");
+    //                 }
+
+    //                 resultPstmt = (SQLServerPreparedStatement) this.connection
+    //                         .prepareStatement(azureDwSelectBuilder.toString());
+    //                 userRs = (SQLServerResultSet) resultPstmt.executeQuery();
+    //                 resultPstmt.closeOnCompletion();
+    //                 userRs.getColumn(5).setFilter(new DataTypeFilter());
+    //                 userRs.getColumn(7).setFilter(new ZeroFixupFilter());
+    //                 userRs.getColumn(8).setFilter(new ZeroFixupFilter());
+    //                 userRs.getColumn(16).setFilter(new ZeroFixupFilter());
+    //             } catch (SQLException e) {
+    //                 if (null != resultPstmt) {
+    //                     try {
+    //                         resultPstmt.close();
+    //                     } catch (SQLServerException ignore) {
+    //                         if (loggerExternal.isLoggable(Level.FINER)) {
+    //                             loggerExternal.finer(
+    //                                     "getColumns() threw an exception when attempting to close PreparedStatement");
+    //                         }
+    //                     }
+    //                 }
+    //                 throw e;
+    //             }
+    //             return userRs;
+    //         }
+    //     }
+    // }
+
+
+    /**
+     * Helper method to get columns for regular SQL Server (non-Azure DW).
+     * Tries sp_columns_170 first, falls back to sp_columns_100 if needed.
+     */
+    private java.sql.ResultSet getColumnsNonAzureDW(String catalog, String schema, String table, String col)
+            throws SQLException {
+
+        String spColumnsProcName = "sp_columns_100";
+
+        String spColumnsSqlTemplate = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
+            + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
+            + "LENGTH INT, SCALE SMALLINT, RADIX SMALLINT, NULLABLE SMALLINT, REMARKS VARCHAR(254), COLUMN_DEF NVARCHAR(4000),"
+            + "SQL_DATA_TYPE SMALLINT, SQL_DATETIME_SUB SMALLINT, CHAR_OCTET_LENGTH INT, ORDINAL_POSITION INT,"
+            + "IS_NULLABLE VARCHAR(254), SS_IS_SPARSE SMALLINT, SS_IS_COLUMN_SET SMALLINT, SS_IS_COMPUTED SMALLINT,"
+            + "SS_IS_IDENTITY SMALLINT, SS_UDT_CATALOG_NAME NVARCHAR(128), SS_UDT_SCHEMA_NAME NVARCHAR(128),"
+            + "SS_UDT_ASSEMBLY_TYPE_NAME NVARCHAR(max), SS_XML_SCHEMACOLLECTION_CATALOG_NAME NVARCHAR(128),"
+            + "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME NVARCHAR(128), SS_XML_SCHEMACOLLECTION_NAME NVARCHAR(128),"
+            + "SS_DATA_TYPE TINYINT);"
+            + "INSERT INTO @mssqljdbc_temp_sp_columns_result EXEC %s ?,?,?,?,?,?;"
+            + "SELECT TABLE_QUALIFIER AS TABLE_CAT, TABLE_OWNER AS TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, "
+            + "CAST(DATA_TYPE AS INT) AS DATA_TYPE,TYPE_NAME, PRECISION AS COLUMN_SIZE, LENGTH AS BUFFER_LENGTH, "
+            + "CAST(SCALE AS INT) AS DECIMAL_DIGITS, CAST(RADIX AS INT) AS NUM_PREC_RADIX,CAST(NULLABLE AS INT) AS NULLABLE, "
+            + "CAST(REMARKS AS VARCHAR) AS REMARKS, COLUMN_DEF, CAST(SQL_DATA_TYPE AS INT) AS SQL_DATA_TYPE, "
+            + "CAST(SQL_DATETIME_SUB AS INT) AS SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE,"
+            + "CAST(NULL AS VARCHAR) AS SCOPE_CATALOG, CAST(NULL AS VARCHAR) AS SCOPE_SCHEMA, CAST(NULL AS VARCHAR) AS SCOPE_TABLE, "
+            + "CAST(SS_DATA_TYPE AS SMALLINT) AS SOURCE_DATA_TYPE, "
+            + "CASE SS_IS_IDENTITY WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_AUTOINCREMENT,"
+            + "CASE SS_IS_COMPUTED WHEN 0 THEN 'NO' WHEN 1 THEN 'YES' WHEN '' THEN '' END AS IS_GENERATEDCOLUMN, "
+            + "SS_IS_SPARSE, SS_IS_COLUMN_SET, SS_UDT_CATALOG_NAME, SS_UDT_SCHEMA_NAME, SS_UDT_ASSEMBLY_TYPE_NAME,"
+            + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
+            + "FROM @mssqljdbc_temp_sp_columns_result ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION;";
+            
+        SQLServerResultSet rs = null;
+        PreparedStatement pstmt = null;
+
+        try {
+            pstmt = (SQLServerPreparedStatement) this.connection
+                    .prepareStatement(String.format(spColumnsSqlTemplate, spColumnsProcName));
             pstmt.closeOnCompletion();
+
+            setColumnsParameters(pstmt, table, schema, catalog, col);
+
             try {
-                pstmt.setString(1, (null != table && !table.isEmpty()) ? escapeIDName(table) : "%");
-                pstmt.setString(2, (null != schema && !schema.isEmpty()) ? escapeIDName(schema) : "%");
-                pstmt.setString(3, (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
-                pstmt.setString(4, (null != col && !col.isEmpty()) ? escapeIDName(col) : "%");
-                pstmt.setInt(5, 2);// show sparse columns
-                pstmt.setInt(6, 3);// odbc version
+                rs = (SQLServerResultSet) pstmt.executeQuery();
+                if (loggerExternal.isLoggable(Level.FINER)) {
+                    loggerExternal.finer("Successfully executed " + spColumnsProcName);
+                }
+            } catch (SQLException e) {
+                // If sp_columns_170 is not found, fall back to sp_columns_100
+
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine(spColumnsProcName + " failed, falling back to sp_columns_100: " + e.getMessage());
+                }
+
+                // fallback to sp_columns_100
+                pstmt.close();
+                spColumnsProcName = "sp_columns_100";
+
+                pstmt = (SQLServerPreparedStatement) this.connection
+                        .prepareStatement(String.format(spColumnsSqlTemplate, spColumnsProcName));
+                pstmt.closeOnCompletion();
+
+                setColumnsParameters(pstmt, table, schema, catalog, col);
 
                 rs = (SQLServerResultSet) pstmt.executeQuery();
-                rs.getColumn(5).setFilter(new DataTypeFilter());
-                rs.getColumn(7).setFilter(new ZeroFixupFilter());
-                rs.getColumn(8).setFilter(new ZeroFixupFilter());
-                rs.getColumn(16).setFilter(new ZeroFixupFilter());
+            }
+
+            // Set filters on relevant columns
+            applyColumnsFilters(rs);
+
+            
+
+        } catch (SQLException e) {
+
+            if (null != pstmt) {
+                try {
+                    pstmt.close();
+                } catch (SQLServerException ignore) {
+                    if (loggerExternal.isLoggable(Level.FINER)) {
+                        loggerExternal.finer(
+                                "getColumns() threw an exception when attempting to close PreparedStatement");
+                    }
+                }
+            }
+            throw e;
+        } 
+        return rs;
+    }
+
+    /**
+     * Helper method to get columns for Azure DW.
+     * Tries sp_columns_170 first, falls back to sp_columns_100 if needed.
+     */
+    private java.sql.ResultSet getColumnsAzureDW(String catalog, String schema, String table, String col)
+            throws SQLException {
+
+        /**
+         * Can't actually switchCatalogs on Azure DW. This is here to keep consistency
+         * in behavior with SQL Azure DB
+         * when user provides a different catalog than the one they're currently
+         * connected to. Will throw exception
+         * when it's different and do nothing if it's the same/null.
+         */
+        LOCK.lock();
+        try {
+            if (null == getColumnsDWColumns) {
+                getColumnsDWColumns = new LinkedHashMap<>();
+                getColumnsDWColumns.put(1, TABLE_CAT);
+                getColumnsDWColumns.put(2, TABLE_SCHEM);
+                getColumnsDWColumns.put(3, TABLE_NAME);
+                getColumnsDWColumns.put(4, COLUMN_NAME);
+                getColumnsDWColumns.put(5, DATA_TYPE);
+                getColumnsDWColumns.put(6, TYPE_NAME);
+                getColumnsDWColumns.put(7, COLUMN_SIZE);
+                getColumnsDWColumns.put(8, BUFFER_LENGTH);
+                getColumnsDWColumns.put(9, DECIMAL_DIGITS);
+                getColumnsDWColumns.put(10, NUM_PREC_RADIX);
+                getColumnsDWColumns.put(11, NULLABLE);
+                getColumnsDWColumns.put(12, REMARKS);
+                getColumnsDWColumns.put(13, COLUMN_DEF);
+                getColumnsDWColumns.put(14, SQL_DATA_TYPE);
+                getColumnsDWColumns.put(15, SQL_DATETIME_SUB);
+                getColumnsDWColumns.put(16, CHAR_OCTET_LENGTH);
+                getColumnsDWColumns.put(17, ORDINAL_POSITION);
+                getColumnsDWColumns.put(18, IS_NULLABLE);
+                /*
+                 * Use negative value keys to indicate that this column doesn't exist in SQL
+                 * Server and should just
+                 * be queried as 'NULL'
+                 */
+                getColumnsDWColumns.put(-1, SCOPE_CATALOG);
+                getColumnsDWColumns.put(-2, SCOPE_SCHEMA);
+                getColumnsDWColumns.put(-3, SCOPE_TABLE);
+                getColumnsDWColumns.put(29, SOURCE_DATA_TYPE);
+                getColumnsDWColumns.put(22, IS_AUTOINCREMENT);
+                getColumnsDWColumns.put(21, IS_GENERATEDCOLUMN);
+                getColumnsDWColumns.put(19, SS_IS_SPARSE);
+                getColumnsDWColumns.put(20, SS_IS_COLUMN_SET);
+                getColumnsDWColumns.put(23, SS_UDT_CATALOG_NAME);
+                getColumnsDWColumns.put(24, SS_UDT_SCHEMA_NAME);
+                getColumnsDWColumns.put(25, SS_UDT_ASSEMBLY_TYPE_NAME);
+                getColumnsDWColumns.put(26, SS_XML_SCHEMACOLLECTION_CATALOG_NAME);
+                getColumnsDWColumns.put(27, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME);
+                getColumnsDWColumns.put(28, SS_XML_SCHEMACOLLECTION_NAME);
+            }
+            if (null == getTypesDWColumns) {
+                getTypesDWColumns = new LinkedHashMap<>();
+                getTypesDWColumns.put(1, NVARCHAR); // TABLE_CAT
+                getTypesDWColumns.put(2, NVARCHAR); // TABLE_SCHEM
+                getTypesDWColumns.put(3, NVARCHAR); // TABLE_NAME
+                getTypesDWColumns.put(4, NVARCHAR); // COLUMN_NAME
+                getTypesDWColumns.put(5, INTEGER); // DATA_TYPE
+                getTypesDWColumns.put(6, NVARCHAR); // TYPE_NAME
+                getTypesDWColumns.put(7, INTEGER); // COLUMN_SIZE
+                getTypesDWColumns.put(8, INTEGER); // BUFFER_LENGTH
+                getTypesDWColumns.put(9, INTEGER); // DECIMAL_DIGITS
+                getTypesDWColumns.put(10, INTEGER); // NUM_PREC_RADIX
+                getTypesDWColumns.put(11, INTEGER); // NULLABLE
+                getTypesDWColumns.put(12, VARCHAR); // REMARKS
+                getTypesDWColumns.put(13, NVARCHAR); // COLUMN_DEF
+                getTypesDWColumns.put(14, INTEGER); // SQL_DATA_TYPE
+                getTypesDWColumns.put(15, INTEGER); // SQL_DATETIME_SUB
+                getTypesDWColumns.put(16, INTEGER); // CHAR_OCTET_LENGTH
+                getTypesDWColumns.put(17, INTEGER); // ORDINAL_POSITION
+                getTypesDWColumns.put(18, VARCHAR); // IS_NULLABLE
+                /*
+                 * Use negative value keys to indicate that this column doesn't exist in SQL
+                 * Server and should just
+                 * be queried as 'NULL'
+                 */
+                getTypesDWColumns.put(-1, VARCHAR); // SCOPE_CATALOG
+                getTypesDWColumns.put(-2, VARCHAR); // SCOPE_SCHEMA
+                getTypesDWColumns.put(-3, VARCHAR); // SCOPE_TABLE
+                getTypesDWColumns.put(29, SMALLINT); // SOURCE_DATA_TYPE
+                getTypesDWColumns.put(22, VARCHAR); // IS_AUTOINCREMENT
+                getTypesDWColumns.put(21, VARCHAR); // IS_GENERATEDCOLUMN
+                getTypesDWColumns.put(19, SMALLINT); // SS_IS_SPARSE
+                getTypesDWColumns.put(20, SMALLINT); // SS_IS_COLUMN_SET
+                getTypesDWColumns.put(23, NVARCHAR); // SS_UDT_CATALOG_NAME
+                getTypesDWColumns.put(24, NVARCHAR); // SS_UDT_SCHEMA_NAME
+                getTypesDWColumns.put(25, NVARCHAR); // SS_UDT_ASSEMBLY_TYPE_NAME
+                getTypesDWColumns.put(26, NVARCHAR); // SS_XML_SCHEMACOLLECTION_CATALOG_NAME
+                getTypesDWColumns.put(27, NVARCHAR); // SS_XML_SCHEMACOLLECTION_SCHEMA_NAME
+                getTypesDWColumns.put(28, NVARCHAR); // SS_XML_SCHEMACOLLECTION_NAME
+            }
+
+            // Ensure there is a data type for every metadata column
+            if (getColumnsDWColumns.size() != getTypesDWColumns.size()) {
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_colCountNotMatchColTypeCount"));
+                Object[] msgArgs = { getColumnsDWColumns.size(), getTypesDWColumns.size() };
+                throw new IllegalArgumentException(form.format(msgArgs));
+            }
+        } finally {
+            LOCK.unlock();
+        }
+        String spColumnsProcName = "sp_columns_100";
+
+        try (PreparedStatement storedProcPstmt = this.connection
+                .prepareStatement("EXEC " + spColumnsProcName + " ?,?,?,?,?,?;")) {
+
+            setColumnsParameters(storedProcPstmt, table, schema, catalog, col);
+
+            SQLServerResultSet userRs = null;
+            PreparedStatement resultPstmt = null;
+
+            try (ResultSet rs = storedProcPstmt.executeQuery()) {
+
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine("Successfully executed " + spColumnsProcName + " on Azure DW");
+                }
+
+                return buildAzureDWResultSet(rs);
             } catch (SQLException e) {
-                if (null != pstmt) {
+                if (null != resultPstmt) {
                     try {
-                        pstmt.close();
+                        resultPstmt.close();
                     } catch (SQLServerException ignore) {
                         if (loggerExternal.isLoggable(Level.FINER)) {
                             loggerExternal.finer(
@@ -740,148 +1149,25 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     }
                 }
                 throw e;
-            } finally {
-                if (null != originalCatalog) {
-                    connection.setCatalog(originalCatalog);
-                }
+            }
+        } catch (SQLException primaryEx) {
+            // If sp_columns_170 fails on Azure DW, fallback to sp_columns_100
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine(spColumnsProcName + " failed on Azure DW, falling back to sp_columns_100: "
+                        + primaryEx.getMessage());
             }
 
-            return rs;
-        } else {
-            /**
-             * Can't actually switchCatalogs on Azure DW. This is here to keep consistency in behavior with SQL Azure DB
-             * when user provides a different catalog than the one they're currently connected to. Will throw exception
-             * when it's different and do nothing if it's the same/null.
-             */
-            LOCK.lock();
-            try {
-                if (null == getColumnsDWColumns) {
-                    getColumnsDWColumns = new LinkedHashMap<>();
-                    getColumnsDWColumns.put(1, TABLE_CAT);
-                    getColumnsDWColumns.put(2, TABLE_SCHEM);
-                    getColumnsDWColumns.put(3, TABLE_NAME);
-                    getColumnsDWColumns.put(4, COLUMN_NAME);
-                    getColumnsDWColumns.put(5, DATA_TYPE);
-                    getColumnsDWColumns.put(6, TYPE_NAME);
-                    getColumnsDWColumns.put(7, COLUMN_SIZE);
-                    getColumnsDWColumns.put(8, BUFFER_LENGTH);
-                    getColumnsDWColumns.put(9, DECIMAL_DIGITS);
-                    getColumnsDWColumns.put(10, NUM_PREC_RADIX);
-                    getColumnsDWColumns.put(11, NULLABLE);
-                    getColumnsDWColumns.put(12, REMARKS);
-                    getColumnsDWColumns.put(13, COLUMN_DEF);
-                    getColumnsDWColumns.put(14, SQL_DATA_TYPE);
-                    getColumnsDWColumns.put(15, SQL_DATETIME_SUB);
-                    getColumnsDWColumns.put(16, CHAR_OCTET_LENGTH);
-                    getColumnsDWColumns.put(17, ORDINAL_POSITION);
-                    getColumnsDWColumns.put(18, IS_NULLABLE);
-                    /*
-                     * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
-                     * be queried as 'NULL'
-                     */
-                    getColumnsDWColumns.put(-1, SCOPE_CATALOG);
-                    getColumnsDWColumns.put(-2, SCOPE_SCHEMA);
-                    getColumnsDWColumns.put(-3, SCOPE_TABLE);
-                    getColumnsDWColumns.put(29, SOURCE_DATA_TYPE);
-                    getColumnsDWColumns.put(22, IS_AUTOINCREMENT);
-                    getColumnsDWColumns.put(21, IS_GENERATEDCOLUMN);
-                    getColumnsDWColumns.put(19, SS_IS_SPARSE);
-                    getColumnsDWColumns.put(20, SS_IS_COLUMN_SET);
-                    getColumnsDWColumns.put(23, SS_UDT_CATALOG_NAME);
-                    getColumnsDWColumns.put(24, SS_UDT_SCHEMA_NAME);
-                    getColumnsDWColumns.put(25, SS_UDT_ASSEMBLY_TYPE_NAME);
-                    getColumnsDWColumns.put(26, SS_XML_SCHEMACOLLECTION_CATALOG_NAME);
-                    getColumnsDWColumns.put(27, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME);
-                    getColumnsDWColumns.put(28, SS_XML_SCHEMACOLLECTION_NAME);
-                }
-                if (null == getTypesDWColumns) {
-                    getTypesDWColumns = new LinkedHashMap<>();
-                    getTypesDWColumns.put(1, NVARCHAR); // TABLE_CAT
-                    getTypesDWColumns.put(2, NVARCHAR); // TABLE_SCHEM
-                    getTypesDWColumns.put(3, NVARCHAR); // TABLE_NAME
-                    getTypesDWColumns.put(4, NVARCHAR); // COLUMN_NAME
-                    getTypesDWColumns.put(5, INTEGER); // DATA_TYPE
-                    getTypesDWColumns.put(6, NVARCHAR); // TYPE_NAME
-                    getTypesDWColumns.put(7, INTEGER); // COLUMN_SIZE
-                    getTypesDWColumns.put(8, INTEGER); // BUFFER_LENGTH
-                    getTypesDWColumns.put(9, INTEGER); // DECIMAL_DIGITS
-                    getTypesDWColumns.put(10, INTEGER); // NUM_PREC_RADIX
-                    getTypesDWColumns.put(11, INTEGER); // NULLABLE
-                    getTypesDWColumns.put(12, VARCHAR); // REMARKS
-                    getTypesDWColumns.put(13, NVARCHAR); // COLUMN_DEF
-                    getTypesDWColumns.put(14, INTEGER); // SQL_DATA_TYPE
-                    getTypesDWColumns.put(15, INTEGER); // SQL_DATETIME_SUB
-                    getTypesDWColumns.put(16, INTEGER); // CHAR_OCTET_LENGTH
-                    getTypesDWColumns.put(17, INTEGER); // ORDINAL_POSITION
-                    getTypesDWColumns.put(18, VARCHAR); // IS_NULLABLE
-                    /*
-                     * Use negative value keys to indicate that this column doesn't exist in SQL Server and should just
-                     * be queried as 'NULL'
-                     */
-                    getTypesDWColumns.put(-1, VARCHAR); // SCOPE_CATALOG
-                    getTypesDWColumns.put(-2, VARCHAR); // SCOPE_SCHEMA
-                    getTypesDWColumns.put(-3, VARCHAR); // SCOPE_TABLE
-                    getTypesDWColumns.put(29, SMALLINT); // SOURCE_DATA_TYPE
-                    getTypesDWColumns.put(22, VARCHAR); // IS_AUTOINCREMENT
-                    getTypesDWColumns.put(21, VARCHAR); // IS_GENERATEDCOLUMN
-                    getTypesDWColumns.put(19, SMALLINT); // SS_IS_SPARSE
-                    getTypesDWColumns.put(20, SMALLINT); // SS_IS_COLUMN_SET
-                    getTypesDWColumns.put(23, NVARCHAR); // SS_UDT_CATALOG_NAME
-                    getTypesDWColumns.put(24, NVARCHAR); // SS_UDT_SCHEMA_NAME
-                    getTypesDWColumns.put(25, NVARCHAR); // SS_UDT_ASSEMBLY_TYPE_NAME
-                    getTypesDWColumns.put(26, NVARCHAR); // SS_XML_SCHEMACOLLECTION_CATALOG_NAME
-                    getTypesDWColumns.put(27, NVARCHAR); // SS_XML_SCHEMACOLLECTION_SCHEMA_NAME
-                    getTypesDWColumns.put(28, NVARCHAR); // SS_XML_SCHEMACOLLECTION_NAME
-                }
-
-                // Ensure there is a data type for every metadata column
-                if (getColumnsDWColumns.size() != getTypesDWColumns.size()) {
-                    MessageFormat form = new MessageFormat(
-                            SQLServerException.getErrString("R_colCountNotMatchColTypeCount"));
-                    Object[] msgArgs = {getColumnsDWColumns.size(), getTypesDWColumns.size()};
-                    throw new IllegalArgumentException(form.format(msgArgs));
-                }
-            } finally {
-                LOCK.unlock();
-            }
-
+            spColumnsProcName = "sp_columns_100";
             try (PreparedStatement storedProcPstmt = this.connection
-                    .prepareStatement("EXEC sp_columns_100 ?,?,?,?,?,?;")) {
-                storedProcPstmt.setString(1, (null != table && !table.isEmpty()) ? escapeIDName(table) : "%");
-                storedProcPstmt.setString(2, (null != schema && !schema.isEmpty()) ? escapeIDName(schema) : "%");
-                storedProcPstmt.setString(3,
-                        (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
-                storedProcPstmt.setString(4, (null != col && !col.isEmpty()) ? escapeIDName(col) : "%");
-                storedProcPstmt.setInt(5, 2);// show sparse columns
-                storedProcPstmt.setInt(6, 3);// odbc version
+                    .prepareStatement("EXEC " + spColumnsProcName + " ?,?,?,?,?,?;")) {
+
+                setColumnsParameters(storedProcPstmt, table, schema, catalog, col);
 
                 SQLServerResultSet userRs = null;
-                PreparedStatement resultPstmt = null;
+                SQLServerPreparedStatement resultPstmt = null;
+
                 try (ResultSet rs = storedProcPstmt.executeQuery()) {
-                    StringBuilder azureDwSelectBuilder = new StringBuilder();
-                    boolean isFirstRow = true; // less expensive than continuously checking isFirst()
-                    while (rs.next()) {
-                        if (!isFirstRow) {
-                            azureDwSelectBuilder.append(" UNION ALL ");
-                        }
-                        azureDwSelectBuilder.append(generateAzureDWSelect(rs, getColumnsDWColumns, getTypesDWColumns));
-                        isFirstRow = false;
-                    }
-
-                    if (0 == azureDwSelectBuilder.length()) {
-                        azureDwSelectBuilder.append(generateAzureDWEmptyRS(getColumnsDWColumns));
-                    } else {
-                        azureDwSelectBuilder.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION ");
-                    }
-
-                    resultPstmt = (SQLServerPreparedStatement) this.connection
-                            .prepareStatement(azureDwSelectBuilder.toString());
-                    userRs = (SQLServerResultSet) resultPstmt.executeQuery();
-                    resultPstmt.closeOnCompletion();
-                    userRs.getColumn(5).setFilter(new DataTypeFilter());
-                    userRs.getColumn(7).setFilter(new ZeroFixupFilter());
-                    userRs.getColumn(8).setFilter(new ZeroFixupFilter());
-                    userRs.getColumn(16).setFilter(new ZeroFixupFilter());
+                    return buildAzureDWResultSet(rs);
                 } catch (SQLException e) {
                     if (null != resultPstmt) {
                         try {
@@ -895,9 +1181,60 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     }
                     throw e;
                 }
-                return userRs;
             }
         }
+    }
+
+    /**
+     * Helper method to set parameters for columns stored procedure calls.
+     */
+    private void setColumnsParameters(PreparedStatement pstmt, String table, String schema, String catalog, String col)
+            throws SQLException {
+        pstmt.setString(1, (null != table && !table.isEmpty()) ? escapeIDName(table) : "%");
+        pstmt.setString(2, (null != schema && !schema.isEmpty()) ? escapeIDName(schema) : "%");
+        pstmt.setString(3, (null != catalog && !catalog.isEmpty()) ? catalog : this.connection.getCatalog());
+        pstmt.setString(4, (null != col && !col.isEmpty()) ? escapeIDName(col) : "%");
+        pstmt.setInt(5, 2);// show sparse columns
+        pstmt.setInt(6, 3);// odbc version
+    }
+
+    /**
+     * Helper method to apply filters to the result set columns.
+     */
+    private void applyColumnsFilters(SQLServerResultSet rs) throws SQLException {
+        rs.getColumn(5).setFilter(new DataTypeFilter());
+        rs.getColumn(7).setFilter(new ZeroFixupFilter());
+        rs.getColumn(8).setFilter(new ZeroFixupFilter());
+        rs.getColumn(16).setFilter(new ZeroFixupFilter());
+    }
+
+    /**
+     * Helper method to build the Azure DW result set from stored procedure results.
+     */
+    private SQLServerResultSet buildAzureDWResultSet(ResultSet rs) throws SQLException {
+        StringBuilder azureDwSelectBuilder = new StringBuilder();
+        boolean isFirstRow = true; // less expensive than continuously checking isFirst()
+        while (rs.next()) {
+            if (!isFirstRow) {
+                azureDwSelectBuilder.append(" UNION ALL ");
+            }
+            azureDwSelectBuilder.append(generateAzureDWSelect(rs, getColumnsDWColumns, getTypesDWColumns));
+            isFirstRow = false;
+        }
+
+        if (0 == azureDwSelectBuilder.length()) {
+            azureDwSelectBuilder.append(generateAzureDWEmptyRS(getColumnsDWColumns));
+        } else {
+            azureDwSelectBuilder.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION ");
+        }
+
+        PreparedStatement resultPstmt = (SQLServerPreparedStatement) this.connection
+                .prepareStatement(azureDwSelectBuilder.toString());
+        SQLServerResultSet userRs = (SQLServerResultSet) resultPstmt.executeQuery();
+        resultPstmt.closeOnCompletion();
+
+        applyColumnsFilters(userRs);
+        return userRs;
     }
 
     private String generateAzureDWSelect(ResultSet rs, Map<Integer, String> columns,
