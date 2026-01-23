@@ -127,38 +127,42 @@ public class VectorTest extends AbstractTest {
 
     /**
      * Test to verify that the vector data type is correctly reported in DatabaseMetaData for Azure DW.
+     * Added this to increase code coverage for Azure DW code path in getColumns method.
      */
     @Test
     public void testConnectionGetMetaDataAzureDW() throws Exception {
+        try (SQLServerConnection conn = getConnection()) {
 
-        // Use reflection to simulate Azure DW connection
-        Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
-        f1.setAccessible(true);
-        f1.set(connection, true);
+            // Use reflection to simulate Azure DW connection
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(conn, true);
 
-        // Set isAzure to true as well since some code paths check both
-        Field f2 = SQLServerConnection.class.getDeclaredField("isAzure");
-        f2.setAccessible(true);
-        f2.set(connection, true);
+            // Set isAzure to true as well since some code paths check both
+            Field f2 = SQLServerConnection.class.getDeclaredField("isAzure");
+            f2.setAccessible(true);
+            f2.set(conn, true);
 
-        DatabaseMetaData metaData = connection.getMetaData();
-        assertNotNull(metaData, "DatabaseMetaData should not be null");
+            DatabaseMetaData metaData = conn.getMetaData();
+            assertNotNull(metaData, "DatabaseMetaData should not be null");
 
-        try (ResultSet rs = metaData.getColumns(null, null, tableName, "%")) {
+            try (ResultSet rs = metaData.getColumns(null, null, tableName, "%")) {
 
-            while (rs.next()) {
-                for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
-                    String columnName = rs.getMetaData().getColumnName(i);
-                    String columnValue = rs.getString(i);
-                    // Uncomment the line below to see all column names and values
-                    // System.out.println(columnName + " : " + columnValue);
+                while (rs.next()) {
+                    for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
+                        String columnName = rs.getMetaData().getColumnName(i);
+                        String columnValue = rs.getString(i);
+                        // Uncomment the line below to see all column names and values
+                        // System.out.println(columnName + " : " + columnValue);
+                    }
+                    // Below will show -156 as vector data type value but right now sp_columns_170
+                    // is not introduced in SQL DB instances
+                    // which will return value as -3. For now below assertion test is commented out.
+
+                    // if ("v".equalsIgnoreCase(rs.getString("COLUMN_NAME"))) {
+                    // assertEquals(microsoft.sql.Types.VECTOR, rs.getInt("DATA_TYPE"));
+                    // }
                 }
-                // Below will show -156 as vector data type value but right now sp_columns_170 is not introduced in SQL DB instances 
-                // which will return value as -3. For now below assertion test is commented out.
-                
-                // if ("v".equalsIgnoreCase(rs.getString("COLUMN_NAME"))) {
-                //     assertEquals(microsoft.sql.Types.VECTOR, rs.getInt("DATA_TYPE"));
-                // }
             }
         }
     }
