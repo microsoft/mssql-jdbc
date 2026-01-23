@@ -1386,6 +1386,74 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testGetColumnsDataTypesMapping() throws SQLException {
+        String dataTypesTableName = RandomUtil.getIdentifier("DataTypesMappingTable");
+        try (Connection conn = getConnection(); 
+                Statement stmt = conn.createStatement()) {
+
+            String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(dataTypesTableName) + " (" + 
+                    "col_datetimeoffset   DATETIMEOFFSET(7), " +
+                    "col_datetime         DATETIME, " +
+                    "col_guid             UNIQUEIDENTIFIER, " +
+                    "col_sql_variant      SQL_VARIANT, " +
+                    "col_geometry         GEOMETRY" +
+                    ")";
+            
+            stmt.execute(createTableSQL);
+
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+            assertNotNull(databaseMetaData, "DatabaseMetaData should not be null");
+
+            // Map of column names to expected microsoft.sql.Types values
+            Map<String, Integer> expectedDataTypes = new LinkedHashMap<>();
+            expectedDataTypes.put("col_datetimeoffset", microsoft.sql.Types.DATETIMEOFFSET);
+            expectedDataTypes.put("col_datetime", microsoft.sql.Types.DATETIME);
+            expectedDataTypes.put("col_guid", microsoft.sql.Types.GUID);
+            expectedDataTypes.put("col_sql_variant", microsoft.sql.Types.SQL_VARIANT);
+            expectedDataTypes.put("col_geometry", microsoft.sql.Types.GEOMETRY);
+
+            Map<String, Integer> actualDataTypes = new HashMap<>();
+
+            try (ResultSet resultSet = databaseMetaData.getColumns(null, null, dataTypesTableName, "%")) {
+
+                while (resultSet.next()) {
+                    String columnName = resultSet.getString("COLUMN_NAME");
+                    int dataType = resultSet.getInt("SQL_DATA_TYPE");
+                    String typeName = resultSet.getString("TYPE_NAME");
+
+                    actualDataTypes.put(columnName, dataType);
+
+                    // Log the mapping for debugging
+                    System.out.println("Column: " + columnName + ", TYPE_NAME: " + typeName +
+                            ", SQL_DATA_TYPE: " + dataType +
+                            ", Expected: " + expectedDataTypes.get(columnName));
+                }
+            }
+
+            // Verify that we found all expected columns
+            assertEquals(expectedDataTypes.size(), actualDataTypes.size(),
+                    "Number of columns found does not match expected");
+
+            // Verify each data type mapping
+            for (Map.Entry<String, Integer> entry : expectedDataTypes.entrySet()) {
+                String columnName = entry.getKey();
+                Integer expectedType = entry.getValue();
+                Integer actualType = actualDataTypes.get(columnName);
+
+                assertNotNull(actualType, "Column '" + columnName + "' was not found in getColumns() result");
+                assertEquals(expectedType, actualType,
+                        "Data type mismatch for column '" + columnName + "'. " +
+                                "Expected: " + expectedType + " (microsoft.sql.Types), " +
+                                "Actual: " + actualType);
+            }
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(dataTypesTableName, stmt);
+            }
+        }
+    }
+
     @BeforeAll
     public static void setupTable() throws Exception {
         setConnection();

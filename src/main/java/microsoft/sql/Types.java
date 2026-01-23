@@ -83,5 +83,5 @@ public final class Types {
     /**
      * Microsoft SQL type JSON.
      */
-    public static final int JSON = -160;
+    public static final int JSON = -157;
 }
