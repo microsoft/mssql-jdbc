@@ -900,13 +900,8 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * Comprehensive coverage test for {@link SQLServerDatabaseMetaData#getIndexInfo(String, String, String, boolean,
      * boolean)} in Azure DW mode.
      * 
-     * This test creates a test table with both unique and non-unique indexes, then calls getIndexInfo with various
-     * parameters to cover different code paths, including:
-     * <ul>
-     * <li>Normal execution path (lines 1347-1419)
-     * <li>unique=true parameter (line 1285)
-     * <li>approximate=true parameter (line 1289)
-     * </ul>
+     * This test creates a test table with both unique and non-unique indexes, 
+     * then calls getIndexInfo with various parameters.
      * 
      * @throws Exception
      */
@@ -954,7 +949,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 String catalog = conn.getCatalog();
 
                 // Test 1: Normal execution path with unique=false, approximate=false
-                // This covers lines 1347-1394 (LinkedHashMap setup and main execution)
+                // This covers(LinkedHashMap setup and main execution)
                 try (ResultSet rs = dbMetadata.getIndexInfo(catalog, testSchema, testTable, false, false)) {
                     assertNotNull(rs, "ResultSet should not be null");
 
@@ -1085,7 +1080,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 }
 
             } catch (SQLException e) {
-                // Fallback scenario (lines 1440-1460)
+                // Fallback scenario
                 // If sp_statistics fails, should fall back to INDEX_INFO_QUERY_DW
                 // This is harder to test directly, but we can verify the fallback query would work
 
@@ -1434,7 +1429,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
             stmt.execute("CREATE TABLE " + escapedTable + " (id INT)");
 
             try {
-                // This should trigger the IllegalArgumentException at lines 837-843
+                // This should trigger the IllegalArgumentException
                 dbMetadata.getColumns(conn.getCatalog(), null, testTable, null);
                 fail("Should have thrown IllegalArgumentException for column count mismatch");
 
