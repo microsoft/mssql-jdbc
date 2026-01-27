@@ -693,7 +693,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
                         command);
 
+                // Performance tracking: end "creation to first packet" tracking
+                // Prepared statement
+                endCreationToFirstPacketTracking();
+
+                // Performance tracking: start "first packet to first response" tracking
+                startFirstPacketToFirstResponseTracking();
+
                 ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
+
+                // Performance tracking: end "first packet to first response" tracking
+                endFirstPacketToFirstResponseTracking();
+
                 startResults();
                 getNextResult(true);
             } catch (SQLException e) {
@@ -704,6 +715,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     connection.invalidateEnclaveSessionCache();
                 }
                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false)) {
+                    // Reset tracking for retry
+                    startCreationToFirstPacketTracking();
                     continue;
                 } else if (!inRetry && connection.doesServerSupportEnclaveRetry()) {
                     // We only want to retry once, so no retrying if we're already in the second pass.
@@ -1308,8 +1321,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private void doPrep(TDSWriter tdsWriter, TDSCommand command) throws SQLServerException {
         buildPrepParams(tdsWriter);
-        ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
-        command.processResponse(resultsReader());
+
+        // Performance tracking: track time for sp_prepare
+        try (PerformanceLog.Scope prepareScope = PerformanceLog.createScope(
+                PerformanceLog.perfLoggerStatement,
+                connection.getConnectionID(),
+                getStatementID(),
+                PerformanceActivity.STATEMENT_PREPARE)) {
+
+            try {
+                ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
+                command.processResponse(resultsReader());
+            } catch (SQLServerException e) {
+                prepareScope.setException(e);
+                throw e;
+            }
+        }
     }
 
     @Override
@@ -3200,7 +3227,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     needsPrepare = doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
                             batchCommand);
                     if (needsPrepare || numBatchesPrepared == numBatches) {
+                        // Performance tracking: end "creation to first packet" tracking (for first batch only)
+                        endCreationToFirstPacketTracking();
+
+                        // Performance tracking: start "first packet to first response" tracking
+                        startFirstPacketToFirstResponseTracking();
+
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+
+                        // Performance tracking: end "first packet to first response" tracking
+                        endFirstPacketToFirstResponseTracking();
 
                         boolean retry = false;
                         while (numBatchesExecuted < numBatchesPrepared) {

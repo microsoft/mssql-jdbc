@@ -169,6 +169,23 @@ public class SQLServerStatement implements ISQLServerStatement {
     /** trace ID */
     final private String traceID;
 
+    /** statement ID for performance tracking */
+    final private int statementID;
+
+    /**
+     * Returns the statement ID for performance tracking
+     * @return the statement ID
+     */
+    final int getStatementID() {
+        return statementID;
+    }
+
+    /** Performance tracking: scope for tracking creation to first packet */
+    private transient PerformanceLog.Scope creationToFirstPacketScope;
+
+    /** Performance tracking: scope for tracking first packet to first response */
+    private transient PerformanceLog.Scope firstPacketToFirstResponseScope;
+
     String getClassNameLogging() {
         return loggingClassName;
     }
@@ -239,6 +256,9 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         // make sure statement hasn't been closed due to closeOnCompletion
         checkClosed();
+
+        // Start performance tracking: time from statement creation to first packet sent
+        startCreationToFirstPacketTracking();
 
         execProps = new ExecuteProperties(this);
 
@@ -319,6 +339,58 @@ public class SQLServerStatement implements ISQLServerStatement {
         // its execution can be cancelled from another thread
         currentCommand = newCommand;
         connection.executeCommand(newCommand);
+    }
+
+    /**
+     * Starts tracking time from statement creation to first packet sent.
+     * This is called at the beginning of executeStatement().
+     */
+    final void startCreationToFirstPacketTracking() {
+        if (creationToFirstPacketScope == null) {
+            creationToFirstPacketScope = PerformanceLog.createScope(
+                PerformanceLog.perfLoggerStatement, 
+                connection.getConnectionID(), 
+                getStatementID(), 
+                PerformanceActivity.STATEMENT_CREATION_TO_FIRST_PACKET
+            );
+        }
+    }
+
+    /**
+     * Ends tracking time from statement creation to first packet sent.
+     * This is called just before startResponse() which sends the first packet.
+     */
+    final void endCreationToFirstPacketTracking() {
+        if (creationToFirstPacketScope != null) {
+            creationToFirstPacketScope.close();
+            creationToFirstPacketScope = null;
+        }
+    }
+
+    /**
+     * Starts tracking time from first packet sent to first response received.
+     * This is called just before startResponse().
+     */
+    final void startFirstPacketToFirstResponseTracking() {
+        if (firstPacketToFirstResponseScope == null) {
+            firstPacketToFirstResponseScope = PerformanceLog.createScope(
+                PerformanceLog.perfLoggerStatement,
+                connection.getConnectionID(),
+                getStatementID(),
+                PerformanceActivity.STATEMENT_FIRST_PACKET_TO_FIRST_RESPONSE
+            );
+        }
+    }
+
+    /**
+     * Ends tracking time from first packet sent to first response received.
+     * This is called just after startResponse() returns.
+     */
+    final void endFirstPacketToFirstResponseTracking() {
+        if (firstPacketToFirstResponseScope != null) {
+            firstPacketToFirstResponseScope.close();
+            firstPacketToFirstResponseScope = null;
+        }
     }
 
     /**
@@ -603,7 +675,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Return a string representation of this statement's unqualified class name
         // (e.g. "SQLServerStatement" or "SQLServerPreparedStatement"),
         // its unique ID, and its parent connection.
-        int statementID = nextStatementID();
+        this.statementID = nextStatementID();
         String classN = getClass().getSimpleName();
         traceID = classN + ":" + statementID;
 
@@ -969,8 +1041,20 @@ public class SQLServerStatement implements ISQLServerStatement {
             if (stmtlogger.isLoggable(java.util.logging.Level.FINE))
                 stmtlogger.fine(toString() + " Executing (not server cursor) " + sql);
 
-            // Start the response
+            // Performance tracking: end "creation to first packet" tracking
+            // startResponse() will send the packet to the server
+            // for regular statements
+            endCreationToFirstPacketTracking();
+
+            // Performance tracking: start "first packet to first response" tracking
+            startFirstPacketToFirstResponseTracking();
+
+            // Start the response - this sends the packet and reads response
             ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+
+            // Performance tracking: end "first packet to first response" tracking
+            endFirstPacketToFirstResponseTracking();
+
             startResults();
             getNextResult(true);
         }
@@ -1045,8 +1129,19 @@ public class SQLServerStatement implements ISQLServerStatement {
         tdsWriter.sendEnclavePackage(batchStatementString, execCmd.enclaveCEKs);
         tdsWriter.writeString(batchStatementString);
 
+        // Performance tracking: end "creation to first packet" tracking
+        // for batch execution
+        endCreationToFirstPacketTracking();
+
+        // Performance tracking: start "first packet to first response" tracking
+        startFirstPacketToFirstResponseTracking();
+
         // Start the response
         ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+
+        // Performance tracking: end "first packet to first response" tracking
+        endFirstPacketToFirstResponseTracking();
+
         startResults();
         getNextResult(true);
 
@@ -2183,7 +2278,18 @@ public class SQLServerStatement implements ISQLServerStatement {
         // <rowcount> OUT
         tdsWriter.writeRPCInt(null, 0, true);
 
+        // Performance tracking: end "creation to first packet" tracking
+        // for cursor-based execution
+        endCreationToFirstPacketTracking();
+
+        // Performance tracking: start "first packet to first response" tracking
+        startFirstPacketToFirstResponseTracking();
+
         ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+
+        // Performance tracking: end "first packet to first response" tracking
+        endFirstPacketToFirstResponseTracking();
+
         startResults();
         getNextResult(true);
     }
