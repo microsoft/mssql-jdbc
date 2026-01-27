@@ -99,12 +99,74 @@ public final class SQLServerException extends java.sql.SQLException {
     /** SQL server error */
     private SQLServerError sqlServerError;
 
+    /** Reference to the statement that threw this exception (for lazy exception chaining via getMoreResults) */
+    private transient SQLServerStatement sourceStatement;
+
+    /** Flag to track if there are more results in the TDS stream (starts true, set to false when getMoreResults returns false) */
+    private transient boolean hasMoreResults = true;
+
     final int getDriverErrorCode() {
         return driverErrorCode;
     }
 
     final void setDriverErrorCode(int value) {
         driverErrorCode = value;
+    }
+
+    /**
+     * Sets the source statement for lazy exception chaining.
+     * This allows getNextException() to fetch additional exceptions from the TDS stream.
+     * 
+     * @param stmt
+     *        the statement that threw this exception
+     */
+    final void setSourceStatement(SQLServerStatement stmt) {
+        this.sourceStatement = stmt;
+    }
+
+    /**
+     * Override getNextException() to support lazy exception chaining.
+     * If there's no chained exception but we have a source statement,
+     * try to fetch more exceptions from the TDS stream via getMoreResults().
+     * 
+     * This transparently implements issue #2115 fix by:
+     * 1. First checking if exception is already chained (normal behavior)
+     * 2. If not, calling getMoreResults() on the source statement to resume TDS parsing
+     * 3. Chaining any exception thrown by getMoreResults() to this exception
+     * 
+     * @return the next SQLException in the chain, or null if none exists
+     */
+    @Override
+    public java.sql.SQLException getNextException() {
+        java.sql.SQLException nextException = super.getNextException();
+        
+        // If we already have a chained exception, return it
+        if (nextException != null) {
+            return nextException;
+        }
+        
+        // If there are no more results in the stream, don't try again
+        if (!hasMoreResults) {
+            return null;
+        }
+        
+        // Try to fetch more exceptions from the TDS stream
+        if (sourceStatement != null) {
+            try {
+                // Call getMoreResults() to resume parsing the TDS stream
+                // This will throw an exception if there's another error in the stream
+                hasMoreResults = sourceStatement.getMoreResults();
+            } catch (java.sql.SQLException e) {
+                // Chain the exception we just caught and pass the statement reference
+                if (e instanceof SQLServerException) {
+                    ((SQLServerException) e).setSourceStatement(sourceStatement);
+                }
+                super.setNextException(e);
+                return e;
+            }
+        }
+        
+        return null;
     }
 
     /**
@@ -272,11 +334,36 @@ public final class SQLServerException extends java.sql.SQLException {
      */
     static void makeFromDatabaseError(SQLServerConnection con, Object obj, String errText,
             SQLServerError sqlServerError, boolean bStack) throws SQLServerException {
+        makeFromDatabaseError(con, obj, errText, sqlServerError, bStack, null);
+    }
+
+    /**
+     * Builds a new SQL Exception from a SQLServerError detected by the driver.
+     * 
+     * @param con
+     *        the connection
+     * @param obj
+     * @param errText
+     *        the exception message
+     * @param sqlServerError
+     * @param bStack
+     *        true to generate the stack trace
+     * @param stmt
+     *        the statement that encountered the error (for lazy exception chaining)
+     * @throws SQLServerException
+     */
+    static void makeFromDatabaseError(SQLServerConnection con, Object obj, String errText,
+            SQLServerError sqlServerError, boolean bStack, SQLServerStatement stmt) throws SQLServerException {
         String state = generateStateCode(con, sqlServerError.getErrorNumber(), sqlServerError.getErrorState());
 
         SQLServerException theException = new SQLServerException(obj,
                 SQLServerException.checkAndAppendClientConnId(errText, con), state, sqlServerError, bStack);
         theException.setDriverErrorCode(DRIVER_ERROR_FROM_DATABASE);
+
+        // Set the source statement for lazy exception chaining (issue #2115)
+        if (stmt != null) {
+            theException.setSourceStatement(stmt);
+        }
 
         // Add any extra messages to the SQLException error chain
         List<SQLServerError> errorChain = sqlServerError.getErrorChain();
