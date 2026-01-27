@@ -2051,11 +2051,10 @@ public class PreparedStatementTest extends AbstractTest {
                     long[] updateCounts = pstmt.executeLargeBatch();
                     // May succeed if some statements pass
                 } catch (BatchUpdateException e) {
-                    // This validates the exception transformation logic in lines 2505-2507
+                    // This validates the exception transformation logic
                     assertNotNull(e.getUpdateCounts());
                     assertTrue(e.getMessage().length() > 0);
                 } catch (SQLException e) {
-                    // Also valid - tests the catch block in lines 2467-2469
                     assertNotNull(e.getMessage());
                 }
             }
