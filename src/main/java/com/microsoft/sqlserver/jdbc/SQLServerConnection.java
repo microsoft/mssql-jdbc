@@ -15,7 +15,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.sql.Blob;
 import java.sql.CallableStatement;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -8519,46 +8521,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             lock.unlock();
         }
         loggerExternal.exiting(loggingClassName, "endRequest", this);
-    }
-
-    /**
-     * Replaces JDBC syntax parameter markets '?' with SQL Server parameter markers @p1, @p2 etc...
-     * 
-     * @param sql
-     *        the user's SQL
-     * @throws SQLServerException
-     * @return the returned syntax
-     */
-    static final char[] OUT = {' ', 'O', 'U', 'T'};
-
-    String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
-            boolean isReturnValueSyntax) {
-        final int MAX_PARAM_NAME_LEN = 6;
-        char[] sqlDst = new char[sqlSrc.length() + (params.length * (MAX_PARAM_NAME_LEN + OUT.length))
-                + (params.length * 2)];
-        int dstBegin = 0;
-        int srcBegin = 0;
-        int nParam = 0;
-
-        int paramIndex = 0;
-        while (true) {
-            int srcEnd = (paramIndex >= paramPositions.length) ? sqlSrc.length() : paramPositions[paramIndex];
-            sqlSrc.getChars(srcBegin, srcEnd, sqlDst, dstBegin);
-            dstBegin += srcEnd - srcBegin;
-
-            if (sqlSrc.length() == srcEnd)
-                break;
-
-            dstBegin += makeParamName(nParam++, sqlDst, dstBegin, true);
-            srcBegin = srcEnd + 1 <= sqlSrc.length() - 1 && sqlSrc.charAt(srcEnd + 1) == ' ' ? srcEnd + 2 : srcEnd + 1;
-
-            if (params[paramIndex++].isOutput() && (!isReturnValueSyntax || paramIndex > 1)) {
-                System.arraycopy(OUT, 0, sqlDst, dstBegin, OUT.length);
-                dstBegin += OUT.length;
-            }
-        }
-
-        return new String(sqlDst, 0, dstBegin);
     }
 
     /**
