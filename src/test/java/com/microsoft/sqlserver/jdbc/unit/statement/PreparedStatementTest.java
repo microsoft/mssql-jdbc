@@ -1854,7 +1854,7 @@ public class PreparedStatementTest extends AbstractTest {
             }
         } finally {
             // Cleanup
-            try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+            try (Connection connection = PrepUtil.getConnection(connectionString);
                     Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(escapedSchema + "." + escapedTable, stmt);
                 TestUtils.dropSchemaIfExists(escapedSchema, stmt);
