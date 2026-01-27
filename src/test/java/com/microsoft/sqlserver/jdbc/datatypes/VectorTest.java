@@ -102,6 +102,8 @@ public class VectorTest extends AbstractTest {
      * Test to verify that the vector data type is correctly reported in DatabaseMetaData.
      */
     @Test
+    @Tag(Constants.vectorTest)
+    @Tag(Constants.xAzureSQLDB)
     public void testConnectionGetMetaData() throws Exception {
         DatabaseMetaData metaData = connection.getMetaData();
         assertNotNull(metaData, "DatabaseMetaData should not be null");
@@ -115,12 +117,13 @@ public class VectorTest extends AbstractTest {
                     // Uncomment the line below to see all column names and values
                     // System.out.println(columnName + " : " + columnValue);
                 }
-                // Below will show -156 as vector data type value but right now sp_columns_170 is not introduced in SQL DB instances 
-                // which will return value as -3. For now below assertion test is commented out.
+                // Below will show -156 as vector data type value but right now sp_columns_170 
+                // is not introduced in SQL DB instances which will return value as -3. 
+                // For now below assertion test runs only for SQL Server 2025 instance.
 
-                // if ("v".equalsIgnoreCase(rs.getString("COLUMN_NAME"))) {
-                //     assertEquals(microsoft.sql.Types.VECTOR, rs.getInt("DATA_TYPE"));
-                // }
+                if ("v".equalsIgnoreCase(rs.getString("COLUMN_NAME"))) {
+                    assertEquals(microsoft.sql.Types.VECTOR, rs.getInt("DATA_TYPE"));
+                }
             }
         }
     }
@@ -130,6 +133,8 @@ public class VectorTest extends AbstractTest {
      * Added this to increase code coverage for Azure DW code path in getColumns method.
      */
     @Test
+    @Tag(Constants.vectorTest)
+    @Tag(Constants.xAzureSQLDB)
     public void testConnectionGetMetaDataAzureDW() throws Exception {
         try (SQLServerConnection conn = getConnection()) {
 
@@ -157,11 +162,12 @@ public class VectorTest extends AbstractTest {
                     }
                     // Below will show -156 as vector data type value but right now sp_columns_170
                     // is not introduced in SQL DB instances
-                    // which will return value as -3. For now below assertion test is commented out.
+                    // which will return value as -3.
+                    // For now below assertion test runs only for SQL Server 2025 instance.
 
-                    // if ("v".equalsIgnoreCase(rs.getString("COLUMN_NAME"))) {
-                    // assertEquals(microsoft.sql.Types.VECTOR, rs.getInt("DATA_TYPE"));
-                    // }
+                    if ("v".equalsIgnoreCase(rs.getString("COLUMN_NAME"))) {
+                    assertEquals(microsoft.sql.Types.VECTOR, rs.getInt("DATA_TYPE"));
+                    }
                 }
             }
         }

@@ -698,7 +698,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * @throws SQLException
     */
     @Override
-    public ResultSet getColumns(String catalog, String schema, String table, String col) throws SQLException {
+    public java.sql.ResultSet getColumns(String catalog, String schema, String table, String col) throws SQLException {
 
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {
             loggerExternal.finer(toString() + ACTIVITY_ID + ActivityCorrelator.getCurrent().toString());
@@ -770,7 +770,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     loggerExternal.finer("Successfully executed " + spColumnsProcName);
                 }
             } catch (SQLException e) {
-                // If sp_columns_170 is not found, fall back to sp_columns_100
+                // If getColumns() fails with sp_columns_170, fall back to sp_columns_100
 
                 if (loggerExternal.isLoggable(Level.FINER)) {
                     loggerExternal.finer(spColumnsProcName + " failed, falling back to sp_columns_100: " + e.getMessage());
