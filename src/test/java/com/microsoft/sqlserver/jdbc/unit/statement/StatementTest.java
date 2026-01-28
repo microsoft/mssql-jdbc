@@ -3874,23 +3874,23 @@ public class StatementTest extends AbstractTest {
                     // According to the issue, getNextException() returns NULL when it should return the second exception
                     assertNotNull(nextException, 
                             "Second exception should be chained via getNextException() - this is the bug in issue #2115");
-
-                    if (nextException != null) {
-                        String secondMessage = nextException.getMessage();
-                        System.out.println("Second exception message: " + secondMessage);
-                        assertTrue(secondMessage.contains("P1 - P2 raised an error"),
-                                "Second exception should contain 'P1 - P2 raised an error', but was: " + secondMessage);
-                        
-                        // Print all chained exceptions for debugging
-                        int count = 1;
-                        SQLException ex = e;
-                        System.out.println("\nAll chained exceptions:");
-                        while (ex != null) {
-                            System.out.println("  Exception " + count + ": " + ex.getMessage());
-                            ex = ex.getNextException();
+                
+                    String secondMessage = nextException.getMessage();
+                    assertTrue(secondMessage.contains("P1 - P2 raised an error"),
+                            "Second exception should contain 'P1 - P2 raised an error', but was: " + secondMessage);
+                    
+                    // Count all chained exceptions and verify the count
+                    int count = 1;
+                    SQLException ex = e;
+                    while (ex != null) {
+                        ex = ex.getNextException();
+                        if (ex != null) {
                             count++;
                         }
                     }
+                    
+                    // Verify we have exactly 2 exceptions (P2 inner + P1 outer)
+                    assertEquals(2, count, "Expected 2 chained exceptions (P2 + P1), but got " + count);
                 }
             }
         }
@@ -3952,12 +3952,9 @@ public class StatementTest extends AbstractTest {
                     boolean hasP4 = false, hasP3 = false, hasP2 = false, hasP1 = false;
                     
                     SQLException ex = e;
-                    System.out.println("\nAll chained exceptions (4 nested procs):");
                     while (ex != null) {
                         exceptionCount++;
                         String message = ex.getMessage();
-                        System.out.println("  Exception " + exceptionCount + ": " + message);
-                        
                         if (message.contains("P4 - innermost exception")) hasP4 = true;
                         if (message.contains("P3 - P4 raised an error")) hasP3 = true;
                         if (message.contains("P2 - P3 raised an error")) hasP2 = true;
@@ -4018,20 +4015,17 @@ public class StatementTest extends AbstractTest {
                 assertNotNull(secondException, "Second exception (P1) should be thrown from getMoreResults()");
                 assertTrue(secondException.getMessage().contains("P1 - P2 raised an error"),
                         "Second exception should be from P1: " + secondException.getMessage());
-                
-                System.out.println("\ngetMoreResults() approach:");
-                System.out.println("  First exception (from execute): " + firstException.getMessage());
-                System.out.println("  Second exception (from getMoreResults): " + secondException.getMessage());
             }
         }
 
         /**
-         * Test exception chaining with 3 nested stored procedures using getMoreResults() loop.
+         * Test exception chaining with 3 nested stored procedures using getNextException().
          * 
-         * Demonstrates manually collecting all exceptions by repeatedly calling getMoreResults().
+         * Validates that all 3 exceptions are properly chained via getNextException() API.
+         * Chain: P3 (innermost) → P2 → P1 (outermost)
          */
         @Test
-        public void testExceptionChainingWith3NestedProcsUsingGetMoreResults() throws Exception {
+        public void testExceptionChainingWith3NestedProcs() throws Exception {
             final String PROC_P3 = "p3_exception_test";
             
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -4061,39 +4055,35 @@ public class StatementTest extends AbstractTest {
                         + "    RAISERROR('P1 - P2 raised an error', 16, 1) WITH NOWAIT; " + "  END " + "END";
                 stmt.execute(createP1);
 
-                // Collect all exceptions using getMoreResults() loop
-                java.util.List<SQLException> exceptions = new java.util.ArrayList<>();
-                
+                // Execute and verify all 3 exceptions are chained via getNextException()
                 try {
                     stmt.execute("EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P1));
                     fail("Expected SQLException to be thrown");
                 } catch (SQLException e) {
-                    exceptions.add(e);
+                    // Count and verify all exceptions using getNextException()
+                    int exceptionCount = 0;
+                    boolean hasP3 = false, hasP2 = false, hasP1 = false;
                     
-                    // Keep calling getMoreResults() to collect all exceptions
-                    boolean hasMore = true;
-                    while (hasMore) {
-                        try {
-                            hasMore = stmt.getMoreResults();
-                        } catch (SQLException ex) {
-                            exceptions.add(ex);
-                        }
+                    SQLException ex = e;
+                    System.out.println("\nAll chained exceptions (3 nested procs) via getNextException():");
+                    while (ex != null) {
+                        exceptionCount++;
+                        String message = ex.getMessage();
+                        System.out.println("  Exception " + exceptionCount + ": " + message);
+                        
+                        if (message.contains("P3 - innermost exception")) hasP3 = true;
+                        if (message.contains("P2 - P3 raised an error")) hasP2 = true;
+                        if (message.contains("P1 - P2 raised an error")) hasP1 = true;
+                        
+                        ex = ex.getNextException();
                     }
-                }
 
-                // Verify all 3 exceptions were collected
-                System.out.println("\ngetMoreResults() loop - 3 nested procs:");
-                for (int i = 0; i < exceptions.size(); i++) {
-                    System.out.println("  Exception " + (i + 1) + ": " + exceptions.get(i).getMessage());
+                    // Verify all 3 exceptions are present
+                    assertEquals(3, exceptionCount, "Expected 3 chained exceptions, but got " + exceptionCount);
+                    assertTrue(hasP3, "Exception chain should contain P3 (innermost) exception");
+                    assertTrue(hasP2, "Exception chain should contain P2 exception");
+                    assertTrue(hasP1, "Exception chain should contain P1 (outermost) exception");
                 }
-                
-                assertEquals(3, exceptions.size(), "Expected 3 exceptions, but got " + exceptions.size());
-                assertTrue(exceptions.get(0).getMessage().contains("P3 - innermost exception"),
-                        "First exception should be from P3");
-                assertTrue(exceptions.get(1).getMessage().contains("P2 - P3 raised an error"),
-                        "Second exception should be from P2");
-                assertTrue(exceptions.get(2).getMessage().contains("P1 - P2 raised an error"),
-                        "Third exception should be from P1");
 
                 // Cleanup
                 TestUtils.dropProcedureIfExists(PROC_P3, stmt);

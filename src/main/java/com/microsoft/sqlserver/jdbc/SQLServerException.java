@@ -102,9 +102,6 @@ public final class SQLServerException extends java.sql.SQLException {
     /** Reference to the statement that threw this exception (for lazy exception chaining via getMoreResults) */
     private transient SQLServerStatement sourceStatement;
 
-    /** Flag to track if there are more results in the TDS stream (starts true, set to false when getMoreResults returns false) */
-    private transient boolean hasMoreResults = true;
-
     final int getDriverErrorCode() {
         return driverErrorCode;
     }
@@ -145,22 +142,23 @@ public final class SQLServerException extends java.sql.SQLException {
             return nextException;
         }
         
-        // If there are no more results in the stream, don't try again
-        if (!hasMoreResults) {
-            return null;
-        }
-        
         // Try to fetch more exceptions from the TDS stream
         if (sourceStatement != null) {
             try {
                 // Call getMoreResults() to resume parsing the TDS stream
                 // This will throw an exception if there's another error in the stream
-                hasMoreResults = sourceStatement.getMoreResults();
+                boolean hasMore = sourceStatement.getMoreResults();
+                if (!hasMore) {
+                    // No more results in the stream, clear the reference
+                    sourceStatement = null;
+                }
             } catch (java.sql.SQLException e) {
                 // Chain the exception we just caught and pass the statement reference
                 if (e instanceof SQLServerException) {
                     ((SQLServerException) e).setSourceStatement(sourceStatement);
                 }
+                // Clear the source statement since we've passed it to the next exception
+                sourceStatement = null;
                 super.setNextException(e);
                 return e;
             }
