@@ -1476,7 +1476,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * @throws SQLException if a database access error occurs
      */
     @Test
-    @Tag(Constants.vectorTest)
+    @vectorJsonTest
     @Tag(Constants.xAzureSQLDB)
     public void testGetColumnsMappingJsonAndVector() throws SQLException {
         String dataTypesTableName = RandomUtil.getIdentifier("JsonVectorMappingTable");
