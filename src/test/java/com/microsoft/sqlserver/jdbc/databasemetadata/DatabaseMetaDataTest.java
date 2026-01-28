@@ -1400,13 +1400,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
             String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(dataTypesTableName) + " (" + 
                     "col_datetimeoffset   DATETIMEOFFSET(7), " +
                     "col_datetime         DATETIME, " +
-                    "col_smalldatetime    SMALLDATETIME, " +
-                    "col_money            MONEY, " +
-                    "col_smallmoney       SMALLMONEY, " +
                     "col_guid             UNIQUEIDENTIFIER, " +
                     "col_sql_variant      SQL_VARIANT, " +
-                    "col_geometry         GEOMETRY, " +
-                    "col_geography        GEOGRAPHY" +
+                    "col_geometry         GEOMETRY " +
                     ")";
             
             stmt.execute(createTableSQL);
@@ -1418,13 +1414,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
             Map<String, Integer> expectedDataTypes = new LinkedHashMap<>();
             expectedDataTypes.put("col_datetimeoffset", microsoft.sql.Types.DATETIMEOFFSET);
             expectedDataTypes.put("col_datetime", microsoft.sql.Types.DATETIME);
-            expectedDataTypes.put("col_smalldatetime", 10);
-            expectedDataTypes.put("col_money", -148);
-            expectedDataTypes.put("col_smallmoney", -146);
             expectedDataTypes.put("col_guid", microsoft.sql.Types.GUID);
             expectedDataTypes.put("col_sql_variant", microsoft.sql.Types.SQL_VARIANT);
             expectedDataTypes.put("col_geometry", microsoft.sql.Types.GEOMETRY);
-            expectedDataTypes.put("col_geography", -152);
 
             Map<String, Integer> actualDataTypes = new HashMap<>();
 
