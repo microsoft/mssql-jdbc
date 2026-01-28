@@ -682,7 +682,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /**
      * getColumns() method to retrieve a description of table columns available in a catalog.
-     * Try to use sp_columns_170 first, fall back to sp_columns_100 if needed.
+     * This function try to use sp_columns_170 first, fall back to sp_columns_100 if needed.
      * 
      * @param catalog
      *        a catalog name; "" retrieves those without a catalog; null means that the catalog name should not be used to narrow
