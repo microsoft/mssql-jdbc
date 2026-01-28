@@ -112,52 +112,40 @@ public final class SQLServerException extends java.sql.SQLException {
 
     /**
      * Sets the source statement for lazy exception chaining.
-     * This allows getNextException() to fetch additional exceptions from the TDS stream.
      * 
-     * @param stmt
-     *        the statement that threw this exception
+     * @param stmt the statement that threw this exception
      */
     final void setSourceStatement(SQLServerStatement stmt) {
         this.sourceStatement = stmt;
     }
 
     /**
-     * Override getNextException() to support lazy exception chaining.
-     * If there's no chained exception but we have a source statement,
-     * try to fetch more exceptions from the TDS stream via getMoreResults().
-     * 
-     * This transparently implements issue #2115 fix by:
-     * 1. First checking if exception is already chained (normal behavior)
-     * 2. If not, calling getMoreResults() on the source statement to resume TDS parsing
-     * 3. Chaining any exception thrown by getMoreResults() to this exception
+     * Returns the next SQLException in the chain. This implementation supports lazy fetching
+     * of additional exceptions from nested stored procedures (issue #2115).
      * 
      * @return the next SQLException in the chain, or null if none exists
      */
     @Override
     public java.sql.SQLException getNextException() {
         java.sql.SQLException nextException = super.getNextException();
-        
-        // If we already have a chained exception, return it
         if (nextException != null) {
             return nextException;
         }
         
-        // Try to fetch more exceptions from the TDS stream
         if (sourceStatement != null) {
             try {
-                // Call getMoreResults() to resume parsing the TDS stream
-                // This will throw an exception if there's another error in the stream
-                boolean hasMore = sourceStatement.getMoreResults();
-                if (!hasMore) {
-                    // No more results in the stream, clear the reference
+                if (sourceStatement.isClosed()) {
                     sourceStatement = null;
+                    return null;
                 }
+                
+                sourceStatement.getMoreResults();
+                sourceStatement = null;
             } catch (java.sql.SQLException e) {
-                // Chain the exception we just caught and pass the statement reference
+                // Pass statement reference to next exception for continued chaining
                 if (e instanceof SQLServerException) {
                     ((SQLServerException) e).setSourceStatement(sourceStatement);
                 }
-                // Clear the source statement since we've passed it to the next exception
                 sourceStatement = null;
                 super.setNextException(e);
                 return e;

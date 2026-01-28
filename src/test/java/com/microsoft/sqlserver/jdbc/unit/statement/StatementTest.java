@@ -8,6 +8,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.StringReader;
@@ -2432,7 +2433,7 @@ public class StatementTest extends AbstractTest {
     public class TCUpdateCountAfterRaiseError {
         private final String tableName = AbstractSQLGenerator
                 .escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountAfterRaiseError"));
-        private final String triggerName = AbstractSQLGenerator.escapeIdentifier("Trigger");
+        private final String triggerName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountTrigger"));
         private final int NUM_ROWS = 3;
         private final String errorMessage50001InSqlAzure = "Error 50001, severity 17, state 1 was raised, but no message with that error number was found in sys.messages. If error is larger than 50000, make sure the user-defined message is added using sp_addmessage.";
 
@@ -2705,7 +2706,7 @@ public class StatementTest extends AbstractTest {
         private final String idTableName = AbstractSQLGenerator
                 .escapeIdentifier(RandomUtil.getIdentifier("TCInsertWithGenKeysIDs"));
 
-        private final String triggerName = AbstractSQLGenerator.escapeIdentifier("Trigger");
+        private final String triggerName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCGenKeysTrigger"));
         private final int NUM_ROWS = 3;
 
         @BeforeEach
@@ -3863,7 +3864,6 @@ public class StatementTest extends AbstractTest {
                     // Verify first exception (from P2 - inner procedure)
                     assertNotNull(e, "First exception should not be null");
                     String firstMessage = e.getMessage();
-                    System.out.println("First exception message: " + firstMessage);
                     assertTrue(firstMessage.contains("P2 - inner exception text"),
                             "First exception should contain 'P2 - inner exception text', but was: " + firstMessage);
 
@@ -3879,18 +3879,9 @@ public class StatementTest extends AbstractTest {
                     assertTrue(secondMessage.contains("P1 - P2 raised an error"),
                             "Second exception should contain 'P1 - P2 raised an error', but was: " + secondMessage);
                     
-                    // Count all chained exceptions and verify the count
-                    int count = 1;
-                    SQLException ex = e;
-                    while (ex != null) {
-                        ex = ex.getNextException();
-                        if (ex != null) {
-                            count++;
-                        }
-                    }
-                    
-                    // Verify we have exactly 2 exceptions (P2 inner + P1 outer)
-                    assertEquals(2, count, "Expected 2 chained exceptions (P2 + P1), but got " + count);
+                    // Verify no more exceptions after P1
+                    assertNull(nextException.getNextException(),
+                            "There should be no more exceptions after P1");
                 }
             }
         }
@@ -4065,11 +4056,9 @@ public class StatementTest extends AbstractTest {
                     boolean hasP3 = false, hasP2 = false, hasP1 = false;
                     
                     SQLException ex = e;
-                    System.out.println("\nAll chained exceptions (3 nested procs) via getNextException():");
                     while (ex != null) {
                         exceptionCount++;
                         String message = ex.getMessage();
-                        System.out.println("  Exception " + exceptionCount + ": " + message);
                         
                         if (message.contains("P3 - innermost exception")) hasP3 = true;
                         if (message.contains("P2 - P3 raised an error")) hasP2 = true;
@@ -4087,6 +4076,151 @@ public class StatementTest extends AbstractTest {
 
                 // Cleanup
                 TestUtils.dropProcedureIfExists(PROC_P3, stmt);
+            }
+        }
+
+        /**
+         * Test exception chaining with 3 nested stored procedures throwing DIFFERENT types of errors.
+         * This verifies that the exception chaining mechanism works correctly with various SQL error types,
+         * not just RAISERROR.
+         * 
+         * Each procedure throws a unique error type WITHOUT catching/re-throwing:
+         * - P3: Division by zero (Error 8134)
+         * - P2: RAISERROR with message containing "P2"
+         * - P1: RAISERROR with message containing "P1"
+         */
+        @Test
+        public void testExceptionChainingWithDifferentErrorTypes() throws Exception {
+            final String PROC_P3 = "p3_diff_error_divide_by_zero";
+            
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                // Cleanup first
+                TestUtils.dropProcedureIfExists(PROC_P3, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P2, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P1, stmt);
+
+                // P3 - innermost procedure - throws arithmetic error (division by zero)
+                // Uses WITH NOWAIT so the error is sent immediately to the client
+                String createP3 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P3) + " AS "
+                        + "BEGIN " 
+                        + "  DECLARE @result INT; "
+                        + "  SET @result = 1/0; "  // Division by zero error (8134)
+                        + "  RETURN 1; "
+                        + "END";
+                stmt.execute(createP3);
+
+                // P2 - calls P3, then raises its own unique error
+                // The key is: EXEC P3 will cause div/0 error, but execution continues
+                // and P2 then raises its OWN error with NOWAIT
+                String createP2 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + " AS "
+                        + "BEGIN " 
+                        + "  EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P3) + "; "
+                        + "  RAISERROR('P2 - unique conversion style error', 16, 1) WITH NOWAIT; "
+                        + "  RETURN 1; "
+                        + "END";
+                stmt.execute(createP2);
+
+                // P1 - outermost, calls P2, then raises its own unique error
+                String createP1 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P1) + " AS "
+                        + "BEGIN " 
+                        + "  EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + "; "
+                        + "  RAISERROR('P1 - unique custom error message', 16, 1) WITH NOWAIT; "
+                        + "END";
+                stmt.execute(createP1);
+
+                // Execute and verify all different error types are chained
+                try {
+                    stmt.execute("EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P1));
+                    fail("Expected SQLException to be thrown");
+                } catch (SQLException e) {
+                    // Count and categorize exceptions - each should be UNIQUE
+                    int exceptionCount = 0;
+                    boolean hasDivideByZero = false;
+                    boolean hasP2Error = false;
+                    boolean hasP1Error = false;
+                    
+                    StringBuilder allMessages = new StringBuilder();
+                    
+                    SQLException ex = e;
+                    while (ex != null) {
+                        exceptionCount++;
+                        String message = ex.getMessage();
+                        allMessages.append("[").append(exceptionCount).append("] ").append(message).append("\n");
+                        
+                        // Check for division by zero error (SQL Server error 8134)
+                        if (message.contains("divide by zero") || message.contains("Divide by zero")) {
+                            hasDivideByZero = true;
+                        }
+                        
+                        // Check for P2's unique error message
+                        if (message.contains("P2 - unique conversion style error")) {
+                            hasP2Error = true;
+                        }
+                        
+                        // Check for P1's unique error message
+                        if (message.contains("P1 - unique custom error message")) {
+                            hasP1Error = true;
+                        }
+                        
+                        ex = ex.getNextException();
+                    }
+
+                    // Verify we got exactly 3 different exceptions
+                    assertEquals(3, exceptionCount, 
+                            "Expected exactly 3 chained exceptions, but got " + exceptionCount 
+                            + ". Messages:\n" + allMessages);
+                    
+                    // Verify each unique error type is present (not duplicates)
+                    assertTrue(hasDivideByZero,
+                            "Should have division by zero error from P3. Messages:\n" + allMessages);
+                    assertTrue(hasP2Error,
+                            "Should have P2's unique error message. Messages:\n" + allMessages);
+                    assertTrue(hasP1Error,
+                            "Should have P1's unique error message. Messages:\n" + allMessages);
+                }
+
+                // Cleanup
+                TestUtils.dropProcedureIfExists(PROC_P3, stmt);
+            }
+        }
+
+        /**
+         * Test that getNextException() gracefully handles a closed statement.
+         * 
+         * When the statement is closed after an exception is thrown but before
+         * getNextException() is called, the method should return null rather than
+         * throwing a "statement is closed" error that would mask the original exception.
+         */
+        @Test
+        public void testExceptionChainingWithClosedStatement() throws Exception {
+            SQLException caughtException = null;
+            
+            try (Connection conn = getConnection()) {
+                Statement stmt = conn.createStatement();
+                
+                try {
+                    stmt.execute("EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P1));
+                    fail("Expected SQLException to be thrown");
+                } catch (SQLException e) {
+                    caughtException = e;
+                    
+                    // Verify first exception was caught
+                    assertNotNull(caughtException, "First exception should not be null");
+                    assertTrue(caughtException.getMessage().contains("P2"),
+                            "First exception should be from P2");
+                    
+                    // Close the statement BEFORE calling getNextException()
+                    stmt.close();
+                    
+                    // Now call getNextException() - should gracefully return null
+                    // instead of throwing "statement is closed" error
+                    SQLException nextException = caughtException.getNextException();
+                    
+                    // The implementation should handle closed statement gracefully
+                    // and return null (since we can't fetch more exceptions from a closed statement)
+                    assertNull(nextException, 
+                            "getNextException() should return null when statement is closed, not throw an error");
+                }
             }
         }
 
