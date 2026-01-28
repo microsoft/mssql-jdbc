@@ -30,6 +30,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
 
 @RunWith(JUnitPlatform.class)
