@@ -281,6 +281,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @vectorJsonTest
     @Tag(Constants.xAzureSQLDW)
     public void testCheckMetaData() throws SQLException {
 
