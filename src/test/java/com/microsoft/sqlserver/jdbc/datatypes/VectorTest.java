@@ -102,7 +102,6 @@ public class VectorTest extends AbstractTest {
      * Test to verify that the vector data type is correctly reported in DatabaseMetaData.
      */
     @Test
-    @Tag(Constants.vectorTest)
     @Tag(Constants.xAzureSQLDB)
     public void testConnectionGetMetaData() throws Exception {
         DatabaseMetaData metaData = connection.getMetaData();
@@ -133,7 +132,6 @@ public class VectorTest extends AbstractTest {
      * Added this to increase code coverage for Azure DW code path in getColumns method.
      */
     @Test
-    @Tag(Constants.vectorTest)
     @Tag(Constants.xAzureSQLDB)
     public void testConnectionGetMetaDataAzureDW() throws Exception {
         try (SQLServerConnection conn = getConnection()) {
@@ -1740,3 +1738,4 @@ public class VectorTest extends AbstractTest {
 
 
 }
+
