@@ -82,7 +82,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * @param encoding
      *        Charset encoding to use for reading the file, or NULL for the default encoding.
      * @param delimiter
-     *        Delimiter to used to separate each column. Regex characters must be escaped with double backslashes.
+     *        Delimiter to used to separate each column.
      * @param firstLineIsColumnNames
      *        True if the first line of the file should be parsed as column names; false otherwise
      * @throws SQLServerException
@@ -131,7 +131,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      * @param encoding
      *        Charset encoding to use for reading the file, or NULL for the default encoding.
      * @param delimiter
-     *        Delimiter to used to separate each column. Regex characters must be escaped with double backslashes.
+     *        Delimiter to used to separate each column.
      * @param firstLineIsColumnNames
      *        True if the first line of the file should be parsed as column names; false otherwise
      * @throws SQLServerException
