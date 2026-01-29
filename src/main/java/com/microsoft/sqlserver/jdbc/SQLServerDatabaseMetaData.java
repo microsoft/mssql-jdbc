@@ -64,6 +64,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     // uniqueidentifier https://msdn.microsoft.com/en-us/library/ms187942.aspx
     static final int UNIQUEIDENTIFIER_SIZE = 36;
 
+    // Stored procedure names for getting column metadata
+    private static final String SP_COLUMNS_170 = "sp_columns_170"; // SQL Server 2025 and later
+    private static final String SP_COLUMNS_100 = "sp_columns_100";
+
     enum CallableHandles {
         SP_COLUMNS("{ call sp_columns(?, ?, ?, ?, ?) }", "{ call sp_columns_170(?, ?, ?, ?, ?, ?) }"),
         SP_COLUMN_PRIVILEGES("{ call sp_column_privileges(?, ?, ?, ?)}", "{ call sp_column_privileges(?, ?, ?, ?)}"),
@@ -729,7 +733,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
         String originalCatalog = switchCatalogs(catalog);
 
-        String spColumnsProcName = "sp_columns_170";
+        String spColumnsProcName = SP_COLUMNS_170;
 
         String spColumnsSqlTemplate = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
             + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
@@ -776,9 +780,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     loggerExternal.finer(spColumnsProcName + " failed, falling back to sp_columns_100: " + e.getMessage());
                 }
 
-                // fallback to sp_columns_100
+                // fallback to SP_COLUMNS_100
                 pstmt.close();
-                spColumnsProcName = "sp_columns_100";
+                spColumnsProcName = SP_COLUMNS_100;
 
                 pstmt = (SQLServerPreparedStatement) this.connection
                         .prepareStatement(String.format(spColumnsSqlTemplate, spColumnsProcName));
@@ -919,7 +923,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             LOCK.unlock();
         }
 
-        String spColumnsProcName = "sp_columns_170";
+        String spColumnsProcName = SP_COLUMNS_170;
 
         try (PreparedStatement storedProcPstmt = this.connection
                 .prepareStatement("EXEC " + spColumnsProcName + " ?,?,?,?,?,?;")) {
@@ -940,7 +944,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                         + primaryEx.getMessage());
             }
 
-            spColumnsProcName = "sp_columns_100";
+            spColumnsProcName = SP_COLUMNS_100;
             try (PreparedStatement storedProcPstmt = this.connection
                     .prepareStatement("EXEC " + spColumnsProcName + " ?,?,?,?,?,?;")) {
 
