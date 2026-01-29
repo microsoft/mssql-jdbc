@@ -47,7 +47,7 @@ public enum PerformanceActivity {
      * we have received the first response from the server.
      */
 
-    STATEMENT_PREPARE("Statement prepare");
+    STATEMENT_PREPARE("Statement prepare"),
     /*
      * Tracks the time to prepare a statement using sp_prepare.
      * This is ONLY triggered when using prepareMethod=prepare (not the default sp_prepexec).
@@ -57,6 +57,33 @@ public enum PerformanceActivity {
      * - End: After processResponse() receives the prepared handle
      * 
      * Note: For sp_prepexec (default), prepare+execute are combined and cannot be separated.
+     */
+
+    STATEMENT_PREPEXEC("Statement prepexec"),
+    /*
+     * Tracks the combined prepare+execute time when using sp_prepexec.
+     * This is the DEFAULT prepare method and combines preparation and execution in a single call.
+     * 
+     * Triggered when:
+     * - prepareMethod=prepexec (default)
+     * - Statement needs preparation (needsPrepare=true)
+     * - Not using sp_prepare + sp_execute pattern
+     * 
+     * The time cannot be split into prepare vs execute components since SQL Server
+     * handles both in a single sp_prepexec stored procedure call.
+     */
+
+    STATEMENT_EXECUTE("Statement execute");
+    /*
+     * Tracks the time to execute a statement.
+     * This measures from when startResponse() sends the packet to the server
+     * until getNextResult() finishes processing the response.
+     * 
+     * For regular Statement: Tracks the full execution of the SQL query.
+     * For PreparedStatement: Tracks execution time AFTER doPrepExec() completes
+     *   - For sp_execute: tracks only execution (prepare already done)
+     *   - For sp_prepexec: tracks combined prepare+execute (cannot be separated)
+     *   - For sp_executesql: tracks direct execution
      */
 
     private final String activity;

@@ -87,6 +87,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** True if sp_prepare was called **/
     private boolean isSpPrepareExecuted = false;
 
+    /** True if sp_prepexec was used for the current execution (combined prepare+execute) **/
+    private boolean usedPrepExec = false;
+
     /** Reference to cache item for statement handle pooling. Only used to decrement ref count on statement close. */
     private transient PreparedStatementHandle cachedPreparedStatementHandle;
 
@@ -697,16 +700,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // Prepared statement
                 endCreationToFirstPacketTracking();
 
-                // Performance tracking: start "first packet to first response" tracking
-                startFirstPacketToFirstResponseTracking();
+                // Performance tracking: track statement execution time
+                // Use STATEMENT_PREPEXEC when sp_prepexec is used (combined prepare+execute),
+                // otherwise use STATEMENT_EXECUTE
+                try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
+                        PerformanceLog.perfLoggerStatement,
+                        connection.getConnectionID(),
+                        getStatementID(),
+                        usedPrepExec ? PerformanceActivity.STATEMENT_PREPEXEC : PerformanceActivity.STATEMENT_EXECUTE)) {
+                    try {
+                        // Performance tracking: start "first packet to first response" tracking
+                        startFirstPacketToFirstResponseTracking();
 
-                ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
+                        ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
 
-                // Performance tracking: end "first packet to first response" tracking
-                endFirstPacketToFirstResponseTracking();
+                        // Performance tracking: end "first packet to first response" tracking
+                        endFirstPacketToFirstResponseTracking();
 
-                startResults();
-                getNextResult(true);
+                        startResults();
+                        getNextResult(true);
+                    } catch (SQLException e) {
+                        executeScope.setException(e);
+                        throw e;
+                    }
+                }
             } catch (SQLException e) {
                 if (connection.isAEv2() && (e.getErrorCode() == SQLServerException.INVAID_ENCLAVE_SESSION_HANDLE_ERROR)) {
                     //If the exception received is as below then just invalidate the cache 
@@ -1284,11 +1301,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
+                usedPrepExec = false;
             } else if (needsPrepare) { // Second execution, use prepared statements since we seem to be re-using it.
                 if (isPrepareMethodSpPrepExec) { // If true, we're using sp_prepexec.
                     buildPrepExecParams(tdsWriter);
+                    usedPrepExec = true;
                 } else { // Otherwise, we're using sp_prepare instead of sp_prepexec.
                     isSpPrepareExecuted = true;
+                    usedPrepExec = false;
                     // If we're preparing for a statement in a batch we just need to call sp_prepare because in the
                     // "batching" code it will start another tds request to execute the statement after preparing.
                     if (executeMethod == EXECUTE_BATCH) {
@@ -1304,6 +1324,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             } else {
                 buildExecParams(tdsWriter);
+                usedPrepExec = false;
             }
         }
 
@@ -3230,13 +3251,27 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         // Performance tracking: end "creation to first packet" tracking (for first batch only)
                         endCreationToFirstPacketTracking();
 
-                        // Performance tracking: start "first packet to first response" tracking
-                        startFirstPacketToFirstResponseTracking();
+                        // Performance tracking: track statement execution time
+                        // Use STATEMENT_PREPEXEC when sp_prepexec is used (combined prepare+execute),
+                        // otherwise use STATEMENT_EXECUTE
+                        try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
+                                PerformanceLog.perfLoggerStatement,
+                                connection.getConnectionID(),
+                                getStatementID(),
+                                usedPrepExec ? PerformanceActivity.STATEMENT_PREPEXEC : PerformanceActivity.STATEMENT_EXECUTE)) {
+                            try {
+                                // Performance tracking: start "first packet to first response" tracking
+                                startFirstPacketToFirstResponseTracking();
 
-                        ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                                ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
 
-                        // Performance tracking: end "first packet to first response" tracking
-                        endFirstPacketToFirstResponseTracking();
+                                // Performance tracking: end "first packet to first response" tracking
+                                endFirstPacketToFirstResponseTracking();
+                            } catch (SQLServerException e) {
+                                executeScope.setException(e);
+                                throw e;
+                            }
+                        }
 
                         boolean retry = false;
                         while (numBatchesExecuted < numBatchesPrepared) {
@@ -3264,11 +3299,31 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     tdsWriter = batchCommand.startRequest(TDS.PKT_RPC);
                                     buildExecParams(tdsWriter);
                                     sendParamsByRPC(tdsWriter, batchParam);
-                                    ensureExecuteResultsReader(
-                                            batchCommand.startResponse(getIsResponseBufferingAdaptive()));
-                                    startResults();
-                                    if (!getNextResult(true))
-                                        return;
+
+                                    // Performance tracking: track sp_execute time after sp_prepare
+                                    try (PerformanceLog.Scope spExecScope = PerformanceLog.createScope(
+                                            PerformanceLog.perfLoggerStatement,
+                                            connection.getConnectionID(),
+                                            getStatementID(),
+                                            PerformanceActivity.STATEMENT_EXECUTE)) {
+                                        try {
+                                            // Performance tracking: start "first packet to first response" tracking
+                                            startFirstPacketToFirstResponseTracking();
+
+                                            ensureExecuteResultsReader(
+                                                    batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+
+                                            // Performance tracking: end "first packet to first response" tracking
+                                            endFirstPacketToFirstResponseTracking();
+
+                                            startResults();
+                                            if (!getNextResult(true))
+                                                return;
+                                        } catch (SQLServerException e) {
+                                            spExecScope.setException(e);
+                                            throw e;
+                                        }
+                                    }
                                 }
 
                                 // If the result is a ResultSet (rather than an update count) then throw an
@@ -3389,9 +3444,31 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             TDSWriter tdsWriter = batchCommand.startRequest(TDS.PKT_QUERY);
             tdsWriter.writeString(sqlScript.toString());
 
-            // Process the response
-            ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
-            startResults();
+            // Performance tracking: end "creation to first packet" tracking
+            endCreationToFirstPacketTracking();
+
+            // Performance tracking: track statement execution time
+            try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
+                    PerformanceLog.perfLoggerStatement,
+                    connection.getConnectionID(),
+                    getStatementID(),
+                    PerformanceActivity.STATEMENT_EXECUTE)) {
+                try {
+                    // Performance tracking: start "first packet to first response" tracking
+                    startFirstPacketToFirstResponseTracking();
+
+                    // Process the response
+                    ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+
+                    // Performance tracking: end "first packet to first response" tracking
+                    endFirstPacketToFirstResponseTracking();
+
+                    startResults();
+                } catch (SQLServerException e) {
+                    executeScope.setException(e);
+                    throw e;
+                }
+            }
 
             // Initialize update counts to failed by default
             for (int i = 0; i < numBatches; i++) {

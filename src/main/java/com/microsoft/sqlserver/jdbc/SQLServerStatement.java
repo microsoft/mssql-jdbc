@@ -1046,17 +1046,29 @@ public class SQLServerStatement implements ISQLServerStatement {
             // for regular statements
             endCreationToFirstPacketTracking();
 
-            // Performance tracking: start "first packet to first response" tracking
-            startFirstPacketToFirstResponseTracking();
+            // Performance tracking: track statement execution time
+            try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
+                    PerformanceLog.perfLoggerStatement,
+                    connection.getConnectionID(),
+                    getStatementID(),
+                    PerformanceActivity.STATEMENT_EXECUTE)) {
+                try {
+                    // Performance tracking: start "first packet to first response" tracking
+                    startFirstPacketToFirstResponseTracking();
 
-            // Start the response - this sends the packet and reads response
-            ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+                    // Start the response - this sends the packet and reads response
+                    ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
 
-            // Performance tracking: end "first packet to first response" tracking
-            endFirstPacketToFirstResponseTracking();
+                    // Performance tracking: end "first packet to first response" tracking
+                    endFirstPacketToFirstResponseTracking();
 
-            startResults();
-            getNextResult(true);
+                    startResults();
+                    getNextResult(true);
+                } catch (SQLServerException e) {
+                    executeScope.setException(e);
+                    throw e;
+                }
+            }
         }
 
         // If execution produced no result set, then throw an exception if executeQuery() was used.
@@ -1133,17 +1145,29 @@ public class SQLServerStatement implements ISQLServerStatement {
         // for batch execution
         endCreationToFirstPacketTracking();
 
-        // Performance tracking: start "first packet to first response" tracking
-        startFirstPacketToFirstResponseTracking();
+        // Performance tracking: track statement execution time
+        try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
+                PerformanceLog.perfLoggerStatement,
+                connection.getConnectionID(),
+                getStatementID(),
+                PerformanceActivity.STATEMENT_EXECUTE)) {
+            try {
+                // Performance tracking: start "first packet to first response" tracking
+                startFirstPacketToFirstResponseTracking();
 
-        // Start the response
-        ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+                // Start the response
+                ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
 
-        // Performance tracking: end "first packet to first response" tracking
-        endFirstPacketToFirstResponseTracking();
+                // Performance tracking: end "first packet to first response" tracking
+                endFirstPacketToFirstResponseTracking();
 
-        startResults();
-        getNextResult(true);
+                startResults();
+                getNextResult(true);
+            } catch (SQLServerException e) {
+                executeScope.setException(e);
+                throw e;
+            }
+        }
 
         // If execution produced a result set, then throw an exception
         if (null != resultSet) {
@@ -2282,16 +2306,28 @@ public class SQLServerStatement implements ISQLServerStatement {
         // for cursor-based execution
         endCreationToFirstPacketTracking();
 
-        // Performance tracking: start "first packet to first response" tracking
-        startFirstPacketToFirstResponseTracking();
+        // Performance tracking: track statement execution time
+        try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
+                PerformanceLog.perfLoggerStatement,
+                connection.getConnectionID(),
+                getStatementID(),
+                PerformanceActivity.STATEMENT_EXECUTE)) {
+            try {
+                // Performance tracking: start "first packet to first response" tracking
+                startFirstPacketToFirstResponseTracking();
 
-        ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+                ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
 
-        // Performance tracking: end "first packet to first response" tracking
-        endFirstPacketToFirstResponseTracking();
+                // Performance tracking: end "first packet to first response" tracking
+                endFirstPacketToFirstResponseTracking();
 
-        startResults();
-        getNextResult(true);
+                startResults();
+                getNextResult(true);
+            } catch (SQLServerException e) {
+                executeScope.setException(e);
+                throw e;
+            }
+        }
     }
 
     /* JDBC 3.0 */
