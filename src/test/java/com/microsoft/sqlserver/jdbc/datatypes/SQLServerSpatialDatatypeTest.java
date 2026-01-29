@@ -1886,12 +1886,12 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
             int sqlType = paramMetaData.getParameterType(1);
             String sqlTypeName = paramMetaData.getParameterTypeName(1);
-            assertEquals(-151, sqlType);
+            assertEquals(-157, sqlType);
             assertEquals("geometry", sqlTypeName);
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geomTableName))) {
                 ResultSetMetaData rsmd = rs.getMetaData();
-                assertEquals(-151, rsmd.getColumnType(1));
+                assertEquals(-157, rsmd.getColumnType(1));
             }
         }
     }
@@ -1914,12 +1914,12 @@ public class SQLServerSpatialDatatypeTest extends AbstractTest {
 
             int sqlType = paramMetaData.getParameterType(1);
             String sqlTypeName = paramMetaData.getParameterTypeName(1);
-            assertEquals(-152, sqlType);
+            assertEquals(-158, sqlType);
             assertEquals(sqlTypeName, "geography");
             try (SQLServerResultSet rs = (SQLServerResultSet) stmt
                     .executeQuery("select * from " + AbstractSQLGenerator.escapeIdentifier(geogTableName))) {
                 ResultSetMetaData rsmd = rs.getMetaData();
-                assertEquals(-152, rsmd.getColumnType(1));
+                assertEquals(-158, rsmd.getColumnType(1));
             }
         }
     }

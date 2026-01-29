@@ -8,7 +8,16 @@ package microsoft.sql;
 /**
  * Defines the constants that are used to identify the SQL types that are specific to Microsoft SQL Server.
  *
- * This class is never instantiated.
+ * <p>Note: These type codes are specific to the JDBC driver and do not correspond to the values
+ * returned by SQL Server. To retrieve the actual SQL Server data types, use
+ * {@link java.sql.DatabaseMetaData#getColumns(String, String, String, String)} and access the
+ * {@code SQL_DATA_TYPE} column:
+ * <pre>
+ * ResultSet rs = metaData.getColumns(null, null, tableName, "%");
+ * int sqlDataType = rs.getInt("SQL_DATA_TYPE");
+ * </pre>
+ *
+ * <p>This class is never instantiated.
  */
 public final class Types {
     private Types() {
@@ -31,13 +40,13 @@ public final class Types {
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type DATETIME.
      */
-    public static final int DATETIME = 9;
+    public static final int DATETIME = -151;
 
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type SMALLDATETIME.
      */
-    public static final int SMALLDATETIME = 10;
+    public static final int SMALLDATETIME = -150;
 
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
@@ -55,33 +64,33 @@ public final class Types {
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type GUID.
      */
-    public static final int GUID = -11;
+    public static final int GUID = -145;
 
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type SQL_VARIANT.
      */
-    public static final int SQL_VARIANT = -150;
+    public static final int SQL_VARIANT = -156;
 
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type GEOMETRY.
      */
-    public static final int GEOMETRY = -151;
+    public static final int GEOMETRY = -157;
 
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type GEOGRAPHY.
      */
-    public static final int GEOGRAPHY = -152;
+    public static final int GEOGRAPHY = -158;
     
     /**
      * The constant in the Java programming language, sometimes referred to as a type code, that identifies the
      * Microsoft SQL type VECTOR.
      */
-    public static final int VECTOR = -156;
+    public static final int VECTOR = -160;
     /**
      * Microsoft SQL type JSON.
      */
-    public static final int JSON = -157;
+    public static final int JSON = -159;
 }

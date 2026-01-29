@@ -270,16 +270,19 @@ public class ParameterMetaDataTest extends AbstractTest {
     }
 
     /**
-     * Tests ParameterMetaData and ResultSetMetaData for various SQL Server specific data types.
+     * Tests ParameterMetaData and ResultSetMetaData for SQL Server-specific data types.
      * 
-     * Verifies that the JDBC driver correctly reports the SQL type and type name for:
-     * - DATETIMEOFFSET(7), DATETIME, SMALLDATETIME, MONEY, SMALLMONEY
-     * - UNIQUEIDENTIFIER, SQL_VARIANT, GEOMETRY, GEOGRAPHY, VECTOR, JSON
+     * This test creates a table with various SQL Server data types including DATETIMEOFFSET, DATETIME,
+     * SMALLDATETIME, MONEY, SMALLMONEY, UNIQUEIDENTIFIER, SQL_VARIANT, GEOMETRY, GEOGRAPHY, VECTOR, and JSON.
      * 
-     * The test validates both ParameterMetaData (for INSERT statement parameters) and
-     * ResultSetMetaData (for SELECT query results) return consistent type information.
+     * It verifies that the JDBC driver correctly reports the SQL type code and type name for each column
+     * through both ParameterMetaData (for INSERT statement parameters) and ResultSetMetaData (for SELECT
+     * query results). 
      * 
-     * @throws SQLException
+     * Parameter type information is retrieved from the TDS stream, where SQL Server-specific
+     * types (SSType) are mapped to microsoft.sql.Types constants in DataType.java.
+     * 
+     * @throws SQLException if a database access error occurs
      */
     @Test
     @vectorJsonTest
