@@ -3876,7 +3876,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Stored procedure invocation failures
          */
         @Test
-        @Tag("SQL-Bug-439751")
         public void testEscapeCallSyntax() throws SQLException {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 
@@ -3933,7 +3932,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Cannot retrieve stored procedure return values
          */
         @Test
-        @Tag("SQL-Bug-443630")
         public void testReturnCodeHandling() throws SQLException {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 // Create procedure with explicit return code
@@ -3989,7 +3987,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Data integrity issues with empty string values
          */
         @Test
-        @Tag("VSTS-55860")
         public void testEmptyStringParameterHandling() throws SQLException {
             // FIX: Ensure procedure cleanup with try-finally
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -4046,8 +4043,6 @@ public class StatementTest extends AbstractTest {
          * Impact: API contract violation
          */
         @Test
-        @Tag("VSTS-75166")
-        @Tag("PS-415535")
         public void testPreparedStatementWithEmptySQL() throws SQLException {
             // FIX: Use temp table to avoid conflict with @BeforeEach setup
             String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EmptySQLTest"));
@@ -4099,7 +4094,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Cannot set columns to NULL via prepared statements
          */
         @Test
-        @Tag("SQL-Bug-20008218")
         public void testPreparedUpdateWithNullString() throws SQLException {
             // FIX: Use temp table to avoid interfering with @BeforeEach setup
             String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("NullStringTest"));
@@ -4153,7 +4147,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Incorrect update counts with triggers
          */
         @Test
-        @Tag("VSTS-105060")
         public void testTriggerExecution() throws SQLException {
             // FIX: Use separate temp tables to avoid conflict with @BeforeEach schema
             String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TriggerTest"));
@@ -4249,7 +4242,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Inconsistent behavior between Statement and CallableStatement
          */
         @Test
-        @Tag("VSTS-136551")
         public void testCallableStatementWithLastUpdateCount() throws SQLException {
             // FIX: Use a separate temp table to avoid ID conflicts with @BeforeEach setup
             String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("LastUpdateCountTest"));
@@ -4330,7 +4322,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Data corruption, incorrect error reporting
          */
         @Test
-        @Tag("VSTS-279866")
         public void testRowErrorHandling() throws SQLException {
             String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("RowErrorTest"));
             String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TestProcRowError"));
@@ -4407,7 +4398,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Application hangs
          */
         @Test
-        @Tag("VSTS-374320")
         public void testResultSetCloseDoesNotHangOnRowError() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 stmt.execute("CREATE TABLE #ErrorTest (id INT, value VARCHAR(10))");
@@ -4419,7 +4409,6 @@ public class StatementTest extends AbstractTest {
                     "SELECT id, CAST(value AS INT) AS numValue FROM #ErrorTest ORDER BY id");
 
                 // Use a timeout to detect infinite loop
-                ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
                 final ResultSet finalRs = rs;
                 
                 try {
@@ -4455,7 +4444,6 @@ public class StatementTest extends AbstractTest {
                         fail("ResultSet.close() entered infinite loop after row error");
                     }
                 } finally {
-                    executor.shutdown();
                     if (!rs.isClosed()) {
                         try { rs.close(); } catch (Exception ignored) {}
                     }
@@ -4475,7 +4463,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Incorrect update counts leading to data integrity issues
          */
         @Test
-        @Tag("VSTS-128448")
         public void testBatchUpdateCountsOnRollback() throws SQLException {
             // FIX: Escape table identifier
             String escapedTestTable = AbstractSQLGenerator.escapeIdentifier(testTable);
@@ -4528,7 +4515,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Connection loss in Azure SQL Database
          */
         @Test
-        @Tag("VSTS-740117")
         public void testBatchDoesNotDropConnection() throws SQLException {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 // Execute a batch that previously caused gateway to drop connection
@@ -4569,7 +4555,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Batch operation reliability
          */
         @Test
-        @Tag("VSTS-738663")
         public void testBatchUpdateReliability() throws SQLException {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 // Test large batch to stress connection handling
@@ -4612,7 +4597,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Exception handling inconsistency
          */
         @Test
-        @Tag("VSTS-128376")
         public void testBatchUpdateExceptionOnRollback() throws SQLException {
             try (Connection conn = getConnection()) {
                 conn.setAutoCommit(false);
@@ -4659,7 +4643,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Cannot determine batch operation results
          */
         @Test
-        @Tag("VSTS-105897")
         public void testExecuteBatchErrorReporting() throws SQLException {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 stmt.addBatch("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
@@ -4712,8 +4695,6 @@ public class StatementTest extends AbstractTest {
          * The JUnit test validates the ACTUAL behavior (maxRows IS respected).
          */
         @Test
-        @Tag("VSTS-86015")
-        @Tag("VSTS-64016")
         public void testMaxRowsWithDynamicCursors() throws SQLException {
             // FIX: Properly escape table names
             String escapedTestTable = AbstractSQLGenerator.escapeIdentifier(testTable);
@@ -4788,8 +4769,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Resource leaks and incorrect behavior on errors
          */
         @Test
-        @Tag("VSTS-92866")
-        @Tag("VSTS-157330")
         public void testMaxRowsWithErrorScenarios() throws SQLException {
             // FIX: Properly escape table names
             String escapedTestTable = AbstractSQLGenerator.escapeIdentifier(testTable);
@@ -4865,8 +4844,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Incorrect behavior in transactional scenarios
          */
         @Test
-        @Tag("VSTS-86298")
-        @Tag("VSTS-86294")
         public void testMaxRowsWithHoldability() throws SQLException {
             try (Connection conn = getConnection()) {
                 conn.setAutoCommit(false);
@@ -4913,7 +4890,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Cannot execute DDL statements reliably
          */
         @Test
-        @Tag("VSTS-201162")
         public void testOtherQueryTypes() throws SQLException {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 // Create a stored procedure
@@ -4964,7 +4940,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Incorrect error code handling
          */
         @Test
-        @Tag("VSTS-512761")
         public void testDuplicateKeySQLState() throws SQLException {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 SQLException dupKeyError = assertThrows(SQLException.class, () -> {
@@ -5001,7 +4976,6 @@ public class StatementTest extends AbstractTest {
          * Impact: Timeout behavior inconsistency
          */
         @Test
-        @Tag("VSTS-141264")
         public void testReExecuteAfterQueryTimeout() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 assertEquals(0, stmt.getQueryTimeout());

@@ -1753,7 +1753,6 @@ public class ResultSetTest extends AbstractTest {
          * Impact: Application crash
          */
         @Test
-        @Tag("VSTS-64747")
         public void testRefreshRowDoesNotThrowArrayIndexException() throws SQLException {
             try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement(
@@ -1806,7 +1805,6 @@ public class ResultSetTest extends AbstractTest {
          * Impact: Infinite loop (application hang)
          */
         @Test
-        @Tag("VSTS-223785")
         public void testUpdatePrimaryKeyDoesNotCauseInfiniteLoop() throws SQLException {
             try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement(
@@ -1865,7 +1863,6 @@ public class ResultSetTest extends AbstractTest {
          * Impact: UpdateRow() failure causing customer escalations
          */
         @Test
-        @Tag("VSTS-102589")
         public void testUpdateRowDoesNotThrowException() throws SQLException {
             try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement(
@@ -1948,20 +1945,24 @@ public class ResultSetTest extends AbstractTest {
          * Impact: Blocks specific use cases with long table names
          */
         @Test
-        @Tag("VSTS-223540")
         public void testInsertRowWithLongTableName() throws SQLException {
-            String longTableName = "T" + "x".repeat(126);
+            // Create 127-character table name (Java 8 compatible)
+            StringBuilder sb = new StringBuilder("T");
+            for (int i = 0; i < 126; i++) {
+                sb.append("x");
+            }
+            String longTableName = sb.toString();
             
             try (Connection conn = getConnection();
-                 Statement stmt = conn.createStatement()) {
-                
+                Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(longTableName, stmt);
                 stmt.execute("CREATE TABLE " + longTableName + " (id INT, name VARCHAR(50))");
                 
                 try {
                     try (Statement updStmt = conn.createStatement(
-                             ResultSet.TYPE_SCROLL_SENSITIVE, 
-                             ResultSet.CONCUR_UPDATABLE);
-                         ResultSet rs = updStmt.executeQuery("SELECT * FROM " + longTableName)) {
+                            ResultSet.TYPE_SCROLL_SENSITIVE, 
+                            ResultSet.CONCUR_UPDATABLE);
+                        ResultSet rs = updStmt.executeQuery("SELECT * FROM " + longTableName)) {
                         
                         rs.moveToInsertRow();
                         rs.updateInt("id", 1);
@@ -1994,7 +1995,6 @@ public class ResultSetTest extends AbstractTest {
          * Impact: Query performance degradation
          */
         @Test
-        @Tag("VSTS-36952")
         public void testScrollInsensitiveCursorType() throws SQLException {
             try (Connection conn = getConnection();
                  Statement stmt = conn.createStatement(
@@ -2028,7 +2028,6 @@ public class ResultSetTest extends AbstractTest {
          * Impact: Error handling confusion
          */
         @Test
-        @Tag("VSTS-87787")
         public void testCursorDowngradeThrowsCorrectException() throws SQLException {
             try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement(
@@ -2079,7 +2078,6 @@ public class ResultSetTest extends AbstractTest {
          * Impact: Transaction isolation issues
          */
         @Test
-        @Tag("VSTS-327052")
         public void testClientCursorRespectsHoldability() throws SQLException {
             // FX BUG: Client-cursored RS (downgrade scenario) is ALWAYS holdable 
             // over commits regardless of specified holdability
@@ -2111,7 +2109,7 @@ public class ResultSetTest extends AbstractTest {
                         // Execute query that forces downgrade (UNION)
                         try (ResultSet rs = stmt.executeQuery(downgradedQuery)) {
                             
-                            int rsHoldability = rs.getHoldability();
+                            rs.getHoldability();
                             
                             assertTrue(rs.next(), "Should have data before commit");
                             int value1 = rs.getInt("id");
@@ -2127,8 +2125,6 @@ public class ResultSetTest extends AbstractTest {
                                     rs.next();
                                     // If we reach here, cursor is still open (downgrade bug)
                                     // This is the bug - client cursor ignores CLOSE_CURSORS_AT_COMMIT
-                                    System.out.println("WARNING: Client cursor still open after commit " +
-                                        "(downgrade scenario bug - VSTS #327052)");
                                 } catch (SQLException e) {
                                     // Expected - cursor closed
                                     assertTrue(
@@ -2160,8 +2156,6 @@ public class ResultSetTest extends AbstractTest {
          * Impact: Basic ResultSet operations fail
          */
         @Test
-        @Tag("VSTS-164739")
-        @Tag("VSTS-181644") // Combined test
         public void testEmptyResultSetBehaviorWithInsert() throws SQLException {
             try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement(
@@ -2201,18 +2195,19 @@ public class ResultSetTest extends AbstractTest {
                 
                 // FX Test: Requery and verify
                 rs.close();
-                ResultSet rsVerify = stmt.executeQuery("SELECT id, name, value FROM " + 
-                    AbstractSQLGenerator.escapeIdentifier(testTable) + " WHERE id >= 1000 ORDER BY id");
-                
-                int count = 0;
-                while (rsVerify.next()) {
-                    count++;
-                    assertTrue(rsVerify.getString("name").startsWith("InsertedRow_"),
-                        "Inserted row should have correct name");
+                try (ResultSet rsVerify = stmt.executeQuery("SELECT id, name, value FROM " + 
+                    AbstractSQLGenerator.escapeIdentifier(testTable) + " WHERE id >= 1000 ORDER BY id")) {
+
+                    int count = 0;
+                    while (rsVerify.next()) {
+                        count++;
+                        assertTrue(rsVerify.getString("name").startsWith("InsertedRow_"),
+                            "Inserted row should have correct name");
+                    }
+                    assertEquals(numRowsToInsert, count, 
+                        "Should have inserted " + numRowsToInsert + " rows");
+                    rsVerify.close();
                 }
-                assertEquals(numRowsToInsert, count, 
-                    "Should have inserted " + numRowsToInsert + " rows");
-                rsVerify.close();
             }
         }
 
@@ -2227,7 +2222,6 @@ public class ResultSetTest extends AbstractTest {
          * Impact: Type mismatch on legacy Java versions
          */
         @Test
-        @Tag("VSTS-234278")
         public void testUpdaterClobTypeHandling() throws SQLException {
             try (Connection conn = getConnection();
                  Statement stmt = conn.createStatement(
@@ -2246,10 +2240,6 @@ public class ResultSetTest extends AbstractTest {
                 Clob retrieved = rs.getClob("clobCol");
                 assertNotNull(retrieved, "Retrieved Clob should not be null");
                 
-                if (retrieved instanceof NClob) {
-                    System.out.println("WARNING: updateClob() returned NClob instead of Clob");
-                }
-                
                 assertEquals("Updated Clob Data", retrieved.getSubString(1, (int) retrieved.length()),
                     "Clob content should match");
             }
@@ -2266,7 +2256,6 @@ public class ResultSetTest extends AbstractTest {
          * Impact: Important feature not validated
          */
         @Test
-        @Tag("VSTS-90472")
         public void testResultSetFromCallableStatement() throws SQLException {
             try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement()) {
@@ -2318,7 +2307,6 @@ public class ResultSetTest extends AbstractTest {
          * Impact: Error hiding makes debugging difficult
          */
         @Test
-        @Tag("VSTS-267503")
         public void testExceptionNotSwallowedDuringCleanup() throws SQLException {
             Connection conn = null;
             Statement stmt = null;
@@ -2361,7 +2349,6 @@ public class ResultSetTest extends AbstractTest {
          * @throws IOException 
          */
         @Test
-        @Tag("VSTS-114316")
         public void testRefetchStreamValues() throws SQLException, IOException {
             try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement(
