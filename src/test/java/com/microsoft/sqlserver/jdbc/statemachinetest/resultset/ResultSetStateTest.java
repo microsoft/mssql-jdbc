@@ -237,7 +237,128 @@ class ResultSetStateTest extends AbstractTest {
         
         assertTrue(r.isSuccess());
     }
-    
+
+    /**
+     * FX Model: ResultSet Metadata Operations (simulated)
+     * 
+     * Tests FX model actions for metadata retrieval:
+     * - _modelgetRow: Get current row number
+     * - _modelgetType: Get cursor type
+     * - _modelgetConcurrency: Get concurrency mode
+     * - _modelgetFetchDirection: Get fetch direction
+     * - _modelgetFetchSize: Get fetch size
+     * - _modelgetMetaData: Get result set metadata
+     * - _modelfindColumn: Find column by name
+     * - _modelclearWarnings: Clear warnings
+     * - wasNull: Check if last column was NULL
+     */
+    @Test
+    @DisplayName("FX Model: ResultSet Metadata Operations (simulated)")
+    void testResultSetMetadataOperations() {
+        StateMachineTest sm = new StateMachineTest("MetadataOperations");
+
+        // State
+        sm.set("row", 0);
+        sm.set("rowCount", 10);
+        sm.set("closed", false);
+        sm.set("insertRow", false);
+        sm.set("scrollable", true);
+        sm.set("updatable", true);
+        sm.set("dynamic", false); // isDynamic() for getRow
+        sm.set("cursorType", ResultSet.TYPE_SCROLL_SENSITIVE);
+        sm.set("concurrency", ResultSet.CONCUR_UPDATABLE);
+        sm.set("fetchDirection", ResultSet.FETCH_FORWARD);
+        sm.set("fetchSize", 0);
+        sm.set("columnCount", 3); // id, name, value
+        sm.set("wasNull", false);
+        sm.set("warnings", false);
+
+        // Navigation (to get into valid positions)
+        sm.addAction(new MetadataNextAction(sm));
+        sm.addAction(new MetadataFirstAction(sm));
+        sm.addAction(new MetadataLastAction(sm));
+
+        // FX _modelgetRow: requires closed()=false, isDynamic()=false
+        sm.addAction(new GetRowAction(sm));
+
+        // FX _modelgetType: requires closed()=false
+        sm.addAction(new GetTypeAction(sm));
+
+        // FX _modelgetConcurrency: requires closed()=false
+        sm.addAction(new GetConcurrencyAction(sm));
+
+        // FX _modelgetFetchDirection: requires closed()=false
+        sm.addAction(new GetFetchDirectionAction(sm));
+
+        // FX _modelgetFetchSize: requires closed()=false
+        sm.addAction(new GetFetchSizeAction(sm));
+
+        // FX _modelgetMetaData: weight=1, requires closed()=false
+        sm.addAction(new GetMetaDataAction(sm));
+
+        // FX _modelfindColumn: requires closed()=false
+        sm.addAction(new FindColumnAction(sm));
+
+        // FX _modelclearWarnings: requires closed()=false
+        sm.addAction(new ClearWarningsAction(sm));
+
+        // wasNull: Check if last read was NULL
+        sm.addAction(new WasNullAction(sm));
+
+        Result r = Engine.run(sm).withMaxActions(300).withSeed(77777).execute();
+        assertTrue(r.isSuccess());
+        System.out.println("Metadata operations: " + r.actionCount + " actions");
+    }
+
+    /**
+     * FX Model: ResultSet with RefreshRow and RowDeleted/RowInserted/RowUpdated
+     * (simulated)
+     * 
+     * Tests FX model actions for row state detection:
+     * - refreshRow: Refresh current row from database
+     * - rowDeleted: Check if row was deleted
+     * - rowInserted: Check if row was inserted
+     * - rowUpdated: Check if row was updated
+     */
+    @Test
+    @DisplayName("FX Model: Row State Detection Operations (simulated)")
+    void testRowStateDetection() {
+        StateMachineTest sm = new StateMachineTest("RowStateDetection");
+
+        sm.set("row", 0);
+        sm.set("rowCount", 10);
+        sm.set("closed", false);
+        sm.set("insertRow", false);
+        sm.set("scrollable", true);
+        sm.set("updatable", true);
+        sm.set("dirty", false);
+        sm.set("holes", new HashSet<Integer>());
+        sm.set("insertedRows", new HashSet<Integer>());
+        sm.set("updatedRows", new HashSet<Integer>());
+
+        // Navigation
+        sm.addAction(new RowStateNextAction(sm));
+        sm.addAction(new RowStatePreviousAction(sm));
+        sm.addAction(new RowStateFirstAction(sm));
+
+        // Row state checking
+        sm.addAction(new RowDeletedAction(sm));
+        sm.addAction(new RowInsertedAction(sm));
+        sm.addAction(new RowUpdatedAction(sm));
+
+        // Modification operations (to create states to check)
+        sm.addAction(new RowStateDeleteRowAction(sm));
+        sm.addAction(new RowStateUpdateXXXAction(sm));
+        sm.addAction(new RowStateUpdateRowAction(sm));
+
+        // RefreshRow - refresh from database
+        sm.addAction(new RefreshRowAction(sm));
+
+        Result r = Engine.run(sm).withMaxActions(200).execute();
+        assertTrue(r.isSuccess());
+        System.out.println("Row state detection: " + r.actionCount + " actions");
+    }
+
     // ==================== ACTION CLASSES (Plain implementations, no lambdas) ====================
     
     // --- Scrollable Cursor Actions ---
@@ -986,6 +1107,486 @@ class ResultSetStateTest extends AbstractTest {
             Set<Integer> holes = (Set<Integer>) sm.get("holes");
             holes.add(sm.getInt("row"));
             System.out.println("  DELETED row " + sm.getInt("row"));
+        }
+    }
+
+    // --- Metadata Operations Actions (FX _modelgetRow, _modelgetType, etc.) ---
+
+    static class MetadataNextAction extends Action {
+        private StateMachineTest sm;
+
+        MetadataNextAction(StateMachineTest sm) {
+            super("next", 10);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && !sm.is("insertRow");
+        }
+
+        @Override
+        public void run() {
+            int row = sm.getInt("row");
+            int rowCount = sm.getInt("rowCount");
+            if (row <= rowCount) {
+                sm.set("row", row + 1);
+            }
+        }
+    }
+
+    static class MetadataFirstAction extends Action {
+        private StateMachineTest sm;
+
+        MetadataFirstAction(StateMachineTest sm) {
+            super("first", 5);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && sm.is("scrollable") && !sm.is("insertRow");
+        }
+
+        @Override
+        public void run() {
+            int rowCount = sm.getInt("rowCount");
+            sm.set("row", rowCount > 0 ? 1 : 0);
+        }
+    }
+
+    static class MetadataLastAction extends Action {
+        private StateMachineTest sm;
+
+        MetadataLastAction(StateMachineTest sm) {
+            super("last", 5);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && sm.is("scrollable") && !sm.is("insertRow");
+        }
+
+        @Override
+        public void run() {
+            sm.set("row", sm.getInt("rowCount"));
+        }
+    }
+
+    // FX _modelgetRow: requires closed()=false, isDynamic()=false
+    static class GetRowAction extends Action {
+        private StateMachineTest sm;
+
+        GetRowAction(StateMachineTest sm) {
+            super("getRow", 5);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && !sm.is("dynamic");
+        }
+
+        @Override
+        public void run() {
+            int row = sm.getInt("row");
+            // getRow returns 0 if not on a valid row
+            int result = isValidRow(sm) ? row : 0;
+            System.out.println("  getRow() -> " + result);
+        }
+    }
+
+    // FX _modelgetType: requires closed()=false
+    static class GetTypeAction extends Action {
+        private StateMachineTest sm;
+
+        GetTypeAction(StateMachineTest sm) {
+            super("getType", 3);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed");
+        }
+
+        @Override
+        public void run() {
+            int type = sm.getInt("cursorType");
+            System.out.println("  getType() -> " + type);
+        }
+    }
+
+    // FX _modelgetConcurrency: requires closed()=false
+    static class GetConcurrencyAction extends Action {
+        private StateMachineTest sm;
+
+        GetConcurrencyAction(StateMachineTest sm) {
+            super("getConcurrency", 3);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed");
+        }
+
+        @Override
+        public void run() {
+            int concurrency = sm.getInt("concurrency");
+            System.out.println("  getConcurrency() -> " + concurrency);
+        }
+    }
+
+    // FX _modelgetFetchDirection: requires closed()=false
+    static class GetFetchDirectionAction extends Action {
+        private StateMachineTest sm;
+
+        GetFetchDirectionAction(StateMachineTest sm) {
+            super("getFetchDirection", 2);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed");
+        }
+
+        @Override
+        public void run() {
+            int direction = sm.getInt("fetchDirection");
+            System.out.println("  getFetchDirection() -> " + direction);
+        }
+    }
+
+    // FX _modelgetFetchSize: requires closed()=false
+    static class GetFetchSizeAction extends Action {
+        private StateMachineTest sm;
+
+        GetFetchSizeAction(StateMachineTest sm) {
+            super("getFetchSize", 2);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed");
+        }
+
+        @Override
+        public void run() {
+            int size = sm.getInt("fetchSize");
+            System.out.println("  getFetchSize() -> " + size);
+        }
+    }
+
+    // FX _modelgetMetaData: weight=1, requires closed()=false
+    static class GetMetaDataAction extends Action {
+        private StateMachineTest sm;
+
+        GetMetaDataAction(StateMachineTest sm) {
+            super("getMetaData", 1);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed");
+        }
+
+        @Override
+        public void run() {
+            int columnCount = sm.getInt("columnCount");
+            System.out.println("  getMetaData().getColumnCount() -> " + columnCount);
+        }
+    }
+
+    // FX _modelfindColumn: requires closed()=false
+    static class FindColumnAction extends Action {
+        private StateMachineTest sm;
+        private String[] columnNames = { "id", "name", "value" };
+        private Random random = new Random();
+
+        FindColumnAction(StateMachineTest sm) {
+            super("findColumn", 3);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed");
+        }
+
+        @Override
+        public void run() {
+            String colName = columnNames[random.nextInt(columnNames.length)];
+            int ordinal = java.util.Arrays.asList(columnNames).indexOf(colName) + 1;
+            System.out.println("  findColumn(\"" + colName + "\") -> " + ordinal);
+        }
+    }
+
+    // FX _modelclearWarnings: requires closed()=false
+    static class ClearWarningsAction extends Action {
+        private StateMachineTest sm;
+
+        ClearWarningsAction(StateMachineTest sm) {
+            super("clearWarnings", 2);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed");
+        }
+
+        @Override
+        public void run() {
+            sm.set("warnings", false);
+            System.out.println("  clearWarnings()");
+        }
+    }
+
+    // wasNull: Check if last read was NULL
+    static class WasNullAction extends Action {
+        private StateMachineTest sm;
+
+        WasNullAction(StateMachineTest sm) {
+            super("wasNull", 5);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed");
+        }
+
+        @Override
+        public void run() {
+            boolean wasNull = sm.is("wasNull");
+            System.out.println("  wasNull() -> " + wasNull);
+        }
+    }
+
+    // --- Row State Detection Actions ---
+
+    static class RowStateNextAction extends Action {
+        private StateMachineTest sm;
+
+        RowStateNextAction(StateMachineTest sm) {
+            super("next", 10);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && !sm.is("insertRow");
+        }
+
+        @Override
+        public void run() {
+            int row = sm.getInt("row");
+            int rowCount = sm.getInt("rowCount");
+            if (row <= rowCount) {
+                sm.set("row", row + 1);
+            }
+            sm.set("dirty", false);
+        }
+    }
+
+    static class RowStatePreviousAction extends Action {
+        private StateMachineTest sm;
+
+        RowStatePreviousAction(StateMachineTest sm) {
+            super("previous", 8);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && sm.is("scrollable") && isValidRow(sm) && !sm.is("insertRow");
+        }
+
+        @Override
+        public void run() {
+            sm.set("row", sm.getInt("row") - 1);
+            sm.set("dirty", false);
+        }
+    }
+
+    static class RowStateFirstAction extends Action {
+        private StateMachineTest sm;
+
+        RowStateFirstAction(StateMachineTest sm) {
+            super("first", 5);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && sm.is("scrollable") && !sm.is("insertRow");
+        }
+
+        @Override
+        public void run() {
+            sm.set("row", sm.getInt("rowCount") > 0 ? 1 : 0);
+            sm.set("dirty", false);
+        }
+    }
+
+    // FX rowDeleted: Check if current row was deleted
+    static class RowDeletedAction extends Action {
+        private StateMachineTest sm;
+
+        RowDeletedAction(StateMachineTest sm) {
+            super("rowDeleted", 5);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && isValidRow(sm);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void run() {
+            Set<Integer> holes = (Set<Integer>) sm.get("holes");
+            boolean deleted = holes != null && holes.contains(sm.getInt("row"));
+            System.out.println("  rowDeleted() -> " + deleted);
+        }
+    }
+
+    // FX rowInserted: Check if current row was inserted
+    static class RowInsertedAction extends Action {
+        private StateMachineTest sm;
+
+        RowInsertedAction(StateMachineTest sm) {
+            super("rowInserted", 3);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && isValidRow(sm);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void run() {
+            Set<Integer> insertedRows = (Set<Integer>) sm.get("insertedRows");
+            boolean inserted = insertedRows != null && insertedRows.contains(sm.getInt("row"));
+            System.out.println("  rowInserted() -> " + inserted);
+        }
+    }
+
+    // FX rowUpdated: Check if current row was updated
+    static class RowUpdatedAction extends Action {
+        private StateMachineTest sm;
+
+        RowUpdatedAction(StateMachineTest sm) {
+            super("rowUpdated", 3);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && isValidRow(sm);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void run() {
+            Set<Integer> updatedRows = (Set<Integer>) sm.get("updatedRows");
+            boolean updated = updatedRows != null && updatedRows.contains(sm.getInt("row"));
+            System.out.println("  rowUpdated() -> " + updated);
+        }
+    }
+
+    static class RowStateDeleteRowAction extends Action {
+        private StateMachineTest sm;
+
+        RowStateDeleteRowAction(StateMachineTest sm) {
+            super("deleteRow", 2);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && sm.is("updatable") && isValidRow(sm) && !isHole(sm) && !sm.is("dirty");
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void run() {
+            Set<Integer> holes = (Set<Integer>) sm.get("holes");
+            holes.add(sm.getInt("row"));
+            System.out.println("  deleteRow() - row " + sm.getInt("row"));
+        }
+    }
+
+    static class RowStateUpdateXXXAction extends Action {
+        private StateMachineTest sm;
+
+        RowStateUpdateXXXAction(StateMachineTest sm) {
+            super("updateXXX", 8);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && isValidRow(sm) && !isHole(sm);
+        }
+
+        @Override
+        public void run() {
+            sm.set("dirty", true);
+        }
+    }
+
+    static class RowStateUpdateRowAction extends Action {
+        private StateMachineTest sm;
+
+        RowStateUpdateRowAction(StateMachineTest sm) {
+            super("updateRow", 6);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !sm.is("closed") && sm.is("updatable") && isValidRow(sm) && sm.is("dirty") && !isHole(sm);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void run() {
+            sm.set("dirty", false);
+            Set<Integer> updatedRows = (Set<Integer>) sm.get("updatedRows");
+            updatedRows.add(sm.getInt("row"));
+            System.out.println("  updateRow() - row " + sm.getInt("row"));
+        }
+    }
+
+    // FX refreshRow: Refresh current row from database
+    static class RefreshRowAction extends Action {
+        private StateMachineTest sm;
+
+        RefreshRowAction(StateMachineTest sm) {
+            super("refreshRow", 2);
+            this.sm = sm;
+        }
+
+        @Override
+        public boolean canRun() {
+            // refreshRow requires: valid row, not on insert row, updatable cursor
+            return !sm.is("closed") && sm.is("updatable") && isValidRow(sm) && !sm.is("insertRow") && !isHole(sm);
+        }
+
+        @Override
+        public void run() {
+            // refreshRow discards pending changes
+            sm.set("dirty", false);
+            System.out.println("  refreshRow() - row " + sm.getInt("row"));
         }
     }
     
