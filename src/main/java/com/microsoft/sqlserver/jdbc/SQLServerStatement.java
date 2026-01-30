@@ -257,9 +257,6 @@ public class SQLServerStatement implements ISQLServerStatement {
         // make sure statement hasn't been closed due to closeOnCompletion
         checkClosed();
 
-        // Start performance tracking: time from statement creation to first packet sent
-        startCreationToFirstPacketTracking();
-
         execProps = new ExecuteProperties(this);
 
         boolean cont;
@@ -268,6 +265,17 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         do {
             cont = false;
+            
+            // Start performance tracking: time from statement creation to first packet sent
+            // This is started per execution attempt to avoid including retry backoff/sleep time
+
+            // Moved startCreationToFirstPacketTracking() inside the do-while retry loop so it 
+            // starts fresh for each execution attempt
+            // Added endCreationToFirstPacketTracking() before the Thread.sleep() 
+            // call in the retry path to ensure the scope is closed before sleeping 
+            // - this prevents retry backoff time from being included in the metrics
+            startCreationToFirstPacketTracking();
+            
             try {
                 // (Re)execute this Statement with the new command
                 executeCommand(newStmtCmd);
@@ -300,6 +308,11 @@ public class SQLServerStatement implements ISQLServerStatement {
                             Object[] msgArgs = {timeToWait, queryTimeout};
                             throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
                         }
+                        
+                        // Close the creation scope before sleeping for retry
+                        // This ensures the retry backoff time is not included in metrics
+                        endCreationToFirstPacketTracking();
+                        
                         try {
                             Thread.sleep(TimeUnit.SECONDS.toMillis(timeToWait));
                         } catch (InterruptedException ex) {
@@ -1055,12 +1068,14 @@ public class SQLServerStatement implements ISQLServerStatement {
                 try {
                     // Performance tracking: start "first packet to first response" tracking
                     startFirstPacketToFirstResponseTracking();
-
-                    // Start the response - this sends the packet and reads response
-                    ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
-
-                    // Performance tracking: end "first packet to first response" tracking
-                    endFirstPacketToFirstResponseTracking();
+                    try {
+                        // Start the response - this sends the packet and reads response
+                        ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+                    } finally {
+                        // Performance tracking: end "first packet to first response" tracking
+                        // Always end tracking even if startResponse throws
+                        endFirstPacketToFirstResponseTracking();
+                    }
 
                     startResults();
                     getNextResult(true);
@@ -1154,12 +1169,14 @@ public class SQLServerStatement implements ISQLServerStatement {
             try {
                 // Performance tracking: start "first packet to first response" tracking
                 startFirstPacketToFirstResponseTracking();
-
-                // Start the response
-                ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
-
-                // Performance tracking: end "first packet to first response" tracking
-                endFirstPacketToFirstResponseTracking();
+                try {
+                    // Start the response
+                    ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+                } finally {
+                    // Performance tracking: end "first packet to first response" tracking
+                    // Always end tracking even if startResponse throws
+                    endFirstPacketToFirstResponseTracking();
+                }
 
                 startResults();
                 getNextResult(true);
@@ -2315,11 +2332,13 @@ public class SQLServerStatement implements ISQLServerStatement {
             try {
                 // Performance tracking: start "first packet to first response" tracking
                 startFirstPacketToFirstResponseTracking();
-
-                ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
-
-                // Performance tracking: end "first packet to first response" tracking
-                endFirstPacketToFirstResponseTracking();
+                try {
+                    ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+                } finally {
+                    // Performance tracking: end "first packet to first response" tracking
+                    // Always end tracking even if startResponse throws
+                    endFirstPacketToFirstResponseTracking();
+                }
 
                 startResults();
                 getNextResult(true);

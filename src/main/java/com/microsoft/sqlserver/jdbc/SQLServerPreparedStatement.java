@@ -711,11 +711,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     try {
                         // Performance tracking: start "first packet to first response" tracking
                         startFirstPacketToFirstResponseTracking();
-
-                        ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
-
-                        // Performance tracking: end "first packet to first response" tracking
-                        endFirstPacketToFirstResponseTracking();
+                        try {
+                            ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
+                        } finally {
+                            // Performance tracking: end "first packet to first response" tracking
+                            // Always end tracking even if startResponse throws
+                            endFirstPacketToFirstResponseTracking();
+                        }
 
                         startResults();
                         getNextResult(true);
@@ -732,7 +734,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     connection.invalidateEnclaveSessionCache();
                 }
                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false)) {
-                    // Reset tracking for retry
+                    // Reset tracking for retry - close any previously-started scope first
+                    // in case the prior attempt failed before endCreationToFirstPacketTracking() ran
+
+                    // The startCreationToFirstPacketTracking() method checks if creationToFirstPacketScope == null 
+                    // before creating a new scope. If an exception occurs before endCreationToFirstPacketTracking() runs, 
+                    // the old scope remains non-null, and the next call to startCreationToFirstPacketTracking() in the retry path will be a no-op.
+                    // The fix should call endCreationToFirstPacketTracking() before startCreationToFirstPacketTracking() 
+                    // in the retry path to ensure any previously-started scope is closed/reset first.
+                    endCreationToFirstPacketTracking();
                     startCreationToFirstPacketTracking();
                     continue;
                 } else if (!inRetry && connection.doesServerSupportEnclaveRetry()) {
@@ -3262,11 +3272,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             try {
                                 // Performance tracking: start "first packet to first response" tracking
                                 startFirstPacketToFirstResponseTracking();
-
-                                ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
-
-                                // Performance tracking: end "first packet to first response" tracking
-                                endFirstPacketToFirstResponseTracking();
+                                try {
+                                    ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                                } finally {
+                                    // Performance tracking: end "first packet to first response" tracking
+                                    // Always end tracking even if startResponse throws
+                                    endFirstPacketToFirstResponseTracking();
+                                }
                             } catch (SQLServerException e) {
                                 executeScope.setException(e);
                                 throw e;
@@ -3309,12 +3321,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                         try {
                                             // Performance tracking: start "first packet to first response" tracking
                                             startFirstPacketToFirstResponseTracking();
-
-                                            ensureExecuteResultsReader(
-                                                    batchCommand.startResponse(getIsResponseBufferingAdaptive()));
-
-                                            // Performance tracking: end "first packet to first response" tracking
-                                            endFirstPacketToFirstResponseTracking();
+                                            try {
+                                                ensureExecuteResultsReader(
+                                                        batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                                            } finally {
+                                                // Performance tracking: end "first packet to first response" tracking
+                                                // Always end tracking even if startResponse throws
+                                                endFirstPacketToFirstResponseTracking();
+                                            }
 
                                             startResults();
                                             if (!getNextResult(true))
@@ -3456,12 +3470,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 try {
                     // Performance tracking: start "first packet to first response" tracking
                     startFirstPacketToFirstResponseTracking();
-
-                    // Process the response
-                    ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
-
-                    // Performance tracking: end "first packet to first response" tracking
-                    endFirstPacketToFirstResponseTracking();
+                    try {
+                        // Process the response
+                        ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                    } finally {
+                        // Performance tracking: end "first packet to first response" tracking
+                        // Always end tracking even if startResponse throws
+                        endFirstPacketToFirstResponseTracking();
+                    }
 
                     startResults();
                 } catch (SQLServerException e) {
