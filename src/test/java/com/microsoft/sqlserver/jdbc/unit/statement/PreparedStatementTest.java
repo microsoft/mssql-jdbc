@@ -122,6 +122,11 @@ public class PreparedStatementTest extends AbstractTest {
             assertEquals("scopeTempTablesToConnection", conn.getPrepareMethod());
         }
 
+        String connectionStringNone = connectionString + ";prepareMethod=none;";
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionStringNone)) {
+            assertEquals("none", conn.getPrepareMethod());
+        }
+
         try (SQLServerConnection conn = (SQLServerConnection) getConnection()) {
             assertEquals("prepexec", conn.getPrepareMethod()); // default is prepexec
         }
@@ -166,6 +171,43 @@ public class PreparedStatementTest extends AbstractTest {
                 ps.executeUpdate();
                 ps.executeUpdate();
             }
+        }
+    }
+
+    @Test
+    public void testPreparedStatementWithPrepareMethodNone() throws SQLException {
+        String tableName = RandomUtil.getIdentifier("tableTestPrepareMethodNone");
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (c1_nchar, c2_int) values (?, ?)";
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod("none");
+
+            executeSQL(con, "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (c1_nchar nchar(512), c2_int integer)");
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                ps.setString(1, "test1");
+                ps.setInt(2, 1);
+                ps.executeUpdate();
+
+                ps.setString(1, "test2");
+                ps.setInt(2, 2);
+                ps.executeUpdate();
+
+                ps.setString(1, "test3");
+                ps.setInt(2, 3);
+                ps.executeUpdate();
+            }
+
+            try (Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "SELECT COUNT(*) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                rs.next();
+                assertEquals(3, rs.getInt(1), "Should have 3 rows inserted");
+            }
+
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), con.createStatement());
         }
     }
     

@@ -685,10 +685,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // continue using it after we return.
                 // Use PKT_QUERY for exec mode (direct execution), PKT_RPC for prepared
                 // statements
+                boolean isPrepareMethodNone = connection.getPrepareMethod()
+                        .equals(PrepareMethod.NONE.toString());
                 boolean isScopeTempTablesToConnection = connection.getPrepareMethod()
                         .equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())
                         && containsTemporaryTableOperations(userSQL);
-                TDSWriter tdsWriter = command.startRequest(isScopeTempTablesToConnection ? TDS.PKT_QUERY : TDS.PKT_RPC);
+                boolean isDirectSqlRequest = isPrepareMethodNone || isScopeTempTablesToConnection;
+                TDSWriter tdsWriter = command.startRequest(isDirectSqlRequest ? TDS.PKT_QUERY : TDS.PKT_RPC);
 
                 needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
                         command);
@@ -1130,7 +1133,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false;
 
         // No caching for exec method as it always executes directly without preparation
-        if (connection.getPrepareMethod().equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())) {
+        if (connection.getPrepareMethod().equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())
+                || connection.getPrepareMethod().equals(PrepareMethod.NONE.toString())) {
             return false;
         }
 
@@ -1230,16 +1234,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasExistingTypeDefinitions, TDSCommand command) throws SQLServerException {
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
+        boolean isPrepareMethodNone = connection.getPrepareMethod().equals(PrepareMethod.NONE.toString());
         boolean isPrepareMethodSpPrepExec = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
         boolean isScopeTempTablesToConnection = connection.getPrepareMethod()
                 .equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString());
 
         // If using scopeTempTablesToConnection method, check if temp tables are present
         // in the SQLisScopeTempTablesToConnectionns
-        if (isScopeTempTablesToConnection && containsTemporaryTableOperations(userSQL)) {
+        if (isPrepareMethodNone || (isScopeTempTablesToConnection && containsTemporaryTableOperations(userSQL))) {
             // Build direct SQL using enhanced replaceParameterMarkers with direct values
-            String directSQL = replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params,
-                    false);
+            String directSQL = replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params, false);
             tdsWriter.writeString(directSQL);
 
             expectPrepStmtHandle = false;
@@ -3064,6 +3068,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int numBatchesPrepared = 0;
         int numBatchesExecuted = 0;
+        boolean isPrepareMethodNone = connection.getPrepareMethod().equals(PrepareMethod.NONE.toString());
         boolean isScopeTempTablesToConnectionMethod = connection.getPrepareMethod()
                 .equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString());
         boolean isScopeTempTablesToConnection = isScopeTempTablesToConnectionMethod
@@ -3080,7 +3085,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // For scopeTempTablesToConnection method, handle batch execution with literal
         // parameter substitution
         // only if temp tables are detected in the SQL
-        if (isScopeTempTablesToConnection) {
+        if (isPrepareMethodNone || isScopeTempTablesToConnection) {
             doExecuteExecMethodBatchCombined(batchCommand);
             return;
         } else if (isScopeTempTablesToConnectionMethod) {
