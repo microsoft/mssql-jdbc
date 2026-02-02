@@ -285,6 +285,7 @@ public class ParameterMetaDataTest extends AbstractTest {
      * @throws SQLException if a database access error occurs
      */
     @Test
+    @vectorJsonTest
     @Tag(Constants.xAzureSQLDW)
     public void testCheckMetaData() throws SQLException {
 
