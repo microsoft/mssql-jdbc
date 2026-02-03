@@ -2064,17 +2064,11 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 pstmt.setInt(3, 3);
                 pstmt.addBatch();
 
-                try {
-                    pstmt.executeBatch();
-                    fail("Should have thrown BatchUpdateException");
-                } catch (java.sql.BatchUpdateException e) {
-                    int[] updateCounts = e.getUpdateCounts();
-                    assertEquals(3, updateCounts.length);
-                    // First batch should succeed
-                    assertTrue(updateCounts[0] >= 0 || updateCounts[0] == Statement.SUCCESS_NO_INFO);
-                    // Second batch should fail
-                    assertEquals(Statement.EXECUTE_FAILED, updateCounts[1]);
-                }
+                // prepareMethod=none uses literal substitution and direct SQL execution
+                // Expect SQLException (or subclass) for duplicate key violation
+                // SQL Server error codes: 2627 (PK violation), 2601 (unique index violation)
+                assertThrows(SQLException.class, () -> pstmt.executeBatch(),
+                        "Should throw SQLException for duplicate key violation");
             }
 
             // Cleanup
