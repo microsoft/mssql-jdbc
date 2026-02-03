@@ -1413,7 +1413,7 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
      * This is the key use case: always use direct SQL for server-side visibility
      */
     @Test
-    public void testRegularTableWithPrepareMethodNone() throws SQLException {
+    public void testTempTableWithPrepareMethodNone() throws SQLException {
         String tableName = "#temp_none_regular_" + ThreadLocalRandom.current().nextInt(1000, 9999);
 
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
@@ -1584,13 +1584,14 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
             // Verify NULL values
             try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM " + tableName + " WHERE id = ?")) {
                 ps.setInt(1, 1);
-                ResultSet rs = ps.executeQuery();
-                assertTrue(rs.next());
-                assertEquals(1, rs.getInt("id"));
-                assertNull(rs.getString("name"));
-                assertTrue(rs.wasNull());
-                assertNull(rs.getBigDecimal("value"));
-                assertTrue(rs.wasNull());
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt("id"));
+                    assertNull(rs.getString("name"));
+                    assertTrue(rs.wasNull());
+                    assertNull(rs.getBigDecimal("value"));
+                    assertTrue(rs.wasNull());
+                }
             }
 
             // Cleanup

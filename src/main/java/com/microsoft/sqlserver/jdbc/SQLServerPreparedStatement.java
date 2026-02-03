@@ -1242,7 +1242,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // For prepareMethod=none, always send direct SQL. For prepareMethod=scopeTempTablesToConnection,
         // send direct SQL only when temporary table operations are detected in the user SQL.
         if (isPrepareMethodNone || (isScopeTempTablesToConnection && containsTemporaryTableOperations(userSQL))) {
-            // Build direct SQL using enhanced replaceParameterMarkers with direct values
+            // Build direct SQL using enhanced replaceParameterMarkersWithValues with direct values
             String directSQL = replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params, false);
             tdsWriter.writeString(directSQL);
 
