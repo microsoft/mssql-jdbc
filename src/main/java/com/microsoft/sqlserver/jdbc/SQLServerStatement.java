@@ -364,7 +364,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 PerformanceLog.perfLoggerStatement, 
                 connection.getConnectionID(), 
                 getStatementID(), 
-                PerformanceActivity.STATEMENT_CREATION_TO_FIRST_PACKET
+                PerformanceActivity.STATEMENT_REQUEST_BUILD
             );
         }
     }
@@ -390,7 +390,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
                 getStatementID(),
-                PerformanceActivity.STATEMENT_FIRST_PACKET_TO_FIRST_RESPONSE
+                PerformanceActivity.STATEMENT_SERVER_ROUNDTRIP
             );
         }
     }
@@ -1072,8 +1072,6 @@ public class SQLServerStatement implements ISQLServerStatement {
                         // Start the response - this sends the packet and reads response
                         ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
                     } finally {
-                        // Performance tracking: end "first packet to first response" tracking
-                        // Always end tracking even if startResponse throws
                         endFirstPacketToFirstResponseTracking();
                     }
 
@@ -1173,8 +1171,6 @@ public class SQLServerStatement implements ISQLServerStatement {
                     // Start the response
                     ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
                 } finally {
-                    // Performance tracking: end "first packet to first response" tracking
-                    // Always end tracking even if startResponse throws
                     endFirstPacketToFirstResponseTracking();
                 }
 
@@ -2335,8 +2331,6 @@ public class SQLServerStatement implements ISQLServerStatement {
                 try {
                     ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
                 } finally {
-                    // Performance tracking: end "first packet to first response" tracking
-                    // Always end tracking even if startResponse throws
                     endFirstPacketToFirstResponseTracking();
                 }
 

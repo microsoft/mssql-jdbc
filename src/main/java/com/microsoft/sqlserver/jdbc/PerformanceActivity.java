@@ -6,85 +6,108 @@
 package com.microsoft.sqlserver.jdbc;
 
 /**
- * Enum representing different performance activities.
+ * Enum representing different performance activities tracked by the driver.
+ * 
+ * Connection-Level Activities:
+ * - CONNECTION: Total connection establishment time
+ * - PRELOGIN: TDS prelogin negotiation time
+ * - LOGIN: Authentication/login handshake time
+ * - TOKEN_ACQUISITION: Azure AD token acquisition time
+ * 
+ * Statement-Level Activities:
+ * - STATEMENT_REQUEST_BUILD: Client-side request building time
+ * - STATEMENT_SERVER_ROUNDTRIP: Time from packet sent to first response received
+ * - STATEMENT_PREPARE: sp_prepare execution time
+ * - STATEMENT_PREPEXEC: sp_prepexec (combined prepare+execute) time
+ * - STATEMENT_EXECUTE: Statement execution time
  */
 public enum PerformanceActivity {
+
+    // ==================== Connection-Level Activities ====================
+
+    /**
+     * Total time to establish a connection.
+     * 
+     * Measured in: connectInternal()
+     * Includes: PRELOGIN, LOGIN, and TOKEN_ACQUISITION (if applicable)
+     */
     CONNECTION("Connection"),
-    TOKEN_ACQUISITION("Token acquisition"),
-    LOGIN("Login"),
+
+    /**
+     * Time for TDS prelogin negotiation.
+     * 
+     * Measured in: prelogin()
+     * Includes: Encryption negotiation, server capability detection
+     */
     PRELOGIN("Prelogin"),
 
-    // Statement-level activities
-    STATEMENT_CREATION_TO_FIRST_PACKET("Statement creation to first packet"),
-    /*
-     * Called endCreationToFirstPacketTracking() in:
-     * doExecuteStatement() - for regular statements
-     * doExecuteCursored() - for cursor-based execution
-     * doExecuteStatementBatch() - for batch execution
-     * SQLServerPreparedStatement.java
-     * Called endCreationToFirstPacketTracking() in doExecutePreparedStatement() just before sending the packet
-     * Also restarts tracking on retry with startCreationToFirstPacketTracking()
-     * How it works:
-     * Start: When executeStatement() is called, we create a PerformanceLog.Scope
-     * that starts timing
-     * End: Just before startResponse() is called (which sends the TDS packet to
-     * server), we close the scope to record the duration
-     * The duration is published via the PerformanceLogCallback (if registered)
-     * and/or logged via Java logging
+    /**
+     * Time for authentication/login handshake.
      * 
-     * Start the response - this sends the packet and reads response
-            ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+     * Measured in: login()
+     * Includes: TDS login7 packet exchange
      */
+    LOGIN("Login"),
 
-    STATEMENT_FIRST_PACKET_TO_FIRST_RESPONSE("First packet to first response"),
-    /*
-     * startResponse() {
-     * endMessage() <-- packet sent to server
-     * readPacket() <-- wait for & read response
-     * }
+    /**
+     * Time to acquire Azure AD access tokens.
      * 
-     * It measures the time from when we initiate sending the packet until 
-     * we have received the first response from the server.
+     * Measured in: onFedAuthInfo()
+     * Triggered: Only for Active Directory authentication methods
      */
+    TOKEN_ACQUISITION("Token acquisition"),
 
+    // ==================== Statement-Level Activities ====================
+
+    /**
+     * Client-side request building time.
+     * 
+     * Measures: Time from execute*() call until TDS request packet is ready to send.
+     * 
+     * Start: Beginning of executeStatement() (inside retry loop)
+     * End: Just before startResponse() sends packet to server
+     * 
+     * Note: Restarts on retry to exclude backoff/sleep time.
+     */
+    STATEMENT_REQUEST_BUILD("Request build time"),
+
+    /**
+     * Time from first packet sent to first response received.
+     * 
+     * Measures: Network latency (both directions) + SQL Server processing time.
+     * 
+     * Start: startResponse() begins - packet sent to server
+     * End: First response packet received from server
+     * 
+     * This represents the "server-side" time from client's perspective,
+     * including network transit in both directions.
+     */
+    STATEMENT_SERVER_ROUNDTRIP("Server roundtrip time"),
+
+    /**
+     * Time to prepare a statement using sp_prepare.
+     * 
+     * Measured in: doPrep()
+     * Triggered: Only when prepareMethod=prepare (NOT the default)
+     */
     STATEMENT_PREPARE("Statement prepare"),
-    /*
-     * Tracks the time to prepare a statement using sp_prepare.
-     * This is ONLY triggered when using prepareMethod=prepare (not the default sp_prepexec).
-     * 
-     * Measured in doPrep() method:
-     * - Start: Before startResponse() sends sp_prepare to server
-     * - End: After processResponse() receives the prepared handle
-     * 
-     * Note: For sp_prepexec (default), prepare+execute are combined and cannot be separated.
-     */
 
+    /**
+     * Combined prepare+execute time using sp_prepexec.
+     * 
+     * This is the DEFAULT prepare method. SQL Server combines preparation
+     * and execution in a single sp_prepexec stored procedure call.
+     */
     STATEMENT_PREPEXEC("Statement prepexec"),
-    /*
-     * Tracks the combined prepare+execute time when using sp_prepexec.
-     * This is the DEFAULT prepare method and combines preparation and execution in a single call.
-     * 
-     * Triggered when:
-     * - prepareMethod=prepexec (default)
-     * - Statement needs preparation (needsPrepare=true)
-     * - Not using sp_prepare + sp_execute pattern
-     * 
-     * The time cannot be split into prepare vs execute components since SQL Server
-     * handles both in a single sp_prepexec stored procedure call.
-     */
 
-    STATEMENT_EXECUTE("Statement execute");
-    /*
-     * Tracks the time to execute a statement.
-     * This measures from when startResponse() sends the packet to the server
-     * until getNextResult() finishes processing the response.
+    /**
+     * Statement execution time.
      * 
-     * For regular Statement: Tracks the full execution of the SQL query.
-     * For PreparedStatement: Tracks execution time AFTER doPrepExec() completes
-     *   - For sp_execute: tracks only execution (prepare already done)
-     *   - For sp_prepexec: tracks combined prepare+execute (cannot be separated)
-     *   - For sp_executesql: tracks direct execution
+     * Measures: Time from sending execution request to response processing complete.
+     * 
+     * For Statement: Full execution time of SQL query.
      */
+    STATEMENT_EXECUTE("Statement execute");
 
     private final String activity;
 

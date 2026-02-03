@@ -714,8 +714,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         try {
                             ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
                         } finally {
-                            // Performance tracking: end "first packet to first response" tracking
-                            // Always end tracking even if startResponse throws
                             endFirstPacketToFirstResponseTracking();
                         }
 
@@ -3157,7 +3155,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         Parameter[] batchParam = new Parameter[inOutParam.length];
 
         TDSWriter tdsWriter = null;
-        while (numBatchesExecuted < numBatches) {
+        
+        // Performance tracking: track statement execution time for the entire batch
+        // Use STATEMENT_EXECUTE since batch execution uses sp_executesql/sp_execute
+        try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
+                PerformanceLog.perfLoggerStatement,
+                connection.getConnectionID(),
+                getStatementID(),
+                PerformanceActivity.STATEMENT_EXECUTE)) {
+            try {
+                while (numBatchesExecuted < numBatches) {
             // Fill in the parameter values for this batch
             Parameter[] paramValues = batchParamValues.get(numBatchesPrepared);
             assert paramValues.length == batchParam.length;
@@ -3261,28 +3268,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         // Performance tracking: end "creation to first packet" tracking (for first batch only)
                         endCreationToFirstPacketTracking();
 
-                        // Performance tracking: track statement execution time
-                        // Use STATEMENT_PREPEXEC when sp_prepexec is used (combined prepare+execute),
-                        // otherwise use STATEMENT_EXECUTE
-                        try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
-                                PerformanceLog.perfLoggerStatement,
-                                connection.getConnectionID(),
-                                getStatementID(),
-                                usedPrepExec ? PerformanceActivity.STATEMENT_PREPEXEC : PerformanceActivity.STATEMENT_EXECUTE)) {
-                            try {
-                                // Performance tracking: start "first packet to first response" tracking
-                                startFirstPacketToFirstResponseTracking();
-                                try {
-                                    ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
-                                } finally {
-                                    // Performance tracking: end "first packet to first response" tracking
-                                    // Always end tracking even if startResponse throws
-                                    endFirstPacketToFirstResponseTracking();
-                                }
-                            } catch (SQLServerException e) {
-                                executeScope.setException(e);
-                                throw e;
-                            }
+                        // Performance tracking: start "first packet to first response" tracking
+                        startFirstPacketToFirstResponseTracking();
+                        try {
+                            ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                        } finally {
+                            endFirstPacketToFirstResponseTracking();
                         }
 
                         boolean retry = false;
@@ -3312,32 +3303,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     buildExecParams(tdsWriter);
                                     sendParamsByRPC(tdsWriter, batchParam);
 
-                                    // Performance tracking: track sp_execute time after sp_prepare
-                                    try (PerformanceLog.Scope spExecScope = PerformanceLog.createScope(
-                                            PerformanceLog.perfLoggerStatement,
-                                            connection.getConnectionID(),
-                                            getStatementID(),
-                                            PerformanceActivity.STATEMENT_EXECUTE)) {
-                                        try {
-                                            // Performance tracking: start "first packet to first response" tracking
-                                            startFirstPacketToFirstResponseTracking();
-                                            try {
-                                                ensureExecuteResultsReader(
-                                                        batchCommand.startResponse(getIsResponseBufferingAdaptive()));
-                                            } finally {
-                                                // Performance tracking: end "first packet to first response" tracking
-                                                // Always end tracking even if startResponse throws
-                                                endFirstPacketToFirstResponseTracking();
-                                            }
-
-                                            startResults();
-                                            if (!getNextResult(true))
-                                                return;
-                                        } catch (SQLServerException e) {
-                                            spExecScope.setException(e);
-                                            throw e;
-                                        }
+                                    // Performance tracking: start "first packet to first response" tracking for sp_execute
+                                    startFirstPacketToFirstResponseTracking();
+                                    try {
+                                        ensureExecuteResultsReader(
+                                                batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                                    } finally {
+                                        endFirstPacketToFirstResponseTracking();
                                     }
+
+                                    startResults();
+                                    if (!getNextResult(true))
+                                        return;
                                 }
 
                                 // If the result is a ResultSet (rather than an update count) then throw an
@@ -3416,6 +3393,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
                 break;
             }
+                }
+            } catch (SQLServerException e) {
+                executeScope.setException(e);
+                throw e;
+            }
         }
     }
 
@@ -3461,7 +3443,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Performance tracking: end "creation to first packet" tracking
             endCreationToFirstPacketTracking();
 
-            // Performance tracking: track statement execution time
+            // Performance tracking: track statement execution time for the entire batch
             try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                     PerformanceLog.perfLoggerStatement,
                     connection.getConnectionID(),
@@ -3474,63 +3456,60 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         // Process the response
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
                     } finally {
-                        // Performance tracking: end "first packet to first response" tracking
-                        // Always end tracking even if startResponse throws
                         endFirstPacketToFirstResponseTracking();
                     }
 
                     startResults();
+
+                    // Initialize update counts to failed by default
+                    for (int i = 0; i < numBatches; i++) {
+                        batchCommand.updateCounts[i] = Statement.EXECUTE_FAILED;
+                    }
+
+                    // Process results for each batch entry
+                    for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
+                        try {
+                            boolean isResultSet = getNextResult(true);
+
+                            if (isResultSet) {
+                                batchCommand.updateCounts[batchIdx] = 1;
+                                if (null != resultSet) {
+                                    resultSet.close();
+                                    resultSet = null;
+                                }
+                            } else {
+                                long updateCount = getUpdateCount();
+                                batchCommand.updateCounts[batchIdx] = updateCount;
+                            }
+                        } catch (SQLException e) {
+                            batchCommand.updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
+
+                            if (null == batchCommand.batchException) {
+                                batchCommand.batchException = new SQLServerException(
+                                        e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
+                            }
+                        }
+                    }
+                    // If we had any batch failures, throw BatchUpdateException with update counts
+                    if (null != batchCommand.batchException) {
+                        int[] updateCounts = new int[batchCommand.updateCounts.length];
+                        for (int i = 0; i < batchCommand.updateCounts.length; i++) {
+                            updateCounts[i] = (int) batchCommand.updateCounts[i];
+                        }
+
+                        BatchUpdateException batchException = new BatchUpdateException(
+                                batchCommand.batchException.getMessage(),
+                                batchCommand.batchException.getSQLState(),
+                                batchCommand.batchException.getErrorCode(), updateCounts);
+
+                        throw new SQLServerException(batchException.getMessage(),
+                                batchException.getSQLState(),
+                                batchException.getErrorCode(), batchException);
+                    }
                 } catch (SQLServerException e) {
                     executeScope.setException(e);
                     throw e;
                 }
-            }
-
-            // Initialize update counts to failed by default
-            for (int i = 0; i < numBatches; i++) {
-                batchCommand.updateCounts[i] = Statement.EXECUTE_FAILED;
-            }
-
-            // Process results for each batch entry
-            for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
-                try {
-                    boolean isResultSet = getNextResult(true);
-
-                    if (isResultSet) {
-                        batchCommand.updateCounts[batchIdx] = 1;
-                        if (null != resultSet) {
-                            resultSet.close();
-                            resultSet = null;
-                        }
-                    } else {
-                        long updateCount = getUpdateCount();
-                        batchCommand.updateCounts[batchIdx] = updateCount;
-                    }
-                } catch (SQLException e) {
-                    batchCommand.updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
-
-                    if (null == batchCommand.batchException) {
-                        batchCommand.batchException = new SQLServerException(
-                                e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
-                    }
-                }
-            }
-
-            // If we had any batch failures, throw BatchUpdateException with update counts
-            if (null != batchCommand.batchException) {
-                int[] updateCounts = new int[batchCommand.updateCounts.length];
-                for (int i = 0; i < batchCommand.updateCounts.length; i++) {
-                    updateCounts[i] = (int) batchCommand.updateCounts[i];
-                }
-
-                BatchUpdateException batchException = new BatchUpdateException(
-                        batchCommand.batchException.getMessage(),
-                                batchCommand.batchException.getSQLState(),
-                        batchCommand.batchException.getErrorCode(), updateCounts);
-
-                throw new SQLServerException(batchException.getMessage(),
-                        batchException.getSQLState(),
-                        batchException.getErrorCode(), batchException);
             }
 
         } catch (SQLException e) {
