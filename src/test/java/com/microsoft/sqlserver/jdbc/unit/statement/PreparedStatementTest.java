@@ -1876,47 +1876,51 @@ public class PreparedStatementTest extends AbstractTest {
             stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
                     + " (id INT, name VARCHAR(50))");
 
-            // Test SQL with line comments ending in newline
-            String sqlWithLineComment = "-- This is a line comment\n" +
-                    "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (?, ?)";
+            try {
+                // Test SQL with line comments ending in newline
+                String sqlWithLineComment = "-- This is a line comment\n" +
+                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (?, ?)";
 
-            try (PreparedStatement pstmt = connection.prepareStatement(sqlWithLineComment)) {
-                pstmt.setInt(1, 1);
-                pstmt.setString(2, "test");
-                pstmt.addBatch();
+                try (PreparedStatement pstmt = connection.prepareStatement(sqlWithLineComment)) {
+                    pstmt.setInt(1, 1);
+                    pstmt.setString(2, "test");
+                    pstmt.addBatch();
 
-                int[] updateCounts = pstmt.executeBatch();
-                assertEquals(1, updateCounts.length);
-                assertEquals(1, updateCounts[0]);
-            }
+                    int[] updateCounts = pstmt.executeBatch();
+                    assertEquals(1, updateCounts.length);
+                    assertEquals(1, updateCounts[0]);
+                }
 
-            // Test SQL with line comment at end (no newline)
-            String sqlWithLineCommentNoNewline = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
-                    + " VALUES (?, ?) -- comment at end";
+                // Test SQL with line comment at end (no newline)
+                String sqlWithLineCommentNoNewline = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " VALUES (?, ?) -- comment at end";
 
-            try (PreparedStatement pstmt2 = connection.prepareStatement(sqlWithLineCommentNoNewline)) {
-                pstmt2.setInt(1, 2);
-                pstmt2.setString(2, "test2");
-                pstmt2.addBatch();
+                try (PreparedStatement pstmt2 = connection.prepareStatement(sqlWithLineCommentNoNewline)) {
+                    pstmt2.setInt(1, 2);
+                    pstmt2.setString(2, "test2");
+                    pstmt2.addBatch();
 
-                int[] updateCounts = pstmt2.executeBatch();
-                assertEquals(1, updateCounts.length);
-                assertEquals(1, updateCounts[0]);
-            }
+                    int[] updateCounts = pstmt2.executeBatch();
+                    assertEquals(1, updateCounts.length);
+                    assertEquals(1, updateCounts[0]);
+                }
 
-            // Test multiple line comments
-            String sqlWithMultipleLineComments = "-- First comment\n" +
-                    "-- Second comment\n" +
-                    "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (?, ?)";
+                // Test multiple line comments
+                String sqlWithMultipleLineComments = "-- First comment\n" +
+                        "-- Second comment\n" +
+                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (?, ?)";
 
-            try (PreparedStatement pstmt3 = connection.prepareStatement(sqlWithMultipleLineComments)) {
-                pstmt3.setInt(1, 3);
-                pstmt3.setString(2, "test3");
-                pstmt3.addBatch();
+                try (PreparedStatement pstmt3 = connection.prepareStatement(sqlWithMultipleLineComments)) {
+                    pstmt3.setInt(1, 3);
+                    pstmt3.setString(2, "test3");
+                    pstmt3.addBatch();
 
-                int[] updateCounts = pstmt3.executeBatch();
-                assertEquals(1, updateCounts.length);
-                assertEquals(1, updateCounts[0]);
+                    int[] updateCounts = pstmt3.executeBatch();
+                    assertEquals(1, updateCounts.length);
+                    assertEquals(1, updateCounts[0]);
+                }
+            } finally {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             }
         }
     }

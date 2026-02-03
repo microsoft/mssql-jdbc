@@ -1311,9 +1311,9 @@ public class CallableStatementTest extends AbstractTest {
             assertNotNull(smallDateTimeByNameWithCal);
             assertEquals(Timestamp.valueOf("2024-07-16 14:30:00").getTime(),
                     smallDateTimeByNameWithCal.getTime());
+        } finally {
+            TestUtils.dropProcedureIfExists(timeDateProcName, connection.createStatement());
         }
-
-        TestUtils.dropProcedureIfExists(timeDateProcName, connection.createStatement());
     }
 
     @Test
@@ -1357,9 +1357,9 @@ public class CallableStatementTest extends AbstractTest {
             assertNotNull(decimalByName);
             assertEquals(3, decimalByName.scale());
             assertEquals(0, decimalByName.compareTo(new BigDecimal("123.456")));
+        } finally {
+            TestUtils.dropProcedureIfExists(bigDecimalProcName, connection.createStatement());
         }
-
-        TestUtils.dropProcedureIfExists(bigDecimalProcName, connection.createStatement());
     }
 
     // Test various time and date related setters with parameter names and Calendar
@@ -1450,9 +1450,9 @@ public class CallableStatementTest extends AbstractTest {
             assertNotNull(cs.getDateTimeOffset("datetimeoffset_param"));
             assertNotNull(cs.getDateTime("datetime_param"));
             assertNotNull(cs.getSmallDateTime("smalldatetime_param"));
+        } finally {
+            TestUtils.dropProcedureIfExists(dateTimeSettersProcName, connection.createStatement());
         }
-
-        TestUtils.dropProcedureIfExists(dateTimeSettersProcName, connection.createStatement());
     }
 
     // Test various stream and large object related setters with parameter names
@@ -1567,9 +1567,9 @@ public class CallableStatementTest extends AbstractTest {
                     assertNotNull(rs.getBytes("blob_stream"));
                 }
             }
+        } finally {
+            TestUtils.dropProcedureIfExists(streamSettersProcName, connection.createStatement());
         }
-
-        TestUtils.dropProcedureIfExists(streamSettersProcName, connection.createStatement());
     }
 
     // Test setObject with precision and scale
@@ -1604,9 +1604,9 @@ public class CallableStatementTest extends AbstractTest {
             BigDecimal result = cs.getBigDecimal("decimal_param");
             assertNotNull(result);
             assertEquals(0, result.compareTo(new BigDecimal("12345.678")));
+        } finally {
+            TestUtils.dropProcedureIfExists(objectPrecisionProcName, connection.createStatement());
         }
-
-        TestUtils.dropProcedureIfExists(objectPrecisionProcName, connection.createStatement());
     }
 
     // Test setUniqueIdentifier methods
@@ -1645,9 +1645,9 @@ public class CallableStatementTest extends AbstractTest {
                     assertEquals(guidValue.toUpperCase(), rs.getString("guid_result").toUpperCase());
                 }
             }
+        } finally {
+            TestUtils.dropProcedureIfExists(identifierProcName, connection.createStatement());
         }
-
-        TestUtils.dropProcedureIfExists(identifierProcName, connection.createStatement());
     }
 
     // Test unsupported getURL and getRowId methods
@@ -1690,9 +1690,9 @@ public class CallableStatementTest extends AbstractTest {
 
             // getRowId(String) - not supported
             assertThrows(SQLServerException.class, () -> cs.getRowId("varchar_param"));
+        } finally {
+            TestUtils.dropProcedureIfExists(unsupportedGettersProcName, connection.createStatement());
         }
-
-        TestUtils.dropProcedureIfExists(unsupportedGettersProcName, connection.createStatement());
     }
 
     // Test setObject overloads with SQLType
@@ -1733,9 +1733,9 @@ public class CallableStatementTest extends AbstractTest {
 
             assertEquals(42, cs.getInt("int_param"));
             assertEquals(0, cs.getBigDecimal("decimal_param").compareTo(new BigDecimal("123.45")));
+        } finally {
+            TestUtils.dropProcedureIfExists(sqlTypeOverloadsProcName, connection.createStatement());
         }
-
-        TestUtils.dropProcedureIfExists(sqlTypeOverloadsProcName, connection.createStatement());
     }
 
     // Test registerOutParameter with precision and scale, including parameter index
@@ -1748,87 +1748,89 @@ public class CallableStatementTest extends AbstractTest {
 
         TestUtils.dropProcedureIfExists(precisionScaleProcName, connection.createStatement());
 
-        try (Statement stmt = connection.createStatement()) {
-            stmt.execute(
-                    "CREATE PROCEDURE " + precisionScaleProcName +
-                            " @decimal_param DECIMAL(10,3) OUTPUT, @numeric_param NUMERIC(15,4) OUTPUT AS " +
-                            "BEGIN " +
-                            "SET @decimal_param = 123.456; " +
-                            "SET @numeric_param = 987.6543; " +
-                            "END");
-        }
-
-        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall(
-                "{call " + precisionScaleProcName + "(?,?)}")) {
-
-            // registerOutParameter(int parameterIndex, SQLType sqlType,
-            // int precision, int scale)
-            cs.registerOutParameter(1, java.sql.JDBCType.DECIMAL, 10, 3);
-            cs.registerOutParameter(2, java.sql.JDBCType.NUMERIC, 15, 4);
-
-            // registerOutParameter(String parameterName, SQLType sqlType,
-            // int precision, int scale)
-            cs.registerOutParameter("decimal_param", java.sql.JDBCType.DECIMAL, 10, 3);
-            cs.registerOutParameter("numeric_param", java.sql.JDBCType.NUMERIC, 15, 4);
-
-            cs.execute();
-
-            // Verify the values can be retrieved
-            BigDecimal decimalResult = cs.getBigDecimal(1);
-            BigDecimal numericResult = cs.getBigDecimal(2);
-
-            assertNotNull(decimalResult);
-            assertNotNull(numericResult);
-            assertEquals(0, decimalResult.compareTo(new BigDecimal("123.456")));
-            assertEquals(0, numericResult.compareTo(new BigDecimal("987.6543")));
-
-            // Verify retrieval by parameter name
-            BigDecimal decimalByName = cs.getBigDecimal("decimal_param");
-            BigDecimal numericByName = cs.getBigDecimal("numeric_param");
-
-            assertEquals(0, decimalByName.compareTo(new BigDecimal("123.456")));
-            assertEquals(0, numericByName.compareTo(new BigDecimal("987.6543")));
-        }
-
-        // Test parameter index validation
-        try (SQLServerCallableStatement cs2 = (SQLServerCallableStatement) connection.prepareCall(
-                "{call " + precisionScaleProcName + "(?,?)}")) {
-
-            // Test invalid parameter index < 1
-            try {
-                cs2.registerOutParameter(0, java.sql.Types.DECIMAL);
-                fail("Should have thrown SQLException for invalid parameter index");
-            } catch (SQLException e) {
-                // Expected exception for index < 1
-                assertTrue(e.getMessage().contains("Invalid parameter") ||
-                        e.getMessage().contains("index") ||
-                        e.getMessage().contains("Parameter"));
+        try {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute(
+                        "CREATE PROCEDURE " + precisionScaleProcName +
+                                " @decimal_param DECIMAL(10,3) OUTPUT, @numeric_param NUMERIC(15,4) OUTPUT AS " +
+                                "BEGIN " +
+                                "SET @decimal_param = 123.456; " +
+                                "SET @numeric_param = 987.6543; " +
+                                "END");
             }
 
-            // Test invalid parameter index > parameter count
-            try {
-                cs2.registerOutParameter(5, java.sql.Types.DECIMAL); // Only 2 parameters exist
-                fail("Should have thrown SQLException for invalid parameter index");
-            } catch (SQLException e) {
-                // Expected exception for index > inOutParam.length
-                assertTrue(e.getMessage().contains("Invalid parameter") ||
-                        e.getMessage().contains("index") ||
-                        e.getMessage().contains("Parameter"));
+            try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection.prepareCall(
+                    "{call " + precisionScaleProcName + "(?,?)}")) {
+
+                // registerOutParameter(int parameterIndex, SQLType sqlType,
+                // int precision, int scale)
+                cs.registerOutParameter(1, java.sql.JDBCType.DECIMAL, 10, 3);
+                cs.registerOutParameter(2, java.sql.JDBCType.NUMERIC, 15, 4);
+
+                // registerOutParameter(String parameterName, SQLType sqlType,
+                // int precision, int scale)
+                cs.registerOutParameter("decimal_param", java.sql.JDBCType.DECIMAL, 10, 3);
+                cs.registerOutParameter("numeric_param", java.sql.JDBCType.NUMERIC, 15, 4);
+
+                cs.execute();
+
+                // Verify the values can be retrieved
+                BigDecimal decimalResult = cs.getBigDecimal(1);
+                BigDecimal numericResult = cs.getBigDecimal(2);
+
+                assertNotNull(decimalResult);
+                assertNotNull(numericResult);
+                assertEquals(0, decimalResult.compareTo(new BigDecimal("123.456")));
+                assertEquals(0, numericResult.compareTo(new BigDecimal("987.6543")));
+
+                // Verify retrieval by parameter name
+                BigDecimal decimalByName = cs.getBigDecimal("decimal_param");
+                BigDecimal numericByName = cs.getBigDecimal("numeric_param");
+
+                assertEquals(0, decimalByName.compareTo(new BigDecimal("123.456")));
+                assertEquals(0, numericByName.compareTo(new BigDecimal("987.6543")));
             }
 
-            // Test valid parameter registration to ensure the validation logic works
-            // correctly
-            cs2.registerOutParameter(1, java.sql.Types.DECIMAL);
-            cs2.registerOutParameter(2, java.sql.Types.NUMERIC);
+            // Test parameter index validation
+            try (SQLServerCallableStatement cs2 = (SQLServerCallableStatement) connection.prepareCall(
+                    "{call " + precisionScaleProcName + "(?,?)}")) {
 
-            cs2.execute();
+                // Test invalid parameter index < 1
+                try {
+                    cs2.registerOutParameter(0, java.sql.Types.DECIMAL);
+                    fail("Should have thrown SQLException for invalid parameter index");
+                } catch (SQLException e) {
+                    // Expected exception for index < 1
+                    assertTrue(e.getMessage().contains("Invalid parameter") ||
+                            e.getMessage().contains("index") ||
+                            e.getMessage().contains("Parameter"));
+                }
 
-            // Just verify execution succeeded after valid parameter registration
-            assertNotNull(cs2.getBigDecimal(1));
-            assertNotNull(cs2.getBigDecimal(2));
+                // Test invalid parameter index > parameter count
+                try {
+                    cs2.registerOutParameter(5, java.sql.Types.DECIMAL); // Only 2 parameters exist
+                    fail("Should have thrown SQLException for invalid parameter index");
+                } catch (SQLException e) {
+                    // Expected exception for index > inOutParam.length
+                    assertTrue(e.getMessage().contains("Invalid parameter") ||
+                            e.getMessage().contains("index") ||
+                            e.getMessage().contains("Parameter"));
+                }
+
+                // Test valid parameter registration to ensure the validation logic works
+                // correctly
+                cs2.registerOutParameter(1, java.sql.Types.DECIMAL);
+                cs2.registerOutParameter(2, java.sql.Types.NUMERIC);
+
+                cs2.execute();
+
+                // Just verify execution succeeded after valid parameter registration
+                assertNotNull(cs2.getBigDecimal(1));
+                assertNotNull(cs2.getBigDecimal(2));
+            }
+        } finally {
+            TestUtils.dropProcedureIfExists(precisionScaleProcName, connection.createStatement());
         }
-
-        TestUtils.dropProcedureIfExists(precisionScaleProcName, connection.createStatement());
     }
 
     /**
