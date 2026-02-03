@@ -1393,11 +1393,12 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
             try (PreparedStatement ps3 = conn.prepareStatement(
                     "SELECT id, name, value FROM " + tableName + " WHERE id = ?")) {
                 ps3.setInt(1, 123);
-                ResultSet rs = ps3.executeQuery();
-                assertTrue(rs.next(), "Should find inserted data in temp table");
-                assertEquals(123, rs.getInt("id"));
-                assertEquals("Test Data", rs.getString("name"));
-                assertEquals(new BigDecimal("45.67"), rs.getBigDecimal("value"));
+                try (ResultSet rs = ps3.executeQuery()) {
+                    assertTrue(rs.next(), "Should find inserted data in temp table");
+                    assertEquals(123, rs.getInt("id"));
+                    assertEquals("Test Data", rs.getString("name"));
+                    assertEquals(new BigDecimal("45.67"), rs.getBigDecimal("value"));
+                }
             }
 
             // Cleanup
@@ -1623,15 +1624,15 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                     "SELECT id, name FROM " + tableName + " WHERE id > ? AND name LIKE ?")) {
                 ps.setInt(1, 1);
                 ps.setString(2, "T%");
-                ResultSet rs = ps.executeQuery();
-
-                int count = 0;
-                while (rs.next()) {
-                    count++;
-                    assertTrue(rs.getInt("id") > 1);
-                    assertTrue(rs.getString("name").startsWith("T"));
+                try (ResultSet rs = ps.executeQuery()) {
+                    int count = 0;
+                    while (rs.next()) {
+                        count++;
+                        assertTrue(rs.getInt("id") > 1);
+                        assertTrue(rs.getString("name").startsWith("T"));
+                    }
+                    assertEquals(2, count, "Should find 2 rows matching criteria");
                 }
-                assertEquals(2, count, "Should find 2 rows matching criteria");
             }
 
             // Cleanup
@@ -1997,20 +1998,22 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT id, name, value FROM " + tempTable1 + " WHERE id = ?")) {
                 ps.setInt(1, 1001);
-                ResultSet rs = ps.executeQuery();
-                assertTrue(rs.next());
-                assertEquals(1001, rs.getInt("id"));
-                assertEquals("Param2", rs.getString("name"));
-                assertEquals(3, rs.getInt("value"));
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(1001, rs.getInt("id"));
+                    assertEquals("Param2", rs.getString("name"));
+                    assertEquals(3, rs.getInt("value"));
+                }
             }
 
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT id, description FROM " + tempTable2 + " WHERE id = ?")) {
                 ps.setInt(1, 2001);
-                ResultSet rs = ps.executeQuery();
-                assertTrue(rs.next());
-                assertEquals(2001, rs.getInt("id"));
-                assertEquals("Param5", rs.getString("description"));
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(2001, rs.getInt("id"));
+                    assertEquals("Param5", rs.getString("description"));
+                }
             }
 
             // Cleanup

@@ -1239,8 +1239,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         boolean isScopeTempTablesToConnection = connection.getPrepareMethod()
                 .equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString());
 
-        // If using scopeTempTablesToConnection method, check if temp tables are present
-        // in the SQLisScopeTempTablesToConnectionns
+        // For prepareMethod=none, always send direct SQL. For prepareMethod=scopeTempTablesToConnection,
+        // send direct SQL only when temporary table operations are detected in the user SQL.
         if (isPrepareMethodNone || (isScopeTempTablesToConnection && containsTemporaryTableOperations(userSQL))) {
             // Build direct SQL using enhanced replaceParameterMarkers with direct values
             String directSQL = replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params, false);
@@ -3082,9 +3082,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Make sure any previous maxRows limitation on the connection is removed.
         connection.setMaxRows(0);
 
-        // For scopeTempTablesToConnection method, handle batch execution with literal
-        // parameter substitution
-        // only if temp tables are detected in the SQL
+        // For prepareMethod=NONE, always handle batch execution with literal parameter
+        // substitution (direct SQL). For scopeTempTablesToConnection, use this path with
+        // literal parameter substitution only if temp table operations are detected in the SQL.
         if (isPrepareMethodNone || isScopeTempTablesToConnection) {
             doExecuteExecMethodBatchCombined(batchCommand);
             return;
