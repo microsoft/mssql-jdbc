@@ -169,21 +169,29 @@ public class SQLServerStatement implements ISQLServerStatement {
     /** trace ID */
     final private String traceID;
 
-    /** statement ID for performance tracking */
+    /** 
+     * Generated sequentially via nextStatementID() at construction time.
+     */
     final private int statementID;
 
     /**
-     * Returns the statement ID for performance tracking
+     * Returns the unique statement ID for performance metrics correlation.
      * @return the statement ID
      */
     final int getStatementID() {
         return statementID;
     }
 
-    /** Performance tracking: scope for tracking creation to first packet */
+    /** 
+     * Scope for tracking request build time (STATEMENT_REQUEST_BUILD activity).
+     * Measures time from statement execution start until first packet is sent.
+     */
     private transient PerformanceLog.Scope creationToFirstPacketScope;
 
-    /** Performance tracking: scope for tracking first packet to first response */
+    /** 
+     * Scope for tracking server roundtrip time (STATEMENT_SERVER_ROUNDTRIP activity).
+     * Measures time from first packet sent until first response received.
+     */
     private transient PerformanceLog.Scope firstPacketToFirstResponseScope;
 
     String getClassNameLogging() {
@@ -266,14 +274,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         do {
             cont = false;
             
-            // Start performance tracking: time from statement creation to first packet sent
-            // This is started per execution attempt to avoid including retry backoff/sleep time
-
-            // Moved startCreationToFirstPacketTracking() inside the do-while retry loop so it 
-            // starts fresh for each execution attempt
-            // Added endCreationToFirstPacketTracking() before the Thread.sleep() 
-            // call in the retry path to ensure the scope is closed before sleeping 
-            // - this prevents retry backoff time from being included in the metrics
+            // Start request build time tracking for this execution attempt.
             startCreationToFirstPacketTracking();
             
             try {
@@ -309,8 +310,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                             throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
                         }
                         
-                        // Close the creation scope before sleeping for retry
-                        // This ensures the retry backoff time is not included in metrics
+                        // Close the creation scope
                         endCreationToFirstPacketTracking();
                         
                         try {
@@ -355,8 +355,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Starts tracking time from statement creation to first packet sent.
-     * This is called at the beginning of executeStatement().
+     * Starts tracking request build time (STATEMENT_REQUEST_BUILD activity).
+     * Measures time spent preparing and serializing the request before sending.
      */
     final void startCreationToFirstPacketTracking() {
         if (creationToFirstPacketScope == null) {
@@ -370,8 +370,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Ends tracking time from statement creation to first packet sent.
-     * This is called just before startResponse() which sends the first packet.
+     * Ends tracking request build time.
+     * Called just before sending the request packet to the server.
      */
     final void endCreationToFirstPacketTracking() {
         if (creationToFirstPacketScope != null) {
@@ -381,8 +381,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Starts tracking time from first packet sent to first response received.
-     * This is called just before startResponse().
+     * Starts tracking server roundtrip time (STATEMENT_SERVER_ROUNDTRIP activity).
+     * Measures network latency plus SQL Server execution time.
      */
     final void startFirstPacketToFirstResponseTracking() {
         if (firstPacketToFirstResponseScope == null) {
@@ -396,8 +396,8 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Ends tracking time from first packet sent to first response received.
-     * This is called just after startResponse() returns.
+     * Ends tracking server roundtrip time.
+     * Called after receiving the first response from the server.
      */
     final void endFirstPacketToFirstResponseTracking() {
         if (firstPacketToFirstResponseScope != null) {
@@ -1054,22 +1054,19 @@ public class SQLServerStatement implements ISQLServerStatement {
             if (stmtlogger.isLoggable(java.util.logging.Level.FINE))
                 stmtlogger.fine(toString() + " Executing (not server cursor) " + sql);
 
-            // Performance tracking: end "creation to first packet" tracking
-            // startResponse() will send the packet to the server
-            // for regular statements
+            // End request build time tracking
             endCreationToFirstPacketTracking();
 
-            // Performance tracking: track statement execution time
+            // Track statement execution time
             try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                     PerformanceLog.perfLoggerStatement,
                     connection.getConnectionID(),
                     getStatementID(),
                     PerformanceActivity.STATEMENT_EXECUTE)) {
                 try {
-                    // Performance tracking: start "first packet to first response" tracking
+                    // Track server roundtrip time
                     startFirstPacketToFirstResponseTracking();
                     try {
-                        // Start the response - this sends the packet and reads response
                         ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
                     } finally {
                         endFirstPacketToFirstResponseTracking();
@@ -1154,21 +1151,19 @@ public class SQLServerStatement implements ISQLServerStatement {
         tdsWriter.sendEnclavePackage(batchStatementString, execCmd.enclaveCEKs);
         tdsWriter.writeString(batchStatementString);
 
-        // Performance tracking: end "creation to first packet" tracking
-        // for batch execution
+        // End request build time tracking
         endCreationToFirstPacketTracking();
 
-        // Performance tracking: track statement execution time
+        // Track batch execution time
         try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
                 getStatementID(),
                 PerformanceActivity.STATEMENT_EXECUTE)) {
             try {
-                // Performance tracking: start "first packet to first response" tracking
+                // Track server roundtrip time
                 startFirstPacketToFirstResponseTracking();
                 try {
-                    // Start the response
                     ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
                 } finally {
                     endFirstPacketToFirstResponseTracking();
@@ -2315,18 +2310,17 @@ public class SQLServerStatement implements ISQLServerStatement {
         // <rowcount> OUT
         tdsWriter.writeRPCInt(null, 0, true);
 
-        // Performance tracking: end "creation to first packet" tracking
-        // for cursor-based execution
+        // End request build time tracking
         endCreationToFirstPacketTracking();
 
-        // Performance tracking: track statement execution time
+        // Track cursor execution time
         try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
                 getStatementID(),
                 PerformanceActivity.STATEMENT_EXECUTE)) {
             try {
-                // Performance tracking: start "first packet to first response" tracking
+                // Track server roundtrip time
                 startFirstPacketToFirstResponseTracking();
                 try {
                     ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));

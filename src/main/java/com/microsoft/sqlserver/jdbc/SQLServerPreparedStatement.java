@@ -696,20 +696,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
                         command);
 
-                // Performance tracking: end "creation to first packet" tracking
-                // Prepared statement
+                // End request build time tracking
                 endCreationToFirstPacketTracking();
 
-                // Performance tracking: track statement execution time
-                // Use STATEMENT_PREPEXEC when sp_prepexec is used (combined prepare+execute),
-                // otherwise use STATEMENT_EXECUTE
+                // Track statement execution (PREPEXEC or EXECUTE based on execution path)
                 try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                         PerformanceLog.perfLoggerStatement,
                         connection.getConnectionID(),
                         getStatementID(),
                         usedPrepExec ? PerformanceActivity.STATEMENT_PREPEXEC : PerformanceActivity.STATEMENT_EXECUTE)) {
                     try {
-                        // Performance tracking: start "first packet to first response" tracking
+                        // Track server roundtrip time
                         startFirstPacketToFirstResponseTracking();
                         try {
                             ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
@@ -732,14 +729,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     connection.invalidateEnclaveSessionCache();
                 }
                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false)) {
-                    // Reset tracking for retry - close any previously-started scope first
-                    // in case the prior attempt failed before endCreationToFirstPacketTracking() ran
-
-                    // The startCreationToFirstPacketTracking() method checks if creationToFirstPacketScope == null 
-                    // before creating a new scope. If an exception occurs before endCreationToFirstPacketTracking() runs, 
-                    // the old scope remains non-null, and the next call to startCreationToFirstPacketTracking() in the retry path will be a no-op.
-                    // The fix should call endCreationToFirstPacketTracking() before startCreationToFirstPacketTracking() 
-                    // in the retry path to ensure any previously-started scope is closed/reset first.
+                    // Reset tracking for retry - end first to clear any incomplete scope
+                    // from failed attempt before starting fresh tracking
                     endCreationToFirstPacketTracking();
                     startCreationToFirstPacketTracking();
                     continue;
@@ -3157,7 +3148,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         TDSWriter tdsWriter = null;
         
         // Performance tracking: track statement execution time for the entire batch
-        // Use STATEMENT_EXECUTE since batch execution uses sp_executesql/sp_execute
         try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
@@ -3265,10 +3255,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     needsPrepare = doPrepExec(tdsWriter, batchParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
                             batchCommand);
                     if (needsPrepare || numBatchesPrepared == numBatches) {
-                        // Performance tracking: end "creation to first packet" tracking (for first batch only)
+                        // End request build time tracking
                         endCreationToFirstPacketTracking();
 
-                        // Performance tracking: start "first packet to first response" tracking
+                        // Track server roundtrip time
                         startFirstPacketToFirstResponseTracking();
                         try {
                             ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
@@ -3303,7 +3293,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                     buildExecParams(tdsWriter);
                                     sendParamsByRPC(tdsWriter, batchParam);
 
-                                    // Performance tracking: start "first packet to first response" tracking for sp_execute
+                                    // Track server roundtrip time for sp_execute
                                     startFirstPacketToFirstResponseTracking();
                                     try {
                                         ensureExecuteResultsReader(
@@ -3440,20 +3430,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             TDSWriter tdsWriter = batchCommand.startRequest(TDS.PKT_QUERY);
             tdsWriter.writeString(sqlScript.toString());
 
-            // Performance tracking: end "creation to first packet" tracking
+            // End request build time tracking
             endCreationToFirstPacketTracking();
 
-            // Performance tracking: track statement execution time for the entire batch
+            // Track batch execution time
             try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                     PerformanceLog.perfLoggerStatement,
                     connection.getConnectionID(),
                     getStatementID(),
                     PerformanceActivity.STATEMENT_EXECUTE)) {
                 try {
-                    // Performance tracking: start "first packet to first response" tracking
+                    // Track server roundtrip time
                     startFirstPacketToFirstResponseTracking();
                     try {
-                        // Process the response
                         ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
                     } finally {
                         endFirstPacketToFirstResponseTracking();
