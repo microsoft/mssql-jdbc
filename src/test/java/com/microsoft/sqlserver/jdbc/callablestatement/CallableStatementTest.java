@@ -1258,7 +1258,6 @@ public class CallableStatementTest extends AbstractTest {
             cs.setObject("smalldatetime_param", Timestamp.valueOf("2024-07-16 14:30:00"));
 
             cs.execute();
-
             Calendar cal = null;
             
             // getDate(String, Calendar)
