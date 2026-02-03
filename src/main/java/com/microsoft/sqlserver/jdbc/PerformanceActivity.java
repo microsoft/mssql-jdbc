@@ -79,6 +79,9 @@ public enum PerformanceActivity {
      * Start: startResponse() begins - packet sent to server
      * End: First response packet received from server
      * 
+     * In non-adaptive (full buffering) mode this therefore reflects the time to
+     * fully buffer the entire response on the client, not just the first-byte latency.
+     * 
      * This represents the "server-side" time from client's perspective,
      * including network transit in both directions.
      */

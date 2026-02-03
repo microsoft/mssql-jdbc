@@ -8,12 +8,42 @@ The driver provides fine-grained performance tracking for both connection and st
 
 ## Configuration
 
-Performance logging can be enabled via connection property:
-```
-performanceLogger=true
+Performance metrics can be enabled via two mechanisms:
+
+### 1. Programmatic Callback Registration
+
+Register a `PerformanceLogCallback` to receive performance data programmatically:
+
+```java
+SQLServerDriver.registerPerformanceLogCallback((activity, connectionId, statementId, 
+        durationNanos, exception) -> {
+    // Handle performance metrics
+    System.out.printf("Activity: %s, Connection: %d, Statement: %d, Duration: %d ns%n",
+            activity, connectionId, statementId, durationNanos);
+});
 ```
 
-Custom callbacks can be registered to receive performance data programmatically.
+### 2. Java Logging Configuration
+
+Configure `java.util.logging` for the performance metrics loggers at `FINE` level:
+
+```properties
+# In logging.properties
+com.microsoft.sqlserver.jdbc.PerformanceMetrics.Connection.level = FINE
+com.microsoft.sqlserver.jdbc.PerformanceMetrics.Statement.level = FINE
+handlers = java.util.logging.ConsoleHandler
+java.util.logging.ConsoleHandler.level = FINE
+```
+
+Or programmatically:
+```java
+Logger.getLogger("com.microsoft.sqlserver.jdbc.PerformanceMetrics.Connection")
+      .setLevel(Level.FINE);
+Logger.getLogger("com.microsoft.sqlserver.jdbc.PerformanceMetrics.Statement")
+      .setLevel(Level.FINE);
+```
+
+Both mechanisms can be used simultaneously.
 
 ---
 
@@ -163,11 +193,11 @@ try (PerformanceLog.Scope scope = PerformanceLog.createScope(
 
 ### For timing-only metrics:
 ```java
-startRequestBuildTracking();
+startCreationToFirstPacketTracking();
 try {
     // Work
 } finally {
-    endRequestBuildTracking();
+    endCreationToFirstPacketTracking();
 }
 ```
 

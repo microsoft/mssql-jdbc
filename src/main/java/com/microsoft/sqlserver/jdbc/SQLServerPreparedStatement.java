@@ -1342,7 +1342,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private void doPrep(TDSWriter tdsWriter, TDSCommand command) throws SQLServerException {
         buildPrepParams(tdsWriter);
 
-        // Performance tracking: track time for sp_prepare
+        // End request build time tracking before sending to server
+        endCreationToFirstPacketTracking();
+
+        // Track sp_prepare execution time
         try (PerformanceLog.Scope prepareScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
