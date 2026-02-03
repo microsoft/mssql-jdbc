@@ -15,11 +15,22 @@ Performance metrics can be enabled via two mechanisms:
 Register a `PerformanceLogCallback` to receive performance data programmatically:
 
 ```java
-SQLServerDriver.registerPerformanceLogCallback((activity, connectionId, statementId, 
-        durationNanos, exception) -> {
-    // Handle performance metrics
-    System.out.printf("Activity: %s, Connection: %d, Statement: %d, Duration: %d ns%n",
-            activity, connectionId, statementId, durationNanos);
+SQLServerDriver.registerPerformanceLogCallback(new PerformanceLogCallback() {
+    @Override
+    public void publish(PerformanceActivity activity, int connectionId, long durationMs, 
+            Exception exception) {
+        // Handle connection-level metrics
+        System.out.printf("Activity: %s, Connection: %d, Duration: %d ms%n",
+                activity, connectionId, durationMs);
+    }
+
+    @Override
+    public void publish(PerformanceActivity activity, int connectionId, int statementId, 
+            long durationMs, Exception exception) {
+        // Handle statement-level metrics
+        System.out.printf("Activity: %s, Connection: %d, Statement: %d, Duration: %d ms%n",
+                activity, connectionId, statementId, durationMs);
+    }
 });
 ```
 
@@ -84,7 +95,7 @@ Both mechanisms can be used simultaneously.
 | Activity | Description |
 |----------|-------------|
 | `STATEMENT_REQUEST_BUILD` | Client-side time to build TDS request (parameter binding, SQL processing) |
-| `STATEMENT_SERVER_ROUNDTRIP` | Network roundtrip + server processing time |
+| `STATEMENT_FIRST_SERVER_RESPONSE` | Time from packet sent to first response received |
 | `STATEMENT_PREPARE` | Time to prepare a statement using `sp_prepare` |
 | `STATEMENT_PREPEXEC` | Time for combined prepare+execute using `sp_prepexec` |
 | `STATEMENT_EXECUTE` | Time to execute a statement |
@@ -96,7 +107,7 @@ Both mechanisms can be used simultaneously.
 - **Applies To**: All statement types (Statement, PreparedStatement, CallableStatement)
 - **Note**: Restarts on retry to exclude retry backoff/sleep time from metrics
 
-### STATEMENT_SERVER_ROUNDTRIP
+### STATEMENT_FIRST_SERVER_RESPONSE
 - **Scope**: Around `startResponse()` which sends packet and reads response
 - **Measures**: Network latency (both directions) + SQL Server query processing time
 - **Exception Tracking**: No (timing-only metric)
@@ -165,7 +176,7 @@ Both mechanisms can be used simultaneously.
 | LOGIN | ✅ Yes |
 | TOKEN_ACQUISITION | ✅ Yes |
 | STATEMENT_REQUEST_BUILD | ❌ No (timing-only) |
-| STATEMENT_SERVER_ROUNDTRIP | ❌ No (timing-only) |
+| STATEMENT_FIRST_SERVER_RESPONSE | ❌ No (timing-only) |
 | STATEMENT_PREPARE | ✅ Yes |
 | STATEMENT_PREPEXEC | ✅ Yes |
 | STATEMENT_EXECUTE | ✅ Yes |

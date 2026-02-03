@@ -189,7 +189,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     private transient PerformanceLog.Scope creationToFirstPacketScope;
 
     /** 
-     * Scope for tracking server roundtrip time (STATEMENT_SERVER_ROUNDTRIP activity).
+     * Scope for tracking time to first server response (STATEMENT_FIRST_SERVER_RESPONSE activity).
      * Measures time from first packet sent until first response received.
      */
     private transient PerformanceLog.Scope firstPacketToFirstResponseScope;
@@ -310,8 +310,9 @@ public class SQLServerStatement implements ISQLServerStatement {
                             throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
                         }
                         
-                        // Close the creation scope
-                        endCreationToFirstPacketTracking();
+                        // Note: The finally block closes the creationToFirstPacketScope BEFORE we sleep here.
+                        // This is intentional - the retry backoff time should not be included in metrics.
+                        // A new scope will be started at the top of the next loop iteration.
                         
                         try {
                             Thread.sleep(TimeUnit.SECONDS.toMillis(timeToWait));
@@ -330,6 +331,15 @@ public class SQLServerStatement implements ISQLServerStatement {
                     throw e;
                 }
             } finally {
+                // Close the request build scope in finally block to ensure it's closed on ALL paths:
+                // 1. Success path - statement executed successfully
+                // 2. Retry path - exception caught but retrying (scope must close before sleep)
+                // 3. Exception path - exception propagated to caller
+                // Without this, an unclosed scope would leak and potentially skew metrics
+                // by including unrelated time (like retry backoff sleep time).
+                // Safe to call even if already closed - null check is performed inside.
+                endCreationToFirstPacketTracking();
+                
                 if (newStmtCmd.wasExecuted()) {
                     lastStmtExecCmd = newStmtCmd;
                 }
@@ -381,7 +391,7 @@ public class SQLServerStatement implements ISQLServerStatement {
     }
 
     /**
-     * Starts tracking server roundtrip time (STATEMENT_SERVER_ROUNDTRIP activity).
+     * Starts tracking time to first server response (STATEMENT_FIRST_SERVER_RESPONSE activity).
      * Measures network latency plus SQL Server execution time.
      */
     final void startFirstPacketToFirstResponseTracking() {
@@ -390,7 +400,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
                 getStatementID(),
-                PerformanceActivity.STATEMENT_SERVER_ROUNDTRIP
+                PerformanceActivity.STATEMENT_FIRST_SERVER_RESPONSE
             );
         }
     }

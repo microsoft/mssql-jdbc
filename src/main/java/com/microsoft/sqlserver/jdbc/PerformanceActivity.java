@@ -16,7 +16,7 @@ package com.microsoft.sqlserver.jdbc;
  * 
  * Statement-Level Activities:
  * - STATEMENT_REQUEST_BUILD: Client-side request building time
- * - STATEMENT_SERVER_ROUNDTRIP: Time from packet sent to first response received
+ * - STATEMENT_FIRST_SERVER_RESPONSE: Time from packet sent to first response received
  * - STATEMENT_PREPARE: sp_prepare execution time
  * - STATEMENT_PREPEXEC: sp_prepexec (combined prepare+execute) time
  * - STATEMENT_EXECUTE: Statement execution time
@@ -85,7 +85,7 @@ public enum PerformanceActivity {
      * This represents the "server-side" time from client's perspective,
      * including network transit in both directions.
      */
-    STATEMENT_SERVER_ROUNDTRIP("Server roundtrip time"),
+    STATEMENT_FIRST_SERVER_RESPONSE("First server response"),
 
     /**
      * Time to prepare a statement using sp_prepare.
