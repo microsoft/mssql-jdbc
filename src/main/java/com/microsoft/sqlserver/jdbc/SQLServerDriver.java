@@ -554,7 +554,7 @@ enum VectorTypeSupport {
     private static void throwInvalid(String value) throws SQLServerException {
         MessageFormat form =
                 new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
-        Object[] msgArgs = {"vectorTypeSupport", value};
+        Object[] msgArgs = {value};
         throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
     }
 }

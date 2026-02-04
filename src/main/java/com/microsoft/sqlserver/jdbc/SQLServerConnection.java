@@ -7197,8 +7197,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * - If both support v1, negotiated version is v1
      * - Otherwise, use the minimum supported version
      *
-     * @param clientVectorSupport The client's vector type support setting
-     * @param serverVersion       The server's supported vector version
+     * @param clientVectorSupportEnum The client's vector type support setting
+     * @param serverVersion           The server's supported vector version
      * @return The negotiated vector version
      */
     private byte negotiateVectorVersion(VectorTypeSupport clientVectorSupportEnum, byte serverVersion) {
