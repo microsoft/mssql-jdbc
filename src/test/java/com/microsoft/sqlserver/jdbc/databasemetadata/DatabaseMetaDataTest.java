@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -1087,6 +1088,191 @@ public class DatabaseMetaDataTest extends AbstractTest {
             TestUtils.dropDatabaseIfExists(dbName, connectionString);
         }
     }
+
+    /**
+     * Test for issue #2863: DatabaseMetaData getSchemas returns only one "dbo" schema with a null TABLE_CATALOG
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testGetSchemasReturnsCorrectCatalogForDbo() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testDb1 = "TestDb1_" + id;
+        String testDb2 = "TestDb2_" + id;
+
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+            TestUtils.dropDatabaseIfExists(testDb1, connectionString);
+            TestUtils.dropDatabaseIfExists(testDb2, connectionString);
+            
+            stmt.execute(String.format("CREATE DATABASE [%s]", testDb1));
+            stmt.execute(String.format("CREATE DATABASE [%s]", testDb2));
+
+            try (ResultSet rs = connection.getMetaData().getSchemas(null, "dbo")) {
+                while (rs.next()) {
+                    String schemaName = rs.getString("TABLE_SCHEM");
+                    String catalogName = rs.getString("TABLE_CATALOG");
+                    
+                    // Issue #2863: TABLE_CATALOG should not be null for dbo schema
+                    assertNotNull(catalogName, 
+                        "TABLE_CATALOG should not be null for schema: " + schemaName);
+                }
+            }
+
+        } finally {
+            TestUtils.dropDatabaseIfExists(testDb1, connectionString);
+            TestUtils.dropDatabaseIfExists(testDb2, connectionString);
+        }
+    }
+
+    /**
+     * Validates that when a non-null catalog is specified, TABLE_CATALOG matches the specified catalog
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testGetSchemasWithSpecificCatalogForConstSchema() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testDb = "TestDbConst_" + id;
+
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+            TestUtils.dropDatabaseIfExists(testDb, connectionString);
+            
+            stmt.execute(String.format("CREATE DATABASE [%s]", testDb));
+            stmt.execute(String.format("USE [%s]", testDb));
+
+            // Test with specific catalog for dbo (const schema)
+            try (ResultSet rs = connection.getMetaData().getSchemas(testDb, "dbo")) {
+                boolean foundDbo = false;
+                while (rs.next()) {
+                    String schemaName = rs.getString("TABLE_SCHEM");
+                    String catalogName = rs.getString("TABLE_CATALOG");
+                    
+                    if ("dbo".equals(schemaName)) {
+                        foundDbo = true;
+                        assertNotNull(catalogName, 
+                            "TABLE_CATALOG should not be null for const schema 'dbo' with specific catalog");
+                        assertEquals(testDb, catalogName,
+                            "TABLE_CATALOG should match specified catalog for const schema 'dbo'");
+                    }
+                }
+                assertTrue(foundDbo, "dbo schema should be found in specified catalog");
+            }
+
+        } finally {
+            TestUtils.dropDatabaseIfExists(testDb, connectionString);
+        }
+    }
+
+    /**
+     * Tests sys, INFORMATION_SCHEMA, guest, and db_owner schemas
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testGetSchemasForOtherConstSchemas() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testDb = "TestDbOtherConst_" + id;
+        String[] otherConstSchemas = {"sys", "INFORMATION_SCHEMA", "guest", "db_owner"};
+
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+            TestUtils.dropDatabaseIfExists(testDb, connectionString);
+            
+            stmt.execute(String.format("CREATE DATABASE [%s]", testDb));
+            stmt.execute(String.format("USE [%s]", testDb));
+
+            for (String schemaName : otherConstSchemas) {
+                try (ResultSet rs = connection.getMetaData().getSchemas(null, schemaName)) {
+                    boolean foundSchema = false;
+                    while (rs.next()) {
+                        String returnedSchemaName = rs.getString("TABLE_SCHEM");
+                        String catalogName = rs.getString("TABLE_CATALOG");
+                        
+                        if (schemaName.equals(returnedSchemaName)) {
+                            foundSchema = true;
+                            assertNotNull(catalogName, 
+                                "TABLE_CATALOG should not be null for const schema: " + schemaName);
+                            assertEquals(testDb, catalogName,
+                                "TABLE_CATALOG should match current database for const schema: " + schemaName);
+                        }
+                    }
+                    assertTrue(foundSchema, "Const schema '" + schemaName + "' should be found");
+                }
+            }
+
+        } finally {
+            TestUtils.dropDatabaseIfExists(testDb, connectionString);
+        }
+    }
+
+    /**
+     * Validates that custom user-created schemas also return correct TABLE_CATALOG
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testGetSchemasWithCatalogForCustomSchema() throws SQLException {
+        UUID id = UUID.randomUUID();
+        String testDb = "TestDbCustom_" + id;
+        String customSchema = "CustomSchema_" + id;
+
+        try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+            TestUtils.dropDatabaseIfExists(testDb, connectionString);
+            
+            stmt.execute(String.format("CREATE DATABASE [%s]", testDb));
+            stmt.execute(String.format("USE [%s]", testDb));
+            stmt.execute(String.format("CREATE SCHEMA [%s]", customSchema));
+
+            // Test with specific catalog and custom schema
+            try (ResultSet rs = connection.getMetaData().getSchemas(testDb, customSchema)) {
+                boolean foundCustomSchema = false;
+                while (rs.next()) {
+                    String schemaName = rs.getString("TABLE_SCHEM");
+                    String catalogName = rs.getString("TABLE_CATALOG");
+                    
+                    if (customSchema.equals(schemaName)) {
+                        foundCustomSchema = true;
+                        // Custom schema with specified catalog should have non-null TABLE_CATALOG
+                        assertNotNull(catalogName, 
+                            "TABLE_CATALOG should not be null for custom schema: " + customSchema);
+                        assertEquals(testDb, catalogName,
+                            "TABLE_CATALOG should match specified catalog for custom schema");
+                    }
+                }
+                assertTrue(foundCustomSchema, "Custom schema should be found in specified catalog");
+            }
+
+            // Test with null catalog and custom schema
+            try (ResultSet rs = connection.getMetaData().getSchemas(null, customSchema)) {
+                boolean foundCustomSchema = false;
+                while (rs.next()) {
+                    String schemaName = rs.getString("TABLE_SCHEM");
+                    String catalogName = rs.getString("TABLE_CATALOG");
+                    
+                    if (customSchema.equals(schemaName)) {
+                        foundCustomSchema = true;
+                        // Custom schema should have non-null TABLE_CATALOG even with null catalog parameter
+                        assertNotNull(catalogName, 
+                            "TABLE_CATALOG should not be null for custom schema with null catalog parameter");
+                        assertEquals(testDb, catalogName,
+                            "TABLE_CATALOG should match current database for custom schema");
+                    }
+                }
+                assertTrue(foundCustomSchema, "Custom schema should be found with null catalog parameter");
+            }
+
+        } finally {
+            TestUtils.dropDatabaseIfExists(testDb, connectionString);
+        }
+    }
+
     /**
      * Test for VECTOR column metadata
      * 
@@ -1197,6 +1383,146 @@ public class DatabaseMetaDataTest extends AbstractTest {
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("DROP TABLE IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(jsonTableName));
+            }
+        }
+    }
+
+    /**
+     * Validates that all SQL Server data type columns are present in {@code DatabaseMetaData.getColumns()}.
+     * 
+     * This test creates a table with various SQL Server-specific data types and verifies that
+     * all columns are returned by the {@code getColumns()} method.
+     * 
+     * Note: The {@code SQL_DATA_TYPE} column contains the native SQL Server type code, which
+     * differs from the JDBC {@code DATA_TYPE} values. The JDBC driver maps these to
+     * {@code microsoft.sql.Types} constants for driver-specific types.
+     * 
+     * @throws SQLException if a database access error occurs
+     */
+    @Test
+    public void testGetColumnsDataTypesMapping() throws SQLException {
+        String dataTypesTableName = RandomUtil.getIdentifier("DataTypesMappingTable");
+        try (Connection conn = getConnection(); 
+                Statement stmt = conn.createStatement()) {
+
+            String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(dataTypesTableName) + " (" + 
+                    "col_datetimeoffset   DATETIMEOFFSET(7), " +
+                    "col_datetime         DATETIME, " +
+                    "col_smalldatetime    SMALLDATETIME, " +
+                    "col_money            MONEY, " +
+                    "col_smallmoney       SMALLMONEY, " +
+                    "col_guid             UNIQUEIDENTIFIER, " +
+                    "col_sql_variant      SQL_VARIANT, " +
+                    "col_geometry         GEOMETRY, " +
+                    "col_geography        GEOGRAPHY " +
+                    ")";
+            
+            stmt.execute(createTableSQL);
+
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+            assertNotNull(databaseMetaData, "DatabaseMetaData should not be null");
+
+            // Expected column names from the CREATE TABLE statement
+            Set<String> expectedColumns = new LinkedHashSet<>();
+            expectedColumns.add("col_datetimeoffset");
+            expectedColumns.add("col_datetime");
+            expectedColumns.add("col_smalldatetime");
+            expectedColumns.add("col_money");
+            expectedColumns.add("col_smallmoney");
+            expectedColumns.add("col_guid");
+            expectedColumns.add("col_sql_variant");
+            expectedColumns.add("col_geometry");
+            expectedColumns.add("col_geography");
+
+            Set<String> foundColumns = new HashSet<>();
+
+            try (ResultSet resultSet = databaseMetaData.getColumns(null, null, 
+                                        dataTypesTableName, "%")) {
+
+                while (resultSet.next()) {
+                    String columnName = resultSet.getString("COLUMN_NAME");
+                    String typeName = resultSet.getString("TYPE_NAME");
+                    
+                    // SQL_DATA_TYPE contains native SQL Server type codes which differ from JDBC DATA_TYPE values.
+                    // The JDBC driver maps these to microsoft.sql.Types constants for driver-specific types.
+                    // int sqlDataType = resultSet.getInt("SQL_DATA_TYPE");
+                    // System.out.println("Column: " + columnName + ", TYPE_NAME: " + typeName + ", SQL_DATA_TYPE: " + sqlDataType);
+
+                    foundColumns.add(columnName);
+                }
+            }
+
+            // Verify that all expected columns are present
+            assertEquals(expectedColumns.size(), foundColumns.size(),
+                    "Number of columns found does not match expected");
+
+            for (String expectedColumn : expectedColumns) {
+                assertTrue(foundColumns.contains(expectedColumn),
+                        "Column '" + expectedColumn + "' should be present in getColumns() result");
+            }
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(dataTypesTableName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Validates that JSON and VECTOR columns are present in {@code DatabaseMetaData.getColumns()}.
+     * 
+     * The {@code getColumns()} method internally calls the {@code sp_columns} system stored procedure
+     * to retrieve column metadata. JSON and VECTOR types are supported via {@code sp_columns_170},
+     * which is available in SQL Server 2025 and later. In earlier versions or unsupported environments,
+     * the driver falls back to {@code sp_columns_100}, which returns {@code null} for these types.
+     * 
+     * Note: The {@code DATA_TYPE} value returned by the JDBC driver may differ from the SQL Server
+     * native type code. To retrieve the actual SQL Server data type, access the {@code SQL_DATA_TYPE}
+     * column from the result set.
+     * 
+     * @throws SQLException if a database access error occurs
+     */
+    @Test
+    @vectorJsonTest
+    @Tag(Constants.xAzureSQLDB)
+    public void testGetColumnsMappingJsonAndVector() throws SQLException {
+        String dataTypesTableName = RandomUtil.getIdentifier("JsonVectorMappingTable");
+        try (Connection conn = getConnection(); 
+                Statement stmt = conn.createStatement()) {
+
+            String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(dataTypesTableName) + " (" + 
+                    "col_json           JSON, " +
+                    "col_vector         VECTOR(3) " +
+                    ")";
+            
+            stmt.execute(createTableSQL);
+
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+            assertNotNull(databaseMetaData, "DatabaseMetaData should not be null");
+
+            boolean jsonColumnFound = false;
+            boolean vectorColumnFound = false;
+
+            try (ResultSet resultSet = databaseMetaData.getColumns(null, null, 
+                                        dataTypesTableName, "%")) {
+
+                while (resultSet.next()) {
+                    String columnName = resultSet.getString("COLUMN_NAME");
+                    
+                    if ("col_json".equals(columnName)) {
+                        jsonColumnFound = true;
+                    } else if ("col_vector".equals(columnName)) {
+                        vectorColumnFound = true;
+                    }
+                }
+            }
+
+            // Verify that both columns are present in the result set
+            assertTrue(jsonColumnFound, "JSON column 'col_json' should be present in getColumns() result");
+            assertTrue(vectorColumnFound, "VECTOR column 'col_vector' should be present in getColumns() result");
+
+        } finally {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(dataTypesTableName, stmt);
             }
         }
     }

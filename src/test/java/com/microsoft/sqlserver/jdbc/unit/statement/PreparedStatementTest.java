@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -56,6 +57,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -114,6 +117,11 @@ public class PreparedStatementTest extends AbstractTest {
             assertEquals("prepare", conn.getPrepareMethod());
         }
 
+        String connectionStringExec = connectionString + ";prepareMethod=scopeTempTablesToConnection;";
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionStringExec)) {
+            assertEquals("scopeTempTablesToConnection", conn.getPrepareMethod());
+        }
+
         try (SQLServerConnection conn = (SQLServerConnection) getConnection()) {
             assertEquals("prepexec", conn.getPrepareMethod()); // default is prepexec
         }
@@ -137,6 +145,72 @@ public class PreparedStatementTest extends AbstractTest {
                 ps.executeUpdate(); // Takes sp_prepare path
                 ps.executeUpdate();
             }
+        }
+    }
+
+    @Test
+    public void testPreparedStatementWithExec() throws SQLException {
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName4)
+                + " (c1_nchar, c2_int) values (?, ?)";
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod("exec"); // Use exec method
+
+            executeSQL(con, "create table " + AbstractSQLGenerator.escapeIdentifier(tableName4)
+                    + " (c1_nchar nchar(512), c2_int integer)");
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                ps.setString(1, "test");
+                ps.setInt(2, 0);
+                ps.executeUpdate();
+                ps.executeUpdate();
+                ps.executeUpdate();
+            }
+        }
+    }
+    
+    @ParameterizedTest
+    @ValueSource(strings = {"prepexec", "prepare", "exec"})
+    public void testPreparedStatementWithDifferentPrepareMethods(String prepareMethod) throws SQLException {
+        String tableName = RandomUtil.getIdentifier("testTablePrepareMethod");
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (c1_int, c2_nvarchar, c3_datetime, c4_bit) values (?, ?, ?, ?)";
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod(prepareMethod);
+
+            executeSQL(con, "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (c1_int int, c2_nvarchar nvarchar(100), c3_datetime datetime2, c4_bit bit)");
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                // Test with different data types
+                ps.setInt(1, 123);
+                ps.setString(2, "test string");
+                ps.setTimestamp(3, java.sql.Timestamp.valueOf("2023-01-01 12:30:45.123"));
+                ps.setBoolean(4, true);
+                ps.executeUpdate();
+                
+                ps.setInt(1, 456);
+                ps.setString(2, "second test");
+                ps.setTimestamp(3, java.sql.Timestamp.valueOf("2023-01-02 13:31:46.456"));
+                ps.setBoolean(4, false);
+                ps.executeUpdate(); // Second execution should follow the prepare method path
+                
+                ps.setInt(1, 789);
+                ps.setString(2, "third test");
+                ps.setTimestamp(3, java.sql.Timestamp.valueOf("2023-01-03 14:32:47.789"));
+                ps.setBoolean(4, true);
+                ps.executeUpdate(); // Third execution should also follow the prepare method path
+            }
+
+            // Verify data was inserted correctly
+            try (Statement stmt = con.createStatement(); 
+                 ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                rs.next();
+                assertEquals(3, rs.getInt(1), "Should have 3 rows inserted");
+            }
+
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), con.createStatement());
         }
     }
     
@@ -1426,6 +1500,123 @@ public class PreparedStatementTest extends AbstractTest {
                 }
             } finally {
                 executeSQL(con, "DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
+            }
+        }
+    }
+
+    /**
+     * Test statement that generates both ResultSet and update count.
+     * This validates the driver's ability to handle statements that produce
+     * multiple result types,
+     * such as stored procedures that perform DML operations and return result sets.
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testStatementWithBothResultSetAndUpdateCount() throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            String tableName = RandomUtil.getIdentifier("testBothResults");
+            String procName = RandomUtil.getIdentifier("testBothResultsProc");
+
+            // Create test table
+            String createTableSql = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id INT IDENTITY(1,1) PRIMARY KEY, name NVARCHAR(50), value INT)";
+            executeSQL(con, createTableSql);
+
+            // Create stored procedure that does INSERT (update count) and SELECT
+            // (ResultSet)
+            String createProcSql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
+                    + " @name NVARCHAR(50), @value INT AS BEGIN "
+                    + "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (name, value) VALUES (@name, @value); "
+                    + "SELECT @@IDENTITY AS new_id, @name AS name, @value AS value; "
+                    + "END";
+            executeSQL(con, createProcSql);
+
+            String callSql = "{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?)}";
+
+            try (SQLServerPreparedStatement stmt = (SQLServerPreparedStatement) con.prepareStatement(callSql)) {
+                stmt.setString(1, "TestName");
+                stmt.setInt(2, 42);
+
+                // Execute the statement
+                boolean hasResultSet = stmt.execute();
+
+                // First result should be the update count from INSERT
+                assertFalse(hasResultSet, "First result should be update count, not ResultSet");
+                int updateCount = stmt.getUpdateCount();
+                assertEquals(1, updateCount, "Should have inserted 1 row");
+
+                // Move to next result - should be the ResultSet from SELECT
+                boolean hasMoreResults = stmt.getMoreResults();
+                assertTrue(hasMoreResults, "Should have a ResultSet after update count");
+
+                try (ResultSet rs = stmt.getResultSet()) {
+                    assertTrue(rs.next(), "ResultSet should have data");
+                    assertTrue(rs.getInt("new_id") > 0, "Should have generated identity value");
+                    assertEquals("TestName", rs.getString("name"), "Name should match");
+                    assertEquals(42, rs.getInt("value"), "Value should match");
+                    assertFalse(rs.next(), "Should only have one row");
+                }
+
+                // Verify no more results
+                assertFalse(stmt.getMoreResults(), "Should have no more results");
+                assertEquals(-1, stmt.getUpdateCount(), "Update count should be -1 when no more results");
+            }
+
+            // Test with multiple DML operations and ResultSets
+            String procName2 = RandomUtil.getIdentifier("testMultipleResultsProc");
+            String createProc2Sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName2)
+                    + " AS BEGIN "
+                    + "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (name, value) VALUES ('First', 100); "
+                    + "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE value = 100; "
+                    + "UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " SET value = 200 WHERE value = 100; "
+                    + "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE value = 200; "
+                    + "END";
+            executeSQL(con, createProc2Sql);
+
+            String callSql2 = "{call " + AbstractSQLGenerator.escapeIdentifier(procName2) + "}";
+
+            try (SQLServerPreparedStatement stmt = (SQLServerPreparedStatement) con.prepareStatement(callSql2)) {
+                boolean hasResultSet = stmt.execute();
+
+                // Result 1: INSERT update count
+                assertFalse(hasResultSet, "Result 1 should be update count from INSERT");
+                assertEquals(1, stmt.getUpdateCount(), "Should have inserted 1 row");
+
+                // Result 2: First SELECT ResultSet
+                assertTrue(stmt.getMoreResults(), "Should have ResultSet from first SELECT");
+                try (ResultSet rs = stmt.getResultSet()) {
+                    assertTrue(rs.next(), "First SELECT should return data");
+                    assertEquals("First", rs.getString("name"));
+                    assertEquals(100, rs.getInt("value"));
+                }
+
+                // Result 3: UPDATE update count
+                // getMoreResults() returns false for update counts, use getUpdateCount()
+                // instead
+                assertFalse(stmt.getMoreResults(), "Next result is update count, not ResultSet");
+                assertEquals(1, stmt.getUpdateCount(), "Should have updated 1 row");
+
+                // Result 4: Second SELECT ResultSet
+                assertTrue(stmt.getMoreResults(), "Should have ResultSet from second SELECT");
+                try (ResultSet rs = stmt.getResultSet()) {
+                    assertTrue(rs.next(), "Second SELECT should return data");
+                    assertEquals("First", rs.getString("name"));
+                    assertEquals(200, rs.getInt("value"), "Value should be updated to 200");
+                }
+
+                // No more results
+                assertFalse(stmt.getMoreResults(), "Should have no more results");
+                assertEquals(-1, stmt.getUpdateCount(), "Should be -1 when no more results");
+            }
+
+            // Clean up
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(procName, stmt);
+                TestUtils.dropTableIfExists(procName2, stmt);
             }
         }
     }

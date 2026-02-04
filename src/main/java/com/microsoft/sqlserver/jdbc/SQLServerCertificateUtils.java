@@ -194,37 +194,67 @@ final class SQLServerCertificateUtils {
                         // more than one name of the same type."
                         // So, more than one entry of dnsNameType can be present.
                         // Java docs guarantee that the first entry in the list will be an integer.
-                        // 2 is the sequence no of a dnsName
-                        if ((key != null) && (key instanceof Integer) && ((Integer) key == 2)) {
-                            // As per RFC2459, the DNSName will be in the
-                            // "preferred name syntax" as specified by RFC
-                            // 1034 and the name can be in upper or lower case.
-                            // And no significance is attached to case.
-                            // Java docs guarantee that the second entry in the list
-                            // will be a string for dnsName
-                            if (value != null && value instanceof String) {
-                                dnsNameInSANCert = (String) value;
+                        // Per RFC 5280, GeneralName types: 2 = dNSName, 7 = iPAddress
+                        if ((key != null) && (key instanceof Integer)) {
+                            int sanType = (Integer) key;
 
-                                // Use English locale to avoid Turkish i issues.
-                                // Note that, this conversion was not necessary for
-                                // cert.getSubjectX500Principal().getName("canonical");
-                                // as the above API already does this by default as per documentation.
-                                dnsNameInSANCert = dnsNameInSANCert.toLowerCase(Locale.ENGLISH);
+                            if (sanType == 2) {
+                                // As per RFC2459, the DNSName will be in the
+                                // "preferred name syntax" as specified by RFC
+                                // 1034 and the name can be in upper or lower case.
+                                // And no significance is attached to case.
+                                // Java docs guarantee that the second entry in the list
+                                // will be a string for dnsName
+                                if (value != null && value instanceof String) {
+                                    dnsNameInSANCert = (String) value;
 
-                                isServerNameValidated = validateServerName(dnsNameInSANCert, hostName);
-                                if (isServerNameValidated) {
-                                    if (logger.isLoggable(Level.FINER)) {
-                                        logger.finer(
-                                                logContext + " found a valid name in certificate: " + dnsNameInSANCert);
+                                    // Use English locale to avoid Turkish i issues.
+                                    // Note that, this conversion was not necessary for
+                                    // cert.getSubjectX500Principal().getName("canonical");
+                                    // as the above API already does this by default as per documentation.
+                                    dnsNameInSANCert = dnsNameInSANCert.toLowerCase(Locale.ENGLISH);
+
+                                    isServerNameValidated = validateServerName(dnsNameInSANCert, hostName);
+                                    if (isServerNameValidated) {
+                                        if (logger.isLoggable(Level.FINER)) {
+                                            logger.finer(
+                                                    logContext + " found a valid name in certificate: " + dnsNameInSANCert);
+                                        }
+                                        break;
                                     }
-                                    break;
                                 }
-                            }
 
-                            if (logger.isLoggable(Level.FINER)) {
-                                logger.finer(logContext
-                                        + " the following name in certificate does not match the serverName: " + value);
-                                logger.finer(logContext + " certificate:\n" + cert.toString());
+                                if (logger.isLoggable(Level.FINER)) {
+                                    logger.finer(logContext
+                                            + " the following name in certificate does not match the serverName: " + value);
+                                    logger.finer(logContext + " certificate:\n" + cert.toString());
+                                }
+                            } else if (sanType == 7) {
+                                // iPAddress SAN entry - per RFC 5280, IP addresses in SAN are stored
+                                // as octet strings but Java's getSubjectAlternativeNames() returns
+                                // them as String representation of the IP address
+                                if (value != null && value instanceof String) {
+                                    String ipInCert = (String) value;
+
+                                    if (logger.isLoggable(Level.FINER)) {
+                                        logger.finer(logContext + " found IP address in SAN: " + ipInCert);
+                                    }
+
+                                    // IP addresses must match exactly (no wildcard support)
+                                    if (ipInCert.equalsIgnoreCase(hostName)) {
+                                        isServerNameValidated = true;
+                                        if (logger.isLoggable(Level.FINER)) {
+                                            logger.finer(
+                                                    logContext + " IP address in certificate matches: " + ipInCert);
+                                        }
+                                        break;
+                                    }
+                                }
+
+                                if (logger.isLoggable(Level.FINER)) {
+                                    logger.finer(logContext
+                                            + " the following IP in certificate does not match the serverName: " + value);
+                                }
                             }
                         }
                     } else {
