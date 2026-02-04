@@ -842,7 +842,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.SERVER_CERTIFICATE.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
                     SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(), false,
-                new String[] { PrepareMethod.NONE.toString(), PrepareMethod.PREPEXEC.toString(),
+            new String[] { PrepareMethod.NONE.toString(), PrepareMethod.PREPEXEC.toString(),
                     PrepareMethod.PREPARE.toString(), PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString() }),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(),
                     SQLServerDriverStringProperty.FAILOVER_PARTNER.getDefaultValue(), false, null),

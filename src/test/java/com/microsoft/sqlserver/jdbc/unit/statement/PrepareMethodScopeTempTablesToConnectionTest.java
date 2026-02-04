@@ -2129,4 +2129,189 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
             }
         }
     }
+
+    // ==================== prepareMethod=none Connection String Tests
+    // ====================
+    // Tests that use prepareMethod=none directly in the connection string
+    // instead of calling conn.setPrepareMethod("none")
+
+    /**
+     * Test prepareMethod=none set via connection string property
+     * Verifies the connection property works correctly when specified in URL
+     */
+    @Test
+    public void testPrepareMethodNoneViaConnectionString() throws SQLException {
+        String tableName = "#temp_none_connstr_" + ThreadLocalRandom.current().nextInt(1000, 9999);
+        String connStrWithNone = connectionString + ";prepareMethod=none";
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStrWithNone)) {
+            // Verify the prepareMethod is set correctly
+            assertEquals("none", conn.getPrepareMethod(), "prepareMethod should be 'none' from connection string");
+
+            // Create temp table
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "CREATE TABLE " + tableName + " (id INT, name VARCHAR(50))")) {
+                ps.execute();
+            }
+
+            // Insert data - should use direct SQL execution
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO " + tableName + " (id, name) VALUES (?, ?)")) {
+                ps.setInt(1, 1);
+                ps.setString(2, "Test1");
+                ps.executeUpdate();
+
+                ps.setInt(1, 2);
+                ps.setString(2, "Test2");
+                ps.executeUpdate();
+            }
+
+            // Verify data persists across PreparedStatements (proves direct SQL execution)
+            try (PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM " + tableName);
+                    ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                assertEquals(2, rs.getInt(1), "Should have 2 rows inserted");
+            }
+
+            // Cleanup
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test batch execution with prepareMethod=none set via connection string
+     */
+    @Test
+    public void testBatchExecutionWithPrepareMethodNoneViaConnectionString() throws SQLException {
+        String tableName = "#temp_none_batch_connstr_" + ThreadLocalRandom.current().nextInt(1000, 9999);
+        String connStrWithNone = connectionString + ";prepareMethod=none";
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStrWithNone)) {
+            // Create temp table
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "CREATE TABLE " + tableName + " (id INT, name VARCHAR(50), value DECIMAL(10,2))")) {
+                ps.execute();
+            }
+
+            // Batch insert using connection string prepareMethod=none
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO " + tableName + " VALUES (?, ?, ?)")) {
+                for (int i = 1; i <= 10; i++) {
+                    ps.setInt(1, i);
+                    ps.setString(2, "BatchItem" + i);
+                    ps.setBigDecimal(3, new BigDecimal(i * 5.5));
+                    ps.addBatch();
+                }
+
+                int[] results = ps.executeBatch();
+                assertEquals(10, results.length, "Should execute 10 batch statements");
+            }
+
+            // Verify all rows inserted
+            try (PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM " + tableName);
+                    ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                assertEquals(10, rs.getInt(1), "Should have 10 rows from batch insert");
+            }
+
+            // Cleanup
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test multiple data types with prepareMethod=none set via connection string
+     */
+    @Test
+    public void testMultipleDataTypesWithPrepareMethodNoneViaConnectionString() throws SQLException {
+        String tableName = "#temp_none_types_connstr_" + ThreadLocalRandom.current().nextInt(1000, 9999);
+        String connStrWithNone = connectionString + ";prepareMethod=none";
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStrWithNone)) {
+            // Create table with various data types
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "CREATE TABLE " + tableName + " (" +
+                            "col_int INT, col_bigint BIGINT, col_decimal DECIMAL(18,6), " +
+                            "col_varchar VARCHAR(100), col_nvarchar NVARCHAR(100), col_bit BIT)")) {
+                ps.execute();
+            }
+
+            // Insert with various data types
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO " + tableName + " VALUES (?, ?, ?, ?, ?, ?)")) {
+                ps.setInt(1, Integer.MAX_VALUE);
+                ps.setLong(2, Long.MAX_VALUE);
+                ps.setBigDecimal(3, new BigDecimal("999999.123456"));
+                ps.setString(4, "ASCII text");
+                ps.setNString(5, "Unicode: 日本語");
+                ps.setBoolean(6, true);
+                ps.executeUpdate();
+            }
+
+            // Verify data
+            try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM " + tableName);
+                    ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(Integer.MAX_VALUE, rs.getInt("col_int"));
+                assertEquals(Long.MAX_VALUE, rs.getLong("col_bigint"));
+                assertEquals(new BigDecimal("999999.123456"), rs.getBigDecimal("col_decimal"));
+                assertEquals("ASCII text", rs.getString("col_varchar"));
+                assertEquals("Unicode: 日本語", rs.getNString("col_nvarchar"));
+                assertTrue(rs.getBoolean("col_bit"));
+            }
+
+            // Cleanup
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test SELECT query with parameters using prepareMethod=none via connection
+     * string
+     */
+    @Test
+    public void testSelectQueryWithPrepareMethodNoneViaConnectionString() throws SQLException {
+        String tableName = "#temp_none_select_connstr_" + ThreadLocalRandom.current().nextInt(1000, 9999);
+        String connStrWithNone = connectionString + ";prepareMethod=none";
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStrWithNone)) {
+            // Create and populate table
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "CREATE TABLE " + tableName + " (id INT, category VARCHAR(20), amount DECIMAL(10,2))")) {
+                ps.execute();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO " + tableName + " VALUES (1, 'A', 100.00), (2, 'B', 200.00), " +
+                            "(3, 'A', 150.00), (4, 'C', 300.00), (5, 'A', 250.00)")) {
+                ps.execute();
+            }
+
+            // Parameterized SELECT query
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT id, amount FROM " + tableName + " WHERE category = ? AND amount > ?")) {
+                ps.setString(1, "A");
+                ps.setBigDecimal(2, new BigDecimal("120.00"));
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    int count = 0;
+                    while (rs.next()) {
+                        count++;
+                        assertTrue(rs.getBigDecimal("amount").compareTo(new BigDecimal("120.00")) > 0);
+                    }
+                    assertEquals(2, count, "Should find 2 rows with category='A' and amount > 120");
+                }
+            }
+
+            // Cleanup
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
 }

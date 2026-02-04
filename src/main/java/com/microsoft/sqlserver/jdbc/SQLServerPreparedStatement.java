@@ -134,6 +134,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean useBulkCopyForBatchInsert;
 
     /**
+     * Flag indicating whether this execution will use direct SQL execution
+     * (PKT_QUERY)
+     * instead of prepared statements (PKT_RPC). This is true when:
+     * - prepareMethod=none (always direct SQL), or
+     * - prepareMethod=scopeTempTablesToConnection AND temp table operations are
+     * detected
+     */
+    private boolean isDirectSqlExecution = false;
+
+    /**
      * For caching data related to batch insert with bulkcopy
      */
     private SQLServerBulkCopy bcOperation = null;
@@ -673,6 +683,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         boolean needsPrepare = true;
+
+        // Calculate isDirectSqlExecution flag early - needed for both caching decisions
+        // and execution path
+        // This determines if we'll use direct SQL (PKT_QUERY) vs prepared statements
+        // (PKT_RPC)
+        boolean isPrepareMethodNone = connection.getPrepareMethod().equals(PrepareMethod.NONE.toString());
+        boolean isScopeTempTablesToConnection = connection.getPrepareMethod()
+                .equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString());
+        isDirectSqlExecution = isPrepareMethodNone
+                || (isScopeTempTablesToConnection && containsTemporaryTableOperations(userSQL));
+
         // Retry execution if existing handle could not be re-used.
         for (int attempt = 1; attempt <= 2; ++attempt) {
             try {
@@ -685,13 +706,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // continue using it after we return.
                 // Use PKT_QUERY for exec mode (direct execution), PKT_RPC for prepared
                 // statements
-                boolean isPrepareMethodNone = connection.getPrepareMethod()
-                        .equals(PrepareMethod.NONE.toString());
-                boolean isScopeTempTablesToConnection = connection.getPrepareMethod()
-                        .equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())
-                        && containsTemporaryTableOperations(userSQL);
-                boolean isDirectSqlRequest = isPrepareMethodNone || isScopeTempTablesToConnection;
-                TDSWriter tdsWriter = command.startRequest(isDirectSqlRequest ? TDS.PKT_QUERY : TDS.PKT_RPC);
+                TDSWriter tdsWriter = command.startRequest(isDirectSqlExecution ? TDS.PKT_QUERY : TDS.PKT_RPC);
 
                 needsPrepare = doPrepExec(tdsWriter, inOutParam, hasNewTypeDefinitions, hasExistingTypeDefinitions,
                         command);
@@ -1132,9 +1147,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (isCursorable(executeMethod))
             return false;
 
-        // No caching for exec method as it always executes directly without preparation
-        if (connection.getPrepareMethod().equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())
-                || connection.getPrepareMethod().equals(PrepareMethod.NONE.toString())) {
+        // No caching when using direct SQL execution (prepareMethod=none or
+        // prepareMethod=scopeTempTablesToConnection with temp table operations
+        // detected)
+        if (isDirectSqlExecution) {
             return false;
         }
 
@@ -1234,14 +1250,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             boolean hasExistingTypeDefinitions, TDSCommand command) throws SQLServerException {
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
-        boolean isPrepareMethodNone = connection.getPrepareMethod().equals(PrepareMethod.NONE.toString());
         boolean isPrepareMethodSpPrepExec = connection.getPrepareMethod().equals(PrepareMethod.PREPEXEC.toString());
         boolean isScopeTempTablesToConnection = connection.getPrepareMethod()
                 .equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString());
 
         // For prepareMethod=none, always send direct SQL. For prepareMethod=scopeTempTablesToConnection,
         // send direct SQL only when temporary table operations are detected in the user SQL.
-        if (isPrepareMethodNone || (isScopeTempTablesToConnection && containsTemporaryTableOperations(userSQL))) {
+        // Use the isDirectSqlExecution flag that was calculated earlier in
+        // doExecutePreparedStatement()
+        if (isDirectSqlExecution) {
             // Build direct SQL using enhanced replaceParameterMarkersWithValues with direct values
             String directSQL = replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params, false);
             tdsWriter.writeString(directSQL);
