@@ -43,8 +43,14 @@ public class Engine {
         return this;
     }
 
-    /** Sets maximum number of actions to execute. Default is 500. */
+    /**
+     * Sets maximum number of actions to execute. Default is 500. Must be at least
+     * 1.
+     */
     public Engine withMaxActions(int n) {
+        if (n < 1) {
+            throw new IllegalArgumentException("maxActions must be at least 1, got: " + n);
+        }
         maxActions = n;
         return this;
     }
@@ -83,25 +89,37 @@ public class Engine {
                 for (Action a : valid) {
                     total += a.weight;
                 }
-                int pick = rand.nextInt(total);
-                int sum = 0;
-                Action selected = valid.get(0);
-                for (Action a : valid) {
-                    sum += a.weight;
-                    if (pick < sum) {
-                        selected = a;
-                        break;
+
+                Action selected;
+                if (total == 0) {
+                    // All actions have zero weight - use uniform random selection
+                    selected = valid.get(rand.nextInt(valid.size()));
+                } else {
+                    int pick = rand.nextInt(total);
+                    int sum = 0;
+                    selected = valid.get(0);
+                    for (Action a : valid) {
+                        sum += a.weight;
+                        if (pick < sum) {
+                            selected = a;
+                            break;
+                        }
                     }
                 }
 
                 count++;
                 selected.run();
                 log.add(selected.name);
-                System.out.printf("[%3d] %-20s | %s%n", count, selected.name, sm.getState());
+                // Use println instead of printf to avoid format issues if state contains %
+                // characters
+                System.out.printf("[%3d] %-20s | ", count, selected.name);
+                System.out.println(sm.getState());
             }
         } catch (Exception e) {
             error = e;
-            System.out.println("ERROR: " + e.getMessage());
+            String msg = e.getMessage() != null ? e.getMessage() : "(no message)";
+            System.out.println("ERROR: " + e.getClass().getSimpleName() + ": " + msg);
+            e.printStackTrace(System.err);
         }
 
         long duration = System.currentTimeMillis() - start;

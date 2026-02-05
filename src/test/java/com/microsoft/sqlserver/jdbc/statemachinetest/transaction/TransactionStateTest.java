@@ -48,7 +48,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * debugging.
  */
 @Tag("statemachine")
-class TransactionStateTest extends AbstractTest {
+public class TransactionStateTest extends AbstractTest {
 
     private static final String TABLE_NAME = AbstractSQLGenerator.escapeIdentifier("SM_Transaction_Test");
 

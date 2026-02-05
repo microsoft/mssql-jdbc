@@ -45,7 +45,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * All actions are implemented as plain classes (NO LAMBDAS) for easier debugging.
  */
 @Tag("statemachine")
-class ResultSetStateTest extends AbstractTest {
+public class ResultSetStateTest extends AbstractTest {
 
     // Use escaped identifier for table name to handle special characters
     private static final String TABLE_NAME = AbstractSQLGenerator.escapeIdentifier("SM_ResultSet_Test");
