@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty;
 
 
 /**
@@ -21,30 +22,39 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
  */
 public class PrepUtil {
 
+    private static final String ACCESS_TOKEN_ENV_VAR = "ACCESS_TOKEN";
+
     private PrepUtil() {
         // Just hide to restrict constructor invocation.
     }
 
     /**
-     * It will create {@link SQLServerConnection} TODO : Think of AE functionality on off etc.
+     * It will create {@link SQLServerConnection}. If the ACCESS_TOKEN environment variable is set,
+     * it will be used for authentication.
      * 
      * @param connectionString
      * @param info
      * @return {@link SQLServerConnection}
      * @throws SQLException
-     * @throws ClassNotFoundException
      */
     public static SQLServerConnection getConnection(String connectionString, Properties info) throws SQLException {
-        return (SQLServerConnection) DriverManager.getConnection(connectionString, info);
+        Properties connectionProps = info != null ? new Properties(info) : new Properties();
+        
+        String accessToken = System.getenv(ACCESS_TOKEN_ENV_VAR);
+        if (accessToken != null && !accessToken.isEmpty()) {
+            connectionProps.setProperty(SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), accessToken);
+        }
+        
+        return (SQLServerConnection) DriverManager.getConnection(connectionString, connectionProps);
     }
 
     /**
-     * It will create {@link SQLServerConnection}
+     * It will create {@link SQLServerConnection}. If the ACCESS_TOKEN environment variable is set,
+     * it will be used for authentication.
      * 
      * @param connectionString
      * @return {@link SQLServerConnection}
      * @throws SQLException
-     * @throws ClassNotFoundException
      */
     public static SQLServerConnection getConnection(String connectionString) throws SQLException {
         return getConnection(connectionString, null);
