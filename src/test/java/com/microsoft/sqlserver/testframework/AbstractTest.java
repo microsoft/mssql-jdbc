@@ -490,11 +490,13 @@ public abstract class AbstractTest {
         // Only if no user credentials are present in the connection string or DataSource
         String accessToken = System.getenv("ACCESS_TOKEN");
         if (accessToken != null && !accessToken.isEmpty()) {
-            // Check if DataSource has user credentials set
-            boolean dsHasCredentials = (ds.getUser() != null && !ds.getUser().isEmpty())
-                    || (ds.getPassword() != null && !ds.getPassword().isEmpty());
+            // Check if DataSource has user set (password is not retrievable for security)
+            // Also check connection string for password since we can't check ds.getPassword()
+            boolean dsHasUser = ds.getUser() != null && !ds.getUser().isEmpty();
+            String lowerConnStr = connectionString != null ? connectionString.toLowerCase() : "";
+            boolean connStrHasPassword = lowerConnStr.contains("password=");
             
-            if (!dsHasCredentials) {
+            if (!dsHasUser && !connStrHasPassword) {
                 ds.setAccessToken(accessToken);
             }
         }
