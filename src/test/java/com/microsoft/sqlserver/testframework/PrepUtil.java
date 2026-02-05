@@ -9,7 +9,6 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
-import com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty;
 
 
 /**
@@ -23,7 +22,8 @@ import com.microsoft.sqlserver.jdbc.SQLServerDriverStringProperty;
 public class PrepUtil {
 
     private static final String ACCESS_TOKEN_ENV_VAR = "ACCESS_TOKEN";
-
+    private static final String ACCESS_TOKEN_PROP_NAME = "accessToken";
+    
     private PrepUtil() {
         // Just hide to restrict constructor invocation.
     }
@@ -42,7 +42,7 @@ public class PrepUtil {
         
         String accessToken = System.getenv(ACCESS_TOKEN_ENV_VAR);
         if (accessToken != null && !accessToken.isEmpty()) {
-            connectionProps.setProperty(SQLServerDriverStringProperty.ACCESS_TOKEN.toString(), accessToken);
+            connectionProps.setProperty(ACCESS_TOKEN_PROP_NAME, accessToken);
         }
         
         return (SQLServerConnection) DriverManager.getConnection(connectionString, connectionProps);
