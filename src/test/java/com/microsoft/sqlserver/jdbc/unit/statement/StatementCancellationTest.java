@@ -44,7 +44,7 @@ public class StatementCancellationTest extends AbstractTest {
 
         try {
             SQLServerDataSource ds = new SQLServerDataSource();
-            ds.setURL(connectionString);
+            updateDataSource(connectionString, ds);
             ds.setMultiSubnetFailover(true);
 
             try (Connection conn = ds.getConnection();) {

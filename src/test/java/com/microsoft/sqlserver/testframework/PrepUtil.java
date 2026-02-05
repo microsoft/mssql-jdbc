@@ -29,8 +29,24 @@ public class PrepUtil {
     }
 
     /**
-     * It will create {@link SQLServerConnection}. If the ACCESS_TOKEN environment variable is set,
-     * it will be used for authentication.
+     * Checks if the connection string contains user credentials (user, username, or password).
+     * 
+     * @param connectionString the connection string to check
+     * @return true if credentials are present, false otherwise
+     */
+    private static boolean hasUserCredentials(String connectionString) {
+        if (connectionString == null) {
+            return false;
+        }
+        String lowerConnStr = connectionString.toLowerCase();
+        return lowerConnStr.contains("user=") 
+                || lowerConnStr.contains("username=") 
+                || lowerConnStr.contains("password=");
+    }
+
+    /**
+     * It will create {@link SQLServerConnection}. If the ACCESS_TOKEN environment variable is set
+     * and no user credentials are present in the connection string, it will be used for authentication.
      * 
      * @param connectionString
      * @param info
@@ -41,7 +57,8 @@ public class PrepUtil {
         Properties connectionProps = info != null ? new Properties(info) : new Properties();
         
         String accessToken = System.getenv(ACCESS_TOKEN_ENV_VAR);
-        if (accessToken != null && !accessToken.isEmpty()) {
+        // Only set access token if it's available AND no user credentials are in the connection string
+        if (accessToken != null && !accessToken.isEmpty() && !hasUserCredentials(connectionString)) {
             connectionProps.setProperty(ACCESS_TOKEN_PROP_NAME, accessToken);
         }
         

@@ -487,9 +487,16 @@ public abstract class AbstractTest {
         }
         
         // Check for ACCESS_TOKEN environment variable and set it on the DataSource
+        // Only if no user credentials are present in the connection string or DataSource
         String accessToken = System.getenv("ACCESS_TOKEN");
         if (accessToken != null && !accessToken.isEmpty()) {
-            ds.setAccessToken(accessToken);
+            // Check if DataSource has user credentials set
+            boolean dsHasCredentials = (ds.getUser() != null && !ds.getUser().isEmpty())
+                    || (ds.getPassword() != null && !ds.getPassword().isEmpty());
+            
+            if (!dsHasCredentials) {
+                ds.setAccessToken(accessToken);
+            }
         }
         
         return ds;

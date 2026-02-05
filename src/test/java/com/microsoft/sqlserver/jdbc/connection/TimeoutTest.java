@@ -336,6 +336,8 @@ public class TimeoutTest extends AbstractTest {
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
                             || (TestUtils.getProperty(connectionString, "msiClientId") != null && e.getMessage()
                                     .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
+                            || (e.getMessage().toLowerCase()
+                                    .contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
                             || ((isSqlAzure() || isSqlAzureDW()) ? e.getMessage().toLowerCase()
                                     .contains(TestResource.getResource("R_connectTimedOut").toLowerCase()) : false),
                     e.getMessage());
