@@ -43,6 +43,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
 @RunWith(JUnitPlatform.class)
@@ -68,7 +69,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
 
                 dstStmt.executeUpdate(
@@ -104,7 +105,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
             .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement stmt = conn.createStatement()) {
 
                 stmt.executeUpdate(
@@ -154,7 +155,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
                 dstStmt.executeUpdate(
                         "CREATE TABLE " + dstTable + " (testCol JSON);");
@@ -186,7 +187,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
                 dstStmt.executeUpdate(
                         "CREATE TABLE " + dstTable + " (testCol JSON);");
@@ -219,7 +220,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
                 dstStmt.executeUpdate(
                         "CREATE TABLE " + dstTable + " (testCol JSON);");
@@ -251,7 +252,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
                 dstStmt.executeUpdate(
                         "CREATE TABLE " + dstTable + " (testCol NVARCHAR(MAX));");
@@ -289,7 +290,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
                 dstStmt.executeUpdate(
                         "CREATE TABLE " + dstTable + " (session_id INT, info JSON);");
@@ -329,7 +330,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
 
                 dstStmt.executeUpdate(
@@ -362,7 +363,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Test
     public void testJSONArrayAggWithThreeElements() throws SQLException {
         String select = "SELECT JSON_ARRAYAGG(c1) AS jsonArrayAgg FROM (VALUES ('c'), ('b'), ('a')) AS t(c1)";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
@@ -380,7 +381,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Test
     public void testJSONArrayAggWithOrderedElements() throws SQLException {
         String select = "SELECT JSON_ARRAYAGG(c1 ORDER BY c1) AS jsonArrayAgg FROM (VALUES ('c'), ('b'), ('a')) AS t(c1)";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
@@ -400,7 +401,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement stmt = conn.createStatement()) {
                 // Create table and insert data
                 stmt.executeUpdate(
@@ -451,7 +452,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
 
                 dstStmt.executeUpdate(
@@ -533,7 +534,7 @@ public class JSONFunctionTest extends AbstractTest {
                 "SET @info = JSON_MODIFY(JSON_MODIFY(JSON_MODIFY(@info, '$.name', 'Mike'), '$.surname', 'Smith'), 'append $.skills', 'Azure'); "
                 +
                 "SELECT @info AS info;";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(update)) {
             assertTrue(rs.next());
@@ -558,7 +559,7 @@ public class JSONFunctionTest extends AbstractTest {
                 "SET @product = JSON_MODIFY(JSON_MODIFY(@product, '$.Price', CAST(JSON_VALUE(@product, '$.price') AS NUMERIC(4, 2))), '$.price', NULL); "
                 +
                 "SELECT @product AS product;";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(update)) {
             assertTrue(rs.next());
@@ -583,7 +584,7 @@ public class JSONFunctionTest extends AbstractTest {
                 "SET @stats = JSON_MODIFY(@stats, '$.click_count', CAST(JSON_VALUE(@stats, '$.click_count') AS INT) + 1); "
                 +
                 "SELECT @stats AS stats;";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(update)) {
             assertTrue(rs.next());
@@ -603,7 +604,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
 
                 dstStmt.executeUpdate(
@@ -639,7 +640,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Test
     public void testJSONObjectEmpty() throws SQLException {
         String select = "SELECT JSON_OBJECT() AS jsonObject";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
@@ -657,7 +658,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Test
     public void testJSONObjectWithMultipleKeys() throws SQLException {
         String select = "SELECT JSON_OBJECT('name':'value', 'type':NULL ABSENT ON NULL) AS jsonObject";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
@@ -675,7 +676,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Test
     public void testJSONObjectWithJsonArray() throws SQLException {
         String select = "SELECT JSON_OBJECT('name':'value', 'type':JSON_ARRAY(1, 2)) AS jsonObject";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
@@ -694,7 +695,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Test
     public void testJSONObjectWithNestedJsonObject() throws SQLException {
         String select = "SELECT JSON_OBJECT('name':'value', 'type':JSON_OBJECT('type_id':1, 'name':'a')) AS jsonObject";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
@@ -716,7 +717,7 @@ public class JSONFunctionTest extends AbstractTest {
                 +
                 "FROM sys.dm_exec_sessions AS s " +
                 "WHERE s.is_user_process = 1";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(select)) {
             while (rs.next()) {
@@ -739,7 +740,7 @@ public class JSONFunctionTest extends AbstractTest {
     @Test
     public void testJSONObjectAggWithThreeProperties() throws SQLException {
         String select = "SELECT JSON_OBJECTAGG(c1:c2) AS jsonObjectAgg FROM (VALUES('key1', 'c'), ('key2', 'b'), ('key3','a')) AS t(c1, c2)";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
@@ -762,7 +763,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(
                         "CREATE TABLE " + dstTable + " (object_id INT, name NVARCHAR(50), column_id INT);");
@@ -813,7 +814,7 @@ public class JSONFunctionTest extends AbstractTest {
         String jsonInfo = "{\"info\":{\"address\":[{\"town\":\"Paris\"},{\"town\":\"London\"}]}}";
         String select = "DECLARE @jsonInfo AS JSON = N'" + jsonInfo + "'; " +
                 "SELECT JSON_PATH_EXISTS(@jsonInfo, '$.info.address') AS pathExists";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
@@ -834,7 +835,7 @@ public class JSONFunctionTest extends AbstractTest {
         String jsonInfo = "{\"info\":{\"address\":[{\"town\":\"Paris\"},{\"town\":\"London\"}]}}";
         String select = "DECLARE @jsonInfo AS JSON = N'" + jsonInfo + "'; " +
                 "SELECT JSON_PATH_EXISTS(@jsonInfo, '$.info.addresses') AS pathExists";
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(select)) {
             assertTrue(rs.next());
@@ -854,7 +855,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
 
                 dstStmt.executeUpdate(
@@ -900,7 +901,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
 
                 dstStmt.executeUpdate(
@@ -949,7 +950,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
 
                 dstStmt.executeUpdate(
@@ -997,7 +998,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement()) {
 
                 dstStmt.executeUpdate(
@@ -1047,7 +1048,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
             try (Statement dstStmt = conn.createStatement()) {
 
                 dstStmt.executeUpdate("CREATE TABLE " + dstTable + " (EmployeeID INT, jsonCol NVARCHAR(MAX));");
@@ -1086,7 +1087,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
             try (Statement dstStmt = conn.createStatement()) {
              
                 dstStmt.executeUpdate("CREATE TABLE " + dstTable + " (EmployeeID INT, jsonCol NVARCHAR(MAX));");
@@ -1125,7 +1126,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
             try (Statement dstStmt = conn.createStatement()) {
         
                 dstStmt.executeUpdate("CREATE TABLE " + dstTable + " (EmployeeID INT, jsonCol NVARCHAR(MAX));");
@@ -1518,7 +1519,7 @@ public class JSONFunctionTest extends AbstractTest {
         
         Path tempFile = Files.createTempFile("json_output", ".json");
         
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement()) {
 
             stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonColumn JSON);");
@@ -1552,7 +1553,7 @@ public class JSONFunctionTest extends AbstractTest {
             assertTrue(filesAreEqual(Path.of(JSON_FILE_PATH), tempFile));
         
         } finally {
-            try (Connection conn = DriverManager.getConnection(connectionString);
+            try (Connection conn = PrepUtil.getConnection(connectionString);
                     Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, stmt);
             }
@@ -1605,7 +1606,7 @@ public class JSONFunctionTest extends AbstractTest {
         
         Path tempFile = Files.createTempFile("json_output", ".json");
         
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement()) {
 
             stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonColumn JSON);");
@@ -1639,7 +1640,7 @@ public class JSONFunctionTest extends AbstractTest {
             assertTrue(filesAreEqual(Path.of(JSON_FILE_PATH), tempFile));
         
         } finally {
-            try (Connection conn = DriverManager.getConnection(connectionString);
+            try (Connection conn = PrepUtil.getConnection(connectionString);
                     Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, stmt);
             }
@@ -1659,7 +1660,7 @@ public class JSONFunctionTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement()) {
 
             stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonColumn JSON);");
@@ -1678,7 +1679,7 @@ public class JSONFunctionTest extends AbstractTest {
             }
 
         } finally {
-            try (Connection conn = DriverManager.getConnection(connectionString);
+            try (Connection conn = PrepUtil.getConnection(connectionString);
                     Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, stmt);
             }
@@ -1736,7 +1737,7 @@ public class JSONFunctionTest extends AbstractTest {
 
         String validJson = "{\"key1\":\"value1\"}";
 
-        try (Connection conn = DriverManager.getConnection(
+        try (Connection conn = PrepUtil.getConnection(
                 connectionString + "sendStringParametersAsUnicode=false");
             Statement stmt = conn.createStatement()) {
 
@@ -1751,7 +1752,7 @@ public class JSONFunctionTest extends AbstractTest {
                 assertEquals(1, rs.getInt("isJsonValid"));
             }
         } finally {
-            try (Connection cleanupConn = DriverManager.getConnection(
+            try (Connection cleanupConn = PrepUtil.getConnection(
                     connectionString + "sendStringParametersAsUnicode=false");
                 Statement cleanupStmt = cleanupConn.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, cleanupStmt);
@@ -1772,7 +1773,7 @@ public class JSONFunctionTest extends AbstractTest {
 
         String validJson = "{\"key1\":\"value1\"}";
 
-        try (Connection conn = DriverManager.getConnection(
+        try (Connection conn = PrepUtil.getConnection(
                 connectionString + "sendStringParametersAsUnicode=true");
             Statement stmt = conn.createStatement()) {
 
@@ -1787,7 +1788,7 @@ public class JSONFunctionTest extends AbstractTest {
                 assertEquals(1, rs.getInt("isJsonValid"));
             }
         } finally {
-            try (Connection cleanupConn = DriverManager.getConnection(
+            try (Connection cleanupConn = PrepUtil.getConnection(
                     connectionString + "sendStringParametersAsUnicode=true");
                 Statement cleanupStmt = cleanupConn.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, cleanupStmt);

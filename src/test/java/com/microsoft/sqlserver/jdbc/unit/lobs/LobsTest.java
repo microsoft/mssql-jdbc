@@ -56,6 +56,7 @@ import com.microsoft.sqlserver.testframework.DBInvalidUtil;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 
@@ -612,8 +613,8 @@ public class LobsTest extends AbstractTest {
         String streamString = TestUtils.addOrOverrideProperty(connectionString, "delayLoadingLobs", "true");
         String loadedString = TestUtils.addOrOverrideProperty(streamString, "delayLoadingLobs", "false");
 
-        try (Connection streamingConnection = DriverManager.getConnection(streamString);
-                Connection loadedConnection = DriverManager.getConnection(loadedString);
+        try (Connection streamingConnection = PrepUtil.getConnection(streamString);
+                Connection loadedConnection = PrepUtil.getConnection(loadedString);
                 Statement sStmt = streamingConnection.createStatement();
                 Statement lStmt = loadedConnection.createStatement()) {
             try (ResultSet rs = sStmt.executeQuery(
@@ -672,8 +673,8 @@ public class LobsTest extends AbstractTest {
         String streamString = TestUtils.addOrOverrideProperty(connectionString, "delayLoadingLobs", "true");
         String loadedString = TestUtils.addOrOverrideProperty(streamString, "delayLoadingLobs", "false");
 
-        try (Connection streamingConnection = DriverManager.getConnection(streamString);
-                Connection loadedConnection = DriverManager.getConnection(loadedString);
+        try (Connection streamingConnection = PrepUtil.getConnection(streamString);
+                Connection loadedConnection = PrepUtil.getConnection(loadedString);
                 Statement sStmt = streamingConnection.createStatement();
                 Statement lStmt = loadedConnection.createStatement()) {
             try (ResultSet rs = sStmt.executeQuery(
@@ -728,7 +729,7 @@ public class LobsTest extends AbstractTest {
         }
 
         String loadedString = TestUtils.addOrOverrideProperty(connectionString, "delayLoadingLobs", "false");
-        try (Connection loadedConnection = DriverManager.getConnection(loadedString);
+        try (Connection loadedConnection = PrepUtil.getConnection(loadedString);
                 Statement lStmt = loadedConnection.createStatement()) {
             BufferedReader in;
             try (ResultSet rs = lStmt.executeQuery(

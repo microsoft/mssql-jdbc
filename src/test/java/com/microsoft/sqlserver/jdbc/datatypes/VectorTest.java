@@ -42,6 +42,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
 import microsoft.sql.Vector;
@@ -1745,7 +1746,7 @@ public class VectorTest extends AbstractTest {
             throw new IllegalArgumentException(
                     "Incorrect connection string property for vectorTypeSupport: " + vectorTypeSupport);
         }
-        return (SQLServerConnection) DriverManager.getConnection(connStr);
+        return PrepUtil.getConnection(connStr);
     }
 
 

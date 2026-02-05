@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @Tag(Constants.xSQLv11)
@@ -192,7 +193,7 @@ public class BasicConnectionTest extends AbstractTest {
                 assertTrue(ex.getMessage().matches(TestUtils.formatErrorMsg("R_crServerSessionStateNotRecoverable")));
             }
         }
-        try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement()) {
+        try (Connection c = PrepUtil.getConnection(connectionString); Statement s = c.createStatement()) {
             TestUtils.dropTableIfExists(tableName, s);
         }
     }

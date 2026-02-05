@@ -30,6 +30,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
@@ -62,7 +63,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
      */
     @Test
     public void testRetryExecConnectionStringOption() throws Exception {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString);
                 Statement s = conn.createStatement()) {
             String test = conn.getRetryExec();
             assertTrue(test.isEmpty());
@@ -85,7 +86,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
     @Test
     public void testRetryConnConnectionStringOption() throws Exception {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString);
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString);
                 Statement s = conn.createStatement()) {
             String test = conn.getRetryConn();
             assertTrue(test.isEmpty());
@@ -163,7 +164,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
      *         if unable to connect or execute against db
      */
     public void testStatementRetry(String addedRetryParams) throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString + addedRetryParams);
+        try (Connection conn = PrepUtil.getConnection(connectionString + addedRetryParams);
                 Statement s = conn.createStatement()) {
             try {
                 createTable(s);
@@ -186,7 +187,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
      *         if unable to connect or execute against db
      */
     public void testStatementRetryWithShortQueryTimeout(String addedRetryParams) throws Exception {
-        try (Connection conn = DriverManager.getConnection(connectionString + addedRetryParams);
+        try (Connection conn = PrepUtil.getConnection(connectionString + addedRetryParams);
                 Statement s = conn.createStatement()) {
             try {
                 createTable(s);

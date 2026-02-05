@@ -18,6 +18,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.bulkCopy.BulkCopyTestWrapper.ColumnMap;
 import com.microsoft.sqlserver.testframework.DBConnection;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
@@ -68,7 +69,7 @@ class BulkCopyTestUtil {
                     + " ORDER BY " + sourceTable.getEscapedColumnName(0));
                     SQLServerBulkCopy bulkCopy = wrapper
                             .isUsingConnection() ? new SQLServerBulkCopy((Connection) conBulkCopy.product())
-                                                 : new SQLServerBulkCopy(wrapper.getConnectionString())) {
+                                                 : new SQLServerBulkCopy(PrepUtil.getConnection(wrapper.getConnectionString()))) {
                 if (wrapper.isUsingBulkCopyOptions()) {
                     bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
                 }
@@ -125,7 +126,7 @@ class BulkCopyTestUtil {
                 DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName()
                         + " ORDER BY " + sourceTable.getEscapedColumnName(0));
                 SQLServerBulkCopy bulkCopy = wrapper.isUsingConnection() ? new SQLServerBulkCopy(
-                        (Connection) conBulkCopy.product()) : new SQLServerBulkCopy(wrapper.getConnectionString())) {
+                        (Connection) conBulkCopy.product()) : new SQLServerBulkCopy(PrepUtil.getConnection(wrapper.getConnectionString()))) {
             if (wrapper.isUsingBulkCopyOptions()) {
                 bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
             }
@@ -177,7 +178,7 @@ class BulkCopyTestUtil {
                 DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName()
                         + " ORDER BY " + sourceTable.getEscapedColumnName(0));
                 SQLServerBulkCopy bulkCopy = wrapper.isUsingConnection() ? new SQLServerBulkCopy(
-                        (Connection) conBulkCopy.product()) : new SQLServerBulkCopy(wrapper.getConnectionString())) {
+                        (Connection) conBulkCopy.product()) : new SQLServerBulkCopy(PrepUtil.getConnection(wrapper.getConnectionString()))) {
             try {
                 if (wrapper.isUsingBulkCopyOptions()) {
                     bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
@@ -243,7 +244,7 @@ class BulkCopyTestUtil {
                 DBResultSet srcResultSet = stmt.executeQuery("SELECT * FROM " + sourceTable.getEscapedTableName()
                         + " ORDER BY " + sourceTable.getEscapedColumnName(0));
                 SQLServerBulkCopy bulkCopy = wrapper.isUsingConnection() ? new SQLServerBulkCopy(
-                        (Connection) conBulkCopy.product()) : new SQLServerBulkCopy(wrapper.getConnectionString())) {
+                        (Connection) conBulkCopy.product()) : new SQLServerBulkCopy(PrepUtil.getConnection(wrapper.getConnectionString()))) {
             try {
                 if (wrapper.isUsingBulkCopyOptions()) {
                     bulkCopy.setBulkCopyOptions(wrapper.getBulkOptions());
@@ -342,7 +343,7 @@ class BulkCopyTestUtil {
     static void performBulkCopy(BulkCopyTestWrapper bulkWrapper, ISQLServerBulkData srcData, DBTable dstTable) {
         try (DBConnection con = new DBConnection(bulkWrapper.getConnectionString());
                 DBStatement stmt = con.createStatement();
-                SQLServerBulkCopy bc = new SQLServerBulkCopy(bulkWrapper.getConnectionString())) {
+                SQLServerBulkCopy bc = new SQLServerBulkCopy(PrepUtil.getConnection(bulkWrapper.getConnectionString()))) {
             bc.setDestinationTableName(dstTable.getEscapedTableName());
             bc.writeToServer(srcData);
             validateValues(con, srcData, dstTable);

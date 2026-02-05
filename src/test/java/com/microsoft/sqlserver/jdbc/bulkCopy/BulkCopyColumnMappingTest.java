@@ -34,6 +34,7 @@ import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBResultSet;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
 
@@ -399,7 +400,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
     @DisplayName("BulkCopy:test unicode char/varchar to char/varchar")
     public void testUnicodeCharToChar() throws SQLException, ClassNotFoundException {
 
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+        try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement()) {
             stmt.executeUpdate("CREATE DATABASE [" + prcdb + "]");
             stmt.executeUpdate("ALTER DATABASE " + "[" + prcdb + "]" + " COLLATE Chinese_PRC_CI_AS;");
 
@@ -424,7 +425,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         String destTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("destTable")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement sourceStmt = conn.createStatement(); Statement destStmt = conn.createStatement();
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
@@ -509,7 +510,7 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         String destTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("destTable")));
         try (Connection sourceCon = DriverManager.getConnection("jdbc:h2:~/test", "sa", "");
-                Connection destCon = DriverManager.getConnection(connectionString);
+                Connection destCon = PrepUtil.getConnection(connectionString);
                 Statement sourceStmt = sourceCon.createStatement(); Statement destStmt = destCon.createStatement();
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(destCon)) {
             try {
@@ -542,8 +543,8 @@ public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
         String sourceTable = "sourceTable" + rand.nextInt(Integer.MAX_VALUE);
         String destTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("destTable")));
-        try (Connection sourceCon = DriverManager.getConnection(connectionString + ";database=" + prcdb);
-                Connection destCon = DriverManager.getConnection(connectionString + ";database=" + prcdb);
+        try (Connection sourceCon = PrepUtil.getConnection(connectionString + ";database=" + prcdb);
+                Connection destCon = PrepUtil.getConnection(connectionString + ";database=" + prcdb);
                 Statement sourceStmt = sourceCon.createStatement(); Statement destStmt = destCon.createStatement();
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(destCon)) {
             try {

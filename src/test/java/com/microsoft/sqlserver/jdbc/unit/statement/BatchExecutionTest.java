@@ -577,7 +577,7 @@ public class BatchExecutionTest extends AbstractTest {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
 
-        try (Connection con = DriverManager.getConnection(
+        try (Connection con = PrepUtil.getConnection(
                 connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 Statement stmt = con.createStatement();
                 PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)")) {
@@ -607,7 +607,7 @@ public class BatchExecutionTest extends AbstractTest {
         Calendar gmtCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         long ms = 1578743412000L;
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(
+        try (SQLServerConnection con = PrepUtil.getConnection(
                 connectionString + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 Statement stmt = con.createStatement()) {
 
@@ -676,7 +676,7 @@ public class BatchExecutionTest extends AbstractTest {
         long timeOut = 30000;
         int NUMBER_SIMULTANEOUS_INSERTS = 5;
 
-        try (SQLServerConnection con = (SQLServerConnection) DriverManager.getConnection(connectionString
+        try (SQLServerConnection con = PrepUtil.getConnection(connectionString
                 + ";useBulkCopyForBatchInsert=true;cacheBulkCopyMetadata=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 Statement stmt = con.createStatement()) {
 
@@ -747,7 +747,7 @@ public class BatchExecutionTest extends AbstractTest {
         long ms = 1578743412000L;
 
         // Insert Timestamp using batch insert
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+        try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement();
                 PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)")) {
 
             TestUtils.dropTableIfExists(timestampTable1, stmt);
@@ -762,7 +762,7 @@ public class BatchExecutionTest extends AbstractTest {
         }
 
         // Insert Timestamp using bulkcopy for batch insert
-        try (Connection con = DriverManager.getConnection(
+        try (Connection con = PrepUtil.getConnection(
                 connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)")) {
 
@@ -774,7 +774,7 @@ public class BatchExecutionTest extends AbstractTest {
         }
 
         // Compare Timestamp values inserted, should be the same
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+        try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable1)) {
             Timestamp ts0;
             Timestamp ts1;
@@ -816,7 +816,7 @@ public class BatchExecutionTest extends AbstractTest {
             long ms = 1696127400000L; // DST
 
             // Insert Timestamp using batch insert
-            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+            try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement();
                     PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)")) {
 
                 TestUtils.dropTableIfExists(timestampTable1, stmt);
@@ -833,7 +833,7 @@ public class BatchExecutionTest extends AbstractTest {
             }
 
             // Insert Timestamp using bulkcopy for batch insert
-            try (Connection con = DriverManager.getConnection(
+            try (Connection con = PrepUtil.getConnection(
                     connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                     PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable1 + " VALUES(?)")) {
 
@@ -847,7 +847,7 @@ public class BatchExecutionTest extends AbstractTest {
             }
 
             // Compare Timestamp values inserted, should be the same
-            try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+            try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement();
                     ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable1)) {
                 Timestamp ts0;
                 Timestamp ts1;
@@ -894,7 +894,7 @@ public class BatchExecutionTest extends AbstractTest {
             long ms = 1578743412000L;
 
             // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
-            try (Connection con = DriverManager.getConnection(connectionString
+            try (Connection con = PrepUtil.getConnection(connectionString
                     + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                     Statement stmt = con.createStatement();
                     PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable2 + " VALUES(?)")) {
@@ -910,7 +910,7 @@ public class BatchExecutionTest extends AbstractTest {
         }
 
         // Insert Timestamp using bulkcopy for batch insert
-        try (Connection con = DriverManager.getConnection(
+        try (Connection con = PrepUtil.getConnection(
                 connectionString + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;");
                 PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + timestampTable2 + " VALUES(?)")) {
 
@@ -922,7 +922,7 @@ public class BatchExecutionTest extends AbstractTest {
         }
 
         // Compare Timestamp values inserted, should be the same
-        try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement();
+        try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement();
                 ResultSet rs = stmt.executeQuery("SELECT * FROM " + timestampTable2)) {
             Timestamp ts0;
             Timestamp ts1;
@@ -1061,13 +1061,13 @@ public class BatchExecutionTest extends AbstractTest {
         String connectionStringCollationCaseInsensitive = TestUtils.addOrOverrideProperty(connectionString, "databaseName", caseInsensitiveDatabase);
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("caseInsensitiveTable"));
 
-        try (Connection conTemp = DriverManager.getConnection(connectionString); Statement stmt = conTemp.createStatement()) {
+        try (Connection conTemp = PrepUtil.getConnection(connectionString); Statement stmt = conTemp.createStatement()) {
             TestUtils.dropDatabaseIfExists(caseInsensitiveDatabase, connectionString);
             stmt.executeUpdate("CREATE DATABASE " + caseInsensitiveDatabase);
             stmt.executeUpdate("ALTER DATABASE " + caseInsensitiveDatabase + " COLLATE SQL_Latin1_General_CP1_CI_AS;");
 
             // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
-            try (Connection con = DriverManager.getConnection(connectionStringCollationCaseInsensitive
+            try (Connection con = PrepUtil.getConnection(connectionStringCollationCaseInsensitive
                     + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
                 try (Statement statement = con.createStatement()) {
                     TestUtils.dropTableIfExists(tableName, statement);
@@ -1095,12 +1095,12 @@ public class BatchExecutionTest extends AbstractTest {
         String connectionStringCollationCaseSensitive = TestUtils.addOrOverrideProperty(connectionString, "databaseName", caseSensitiveDatabase);
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("caseSensitiveTable"));
 
-        try (Connection conTemp = DriverManager.getConnection(connectionString); Statement stmt = conTemp.createStatement()) {
+        try (Connection conTemp = PrepUtil.getConnection(connectionString); Statement stmt = conTemp.createStatement()) {
             TestUtils.dropDatabaseIfExists(caseSensitiveDatabase, connectionString);
             stmt.executeUpdate("CREATE DATABASE " + caseSensitiveDatabase);
             stmt.executeUpdate("ALTER DATABASE " + caseSensitiveDatabase + " COLLATE SQL_Latin1_General_CP1_CS_AS;");
 
-            try (Connection con = DriverManager.getConnection(connectionStringCollationCaseSensitive
+            try (Connection con = PrepUtil.getConnection(connectionStringCollationCaseSensitive
                     + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
                 try (Statement statement = con.createStatement()) {
                     TestUtils.dropTableIfExists(tableName, statement);
@@ -1134,13 +1134,13 @@ public class BatchExecutionTest extends AbstractTest {
         String connectionStringCollationCaseSensitive = TestUtils.addOrOverrideProperty(connectionString, "databaseName", caseSensitiveDatabase);
         String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("caseSensitiveTable"));
 
-        try (Connection conTemp = DriverManager.getConnection(connectionString); Statement stmt = conTemp.createStatement()) {
+        try (Connection conTemp = PrepUtil.getConnection(connectionString); Statement stmt = conTemp.createStatement()) {
             TestUtils.dropDatabaseIfExists(caseSensitiveDatabase, connectionString);
             stmt.executeUpdate("CREATE DATABASE " + caseSensitiveDatabase);
             stmt.executeUpdate("ALTER DATABASE " + caseSensitiveDatabase + " COLLATE SQL_Latin1_General_CP1_CS_AS;");
 
             // Insert Timestamp using prepared statement when useBulkCopyForBatchInsert=true
-            try (Connection con = DriverManager.getConnection(connectionStringCollationCaseSensitive
+            try (Connection con = PrepUtil.getConnection(connectionStringCollationCaseSensitive
                     + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=false;")) {
                 try (Statement statement = con.createStatement()) {
                     TestUtils.dropTableIfExists(tableName, statement);

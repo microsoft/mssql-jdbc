@@ -27,6 +27,7 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @Tag(Constants.xSQLv11)
@@ -139,7 +140,7 @@ public class ReflectiveTests extends AbstractTest {
         m.put("connectRetryCount", "1");
         String cs = ResiliencyUtils.setConnectionProps(connectionString.concat(";"), m);
 
-        try (Connection c = DriverManager.getConnection(cs)) {
+        try (Connection c = PrepUtil.getConnection(cs)) {
             Field fields[] = c.getClass().getSuperclass().getDeclaredFields();
             for (Field f : fields) {
                 if (f.getName() == "sessionRecovery") {
@@ -161,7 +162,7 @@ public class ReflectiveTests extends AbstractTest {
         m.put("connectRetryCount", "0");
         String cs = ResiliencyUtils.setConnectionProps(connectionString.concat(";"), m);
 
-        try (Connection c = DriverManager.getConnection(cs)) {
+        try (Connection c = PrepUtil.getConnection(cs)) {
             Field fields[] = c.getClass().getSuperclass().getDeclaredFields();
             for (Field f : fields) {
                 if (f.getName() == "sessionRecovery") {

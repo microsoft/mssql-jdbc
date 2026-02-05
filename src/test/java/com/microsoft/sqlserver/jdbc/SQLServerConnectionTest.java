@@ -1475,7 +1475,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         // A loginTimeout connection property is passed into the server name field, should fail
         String invalidServerNameField = subProtocol + loginTimeout + connectionProperties;
 
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(emptyServerNameField)) {}
+        try (SQLServerConnection conn = PrepUtil.getConnection(emptyServerNameField)) {}
 
         try (SQLServerConnection conn = (SQLServerConnection) DriverManager
                 .getConnection(invalidServerNameField)) {

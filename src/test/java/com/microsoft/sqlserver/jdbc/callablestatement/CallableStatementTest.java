@@ -226,7 +226,7 @@ public class CallableStatementTest extends AbstractTest {
 
     @Test
     public void testCallableStatementSpPrepare() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
             conn.setPrepareMethod("prepare");
 
             try (Statement statement = conn.createStatement();) {
@@ -251,7 +251,7 @@ public class CallableStatementTest extends AbstractTest {
 
     @Test
     public void testCallableStatementExec() throws SQLException {
-        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connectionString)) {
+        try (SQLServerConnection conn = PrepUtil.getConnection(connectionString)) {
             conn.setPrepareMethod("exec");
 
             try (Statement statement = conn.createStatement();) {
@@ -344,7 +344,7 @@ public class CallableStatementTest extends AbstractTest {
     @Test
     public void testGetObjectAsLocalDateTime() throws SQLException {
         String sql = "{CALL " + getObjectLocalDateTimeProcedureName + " (?)}";
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = PrepUtil.getConnection(connectionString);
                 CallableStatement cs = con.prepareCall(sql)) {
             cs.registerOutParameter(1, Types.TIMESTAMP);
             TimeZone prevTimeZone = TimeZone.getDefault();
@@ -384,7 +384,7 @@ public class CallableStatementTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     public void testGetObjectAsOffsetDateTime() throws SQLException {
         String sql = "{CALL " + getObjectOffsetDateTimeProcedureName + " (?, ?)}";
-        try (Connection con = DriverManager.getConnection(connectionString);
+        try (Connection con = PrepUtil.getConnection(connectionString);
                 CallableStatement cs = con.prepareCall(sql)) {
             cs.registerOutParameter(1, Types.TIMESTAMP_WITH_TIMEZONE);
             cs.registerOutParameter(2, Types.TIMESTAMP_WITH_TIMEZONE);
@@ -706,7 +706,7 @@ public class CallableStatementTest extends AbstractTest {
     @Tag(Constants.JSONTest)
 	public void testJSONColumnInTableWithSetObject() throws SQLException {
 
-		try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+		try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement()) {
             createJSONTestTable(stmt);
 			String jsonString = "{\"key\":\"value\"}";
 			try (CallableStatement callableStatement = con
@@ -727,7 +727,7 @@ public class CallableStatementTest extends AbstractTest {
     @Tag(Constants.JSONTest)
 	public void testJSONProcedureWithSetObject() throws SQLException {
 
-		try (Connection con = DriverManager.getConnection(connectionString); Statement stmt = con.createStatement()) {
+		try (Connection con = PrepUtil.getConnection(connectionString); Statement stmt = con.createStatement()) {
 			createJSONStoredProcedure(stmt);
             String jsonString = "{\"key\":\"value\"}";
 			try (CallableStatement callableStatement = con.prepareCall("{call " + procedureNameJSON + " (?)}")) {

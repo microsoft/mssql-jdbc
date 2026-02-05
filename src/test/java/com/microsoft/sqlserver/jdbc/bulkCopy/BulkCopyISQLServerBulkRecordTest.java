@@ -46,6 +46,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.DBConnection;
 import com.microsoft.sqlserver.testframework.DBStatement;
 import com.microsoft.sqlserver.testframework.DBTable;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.vectorJsonTest;
 import com.microsoft.sqlserver.testframework.sqlType.SqlType;
 
@@ -92,7 +93,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyDt")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement(); SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
                 dstStmt.executeUpdate(
@@ -168,7 +169,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVector")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
@@ -207,7 +208,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
@@ -242,7 +243,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyEmptyJSON")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
@@ -282,7 +283,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyMulti")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
@@ -325,7 +326,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyMulti")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
@@ -368,7 +369,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyMulti")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
@@ -410,7 +411,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     public void testBulkCopyWithSendStringParametersAsUnicode() throws SQLException {
         // Unicode scenario
         String dstTableUnicode = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableUnicode")));
-        try (Connection conn = DriverManager.getConnection(connectionString + ";sendStringParametersAsUnicode=true")) {
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";sendStringParametersAsUnicode=true")) {
             try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE " + dstTableUnicode + " (testCol json);");
             }
@@ -429,14 +430,14 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 assertEquals("{\"key1\":\"value1\"}", rs.getString(1));
             }
         } finally {
-            try (Connection conn = DriverManager.getConnection(connectionString + "sendStringParametersAsUnicode=true"); Statement stmt = conn.createStatement()) {
+            try (Connection conn = PrepUtil.getConnection(connectionString + "sendStringParametersAsUnicode=true"); Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(dstTableUnicode, stmt);
             }
         }
 
         // Non-Unicode scenario
         String dstTableNonUnicode = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableNonUnicode")));
-        try (Connection conn = DriverManager.getConnection(connectionString + ";sendStringParametersAsUnicode=false")) {
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";sendStringParametersAsUnicode=false")) {
             try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE " + dstTableNonUnicode + " (testCol JSON);");
             }
@@ -455,7 +456,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 assertEquals("{\"key1\":\"value1\"}", rs.getString(1));
             }
         } finally {
-            try (Connection conn = DriverManager.getConnection(connectionString + "sendStringParametersAsUnicode=false"); Statement stmt = conn.createStatement()) {
+            try (Connection conn = PrepUtil.getConnection(connectionString + "sendStringParametersAsUnicode=false"); Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(dstTableNonUnicode, stmt);
             }
         }
@@ -471,7 +472,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyNested")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
@@ -514,7 +515,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVarious")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
@@ -553,7 +554,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyCount")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
@@ -607,7 +608,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String vectorJson = "[1.0, 2.0, 3.0]";
         Object[] expectedVector = new Float[] { 1.0f, 2.0f, 3.0f };
 
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
              Statement stmt = conn.createStatement()) {
 
             // Create source table and insert JSON vector
@@ -643,7 +644,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             }
         } finally {
             // Cleanup
-            try (Connection conn = DriverManager.getConnection(connectionString);
+            try (Connection conn = PrepUtil.getConnection(connectionString);
                  Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(srcTable, stmt);
                 TestUtils.dropTableIfExists(dstTable, stmt);
@@ -675,7 +676,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String dstTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyVectorNull")));
 
-        try (Connection conn = DriverManager.getConnection(connectionString);) {
+        try (Connection conn = PrepUtil.getConnection(connectionString);) {
             try (Statement dstStmt = conn.createStatement();
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
@@ -722,7 +723,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarbinaryTable"));
         String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
 
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = PrepUtil.getConnection(connectionString);
                 Statement statement = connection.createStatement()) {
 
             // Create the source table with a varbinary column
@@ -761,7 +762,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             fail("Test failed with unexpected exception: " + e.getMessage());
         } finally {
             // Cleanup: Drop the tables
-            try (Connection connection = DriverManager.getConnection(connectionString);
+            try (Connection connection = PrepUtil.getConnection(connectionString);
                     Statement statement = connection.createStatement()) {
                 TestUtils.dropTableIfExists(varbinaryTable, statement);
                 TestUtils.dropTableIfExists(vectorTable, statement);
@@ -784,7 +785,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String varbinaryTable = TestUtils
                 .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarbinaryTable"));
 
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = PrepUtil.getConnection(connectionString);
                 Statement statement = connection.createStatement()) {
 
             // Create the source table with a VECTOR column
@@ -830,7 +831,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             fail("Test failed with unexpected exception: " + e.getMessage());
         } finally {
             // Cleanup: Drop the tables
-            try (Connection connection = DriverManager.getConnection(connectionString);
+            try (Connection connection = PrepUtil.getConnection(connectionString);
                     Statement statement = connection.createStatement()) {
                 TestUtils.dropTableIfExists(varbinaryTable, statement);
                 TestUtils.dropTableIfExists(vectorTable, statement);
@@ -851,7 +852,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String varcharTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarcharTable"));
         String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
 
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = PrepUtil.getConnection(connectionString);
                 Statement statement = connection.createStatement()) {
 
             // Create the source table with a VARCHAR column
@@ -898,7 +899,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             fail("Test failed with unexpected exception: " + e.getMessage());
         } finally {
             // Cleanup: Drop the tables
-            try (Connection connection = DriverManager.getConnection(connectionString);
+            try (Connection connection = PrepUtil.getConnection(connectionString);
                     Statement statement = connection.createStatement()) {
                 TestUtils.dropTableIfExists(varcharTable, statement);
                 TestUtils.dropTableIfExists(vectorTable, statement);
@@ -919,7 +920,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
         String varcharTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarcharTable"));
 
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = PrepUtil.getConnection(connectionString);
                 Statement statement = connection.createStatement()) {
 
             // Create the source table with a VECTOR column
@@ -969,7 +970,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
             fail("Test failed with unexpected exception: " + e.getMessage());
         } finally {
             // Cleanup: Drop the tables
-            try (Connection connection = DriverManager.getConnection(connectionString);
+            try (Connection connection = PrepUtil.getConnection(connectionString);
                     Statement statement = connection.createStatement()) {
                 TestUtils.dropTableIfExists(varcharTable, statement);
                 TestUtils.dropTableIfExists(vectorTable, statement);
@@ -990,7 +991,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         String srcTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testSrcTable"));
         String desTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testDesTable"));
 
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = PrepUtil.getConnection(connectionString);
                 Statement statement = connection.createStatement()) {
 
             // Create the source table with a VECTOR column
@@ -1028,7 +1029,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
                     "Unexpected error message: " + e.getMessage());
         } finally {
             // Cleanup: Drop the tables
-            try (Connection connection = DriverManager.getConnection(connectionString);
+            try (Connection connection = PrepUtil.getConnection(connectionString);
                     Statement statement = connection.createStatement()) {
                 TestUtils.dropTableIfExists(srcTable, statement);
                 TestUtils.dropTableIfExists(desTable, statement);
@@ -1058,13 +1059,13 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
         }
 
         // Drop the table if it already exists
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement()) {
             stmt.executeUpdate("IF OBJECT_ID('" + tableName + "', 'U') IS NOT NULL DROP TABLE " + tableName);
         }
 
         // Create the destination table with a single VECTOR column
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 Statement stmt = conn.createStatement()) {
             stmt.executeUpdate("CREATE TABLE " + tableName + " (v VECTOR(" + dimensionCount + "))");
         }
@@ -1078,7 +1079,7 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
 
         // Measure bulk copy performance
         long startTime = System.nanoTime();
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
                 SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
 
             SQLServerBulkCopyOptions bulkCopyOptions = new SQLServerBulkCopyOptions();

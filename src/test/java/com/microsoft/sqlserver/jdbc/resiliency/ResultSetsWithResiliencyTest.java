@@ -30,6 +30,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @Tag(Constants.xSQLv11)
@@ -67,7 +68,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
     public static void setupTests() throws Exception {
         setConnection();
 
-        try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement();) {
+        try (Connection c = PrepUtil.getConnection(connectionString); Statement s = c.createStatement();) {
             TestUtils.dropTableIfExists(tableName, s);
             TestUtils.dropTableIfExists(clientCursorInitTable1, s);
             TestUtils.dropTableIfExists(clientCursorInitTable2, s);
@@ -493,7 +494,7 @@ public class ResultSetsWithResiliencyTest extends AbstractTest {
 
     @AfterAll
     public static void cleanUp() throws SQLException {
-        try (Connection c = DriverManager.getConnection(connectionString); Statement s = c.createStatement()) {
+        try (Connection c = PrepUtil.getConnection(connectionString); Statement s = c.createStatement()) {
             TestUtils.dropTableIfExists(tableName, s);
             TestUtils.dropTableIfExists(clientCursorInitTable1, s);
             TestUtils.dropTableIfExists(clientCursorInitTable2, s);

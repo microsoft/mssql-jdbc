@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -19,7 +20,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -75,7 +75,7 @@ public class MaxResultBufferTest extends AbstractTest {
         int numberOfRows = 800;
         int precision = 10;
 
-        try (Connection connection = DriverManager.getConnection(connectionString);
+        try (Connection connection = PrepUtil.getConnection(connectionString);
                 Statement statement = connection.createStatement();
                 PreparedStatement preparedStatement = connection.prepareStatement(insertSQL)) {
 
@@ -360,7 +360,7 @@ public class MaxResultBufferTest extends AbstractTest {
      *         Exception is thrown when maxResultBuffer is exceeded
      */
     private void resultSet(int resultSetType, int concurrencyMode) throws SQLException {
-        try (Connection connection = DriverManager.getConnection(localConnectionString);
+        try (Connection connection = PrepUtil.getConnection(localConnectionString);
                 Statement statement = connection.createStatement(resultSetType, concurrencyMode)) {
             statement.execute("SELECT * FROM " + TEST_TABLE_NAME);
             try (ResultSet resultSet = statement.getResultSet()) {
@@ -379,7 +379,7 @@ public class MaxResultBufferTest extends AbstractTest {
     private void preparedStatementWithMultipleResultSets() throws SQLException {
         String selectSQL = "SELECT * FROM " + TEST_TABLE_NAME;
 
-        try (Connection connection = DriverManager.getConnection(localConnectionString);
+        try (Connection connection = PrepUtil.getConnection(localConnectionString);
                 PreparedStatement statement = connection.prepareStatement(selectSQL);
                 ResultSet resultSet = statement.executeQuery()) {
 
@@ -404,7 +404,7 @@ public class MaxResultBufferTest extends AbstractTest {
      *         Exception is thrown when maxResultBuffer is exceeded
      */
     private void twoQueriesInOneStatement() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(localConnectionString);
+        try (Connection connection = PrepUtil.getConnection(localConnectionString);
                 Statement statement = connection.createStatement()) {
             statement.execute("SELECT * FROM " + TEST_TABLE_NAME + ";SELECT * FROM " + TEST_TABLE_NAME);
 

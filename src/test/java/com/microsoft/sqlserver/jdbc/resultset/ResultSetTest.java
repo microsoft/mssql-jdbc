@@ -1587,7 +1587,7 @@ public class ResultSetTest extends AbstractTest {
 
         String jsonData = "{\"key\":\"123\"}";
 
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
             try (Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE " + dstTable + " (jsonData JSON)");
                 stmt.executeUpdate("INSERT INTO " + dstTable + " VALUES (CAST('" + jsonData + "' AS JSON))");

@@ -27,6 +27,7 @@ import org.mockito.MockedStatic;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
@@ -202,7 +203,7 @@ public class SQLServerDriverTest extends AbstractTest {
      */
     @Test
     public void testApplicationName() throws SQLException {
-        try (Connection conn = DriverManager.getConnection(connectionString);
+        try (Connection conn = PrepUtil.getConnection(connectionString);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT program_name FROM sys.dm_exec_sessions WHERE session_id = @@SPID")) {
             if (rs.next()) {

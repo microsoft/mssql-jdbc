@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Tag;
 import com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @Tag(Constants.xSQLv11)
@@ -163,7 +164,7 @@ final class ResiliencyUtils {
                         }
                     }
                 }
-                try (Connection c2 = DriverManager.getConnection(cString)) {
+                try (Connection c2 = PrepUtil.getConnection(cString)) {
                     try (Statement s = c2.createStatement()) {
                         Thread.sleep(sleepTime);
                         s.execute("KILL " + sessionID);
@@ -195,7 +196,7 @@ final class ResiliencyUtils {
     }
 
     static Connection getConnection(String connectionString) throws SQLException {
-        Connection c = DriverManager.getConnection(connectionString);
+        Connection c = PrepUtil.getConnection(connectionString);
         minimizeIdleNetworkTracker(c);
         return c;
     }
@@ -307,7 +308,7 @@ final class ResiliencyUtils {
      * @throws SQLException
      */
     static void killConnection(int sessionID, String cString, Connection c, int delayTimeout) throws SQLException {
-        try (Connection c2 = DriverManager.getConnection(cString)) {
+        try (Connection c2 = PrepUtil.getConnection(cString)) {
             try (Statement s = c2.createStatement()) {
                 if (TestUtils.isAzureDW(c2)) {// AzureSQLDW and Synapse uses different syntax
                     if (delayTimeout > 0) {

@@ -485,6 +485,13 @@ public abstract class AbstractTest {
                 }
             }
         }
+        
+        // Check for ACCESS_TOKEN environment variable and set it on the DataSource
+        String accessToken = System.getenv("ACCESS_TOKEN");
+        if (accessToken != null && !accessToken.isEmpty()) {
+            ds.setAccessToken(accessToken);
+        }
+        
         return ds;
     }
 
