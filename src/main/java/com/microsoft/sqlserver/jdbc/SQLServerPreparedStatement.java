@@ -313,18 +313,26 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // userSQL
         // don't change after construction
         String prepareMethod = connection.getPrepareMethod();
-        boolean isScopeTempTables = prepareMethod.equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString());
 
-        // isDirectSqlExecution: true when prepareMethod=none OR
-        // (prepareMethod=scopeTempTablesToConnection AND temp table operations
-        // detected)
-        isDirectSqlExecution = prepareMethod.equals(PrepareMethod.NONE.toString())
-                || (isScopeTempTables && containsTemporaryTableOperations(userSQL));
-
-        // usePrepExec: true for prepexec method OR scopeTempTablesToConnection (when
-        // not using direct SQL)
-        // This determines sp_prepexec vs sp_prepare usage
-        usePrepExec = prepareMethod.equals(PrepareMethod.PREPEXEC.toString()) || isScopeTempTables;
+        if (prepareMethod.equals(PrepareMethod.NONE.toString())) {
+            isDirectSqlExecution = true;
+            usePrepExec = false;
+        } else if (prepareMethod.equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())) {
+            if (containsTemporaryTableOperations(userSQL)) {
+                isDirectSqlExecution = true;
+                usePrepExec = false;
+            } else {
+                isDirectSqlExecution = false;
+                usePrepExec = true;
+            }
+        } else if (prepareMethod.equals(PrepareMethod.PREPEXEC.toString())) {
+            isDirectSqlExecution = false;
+            usePrepExec = true;
+        } else {
+            // Default: prepareMethod=prepare (sp_prepare)
+            isDirectSqlExecution = false;
+            usePrepExec = false;
+        }
     }
 
     /**
