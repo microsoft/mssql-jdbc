@@ -177,6 +177,14 @@ public abstract class AbstractTest {
         accessTokenClientId = getConfiguredProperty("accessTokenClientId");
         accessTokenSecret = getConfiguredProperty("accessTokenSecret");
 
+        // If ACCESS_TOKEN env var is set, add accessTokenCallbackClass to connection string
+        // This enables token-based authentication for all tests
+        String accessToken = System.getenv("ACCESS_TOKEN");
+        if (accessToken != null && !accessToken.isEmpty()) {
+            connectionString = TestUtils.addOrOverrideProperty(connectionString, "accessTokenCallbackClass",
+                    "com.microsoft.sqlserver.testframework.EnvAccessTokenCallback");
+        }
+
         encrypt = getConfiguredProperty("encrypt", "false");
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", encrypt);
 
