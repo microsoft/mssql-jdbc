@@ -479,11 +479,20 @@ public abstract class AbstractTest {
                         case Constants.PREPARE_METHOD:
                             ds.setPrepareMethod(value);
                             break;
+                        case Constants.ACCESS_TOKEN_CALLBACK_CLASS:
+                            ds.setAccessTokenCallbackClass(value);
+                            break;
                         default:
                             break;
                     }
                 }
             }
+        }
+        // If ACCESS_TOKEN env var is set and accessTokenCallbackClass is not already configured,
+        // automatically use EnvAccessTokenCallback for token-based authentication
+        String accessToken = System.getenv("ACCESS_TOKEN");
+        if (accessToken != null && !accessToken.isEmpty() && ds.getAccessTokenCallbackClass() == null) {
+            ds.setAccessTokenCallbackClass("com.microsoft.sqlserver.testframework.EnvAccessTokenCallback");
         }
         return ds;
     }
