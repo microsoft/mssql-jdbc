@@ -179,6 +179,11 @@ public class FedauthCommon extends AbstractTest {
 
     @BeforeAll
     public static void getConfigs() throws Exception {
+        // Skip fedauth tests if ACCESS_TOKEN env var is set
+        // Fedauth tests require MSI-based authentication which is not available with token-based auth
+        String accessToken = System.getenv("ACCESS_TOKEN");
+        org.junit.Assume.assumeTrue(accessToken == null || accessToken.isEmpty());
+
         azureServer = getConfiguredProperty("azureServer");
         azureDatabase = getConfiguredProperty("azureDatabase");
         azureUserName = getConfiguredProperty("azureUserName");

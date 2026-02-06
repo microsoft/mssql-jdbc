@@ -268,6 +268,10 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     public static void dropAll() throws Exception {
+        // Skip if connection was never established (e.g., test was skipped)
+        if (null == connection) {
+            return;
+        }
         try (Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 
