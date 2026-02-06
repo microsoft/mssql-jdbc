@@ -46,6 +46,12 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.MSI)
 public class MSITest extends AESetup {
 
+    @BeforeEach
+    public void skipIfAccessTokenCallbackConfigured() {
+        // Skip MSI tests if accessTokenCallbackClass is configured as they conflict
+        org.junit.Assume.assumeTrue(TestUtils.getProperty(connectionString, "accessTokenCallbackClass") == null);
+    }
+
     /*
      * Test MSI auth
      */

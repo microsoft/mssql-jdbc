@@ -207,6 +207,13 @@ public class AESetup extends AbstractTest {
 
     @BeforeAll
     public static void setupAETest() throws Exception {
+        // Skip AE tests if accessTokenCallbackClass is configured and MSI is being used for AKV
+        // (MSI won't work for AKV when running with access token from environment variable)
+        if (TestUtils.getProperty(connectionString, "accessTokenCallbackClass") != null
+                && getConfiguredProperty("akvProviderManagedClientId") != null) {
+            org.junit.Assume.assumeTrue("Skipping AE tests: accessTokenCallbackClass conflicts with MSI-based AKV provider", false);
+        }
+
         setConnection();
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");
