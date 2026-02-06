@@ -291,10 +291,12 @@ public class AESetup extends AbstractTest {
      */
     @AfterAll
     public static void cleanUp() throws Exception {
-        dropAll();
-        if (null != connection) {
-            connection.close();
+        // Skip cleanup if connection was never established (e.g., test was skipped)
+        if (null == connection) {
+            return;
         }
+        dropAll();
+        connection.close();
     }
 
     /**
