@@ -1540,6 +1540,9 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Tag(Constants.xSQLv16)
     @Tag(Constants.xSQLv17)
     public void testManagedIdentityWithEncryptStrict() {
+        // Skip if accessTokenCallbackClass is configured as it conflicts with ActiveDirectoryMSI
+        org.junit.Assume.assumeTrue(TestUtils.getProperty(connectionString, "accessTokenCallbackClass") == null);
+
         SQLServerDataSource ds = new SQLServerDataSource();
 
         String connectionUrl = connectionString;
