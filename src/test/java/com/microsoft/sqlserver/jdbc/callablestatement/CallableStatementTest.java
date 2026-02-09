@@ -1984,6 +1984,85 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     /**
+     * Tests that the driver uses sys schema for sp_sproc_columns to prevent name-squatting attacks.
+     * 
+     * Security consideration: When querying stored procedure metadata across databases, we must use
+     * the sys schema prefix (e.g., "DB2.sys.sp_sproc_columns") instead of dbo or a user-specified schema.
+     * 
+     * Why sys schema is safest:
+     * 1. Users cannot create objects in the sys schema (SQL Server protects it)
+     * 2. Using dbo would work but is vulnerable if someone creates a schema like SCH1 and a 
+     *    procedure SCH1.sp_sproc_columns - then calling DB2.SCH1.sp_sproc_columns would invoke
+     *    the malicious user procedure instead of the system procedure
+     * 3. The fix ensures we always call the real system stored procedure regardless of what
+     *    schema the user's stored procedure is in
+     * 
+     * This test verifies that:
+     * 1. Even when calling a procedure in a custom schema, the driver correctly resolves
+     *    parameter metadata using the system sp_sproc_columns
+     * 2. A user-created procedure with the same name as a system procedure in a custom schema
+     *    does not interfere with the driver's metadata queries
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testSysSchemaProtectsAgainstNameSquatting() throws SQLException {
+        String db2 = "DB2_" + UUID.randomUUID().toString().replace("-", "");
+        String customSchema = "CustomSchema";
+        String originalDb = connection.getCatalog();
+        
+        try (Statement stmt = connection.createStatement()) {
+            
+            TestUtils.dropDatabaseIfExists(db2, connectionString);
+            stmt.execute(String.format("CREATE DATABASE [%s]", db2));
+            
+            stmt.execute(String.format("USE [%s]", db2));
+            
+            // Create a custom schema
+            stmt.execute(String.format("CREATE SCHEMA [%s]", customSchema));
+            
+            // Create a legitimate stored procedure in the custom schema
+            stmt.execute(String.format(
+                "CREATE PROCEDURE [%s].GetDetails @Name NVARCHAR(100), @Value NVARCHAR(100) " +
+                "AS BEGIN SELECT @Name AS Name, @Value AS Value END", customSchema));
+            
+            // Attempt to create a name-squatting procedure (sp_sproc_columns) in custom schema
+            // This simulates a malicious user trying to intercept metadata queries
+            // Note: This would fail in sys schema but succeeds in custom schemas
+            stmt.execute(String.format(
+                "CREATE PROCEDURE [%s].sp_sproc_columns @procedure_name NVARCHAR(100) = NULL, " +
+                "@procedure_owner NVARCHAR(100) = NULL, @procedure_qualifier NVARCHAR(100) = NULL " +
+                "AS " +
+                "SELECT 'INJECTED' AS COLUMN_NAME, 1 AS COLUMN_TYPE", customSchema));
+            
+            stmt.execute(String.format("USE [%s]", originalDb));
+            
+            // Call the legitimate procedure in custom schema using named parameters
+            // The driver should use sys.sp_sproc_columns (not CustomSchema.sp_sproc_columns)
+            // to get the correct parameter metadata
+            String callSql = String.format("{call [%s].[%s].GetDetails(?, ?)}", db2, customSchema);
+            try (CallableStatement cs = connection.prepareCall(callSql)) {
+                cs.setString("Name", "TestName");
+                cs.setString("Value", "TestValue");
+                
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    // If we got the correct metadata from sys.sp_sproc_columns,
+                    // the procedure should execute correctly with the right parameter names
+                    assertEquals("TestName", rs.getString("Name"));
+                    assertEquals("TestValue", rs.getString("Value"));
+                }
+            }
+        } finally {
+            connection.setCatalog(originalDb);
+            // Dropping the database automatically cleans up all objects including schemas
+            TestUtils.dropDatabaseIfExists(db2, connectionString);
+        }
+    }
+
+    /**
      * Cleanup after test
      * 
      * @throws SQLException
