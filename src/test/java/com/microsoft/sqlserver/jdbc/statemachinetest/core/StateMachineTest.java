@@ -62,25 +62,31 @@ public class StateMachineTest {
 
     // ==================== State Management ====================
 
-    /** Sets a state variable. Used to track system state like row position, flags, etc. */
-    public void set(String key, Object value) {
-        state.put(key, value);
+    /** Sets a state variable using enum key. */
+    public void setState(StateKey key, Object value) {
+        state.put(key.key(), value);
     }
 
-    /** Gets a state variable. Returns null if not found. */
-    public Object get(String key) {
-        return state.get(key);
+    /** Gets a state variable using enum key. Returns null if not found. */
+    public Object getStateValue(StateKey key) {
+        return state.get(key.key());
     }
 
-    /** Gets an integer state variable. Returns 0 if not found or not a number. */
-    public int getInt(String key) {
-        Object v = state.get(key);
+    /**
+     * Gets an integer state variable using enum key. Returns 0 if not found or not
+     * a number.
+     */
+    public int getStateInt(StateKey key) {
+        Object v = state.get(key.key());
         return v instanceof Number ? ((Number) v).intValue() : 0;
     }
 
-    /** Gets a boolean state variable. Returns false if not found or not a boolean. */
-    public boolean is(String key) {
-        Object v = state.get(key);
+    /**
+     * Gets a boolean state variable using enum key. Returns false if not found or
+     * not a boolean.
+     */
+    public boolean isState(StateKey key) {
+        Object v = state.get(key.key());
         return v instanceof Boolean && (Boolean) v;
     }
 

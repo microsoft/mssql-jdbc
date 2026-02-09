@@ -5,19 +5,14 @@
  */
 package com.microsoft.sqlserver.jdbc.statemachinetest.core;
 
-
 /**
  * Abstract base class for state machine actions.
  * 
- * Each action represents an operation on the system under test (e.g., ResultSet.next()).
+ * Each action represents an operation on the system under test (e.g.,
+ * ResultSet.next()).
  * Subclasses must implement:
  * - canRun(): Returns true if the action can be executed in the current state
  * - run(): Executes the action and updates state accordingly
- * 
- * Using abstract class instead of lambdas allows:
- * - Easier debugging with breakpoints in canRun() and run()
- * - Clear stack traces when errors occur
- * - Better code organization for complex preconditions
  */
 public abstract class Action {
     /** Name of this action, used for logging. */

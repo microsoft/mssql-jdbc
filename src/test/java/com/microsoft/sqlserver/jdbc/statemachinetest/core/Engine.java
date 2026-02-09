@@ -55,8 +55,11 @@ public class Engine {
         return this;
     }
 
-    /** Sets timeout in seconds. Default is 30. */
+    /** Sets timeout in seconds. Default is 30. Must be at least 1. */
     public Engine withTimeout(int s) {
+        if (s < 1) {
+            throw new IllegalArgumentException("timeout must be at least 1 second, got: " + s);
+        }
         timeout = s;
         return this;
     }
@@ -72,15 +75,13 @@ public class Engine {
         Exception error = null;
         int count = 0;
 
-        System.out.println("═══════════════════════════════════════════════════════");
         System.out.println(sm.getName() + " | Seed:" + seed + " | Max:" + maxActions + " | Timeout:" + timeout + "s");
-        System.out.println("═══════════════════════════════════════════════════════");
 
         try {
             while (count < maxActions && System.currentTimeMillis() < end) {
                 List<Action> valid = sm.getValidActions();
                 if (valid.isEmpty()) {
-                    System.out.println("→ No valid actions");
+                    System.out.println("No valid actions");
                     break;
                 }
 
@@ -110,10 +111,7 @@ public class Engine {
                 count++;
                 selected.run();
                 log.add(selected.name);
-                // Use println instead of printf to avoid format issues if state contains %
-                // characters
-                System.out.printf("[%3d] %-20s | ", count, selected.name);
-                System.out.println(sm.getState());
+                System.out.println(String.format("[%3d] %-20s | %s", count, selected.name, sm.getState()));
             }
         } catch (Exception e) {
             error = e;
@@ -123,9 +121,7 @@ public class Engine {
         }
 
         long duration = System.currentTimeMillis() - start;
-        System.out.println("═══════════════════════════════════════════════════════");
         System.out.println("Done: " + count + " actions in " + duration + "ms");
-        System.out.println("═══════════════════════════════════════════════════════");
 
         return new Result(error == null, count, duration, seed, log, error);
     }
