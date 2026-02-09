@@ -1337,7 +1337,23 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 // is not a security issue.
 
                 ThreePartName threePartName = ThreePartName.parse(procedureName);
-                StringBuilder metaQuery = new StringBuilder("exec sp_sproc_columns ");
+                StringBuilder metaQuery = new StringBuilder("exec ");
+                
+                // Check if the stored procedure is in a different database than the current connection
+                String currentDb = connection.getCatalog();
+                String targetDb = threePartName.getDatabasePart();
+                boolean isCrossDatabase = targetDb != null && !targetDb.equalsIgnoreCase(currentDb);
+                
+                // When calling a stored procedure from a different database context, we need to
+                // qualify sp_sproc_columns with the target database name. Using 'sys' schema is
+                // safest because users cannot create objects in the sys schema, preventing any
+                // possibility of name-squatting with a user-defined sp_sproc_columns procedure.
+                if (isCrossDatabase) {
+                    metaQuery.append(targetDb);
+                    metaQuery.append(".sys.");
+                }
+                
+                metaQuery.append("sp_sproc_columns ");
                 if (null != threePartName.getDatabasePart()) {
                     metaQuery.append("@procedure_qualifier=");
                     metaQuery.append(threePartName.getDatabasePart());

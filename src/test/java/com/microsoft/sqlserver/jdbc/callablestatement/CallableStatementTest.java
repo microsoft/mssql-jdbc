@@ -1834,6 +1834,156 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     /**
+     * Tests that calling a stored procedure in a different database using named parameters works correctly.
+     * This tests the fix for GitHub issue #1882 where sp_sproc_columns fails when the stored procedure
+     * is in a different database than the current connection context.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testCrossDatabaseStoredProcedureWithNamedParams() throws SQLException {
+        String crossDbName = "CrossDbTest_" + UUID.randomUUID().toString().replace("-", "");
+        String crossDbProcName = "TestCrossDbProc";
+        String originalDb = connection.getCatalog();
+        
+        try (Statement stmt = connection.createStatement()) {
+            // Create a separate test database
+            TestUtils.dropDatabaseIfExists(crossDbName, connectionString);
+            stmt.execute(String.format("CREATE DATABASE [%s]", crossDbName));
+            
+            // Switch to new database, create procedure, then switch back
+            stmt.execute(String.format("USE [%s]", crossDbName));
+            stmt.execute("CREATE PROCEDURE dbo." + crossDbProcName + 
+                " @param1 NVARCHAR(100), @param2 NVARCHAR(100) " +
+                "AS BEGIN SELECT @param1 + @param2 AS result END");
+            stmt.execute(String.format("USE [%s]", originalDb));
+            
+            // Call procedure from original database using named parameters
+            String callSql = String.format("{call [%s].dbo.%s(?, ?)}", crossDbName, crossDbProcName);
+            try (CallableStatement cs = connection.prepareCall(callSql)) {
+                cs.setString("param1", "Hello");
+                cs.setString("param2", "World");
+
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    assertEquals("HelloWorld", rs.getString("result"));
+                }
+            }
+        } finally {
+            connection.setCatalog(originalDb);
+            // Dropping the database automatically cleans up all objects (procedures, tables, etc.) inside it
+            TestUtils.dropDatabaseIfExists(crossDbName, connectionString);
+        }
+    }
+
+    /**
+     * Tests that same-database stored procedure calls with named parameters still work correctly.
+     * This is a regression test to ensure the cross-database fix doesn't break normal usage.
+     * 
+     * This test verifies that:
+     * 1. Named parameters work correctly for same-database procedure calls
+     * 2. Both with and without '@' prefix for parameter names
+     * 3. The fix doesn't introduce any regression in normal usage patterns
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testSameDatabaseStoredProcedureWithNamedParams() throws SQLException {
+        String procName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("SameDbTestProc"));
+        
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropProcedureIfExists(procName, stmt);
+            stmt.execute("CREATE PROCEDURE " + procName + 
+                " @Name NVARCHAR(100), @Value NVARCHAR(100) " +
+                "AS BEGIN SELECT @Name AS Name, @Value AS Value END");
+            
+            // Call procedure in same database using named parameters
+            try (CallableStatement cs = connection.prepareCall("{call " + procName + "(?,?)}")) {
+                cs.setString("Name", "TestName");
+                cs.setString("Value", "TestValue");
+
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    assertEquals("TestName", rs.getString("Name"));
+                    assertEquals("TestValue", rs.getString("Value"));
+                }
+            }
+            
+            // Also test with @ prefix
+            try (CallableStatement cs = connection.prepareCall("{call " + procName + "(?,?)}")) {
+                cs.setString("@Name", "Hello");
+                cs.setString("@Value", "World");
+
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    assertEquals("Hello", rs.getString("Name"));
+                    assertEquals("World", rs.getString("Value"));
+                }
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropProcedureIfExists(procName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Tests the exact repro scenario from GitHub issue #1882.
+     * 
+     * Issue: When calling a stored procedure in a different database using named parameters
+     * (e.g., callableStatement.setString("Name", "def")), the driver internally calls
+     * sp_sproc_columns to resolve parameter metadata. However, sp_sproc_columns was being
+     * called without the target database prefix, causing the error:
+     * "The database name component of the object qualifier must be the name of the current database."
+     * 
+     * Fix: When the stored procedure is in a different database than the current connection context,
+     * the driver now prefixes sp_sproc_columns with the target database and sys schema
+     * (e.g., "DB2.sys.sp_sproc_columns") to query metadata from the correct database.
+     * The sys schema is used instead of dbo to prevent name-squatting security issues.
+     * 
+     * This test verifies that calling a stored procedure with named parameters from a different
+     * database context no longer throws an exception.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testGitHubIssue1882() throws SQLException {
+        String db2 = "DB2_" + UUID.randomUUID().toString().replace("-", "");
+        String originalDb = connection.getCatalog();
+        
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropDatabaseIfExists(db2, connectionString);
+            stmt.execute(String.format("CREATE DATABASE [%s]", db2));
+            
+            // Create procedure in DB2
+            stmt.execute(String.format("USE [%s]", db2));
+            stmt.execute("CREATE PROCEDURE dbo.DetailsWithArgs1 @Name NVARCHAR(100), @Address NVARCHAR(100) " +
+                "AS BEGIN SELECT @Name AS Name, @Address AS Address END");
+            stmt.execute(String.format("USE [%s]", originalDb));
+            
+            // Verify we are connected to original database (not DB2) when calling the procedure
+            assertEquals(originalDb, connection.getCatalog(), "Should be connected to original database");
+            
+            // Exact pattern from issue #1882 - calling procedure in DB2 from originalDb context
+            try (CallableStatement callableStatement = connection
+                    .prepareCall("{call " + db2 + ".dbo.DetailsWithArgs1(?,?)}")) {
+                callableStatement.setString("Name", "def");
+                callableStatement.setString("Address", "456");
+                callableStatement.execute();
+            }
+        } finally {
+            connection.setCatalog(originalDb);
+            // Dropping the database automatically cleans up all objects (procedures, tables, etc.) inside it
+            TestUtils.dropDatabaseIfExists(db2, connectionString);
+        }
+    }
+
+    /**
      * Cleanup after test
      * 
      * @throws SQLException
