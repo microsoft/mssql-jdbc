@@ -329,7 +329,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             isDirectSqlExecution = false;
             usePrepExec = true;
         } else {
-            // Default: prepareMethod=prepare (sp_prepare)
             isDirectSqlExecution = false;
             usePrepExec = false;
         }
