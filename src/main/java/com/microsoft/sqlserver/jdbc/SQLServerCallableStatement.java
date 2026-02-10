@@ -1340,9 +1340,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 StringBuilder metaQuery = new StringBuilder("exec ");
                 
                 // Check if the stored procedure is in a different database than the current connection
+                // Database names in SQL Server are case-insensitive (unique regardless of case)
                 String currentDb = connection.getCatalog();
                 String targetDb = threePartName.getDatabasePart();
-                boolean isCrossDatabase = targetDb != null && !targetDb.equals(currentDb);
+                boolean isCrossDatabase = targetDb != null && !targetDb.equalsIgnoreCase(currentDb);
                 
                 // When calling a stored procedure from a different database context, we need to
                 // qualify sp_sproc_columns with the target database name. Using 'sys' schema is

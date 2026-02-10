@@ -1844,8 +1844,9 @@ public class CallableStatementTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     public void testCrossDatabaseStoredProcedureWithNamedParams() throws SQLException {
-        String crossDbName = "CrossDbTest_" + UUID.randomUUID().toString().replace("-", "");
-        String crossDbProcName = "TestCrossDbProc";
+        String shortUuid = UUID.randomUUID().toString().substring(0, 8);
+        String crossDbName = "CrossDbTest" + shortUuid;
+        String crossDbProcName = "TestCrossDbProc" + shortUuid;
         String originalDb = connection.getCatalog();
         
         try (Statement stmt = connection.createStatement()) {
@@ -1953,7 +1954,9 @@ public class CallableStatementTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     public void testGitHubIssue1882() throws SQLException {
-        String db2 = "DB2_" + UUID.randomUUID().toString().replace("-", "");
+        String shortUuid = UUID.randomUUID().toString().substring(0, 8);
+        String db2 = "DB2_" + shortUuid;
+        String procName = "DetailsWithArgs" + shortUuid;
         String originalDb = connection.getCatalog();
         
         try (Statement stmt = connection.createStatement()) {
@@ -1962,7 +1965,7 @@ public class CallableStatementTest extends AbstractTest {
             
             // Create procedure in DB2
             stmt.execute(String.format("USE [%s]", db2));
-            stmt.execute("CREATE PROCEDURE dbo.DetailsWithArgs1 @Name NVARCHAR(100), @Address NVARCHAR(100) " +
+            stmt.execute("CREATE PROCEDURE dbo." + procName + " @Name NVARCHAR(100), @Address NVARCHAR(100) " +
                 "AS BEGIN SELECT @Name AS Name, @Address AS Address END");
             stmt.execute(String.format("USE [%s]", originalDb));
             
@@ -1971,7 +1974,7 @@ public class CallableStatementTest extends AbstractTest {
             
             // Exact pattern from issue #1882 - calling procedure in DB2 from originalDb context
             try (CallableStatement callableStatement = connection
-                    .prepareCall("{call " + db2 + ".dbo.DetailsWithArgs1(?,?)}")) {
+                    .prepareCall("{call " + db2 + ".dbo." + procName + "(?,?)}")) {
                 callableStatement.setString("Name", "def");
                 callableStatement.setString("Address", "456");
                 callableStatement.execute();
@@ -1980,6 +1983,69 @@ public class CallableStatementTest extends AbstractTest {
             connection.setCatalog(originalDb);
             // Dropping the database automatically cleans up all objects (procedures, tables, etc.) inside it
             TestUtils.dropDatabaseIfExists(db2, connectionString);
+        }
+    }
+
+    /**
+     * Tests that database name comparison is case-insensitive when determining cross-database calls.
+     * 
+     * SQL Server database names are case-insensitive - they must be unique regardless of case.
+     * For example, "MyDB" and "MYDB" refer to the same database. The driver should recognize
+     * that calling a procedure in "MYDB" when connected to "mydb" is NOT a cross-database call.
+     * 
+     * This test verifies that the driver correctly uses case-insensitive comparison when
+     * determining whether to prefix sp_sproc_columns with the database name.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testDatabaseNameCaseInsensitiveComparison() throws SQLException {
+        String currentDb = connection.getCatalog();
+        String shortUuid = UUID.randomUUID().toString().substring(0, 8);
+        String procName = "CaseTestProc" + shortUuid;
+        
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
+            
+            stmt.execute("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + 
+                " @Param1 NVARCHAR(100), @Param2 NVARCHAR(100) " +
+                "AS BEGIN SELECT @Param1 AS Result1, @Param2 AS Result2 END");
+            
+            // Call procedure using different case variations of the current database name
+            // These should all be recognized as same-database calls (not cross-database)
+            String upperCaseDb = currentDb.toUpperCase();
+            String lowerCaseDb = currentDb.toLowerCase();
+            
+            // Test with UPPERCASE database name in call
+            String callSqlUpper = String.format("{call [%s].dbo.%s(?, ?)}", upperCaseDb, procName);
+            try (CallableStatement cs = connection.prepareCall(callSqlUpper)) {
+                cs.setString("Param1", "UpperTest");
+                cs.setString("Param2", "Value1");
+                
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    assertEquals("UpperTest", rs.getString("Result1"));
+                    assertEquals("Value1", rs.getString("Result2"));
+                }
+            }
+            
+            // Test with lowercase database name in call
+            String callSqlLower = String.format("{call [%s].dbo.%s(?, ?)}", lowerCaseDb, procName);
+
+            try (CallableStatement cs = connection.prepareCall(callSqlLower)) {
+                cs.setString("Param1", "LowerTest");
+                cs.setString("Param2", "Value2");
+                
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    assertEquals("LowerTest", rs.getString("Result1"));
+                    assertEquals("Value2", rs.getString("Result2"));
+                }
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
+            }
         }
     }
 
@@ -2009,8 +2075,10 @@ public class CallableStatementTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     @Tag(Constants.xAzureSQLDB)
     public void testSysSchemaProtectsAgainstNameSquatting() throws SQLException {
-        String db2 = "DB2_" + UUID.randomUUID().toString().replace("-", "");
-        String customSchema = "CustomSchema";
+        String shortUuid = UUID.randomUUID().toString().substring(0, 8);
+        String db2 = "DB2_" + shortUuid;
+        String customSchema = "CustomSchema" + shortUuid;
+        String procName = "GetDetails" + shortUuid;
         String originalDb = connection.getCatalog();
         
         try (Statement stmt = connection.createStatement()) {
@@ -2025,7 +2093,7 @@ public class CallableStatementTest extends AbstractTest {
             
             // Create a legitimate stored procedure in the custom schema
             stmt.execute(String.format(
-                "CREATE PROCEDURE [%s].GetDetails @Name NVARCHAR(100), @Value NVARCHAR(100) " +
+                "CREATE PROCEDURE [%s]." + procName + " @Name NVARCHAR(100), @Value NVARCHAR(100) " +
                 "AS BEGIN SELECT @Name AS Name, @Value AS Value END", customSchema));
             
             // Attempt to create a name-squatting procedure (sp_sproc_columns) in custom schema
@@ -2042,7 +2110,7 @@ public class CallableStatementTest extends AbstractTest {
             // Call the legitimate procedure in custom schema using named parameters
             // The driver should use sys.sp_sproc_columns (not CustomSchema.sp_sproc_columns)
             // to get the correct parameter metadata
-            String callSql = String.format("{call [%s].[%s].GetDetails(?, ?)}", db2, customSchema);
+            String callSql = String.format("{call [%s].[%s]." + procName + "(?, ?)}", db2, customSchema);
             try (CallableStatement cs = connection.prepareCall(callSql)) {
                 cs.setString("Name", "TestName");
                 cs.setString("Value", "TestValue");
