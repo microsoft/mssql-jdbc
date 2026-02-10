@@ -38,13 +38,12 @@ import org.junit.jupiter.api.Tag;
 import sun.misc.Unsafe;
 
 /**
- * Comprehensive test suite for scopeTempTablesToConnection prepare method
- * implementation
- * Focus: Temp table persistence, parameter
- * substitution, security, edge cases, and performance
+ * Comprehensive test suite for PreparedStatement direct SQL execution methods.
+ * Tests scopeTempTablesToConnection and prepareMethod=none implementations.
+ * Focus: Temp table persistence, parameter substitution, security, edge cases, and performance.
  */
 @RunWith(JUnitPlatform.class)
-public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
+public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
