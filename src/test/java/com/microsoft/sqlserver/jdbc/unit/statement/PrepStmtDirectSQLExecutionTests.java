@@ -1361,6 +1361,86 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
     // (no temp table detection required)
 
     /**
+     * Test prepareMethod=none with regular (non-temp) table DML/SELECT operations
+     * Validates that literal parameter substitution works for general queries,
+     * not just temp table scenarios.
+     */
+    @Test
+    public void testRegularTableDMLWithPrepareMethodNone() throws SQLException {
+        String tableName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("PrepMethodNone_Regular"));
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            conn.setPrepareMethod("none");
+
+            // Create regular table
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE " + tableName
+                        + " (id INT PRIMARY KEY, name NVARCHAR(100), amount DECIMAL(10,2))");
+            }
+
+            // INSERT with parameters using prepareMethod=none
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO " + tableName + " (id, name, amount) VALUES (?, ?, ?)")) {
+                ps.setInt(1, 1);
+                ps.setString(2, "Alice");
+                ps.setBigDecimal(3, new BigDecimal("100.50"));
+                assertEquals(1, ps.executeUpdate(), "Should insert 1 row");
+
+                ps.setInt(1, 2);
+                ps.setString(2, "Bob");
+                ps.setBigDecimal(3, new BigDecimal("200.75"));
+                assertEquals(1, ps.executeUpdate(), "Should insert 1 row");
+            }
+
+            // SELECT with parameters using prepareMethod=none
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT id, name, amount FROM " + tableName + " WHERE amount > ? ORDER BY id")) {
+                ps.setBigDecimal(1, new BigDecimal("150.00"));
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "Should find Bob with amount > 150");
+                    assertEquals(2, rs.getInt("id"));
+                    assertEquals("Bob", rs.getString("name"));
+                    assertEquals(new BigDecimal("200.75"), rs.getBigDecimal("amount"));
+                    assertFalse(rs.next(), "Should have exactly one row");
+                }
+            }
+
+            // UPDATE with parameters using prepareMethod=none
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE " + tableName + " SET amount = ? WHERE id = ?")) {
+                ps.setBigDecimal(1, new BigDecimal("300.00"));
+                ps.setInt(2, 1);
+                assertEquals(1, ps.executeUpdate(), "Should update 1 row");
+            }
+
+            // DELETE with parameters using prepareMethod=none
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM " + tableName + " WHERE id = ?")) {
+                ps.setInt(1, 2);
+                assertEquals(1, ps.executeUpdate(), "Should delete 1 row");
+            }
+
+            // Verify final state
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT id, name, amount FROM " + tableName)) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "Should find Alice");
+                    assertEquals(1, rs.getInt("id"));
+                    assertEquals("Alice", rs.getString("name"));
+                    assertEquals(new BigDecimal("300.00"), rs.getBigDecimal("amount"));
+                    assertFalse(rs.next(), "Should have exactly one row after delete");
+                }
+            }
+        } finally {
+            // Cleanup
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
+
+    /**
      * Test prepareMethod=none with temp table operations
      * Unlike scopeTempTablesToConnection, none always uses direct SQL regardless of
      * temp tables
