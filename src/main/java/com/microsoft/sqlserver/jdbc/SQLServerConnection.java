@@ -1146,12 +1146,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             Object[] msgArgs = { "null" };
             throw new IllegalArgumentException(form.format(msgArgs));
         }
+        String normalizedValue = vectorTypeSupport.trim().toLowerCase(Locale.US);
         try {
-            this.vectorTypeSupportEnum = VectorTypeSupport.valueOfString(vectorTypeSupport.trim());
-            this.vectorTypeSupport = vectorTypeSupport.toLowerCase();
+            this.vectorTypeSupportEnum = VectorTypeSupport.valueOfString(normalizedValue);
+            this.vectorTypeSupport = normalizedValue;
         } catch (SQLServerException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
-            Object[] msgArgs = { vectorTypeSupport };
+            Object[] msgArgs = { normalizedValue };
             throw new IllegalArgumentException(form.format(msgArgs));
         }
     }

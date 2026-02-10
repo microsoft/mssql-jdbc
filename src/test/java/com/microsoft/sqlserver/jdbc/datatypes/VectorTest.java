@@ -2002,8 +2002,8 @@ public class VectorTest extends AbstractTest {
             // Test default behavior (no vectorTypeSupport specified) - default is "v1"
             try (SQLServerConnection conn = getConnection()) {
                 byte negotiatedVersion = conn.getNegotiatedVectorVersion();
-                assertTrue(negotiatedVersion == 0x01,
-                        "Default negotiated version should be valid. Actual: " + negotiatedVersion);
+                assertEquals(0x01, negotiatedVersion,
+                        "Default negotiated version should be 0x01");
             }
         }
     }

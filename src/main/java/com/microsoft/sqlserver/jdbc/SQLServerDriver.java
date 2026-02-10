@@ -538,7 +538,7 @@ enum VectorTypeSupport {
             throwInvalid(value);
         }
 
-        switch (value.trim().toLowerCase()) {
+        switch (value.trim().toLowerCase(Locale.US)) {
             case "off":
                 return VectorTypeSupport.OFF;
             case "v1":
