@@ -1400,9 +1400,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                     assertEquals(new BigDecimal("45.67"), rs.getBigDecimal("value"));
                 }
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
@@ -1449,9 +1449,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 rs.next();
                 assertEquals(3, rs.getInt(1), "Should have 3 rows inserted");
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
@@ -1493,9 +1493,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 rs.next();
                 assertEquals(5, rs.getInt(1), "Should have 5 rows inserted via batch");
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
@@ -1546,13 +1546,20 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 assertEquals(Integer.MAX_VALUE, rs.getInt("col_int"));
                 assertEquals(Long.MAX_VALUE, rs.getLong("col_bigint"));
                 assertEquals(new BigDecimal("123456789.123456"), rs.getBigDecimal("col_decimal"));
+                assertEquals(3.14159265359, rs.getDouble("col_float"), 0.0000001);
                 assertEquals("ASCII string", rs.getString("col_varchar"));
                 assertEquals("Unicode: café 日本語", rs.getNString("col_nvarchar"));
                 assertTrue(rs.getBoolean("col_bit"));
+                assertEquals(Date.valueOf("2023-12-15"), rs.getDate("col_date"));
+                // Timestamp comparison - check date/time components
+                Timestamp expectedTs = Timestamp.valueOf("2023-12-15 14:30:45.123456");
+                Timestamp actualTs = rs.getTimestamp("col_datetime2");
+                assertEquals(expectedTs.getTime() / 1000, actualTs.getTime() / 1000,
+                        "Timestamp seconds should match");
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
@@ -1593,9 +1600,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                     assertTrue(rs.wasNull());
                 }
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
@@ -1635,9 +1642,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                     assertEquals(2, count, "Should find 2 rows matching criteria");
                 }
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
@@ -1704,9 +1711,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 rs.next();
                 assertEquals(2, rs.getInt(1));
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tempTable1, stmt);
                 TestUtils.dropTableIfExists(tempTable2, stmt);
             }
@@ -1775,9 +1782,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 rs.next();
                 assertEquals(0, rs.getInt(1), "Temp table should be empty after DELETE");
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tempTable, stmt);
                 TestUtils.dropTableIfExists(tempTable1, stmt);
                 TestUtils.dropTableIfExists(tempTable2, stmt);
@@ -1852,9 +1859,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 rs.next();
                 assertEquals(3, rs.getInt(1), "Table2 should have 3 rows");
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tempTable1, stmt);
                 TestUtils.dropTableIfExists(tempTable2, stmt);
             }
@@ -1895,9 +1902,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 rs.next();
                 assertEquals(3, rs.getInt(1), "Should have 3 rows inserted");
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tempTable, stmt);
             }
         }
@@ -1949,9 +1956,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 assertEquals("Name;with;semicolons", rs.getString(1));
                 assertEquals("Desc;test", rs.getString(2));
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tempTable1, stmt);
                 TestUtils.dropTableIfExists(tempTable2, stmt);
             }
@@ -2016,9 +2023,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                     assertEquals("Param5", rs.getString("description"));
                 }
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tempTable1, stmt);
                 TestUtils.dropTableIfExists(tempTable2, stmt);
             }
@@ -2070,9 +2077,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 assertThrows(SQLException.class, () -> pstmt.executeBatch(),
                         "Should throw SQLException for duplicate key violation");
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tempTable, stmt);
             }
         }
@@ -2122,9 +2129,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 rs.next();
                 assertEquals(100, rs.getInt(1), "Should have 100 rows inserted");
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tempTable, stmt);
             }
         }
@@ -2172,9 +2179,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 rs.next();
                 assertEquals(2, rs.getInt(1), "Should have 2 rows inserted");
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
@@ -2215,9 +2222,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 rs.next();
                 assertEquals(10, rs.getInt(1), "Should have 10 rows from batch insert");
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
@@ -2263,9 +2270,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                 assertEquals("Unicode: 日本語", rs.getNString("col_nvarchar"));
                 assertTrue(rs.getBoolean("col_bit"));
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
@@ -2307,9 +2314,9 @@ public class PrepareMethodScopeTempTablesToConnectionTest extends AbstractTest {
                     assertEquals(2, count, "Should find 2 rows with category='A' and amount > 120");
                 }
             }
-
+        } finally {
             // Cleanup
-            try (Statement stmt = conn.createStatement()) {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(tableName, stmt);
             }
         }
