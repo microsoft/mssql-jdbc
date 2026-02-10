@@ -3818,6 +3818,7 @@ public class StatementTest extends AbstractTest {
      * - Sources: VSTS (18), SQL Bug (4), Product Studio (1)
      */
     @Nested
+    @Tag(Constants.legacyFx)
     @Tag(Constants.xAzureSQLDW)
     public class BugRegressionTests {
 

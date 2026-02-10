@@ -1683,6 +1683,7 @@ public class ResultSetTest extends AbstractTest {
      * 
      * FX Reference: mssql-jdbc-ado/mssql-jdbc/tests/src/resultset.java
      */
+    @Tag(Constants.legacyFx)
     @Nested
     class BugRegressionTests {
 
