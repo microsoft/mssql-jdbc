@@ -207,15 +207,6 @@ public class AESetup extends AbstractTest {
 
     @BeforeAll
     public static void setupAETest() throws Exception {
-        // Skip AE tests if ACCESS_TOKEN env var is set or accessTokenCallbackClass is configured
-        // AE tests require MSI-based authentication for Azure Key Vault which is not available
-        // when using accessTokenCallbackClass from environment variable
-        String accessToken = System.getenv("ACCESS_TOKEN");
-        boolean hasAccessTokenEnv = accessToken != null && !accessToken.isEmpty();
-        boolean hasAccessTokenCallbackClass = TestUtils.getProperty(connectionString, "accessTokenCallbackClass") != null;
-        org.junit.Assume.assumeTrue("Skipping AE tests: token-based auth is configured",
-                !hasAccessTokenEnv && !hasAccessTokenCallbackClass);
-
         setConnection();
 
         readFromFile(Constants.JAVA_KEY_STORE_FILENAME, "Alias name");

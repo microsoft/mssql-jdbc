@@ -36,6 +36,8 @@ import org.junit.jupiter.api.BeforeAll;
 
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
+import com.azure.identity.DefaultAzureCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
@@ -255,7 +257,22 @@ public abstract class AbstractTest {
             map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null == akvProvider && null != akvProviderManagedClientId) {
+        // Check if accessTokenCallbackClass is configured - if so, use DefaultAzureCredential for AKV
+        // This ensures consistent authentication (Azure CLI) for both SQL and Key Vault
+        boolean useAzureCliAuth = connectionString != null && 
+                connectionString.contains("accessTokenCallbackClass=");
+
+        if (null == akvProvider && useAzureCliAuth) {
+            // When using accessTokenCallbackClass for SQL auth (e.g., Azure CLI),
+            // use DefaultAzureCredential for AKV to match the authentication method
+            try {
+                DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+                map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            } catch (Exception e) {
+                System.out.println("Could not initialize AKV provider with DefaultAzureCredential: " + e.getMessage());
+            }
+        } else if (null == akvProvider && null != akvProviderManagedClientId) {
             ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
                     .clientId(akvProviderManagedClientId).build();
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
@@ -276,6 +293,18 @@ public abstract class AbstractTest {
                 if (null != file) {
                     file.delete();
                 }
+            }
+        } else if (null == akvProvider) {
+            // Fallback to DefaultAzureCredential for token-based authentication
+            // This works with Azure CLI (az login), Azure DevOps AzureCLI@2 task with service connection,
+            // environment variables, workload identity, etc.
+            try {
+                DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+                map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            } catch (Exception e) {
+                // Log but don't fail - AKV tests will be skipped if provider is not available
+                System.out.println("Could not initialize AKV provider with DefaultAzureCredential: " + e.getMessage());
             }
         }
 
