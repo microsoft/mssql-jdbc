@@ -185,7 +185,7 @@ public abstract class AbstractTest {
                 || TestUtils.getProperty(connectionString, "password") != null;
         if (accessToken != null && !accessToken.isEmpty() && !hasUserCredentials) {
             connectionString = TestUtils.addOrOverrideProperty(connectionString, "accessTokenCallbackClass",
-                    "com.microsoft.sqlserver.testframework.EnvAccessTokenCallback");
+                    "com.microsoft.sqlserver.testframework.AzureCliAccessTokenCallback");
         }
 
         encrypt = getConfiguredProperty("encrypt", "false");
@@ -500,11 +500,11 @@ public abstract class AbstractTest {
             }
         }
         // If ACCESS_TOKEN env var is set, accessTokenCallbackClass is not already configured,
-        // and no SQL auth credentials are present, use EnvAccessTokenCallback for token-based authentication
+        // and no SQL auth credentials are present, use AzureCliAccessTokenCallback for token-based authentication
         String accessToken = System.getenv("ACCESS_TOKEN");
         boolean hasUserCredentials = ds.getUser() != null || TestUtils.getProperty(connectionString, "password") != null;
         if (accessToken != null && !accessToken.isEmpty() && ds.getAccessTokenCallbackClass() == null && !hasUserCredentials) {
-            ds.setAccessTokenCallbackClass("com.microsoft.sqlserver.testframework.EnvAccessTokenCallback");
+            ds.setAccessTokenCallbackClass("com.microsoft.sqlserver.testframework.AzureCliAccessTokenCallback");
         }
         return ds;
     }

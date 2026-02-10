@@ -19,7 +19,7 @@ import java.util.logging.Logger;
  * Access token callback implementation that obtains access tokens via Azure CLI.
  * 
  * This class can be used with the accessTokenCallbackClass connection string property:
- * jdbc:sqlserver://server;accessTokenCallbackClass=com.microsoft.sqlserver.testframework.EnvAccessTokenCallback
+ * jdbc:sqlserver://server;accessTokenCallbackClass=com.microsoft.sqlserver.testframework.AzureCliAccessTokenCallback
  * 
  * Prerequisites:
  * - Azure CLI must be installed and in PATH
@@ -30,9 +30,9 @@ import java.util.logging.Logger;
  * - A new token is fetched 5 minutes before the cached token expires
  * - Thread-safe implementation using ReentrantLock
  */
-public class EnvAccessTokenCallback implements SQLServerAccessTokenCallback {
+public class AzureCliAccessTokenCallback implements SQLServerAccessTokenCallback {
 
-    private static final Logger LOGGER = Logger.getLogger(EnvAccessTokenCallback.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(AzureCliAccessTokenCallback.class.getName());
     
     // Token validity period - Azure CLI tokens are valid for ~60-70 minutes
     // We'll set expiry to 55 minutes to be safe
@@ -54,7 +54,7 @@ public class EnvAccessTokenCallback implements SQLServerAccessTokenCallback {
     /**
      * Default constructor required for reflection-based instantiation by the driver.
      */
-    public EnvAccessTokenCallback() {
+    public AzureCliAccessTokenCallback() {
         // Required public no-arg constructor
     }
 
