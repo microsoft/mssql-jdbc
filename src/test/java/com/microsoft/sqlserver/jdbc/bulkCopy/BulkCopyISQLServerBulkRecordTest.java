@@ -719,8 +719,9 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorUsingBulkCopySourceAsVarBinary() {
         String varbinaryTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarbinaryTable"));
-        String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVarbinaryTable")));
+        String vectorTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVectorTable")));
 
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement statement = connection.createStatement()) {
@@ -780,9 +781,10 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @vectorJsonTest
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorUsingBulkCopyDestinationAsVarBinary() {
-        String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
+        String vectorTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVectorTable")));
         String varbinaryTable = TestUtils
-                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarbinaryTable"));
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVarbinaryTable")));
 
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement statement = connection.createStatement()) {
@@ -848,8 +850,10 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @vectorJsonTest
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorUsingBulkCopySourceAsVarchar() {
-        String varcharTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarcharTable"));
-        String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
+        String varcharTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVarcharTable")));
+        String vectorTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVectorTable")));
 
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement statement = connection.createStatement()) {
@@ -916,8 +920,10 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @vectorJsonTest
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorUsingBulkCopyDestinationAsVarchar() {
-        String vectorTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVectorTable"));
-        String varcharTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testVarcharTable"));
+        String vectorTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVectorTable")));
+        String varcharTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testVarcharTable")));
 
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement statement = connection.createStatement()) {
@@ -987,8 +993,10 @@ public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
     @vectorJsonTest
     @Tag(Constants.vectorTest)
     public void testBulkCopyVectorWithMismatchedDimensions() {
-        String srcTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testSrcTable"));
-        String desTable = TestUtils.escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier("testDesTable"));
+        String srcTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testSrcTable")));
+        String desTable = TestUtils
+                .escapeSingleQuotes(AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testDesTable")));
 
         try (Connection connection = DriverManager.getConnection(connectionString);
                 Statement statement = connection.createStatement()) {
