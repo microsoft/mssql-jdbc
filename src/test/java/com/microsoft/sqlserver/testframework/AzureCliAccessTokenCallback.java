@@ -4,45 +4,52 @@
  */
 package com.microsoft.sqlserver.testframework;
 
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.DefaultAzureCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback;
 import com.microsoft.sqlserver.jdbc.SqlAuthenticationToken;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
 /**
- * Access token callback implementation that obtains access tokens via Azure CLI.
+ * Access token callback implementation that uses Azure Identity SDK's DefaultAzureCredential
+ * to obtain access tokens for Azure SQL Database authentication.
  * 
  * This class can be used with the accessTokenCallbackClass connection string property:
  * jdbc:sqlserver://server;accessTokenCallbackClass=com.microsoft.sqlserver.testframework.AzureCliAccessTokenCallback
  * 
- * Prerequisites:
- * - Azure CLI must be installed and in PATH
- * - User must be logged in via 'az login' (or running in AzureCLI@2 task in Azure DevOps)
+ * DefaultAzureCredential automatically tries multiple authentication methods:
+ * 1. EnvironmentCredential (AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID)
+ * 2. WorkloadIdentityCredential (for Kubernetes workloads)
+ * 3. ManagedIdentityCredential (for Azure-hosted environments)
+ * 4. AzureCliCredential (uses 'az login' credentials - works with AzureCLI@2 task)
+ * 5. AzurePowerShellCredential (uses 'Connect-AzAccount' credentials)
+ * 6. AzureDeveloperCliCredential (uses 'azd auth login' credentials)
+ * 
+ * When running in Azure DevOps with AzureCLI@2 task using a service connection
+ * (backed by managed identity), the AzureCliCredential will automatically pick up
+ * the authenticated session.
  * 
  * Token caching:
- * - Tokens are cached and reused until they are about to expire
- * - A new token is fetched 5 minutes before the cached token expires
+ * - DefaultAzureCredential handles token caching internally
+ * - We add an additional layer of caching to avoid SDK overhead
+ * - Tokens are refreshed 5 minutes before expiry
  * - Thread-safe implementation using ReentrantLock
  */
 public class AzureCliAccessTokenCallback implements SQLServerAccessTokenCallback {
 
     private static final Logger LOGGER = Logger.getLogger(AzureCliAccessTokenCallback.class.getName());
     
-    // Token validity period - Azure CLI tokens are valid for ~60-70 minutes
-    // We'll set expiry to 55 minutes to be safe
-    private static final long TOKEN_VALIDITY_MS = TimeUnit.MINUTES.toMillis(55);
+    // Azure SQL Database scope for token requests
+    private static final String AZURE_SQL_SCOPE = "https://database.windows.net/.default";
     
     // Refresh token 5 minutes before expiry
-    private static final long TOKEN_REFRESH_BUFFER_MS = TimeUnit.MINUTES.toMillis(5);
-    
-    // Process timeout in seconds
-    private static final int PROCESS_TIMEOUT_SECONDS = 30;
+    private static final long TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000; // 5 minutes
     
     // Cached token and its expiry time (thread-safe access via lock)
     private static volatile SqlAuthenticationToken cachedToken = null;
@@ -50,6 +57,9 @@ public class AzureCliAccessTokenCallback implements SQLServerAccessTokenCallback
     
     // Lock for thread-safe token refresh
     private static final ReentrantLock tokenLock = new ReentrantLock();
+    
+    // Cached credential instance (thread-safe, lazy initialization)
+    private static volatile DefaultAzureCredential credential = null;
 
     /**
      * Default constructor required for reflection-based instantiation by the driver.
@@ -62,7 +72,7 @@ public class AzureCliAccessTokenCallback implements SQLServerAccessTokenCallback
      * Returns the access token for Azure SQL Database authentication.
      * 
      * Uses cached token if available and not expired. Otherwise, fetches a new token
-     * from Azure CLI using 'az account get-access-token' command.
+     * using DefaultAzureCredential from the Azure Identity SDK.
      * 
      * @param spn Service Principal Name (not used)
      * @param stsurl Security Token Service URL (not used)
@@ -86,15 +96,15 @@ public class AzureCliAccessTokenCallback implements SQLServerAccessTokenCallback
                 return cachedToken;
             }
             
-            // Fetch new token from Azure CLI
-            LOGGER.fine("Fetching new access token from Azure CLI");
-            String token = fetchTokenFromAzureCli();
+            // Fetch new token using DefaultAzureCredential
+            LOGGER.fine("Fetching new access token using DefaultAzureCredential");
+            AccessToken token = fetchTokenFromAzureIdentity();
             
-            long expiresOn = System.currentTimeMillis() + TOKEN_VALIDITY_MS;
-            cachedToken = new SqlAuthenticationToken(token, expiresOn);
+            long expiresOn = token.getExpiresAt().toInstant().toEpochMilli();
+            cachedToken = new SqlAuthenticationToken(token.getToken(), expiresOn);
             tokenExpiryTime = expiresOn;
             
-            LOGGER.fine("Successfully obtained new access token from Azure CLI");
+            LOGGER.fine("Successfully obtained new access token using DefaultAzureCredential");
             return cachedToken;
             
         } finally {
@@ -113,58 +123,41 @@ public class AzureCliAccessTokenCallback implements SQLServerAccessTokenCallback
     }
     
     /**
-     * Fetches an access token from Azure CLI by executing 'az account get-access-token'.
+     * Gets or creates the DefaultAzureCredential instance (lazy singleton).
      * 
-     * @return the access token string
-     * @throws RuntimeException if the Azure CLI command fails
+     * @return DefaultAzureCredential instance
      */
-    private String fetchTokenFromAzureCli() {
-        try {
-            ProcessBuilder pb = new ProcessBuilder(
-                "az", "account", "get-access-token",
-                "--resource", "https://database.windows.net/",
-                "--query", "accessToken",
-                "-o", "tsv"
-            );
-            pb.redirectErrorStream(true);
-            
-            Process p = pb.start();
-            
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line);
+    private static DefaultAzureCredential getCredential() {
+        if (credential == null) {
+            synchronized (AzureCliAccessTokenCallback.class) {
+                if (credential == null) {
+                    credential = new DefaultAzureCredentialBuilder().build();
                 }
             }
+        }
+        return credential;
+    }
+    
+    /**
+     * Fetches an access token using DefaultAzureCredential from Azure Identity SDK.
+     * 
+     * @return AccessToken from Azure Identity SDK
+     * @throws RuntimeException if token acquisition fails
+     */
+    private AccessToken fetchTokenFromAzureIdentity() {
+        try {
+            TokenRequestContext context = new TokenRequestContext().addScopes(AZURE_SQL_SCOPE);
+            AccessToken token = getCredential().getToken(context).block();
             
-            boolean completed = p.waitFor(PROCESS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            if (!completed) {
-                p.destroyForcibly();
-                throw new RuntimeException("Azure CLI command timed out after " + PROCESS_TIMEOUT_SECONDS + " seconds");
-            }
-            
-            int exitCode = p.exitValue();
-            String token = output.toString().trim();
-            
-            if (exitCode != 0 || token.isEmpty()) {
-                throw new RuntimeException("Azure CLI failed with exit code " + exitCode + ": " + token);
-            }
-            
-            // Basic validation - JWT tokens have 3 parts separated by dots
-            if (!token.contains(".")) {
-                throw new RuntimeException("Invalid token format received from Azure CLI: " + 
-                    (token.length() > 50 ? token.substring(0, 50) + "..." : token));
+            if (token == null) {
+                throw new RuntimeException("DefaultAzureCredential returned null token");
             }
             
             return token;
             
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted while waiting for Azure CLI", e);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to get access token via Azure CLI", e);
-            throw new RuntimeException("Failed to get access token via Azure CLI: " + e.getMessage(), e);
+            LOGGER.log(Level.SEVERE, "Failed to get access token using DefaultAzureCredential", e);
+            throw new RuntimeException("Failed to get access token using DefaultAzureCredential: " + e.getMessage(), e);
         }
     }
     
