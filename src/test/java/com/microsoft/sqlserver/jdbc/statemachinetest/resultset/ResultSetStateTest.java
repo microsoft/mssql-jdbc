@@ -46,7 +46,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.stateMachine)
 public class ResultSetStateTest extends AbstractTest {
 
-    private static final String TABLE_NAME = AbstractSQLGenerator.escapeIdentifier("SM_ResultSet_Test");
+    private static final String TABLE_NAME = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SM_ResultSet_Test"));
 
     @BeforeAll
     static void setupTests() throws Exception {
@@ -96,7 +96,7 @@ public class ResultSetStateTest extends AbstractTest {
             sm.addAction(new AbsoluteAction(sm));
             sm.addAction(new GetStringAction(sm));
 
-            Result result = Engine.run(sm).withMaxActions(50).withSeed(99999).execute();
+            Result result = Engine.run(sm).withMaxActions(50).execute();
 
             System.out.println("\nReal DB test: " + result.actionCount + " actions");
             assertTrue(result.isSuccess());

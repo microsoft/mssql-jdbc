@@ -45,7 +45,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.stateMachine)
 public class TransactionStateTest extends AbstractTest {
 
-    private static final String TABLE_NAME_CONST = AbstractSQLGenerator.escapeIdentifier("SM_Transaction_Test");
+    private static final String TABLE_NAME_CONST = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SM_Transaction_Test"));
 
     @BeforeAll
     static void setupTests() throws Exception {
@@ -91,7 +91,7 @@ public class TransactionStateTest extends AbstractTest {
             sm.addAction(new ExecuteUpdateAction(sm));
             sm.addAction(new SelectAction(sm));
 
-            Result result = Engine.run(sm).withMaxActions(50).withSeed(54321).execute();
+            Result result = Engine.run(sm).withMaxActions(50).execute();
 
             // Cleanup - ensure autocommit is restored
             conn.setAutoCommit(true);
