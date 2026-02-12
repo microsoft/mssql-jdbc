@@ -1834,6 +1834,304 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     /**
+     * Tests that calling a stored procedure in a different database using named parameters works correctly.
+     * This tests the fix for GitHub issue #1882 where sp_sproc_columns fails when the stored procedure
+     * is in a different database than the current connection context.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testCrossDatabaseStoredProcedureWithNamedParams() throws SQLException {
+        String shortUuid = UUID.randomUUID().toString().substring(0, 8);
+        String crossDbName = "CrossDbTest" + shortUuid;
+        String crossDbProcName = "TestCrossDbProc" + shortUuid;
+        String originalDb = connection.getCatalog();
+        
+        try (Statement stmt = connection.createStatement()) {
+            // Create a separate test database
+            TestUtils.dropDatabaseIfExists(crossDbName, connectionString);
+            stmt.execute(String.format("CREATE DATABASE [%s]", crossDbName));
+            
+            // Switch to new database, create procedure, then switch back
+            stmt.execute(String.format("USE [%s]", crossDbName));
+            stmt.execute("CREATE PROCEDURE dbo." + crossDbProcName + 
+                " @param1 NVARCHAR(100), @param2 NVARCHAR(100) " +
+                "AS BEGIN SELECT @param1 + @param2 AS result END");
+            stmt.execute(String.format("USE [%s]", originalDb));
+            
+            // Call procedure from original database using named parameters
+            String callSql = String.format("{call [%s].dbo.%s(?, ?)}", crossDbName, crossDbProcName);
+            try (CallableStatement cs = connection.prepareCall(callSql)) {
+                cs.setString("param1", "Hello");
+                cs.setString("param2", "World");
+
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    assertEquals("HelloWorld", rs.getString("result"));
+                }
+            }
+        } finally {
+            connection.setCatalog(originalDb);
+            // Dropping the database automatically cleans up all objects (procedures, tables, etc.) inside it
+            TestUtils.dropDatabaseIfExists(crossDbName, connectionString);
+        }
+    }
+
+    /**
+     * Tests that same-database stored procedure calls with named parameters still work correctly.
+     * This is a regression test to ensure the cross-database fix doesn't break normal usage.
+     * 
+     * This test verifies that:
+     * 1. Named parameters work correctly for same-database procedure calls
+     * 2. Both with and without '@' prefix for parameter names
+     * 3. The fix doesn't introduce any regression in normal usage patterns
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testSameDatabaseStoredProcedureWithNamedParams() throws SQLException {
+        String procName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("SameDbTestProc"));
+        
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropProcedureIfExists(procName, stmt);
+            stmt.execute("CREATE PROCEDURE " + procName + 
+                " @Name NVARCHAR(100), @Value NVARCHAR(100) " +
+                "AS BEGIN SELECT @Name AS Name, @Value AS Value END");
+            
+            // Call procedure in same database using named parameters
+            try (CallableStatement cs = connection.prepareCall("{call " + procName + "(?,?)}")) {
+                cs.setString("Name", "TestName");
+                cs.setString("Value", "TestValue");
+
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    assertEquals("TestName", rs.getString("Name"));
+                    assertEquals("TestValue", rs.getString("Value"));
+                }
+            }
+            
+            // Also test with @ prefix
+            try (CallableStatement cs = connection.prepareCall("{call " + procName + "(?,?)}")) {
+                cs.setString("@Name", "Hello");
+                cs.setString("@Value", "World");
+
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    assertEquals("Hello", rs.getString("Name"));
+                    assertEquals("World", rs.getString("Value"));
+                }
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropProcedureIfExists(procName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Tests the exact repro scenario from GitHub issue #1882.
+     * 
+     * Issue: When calling a stored procedure in a different database using named parameters
+     * (e.g., callableStatement.setString("Name", "def")), the driver internally calls
+     * sp_sproc_columns to resolve parameter metadata. However, sp_sproc_columns was being
+     * called without the target database prefix, causing the error:
+     * "The database name component of the object qualifier must be the name of the current database."
+     * 
+     * Fix: The driver now always qualifies sp_sproc_columns with the database name and sys schema
+     * (e.g., "DB2.sys.sp_sproc_columns") to query metadata from the correct database.
+     * The sys schema is used instead of dbo to prevent name-squatting security issues.
+     * 
+     * This test verifies that calling a stored procedure with named parameters from a different
+     * database context no longer throws an exception.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testGitHubIssue1882() throws SQLException {
+        String shortUuid = UUID.randomUUID().toString().substring(0, 8);
+        String db2 = "DB2_" + shortUuid;
+        String procName = "DetailsWithArgs" + shortUuid;
+        String originalDb = connection.getCatalog();
+        
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropDatabaseIfExists(db2, connectionString);
+            stmt.execute(String.format("CREATE DATABASE [%s]", db2));
+            
+            // Create procedure in DB2
+            stmt.execute(String.format("USE [%s]", db2));
+            stmt.execute("CREATE PROCEDURE dbo." + procName + " @Name NVARCHAR(100), @Address NVARCHAR(100) " +
+                "AS BEGIN SELECT @Name AS Name, @Address AS Address END");
+            stmt.execute(String.format("USE [%s]", originalDb));
+            
+            // Verify we are connected to original database (not DB2) when calling the procedure
+            assertEquals(originalDb, connection.getCatalog(), "Should be connected to original database");
+            
+            // Exact pattern from issue #1882 - calling procedure in DB2 from originalDb context
+            try (CallableStatement callableStatement = connection
+                    .prepareCall("{call " + db2 + ".dbo." + procName + "(?,?)}")) {
+                callableStatement.setString("Name", "def");
+                callableStatement.setString("Address", "456");
+                callableStatement.execute();
+            }
+        } finally {
+            connection.setCatalog(originalDb);
+            // Dropping the database automatically cleans up all objects (procedures, tables, etc.) inside it
+            TestUtils.dropDatabaseIfExists(db2, connectionString);
+        }
+    }
+
+    /**
+     * Tests behavior when using different casing for the current database name in procedure calls.
+     * 
+     * SQL Server database names are case-insensitive - they must be unique regardless of case.
+     * For example, "MyDB" and "MYDB" refer to the same database. Calling a procedure in "MYDB"
+     * while connected to "mydb" should be treated as a same-database call by the server.
+     * 
+     * This test verifies that calling a stored procedure in the current database using a
+     * differently-cased database name still succeeds, confirming that the driver's approach
+     * of always qualifying sp_sproc_columns with the database name works correctly with SQL
+     * Server's case-insensitive handling of database names.
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testDatabaseNameCaseInsensitiveComparison() throws SQLException {
+        String currentDb = connection.getCatalog();
+        String shortUuid = UUID.randomUUID().toString().substring(0, 8);
+        String procName = "CaseTestProc" + shortUuid;
+        
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
+            
+            stmt.execute("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + 
+                " @Param1 NVARCHAR(100), @Param2 NVARCHAR(100) " +
+                "AS BEGIN SELECT @Param1 AS Result1, @Param2 AS Result2 END");
+            
+            // Call procedure using different case variations of the current database name
+            // These should all be recognized as same-database calls (not cross-database)
+            String upperCaseDb = currentDb.toUpperCase();
+            String lowerCaseDb = currentDb.toLowerCase();
+            
+            // Test with UPPERCASE database name in call
+            String callSqlUpper = String.format("{call [%s].dbo.%s(?, ?)}", upperCaseDb, procName);
+            try (CallableStatement cs = connection.prepareCall(callSqlUpper)) {
+                cs.setString("Param1", "UpperTest");
+                cs.setString("Param2", "Value1");
+                
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    assertEquals("UpperTest", rs.getString("Result1"));
+                    assertEquals("Value1", rs.getString("Result2"));
+                }
+            }
+            
+            // Test with lowercase database name in call
+            String callSqlLower = String.format("{call [%s].dbo.%s(?, ?)}", lowerCaseDb, procName);
+
+            try (CallableStatement cs = connection.prepareCall(callSqlLower)) {
+                cs.setString("Param1", "LowerTest");
+                cs.setString("Param2", "Value2");
+                
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    assertEquals("LowerTest", rs.getString("Result1"));
+                    assertEquals("Value2", rs.getString("Result2"));
+                }
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Tests that the driver uses sys schema for sp_sproc_columns to prevent name-squatting attacks.
+     * 
+     * Security consideration: When querying stored procedure metadata across databases, we must use
+     * the sys schema prefix (e.g., "DB2.sys.sp_sproc_columns") instead of dbo or a user-specified schema.
+     * 
+     * Why sys schema is safest:
+     * 1. Users cannot create objects in the sys schema (SQL Server protects it)
+     * 2. Using dbo would work but is vulnerable if someone creates a schema like SCH1 and a 
+     *    procedure SCH1.sp_sproc_columns - then calling DB2.SCH1.sp_sproc_columns would invoke
+     *    the malicious user procedure instead of the system procedure
+     * 3. The fix ensures we always call the real system stored procedure regardless of what
+     *    schema the user's stored procedure is in
+     * 
+     * This test verifies that:
+     * 1. Even when calling a procedure in a custom schema, the driver correctly resolves
+     *    parameter metadata using the system sp_sproc_columns
+     * 2. A user-created procedure with the same name as a system procedure in a custom schema
+     *    does not interfere with the driver's metadata queries
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDB)
+    public void testSysSchemaProtectsAgainstNameSquatting() throws SQLException {
+        String shortUuid = UUID.randomUUID().toString().substring(0, 8);
+        String db2 = "DB2_" + shortUuid;
+        String customSchema = "CustomSchema" + shortUuid;
+        String procName = "GetDetails" + shortUuid;
+        String originalDb = connection.getCatalog();
+        
+        try (Statement stmt = connection.createStatement()) {
+            
+            TestUtils.dropDatabaseIfExists(db2, connectionString);
+            stmt.execute(String.format("CREATE DATABASE [%s]", db2));
+            
+            stmt.execute(String.format("USE [%s]", db2));
+            
+            // Create a custom schema
+            stmt.execute(String.format("CREATE SCHEMA [%s]", customSchema));
+            
+            // Create a legitimate stored procedure in the custom schema
+            stmt.execute(String.format(
+                "CREATE PROCEDURE [%s]." + procName + " @Name NVARCHAR(100), @Value NVARCHAR(100) " +
+                "AS BEGIN SELECT @Name AS Name, @Value AS Value END", customSchema));
+            
+            // Attempt to create a name-squatting procedure (sp_sproc_columns) in custom schema
+            // This simulates a malicious user trying to intercept metadata queries
+            // Note: This would fail in sys schema but succeeds in custom schemas
+            stmt.execute(String.format(
+                "CREATE PROCEDURE [%s].sp_sproc_columns @procedure_name NVARCHAR(100) = NULL, " +
+                "@procedure_owner NVARCHAR(100) = NULL, @procedure_qualifier NVARCHAR(100) = NULL " +
+                "AS " +
+                "SELECT 'INJECTED' AS COLUMN_NAME, 1 AS COLUMN_TYPE", customSchema));
+            
+            stmt.execute(String.format("USE [%s]", originalDb));
+            
+            // Call the legitimate procedure in custom schema using named parameters
+            // The driver should use sys.sp_sproc_columns (not CustomSchema.sp_sproc_columns)
+            // to get the correct parameter metadata
+            String callSql = String.format("{call [%s].[%s]." + procName + "(?, ?)}", db2, customSchema);
+            try (CallableStatement cs = connection.prepareCall(callSql)) {
+                cs.setString("Name", "TestName");
+                cs.setString("Value", "TestValue");
+                
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    // If we got the correct metadata from sys.sp_sproc_columns,
+                    // the procedure should execute correctly with the right parameter names
+                    assertEquals("TestName", rs.getString("Name"));
+                    assertEquals("TestValue", rs.getString("Value"));
+                }
+            }
+        } finally {
+            connection.setCatalog(originalDb);
+            // Dropping the database automatically cleans up all objects including schemas
+            TestUtils.dropDatabaseIfExists(db2, connectionString);
+        }
+    }
+
+    /**
      * Cleanup after test
      * 
      * @throws SQLException
