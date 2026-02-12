@@ -1344,7 +1344,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 // sys schema, preventing any possibility of name-squatting with a user-defined
                 // sp_sproc_columns procedure.
                 String currentDb = connection.getCatalog();
-                String targetDb = threePartName.getDatabasePart() != null ? threePartName.getDatabasePart() : currentDb;
+                // When using getCatalog(), we need to escape the identifier since it returns
+                // an unescaped database name. The database part from ThreePartName preserves
+                // its original format (may already be bracketed from user input).
+                String targetDb = threePartName.getDatabasePart() != null ? threePartName.getDatabasePart() : Util.escapeSQLId(currentDb);
                 metaQuery.append(targetDb);
                 metaQuery.append(".sys.");
                 
