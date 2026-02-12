@@ -1986,14 +1986,16 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     /**
-     * Tests that database name comparison is case-insensitive when determining cross-database calls.
+     * Tests behavior when using different casing for the current database name in procedure calls.
      * 
      * SQL Server database names are case-insensitive - they must be unique regardless of case.
-     * For example, "MyDB" and "MYDB" refer to the same database. The driver should recognize
-     * that calling a procedure in "MYDB" when connected to "mydb" is NOT a cross-database call.
+     * For example, "MyDB" and "MYDB" refer to the same database. Calling a procedure in "MYDB"
+     * while connected to "mydb" should be treated as a same-database call by the server.
      * 
-     * This test verifies that the driver correctly uses case-insensitive comparison when
-     * determining whether to prefix sp_sproc_columns with the database name.
+     * This test verifies that calling a stored procedure in the current database using a
+     * differently-cased database name still succeeds, confirming that the driver's approach
+     * of always qualifying sp_sproc_columns with the database name works correctly with SQL
+     * Server's case-insensitive handling of database names.
      * 
      * @throws SQLException
      */
