@@ -1940,8 +1940,7 @@ public class CallableStatementTest extends AbstractTest {
      * called without the target database prefix, causing the error:
      * "The database name component of the object qualifier must be the name of the current database."
      * 
-     * Fix: When the stored procedure is in a different database than the current connection context,
-     * the driver now prefixes sp_sproc_columns with the target database and sys schema
+     * Fix: The driver now always qualifies sp_sproc_columns with the database name and sys schema
      * (e.g., "DB2.sys.sp_sproc_columns") to query metadata from the correct database.
      * The sys schema is used instead of dbo to prevent name-squatting security issues.
      * 
