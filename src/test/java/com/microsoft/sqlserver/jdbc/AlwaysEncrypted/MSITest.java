@@ -50,8 +50,11 @@ public class MSITest extends AESetup {
 
     @BeforeEach
     public void skipIfAccessTokenCallbackConfigured() {
-        // Skip MSI tests if accessTokenCallbackClass is configured as they conflict
-        org.junit.Assume.assumeTrue(TestUtils.getProperty(connectionString, "accessTokenCallbackClass") == null);
+        // Skip MSI tests if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
+        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
+        boolean skipTest = TestUtils.getProperty(connectionString, "accessTokenCallbackClass") != null
+                || "true".equalsIgnoreCase(useAccessTokenEnv);
+        org.junit.Assume.assumeTrue(!skipTest);
     }
 
     /*

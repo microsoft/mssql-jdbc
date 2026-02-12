@@ -189,14 +189,17 @@ public final class TestUtils {
 
     /**
      * Checks if token-based authentication is being used.
-     * This is true when either msiClientId or accessTokenCallbackClass is set in the connection string.
+     * This is true when msiClientId or accessTokenCallbackClass is set in the connection string,
+     * or when USE_ACCESS_TOKEN environment variable is set to "true".
      * 
      * @param connectionString the connection string to check
      * @return true if token-based auth is being used
      */
     public static boolean isTokenBasedAuth(String connectionString) {
+        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
         return getProperty(connectionString, "msiClientId") != null
-                || getProperty(connectionString, "accessTokenCallbackClass") != null;
+                || getProperty(connectionString, "accessTokenCallbackClass") != null
+                || "true".equalsIgnoreCase(useAccessTokenEnv);
     }
 
     /**

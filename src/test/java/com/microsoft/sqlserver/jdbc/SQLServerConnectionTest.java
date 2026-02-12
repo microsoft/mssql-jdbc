@@ -1540,8 +1540,11 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Tag(Constants.xSQLv16)
     @Tag(Constants.xSQLv17)
     public void testManagedIdentityWithEncryptStrict() {
-        // Skip if accessTokenCallbackClass is configured as it conflicts with ActiveDirectoryMSI
-        org.junit.Assume.assumeTrue(TestUtils.getProperty(connectionString, "accessTokenCallbackClass") == null);
+        // Skip if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
+        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
+        boolean skipTest = TestUtils.getProperty(connectionString, "accessTokenCallbackClass") != null
+                || "true".equalsIgnoreCase(useAccessTokenEnv);
+        org.junit.Assume.assumeTrue(!skipTest);
 
         SQLServerDataSource ds = new SQLServerDataSource();
 
