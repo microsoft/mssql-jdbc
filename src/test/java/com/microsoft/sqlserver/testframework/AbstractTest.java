@@ -257,10 +257,11 @@ public abstract class AbstractTest {
             map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        // Check if accessTokenCallbackClass is configured - if so, use DefaultAzureCredential for AKV
-        // This ensures consistent authentication (Azure CLI) for both SQL and Key Vault
-        boolean useAzureCliAuth = connectionString != null && 
-                connectionString.contains("accessTokenCallbackClass=");
+        // Check if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
+        // If so, use DefaultAzureCredential for AKV to ensure consistent authentication
+        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
+        boolean useAzureCliAuth = (connectionString != null && connectionString.contains("accessTokenCallbackClass="))
+                || "true".equalsIgnoreCase(useAccessTokenEnv);
 
         if (null == akvProvider && useAzureCliAuth) {
             // When using accessTokenCallbackClass for SQL auth (e.g., Azure CLI),

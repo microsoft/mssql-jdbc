@@ -23,6 +23,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.azure.identity.CredentialUnavailableException;
+import com.azure.identity.DefaultAzureCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
@@ -473,12 +475,25 @@ public class MSITest extends AESetup {
 
     @BeforeEach
     public void registerAKVProvider() throws Exception {
+        // Check if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
+        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
+        boolean useAzureCliAuth = (connectionString != null && connectionString.contains("accessTokenCallbackClass="))
+                || "true".equalsIgnoreCase(useAccessTokenEnv);
+        
         try {
         // unregister the custom providers registered in AESetup
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        if (null != akvProviderManagedClientId) {
+        
+        if (useAzureCliAuth) {
+            // When using accessTokenCallbackClass, use DefaultAzureCredential for consistency
+            System.out.println("DefaultAzureCredential: registering akvProvider");
+            DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            System.out.println("DefaultAzureCredential: registered akvProvider");
+        } else if (null != akvProviderManagedClientId) {
             System.out.println("ManagedIdentityCredential: registering akvProvider");
 
             ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()

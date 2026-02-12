@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.DefaultAzureCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
@@ -226,8 +228,19 @@ public class FedauthCommon extends AbstractTest {
     static void getFedauthInfo() {
         int retry = 0;
         long interval = THROTTLE_RETRY_INTERVAL;
-        ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
-                .clientId(akvProviderManagedClientId).build();
+        
+        // Check if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
+        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
+        boolean useAzureCliAuth = (connectionString != null && connectionString.contains("accessTokenCallbackClass="))
+                || "true".equalsIgnoreCase(useAccessTokenEnv);
+        
+        com.azure.core.credential.TokenCredential credential;
+        if (useAzureCliAuth) {
+            credential = new DefaultAzureCredentialBuilder().build();
+        } else {
+            credential = new ManagedIdentityCredentialBuilder()
+                    .clientId(akvProviderManagedClientId).build();
+        }
 
         while (retry <= THROTTLE_RETRY_COUNT) {
             try {
