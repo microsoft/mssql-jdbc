@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.DefaultAzureCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
@@ -179,6 +181,11 @@ public class FedauthCommon extends AbstractTest {
 
     @BeforeAll
     public static void getConfigs() throws Exception {
+        // Skip fedauth tests if USE_ACCESS_TOKEN env var is set or accessTokenCallbackClass is configured
+        // Fedauth tests require MSI-based authentication which is not available with token-based auth
+        org.junit.Assume.assumeTrue("Skipping fedauth tests: token-based auth is configured", 
+                !TestUtils.useDefaultAzureCredential(connectionString));
+
         azureServer = getConfiguredProperty("azureServer");
         azureDatabase = getConfiguredProperty("azureDatabase");
         azureUserName = getConfiguredProperty("azureUserName");
@@ -221,8 +228,14 @@ public class FedauthCommon extends AbstractTest {
     static void getFedauthInfo() {
         int retry = 0;
         long interval = THROTTLE_RETRY_INTERVAL;
-        ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
-                .clientId(akvProviderManagedClientId).build();
+        
+        com.azure.core.credential.TokenCredential credential;
+        if (TestUtils.useDefaultAzureCredential(connectionString)) {
+            credential = new DefaultAzureCredentialBuilder().build();
+        } else {
+            credential = new ManagedIdentityCredentialBuilder()
+                    .clientId(akvProviderManagedClientId).build();
+        }
 
         while (retry <= THROTTLE_RETRY_COUNT) {
             try {

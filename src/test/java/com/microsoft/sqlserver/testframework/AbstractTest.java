@@ -36,6 +36,8 @@ import org.junit.jupiter.api.BeforeAll;
 
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
+import com.azure.identity.DefaultAzureCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
@@ -177,6 +179,17 @@ public abstract class AbstractTest {
         accessTokenClientId = getConfiguredProperty("accessTokenClientId");
         accessTokenSecret = getConfiguredProperty("accessTokenSecret");
 
+        // If USE_ACCESS_TOKEN env var is set to "true" and no SQL auth credentials are present,
+        // add accessTokenCallbackClass to connection string for token-based authentication
+        String useAccessToken = System.getenv("USE_ACCESS_TOKEN");
+        boolean hasUserCredentials = TestUtils.getProperty(connectionString, "user") != null
+                || TestUtils.getProperty(connectionString, "userName") != null
+                || TestUtils.getProperty(connectionString, "password") != null;
+        if ("true".equalsIgnoreCase(useAccessToken) && !hasUserCredentials) {
+            connectionString = TestUtils.addOrOverrideProperty(connectionString, "accessTokenCallbackClass",
+                    "com.microsoft.sqlserver.testframework.AzureCliAccessTokenCallback");
+        }
+
         encrypt = getConfiguredProperty("encrypt", "false");
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", encrypt);
 
@@ -244,7 +257,18 @@ public abstract class AbstractTest {
             map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null == akvProvider && null != akvProviderManagedClientId) {
+        // Check if DefaultAzureCredential should be used for AKV authentication
+        if (null == akvProvider && TestUtils.useDefaultAzureCredential(connectionString)) {
+            // When using accessTokenCallbackClass for SQL auth (e.g., Azure CLI),
+            // use DefaultAzureCredential for AKV to match the authentication method
+            try {
+                DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+                map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            } catch (Exception e) {
+                System.out.println("Could not initialize AKV provider with DefaultAzureCredential: " + e.getMessage());
+            }
+        } else if (null == akvProvider && null != akvProviderManagedClientId) {
             ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
                     .clientId(akvProviderManagedClientId).build();
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
@@ -479,11 +503,21 @@ public abstract class AbstractTest {
                         case Constants.PREPARE_METHOD:
                             ds.setPrepareMethod(value);
                             break;
+                        case Constants.ACCESS_TOKEN_CALLBACK_CLASS:
+                            ds.setAccessTokenCallbackClass(value);
+                            break;
                         default:
                             break;
                     }
                 }
             }
+        }
+        // If USE_ACCESS_TOKEN env var is set to "true", accessTokenCallbackClass is not already configured,
+        // and no SQL auth credentials are present, use AzureCliAccessTokenCallback for token-based authentication
+        String useAccessToken = System.getenv("USE_ACCESS_TOKEN");
+        boolean hasUserCredentials = ds.getUser() != null || TestUtils.getProperty(connectionString, "password") != null;
+        if ("true".equalsIgnoreCase(useAccessToken) && ds.getAccessTokenCallbackClass() == null && !hasUserCredentials) {
+            ds.setAccessTokenCallbackClass("com.microsoft.sqlserver.testframework.AzureCliAccessTokenCallback");
         }
         return ds;
     }

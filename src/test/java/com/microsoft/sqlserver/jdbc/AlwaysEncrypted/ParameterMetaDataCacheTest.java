@@ -166,6 +166,10 @@ public class ParameterMetaDataCacheTest extends AESetup {
      */
     @AfterAll
     public static void cleanUp() throws Exception {
+        // Skip cleanup if connection was never established (e.g., test was skipped)
+        if (null == connection) {
+            return;
+        }
         dropAll();
     }
 }

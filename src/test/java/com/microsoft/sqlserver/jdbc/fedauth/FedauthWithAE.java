@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.azure.identity.DefaultAzureCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
@@ -288,9 +290,16 @@ public class FedauthWithAE extends FedauthCommon {
 
     private SQLServerColumnEncryptionKeyStoreProvider registerAKVProvider() throws SQLServerException {
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
-                .clientId(akvProviderManagedClientId).build();
-        akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+        
+        if (TestUtils.useDefaultAzureCredential(connectionString)) {
+            DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+        } else {
+            ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
+                    .clientId(akvProviderManagedClientId).build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+        }
+        
         map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
         return akvProvider;
