@@ -128,7 +128,7 @@ public class AzureCliAccessTokenCallback implements SQLServerAccessTokenCallback
      * 
      * @return DefaultAzureCredential instance
      */
-    private static DefaultAzureCredential getCredential() {
+    public static TokenCredential getCredential() {
         if (credential == null) {
             synchronized (AzureCliAccessTokenCallback.class) {
                 if (credential == null) {
