@@ -1541,10 +1541,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Tag(Constants.xSQLv17)
     public void testManagedIdentityWithEncryptStrict() {
         // Skip if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
-        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
-        boolean skipTest = TestUtils.getProperty(connectionString, "accessTokenCallbackClass") != null
-                || "true".equalsIgnoreCase(useAccessTokenEnv);
-        org.junit.Assume.assumeTrue(!skipTest);
+        org.junit.Assume.assumeTrue(!TestUtils.useDefaultAzureCredential(connectionString));
 
         SQLServerDataSource ds = new SQLServerDataSource();
 

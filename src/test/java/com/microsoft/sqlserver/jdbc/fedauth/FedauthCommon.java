@@ -183,10 +183,8 @@ public class FedauthCommon extends AbstractTest {
     public static void getConfigs() throws Exception {
         // Skip fedauth tests if USE_ACCESS_TOKEN env var is set or accessTokenCallbackClass is configured
         // Fedauth tests require MSI-based authentication which is not available with token-based auth
-        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
-        boolean skipTest = (connectionString != null && connectionString.contains("accessTokenCallbackClass="))
-                || "true".equalsIgnoreCase(useAccessTokenEnv);
-        org.junit.Assume.assumeTrue("Skipping fedauth tests: token-based auth is configured", !skipTest);
+        org.junit.Assume.assumeTrue("Skipping fedauth tests: token-based auth is configured", 
+                !TestUtils.useDefaultAzureCredential(connectionString));
 
         azureServer = getConfiguredProperty("azureServer");
         azureDatabase = getConfiguredProperty("azureDatabase");
