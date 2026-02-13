@@ -257,13 +257,8 @@ public abstract class AbstractTest {
             map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        // Check if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
-        // If so, use DefaultAzureCredential for AKV to ensure consistent authentication
-        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
-        boolean useAzureCliAuth = (connectionString != null && connectionString.contains("accessTokenCallbackClass="))
-                || "true".equalsIgnoreCase(useAccessTokenEnv);
-
-        if (null == akvProvider && useAzureCliAuth) {
+        // Check if DefaultAzureCredential should be used for AKV authentication
+        if (null == akvProvider && TestUtils.useDefaultAzureCredential(connectionString)) {
             // When using accessTokenCallbackClass for SQL auth (e.g., Azure CLI),
             // use DefaultAzureCredential for AKV to match the authentication method
             try {
@@ -294,18 +289,6 @@ public abstract class AbstractTest {
                 if (null != file) {
                     file.delete();
                 }
-            }
-        } else if (null == akvProvider) {
-            // Fallback to DefaultAzureCredential for token-based authentication
-            // This works with Azure CLI (az login), Azure DevOps AzureCLI@2 task with service connection,
-            // environment variables, workload identity, etc.
-            try {
-                DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
-                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
-                map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
-            } catch (Exception e) {
-                // Log but don't fail - AKV tests will be skipped if provider is not available
-                System.out.println("Could not initialize AKV provider with DefaultAzureCredential: " + e.getMessage());
             }
         }
 

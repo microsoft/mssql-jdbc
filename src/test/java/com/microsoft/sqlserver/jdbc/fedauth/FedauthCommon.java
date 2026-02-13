@@ -181,10 +181,12 @@ public class FedauthCommon extends AbstractTest {
 
     @BeforeAll
     public static void getConfigs() throws Exception {
-        // Skip fedauth tests if ACCESS_TOKEN env var is set
+        // Skip fedauth tests if USE_ACCESS_TOKEN env var is set or accessTokenCallbackClass is configured
         // Fedauth tests require MSI-based authentication which is not available with token-based auth
-        String accessToken = System.getenv("ACCESS_TOKEN");
-        org.junit.Assume.assumeTrue(accessToken == null || accessToken.isEmpty());
+        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
+        boolean skipTest = (connectionString != null && connectionString.contains("accessTokenCallbackClass="))
+                || "true".equalsIgnoreCase(useAccessTokenEnv);
+        org.junit.Assume.assumeTrue("Skipping fedauth tests: token-based auth is configured", !skipTest);
 
         azureServer = getConfiguredProperty("azureServer");
         azureDatabase = getConfiguredProperty("azureDatabase");
@@ -229,13 +231,8 @@ public class FedauthCommon extends AbstractTest {
         int retry = 0;
         long interval = THROTTLE_RETRY_INTERVAL;
         
-        // Check if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
-        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
-        boolean useAzureCliAuth = (connectionString != null && connectionString.contains("accessTokenCallbackClass="))
-                || "true".equalsIgnoreCase(useAccessTokenEnv);
-        
         com.azure.core.credential.TokenCredential credential;
-        if (useAzureCliAuth) {
+        if (TestUtils.useDefaultAzureCredential(connectionString)) {
             credential = new DefaultAzureCredentialBuilder().build();
         } else {
             credential = new ManagedIdentityCredentialBuilder()

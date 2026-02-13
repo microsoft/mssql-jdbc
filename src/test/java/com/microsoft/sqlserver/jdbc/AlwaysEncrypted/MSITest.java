@@ -478,18 +478,13 @@ public class MSITest extends AESetup {
 
     @BeforeEach
     public void registerAKVProvider() throws Exception {
-        // Check if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
-        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
-        boolean useAzureCliAuth = (connectionString != null && connectionString.contains("accessTokenCallbackClass="))
-                || "true".equalsIgnoreCase(useAccessTokenEnv);
-        
         try {
         // unregister the custom providers registered in AESetup
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         
-        if (useAzureCliAuth) {
+        if (TestUtils.useDefaultAzureCredential(connectionString)) {
             // When using accessTokenCallbackClass, use DefaultAzureCredential for consistency
             System.out.println("DefaultAzureCredential: registering akvProvider");
             DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();

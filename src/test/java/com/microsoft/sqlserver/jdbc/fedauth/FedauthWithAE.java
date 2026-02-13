@@ -291,12 +291,7 @@ public class FedauthWithAE extends FedauthCommon {
     private SQLServerColumnEncryptionKeyStoreProvider registerAKVProvider() throws SQLServerException {
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         
-        // Check if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
-        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
-        boolean useAzureCliAuth = (connectionString != null && connectionString.contains("accessTokenCallbackClass="))
-                || "true".equalsIgnoreCase(useAccessTokenEnv);
-        
-        if (useAzureCliAuth) {
+        if (TestUtils.useDefaultAzureCredential(connectionString)) {
             DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
         } else {
