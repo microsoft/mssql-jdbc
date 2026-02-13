@@ -139,8 +139,15 @@ public final class SQLServerException extends java.sql.SQLException {
                     return null;
                 }
                 
-                sourceStatement.getMoreResults();
+                // Keep calling getMoreResults() to process remaining results
+                // until we hit another error or run out of results
+                while (sourceStatement.getMoreResults() || sourceStatement.getUpdateCount() != -1) {
+                    // Continue processing results
+                }
+                
+                // No more results and no error encountered
                 sourceStatement = null;
+                return null;
             } catch (java.sql.SQLException e) {
                 // Pass statement reference to next exception for continued chaining
                 if (e instanceof SQLServerException) {
