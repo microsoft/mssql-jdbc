@@ -505,7 +505,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             assertTrue(
                     (e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
-                            || (TestUtils.isTokenBasedAuth(connectionString) && e.getMessage()
+                            || (TestUtils.useDefaultAzureCredential(connectionString) && e.getMessage()
                                     .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
                             || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
                                     .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
@@ -522,7 +522,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             assertTrue(
                     (e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
-                            || (TestUtils.isTokenBasedAuth(connectionString) && e.getMessage()
+                            || (TestUtils.useDefaultAzureCredential(connectionString) && e.getMessage()
                                     .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
                             || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
                                     .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),
@@ -545,7 +545,7 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
             assertTrue(
                     (e.getMessage().toLowerCase()
                             .contains(TestResource.getResource("R_cannotOpenDatabase").toLowerCase()))
-                            || (TestUtils.isTokenBasedAuth(connectionString) && e.getMessage()
+                            || (TestUtils.useDefaultAzureCredential(connectionString) && e.getMessage()
                                     .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase()))
                             || ((isSqlAzure() || isSqlAzureDW()) && e.getMessage().toLowerCase()
                                     .contains(TestResource.getResource("R_connectTimedOut").toLowerCase())),

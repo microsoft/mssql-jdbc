@@ -179,13 +179,13 @@ public abstract class AbstractTest {
         accessTokenClientId = getConfiguredProperty("accessTokenClientId");
         accessTokenSecret = getConfiguredProperty("accessTokenSecret");
 
-        // If ACCESS_TOKEN env var is set and no SQL auth credentials are present,
+        // If USE_ACCESS_TOKEN env var is set to "true" and no SQL auth credentials are present,
         // add accessTokenCallbackClass to connection string for token-based authentication
-        String accessToken = System.getenv("ACCESS_TOKEN");
+        String useAccessToken = System.getenv("USE_ACCESS_TOKEN");
         boolean hasUserCredentials = TestUtils.getProperty(connectionString, "user") != null
                 || TestUtils.getProperty(connectionString, "userName") != null
                 || TestUtils.getProperty(connectionString, "password") != null;
-        if (accessToken != null && !accessToken.isEmpty() && !hasUserCredentials) {
+        if ("true".equalsIgnoreCase(useAccessToken) && !hasUserCredentials) {
             connectionString = TestUtils.addOrOverrideProperty(connectionString, "accessTokenCallbackClass",
                     "com.microsoft.sqlserver.testframework.AzureCliAccessTokenCallback");
         }
@@ -512,11 +512,11 @@ public abstract class AbstractTest {
                 }
             }
         }
-        // If ACCESS_TOKEN env var is set, accessTokenCallbackClass is not already configured,
+        // If USE_ACCESS_TOKEN env var is set to "true", accessTokenCallbackClass is not already configured,
         // and no SQL auth credentials are present, use AzureCliAccessTokenCallback for token-based authentication
-        String accessToken = System.getenv("ACCESS_TOKEN");
+        String useAccessToken = System.getenv("USE_ACCESS_TOKEN");
         boolean hasUserCredentials = ds.getUser() != null || TestUtils.getProperty(connectionString, "password") != null;
-        if (accessToken != null && !accessToken.isEmpty() && ds.getAccessTokenCallbackClass() == null && !hasUserCredentials) {
+        if ("true".equalsIgnoreCase(useAccessToken) && ds.getAccessTokenCallbackClass() == null && !hasUserCredentials) {
             ds.setAccessTokenCallbackClass("com.microsoft.sqlserver.testframework.AzureCliAccessTokenCallback");
         }
         return ds;

@@ -656,7 +656,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (Exception e) {
             assertTrue(
                     e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase"))
-                            || (TestUtils.isTokenBasedAuth(connectionString) && (e.getMessage()
+                            || (TestUtils.useDefaultAzureCredential(connectionString) && (e.getMessage()
                                     .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase())
                                     || e.getMessage().toLowerCase()
                                             .contains(TestResource.getResource("R_MInotAvailable").toLowerCase()))),
@@ -984,7 +984,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (Exception e) {
             assertTrue(
                     e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase"))
-                                || (TestUtils.isTokenBasedAuth(connectionString)
+                                || (TestUtils.useDefaultAzureCredential(connectionString)
                                     && e.getMessage().toLowerCase()
                                         .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
                     e.getMessage());
