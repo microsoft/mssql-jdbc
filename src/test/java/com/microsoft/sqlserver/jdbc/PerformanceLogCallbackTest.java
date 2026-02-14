@@ -115,12 +115,12 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
         PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
             @Override
-            public void publish(PerformanceActivity activity, int connectionId, long durationNanos, Exception exception) {
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs, Exception exception) {
                 called.set(true);
             }
 
             @Override
-            public void publish(PerformanceActivity activity, int connectionId, int statementId, long durationNanos,
+            public void publish(PerformanceActivity activity, int connectionId, int statementId, long durationMs,
                     Exception exception) throws Exception {
                 called.set(true);
             }
@@ -170,14 +170,14 @@ class PerformanceLogCallbackTest extends AbstractTest {
             // Test with callback/logging ENABLED
             PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
                 @Override
-                public void publish(PerformanceActivity activity, int connectionId, long durationNanos, 
+                public void publish(PerformanceActivity activity, int connectionId, long durationMs, 
                         Exception exception) {
                     // No-op callback to measure overhead
                 }
 
                 @Override
                 public void publish(PerformanceActivity activity, int connectionId, int statementId, 
-                        long durationNanos, Exception exception) {
+                        long durationMs, Exception exception) {
                     // No-op callback to measure overhead
                 }
             };
@@ -216,14 +216,14 @@ class PerformanceLogCallbackTest extends AbstractTest {
         // Test with callback/logging ENABLED
         PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
             @Override
-            public void publish(PerformanceActivity activity, int connectionId, long durationNanos, 
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs, 
                     Exception exception) {
                 // No-op callback
             }
 
             @Override
             public void publish(PerformanceActivity activity, int connectionId, int statementId, 
-                    long durationNanos, Exception exception) {
+                    long durationMs, Exception exception) {
                 // No-op callback
             }
         };
@@ -252,12 +252,12 @@ class PerformanceLogCallbackTest extends AbstractTest {
         AtomicBoolean called = new AtomicBoolean(false);
         PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
             @Override
-            public void publish(PerformanceActivity activity, int connectionId, long durationNanos, Exception exception) {
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs, Exception exception) {
                 called.set(true);
             }
 
             @Override
-            public void publish(PerformanceActivity activity, int connectionId, int statementId, long durationNanos,
+            public void publish(PerformanceActivity activity, int connectionId, int statementId, long durationMs,
                     Exception exception) throws Exception {
                 called.set(true);
             }
@@ -316,7 +316,8 @@ class PerformanceLogCallbackTest extends AbstractTest {
      * 1. Regular Statement - direct SQL execution (STATEMENT_EXECUTE)
      * 2. prepareMethod=prepexec (default) - sp_prepexec (STATEMENT_PREPEXEC)
      * 3. prepareMethod=prepare - sp_prepare + sp_execute (STATEMENT_PREPARE + STATEMENT_EXECUTE)
-     * 4. prepareMethod=scopeTempTablesToConnection - direct SQL for temp table operations
+     * 4. prepareMethod=none - direct SQL execution without prepared statements (STATEMENT_EXECUTE)
+     * 5. prepareMethod=scopeTempTablesToConnection - direct SQL for temp table operations
      */
     @Test
     void testAllStatementActivities() throws Exception {
@@ -324,12 +325,12 @@ class PerformanceLogCallbackTest extends AbstractTest {
         int iterations = 1;
         PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
             @Override
-            public void publish(PerformanceActivity activity, int connectionId, long durationNanos, Exception exception) {
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs, Exception exception) {
                 called.set(true);
             }
 
             @Override
-            public void publish(PerformanceActivity activity, int connectionId, int statementId, long durationNanos,
+            public void publish(PerformanceActivity activity, int connectionId, int statementId, long durationMs,
                     Exception exception) throws Exception {
                 called.set(true);
             }
@@ -400,8 +401,21 @@ class PerformanceLogCallbackTest extends AbstractTest {
         }
         long scenario3Duration = System.nanoTime() - scenario3Start;
 
-        // Scenario 4: prepareMethod=scopeTempTablesToConnection - direct SQL for temp tables
+        // Scenario 4: prepareMethod=none - direct SQL execution (STATEMENT_EXECUTE)
         long scenario4Start = System.nanoTime();
+        try (Connection con = PrepUtil.getConnection(connectionString + ";prepareMethod=none")) {
+            for (int i = 0; i < iterations; i++) {
+                try (PreparedStatement pstmt = con.prepareStatement(complexQueryWithParam)) {
+                    pstmt.setInt(1, 42 + i);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                    }
+                }
+            }
+        }
+        long scenario4Duration = System.nanoTime() - scenario4Start;
+
+        // Scenario 5: prepareMethod=scopeTempTablesToConnection - direct SQL for temp tables
+        long scenario5Start = System.nanoTime();
         try (Connection con = PrepUtil.getConnection(connectionString + 
                                         ";prepareMethod=scopeTempTablesToConnection")) {
             for (int i = 0; i < iterations; i++) {
@@ -415,7 +429,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
                 }
             }
         }
-        long scenario4Duration = System.nanoTime() - scenario4Start;
+        long scenario5Duration = System.nanoTime() - scenario5Start;
 
         // Uncomment below lines to print the performance summary for all scenarios
 
@@ -423,7 +437,8 @@ class PerformanceLogCallbackTest extends AbstractTest {
         // System.out.println("  Scenario 1 (Statement):                    " + String.format("%.2f", scenario1Duration / 1_000_000.0) + " ms");
         // System.out.println("  Scenario 2 (prepexec):                     " + String.format("%.2f", scenario2Duration / 1_000_000.0) + " ms");
         // System.out.println("  Scenario 3 (prepare):                      " + String.format("%.2f", scenario3Duration / 1_000_000.0) + " ms");
-        // System.out.println("  Scenario 4 (scopeTempTablesToConnection):  " + String.format("%.2f", scenario4Duration / 1_000_000.0) + " ms");
+        // System.out.println("  Scenario 4 (none):                         " + String.format("%.2f", scenario4Duration / 1_000_000.0) + " ms");
+        // System.out.println("  Scenario 5 (scopeTempTablesToConnection):  " + String.format("%.2f", scenario5Duration / 1_000_000.0) + " ms");
 
         // System.out.println("\n=== All Statement Activities Test Complete ===\n");
         // System.out.println("Check performance.log for detailed activity logs");

@@ -133,7 +133,9 @@ Both mechanisms can be used simultaneously.
 - **Triggered When**: 
   - Regular Statement execution
   - PreparedStatement using `sp_execute` (already prepared)
-  - PreparedStatement using `sp_executesql` (direct execution)
+  - PreparedStatement using `sp_executesql` (first execution, optimizing for single-use)
+  - PreparedStatement with `prepareMethod=none` (direct SQL, no preparation)
+  - PreparedStatement with `prepareMethod=scopeTempTablesToConnection` (direct SQL for temp table operations)
   - Batch execution
 - **Exception Tracking**: Yes
 
@@ -157,6 +159,18 @@ Both mechanisms can be used simultaneously.
 | `doExecutePreparedStatementBatch()` | REQUEST_BUILD → SERVER_ROUNDTRIP → EXECUTE |
 | `doExecuteExecMethodBatchCombined()` | REQUEST_BUILD → SERVER_ROUNDTRIP → EXECUTE |
 | `doPrep()` | PREPARE |
+
+#### Prepare Method Impact on Activities
+
+| `prepareMethod` Setting | Execution Path | Activity |
+|------------------------|----------------|----------|
+| `prepexec` (default) | `sp_prepexec` (first re-use) | PREPEXEC |
+| `prepexec` (default) | `sp_executesql` (first call) | EXECUTE |
+| `prepexec` (default) | `sp_execute` (cached handle) | EXECUTE |
+| `prepare` | `sp_prepare` + `sp_execute` | PREPARE, then EXECUTE |
+| `none` | Direct SQL (PKT_QUERY) | EXECUTE |
+| `scopeTempTablesToConnection` | Direct SQL for temp tables | EXECUTE |
+| `scopeTempTablesToConnection` | `sp_prepexec` otherwise | PREPEXEC |
 
 ### PrepareMethod Impact
 
