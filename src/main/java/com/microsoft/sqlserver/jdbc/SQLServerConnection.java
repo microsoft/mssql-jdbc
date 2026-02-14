@@ -1949,6 +1949,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** connection ID */
     private final int connectionID;
 
+    /**
+     * Returns the connection ID for performance tracking
+     * @return the connection ID
+     */
+    final int getConnectionID() {
+        return connectionID;
+    }
+
     /** Limit for the size of data (in bytes) returned for value on this connection */
     private int maxFieldSize; // default: 0 --> no limit
 
