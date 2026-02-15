@@ -1073,7 +1073,18 @@ public final class TestUtils {
      * @return The updated connection string
      */
     public static String addOrOverrideProperty(String connectionString, String property, String value) {
-        return connectionString + ";" + property + "=" + value + ";";
+        // Check if property already exists - if so, remove it first
+        if (getProperty(connectionString, property) != null) {
+            connectionString = removeProperty(connectionString, property);
+        }
+        // Ensure connection string doesn't end with multiple semicolons
+        while (connectionString.endsWith(";;")) {
+            connectionString = connectionString.substring(0, connectionString.length() - 1);
+        }
+        if (!connectionString.endsWith(";")) {
+            connectionString = connectionString + ";";
+        }
+        return connectionString + property + "=" + value + ";";
     }
 
     /**
