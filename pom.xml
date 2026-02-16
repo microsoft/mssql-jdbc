@@ -58,8 +58,8 @@
 		<releaseExt>-preview</releaseExt>
 		<!-- Driver Dependencies -->
 		<org.osgi.core.version>6.0.0</org.osgi.core.version>
-		<azure-security-keyvault-keys.version>4.9.2</azure-security-keyvault-keys.version>
-		<azure-identity.version>1.15.3</azure-identity.version>
+		<azure-security-keyvault-keys.version>4.10.5</azure-security-keyvault-keys.version>
+		<azure-identity.version>1.18.2</azure-identity.version>
 		<osgi.jdbc.version>1.1.0</osgi.jdbc.version>
 		<antlr-runtime.version>4.9.3</antlr-runtime.version>
 		<com.google.code.gson.version>2.11.0</com.google.code.gson.version>
