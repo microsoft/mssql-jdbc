@@ -87,8 +87,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** True if sp_prepare was called **/
     private boolean isSpPrepareExecuted = false;
 
-    /** True if sp_prepexec was used for the current execution (combined prepare+execute) **/
-    private boolean usedPrepExec = false;
+    /**
+     * Indicates whether sp_prepexec (combined prepare+execute) was used for the current execution.
+     * Reset to false at the start of each doPrepExec() call, then set based on the execution path:
+     *
+     * Used in doExecutePreparedStatement() to select the correct PerformanceActivity
+     * (STATEMENT_PREPEXEC vs STATEMENT_EXECUTE) for performance tracking.
+     */
+    private boolean isPrepExecUsed = false;
 
     /** Reference to cache item for statement handle pooling. Only used to decrement ref count on statement close. */
     private transient PreparedStatementHandle cachedPreparedStatementHandle;
@@ -744,7 +750,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         PerformanceLog.perfLoggerStatement,
                         connection.getConnectionID(),
                         getStatementID(),
-                        usedPrepExec ? PerformanceActivity.STATEMENT_PREPEXEC : PerformanceActivity.STATEMENT_EXECUTE)) {
+                        isPrepExecUsed ? PerformanceActivity.STATEMENT_PREPEXEC : PerformanceActivity.STATEMENT_EXECUTE)) {
                     try {
                         // Track server roundtrip time
                         startFirstPacketToFirstResponseTracking();
@@ -1300,8 +1306,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions, TDSCommand command) throws SQLServerException {
 
-        // Reset usedPrepExec to default before determining execution path
-        usedPrepExec = false;
+        // Reset isPrepExecUsed to default before determining execution path
+        isPrepExecUsed = false;
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
 
@@ -1333,14 +1339,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
-                usedPrepExec = false;
+                isPrepExecUsed = false;
             } else if (needsPrepare) { // Second execution, use prepared statements since we seem to be re-using it.
                 if (usePrepExec) { // If true, we're using sp_prepexec.
                     buildPrepExecParams(tdsWriter);
-                    usedPrepExec = true;
+                    isPrepExecUsed = true;
                 } else { // Otherwise, we're using sp_prepare instead of sp_prepexec.
                     isSpPrepareExecuted = true;
-                    usedPrepExec = false;
+                    isPrepExecUsed = false;
                     // If we're preparing for a statement in a batch we just need to call sp_prepare because in the
                     // "batching" code it will start another tds request to execute the statement after preparing.
                     if (executeMethod == EXECUTE_BATCH) {
@@ -1356,7 +1362,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             } else {
                 buildExecParams(tdsWriter);
-                usedPrepExec = false;
+                isPrepExecUsed = false;
             }
         }
 

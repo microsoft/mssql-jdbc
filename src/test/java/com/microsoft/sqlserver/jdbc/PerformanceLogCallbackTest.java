@@ -22,12 +22,15 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -446,6 +449,80 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
         assertTrue(called.get(), "PerformanceLogCallback.publish should have been called");
         assertTrue(Files.exists(logPath), "performance.log file should exist");
+    }
+
+    /**
+     * Test to validate that the default prepareMethod=prepexec optimization tracks
+     * the correct PerformanceActivity for each execution phase:
+     * 1st call: STATEMENT_EXECUTE (sp_executesql - assumes single use, no prepare overhead)
+     * 2nd call: STATEMENT_PREPEXEC (sp_prepexec - reuse detected, combined prepare+execute)
+     * 3rd call: STATEMENT_EXECUTE (sp_execute - handle cached from previous call, execute only)
+     */
+    @Test
+    void testPrepExecActivityTrackedOnlyOnSecondExecution() throws Exception {
+        List<PerformanceActivity> activities = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+                // connection-level - not tracked here
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                // Only capture EXECUTE / PREPEXEC activities (ignore REQUEST_BUILD, FIRST_SERVER_RESPONSE, etc.)
+                if (activity == PerformanceActivity.STATEMENT_EXECUTE
+                        || activity == PerformanceActivity.STATEMENT_PREPEXEC) {
+                    activities.add(activity);
+                }
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        try (Connection con = getConnection()) {
+            // Default prepareMethod=prepexec, enablePrepareOnFirstPreparedStatementCall=false
+            try (PreparedStatement ps = con.prepareStatement("SELECT ? AS val")) {
+
+                // FIRST CALL - internally uses sp_executesql (no prepare, assumes single use)
+                ps.setInt(1, 100);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "First execution should return a row");
+                }
+
+                // SECOND CALL - internally uses sp_prepexec (reuse detected, prepare+execute)
+                ps.setInt(1, 200);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "Second execution should return a row");
+                }
+
+                // THIRD CALL - internally uses sp_execute (already prepared, execute only)
+                ps.setInt(1, 300);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "Third execution should return a row");
+                }
+            }
+        }
+
+        // Verify exactly 3 execute/prepexec activities were tracked
+        assertEquals(3, activities.size(), "Should have tracked 3 statement execution activities");
+
+        // 1st call: sp_executesql → STATEMENT_EXECUTE
+        assertEquals(PerformanceActivity.STATEMENT_EXECUTE, activities.get(0),
+                "First call should be STATEMENT_EXECUTE (sp_executesql)");
+
+        // 2nd call: sp_prepexec → STATEMENT_PREPEXEC (only this one should be PREPEXEC)
+        assertEquals(PerformanceActivity.STATEMENT_PREPEXEC, activities.get(1),
+                "Second call should be STATEMENT_PREPEXEC (sp_prepexec)");
+
+        // 3rd call: sp_execute → STATEMENT_EXECUTE
+        assertEquals(PerformanceActivity.STATEMENT_EXECUTE, activities.get(2),
+                "Third call should be STATEMENT_EXECUTE (sp_execute)");
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+        
     }
 
     /**

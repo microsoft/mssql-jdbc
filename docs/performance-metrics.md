@@ -121,7 +121,7 @@ Both mechanisms can be used simultaneously.
 - **Note**: For default `sp_prepexec`, prepare and execute are combined
 
 ### STATEMENT_PREPEXEC
-- **Scope**: Execution scope in `doExecutePreparedStatement()` when `usedPrepExec=true`
+- **Scope**: Execution scope in `doExecutePreparedStatement()` when `isPrepExecUsed=true`
 - **Measures**: Combined prepare+execute time using `sp_prepexec`
 - **Triggered When**: Default behavior - first execution or re-preparation needed
 - **Exception Tracking**: Yes
@@ -174,10 +174,17 @@ Both mechanisms can be used simultaneously.
 
 ### PrepareMethod Impact
 
-| prepareMethod Setting | First Execution | Subsequent Executions |
-|----------------------|-----------------|----------------------|
-| `prepexec` (default) | STATEMENT_PREPEXEC | STATEMENT_EXECUTE |
-| `prepare` | STATEMENT_PREPARE + STATEMENT_EXECUTE | STATEMENT_EXECUTE |
+| prepareMethod Setting | 1st Execution | 2nd Execution | 3rd+ Execution |
+|----------------------|---------------|---------------|----------------|
+| `prepexec` (default) | STATEMENT_EXECUTE (sp_executesql) | STATEMENT_PREPEXEC (sp_prepexec) | STATEMENT_EXECUTE (sp_execute) |
+| `prepare` | STATEMENT_PREPARE + STATEMENT_EXECUTE | STATEMENT_EXECUTE | STATEMENT_EXECUTE |
+| `none` | STATEMENT_EXECUTE (direct SQL) | STATEMENT_EXECUTE (direct SQL) | STATEMENT_EXECUTE (direct SQL) |
+
+> **Note**: With `prepexec` (default), the driver defers preparation assuming single use.
+> Only on the 2nd execution does it use `sp_prepexec` (combined prepare+execute).
+> From the 3rd execution onward, the cached handle is reused via `sp_execute`.
+> This behavior can be overridden with `enablePrepareOnFirstPreparedStatementCall=true`,
+> which forces `sp_prepexec` on the first call.
 
 ---
 
