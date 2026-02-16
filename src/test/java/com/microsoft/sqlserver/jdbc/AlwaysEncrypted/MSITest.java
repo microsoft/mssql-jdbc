@@ -51,7 +51,7 @@ public class MSITest extends AESetup {
     @BeforeEach
     public void skipIfAccessTokenCallbackConfigured() {
         // Skip MSI tests if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
-        org.junit.Assume.assumeTrue(!TestUtils.useDefaultAzureCredential(connectionString));
+        org.junit.Assume.assumeTrue(!TestUtils.useAccessTokenAuth(connectionString));
     }
 
     /*
@@ -481,7 +481,7 @@ public class MSITest extends AESetup {
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         
-        if (TestUtils.useDefaultAzureCredential(connectionString)) {
+        if (TestUtils.useAccessTokenAuth(connectionString)) {
             // When using accessTokenCallbackClass, use DefaultAzureCredential for consistency
             System.out.println("DefaultAzureCredential: registering akvProvider");
             DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();

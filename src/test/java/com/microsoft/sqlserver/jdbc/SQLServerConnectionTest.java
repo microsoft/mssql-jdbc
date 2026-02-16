@@ -656,7 +656,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (Exception e) {
             assertTrue(
                     e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase"))
-                            || (TestUtils.useDefaultAzureCredential(connectionString) && (e.getMessage()
+                            || (TestUtils.useAccessTokenAuth(connectionString) && (e.getMessage()
                                     .toLowerCase().contains(TestResource.getResource("R_loginFailedMI").toLowerCase())
                                     || e.getMessage().toLowerCase()
                                             .contains(TestResource.getResource("R_MInotAvailable").toLowerCase()))),
@@ -984,7 +984,7 @@ public class SQLServerConnectionTest extends AbstractTest {
         } catch (Exception e) {
             assertTrue(
                     e.getMessage().contains(TestResource.getResource("R_cannotOpenDatabase"))
-                                || (TestUtils.useDefaultAzureCredential(connectionString)
+                                || (TestUtils.useAccessTokenAuth(connectionString)
                                     && e.getMessage().toLowerCase()
                                         .contains(TestResource.getResource("R_loginFailedMI").toLowerCase())),
                     e.getMessage());
@@ -1541,7 +1541,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Tag(Constants.xSQLv17)
     public void testManagedIdentityWithEncryptStrict() {
         // Skip if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
-        org.junit.Assume.assumeTrue(!TestUtils.useDefaultAzureCredential(connectionString));
+        org.junit.Assume.assumeTrue(!TestUtils.useAccessTokenAuth(connectionString));
 
         SQLServerDataSource ds = new SQLServerDataSource();
 

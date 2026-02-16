@@ -188,17 +188,17 @@ public final class TestUtils {
     private TestUtils() {}
 
     /**
-     * Checks if DefaultAzureCredential should be used for Azure Key Vault authentication.
+     * Checks if access token authentication (via AzureCliCredential) should be used.
      * This is true when accessTokenCallbackClass is set in the connection string,
      * or when USE_ACCESS_TOKEN environment variable is set to "true".
      * 
-     * Use this method to determine whether to use DefaultAzureCredential instead of
-     * ManagedIdentityCredential for AKV provider initialization.
+     * When this returns true, tests should use AzureCliCredential (via ChainedTokenCredential)
+     * instead of ManagedIdentityCredential for Azure authentication.
      * 
      * @param connectionString the connection string to check
-     * @return true if DefaultAzureCredential should be used
+     * @return true if access token authentication should be used
      */
-    public static boolean useDefaultAzureCredential(String connectionString) {
+    public static boolean useAccessTokenAuth(String connectionString) {
         String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
         return (connectionString != null && connectionString.contains("accessTokenCallbackClass="))
                 || "true".equalsIgnoreCase(useAccessTokenEnv);

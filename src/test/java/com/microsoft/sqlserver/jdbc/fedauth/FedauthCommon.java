@@ -9,8 +9,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
-import com.azure.identity.DefaultAzureCredential;
-import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.identity.AzureCliCredential;
+import com.azure.identity.AzureCliCredentialBuilder;
+import com.azure.identity.ChainedTokenCredential;
+import com.azure.identity.ChainedTokenCredentialBuilder;
+import com.azure.identity.EnvironmentCredential;
+import com.azure.identity.EnvironmentCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
@@ -184,7 +188,7 @@ public class FedauthCommon extends AbstractTest {
         // Skip fedauth tests if USE_ACCESS_TOKEN env var is set or accessTokenCallbackClass is configured
         // Fedauth tests require MSI-based authentication which is not available with token-based auth
         org.junit.Assume.assumeTrue("Skipping fedauth tests: token-based auth is configured", 
-                !TestUtils.useDefaultAzureCredential(connectionString));
+                !TestUtils.useAccessTokenAuth(connectionString));
 
         azureServer = getConfiguredProperty("azureServer");
         azureDatabase = getConfiguredProperty("azureDatabase");
@@ -230,8 +234,14 @@ public class FedauthCommon extends AbstractTest {
         long interval = THROTTLE_RETRY_INTERVAL;
         
         com.azure.core.credential.TokenCredential credential;
-        if (TestUtils.useDefaultAzureCredential(connectionString)) {
-            credential = new DefaultAzureCredentialBuilder().build();
+        if (TestUtils.useAccessTokenAuth(connectionString)) {
+            // Use AzureCliCredential (not DefaultAzureCredential) to avoid picking up wrong MI
+            EnvironmentCredential envCredential = new EnvironmentCredentialBuilder().build();
+            AzureCliCredential cliCredential = new AzureCliCredentialBuilder().build();
+            credential = new ChainedTokenCredentialBuilder()
+                    .addFirst(envCredential)
+                    .addLast(cliCredential)
+                    .build();
         } else {
             credential = new ManagedIdentityCredentialBuilder()
                     .clientId(akvProviderManagedClientId).build();

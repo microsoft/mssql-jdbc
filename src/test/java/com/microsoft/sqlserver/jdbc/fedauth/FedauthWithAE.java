@@ -291,7 +291,7 @@ public class FedauthWithAE extends FedauthCommon {
     private SQLServerColumnEncryptionKeyStoreProvider registerAKVProvider() throws SQLServerException {
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         
-        if (TestUtils.useDefaultAzureCredential(connectionString)) {
+        if (TestUtils.useAccessTokenAuth(connectionString)) {
             DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
         } else {
