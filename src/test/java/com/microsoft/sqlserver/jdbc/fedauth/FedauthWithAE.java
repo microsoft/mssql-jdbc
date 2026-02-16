@@ -23,8 +23,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
-import com.azure.identity.DefaultAzureCredential;
-import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.identity.AzureCliCredential;
+import com.azure.identity.AzureCliCredentialBuilder;
+import com.azure.identity.ChainedTokenCredential;
+import com.azure.identity.ChainedTokenCredentialBuilder;
+import com.azure.identity.EnvironmentCredential;
+import com.azure.identity.EnvironmentCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
@@ -292,7 +296,13 @@ public class FedauthWithAE extends FedauthCommon {
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
         
         if (TestUtils.useAccessTokenAuth(connectionString)) {
-            DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
+            // Use ChainedTokenCredential (Env + AzureCli) - excludes ManagedIdentityCredential
+            EnvironmentCredential envCredential = new EnvironmentCredentialBuilder().build();
+            AzureCliCredential cliCredential = new AzureCliCredentialBuilder().build();
+            ChainedTokenCredential credential = new ChainedTokenCredentialBuilder()
+                    .addFirst(envCredential)
+                    .addLast(cliCredential)
+                    .build();
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
         } else {
             ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()

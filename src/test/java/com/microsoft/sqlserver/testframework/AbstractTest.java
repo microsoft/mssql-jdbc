@@ -264,6 +264,10 @@ public abstract class AbstractTest {
         // Check if AzureCliCredential should be used for AKV authentication
         // This takes priority over ManagedIdentityCredential when USE_ACCESS_TOKEN=true
         boolean useAzureCliForAkv = TestUtils.useAccessTokenAuth(connectionString);
+        System.out.println("[AbstractTest] USE_ACCESS_TOKEN env var: " + System.getenv("USE_ACCESS_TOKEN"));
+        System.out.println("[AbstractTest] useAzureCliForAkv: " + useAzureCliForAkv);
+        System.out.println("[AbstractTest] akvProvider is null: " + (akvProvider == null));
+        System.out.println("[AbstractTest] akvProviderManagedClientId: " + akvProviderManagedClientId);
         
         if (null == akvProvider && useAzureCliForAkv) {
             // When using accessTokenCallbackClass for SQL auth (e.g., Azure CLI),
@@ -285,6 +289,7 @@ public abstract class AbstractTest {
             }
         } else if (null == akvProvider && !useAzureCliForAkv && null != akvProviderManagedClientId) {
             // Only use ManagedIdentityCredential if NOT using AzureCli auth
+            System.out.println("[AbstractTest] Using ManagedIdentityCredential for AKV with clientId: " + akvProviderManagedClientId);
             ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
                     .clientId(akvProviderManagedClientId).build();
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
