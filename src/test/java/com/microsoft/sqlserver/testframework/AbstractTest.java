@@ -34,10 +34,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
+import com.azure.identity.AzureCliCredential;
+import com.azure.identity.AzureCliCredentialBuilder;
+import com.azure.identity.ChainedTokenCredential;
+import com.azure.identity.ChainedTokenCredentialBuilder;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
-import com.azure.identity.DefaultAzureCredential;
-import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.identity.EnvironmentCredential;
+import com.azure.identity.EnvironmentCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
@@ -257,16 +261,22 @@ public abstract class AbstractTest {
             map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        // Check if DefaultAzureCredential should be used for AKV authentication
+        // Check if AzureCliCredential should be used for AKV authentication
         if (null == akvProvider && TestUtils.useDefaultAzureCredential(connectionString)) {
             // When using accessTokenCallbackClass for SQL auth (e.g., Azure CLI),
-            // use DefaultAzureCredential for AKV to match the authentication method
+            // use AzureCliCredential for AKV to match the authentication method
+            // Note: We exclude ManagedIdentityCredential to ensure AzureCLI@2 task credentials are used
             try {
-                DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
+                EnvironmentCredential envCredential = new EnvironmentCredentialBuilder().build();
+                AzureCliCredential cliCredential = new AzureCliCredentialBuilder().build();
+                ChainedTokenCredential credential = new ChainedTokenCredentialBuilder()
+                        .addFirst(envCredential)
+                        .addLast(cliCredential)
+                        .build();
                 akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
                 map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
             } catch (Exception e) {
-                System.out.println("Could not initialize AKV provider with DefaultAzureCredential: " + e.getMessage());
+                System.out.println("Could not initialize AKV provider with AzureCliCredential: " + e.getMessage());
             }
         } else if (null == akvProvider && null != akvProviderManagedClientId) {
             ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
