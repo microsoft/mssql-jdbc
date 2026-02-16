@@ -1957,6 +1957,7 @@ public class VectorTest extends AbstractTest {
             // The driver trims whitespace and is case-insensitive
             String[][] validCases = {
                 {" v1 ", "whitespace-padded v1", "v1"},
+                {"off ", "trailing space off", "off"},
                 {"V1", "uppercase V1", "v1"},
                 {"V2", "uppercase V2", "v2"},
                 {"OFF", "uppercase OFF", "off"},

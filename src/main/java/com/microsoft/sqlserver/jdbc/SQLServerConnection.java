@@ -5911,12 +5911,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // Initialize vectorTypeSupportEnum if not already done.
         if (vectorTypeSupportEnum == null) {
-            try {
-                vectorTypeSupportEnum = VectorTypeSupport.valueOfString(vectorTypeSupport);
-            } catch (SQLServerException e) {
-                // Fallback to value OFF if invalid value is provided.
-                vectorTypeSupportEnum = VectorTypeSupport.OFF;
-            }
+            vectorTypeSupportEnum = VectorTypeSupport.valueOfString(vectorTypeSupport);
         }
 
         if (vectorTypeSupportEnum == VectorTypeSupport.OFF) {
@@ -7137,23 +7132,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_unknownVectorSupportValue"), null);
                 }
 
+                // The server's FEATUREEXTACK response already contains the negotiated version
+                // (i.e. min(clientRequested, serverMax)), so we accept data[0] directly
+                // as the negotiated version — no client-side re-negotiation needed.
                 serverSupportedVectorVersion = data[0];
-                if (0 == serverSupportedVectorVersion || serverSupportedVectorVersion > TDS.MAX_VECTORSUPPORT_VERSION) {
+                negotiatedVectorVersion = data[0];
+                if (0 == negotiatedVectorVersion || negotiatedVectorVersion > TDS.MAX_VECTORSUPPORT_VERSION) {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidVectorVersionNumber"), null);
                 }
-                // Negotiate the vector version between client and server
-                negotiatedVectorVersion = negotiateVectorVersion(vectorTypeSupportEnum, serverSupportedVectorVersion);
 
-                if (negotiatedVectorVersion > TDS.VECTORSUPPORT_NOT_SUPPORTED) {
-                    serverSupportsVector = true;
+                serverSupportsVector = (negotiatedVectorVersion > TDS.VECTORSUPPORT_NOT_SUPPORTED);
 
-                    if (connectionlogger.isLoggable(Level.FINE)) {
-                        connectionlogger.fine(toString() + " Vector support negotiated. Client: " + vectorTypeSupport +
-                                ", Server: " + serverSupportedVectorVersion +
-                                ", Negotiated: " + negotiatedVectorVersion);
-                    }
-                } else {
-                    serverSupportsVector = false;
+                if (connectionlogger.isLoggable(Level.FINE)) {
+                    connectionlogger.fine(toString() + " Vector support negotiated. Client requested: " + vectorTypeSupport +
+                            ", Negotiated version: " + negotiatedVectorVersion);
                 }
                 break;
             }
