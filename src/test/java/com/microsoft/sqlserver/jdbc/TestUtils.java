@@ -1097,7 +1097,27 @@ public final class TestUtils {
      * @return The updated connection string
      */
     public static String removeProperty(String connectionString, String property) {
-        int start = connectionString.toLowerCase().indexOf(property.toLowerCase());
+        // Need to match property name followed by = to avoid partial matches
+        // e.g., "database=" should not match "msjdbctest.database.windows.net"
+        String lowerConn = connectionString.toLowerCase();
+        String lowerProp = property.toLowerCase() + "=";
+        
+        int start = -1;
+        int searchFrom = 0;
+        
+        // Find the property that appears after a semicolon or at the start
+        while ((start = lowerConn.indexOf(lowerProp, searchFrom)) != -1) {
+            // Check if this is a standalone property (at start or after semicolon)
+            if (start == 0 || connectionString.charAt(start - 1) == ';') {
+                break;
+            }
+            searchFrom = start + 1;
+        }
+        
+        if (start == -1) {
+            return connectionString; // Property not found
+        }
+        
         int end = connectionString.indexOf(";", start);
         String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
         return connectionString.replace(propertyStr, "");
@@ -1113,10 +1133,26 @@ public final class TestUtils {
      * @return The the value of the connection property or null if not found
      */
     public static String getProperty(String connectionString, String property) {
-        int start = connectionString.indexOf(property);
-        if (-1 == start) {
+        // Need to match property name followed by = to avoid partial matches
+        String lowerConn = connectionString.toLowerCase();
+        String lowerProp = property.toLowerCase() + "=";
+        
+        int start = -1;
+        int searchFrom = 0;
+        
+        // Find the property that appears after a semicolon or at the start
+        while ((start = lowerConn.indexOf(lowerProp, searchFrom)) != -1) {
+            // Check if this is a standalone property (at start or after semicolon)
+            if (start == 0 || connectionString.charAt(start - 1) == ';') {
+                break;
+            }
+            searchFrom = start + 1;
+        }
+        
+        if (start == -1) {
             return null;
         }
+        
         start = connectionString.indexOf("=", start) + 1;
         int end = connectionString.indexOf(";", start);
         return connectionString.substring(start, -1 != end ? end : connectionString.length());
