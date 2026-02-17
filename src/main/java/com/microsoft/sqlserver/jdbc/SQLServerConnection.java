@@ -7125,7 +7125,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             case TDS.TDS_FEATURE_EXT_VECTORSUPPORT: {
                 if (connectionlogger.isLoggable(Level.FINE)) {
-                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for vector support. Received byte: " + data[0]);
+                    connectionlogger.fine(
+                            toString() + " Received feature extension acknowledgement for Vector Support.");
                 }
 
                 if (1 != data.length) {
@@ -7183,39 +7184,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     /**
-     * Negotiates the vector version between client and server based on the
-     * following rules:
-     * - If either client or server is "off", negotiated version is "off"
-     * - If both support v2, negotiated version is v2
-     * - If both support v1, negotiated version is v1
-     * - Otherwise, use the minimum supported version
-     *
-     * @param clientVectorSupportEnum The client's vector type support setting
-     * @param serverVersion           The server's supported vector version
-     * @return The negotiated vector version
-     */
-    private byte negotiateVectorVersion(VectorTypeSupport clientVectorSupportEnum, byte serverVersion) {
-
-        // If server doesn't support vectors, negotiation is off
-        if (serverVersion == TDS.VECTORSUPPORT_NOT_SUPPORTED) {
-            return TDS.VECTORSUPPORT_NOT_SUPPORTED;
-        }
-
-        if (clientVectorSupportEnum == VectorTypeSupport.OFF) {
-            return TDS.VECTORSUPPORT_NOT_SUPPORTED;
-        }
-
-        byte clientMaxVersion = clientVectorSupportEnum.getTdsValue();
-
-        // Negotiate using the minimum supported version
-        return (byte) Math.min(clientMaxVersion, serverVersion);
-
-    }
-
-    /**
      * Returns the negotiated vector version between client and server.
+     * Returns 0 if vectorTypeSupport is 'off' or the server did not acknowledge vector support.
+     * Valid negotiated values from the server are 1 (v1) or 2 (v2).
      *
-     * @return The negotiated vector version (0 = off, 1 = v1, 2 = v2)
+     * @return The negotiated vector version (0 = not negotiated, 1 = v1, 2 = v2)
      */
     public byte getNegotiatedVectorVersion() {
         return negotiatedVectorVersion;

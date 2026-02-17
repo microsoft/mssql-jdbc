@@ -1746,107 +1746,15 @@ public class VectorTest extends AbstractTest {
      * Nested test class for vector negotiation tests.
      * Tests different combinations of vectorTypeSupport settings (v1, v2, off)
      * and validates error handling for invalid values.
-     * 
-     * Also includes direct unit tests for the negotiateVectorVersion method
-     * to validate negotiation logic for all key combinations of client and server versions.
      */
     @RunWith(JUnitPlatform.class)
     @DisplayName("Vector Negotiation Tests")
     @Tag(Constants.vectorFloat16Test)
     public static class VectorNegotiationTest extends AbstractTest {
 
-        // TDS constants for vector support versions (mirroring TDS class values)
-        private static final byte VECTORSUPPORT_NOT_SUPPORTED = 0x00;
-        private static final byte VECTORSUPPORT_VERSION_1 = 0x01;
-        private static final byte VECTORSUPPORT_VERSION_2 = 0x02;
-
-        // VectorTypeSupport enum values accessed via reflection (package-private enum)
-        private static Object VECTOR_TYPE_OFF;
-        private static Object VECTOR_TYPE_V1;
-        private static Object VECTOR_TYPE_V2;
-        private static Class<?> vectorTypeSupportClass;
-
         @BeforeAll
         public static void setupNegotiationTests() throws Exception {
-
             setConnection();
-
-            // Load VectorTypeSupport enum via reflection (it's package-private)
-            vectorTypeSupportClass = Class.forName("com.microsoft.sqlserver.jdbc.VectorTypeSupport");
-            VECTOR_TYPE_OFF = Enum.valueOf((Class<Enum>) vectorTypeSupportClass, "OFF");
-            VECTOR_TYPE_V1 = Enum.valueOf((Class<Enum>) vectorTypeSupportClass, "V1");
-            VECTOR_TYPE_V2 = Enum.valueOf((Class<Enum>) vectorTypeSupportClass, "V2");
-        }
-
-        // ============================================================================
-        // Direct Unit Tests for negotiateVectorVersion method
-        // These tests use reflection to directly invoke the private method and
-        // validate all key combinations of client and server versions.
-        // ============================================================================
-
-        /**
-         * Helper method to invoke the private negotiateVectorVersion method via reflection.
-         * 
-         * @param conn The SQLServerConnection instance
-         * @param clientVectorSupport The client's VectorTypeSupport enum value (as Object)
-         * @param serverVersion The server's supported vector version byte
-         * @return The negotiated vector version
-         */
-        private byte invokeNegotiateVectorVersion(SQLServerConnection conn, 
-                Object clientVectorSupport, byte serverVersion) throws Exception {
-            java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod(
-                    "negotiateVectorVersion", vectorTypeSupportClass, byte.class);
-            method.setAccessible(true);
-            return (byte) method.invoke(conn, clientVectorSupport, serverVersion);
-        }
-
-        /**
-         * Test: Comprehensive matrix test for all client/server version combinations.
-         * This test validates the negotiation logic truth table covering all 9 combinations:
-         * - Client OFF vs Server (NOT_SUPPORTED, V1, V2) -> always OFF
-         * - Client V1 vs Server (NOT_SUPPORTED, V1, V2) -> OFF, V1, V1
-         * - Client V2 vs Server (NOT_SUPPORTED, V1, V2) -> OFF, V1, V2
-         */
-        @Test
-        @DisplayName("Negotiation: Complete matrix of all client/server combinations")
-        public void testNegotiationMatrix() throws Exception {
-            try (SQLServerConnection conn = getConnection()) {
-                
-                // Define expected results matrix [clientVersion][serverVersion]
-                // Rows: OFF=0, V1=1, V2=2
-                // Cols: NOT_SUPPORTED=0, V1=1, V2=2
-                byte[][] expectedResults = {
-                    // Server: NOT_SUPPORTED, V1,  V2
-                    {0x00, 0x00, 0x00},  // Client OFF
-                    {0x00, 0x01, 0x01},  // Client V1
-                    {0x00, 0x01, 0x02}   // Client V2
-                };
-
-                Object[] clientVersions = {
-                    VECTOR_TYPE_OFF,
-                    VECTOR_TYPE_V1,
-                    VECTOR_TYPE_V2
-                };
-
-                String[] clientVersionNames = {"OFF", "V1", "V2"};
-
-                byte[] serverVersions = {
-                    VECTORSUPPORT_NOT_SUPPORTED,
-                    VECTORSUPPORT_VERSION_1,
-                    VECTORSUPPORT_VERSION_2
-                };
-
-                String[] serverVersionNames = {"NOT_SUPPORTED", "V1", "V2"};
-
-                for (int c = 0; c < clientVersions.length; c++) {
-                    for (int s = 0; s < serverVersions.length; s++) {
-                        byte result = invokeNegotiateVectorVersion(conn, clientVersions[c], serverVersions[s]);
-                        assertEquals(expectedResults[c][s], result,
-                                String.format("Mismatch for Client=%s, Server=%s: expected 0x%02X but got 0x%02X",
-                                        clientVersionNames[c], serverVersionNames[s], expectedResults[c][s], result));
-                    }
-                }
-            }
         }
 
         /**
@@ -1905,6 +1813,54 @@ public class VectorTest extends AbstractTest {
                 
                 assertFalse(serverSupportsVector,
                         "serverSupportsVector should be false when vectorTypeSupport=off");
+            }
+        }
+
+        /**
+         * Test negotiation matrix across all vectorTypeSupport values.
+         * Matrix rows: [clientRequest, maxAllowedNegotiated]
+         * Verifies negotiated version bounds, serverSupportsVector consistency,
+         * and cross-version monotonicity.
+         */
+        @Test
+        @DisplayName("Verify negotiation matrix across off/v1/v2")
+        public void testNegotiationMatrix() throws Exception {
+            String[][] matrix = {
+                {"off", "0"},
+                {"v1", "1"},
+                {"v2", "2"}
+            };
+
+            java.lang.reflect.Method getSupports = SQLServerConnection.class
+                    .getDeclaredMethod("getServerSupportsVector");
+            getSupports.setAccessible(true);
+
+            byte[] negotiatedVersions = new byte[matrix.length];
+
+            for (int i = 0; i < matrix.length; i++) {
+                String clientRequest = matrix[i][0];
+                int maxAllowed = Integer.parseInt(matrix[i][1]);
+
+                try (SQLServerConnection conn = getConnectionWithVectorFlag(clientRequest)) {
+                    byte negotiated = conn.getNegotiatedVectorVersion();
+                    negotiatedVersions[i] = negotiated;
+
+                    assertTrue(negotiated >= 0x00 && negotiated <= maxAllowed,
+                            String.format("%s: negotiated=0x%02X must be in [0x00, 0x%02X]",
+                                    clientRequest, negotiated, maxAllowed));
+
+                    boolean supports = (boolean) getSupports.invoke(conn);
+                    assertEquals(negotiated > 0, supports,
+                            String.format("%s: serverSupportsVector must match negotiated > 0", clientRequest));
+                }
+            }
+
+            // Cross-version monotonicity: higher client request should never produce lower result
+            for (int i = 1; i < negotiatedVersions.length; i++) {
+                assertTrue(negotiatedVersions[i] >= negotiatedVersions[i - 1],
+                        String.format("Monotonicity: negotiated(%s)=0x%02X should be >= negotiated(%s)=0x%02X",
+                                matrix[i][0], negotiatedVersions[i],
+                                matrix[i - 1][0], negotiatedVersions[i - 1]));
             }
         }
 

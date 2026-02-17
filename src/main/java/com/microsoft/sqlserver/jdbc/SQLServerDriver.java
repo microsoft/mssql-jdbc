@@ -547,8 +547,10 @@ enum VectorTypeSupport {
                 return VectorTypeSupport.V2;
             default:
                 throwInvalid(value);
-                return VectorTypeSupport.OFF; // Never reached
         }
+
+        // Unreachable; throwInvalid() always throws
+        return VectorTypeSupport.OFF;
     }
 
     private static void throwInvalid(String value) throws SQLServerException {
