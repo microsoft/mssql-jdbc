@@ -42,7 +42,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * - commit() - Commit transaction (requires autoCommit=false)
  * - rollback() - Rollback transaction (requires autoCommit=false)
  */
-@Tag(Constants.stateMachine)
 @Tag(Constants.legacyFX)
 public class TransactionStateTest extends AbstractTest {
 

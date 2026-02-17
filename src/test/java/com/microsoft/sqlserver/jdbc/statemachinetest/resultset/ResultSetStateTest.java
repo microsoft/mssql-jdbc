@@ -43,7 +43,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * - Scrollable cursor navigation (next, previous, first, last, absolute)
  * - Data retrieval (getString)
  */
-@Tag(Constants.stateMachine)
 @Tag(Constants.legacyFX)
 public class ResultSetStateTest extends AbstractTest {
 

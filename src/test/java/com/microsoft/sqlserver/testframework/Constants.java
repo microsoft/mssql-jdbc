@@ -33,7 +33,6 @@ public final class Constants {
      * vectorTest - - - - -For tests requiring vector setup
      * JSONTest -  - - - - For tests requiring JSON setup
      * CodeCov - - - - - - For tests tracked in coverage-only runs
-     * stateMachine - - - -For state machine based tests
      * legacyFX  - - - - - For tests based on legacy FX framework models
      * </pre>
      */
@@ -59,7 +58,6 @@ public final class Constants {
     public static final String JSONTest = "JSONTest";
     public static final String CodeCov = "CodeCov";
     public static final String PrepareMethodUseTempTableScopeTest = "PrepareMethodUseTempTableScopeTest";
-    public static final String stateMachine = "stateMachine";
     public static final String legacyFX = "legacyFX";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
