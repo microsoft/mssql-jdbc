@@ -44,6 +44,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * - Data retrieval (getString)
  */
 @Tag(Constants.stateMachine)
+@Tag(Constants.legacyFX)
 public class ResultSetStateTest extends AbstractTest {
 
     private static final String TABLE_NAME = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SM_ResultSet_Test"));
