@@ -190,7 +190,8 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
             long enabledDuration = executeStatementsWithNewConnectionsPerIteration(count);
 
-            printPerformanceComparison(disabledDuration, enabledDuration, count, "new connection per iteration");
+            // Uncomment below line to print performance comparison for connection overhead test
+            // printPerformanceComparison(disabledDuration, enabledDuration, count, "new connection per iteration");
 
             // Cleanup for next iteration
             SQLServerDriver.unregisterPerformanceLogCallback();
@@ -239,7 +240,8 @@ class PerformanceLogCallbackTest extends AbstractTest {
             enabledDuration = executeStatementsWithTiming(con, iterations);
         }
 
-        printPerformanceComparison(disabledDuration, enabledDuration, iterations, "single connection");
+        // Uncomment below line to print performance comparison for high-volume test
+        // printPerformanceComparison(disabledDuration, enabledDuration, iterations, "single connection");
 
         // Cleanup
         SQLServerDriver.unregisterPerformanceLogCallback();
@@ -571,20 +573,19 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
     /**
      * Helper method to print performance comparison between disabled and enabled logging.
-     * Uncomment the method body to see results during testing.
      */
     private void printPerformanceComparison(long disabledDuration, long enabledDuration, int iterations, String description) {
-        // double disabledMs = disabledDuration / 1_000_000.0;
-        // double enabledMs = enabledDuration / 1_000_000.0;
-        // double overheadMs = enabledMs - disabledMs;
-        // double overheadPercent = (overheadMs / disabledMs) * 100;
-        // double avgOverheadPerIterationUs = (overheadMs * 1000) / iterations;
+        double disabledMs = disabledDuration / 1_000_000.0;
+        double enabledMs = enabledDuration / 1_000_000.0;
+        double overheadMs = enabledMs - disabledMs;
+        double overheadPercent = (overheadMs / disabledMs) * 100;
+        double avgOverheadPerIterationUs = (overheadMs * 1000) / iterations;
 
-        // System.out.printf("--- %s (%d iterations) ---%n", description, iterations);
-        // System.out.printf("  Disabled:  %.2f ms (%.3f ms/iteration)%n", disabledMs, disabledMs / iterations);
-        // System.out.printf("  Enabled:   %.2f ms (%.3f ms/iteration)%n", enabledMs, enabledMs / iterations);
-        // System.out.printf("  Overhead:  %.2f ms (%.2f%%)%n", overheadMs, overheadPercent);
-        // System.out.printf("  Avg overhead per iteration: %.2f µs%n%n", avgOverheadPerIterationUs);
+        System.out.printf("--- %s (%d iterations) ---%n", description, iterations);
+        System.out.printf("  Disabled:  %.2f ms (%.3f ms/iteration)%n", disabledMs, disabledMs / iterations);
+        System.out.printf("  Enabled:   %.2f ms (%.3f ms/iteration)%n", enabledMs, enabledMs / iterations);
+        System.out.printf("  Overhead:  %.2f ms (%.2f%%)%n", overheadMs, overheadPercent);
+        System.out.printf("  Avg overhead per iteration: %.2f µs%n%n", avgOverheadPerIterationUs);
     }
 
 }
