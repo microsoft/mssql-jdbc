@@ -132,31 +132,34 @@ public final class SQLServerException extends java.sql.SQLException {
             return nextException;
         }
         
-        if (sourceStatement != null) {
-            try {
-                if (sourceStatement.isClosed()) {
+        synchronized(this) {
+            if (sourceStatement != null) {
+                try {
+                    if (sourceStatement.isClosed()) {
+                        sourceStatement = null;
+                        return null;
+                    }
+                    
+                    // Keep calling getMoreResults() to process remaining results
+                    // until we hit another error or run out of results
+                    while (sourceStatement.getMoreResults() || sourceStatement.getUpdateCount() != -1) {
+                        // Continue processing results
+                    }
+                    
+                    // No more results and no error encountered
                     sourceStatement = null;
                     return null;
+                } catch (java.sql.SQLException e) {
+                    // Pass statement reference to next exception for continued chaining
+                    if (e instanceof SQLServerException) {
+                        ((SQLServerException) e).setSourceStatement(sourceStatement);
+                    }
+                    sourceStatement = null;
+                    super.setNextException(e);
+                    return e;
                 }
-                
-                // Keep calling getMoreResults() to process remaining results
-                // until we hit another error or run out of results
-                while (sourceStatement.getMoreResults() || sourceStatement.getUpdateCount() != -1) {
-                    // Continue processing results
-                }
-                
-                // No more results and no error encountered
-                sourceStatement = null;
-                return null;
-            } catch (java.sql.SQLException e) {
-                // Pass statement reference to next exception for continued chaining
-                if (e instanceof SQLServerException) {
-                    ((SQLServerException) e).setSourceStatement(sourceStatement);
-                }
-                sourceStatement = null;
-                super.setNextException(e);
-                return e;
             }
+        
         }
         
         return null;
