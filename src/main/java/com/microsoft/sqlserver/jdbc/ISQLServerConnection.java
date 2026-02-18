@@ -658,7 +658,10 @@ public interface ISQLServerConnection extends java.sql.Connection {
      *
      * @param vectorTypeSupport
      * A string that indicates the vector type support during connection initialization.
-     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type FLOAT32 are returned as vectors). 
+     * Valid values are :
+     * - "off" (vector types are returned as strings)
+     * - "v1" (supports float32 vector type)
+     * - "v2" (supports float32 and float16 vector types)
      * Default is "v1".
      */
     void setVectorTypeSupport(String vectorTypeSupport);
@@ -667,7 +670,7 @@ public interface ISQLServerConnection extends java.sql.Connection {
      * Returns the value of the vectorTypeSupport connection property.
      *
      * @return vectorTypeSupport
-     *         The current vector type support setting ("off" or "v1").
+     *         The current vector type support setting ("off"|"v1"|"v2").
      */
     String getVectorTypeSupport();
 

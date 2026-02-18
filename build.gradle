@@ -31,7 +31,7 @@ allprojects {
 
 test {
     useJUnitPlatform {
-        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth','kerberos','vectorTest','JSONTest')
+        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth','kerberos','vectorTest','JSONTest','vectorFloat16Test')
     }
 }
 
@@ -50,7 +50,7 @@ if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile
 	}
 	test {
     useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test')
     }
 }
 }
@@ -70,7 +70,7 @@ if (hasProperty('buildProfile') && buildProfile == "jre21") {
 	}
 	test {
     useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test')
     }
 }
 }
@@ -90,7 +90,7 @@ if (hasProperty('buildProfile') && buildProfile == "jre17") {
 	}
 	test {
     useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test')
     }
 }
 }
@@ -110,7 +110,7 @@ if (hasProperty('buildProfile') && buildProfile == "jre11") {
 	}
 	test {
     useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test')
     }
 }
 }
@@ -127,7 +127,7 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	
 	test {
 		useJUnitPlatform {
-			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42','vectorTest','JSONTest')
+			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42','vectorTest','JSONTest','vectorFloat16Test')
 		}
 	}
 }
