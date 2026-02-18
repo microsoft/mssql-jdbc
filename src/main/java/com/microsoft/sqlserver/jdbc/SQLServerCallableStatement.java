@@ -1337,7 +1337,21 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 // is not a security issue.
 
                 ThreePartName threePartName = ThreePartName.parse(procedureName);
-                StringBuilder metaQuery = new StringBuilder("exec sp_sproc_columns ");
+                StringBuilder metaQuery = new StringBuilder("exec ");
+                
+                // Always qualify sp_sproc_columns with the database name and sys schema.
+                // Using 'sys' schema is safest because users cannot create objects in the
+                // sys schema, preventing any possibility of name-squatting with a user-defined
+                // sp_sproc_columns procedure.
+                String currentDb = connection.getCatalog();
+                // When using getCatalog(), we need to escape the identifier since it returns
+                // an unescaped database name. The database part from ThreePartName preserves
+                // its original format (may already be bracketed from user input).
+                String targetDb = threePartName.getDatabasePart() != null ? threePartName.getDatabasePart() : Util.escapeSQLId(currentDb);
+                metaQuery.append(targetDb);
+                metaQuery.append(".sys.");
+                
+                metaQuery.append("sp_sproc_columns ");
                 if (null != threePartName.getDatabasePart()) {
                     metaQuery.append("@procedure_qualifier=");
                     metaQuery.append(threePartName.getDatabasePart());
