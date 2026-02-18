@@ -31,7 +31,7 @@ allprojects {
 
 test {
     useJUnitPlatform {
-        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth','kerberos','vectorTest','JSONTest')
+        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth','kerberos','vectorTest','JSONTest','vectorFloat16Test')
     }
 }
 
@@ -50,7 +50,7 @@ if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile
 	}
 	test {
     useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test')
     }
 }
 }
@@ -70,7 +70,7 @@ if (hasProperty('buildProfile') && buildProfile == "jre21") {
 	}
 	test {
     useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test')
     }
 }
 }
@@ -90,7 +90,7 @@ if (hasProperty('buildProfile') && buildProfile == "jre17") {
 	}
 	test {
     useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test')
     }
 }
 }
@@ -110,7 +110,7 @@ if (hasProperty('buildProfile') && buildProfile == "jre11") {
 	}
 	test {
     useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest')
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test')
     }
 }
 }
@@ -127,7 +127,7 @@ if(hasProperty('buildProfile') && buildProfile == "jre8") {
 	
 	test {
 		useJUnitPlatform {
-			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42','vectorTest','JSONTest')
+			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42','vectorTest','JSONTest','vectorFloat16Test')
 		}
 	}
 }
@@ -176,8 +176,8 @@ repositories {
 dependencies {
     implementation 'org.osgi:org.osgi.core:6.0.0',
 			'org.osgi:org.osgi.service.jdbc:1.1.0'
-	compileOnly 'com.azure:azure-security-keyvault-keys:4.9.2',
-			'com.azure:azure-identity:1.15.3',
+	compileOnly 'com.azure:azure-security-keyvault-keys:4.10.5',
+			'com.azure:azure-identity:1.18.2',
 			'org.antlr:antlr4-runtime:4.9.1',
 			'com.google.code.gson:gson:2.11.0',
 			'org.bouncycastle:bcprov-jdk18on:1.79',
@@ -198,8 +198,8 @@ dependencies {
 			'org.eclipse.gemini.blueprint:gemini-blueprint-mock:3.0.0.M01',
 			'com.google.code.gson:gson:2.11.0',
 			'org.bouncycastle:bcprov-jdk18on:1.79',
-			'com.azure:azure-security-keyvault-keys:4.9.2',
-			'com.azure:azure-identity:1.15.3',
+			'com.azure:azure-security-keyvault-keys:4.10.5',
+			'com.azure:azure-identity:1.18.2',
 			'com.h2database:h2:2.2.220'
 
 	// Mockito and Byte Buddy dependencies based on JRE version

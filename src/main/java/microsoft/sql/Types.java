@@ -6,8 +6,21 @@
 package microsoft.sql;
 
 /**
- * Defines the constants that are used to identify the SQL types that are specific to Microsoft SQL Server.
- *
+ * Defines the constants that are used to identify SQL types specific to Microsoft SQL Server.
+ * 
+ * These type codes are used internally by the JDBC driver for type identification and do not
+ * correspond to the native SQL Server data type values. The driver uses these constants when
+ * reporting column types through ParameterMetaData and ResultSetMetaData interfaces.
+ * 
+ * To retrieve the actual SQL Server native data type codes, use DatabaseMetaData.getColumns()
+ * and read the SQL_DATA_TYPE column from the result set. For example:
+ * 
+ *     ResultSet rs = metaData.getColumns(null, null, tableName, "%");
+ *       int sqlDataType = rs.getInt("SQL_DATA_TYPE");
+ * 
+ * The SQL_DATA_TYPE column contains the native SQL Server type codes as returned by the
+ * sp_columns stored procedure (sp_columns_170 on SQL Server 2025+, sp_columns_100 on older versions).
+ * 
  * This class is never instantiated.
  */
 public final class Types {

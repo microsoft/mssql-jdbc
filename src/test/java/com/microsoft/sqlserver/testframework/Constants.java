@@ -33,7 +33,8 @@ public final class Constants {
      * vectorTest - - - - -For tests requiring vector setup
      * JSONTest -  - - - - For tests requiring JSON setup
      * CodeCov - - - - - - For tests tracked in coverage-only runs
-     * legacyFx - - - - - For tests validating legacy FX regressions
+     * legacyFx  - - - - - For tests based on legacy Fx framework models
+     * vectorFloat16Test - For tests requiring vector(float16) setup
      * </pre>
      */
     public static final String xJDBC42 = "xJDBC42";
@@ -59,6 +60,8 @@ public final class Constants {
     public static final String CodeCov = "CodeCov";
     public static final String legacyFx = "legacyFx";
     public static final String PrepareMethodUseTempTableScopeTest = "PrepareMethodUseTempTableScopeTest";
+    public static final String legacyFX = "legacyFX";
+    public static final String vectorFloat16Test = "vectorFloat16Test";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");

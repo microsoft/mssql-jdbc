@@ -501,6 +501,66 @@ enum DatetimeType {
     }
 }
 
+enum VectorTypeSupport {
+    OFF("off", TDS.VECTORSUPPORT_NOT_SUPPORTED),
+    V1("v1", TDS.VECTORSUPPORT_VERSION_1), //float32 support
+    V2("v2", TDS.VECTORSUPPORT_VERSION_2); //float32 and float16 support
+
+    private final String type;
+    private final byte tdsValue;
+
+    VectorTypeSupport(String type, byte tdsValue) {
+        this.type = type;
+        this.tdsValue = tdsValue;
+    }
+
+    @Override
+    public String toString() {
+        return type;
+    }
+
+    /**
+     * Returns the byte value used in TDS communication
+     */
+    public byte getTdsValue() {
+        return tdsValue;
+    }
+
+    /**
+     * Returns the string value of vectorTypeSupport
+     */
+    public String getType() {
+        return type;
+    }
+
+    static VectorTypeSupport valueOfString(String value) throws SQLServerException {
+        if (value == null) {
+            throwInvalid(value);
+        }
+
+        switch (value.trim().toLowerCase(Locale.US)) {
+            case "off":
+                return VectorTypeSupport.OFF;
+            case "v1":
+                return VectorTypeSupport.V1;
+            case "v2":
+                return VectorTypeSupport.V2;
+            default:
+                throwInvalid(value);
+        }
+
+        // Unreachable; throwInvalid() always throws
+        return VectorTypeSupport.OFF;
+    }
+
+    private static void throwInvalid(String value) throws SQLServerException {
+        MessageFormat form =
+                new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
+        Object[] msgArgs = {value};
+        throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+    }
+}
+
 
 enum SQLServerDriverObjectProperty {
     GSS_CREDENTIAL("gsscredential", null),
@@ -531,6 +591,7 @@ enum SQLServerDriverObjectProperty {
 
 
 enum PrepareMethod {
+    NONE("none"),
     PREPEXEC("prepexec"), // sp_prepexec, default prepare method
     PREPARE("prepare"),
     SCOPE_TEMP_TABLES_TO_CONNECTION("scopeTempTablesToConnection");
@@ -616,7 +677,7 @@ enum SQLServerDriverStringProperty {
     RETRY_CONN("retryConn", ""),
     QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.ON.toString()),
     CONCAT_NULL_YIELDS_NULL("concatNullYieldsNull", OnOffOption.ON.toString()),
-    VECTOR_TYPE_SUPPORT("vectorTypeSupport", "v1");
+    VECTOR_TYPE_SUPPORT("vectorTypeSupport", VectorTypeSupport.V1.toString());
 
     private final String name;
     private final String defaultValue;
@@ -841,8 +902,8 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.SERVER_CERTIFICATE.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.PREPARE_METHOD.toString(),
                     SQLServerDriverStringProperty.PREPARE_METHOD.getDefaultValue(), false,
-            new String[] { PrepareMethod.PREPEXEC.toString(), PrepareMethod.PREPARE.toString(),
-                    PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString() }),
+            new String[] { PrepareMethod.NONE.toString(), PrepareMethod.PREPEXEC.toString(),
+                    PrepareMethod.PREPARE.toString(), PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString() }),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.FAILOVER_PARTNER.toString(),
                     SQLServerDriverStringProperty.FAILOVER_PARTNER.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.HOSTNAME_IN_CERTIFICATE.toString(),
@@ -1016,7 +1077,8 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.ENABLE_BULK_COPY_CACHE.getDefaultValue()),false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.toString(),
-                    SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.getDefaultValue(), false, new String[] {"off", "v1"}),
+                    SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.getDefaultValue(), false, 
+                    new String[] {VectorTypeSupport.OFF.toString(), VectorTypeSupport.V1.toString(), VectorTypeSupport.V2.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.MSI_CLIENT_ID.toString(),
                     SQLServerDriverStringProperty.MSI_CLIENT_ID.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_ID.toString(),
