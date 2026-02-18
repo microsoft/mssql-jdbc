@@ -528,6 +528,81 @@ class PerformanceLogCallbackTest extends AbstractTest {
     }
 
     /**
+     * Test to validate that enablePrepareOnFirstPreparedStatementCall=true causes
+     * sp_prepexec on the very first execution (no sp_executesql trial run):
+     * 1st call: STATEMENT_PREPEXEC (sp_prepexec - eager prepare+execute on first call)
+     * 2nd call: STATEMENT_EXECUTE (sp_execute - handle cached from previous call)
+     * 3rd call: STATEMENT_EXECUTE (sp_execute - handle cached, execute only)
+     */
+    @Test
+    void testPrepExecActivityTrackedOnFirstExecutionWhenEagerPrepareEnabled() throws Exception {
+        List<PerformanceActivity> activities = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+                // connection-level - not tracked here
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                // Only capture EXECUTE / PREPEXEC activities (ignore REQUEST_BUILD, FIRST_SERVER_RESPONSE, etc.)
+                if (activity == PerformanceActivity.STATEMENT_EXECUTE
+                        || activity == PerformanceActivity.STATEMENT_PREPEXEC) {
+                    activities.add(activity);
+                }
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        try (Connection con = PrepUtil.getConnection(connectionString
+                + ";enablePrepareOnFirstPreparedStatementCall=true")) {
+            // prepareMethod=prepexec (default), enablePrepareOnFirstPreparedStatementCall=true
+            try (PreparedStatement ps = con.prepareStatement("SELECT ? AS val")) {
+
+                // FIRST CALL - internally uses sp_prepexec (eager prepare+execute, no trial run)
+                ps.setInt(1, 100);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "First execution should return a row");
+                }
+
+                // SECOND CALL - internally uses sp_execute (handle cached from first call)
+                ps.setInt(1, 200);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "Second execution should return a row");
+                }
+
+                // THIRD CALL - internally uses sp_execute (handle cached, execute only)
+                ps.setInt(1, 300);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "Third execution should return a row");
+                }
+            }
+        }
+
+        // Verify exactly 3 execute/prepexec activities were tracked
+        assertEquals(3, activities.size(), "Should have tracked 3 statement execution activities");
+
+        // 1st call: sp_prepexec → STATEMENT_PREPEXEC (eager prepare on first call)
+        assertEquals(PerformanceActivity.STATEMENT_PREPEXEC, activities.get(0),
+                "First call should be STATEMENT_PREPEXEC (sp_prepexec, eager prepare)");
+
+        // 2nd call: sp_execute → STATEMENT_EXECUTE
+        assertEquals(PerformanceActivity.STATEMENT_EXECUTE, activities.get(1),
+                "Second call should be STATEMENT_EXECUTE (sp_execute)");
+
+        // 3rd call: sp_execute → STATEMENT_EXECUTE
+        assertEquals(PerformanceActivity.STATEMENT_EXECUTE, activities.get(2),
+                "Third call should be STATEMENT_EXECUTE (sp_execute)");
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+        
+    }
+
+    /**
      * Helper method to execute Statement and PreparedStatement queries in a loop.
      * Uses a provided connection. Returns the duration in nanoseconds.
      */
