@@ -5,6 +5,8 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -56,6 +58,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -114,6 +118,16 @@ public class PreparedStatementTest extends AbstractTest {
             assertEquals("prepare", conn.getPrepareMethod());
         }
 
+        String connectionStringExec = connectionString + ";prepareMethod=scopeTempTablesToConnection;";
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionStringExec)) {
+            assertEquals("scopeTempTablesToConnection", conn.getPrepareMethod());
+        }
+
+        String connectionStringNone = connectionString + ";prepareMethod=none;";
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionStringNone)) {
+            assertEquals("none", conn.getPrepareMethod());
+        }
+
         try (SQLServerConnection conn = (SQLServerConnection) getConnection()) {
             assertEquals("prepexec", conn.getPrepareMethod()); // default is prepexec
         }
@@ -137,6 +151,109 @@ public class PreparedStatementTest extends AbstractTest {
                 ps.executeUpdate(); // Takes sp_prepare path
                 ps.executeUpdate();
             }
+        }
+    }
+
+    @Test
+    public void testPreparedStatementWithExec() throws SQLException {
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName4)
+                + " (c1_nchar, c2_int) values (?, ?)";
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod("exec"); // Use exec method
+
+            executeSQL(con, "create table " + AbstractSQLGenerator.escapeIdentifier(tableName4)
+                    + " (c1_nchar nchar(512), c2_int integer)");
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                ps.setString(1, "test");
+                ps.setInt(2, 0);
+                ps.executeUpdate();
+                ps.executeUpdate();
+                ps.executeUpdate();
+            }
+        }
+    }
+
+    @Test
+    public void testPreparedStatementWithPrepareMethodNone() throws SQLException {
+        String tableName = RandomUtil.getIdentifier("tableTestPrepareMethodNone");
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (c1_nchar, c2_int) values (?, ?)";
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod("none");
+
+            executeSQL(con, "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (c1_nchar nchar(512), c2_int integer)");
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                ps.setString(1, "test1");
+                ps.setInt(2, 1);
+                ps.executeUpdate();
+
+                ps.setString(1, "test2");
+                ps.setInt(2, 2);
+                ps.executeUpdate();
+
+                ps.setString(1, "test3");
+                ps.setInt(2, 3);
+                ps.executeUpdate();
+            }
+
+            try (Statement stmt = con.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "SELECT COUNT(*) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                rs.next();
+                assertEquals(3, rs.getInt(1), "Should have 3 rows inserted");
+            }
+
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), con.createStatement());
+        }
+    }
+    
+    @ParameterizedTest
+    @ValueSource(strings = {"prepexec", "prepare", "exec"})
+    public void testPreparedStatementWithDifferentPrepareMethods(String prepareMethod) throws SQLException {
+        String tableName = RandomUtil.getIdentifier("testTablePrepareMethod");
+        String sql = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (c1_int, c2_nvarchar, c3_datetime, c4_bit) values (?, ?, ?, ?)";
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod(prepareMethod);
+
+            executeSQL(con, "create table " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (c1_int int, c2_nvarchar nvarchar(100), c3_datetime datetime2, c4_bit bit)");
+
+            try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                // Test with different data types
+                ps.setInt(1, 123);
+                ps.setString(2, "test string");
+                ps.setTimestamp(3, java.sql.Timestamp.valueOf("2023-01-01 12:30:45.123"));
+                ps.setBoolean(4, true);
+                ps.executeUpdate();
+                
+                ps.setInt(1, 456);
+                ps.setString(2, "second test");
+                ps.setTimestamp(3, java.sql.Timestamp.valueOf("2023-01-02 13:31:46.456"));
+                ps.setBoolean(4, false);
+                ps.executeUpdate(); // Second execution should follow the prepare method path
+                
+                ps.setInt(1, 789);
+                ps.setString(2, "third test");
+                ps.setTimestamp(3, java.sql.Timestamp.valueOf("2023-01-03 14:32:47.789"));
+                ps.setBoolean(4, true);
+                ps.executeUpdate(); // Third execution should also follow the prepare method path
+            }
+
+            // Verify data was inserted correctly
+            try (Statement stmt = con.createStatement(); 
+                 ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+                rs.next();
+                assertEquals(3, rs.getInt(1), "Should have 3 rows inserted");
+            }
+
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), con.createStatement());
         }
     }
     
@@ -1426,6 +1543,571 @@ public class PreparedStatementTest extends AbstractTest {
                 }
             } finally {
                 executeSQL(con, "DROP PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName));
+            }
+        }
+    }
+
+    /**
+     * Test statement that generates both ResultSet and update count.
+     * This validates the driver's ability to handle statements that produce
+     * multiple result types,
+     * such as stored procedures that perform DML operations and return result sets.
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testStatementWithBothResultSetAndUpdateCount() throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            String tableName = RandomUtil.getIdentifier("testBothResults");
+            String procName = RandomUtil.getIdentifier("testBothResultsProc");
+
+            // Create test table
+            String createTableSql = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id INT IDENTITY(1,1) PRIMARY KEY, name NVARCHAR(50), value INT)";
+            executeSQL(con, createTableSql);
+
+            // Create stored procedure that does INSERT (update count) and SELECT
+            // (ResultSet)
+            String createProcSql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
+                    + " @name NVARCHAR(50), @value INT AS BEGIN "
+                    + "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (name, value) VALUES (@name, @value); "
+                    + "SELECT @@IDENTITY AS new_id, @name AS name, @value AS value; "
+                    + "END";
+            executeSQL(con, createProcSql);
+
+            String callSql = "{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?)}";
+
+            try (SQLServerPreparedStatement stmt = (SQLServerPreparedStatement) con.prepareStatement(callSql)) {
+                stmt.setString(1, "TestName");
+                stmt.setInt(2, 42);
+
+                // Execute the statement
+                boolean hasResultSet = stmt.execute();
+
+                // First result should be the update count from INSERT
+                assertFalse(hasResultSet, "First result should be update count, not ResultSet");
+                int updateCount = stmt.getUpdateCount();
+                assertEquals(1, updateCount, "Should have inserted 1 row");
+
+                // Move to next result - should be the ResultSet from SELECT
+                boolean hasMoreResults = stmt.getMoreResults();
+                assertTrue(hasMoreResults, "Should have a ResultSet after update count");
+
+                try (ResultSet rs = stmt.getResultSet()) {
+                    assertTrue(rs.next(), "ResultSet should have data");
+                    assertTrue(rs.getInt("new_id") > 0, "Should have generated identity value");
+                    assertEquals("TestName", rs.getString("name"), "Name should match");
+                    assertEquals(42, rs.getInt("value"), "Value should match");
+                    assertFalse(rs.next(), "Should only have one row");
+                }
+
+                // Verify no more results
+                assertFalse(stmt.getMoreResults(), "Should have no more results");
+                assertEquals(-1, stmt.getUpdateCount(), "Update count should be -1 when no more results");
+            }
+
+            // Test with multiple DML operations and ResultSets
+            String procName2 = RandomUtil.getIdentifier("testMultipleResultsProc");
+            String createProc2Sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName2)
+                    + " AS BEGIN "
+                    + "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (name, value) VALUES ('First', 100); "
+                    + "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE value = 100; "
+                    + "UPDATE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " SET value = 200 WHERE value = 100; "
+                    + "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE value = 200; "
+                    + "END";
+            executeSQL(con, createProc2Sql);
+
+            String callSql2 = "{call " + AbstractSQLGenerator.escapeIdentifier(procName2) + "}";
+
+            try (SQLServerPreparedStatement stmt = (SQLServerPreparedStatement) con.prepareStatement(callSql2)) {
+                boolean hasResultSet = stmt.execute();
+
+                // Result 1: INSERT update count
+                assertFalse(hasResultSet, "Result 1 should be update count from INSERT");
+                assertEquals(1, stmt.getUpdateCount(), "Should have inserted 1 row");
+
+                // Result 2: First SELECT ResultSet
+                assertTrue(stmt.getMoreResults(), "Should have ResultSet from first SELECT");
+                try (ResultSet rs = stmt.getResultSet()) {
+                    assertTrue(rs.next(), "First SELECT should return data");
+                    assertEquals("First", rs.getString("name"));
+                    assertEquals(100, rs.getInt("value"));
+                }
+
+                // Result 3: UPDATE update count
+                // getMoreResults() returns false for update counts, use getUpdateCount()
+                // instead
+                assertFalse(stmt.getMoreResults(), "Next result is update count, not ResultSet");
+                assertEquals(1, stmt.getUpdateCount(), "Should have updated 1 row");
+
+                // Result 4: Second SELECT ResultSet
+                assertTrue(stmt.getMoreResults(), "Should have ResultSet from second SELECT");
+                try (ResultSet rs = stmt.getResultSet()) {
+                    assertTrue(rs.next(), "Second SELECT should return data");
+                    assertEquals("First", rs.getString("name"));
+                    assertEquals(200, rs.getInt("value"), "Value should be updated to 200");
+                }
+
+                // No more results
+                assertFalse(stmt.getMoreResults(), "Should have no more results");
+                assertEquals(-1, stmt.getUpdateCount(), "Should be -1 when no more results");
+            }
+
+            // Clean up
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+                TestUtils.dropTableIfExists(procName, stmt);
+                TestUtils.dropTableIfExists(procName2, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test null SQL parameter validation.
+     * This test ensures that preparing a statement with null SQL throws SQLException.
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testNullSQLConstructorAlternative() throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) getConnection()) {
+            try {
+                conn.prepareStatement(null);
+                fail("Expected SQLException for null SQL");
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("Statement SQL cannot be null"));
+            }
+        }
+    }
+
+    /**
+     * Test empty batch parameter handling for bulk copy for batch insert.
+     * This test ensures that executing an empty batch returns an empty array.
+     * executeBatch() and executeLargeBatch() are both tested.
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testEmptyBatchParameterHandling() throws SQLException {
+        final String tableName = AbstractSQLGenerator.
+                escapeIdentifier(RandomUtil.getIdentifier("testEmptyBatch"));
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = conn.createStatement()) {
+
+            // Create test table
+            stmt.execute("CREATE TABLE " + tableName
+                    + " (id INT, name VARCHAR(50))");
+
+            try (PreparedStatement pstmt = conn.prepareStatement(
+                    "INSERT INTO " + tableName + " VALUES (?, ?)")) {
+                // Clear any existing batch
+                pstmt.clearBatch();
+
+                // Execute empty batch - should return empty array
+                int[] updateCounts = pstmt.executeBatch();
+                assertNotNull(updateCounts);
+                assertEquals(0, updateCounts.length);
+
+                // Test executeLargeBatch with empty batch
+                long[] largeUpdateCounts = pstmt.executeLargeBatch();
+                assertNotNull(largeUpdateCounts);
+                assertEquals(0, largeUpdateCounts.length);
+            }
+        } finally {
+            // Cleanup
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test different scenarios for column count mismatch in bulk copy for batch insert operation
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testBulkCopyColumnCountMismatch() throws SQLException {
+        final String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testColumnMismatch"));
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = conn.createStatement()) {
+
+            // Create table with 3 columns
+            stmt.execute("CREATE TABLE " + tableName
+                    + " (id INT, name VARCHAR(50), age INT)");
+
+            // Test case 1: Column list size != value list size
+            // INSERT with explicit column list but mismatched parameter count
+            try (PreparedStatement pstmt = conn.prepareStatement(
+                    "INSERT INTO " + tableName
+                            + " (id, name, age) VALUES (?, ?)")) { // 3 columns but only 2 parameters
+
+                // Add batch entries to trigger bulk copy
+                for (int i = 1; i <= 5; i++) {
+                    pstmt.setInt(1, i);
+                    pstmt.setString(2, "test" + i);
+                    pstmt.addBatch();
+                }
+
+                try {
+                    pstmt.executeLargeBatch();
+                    fail("Should throw IllegalArgumentException for column count mismatch (explicit column list)");
+                } catch (IllegalArgumentException | BatchUpdateException e) {
+                    assertTrue(e.getMessage().contains("The number of values in the VALUES clause must" + 
+                            " match the number of columns specified in the INSERT statement."));
+                }
+            }
+
+            // Test case 2: Table column count != value list size
+            // INSERT without explicit column list but wrong parameter count
+            try (PreparedStatement pstmt = conn.prepareStatement(
+                    "INSERT INTO " + tableName + " VALUES (?, ?)")) { // only 2 parameters
+
+                // Add batch entries to trigger bulk copy
+                for (int i = 1; i <= 5; i++) {
+                    pstmt.setInt(1, i);
+                    pstmt.setString(2, "test" + i);
+                    pstmt.addBatch();
+                }
+
+                try {
+                    pstmt.executeLargeBatch();
+                    fail("Should throw IllegalArgumentException for column count mismatch (no column list)");
+                } catch (IllegalArgumentException | BatchUpdateException e) {
+                    assertTrue(e.getMessage().contains("Column name or number of supplied values " + 
+                            "does not match table definition"));
+                }
+            }
+
+        } finally {
+            // Cleanup
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test unsupported data types for Azure DW bulk copy for batch insert.
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testUnsupportedDataTypesForAzureDW() throws Exception {
+        final String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testUnsupportedTypes"));
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = conn.createStatement()) {
+
+            // Use reflection to simulate Azure DW connection
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(conn, true);
+
+            // Set isAzure to true as well since some code paths check both
+            Field f2 = SQLServerConnection.class.getDeclaredField("isAzure");
+            f2.setAccessible(true);
+            f2.set(conn, true);
+
+            // Create table with unsupported Azure DW types
+            stmt.execute("CREATE TABLE " + tableName
+                    + " (id INT, created_date DATETIME)");
+
+            try (PreparedStatement pstmt = conn.prepareStatement(
+                    "INSERT INTO " + tableName + " VALUES (?, ?)")) {
+
+                pstmt.setInt(1, 1);
+                // Set unsupported DATETIME type for Azure DW
+                pstmt.setTimestamp(2, new java.sql.Timestamp(System.currentTimeMillis()));
+                pstmt.addBatch();
+
+                try {
+                    pstmt.executeBatch();
+                } catch (IllegalArgumentException | BatchUpdateException e) {
+                    assertTrue(e.getMessage().contains("not supported in bulk copy against Azure Data Warehouse."),
+                            "Exception should indicate unsupported data type for Azure DW: " + e.getMessage());
+                }
+            }
+
+        } finally {
+            // Cleanup
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, stmt);
+            }
+        }
+    }
+
+    /**
+     * checkAndRemoveCommentsAndSpaces() method
+     * This test ensures that SQL with schema and table names containing dots
+     * are parsed correctly, including handling of spaces and comments around the dot.
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testSQLParsingWithSchemaAndDots() throws Exception {
+
+        String uuid = UUID.randomUUID().toString().substring(0, 8);
+        String testTable = "testTable" + uuid;
+        String testSchema = "test_schema" + uuid;
+
+        // Create test schema first
+        String escapedSchema = AbstractSQLGenerator.escapeIdentifier(testSchema);
+        String escapedTable = AbstractSQLGenerator.escapeIdentifier(testTable);
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement()) {
+
+            stmt.executeUpdate("IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = '" + testSchema + "') " +
+                    "EXEC('CREATE SCHEMA " + escapedSchema + "')");
+
+            // Create table with schema prefix
+            String schemaTableSQL = "CREATE TABLE " + escapedSchema + "." + escapedTable
+                + " (id INT, name VARCHAR(50))";
+            stmt.execute(schemaTableSQL);
+
+            try (PreparedStatement pstmt = connection.prepareStatement(
+                    "INSERT INTO " + escapedSchema + " . " + escapedTable + " VALUES (?, ?)")) {
+
+                // Test with spaces around dot - should parse correctly
+                pstmt.setInt(1, 1);
+                pstmt.setString(2, "test");
+                pstmt.addBatch();
+
+                int[] updateCounts = pstmt.executeBatch();
+                assertEquals(1, updateCounts.length);
+                assertEquals(1, updateCounts[0]);
+            }
+
+            // Test with comments between schema and table name
+            try (PreparedStatement pstmt2 = connection.prepareStatement(
+                    "INSERT INTO " + escapedSchema + " /* comment */ . /* another comment */ "
+                            + escapedTable + " VALUES (?, ?)")) {
+
+                pstmt2.setInt(1, 2);
+                pstmt2.setString(2, "test2");
+                pstmt2.addBatch();
+
+                int[] updateCounts = pstmt2.executeBatch();
+                assertEquals(1, updateCounts.length);
+                assertEquals(1, updateCounts[0]);
+            }
+        } finally {
+            // Cleanup
+            try (Connection connection = PrepUtil.getConnection(connectionString);
+                    Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(escapedSchema + "." + escapedTable, stmt);
+                TestUtils.dropSchemaIfExists(escapedSchema, stmt);
+            }
+        }
+    }
+
+    /**
+     * checkAndRemoveCommentsAndSpaces() method with SQL comments containing newlines.
+     * This test ensures that SQL comments with newlines are handled correctly during parsing.
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testSQLCommentParsingWithNewlines() throws Exception {
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                Statement stmt = connection.createStatement()) {
+
+            stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id INT, name VARCHAR(50))");
+
+            try {
+                // Test SQL with line comments ending in newline
+                String sqlWithLineComment = "-- This is a line comment\n" +
+                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (?, ?)";
+
+                try (PreparedStatement pstmt = connection.prepareStatement(sqlWithLineComment)) {
+                    pstmt.setInt(1, 1);
+                    pstmt.setString(2, "test");
+                    pstmt.addBatch();
+
+                    int[] updateCounts = pstmt.executeBatch();
+                    assertEquals(1, updateCounts.length);
+                    assertEquals(1, updateCounts[0]);
+                }
+
+                // Test SQL with line comment at end (no newline)
+                String sqlWithLineCommentNoNewline = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " VALUES (?, ?) -- comment at end";
+
+                try (PreparedStatement pstmt2 = connection.prepareStatement(sqlWithLineCommentNoNewline)) {
+                    pstmt2.setInt(1, 2);
+                    pstmt2.setString(2, "test2");
+                    pstmt2.addBatch();
+
+                    int[] updateCounts = pstmt2.executeBatch();
+                    assertEquals(1, updateCounts.length);
+                    assertEquals(1, updateCounts[0]);
+                }
+
+                // Test multiple line comments
+                String sqlWithMultipleLineComments = "-- First comment\n" +
+                        "-- Second comment\n" +
+                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " VALUES (?, ?)";
+
+                try (PreparedStatement pstmt3 = connection.prepareStatement(sqlWithMultipleLineComments)) {
+                    pstmt3.setInt(1, 3);
+                    pstmt3.setString(2, "test3");
+                    pstmt3.addBatch();
+
+                    int[] updateCounts = pstmt3.executeBatch();
+                    assertEquals(1, updateCounts.length);
+                    assertEquals(1, updateCounts[0]);
+                }
+            } finally {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Enhanced test for batch execution with output parameters.
+     * OUT and INOUT parameter checking is done here, before executing the batch. If any
+     * OUT or INOUT are present, the entire batch fails.
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testBatchExecutionWithOutputParametersEnhanced() throws SQLException {
+
+        final String testTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("testOutputBatch"));
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection();
+                Statement stmt = con.createStatement()) {
+
+            // Create test table
+            stmt.execute("CREATE TABLE " + testTableName
+                    + " (id INT, value INT)");
+
+            // Test with regular PreparedStatement that has output parameters set incorrectly
+            try (PreparedStatement pstmt = con.prepareStatement(
+                    "INSERT INTO " + testTableName + " VALUES (?, ?)")) {
+
+                // Manually set parameter as output to trigger the validation
+                if (pstmt instanceof SQLServerPreparedStatement) {
+                    SQLServerPreparedStatement sqlServerPstmt = (SQLServerPreparedStatement) pstmt;
+
+                    // Set first parameter normally
+                    pstmt.setInt(1, 1);
+                    pstmt.setInt(2, 100);
+
+                    // Try to access internal parameter and set as output using reflection
+                    try {
+                        java.lang.reflect.Method setterMethod = sqlServerPstmt.getClass()
+                                .getDeclaredMethod("setterGetParam", int.class);
+                        setterMethod.setAccessible(true);
+                        Object param = setterMethod.invoke(sqlServerPstmt, 1);
+
+                        // Set parameter as output
+                        java.lang.reflect.Method setOutputMethod = param.getClass().getMethod("setIsOutput",
+                                boolean.class);
+                        setOutputMethod.invoke(param, true);
+
+                        pstmt.addBatch();
+
+                        try {
+                            pstmt.executeBatch();
+                            fail("Should throw BatchUpdateException for OUT parameters in batch");
+                        } catch (BatchUpdateException e) {
+                            assertTrue(e.getMessage().contains("The OUT and INOUT parameters are not permitted in a batch"));
+                        }
+                    } catch (Exception reflectionEx) {
+                        // If reflection fails, test the callable statement path instead
+                        testCallableStatementOutputInBatch(con);
+                    }
+                }
+            }
+        } finally {
+            // Cleanup
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(testTableName, stmt);
+            }
+        }
+    }
+
+    private void testCallableStatementOutputInBatch(SQLServerConnection con) throws SQLException {
+        String procName = RandomUtil.getIdentifier("testOutputProc");
+        String createProc = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName)
+                + " @input INT, @output INT OUTPUT AS BEGIN SET @output = @input * 2 END";
+
+        executeSQL(con, createProc);
+        String callSql = "{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?, ?)}";
+
+        try (SQLServerCallableStatement stmt = (SQLServerCallableStatement) con.prepareCall(callSql)) {
+            stmt.setInt(1, 5);
+            stmt.registerOutParameter(2, Types.INTEGER);
+            stmt.addBatch();
+
+            try {
+                stmt.executeBatch();
+                fail("Should throw BatchUpdateException for OUT parameters in batch");
+            } catch (BatchUpdateException e) {
+                assertTrue(e.getMessage().contains("The OUT and INOUT parameters are not permitted in a batch"));
+            }
+        } finally {
+            try (Statement stmt = con.createStatement()) {
+                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Test batch execution exception handling.
+     * This test ensures that when a batch execution fails, the appropriate exceptions are thrown
+     * and handled correctly.
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testBatchExecutionException() throws SQLException {
+        final String testTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.
+                                        getIdentifier("testBatchException"));
+
+        try (SQLServerConnection con = (SQLServerConnection) getConnection();
+                Statement stmt = con.createStatement()) {
+
+            // Create test table
+            stmt.execute("CREATE TABLE " + testTableName
+                    + " (id INT PRIMARY KEY, value VARCHAR(10))"); // Short varchar to trigger errors
+
+            try (PreparedStatement pstmt = con.prepareStatement(
+                    "INSERT INTO " + testTableName + " VALUES (?, ?)")) {
+                        
+                // Add multiple batch items, some that will succeed and some that will fail
+                pstmt.setInt(1, 1);
+                pstmt.setString(2, "valid");
+                pstmt.addBatch();
+
+                // This should succeed
+                pstmt.setInt(1, 2);
+                pstmt.setString(2, "alsovalid");
+                pstmt.addBatch();
+
+                // This should fail due to string length
+                pstmt.setInt(1, 3);
+                pstmt.setString(2, "this_string_is_too_long_for_varchar_10");
+                pstmt.addBatch();
+
+                try {
+                    long[] updateCounts = pstmt.executeLargeBatch();
+                    // May succeed if some statements pass
+                } catch (BatchUpdateException e) {
+                    // This validates the exception transformation logic
+                    assertNotNull(e.getUpdateCounts());
+                    assertTrue(e.getMessage().length() > 0);
+                } catch (SQLException e) {
+                    assertNotNull(e.getMessage());
+                }
+            }
+        } finally {
+            // Cleanup
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(testTableName, stmt);
             }
         }
     }

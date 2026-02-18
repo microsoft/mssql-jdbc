@@ -15,7 +15,9 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.sql.Blob;
 import java.sql.CallableStatement;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -760,9 +762,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
     }
 
-    private static final String VECTOR_SUPPORT_OFF = "off";
-    private static final String VECTOR_SUPPORT_V1 = "v1";
-
     final static int TNIR_FIRST_ATTEMPT_TIMEOUT_MS = 500; // fraction of timeout to use for fast failover connections
 
     /**
@@ -1103,16 +1102,26 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * A string that indicates the vector type support during connection initialization.
-     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type FLOAT32 are returned as vectors).  
+     * Valid values are : 
+     * - "off" (vector types are returned as strings)
+     * - "v1" (supports float32 vector type)
+     * - "v2" (supports float32 and float16 vector types)
      * Default is "v1".
      */
-    private String vectorTypeSupport = VECTOR_SUPPORT_V1;
+    private String vectorTypeSupport = SQLServerDriverStringProperty.VECTOR_TYPE_SUPPORT.getDefaultValue();
+
+    private VectorTypeSupport vectorTypeSupportEnum = VectorTypeSupport.V1;
+
+    /** 
+     * Negotiated vector version between client and server 
+     */
+    private byte negotiatedVectorVersion = TDS.VECTORSUPPORT_NOT_SUPPORTED;
 
     /**
      * Returns the value of the vectorTypeSupport connection property.
      *
      * @return vectorTypeSupport
-     *         The current vector type support setting ("off" or "v1").
+     *         The current vector type support setting ("off"|"v1"|"v2").
      */
     @Override
     public String getVectorTypeSupport() {
@@ -1124,7 +1133,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      *
      * @param vectorTypeSupport
      * A string that indicates the vector type support during connection initialization.
-     * Valid values are "off" (vector types are returned as strings) and "v1" (vectors of type FLOAT32 are returned as vectors).  
+     * Valid values are :
+     * - "off" (vector types are returned as strings)
+     * - "v1" (supports float32 vector type)
+     * - "v2" (supports float32 and float16 vector types)  
      * Default is "v1".
      */
     @Override
@@ -1134,15 +1146,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             Object[] msgArgs = { "null" };
             throw new IllegalArgumentException(form.format(msgArgs));
         }
-        switch (vectorTypeSupport.trim().toLowerCase()) {
-            case VECTOR_SUPPORT_OFF:
-            case VECTOR_SUPPORT_V1:
-                this.vectorTypeSupport = vectorTypeSupport.toLowerCase();
-                break;
-            default:
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
-                Object[] msgArgs = { vectorTypeSupport };
-                throw new IllegalArgumentException(form.format(msgArgs));
+        String normalizedValue = vectorTypeSupport.trim().toLowerCase(Locale.US);
+        try {
+            this.vectorTypeSupportEnum = VectorTypeSupport.valueOfString(normalizedValue);
+            this.vectorTypeSupport = normalizedValue;
+        } catch (SQLServerException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidVectorTypeSupport"));
+            Object[] msgArgs = { normalizedValue };
+            throw new IllegalArgumentException(form.format(msgArgs));
         }
     }
 
@@ -5897,14 +5908,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     int writeVectorSupportFeatureRequest(boolean write,
             TDSWriter tdsWriter) throws SQLServerException {
-        if (VECTOR_SUPPORT_OFF.equalsIgnoreCase(vectorTypeSupport)) {
+
+        // Initialize vectorTypeSupportEnum if not already done.
+        if (vectorTypeSupportEnum == null) {
+            vectorTypeSupportEnum = VectorTypeSupport.valueOfString(vectorTypeSupport);
+        }
+
+        if (vectorTypeSupportEnum == VectorTypeSupport.OFF) {
             return 0;
         }
+
         int len = 6; // 1byte = featureID, 4bytes = featureData length, 1 bytes = Version
         if (write) {
             tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_VECTORSUPPORT);
             tdsWriter.writeInt(1);
-            tdsWriter.writeByte(TDS.MAX_VECTORSUPPORT_VERSION);
+
+            // write the vector type support version
+            tdsWriter.writeByte(vectorTypeSupportEnum.getTdsValue());
         }
         return len;
     }
@@ -7105,18 +7125,29 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             case TDS.TDS_FEATURE_EXT_VECTORSUPPORT: {
                 if (connectionlogger.isLoggable(Level.FINE)) {
-                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for vector support. Received byte: " + data[0]);
+                    connectionlogger.fine(
+                            toString() + " Received feature extension acknowledgement for Vector Support.");
                 }
 
                 if (1 != data.length) {
                     throw new SQLServerException(SQLServerException.getErrString("R_unknownVectorSupportValue"), null);
                 }
 
+                // The server's FEATUREEXTACK response already contains the negotiated version
+                // (i.e. min(clientRequested, serverMax)), so we accept data[0] directly
+                // as the negotiated version — no client-side re-negotiation needed.
                 serverSupportedVectorVersion = data[0];
-                if (0 == serverSupportedVectorVersion || serverSupportedVectorVersion > TDS.MAX_VECTORSUPPORT_VERSION) {
+                negotiatedVectorVersion = data[0];
+                if (0 == negotiatedVectorVersion || negotiatedVectorVersion > TDS.MAX_VECTORSUPPORT_VERSION) {
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidVectorVersionNumber"), null);
                 }
-                serverSupportsVector = true;
+
+                serverSupportsVector = (negotiatedVectorVersion > TDS.VECTORSUPPORT_NOT_SUPPORTED);
+
+                if (connectionlogger.isLoggable(Level.FINE)) {
+                    connectionlogger.fine(toString() + " Vector support negotiated. Client requested: " + vectorTypeSupport +
+                            ", Negotiated version: " + negotiatedVectorVersion);
+                }
                 break;
             }
             
@@ -7150,6 +7181,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 throw new SQLServerException(SQLServerException.getErrString("R_UnknownFeatureAck"), null);
             }
         }
+    }
+
+    /**
+     * Returns the negotiated vector version between client and server.
+     * Returns 0 if vectorTypeSupport is 'off' or the server did not acknowledge vector support.
+     * Valid negotiated values from the server are 1 (v1) or 2 (v2).
+     *
+     * @return The negotiated vector version (0 = not negotiated, 1 = v1, 2 = v2)
+     */
+    public byte getNegotiatedVectorVersion() {
+        return negotiatedVectorVersion;
     }
 
     /*
@@ -7450,6 +7492,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
         // request vector support
         len += writeVectorSupportFeatureRequest(false, tdsWriter);
+        
         // request JSON support
         len += writeJSONSupportFeatureRequest(false, tdsWriter);
 
@@ -8519,46 +8562,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             lock.unlock();
         }
         loggerExternal.exiting(loggingClassName, "endRequest", this);
-    }
-
-    /**
-     * Replaces JDBC syntax parameter markets '?' with SQL Server parameter markers @p1, @p2 etc...
-     * 
-     * @param sql
-     *        the user's SQL
-     * @throws SQLServerException
-     * @return the returned syntax
-     */
-    static final char[] OUT = {' ', 'O', 'U', 'T'};
-
-    String replaceParameterMarkers(String sqlSrc, int[] paramPositions, Parameter[] params,
-            boolean isReturnValueSyntax) {
-        final int MAX_PARAM_NAME_LEN = 6;
-        char[] sqlDst = new char[sqlSrc.length() + (params.length * (MAX_PARAM_NAME_LEN + OUT.length))
-                + (params.length * 2)];
-        int dstBegin = 0;
-        int srcBegin = 0;
-        int nParam = 0;
-
-        int paramIndex = 0;
-        while (true) {
-            int srcEnd = (paramIndex >= paramPositions.length) ? sqlSrc.length() : paramPositions[paramIndex];
-            sqlSrc.getChars(srcBegin, srcEnd, sqlDst, dstBegin);
-            dstBegin += srcEnd - srcBegin;
-
-            if (sqlSrc.length() == srcEnd)
-                break;
-
-            dstBegin += makeParamName(nParam++, sqlDst, dstBegin, true);
-            srcBegin = srcEnd + 1 <= sqlSrc.length() - 1 && sqlSrc.charAt(srcEnd + 1) == ' ' ? srcEnd + 2 : srcEnd + 1;
-
-            if (params[paramIndex++].isOutput() && (!isReturnValueSyntax || paramIndex > 1)) {
-                System.arraycopy(OUT, 0, sqlDst, dstBegin, OUT.length);
-                dstBegin += OUT.length;
-            }
-        }
-
-        return new String(sqlDst, 0, dstBegin);
     }
 
     /**

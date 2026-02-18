@@ -12,6 +12,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -270,5 +272,117 @@ public class SSLCertificateValidationTest {
                 () -> SQLServerCertificateUtils.validateServerNameInCertificate(spoofedCert, "target.com"));
         assertDoesNotThrow(
                 () -> SQLServerCertificateUtils.validateServerNameInCertificate(spoofedCert, "attacker.com"));
+    }
+
+    /**
+     * Helper to create a SAN entry list.
+     * Per X509Certificate.getSubjectAlternativeNames() spec:
+     * - First element is an Integer representing the type (2 = dNSName, 7 = iPAddress)
+     * - Second element is a String for dNSName and iPAddress types
+     */
+    private static List<?> sanEntry(int type, String value) {
+        return Arrays.asList(Integer.valueOf(type), value);
+    }
+
+    @Test
+    public void testIPAddressInSAN_IPv4Match() throws Exception {
+        // Certificate with IPv4 address in SAN (type 7)
+        X500Principal subject = new X500Principal("CN=sqlserver.example.com");
+        Collection<List<?>> sans = new ArrayList<>();
+        sans.add(sanEntry(7, "192.168.1.100"));
+
+        X509Certificate cert = mockCert(subject, sans);
+
+        // Should succeed when connecting via the IP address in SAN
+        assertDoesNotThrow(
+                () -> SQLServerCertificateUtils.validateServerNameInCertificate(cert, "192.168.1.100"));
+    }
+
+    @Test
+    public void testIPAddressInSAN_IPv4Mismatch() throws Exception {
+        // Certificate with IPv4 address in SAN (type 7)
+        X500Principal subject = new X500Principal("CN=sqlserver.example.com");
+        Collection<List<?>> sans = new ArrayList<>();
+        sans.add(sanEntry(7, "192.168.1.100"));
+
+        X509Certificate cert = mockCert(subject, sans);
+
+        // Should fail when connecting via a different IP address
+        assertThrows(CertificateException.class,
+                () -> SQLServerCertificateUtils.validateServerNameInCertificate(cert, "192.168.1.101"));
+    }
+
+    @Test
+    public void testIPAddressInSAN_IPv6Match() throws Exception {
+        // Certificate with IPv6 address in SAN (type 7)
+        X500Principal subject = new X500Principal("CN=sqlserver.example.com");
+        Collection<List<?>> sans = new ArrayList<>();
+        sans.add(sanEntry(7, "2001:db8::1"));
+
+        X509Certificate cert = mockCert(subject, sans);
+
+        // Should succeed when connecting via the IPv6 address in SAN
+        assertDoesNotThrow(
+                () -> SQLServerCertificateUtils.validateServerNameInCertificate(cert, "2001:db8::1"));
+    }
+
+    @Test
+    public void testIPAddressInSAN_MultipleEntries() throws Exception {
+        // Certificate with both DNS name and IP address in SAN
+        X500Principal subject = new X500Principal("CN=sqlserver.example.com");
+        Collection<List<?>> sans = new ArrayList<>();
+        sans.add(sanEntry(2, "sqlserver.example.com"));
+        sans.add(sanEntry(7, "10.0.0.50"));
+        sans.add(sanEntry(7, "192.168.1.100"));
+
+        X509Certificate cert = mockCert(subject, sans);
+
+        // Should succeed for DNS name
+        assertDoesNotThrow(
+                () -> SQLServerCertificateUtils.validateServerNameInCertificate(cert, "sqlserver.example.com"));
+
+        // Should succeed for first IP
+        assertDoesNotThrow(
+                () -> SQLServerCertificateUtils.validateServerNameInCertificate(cert, "10.0.0.50"));
+
+        // Should succeed for second IP
+        assertDoesNotThrow(
+                () -> SQLServerCertificateUtils.validateServerNameInCertificate(cert, "192.168.1.100"));
+
+        // Should fail for unlisted IP
+        assertThrows(CertificateException.class,
+                () -> SQLServerCertificateUtils.validateServerNameInCertificate(cert, "172.16.0.1"));
+    }
+
+    @Test
+    public void testIPAddressInSAN_CaseInsensitive() throws Exception {
+        // Certificate with IPv6 address in SAN - test case insensitivity
+        X500Principal subject = new X500Principal("CN=sqlserver.example.com");
+        Collection<List<?>> sans = new ArrayList<>();
+        sans.add(sanEntry(7, "2001:DB8::1"));
+
+        X509Certificate cert = mockCert(subject, sans);
+
+        // Should succeed with different case (IPv6 addresses are case-insensitive)
+        assertDoesNotThrow(
+                () -> SQLServerCertificateUtils.validateServerNameInCertificate(cert, "2001:db8::1"));
+    }
+
+    @Test
+    public void testIPAddressInSAN_FallbackToCN() throws Exception {
+        // Certificate with only DNS SAN, no IP - should still work via CN fallback
+        X500Principal subject = new X500Principal("CN=sqlserver.example.com");
+        Collection<List<?>> sans = new ArrayList<>();
+        sans.add(sanEntry(2, "sqlserver.example.com"));
+
+        X509Certificate cert = mockCert(subject, sans);
+
+        // Should succeed for hostname matching CN/SAN
+        assertDoesNotThrow(
+                () -> SQLServerCertificateUtils.validateServerNameInCertificate(cert, "sqlserver.example.com"));
+
+        // Should fail for IP when no IP SAN is present
+        assertThrows(CertificateException.class,
+                () -> SQLServerCertificateUtils.validateServerNameInCertificate(cert, "192.168.1.100"));
     }
 }

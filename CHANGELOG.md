@@ -2,6 +2,84 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
+## [13.3.1] Preview Release
+
+### Added
+
+- **Introduce prepareMethod=scopeTempTablesToConnection for PreparedStatements with temp tables** [#2844](https://github.com/microsoft/mssql-jdbc/pull/2844)
+**What was added**: New prepareMethod option that scopes temporary tables created in prepared statements to the connection by using literal parameter substitution instead of server-side prepared handles.
+**Who benefits**: Developers using temporary tables (#temp) inside PreparedStatement executions.
+**Impact**: Ensures temporary tables remain visible across executions of different prepared statements/statements within the same connection.
+
+- **Send User Agent Information via TDS Feature Extension** [#2848](https://github.com/microsoft/mssql-jdbc/pull/2848)
+**What was added**: User agent telemetry is sent to SQL Server using a new LOGIN7 TDS Feature Extension (USERAGENT).
+**Who benefits**: Platform owners and maintainers analyzing driver usage patterns and runtime environments.
+**Impact**: Improves telemetry accuracy and enables data-driven testing and support decisions without affecting application behavior.
+
+- **Enable Vector and JSON Tests on SQL Server 2025** [#2846](https://github.com/microsoft/mssql-jdbc/pull/2846)
+**What was added**: Test coverage for vector and JSON features on SQL Server 2025 with a new xSQLv17 test tag.
+**Who benefits**: Contributors validating driver compatibility with the latest SQL Server release.
+**Impact**: More testing coverage increases confidence in SQL Server 2025 vector and JSON functionality.
+
+- **Enhance Code Coverage for SQLServerResultSet** [#2870](https://github.com/microsoft/mssql-jdbc/pull/2870)
+**What was added**: Expanded unit test coverage for SQLServerResultSet.
+**Who benefits**: Driver maintainers and contributors.
+**Impact**: Improves long-term stability and regression detection.
+
+### Changed
+
+- **Update bundle-version in Manifest to Include JRE Suffix** [#2876](https://github.com/microsoft/mssql-jdbc/pull/2876)
+**What changed**: Bundle-Version in the manifest now includes the jre8 / jre11 suffix to match the JAR file name.
+**Who benefits**: Users and tooling relying on OSGi metadata consistency.
+**Impact**: Aligns manifest metadata with published artifacts and avoids ambiguity.
+
+### Fixed
+
+- **SQL Server Integrity Enhancement Support in supportsIntegrityEnhancementFacility** [#2745](https://github.com/microsoft/mssql-jdbc/pull/2745)
+**What was fixed**: Corrected metadata reporting to reflect SQL Server’s support for integrity constraints.
+**Who benefits**: Applications relying on JDBC metadata to determine database capabilities.
+**Impact**: Ensures accurate reporting of primary key, foreign key, check, unique, and NOT NULL constraint support.
+
+- **Fix Geography Coordinate Parsing with Scientific Notation** [#2837](https://github.com/microsoft/mssql-jdbc/pull/2837)
+**What was fixed**: Prevented NumberFormatException when parsing Geography coordinates expressed in scientific notation.
+**Who benefits**: Applications working with very small spatial coordinate values.
+**Impact**: Enables correct handling of negative exponents in WKT parsing.
+
+- **Bulk Copy Batch Insert: Proper Fallback for SQL Functions** [#2845](https://github.com/microsoft/mssql-jdbc/pull/2845)
+**What was fixed**: Automatic fallback to standard batch execution when SQL functions are used in bulk copy batch inserts.
+**Who benefits**: Users executing PreparedStatement.executeBatch() with expressions like len(?) or encryption functions.
+**Impact**: Prevents bulk copy failures while preserving performance for compatible statements.
+
+- **Fix Bulk Copy Batch Insert with Persisted Computed Columns** [#2855](https://github.com/microsoft/mssql-jdbc/pull/2855)
+**What was fixed**: Corrected destination column validation logic to ignore computed persisted columns in bulk copy batch insert.
+**Who benefits**: Users performing bulk inserts into tables with computed columns.
+**Impact**: Prevents false “invalid column mapping” errors and restores bulk copy compatibility.
+
+- **Fix DatabaseMetaData.getIndexInfo() Collation Conflict in UNION ALL** [#2867](https://github.com/microsoft/mssql-jdbc/pull/2867)
+**What was fixed**: Resolved collation conflicts when server and database collations differ in the query executed by getIndexInfo call.
+**Who benefits**: Applications querying index metadata in mixed-collation environments.
+**Impact**: Ensures reliable metadata retrieval by applying COLLATE DATABASE_DEFAULT consistently.
+
+- **Fix getSchemas() Returning NULL TABLE_CATALOG for Built-in Schemas** [#2872](https://github.com/microsoft/mssql-jdbc/pull/2872)
+**What was fixed**: Corrected catalog resolution logic for built-in schemas like dbo, sys etc.
+**Who benefits**: Applications consuming schema metadata.
+**Impact**: Ensures JDBC-compliant catalog reporting for all schemas.
+
+- **Fix Statement.execute() Skipping Update Count After Batch Error** [#2866](https://github.com/microsoft/mssql-jdbc/pull/2866)
+**What was fixed**: Prevented loss of valid update counts following an error in mixed batch execution.
+**Who benefits**: Applications using Statement.execute() with mixed DML and query batches.
+**Impact**: Restores correct JDBC result traversal semantics after exceptions.
+
+- **Support IP Address Validation in Certificate SAN** [#2873](https://github.com/microsoft/mssql-jdbc/pull/2873)
+**What was fixed**: Added RFC 5280–compliant IP address validation in SSL certificate SAN checks.
+**Who benefits**: Users connecting via IP address over TLS.
+**Impact**: Removes need for hostname workarounds while preserving strict security guarantees.
+
+- **Fix TVP Type Name Collision in CallableStatement Tests** [#2869](https://github.com/microsoft/mssql-jdbc/pull/2869)
+**What was fixed**: Eliminated test failures caused by table-valued parameter type name collisions.
+**Who benefits**: Contributors and CI pipelines.
+**Impact**: Improves test reliability without affecting runtime behavior.
+
 ## [13.3.0] Preview Release
 
 ### Added

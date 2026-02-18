@@ -7,11 +7,13 @@ package com.microsoft.sqlserver.jdbc.unit.statement;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.BatchUpdateException;
 import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Clob;
@@ -3452,6 +3454,335 @@ public class StatementTest extends AbstractTest {
                 TestUtils.dropTriggerIfExists(testTrigger, stmt);
                 TestUtils.dropTableIfExists(testTableB, stmt);
                 TestUtils.dropTableIfExists(testTableA, stmt);
+            }
+        }
+
+        /**
+         * Tests execute a mixed SQL batch (INSERT → INSERT error → INSERT → SELECT) using
+         * {@link Statement#execute(String)} and verifies correct result traversal after
+         * a primary key violation.
+         * 
+         * After catching the expected error, the test calls {@link Statement#getMoreResults()}
+         * to continue processing the batch and validates that the update count of the
+         * subsequent successful INSERT is not swallowed before reaching the SELECT.
+         * 
+         * Validates that update counts are reported correctly even after an error occurs in the batch.
+         * Github issue #2850 : Statement.execute() skips valid update count after catching SQLException in mixed batch execution
+         *
+         * @throws SQLException
+         */
+        @Test
+        public void testBatchUpdateCount() throws SQLException {
+            // Create separate test tables to avoid conflicts with existing setup
+            String testTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("UpdateCountTestTable"));
+            
+            try (Connection conn = getConnection();
+                    Statement stmt = conn.createStatement()) {
+                        
+                TestUtils.dropTableIfExists(testTable, stmt);
+
+                // Create table
+                String createTableSql = "CREATE TABLE " + testTable + " ("
+                    + " id int primary key, column_name varchar(100))";
+
+
+                stmt.execute(createTableSql);
+
+                // SQL Batch breakdown:
+                // 1. INSERT (Success)
+                // 2. INSERT (Failure - Primary Key Conflict Error 2627)
+                // 3. INSERT (Success - BUT this update count gets swallowed by the driver bug)
+                // 4. SELECT (Result Set)
+                
+                String sqlBatch =
+                    "insert into " + testTable + " values (1, 'test'); " +
+                    "insert into " + testTable + " values (1, 'test'); " +
+                    "insert into " + testTable + " values (2, 'test'); " +
+                    "select * from " + testTable + ";";
+                    
+                boolean hasResult = stmt.execute(sqlBatch);
+                int resultCount = 0;
+                List<Integer> updateCounts = new ArrayList<>();
+                int resultSetCount = 0;
+                boolean exceptionCaught = false;
+
+                while (true) {
+                    resultCount++;
+                    try {
+                        // Standard JDBC processing logic
+                        if (hasResult) {
+                            try (ResultSet rs = stmt.getResultSet()) {
+                                resultSetCount++;;
+                                int rowCount = 0;
+                                while (rs.next()) {
+                                    rowCount++;
+                                }
+                                // Verify we get the expected 2 rows in the final SELECT
+                                if (resultSetCount == 1) {
+                                    assertEquals(2, rowCount, "Final SELECT should return 2 rows");
+                                }
+                            }
+                        } else {
+                            int updateCount = stmt.getUpdateCount();
+                            if (updateCount == -1) {
+                                break; // Exit loop - no more results
+                            }
+                            updateCounts.add(updateCount);
+                        }
+
+                        // Attempt to get the next result
+                        hasResult = stmt.getMoreResults();
+
+                    } catch (SQLException e) {
+                        exceptionCaught = true;
+                        assertEquals(2627, e.getErrorCode(), "Expected primary key violation error");
+                        assertTrue(e.getMessage().contains("PRIMARY KEY constraint"), 
+                                  "Expected primary key constraint violation message");
+
+                        // ================= Core Recovery Logic =================
+                        // The driver throws an exception for the 2nd SQL (Duplicate Key).
+                        // We catch it and try to move to the next result (3rd SQL).
+                        try {
+                            // Force move pointer to continue processing the batch
+                            hasResult = stmt.getMoreResults();
+                        } catch (Exception ex) {
+                            fail("Failed to recover from batch exception: " + ex.getMessage());
+                        }
+                        // =======================================================
+                    }
+                }
+
+                // Verify test results
+                assertTrue(exceptionCaught, "Expected exception for duplicate key was not caught");
+                assertEquals(1, resultSetCount, "Should have processed exactly 1 ResultSet");
+
+                // This is the key assertion that will fail with the current bug:
+                // We should get 2 update counts (first INSERT and third INSERT)
+                // But due to the bug, we only get 1 update count (the first INSERT)
+                // The third INSERT's update count gets swallowed by the driver
+                assertEquals(2, updateCounts.size(), 
+                            "Should have 2 update counts (1st INSERT success + 3rd INSERT success), " +
+                            "but driver bug causes 3rd INSERT update count to be swallowed");
+                
+                // Verify the update counts are correct
+                assertEquals(1, updateCounts.get(0), "First INSERT should affect 1 row");
+                assertEquals(1, updateCounts.get(1), "Third INSERT should affect 1 row");
+
+                // Verify final table state
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + testTable)) {
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt(1), "Table should contain exactly 2 rows");
+                }
+
+                TestUtils.dropTableIfExists(testTable, stmt);
+
+            }
+        }
+
+        /**
+         * Tests executeUpdate() behavior with a multi-statement batch containing a primary key violation.
+         * 
+         * The batch contains: INSERT (success) → INSERT (success) → INSERT (PK violation) → SELECT
+         * Expected behavior: executeUpdate() returns 1 (from the successful INSERT) and 
+         * the table contains 2 rows from the first two successful INSERTs.
+         * 
+         * @throws SQLException
+         */
+        @Test
+        public void testExecuteUpdateAfterError() throws SQLException {
+            String testTable = AbstractSQLGenerator
+                    .escapeIdentifier(RandomUtil.getIdentifier("UpdateCountTest_ExecuteUpdate"));
+
+            try (Connection conn = getConnection();
+                    Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(testTable, stmt);
+
+                // Create table
+                stmt.execute("CREATE TABLE " + testTable + " (id int primary key, column_name varchar(100))");
+
+                String sqlBatch =
+                    "insert into " + testTable + " values (1, 'test'); " +
+                    "insert into " + testTable + " values (1, 'test'); " +
+                    "insert into " + testTable + " values (2, 'test'); " +
+                    "select * from " + testTable + ";";
+                
+                int updateCount = stmt.executeUpdate(sqlBatch);
+                
+                assertEquals(1, updateCount);
+
+                // Verify final table state
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + testTable)) {
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt(1), "Table should contain exactly 2 rows");
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + testTable)) {
+                    int rowCount = 0;
+                    while (rs.next()) {
+                        rowCount++;
+                        if (rowCount == 1) {
+                            assertEquals(1, rs.getInt("id"));
+                        } else if (rowCount == 2) {
+                            assertEquals(2, rs.getInt("id"));
+                        }
+                    }
+                    assertEquals(2, rowCount, "Table should contain exactly 2 rows");
+                }
+
+                TestUtils.dropTableIfExists(testTable, stmt);
+            }
+        }
+
+        /**
+         * Tests executeQuery() behavior with a multi-statement batch containing a primary key violation.
+         * 
+         * The batch contains: INSERT (success) → INSERT (success) → INSERT (PK violation) → SELECT
+         * Expected behavior: executeQuery() returns resultset (from the SELECT) and 
+         * the table contains 2 rows from the first two successful INSERTs.
+         * 
+         * @throws SQLException
+         */
+        @Test
+        public void testExecuteQueryAfterError() throws SQLException {
+            String testTable = AbstractSQLGenerator
+                    .escapeIdentifier(RandomUtil.getIdentifier("UpdateCountTest_ExecuteQuery"));
+            try (Connection conn = getConnection();
+                    Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(testTable, stmt);
+
+                // Create table
+                stmt.execute("CREATE TABLE " + testTable + " (id int primary key, column_name varchar(100))");
+
+                String sqlBatch =
+                    "insert into " + testTable + " values (1, 'test'); " +
+                    "insert into " + testTable + " values (2, 'test'); " +
+                    "insert into " + testTable + " values (1, 'test'); " +
+                    "select * from " + testTable + ";";
+                boolean exceptionCaught = false;
+
+                try {
+                    stmt.executeQuery(sqlBatch);
+                } catch (SQLException e) {
+                    // Expecting a primary key violation error
+                    exceptionCaught = true;
+                    assertEquals(2627, e.getErrorCode(), "Expected primary key violation error");
+                    assertTrue(e.getMessage().contains("PRIMARY KEY constraint"),
+                            "Expected primary key constraint violation message");
+
+                    try {
+                        // Force move pointer to continue processing the batch
+                        stmt.getMoreResults();
+                    } catch (Exception ex) {
+                        fail("Failed to recover from batch exception: " + ex.getMessage());
+                    }
+                }
+                
+                assertTrue(exceptionCaught, "Expected exception for duplicate key was not caught");
+
+                // Verify final table state
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + testTable)) {
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt(1), "Table should contain exactly 2 rows");
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + testTable)) {
+                    int rowCount = 0;
+                    while (rs.next()) {
+                        rowCount++;
+                        if (rowCount == 1) {
+                            assertEquals(1, rs.getInt("id"));
+                        } else if (rowCount == 2) {
+                            assertEquals(2, rs.getInt("id"));
+                        }
+                    }
+                    assertEquals(2, rowCount, "Table should contain exactly 2 rows");
+                }
+
+                TestUtils.dropTableIfExists(testTable, stmt);
+            }
+        }
+
+        /**
+         * Tests executeBatch() with a SQL batch (INSERT → INSERT error → INSERT → SELECT) 
+         * using {@link Statement#executeBatch()} and verifies correct result traversal after
+         * a primary key violation.
+         * 
+         * This test validates that update counts are not swallowed when a batch entry fails.
+         * 
+         * @throws SQLException
+         */
+        @Test
+        public void testExecuteBatchWithValuesAfterError() throws SQLException {
+            String testTable = AbstractSQLGenerator
+                    .escapeIdentifier(RandomUtil.getIdentifier("BatchUpdateCountTestTable"));
+
+            try (Connection conn = getConnection();
+                    Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(testTable, stmt);
+
+                stmt.execute(
+                        "CREATE TABLE " + testTable + " (" +
+                                "id int primary key, column_name varchar(100))");
+            }
+
+            String insertSql = "INSERT INTO " + testTable + " (id, column_name) VALUES (?, ?)";
+
+            try (Connection conn = getConnection();
+                    PreparedStatement ps = conn.prepareStatement(insertSql)) {
+
+                // 1. INSERT success
+                ps.setInt(1, 1);
+                ps.setString(2, "test");
+                ps.addBatch();
+
+                // 2. INSERT failure (PK violation)
+                ps.setInt(1, 1);
+                ps.setString(2, "test");
+                ps.addBatch();
+
+                // 3. INSERT success
+                ps.setInt(1, 2);
+                ps.setString(2, "test");
+                ps.addBatch();
+
+                boolean exceptionThrown = false;
+                int[] updateCounts = null;
+
+                try {
+                    ps.executeBatch();
+                    fail("Expected BatchUpdateException due to primary key violation");
+                } catch (BatchUpdateException e) {
+                    exceptionThrown = true;
+                    assertEquals(2627, e.getErrorCode(),
+                            "Expected primary key violation");
+
+                    updateCounts = e.getUpdateCounts();
+                }
+
+                assertTrue(exceptionThrown, "Expected BatchUpdateException was not thrown");
+                assertNotNull(updateCounts, "Update counts should not be null");
+
+                assertEquals(3, updateCounts.length,
+                        "Batch should report update count per batch entry");
+
+                assertEquals(1, updateCounts[0], "First INSERT should succeed");
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[1],
+                        "Second INSERT should fail");
+                assertEquals(1, updateCounts[2], "Third INSERT should succeed");
+
+                // Verify final table state
+                try (ResultSet rs = ps.getConnection().createStatement()
+                        .executeQuery("SELECT COUNT(*) FROM " + testTable)) {
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt(1),
+                            "Table should contain exactly 2 rows");
+                }
+            } finally {
+                try (Connection con = getConnection();
+                        Statement stmt = con.createStatement()) {
+                    TestUtils.dropTableIfExists(testTable, stmt);
+                }
             }
         }
 
