@@ -8,11 +8,37 @@ package com.microsoft.sqlserver.jdbc.statemachinetest.core;
 /**
  * Abstract base class for state machine actions.
  * 
- * Each action represents an operation on the system under test (e.g.,
- * ResultSet.next()).
- * Subclasses must implement:
- * - canRun(): Returns true if the action can be executed in the current state
- * - run(): Executes the action and updates state accordingly
+ * Represents the framework interface for all actions in the state machine.
+ * Pure domain actions (driver behavior) can extend this directly.
+ * Test actions with validation should extend {@link ValidatedAction}.
+ * 
+ * Template Method Pattern: The framework controls the execution lifecycle:
+ * 1. canRun() - Check if action can execute
+ * 2. execute() - Framework-controlled execution (calls run() then validate())
+ * 3. run() - Concrete action implementation (actual JDBC operation)
+ * 4. validate() - Optional validation hook (override if needed)
+ * 
+ * Example of pure driver action:
+ * 
+ * <pre>
+ * public class CloseAction extends Action {
+ *     public CloseAction(StateMachineTest sm) {
+ *         super("close", 1);
+ *     }
+ * 
+ *     public boolean canRun() {
+ *         return !sm.isState(CLOSED);
+ *     }
+ * 
+ *     public void run() throws Exception {
+ *         rs.close();
+ *         sm.setState(CLOSED, true);
+ *     }
+ *     // No validation needed - pure driver behavior
+ * }
+ * </pre>
+ * 
+ * For actions that need validation, extend {@link ValidatedAction} instead.
  */
 public abstract class Action {
     /** Name of this action, used for logging. */
@@ -37,7 +63,32 @@ public abstract class Action {
 
     /**
      * Executes the action and updates state.
-     * Override to call the actual method and update state variables.
+     * Override to call the actual JDBC method and update domain state variables.
+     * Focus on operation logic; validation happens in validate() hook.
      */
     public abstract void run() throws Exception;
+
+    /**
+     * Validation hook called by framework after run().
+     * Override to validate operation results against expected data.
+     * Default implementation does nothing (no validation).
+     * 
+     * For validation support with assertions and data caching,
+     * extend {@link ValidatedAction} instead.
+     */
+    public void validate() throws Exception {
+        // Default: no validation
+    }
+
+    /**
+     * Framework-controlled execution: run operation then validate.
+     * Called by Engine. Don't override this - override run() and validate()
+     * instead.
+     * 
+     * @throws Exception if operation or validation fails
+     */
+    public final void execute() throws Exception {
+        run();
+        validate();
+    }
 }

@@ -13,6 +13,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.jdbc.statemachinetest.core.DataCache;
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.Engine;
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.Result;
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.StateMachineTest;
@@ -100,6 +103,81 @@ public class ResultSetStateTest extends AbstractTest {
             Result result = Engine.run(sm).withMaxActions(50).execute();
 
             System.out.println("\nReal DB test: " + result.actionCount + " actions");
+            assertTrue(result.isSuccess());
+        }
+    }
+
+    @Test
+    @DisplayName("Data Validation Test")
+    void testWithDataValidation() throws SQLException {
+        Assumptions.assumeTrue(connectionString != null, "No database connection configured");
+
+        // Create DataCache with expected values
+        DataCache cache = new DataCache();
+        cache.addColumn("id", "INT");
+        cache.addColumn("name", "VARCHAR");
+        cache.addColumn("value", "INT");
+
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+            stmt.execute("CREATE TABLE " + TABLE_NAME + " (id INT PRIMARY KEY, name VARCHAR(50), value INT)");
+
+            for (int i = 1; i <= 10; i++) {
+                String name = "Row" + i;
+                int value = i * 10;
+                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (" + i + ", '" + name + "', " + value + ")");
+
+                Map<String, Object> row = new HashMap<>();
+                row.put("id", i);
+                row.put("name", name);
+                row.put("value", value);
+                cache.addRow(row);
+            }
+        }
+
+        try (Connection conn = PrepUtil.getConnection(connectionString);
+                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+                ResultSet rs = stmt.executeQuery("SELECT * FROM " + TABLE_NAME + " ORDER BY id")) {
+
+            StateMachineTest sm = new StateMachineTest("DataValidation");
+            sm.setState(RS, rs);
+            sm.setState(CLOSED, false);
+            sm.setState(ON_VALID_ROW, false);
+            sm.setState(CURRENT_ROW, 0);
+
+            // Setup actions - DataCache set directly (no preload() needed!)
+            NextAction next = new NextAction(sm);
+            next.setDataCache(cache);
+            
+            PreviousAction previous = new PreviousAction(sm);
+            previous.setDataCache(cache);
+            
+            FirstAction first = new FirstAction(sm);
+            first.setDataCache(cache);
+            
+            LastAction last = new LastAction(sm);
+            last.setDataCache(cache);
+            
+            AbsoluteAction absolute = new AbsoluteAction(sm);
+            absolute.setDataCache(cache);
+            
+            GetStringAction getString = new GetStringAction(sm);
+            getString.setDataCache(cache);
+            
+            GetIntAction getInt = new GetIntAction(sm);
+            getInt.setDataCache(cache);
+
+            sm.addAction(next);
+            sm.addAction(previous);
+            sm.addAction(first);
+            sm.addAction(last);
+            sm.addAction(absolute);
+            sm.addAction(getString);
+            sm.addAction(getInt);
+
+            Result result = Engine.run(sm).withMaxActions(50).withSeed(12345).execute();
+
+            System.out.println("\nValidation test: " + result.actionCount + " actions");
             assertTrue(result.isSuccess());
         }
     }
