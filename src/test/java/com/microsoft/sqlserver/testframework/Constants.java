@@ -60,7 +60,6 @@ public final class Constants {
     public static final String CodeCov = "CodeCov";
     public static final String legacyFx = "legacyFx";
     public static final String PrepareMethodUseTempTableScopeTest = "PrepareMethodUseTempTableScopeTest";
-    public static final String legacyFX = "legacyFX";
     public static final String vectorFloat16Test = "vectorFloat16Test";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
