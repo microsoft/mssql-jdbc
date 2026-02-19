@@ -14,7 +14,6 @@ import java.sql.Statement;
 
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.Action;
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.StateMachineTest;
-import com.microsoft.sqlserver.jdbc.statemachinetest.core.ValidatedAction;
 
 
 /**
@@ -35,7 +34,6 @@ import com.microsoft.sqlserver.jdbc.statemachinetest.core.ValidatedAction;
  * - SELECT always verifies actual value matches EXPECTED_VALUE
  * 
  * @see TransactionState for state keys
- * @see Validator for validation methods
  */
 public final class TransactionActions {
 
@@ -103,14 +101,19 @@ public final class TransactionActions {
 
     /**
      * CommitAction - Validated action.
-     * Extends TransactionValidatedAction to verify committed data persists.
+     * Verifies committed data persists.
      */
-    public static class CommitAction extends TransactionValidatedAction {
+    public static class CommitAction extends Action {
         private final StateMachineTest sm;
+        private String tableName;
 
         public CommitAction(StateMachineTest sm) {
             super("commit", 10);
             this.sm = sm;
+        }
+
+        public void setTableName(String tableName) {
+            this.tableName = tableName;
         }
 
         @Override
@@ -153,12 +156,17 @@ public final class TransactionActions {
         }
     }
 
-    public static class RollbackAction extends TransactionValidatedAction {
+    public static class RollbackAction extends Action {
         private final StateMachineTest sm;
+        private String tableName;
 
         public RollbackAction(StateMachineTest sm) {
             super("rollback", 10);
             this.sm = sm;
+        }
+
+        public void setTableName(String tableName) {
+            this.tableName = tableName;
         }
 
         @Override
@@ -198,12 +206,17 @@ public final class TransactionActions {
         }
     }
 
-    public static class ExecuteUpdateAction extends TransactionValidatedAction {
+    public static class ExecuteUpdateAction extends Action {
         private final StateMachineTest sm;
+        private String tableName;
 
         public ExecuteUpdateAction(StateMachineTest sm) {
             super("executeUpdate", 15);
             this.sm = sm;
+        }
+
+        public void setTableName(String tableName) {
+            this.tableName = tableName;
         }
 
         @Override
@@ -235,12 +248,17 @@ public final class TransactionActions {
         }
     }
 
-    public static class SelectAction extends TransactionValidatedAction {
+    public static class SelectAction extends Action {
         private final StateMachineTest sm;
+        private String tableName;
 
         public SelectAction(StateMachineTest sm) {
             super("executeQuery", 10);
             this.sm = sm;
+        }
+
+        public void setTableName(String tableName) {
+            this.tableName = tableName;
         }
 
         @Override

@@ -18,10 +18,9 @@ import com.microsoft.sqlserver.jdbc.statemachinetest.core.StateMachineTest;
  * - Scrollable cursor navigation (next, previous, first, last, absolute)
  * - Data retrieval (getString, getInt) with exact value comparison
  * - Data is compared against DataCache expected values
- * - Uses Validator.compare() for strict validation (throws on mismatch)
+ * - Uses strict assertions for validation (throws on mismatch)
  * 
  * @see ResultSetState for state keys
- * @see Validator for validation methods
  * @see DataCache for expected data storage
  */
 public final class ResultSetActions {
@@ -45,9 +44,9 @@ public final class ResultSetActions {
      * @param rs     the ResultSet
      * @throws SQLException if database access fails
      */
-    private static void verifyCurrentRow(ResultSetValidatedAction action, StateMachineTest sm, ResultSet rs)
+    private static void verifyCurrentRow(Action action, StateMachineTest sm, ResultSet rs)
             throws SQLException {
-        DataCache cache = action.dataCache; // Direct field access
+        DataCache cache = action.getDataCache(); // Use getter method
         if (cache == null || cache.isEmpty()) {
             return; // No expected data to verify against
         }
@@ -87,7 +86,7 @@ public final class ResultSetActions {
 
     // ==================== Validated Action Classes ====================
 
-    public static class NextAction extends ResultSetValidatedAction {
+    public static class NextAction extends Action {
         private final StateMachineTest sm;
 
         public NextAction(StateMachineTest sm) {
@@ -125,7 +124,7 @@ public final class ResultSetActions {
         }
     }
 
-    public static class PreviousAction extends ResultSetValidatedAction {
+    public static class PreviousAction extends Action {
         private final StateMachineTest sm;
 
         public PreviousAction(StateMachineTest sm) {
@@ -163,7 +162,7 @@ public final class ResultSetActions {
         }
     }
 
-    public static class FirstAction extends ResultSetValidatedAction {
+    public static class FirstAction extends Action {
         private final StateMachineTest sm;
 
         public FirstAction(StateMachineTest sm) {
@@ -201,7 +200,7 @@ public final class ResultSetActions {
         }
     }
 
-    public static class LastAction extends ResultSetValidatedAction {
+    public static class LastAction extends Action {
         private final StateMachineTest sm;
 
         public LastAction(StateMachineTest sm) {
@@ -239,7 +238,7 @@ public final class ResultSetActions {
         }
     }
 
-    public static class AbsoluteAction extends ResultSetValidatedAction {
+    public static class AbsoluteAction extends Action {
         private final StateMachineTest sm;
 
         public AbsoluteAction(StateMachineTest sm) {
@@ -255,7 +254,7 @@ public final class ResultSetActions {
         @Override
         public void run() throws SQLException {
             ResultSet rs = (ResultSet) sm.getStateValue(RS);
-            DataCache cache = this.dataCache; // Direct field access
+            DataCache cache = getDataCache();
 
             // Generate random target row
             int maxRow = (cache != null && !cache.isEmpty()) ? cache.getRowCount() : 10;
@@ -283,7 +282,7 @@ public final class ResultSetActions {
         }
     }
 
-    public static class GetStringAction extends ResultSetValidatedAction {
+    public static class GetStringAction extends Action {
         private final StateMachineTest sm;
 
         public GetStringAction(StateMachineTest sm) {
@@ -310,7 +309,7 @@ public final class ResultSetActions {
             ResultSet rs = (ResultSet) sm.getStateValue(RS);
             String actualName = rs.getString("name");
 
-            DataCache cache = this.dataCache; // Direct field access
+            DataCache cache = getDataCache();
             if (cache != null && !cache.isEmpty()) {
                 int currentRow = sm.getStateInt(CURRENT_ROW);
                 if (currentRow >= 1 && currentRow <= cache.getRowCount()) {
@@ -322,7 +321,7 @@ public final class ResultSetActions {
         }
     }
 
-    public static class GetIntAction extends ResultSetValidatedAction {
+    public static class GetIntAction extends Action {
         private final StateMachineTest sm;
 
         public GetIntAction(StateMachineTest sm) {
@@ -349,7 +348,7 @@ public final class ResultSetActions {
             ResultSet rs = (ResultSet) sm.getStateValue(RS);
             int actualValue = rs.getInt("value");
 
-            DataCache cache = this.dataCache; // Direct field access
+            DataCache cache = getDataCache();
             if (cache != null && !cache.isEmpty()) {
                 int currentRow = sm.getStateInt(CURRENT_ROW);
                 if (currentRow >= 1 && currentRow <= cache.getRowCount()) {

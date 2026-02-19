@@ -13,18 +13,13 @@ import java.util.Random;
 
 
 /**
- * Simple State Machine Testing Framework for JDBC Driver testing.
- * 
- * This framework enables Model-Based Testing (MBT) by randomly exploring valid
- * state transitions.
- * 
- * Key design principles:
- * - Weighted random selection for realistic usage patterns
- * 
- * Related classes:
- * - {@link Action} - Abstract base class for state machine actions
- * - {@link Engine} - Execution engine for state machine exploration
- * - {@link Result} - Result of a state machine execution
+ * Central state whiteboard for Model-Based Testing (MBT).
+ * Holds state variables (key-value map), registered {@link Action}s, and a
+ * seeded {@link java.util.Random}.
+ *
+ * @see Action
+ * @see Engine
+ * @see Result
  */
 public class StateMachineTest {
 
@@ -130,16 +125,7 @@ public class StateMachineTest {
         return actions;
     }
 
-    /**
-     * Returns only actions whose preconditions are currently satisfied.
-     * This is called by the Engine to determine which actions can be executed.
-     * 
-     * Note: Exceptions thrown by canRun() are logged as warnings but do not fail
-     * the test.
-     * This ensures visibility of bugs in preconditions (e.g., missing state keys,
-     * ClassCastException)
-     * while still allowing the test to continue.
-     */
+    /** Returns actions whose {@code canRun()} is currently {@code true}. */
     public List<Action> getValidActions() {
         List<Action> valid = new ArrayList<>();
         for (Action a : actions) {
@@ -148,8 +134,6 @@ public class StateMachineTest {
                     valid.add(a);
                 }
             } catch (Exception e) {
-                // Log the exception to make precondition bugs visible instead of silently
-                // dropping
                 System.err.println("WARNING: Action '" + a.name + "' canRun() threw exception: "
                         + e.getClass().getSimpleName() + ": " + e.getMessage());
                 e.printStackTrace(System.err);

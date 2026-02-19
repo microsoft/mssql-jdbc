@@ -145,7 +145,7 @@ public class ResultSetStateTest extends AbstractTest {
             sm.setState(ON_VALID_ROW, false);
             sm.setState(CURRENT_ROW, 0);
 
-            // Setup actions - DataCache set directly (no preload() needed!)
+            // Setup actions with DataCache for validation
             NextAction next = new NextAction(sm);
             next.setDataCache(cache);
             

@@ -11,16 +11,9 @@ import java.util.Random;
 
 
 /**
- * Engine that executes state machine exploration.
- * 
- * The engine randomly selects and executes valid actions until:
- * - Maximum action count is reached (configurable)
- * - Timeout occurs (configurable)
- * - No valid actions remain
- * - An error occurs
- * 
- * Uses weighted random selection to simulate realistic usage patterns.
- * Seed-based randomness ensures reproducibility for debugging.
+ * Execution engine for state machine exploration.
+ * Performs weighted random action selection with seed-based reproducibility.
+ * Stops when max actions, timeout, no valid actions, or an error occurs.
  */
 public class Engine {
     private StateMachineTest sm;
@@ -37,16 +30,13 @@ public class Engine {
         return new Engine(sm);
     }
 
-    /** Sets the random seed for reproducibility. Use same seed to reproduce a test run. */
+    /** Sets the random seed for reproducibility. */
     public Engine withSeed(long s) {
         seed = s;
         return this;
     }
 
-    /**
-     * Sets maximum number of actions to execute. Default is 500. Must be at least
-     * 1.
-     */
+    /** Sets maximum actions to execute. Default 500. */
     public Engine withMaxActions(int n) {
         if (n < 1) {
             throw new IllegalArgumentException("maxActions must be at least 1, got: " + n);
@@ -55,7 +45,7 @@ public class Engine {
         return this;
     }
 
-    /** Sets timeout in seconds. Default is 30. Must be at least 1. */
+    /** Sets timeout in seconds. Default 30. */
     public Engine withTimeout(int s) {
         if (s < 1) {
             throw new IllegalArgumentException("timeout must be at least 1 second, got: " + s);

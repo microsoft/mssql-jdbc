@@ -12,28 +12,9 @@ import java.util.Map;
 
 
 /**
- * Cache for expected data used in validation.
- * 
- * Inspired by FX Framework's fxCache pattern, this class maintains expected
- * values that are compared against actual JDBC driver results.
- * 
- * Key FX pattern: Tests maintain a cache of expected data and perform exact
- * value comparisons after operations. Each model action verifies exact data
- * match between driver's returned values and expected values in the cache.
- * 
- * Example usage:
- * 
- * <pre>
- * // Initialize cache with expected data
- * DataCache cache = new DataCache();
- * cache.addRow(Map.of("id", 1, "name", "Alice", "value", 100));
- * cache.addRow(Map.of("id", 2, "name", "Bob", "value", 200));
- * 
- * // During test execution, compare actual against expected
- * Map&lt;String, Object&gt; expectedRow = cache.getRow(0);
- * Validator.compare(actualId, expectedRow.get("id"), "ID mismatch");
- * Validator.compare(actualName, expectedRow.get("name"), "Name mismatch");
- * </pre>
+ * Cache of expected row data used for validation.
+ * Stores rows (as column-name->value maps) and column metadata.
+ * Actions compare actual JDBC results against cached expected values.
  */
 public class DataCache {
 

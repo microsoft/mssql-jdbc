@@ -5,53 +5,38 @@
  */
 package com.microsoft.sqlserver.jdbc.statemachinetest.core;
 
+import java.util.Objects;
+
 /**
- * Abstract base class for state machine actions.
- * 
- * Represents the framework interface for all actions in the state machine.
- * Pure domain actions (driver behavior) can extend this directly.
- * Test actions with validation should extend {@link ValidatedAction}.
- * 
- * Template Method Pattern: The framework controls the execution lifecycle:
- * 1. canRun() - Check if action can execute
- * 2. execute() - Framework-controlled execution (calls run() then validate())
- * 3. run() - Concrete action implementation (actual JDBC operation)
- * 4. validate() - Optional validation hook (override if needed)
- * 
- * Example of pure driver action:
- * 
- * <pre>
- * public class CloseAction extends Action {
- *     public CloseAction(StateMachineTest sm) {
- *         super("close", 1);
- *     }
- * 
- *     public boolean canRun() {
- *         return !sm.isState(CLOSED);
- *     }
- * 
- *     public void run() throws Exception {
- *         rs.close();
- *         sm.setState(CLOSED, true);
- *     }
- *     // No validation needed - pure driver behavior
- * }
- * </pre>
- * 
- * For actions that need validation, extend {@link ValidatedAction} instead.
+ * Abstract base class for state machine actions with validation support.
+ *
+ * <p>
+ * Template Method Pattern — lifecycle:
+ * {@code canRun() -> execute() -> run() -> validate()}.
+ * Subclasses implement {@code canRun()} and {@code run()}; override
+ * {@code validate()} for
+ * data verification. The framework calls {@code execute()} (final) which
+ * invokes
+ * {@code run()} then {@code validate()}.
+ *
+ * @see Engine
+ * @see StateMachineTest
  */
 public abstract class Action {
     /** Name of this action, used for logging. */
-    public String name;
+    public final String name;
 
-    /** 
-     * Weight for random selection. Higher weight = more likely to be selected.
-     * Use higher weights for common operations (e.g., next=10) and lower for rare ones (e.g., close=1).
-     */
-    public int weight;
+    /** Weight for random selection. Higher weight = more likely to be selected. */
+    public final int weight;
+
+    /** Expected row data for validation. */
+    protected DataCache dataCache;
 
     public Action(String name, int weight) {
-        this.name = name;
+        this.name = Objects.requireNonNull(name, "name must not be null");
+        if (weight < 0) {
+            throw new IllegalArgumentException("weight must be >= 0, got: " + weight);
+        }
         this.weight = weight;
     }
 
@@ -69,26 +54,81 @@ public abstract class Action {
     public abstract void run() throws Exception;
 
     /**
-     * Validation hook called by framework after run().
-     * Override to validate operation results against expected data.
-     * Default implementation does nothing (no validation).
-     * 
-     * For validation support with assertions and data caching,
-     * extend {@link ValidatedAction} instead.
+     * Validation hook called after {@code run()}. Override to verify results.
+     * Default is no-op.
      */
     public void validate() throws Exception {
         // Default: no validation
     }
 
     /**
-     * Framework-controlled execution: run operation then validate.
-     * Called by Engine. Don't override this - override run() and validate()
-     * instead.
-     * 
+     * Framework-controlled execution: calls {@code run()} then {@code validate()}.
+     * Called by {@link Engine}. Do not override.
+     *
      * @throws Exception if operation or validation fails
      */
     public final void execute() throws Exception {
         run();
         validate();
+    }
+
+    /** @return the DataCache, or {@code null} if not set */
+    public DataCache getDataCache() {
+        return dataCache;
+    }
+
+    /** Sets the expected data cache for validation. */
+    public void setDataCache(DataCache cache) {
+        this.dataCache = cache;
+    }
+
+    /** @return {@code true} if dataCache exists and is not empty */
+    protected boolean hasDataCache() {
+        return dataCache != null && !dataCache.isEmpty();
+    }
+
+    /**
+     * Asserts that {@code actual} equals {@code expected}.
+     *
+     * @throws ValidationException if values don't match
+     */
+    public final void assertExpected(Object actual, Object expected, String message) {
+        if (!Objects.equals(expected, actual)) {
+            throw new ValidationException(message, actual, expected);
+        }
+    }
+
+    /** Asserts that {@code actual} equals {@code expected} (int overload). */
+    public final void assertExpected(int actual, int expected, String message) {
+        if (actual != expected) {
+            throw new ValidationException(message, actual, expected);
+        }
+    }
+
+    /**
+     * Thrown when a validation assertion fails. Carries actual and expected values.
+     */
+    public static class ValidationException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+        private final Object actual;
+        private final Object expected;
+
+        public ValidationException(String message, Object actual, Object expected) {
+            super(formatMessage(message, actual, expected));
+            this.actual = actual;
+            this.expected = expected;
+        }
+
+        public Object getActual() {
+            return actual;
+        }
+
+        public Object getExpected() {
+            return expected;
+        }
+
+        private static String formatMessage(String message, Object actual, Object expected) {
+            return message + "\n  Expected: " + expected + "\n  Actual:   " + actual;
+        }
     }
 }
