@@ -169,6 +169,31 @@ public class SQLServerStatement implements ISQLServerStatement {
     /** trace ID */
     final private String traceID;
 
+    /** 
+     * Generated sequentially via nextStatementID() at construction time.
+     */
+    final private int statementID;
+
+    /**
+     * Returns the unique statement ID for performance metrics correlation.
+     * @return the statement ID
+     */
+    final int getStatementID() {
+        return statementID;
+    }
+
+    /** 
+     * Scope for tracking request build time (STATEMENT_REQUEST_BUILD activity).
+     * Measures time from statement execution start until first packet is sent.
+     */
+    private transient PerformanceLog.Scope creationToFirstPacketScope;
+
+    /** 
+     * Scope for tracking time to first server response (STATEMENT_FIRST_SERVER_RESPONSE activity).
+     * Measures time from first packet sent until first response received.
+     */
+    private transient PerformanceLog.Scope firstPacketToFirstResponseScope;
+
     String getClassNameLogging() {
         return loggingClassName;
     }
@@ -248,6 +273,10 @@ public class SQLServerStatement implements ISQLServerStatement {
 
         do {
             cont = false;
+            
+            // Start request build time tracking for this execution attempt.
+            startCreationToFirstPacketTracking();
+            
             try {
                 // (Re)execute this Statement with the new command
                 executeCommand(newStmtCmd);
@@ -280,6 +309,11 @@ public class SQLServerStatement implements ISQLServerStatement {
                             Object[] msgArgs = {timeToWait, queryTimeout};
                             throw new SQLServerException(null, form.format(msgArgs), null, 0, true);
                         }
+                        
+                        // Note: The finally block closes the creationToFirstPacketScope BEFORE we sleep here.
+                        // This is intentional - the retry backoff time should not be included in metrics.
+                        // A new scope will be started at the top of the next loop iteration.
+                        
                         try {
                             Thread.sleep(TimeUnit.SECONDS.toMillis(timeToWait));
                         } catch (InterruptedException ex) {
@@ -297,6 +331,15 @@ public class SQLServerStatement implements ISQLServerStatement {
                     throw e;
                 }
             } finally {
+                // Close the request build scope in finally block to ensure it's closed on ALL paths:
+                // 1. Success path - statement executed successfully
+                // 2. Retry path - exception caught but retrying (scope must close before sleep)
+                // 3. Exception path - exception propagated to caller
+                // Without this, an unclosed scope would leak and potentially skew metrics
+                // by including unrelated time (like retry backoff sleep time).
+                // Safe to call even if already closed - null check is performed inside.
+                endCreationToFirstPacketTracking();
+                
                 if (newStmtCmd.wasExecuted()) {
                     lastStmtExecCmd = newStmtCmd;
                 }
@@ -319,6 +362,58 @@ public class SQLServerStatement implements ISQLServerStatement {
         // its execution can be cancelled from another thread
         currentCommand = newCommand;
         connection.executeCommand(newCommand);
+    }
+
+    /**
+     * Starts tracking request build time (STATEMENT_REQUEST_BUILD activity).
+     * Measures time spent preparing and serializing the request before sending.
+     */
+    final void startCreationToFirstPacketTracking() {
+        if (creationToFirstPacketScope == null) {
+            creationToFirstPacketScope = PerformanceLog.createScope(
+                PerformanceLog.perfLoggerStatement, 
+                connection.getConnectionID(), 
+                getStatementID(), 
+                PerformanceActivity.STATEMENT_REQUEST_BUILD
+            );
+        }
+    }
+
+    /**
+     * Ends tracking request build time.
+     * Called just before sending the request packet to the server.
+     */
+    final void endCreationToFirstPacketTracking() {
+        if (creationToFirstPacketScope != null) {
+            creationToFirstPacketScope.close();
+            creationToFirstPacketScope = null;
+        }
+    }
+
+    /**
+     * Starts tracking time to first server response (STATEMENT_FIRST_SERVER_RESPONSE activity).
+     * Measures network latency plus SQL Server execution time.
+     */
+    final void startFirstPacketToFirstResponseTracking() {
+        if (firstPacketToFirstResponseScope == null) {
+            firstPacketToFirstResponseScope = PerformanceLog.createScope(
+                PerformanceLog.perfLoggerStatement,
+                connection.getConnectionID(),
+                getStatementID(),
+                PerformanceActivity.STATEMENT_FIRST_SERVER_RESPONSE
+            );
+        }
+    }
+
+    /**
+     * Ends tracking server roundtrip time.
+     * Called after receiving the first response from the server.
+     */
+    final void endFirstPacketToFirstResponseTracking() {
+        if (firstPacketToFirstResponseScope != null) {
+            firstPacketToFirstResponseScope.close();
+            firstPacketToFirstResponseScope = null;
+        }
     }
 
     /**
@@ -603,7 +698,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Return a string representation of this statement's unqualified class name
         // (e.g. "SQLServerStatement" or "SQLServerPreparedStatement"),
         // its unique ID, and its parent connection.
-        int statementID = nextStatementID();
+        this.statementID = nextStatementID();
         String classN = getClass().getSimpleName();
         traceID = classN + ":" + statementID;
 
@@ -969,10 +1064,31 @@ public class SQLServerStatement implements ISQLServerStatement {
             if (stmtlogger.isLoggable(java.util.logging.Level.FINE))
                 stmtlogger.fine(toString() + " Executing (not server cursor) " + sql);
 
-            // Start the response
-            ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
-            startResults();
-            getNextResult(true);
+            // End request build time tracking
+            endCreationToFirstPacketTracking();
+
+            // Track statement execution time
+            try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
+                    PerformanceLog.perfLoggerStatement,
+                    connection.getConnectionID(),
+                    getStatementID(),
+                    PerformanceActivity.STATEMENT_EXECUTE)) {
+                try {
+                    // Track server roundtrip time
+                    startFirstPacketToFirstResponseTracking();
+                    try {
+                        ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+                    } finally {
+                        endFirstPacketToFirstResponseTracking();
+                    }
+
+                    startResults();
+                    getNextResult(true);
+                } catch (SQLServerException e) {
+                    executeScope.setException(e);
+                    throw e;
+                }
+            }
         }
 
         // If execution produced no result set, then throw an exception if executeQuery() was used.
@@ -1045,10 +1161,31 @@ public class SQLServerStatement implements ISQLServerStatement {
         tdsWriter.sendEnclavePackage(batchStatementString, execCmd.enclaveCEKs);
         tdsWriter.writeString(batchStatementString);
 
-        // Start the response
-        ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
-        startResults();
-        getNextResult(true);
+        // End request build time tracking
+        endCreationToFirstPacketTracking();
+
+        // Track batch execution time
+        try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
+                PerformanceLog.perfLoggerStatement,
+                connection.getConnectionID(),
+                getStatementID(),
+                PerformanceActivity.STATEMENT_EXECUTE)) {
+            try {
+                // Track server roundtrip time
+                startFirstPacketToFirstResponseTracking();
+                try {
+                    ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+                } finally {
+                    endFirstPacketToFirstResponseTracking();
+                }
+
+                startResults();
+                getNextResult(true);
+            } catch (SQLServerException e) {
+                executeScope.setException(e);
+                throw e;
+            }
+        }
 
         // If execution produced a result set, then throw an exception
         if (null != resultSet) {
@@ -2183,9 +2320,31 @@ public class SQLServerStatement implements ISQLServerStatement {
         // <rowcount> OUT
         tdsWriter.writeRPCInt(null, 0, true);
 
-        ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
-        startResults();
-        getNextResult(true);
+        // End request build time tracking
+        endCreationToFirstPacketTracking();
+
+        // Track cursor execution time
+        try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
+                PerformanceLog.perfLoggerStatement,
+                connection.getConnectionID(),
+                getStatementID(),
+                PerformanceActivity.STATEMENT_EXECUTE)) {
+            try {
+                // Track server roundtrip time
+                startFirstPacketToFirstResponseTracking();
+                try {
+                    ensureExecuteResultsReader(execCmd.startResponse(isResponseBufferingAdaptive));
+                } finally {
+                    endFirstPacketToFirstResponseTracking();
+                }
+
+                startResults();
+                getNextResult(true);
+            } catch (SQLServerException e) {
+                executeScope.setException(e);
+                throw e;
+            }
+        }
     }
 
     /* JDBC 3.0 */

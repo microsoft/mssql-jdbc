@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.sql.Connection;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -23,10 +24,13 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
 
 @RunWith(JUnitPlatform.class)
@@ -261,6 +265,183 @@ public class ParameterMetaDataTest extends AbstractTest {
                 assertEquals("IdTable", actualTypeName);
                 assertEquals(ParameterMetaData.parameterNullableUnknown, actualNullable);
                 assertDoesNotThrow(() -> pmd.isSigned(1)); // TVP should not be signed
+            }
+        }
+    }
+
+    /**
+     * Tests ParameterMetaData and ResultSetMetaData for SQL Server-specific data types.
+     * 
+     * This test creates a table with various SQL Server data types including DATETIMEOFFSET, DATETIME,
+     * SMALLDATETIME, MONEY, SMALLMONEY, UNIQUEIDENTIFIER, SQL_VARIANT, GEOMETRY, GEOGRAPHY, VECTOR, and JSON.
+     * 
+     * It verifies that the JDBC driver correctly reports the SQL type code and type name for each column
+     * through both ParameterMetaData (for INSERT statement parameters) and ResultSetMetaData (for SELECT
+     * query results). 
+     * 
+     * Parameter type information is retrieved from the TDS stream, where SQL Server-specific
+     * types (SSType) are mapped to microsoft.sql.Types constants in DataType.java.
+     * 
+     * @throws SQLException if a database access error occurs
+     */
+    @Test
+    @vectorJsonTest
+    @Tag(Constants.xAzureSQLDW)
+    public void testCheckMetaData() throws SQLException {
+
+        String dataTypesTableName = RandomUtil.getIdentifier("DataTypesMappingTable");
+
+        String createTableSQL = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(dataTypesTableName) + " (" + 
+                    "col_datetimeoffset   DATETIMEOFFSET(7), " +
+                    "col_datetime         DATETIME, " +
+                    "col_smalldatetime    SMALLDATETIME, " +
+                    "col_money            MONEY, " +
+                    "col_smallmoney       SMALLMONEY, " +
+                    "col_guid             UNIQUEIDENTIFIER, " +
+                    "col_sql_variant      SQL_VARIANT, " +
+                    "col_geometry         GEOMETRY, " +
+                    "col_geography        GEOGRAPHY, " +
+                    "col_vector           VECTOR(3), " +
+                    "col_json             JSON" +
+                    ")";
+
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+            stmt.execute(createTableSQL);
+
+            try {
+                String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(dataTypesTableName) + 
+                        " (col_datetimeoffset, col_datetime, col_smalldatetime, col_money, col_smallmoney, " +
+                        "col_guid, col_sql_variant, col_geometry, col_geography, col_vector, col_json) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(insertSQL)) {
+                    ParameterMetaData paramMetaData = pstmt.getParameterMetaData();
+
+                    // Verify parameter count
+                    assertEquals(11, paramMetaData.getParameterCount());
+
+                    // Column 1: DATETIMEOFFSET(7)
+                    int sqlType1 = paramMetaData.getParameterType(1);
+                    String sqlTypeName1 = paramMetaData.getParameterTypeName(1);
+                    assertEquals(microsoft.sql.Types.DATETIMEOFFSET, sqlType1);
+                    assertEquals("datetimeoffset", sqlTypeName1);
+
+                    // Column 2: DATETIME
+                    int sqlType2 = paramMetaData.getParameterType(2);
+                    String sqlTypeName2 = paramMetaData.getParameterTypeName(2);
+                    assertEquals(java.sql.Types.TIMESTAMP, sqlType2);
+                    assertEquals("datetime", sqlTypeName2);
+
+                    // Column 3: SMALLDATETIME
+                    int sqlType3 = paramMetaData.getParameterType(3);
+                    String sqlTypeName3 = paramMetaData.getParameterTypeName(3);
+                    assertEquals(java.sql.Types.TIMESTAMP, sqlType3);
+                    assertEquals("smalldatetime", sqlTypeName3);
+
+                    // Column 4: MONEY
+                    int sqlType4 = paramMetaData.getParameterType(4);
+                    String sqlTypeName4 = paramMetaData.getParameterTypeName(4);
+                    assertEquals(java.sql.Types.DECIMAL, sqlType4);
+                    assertEquals("money", sqlTypeName4);
+
+                    // Column 5: SMALLMONEY
+                    int sqlType5 = paramMetaData.getParameterType(5);
+                    String sqlTypeName5 = paramMetaData.getParameterTypeName(5);
+                    assertEquals(java.sql.Types.DECIMAL, sqlType5);
+                    assertEquals("smallmoney", sqlTypeName5);
+
+                    // Column 6: UNIQUEIDENTIFIER
+                    int sqlType6 = paramMetaData.getParameterType(6);
+                    String sqlTypeName6 = paramMetaData.getParameterTypeName(6);
+                    assertEquals(java.sql.Types.CHAR, sqlType6);
+                    assertEquals("uniqueidentifier", sqlTypeName6);
+
+                    // Column 7: SQL_VARIANT
+                    int sqlType7 = paramMetaData.getParameterType(7);
+                    String sqlTypeName7 = paramMetaData.getParameterTypeName(7);
+                    assertEquals(microsoft.sql.Types.SQL_VARIANT, sqlType7);
+                    assertEquals("sql_variant", sqlTypeName7);
+
+                    // Column 8: GEOMETRY
+                    int sqlType8 = paramMetaData.getParameterType(8);
+                    String sqlTypeName8 = paramMetaData.getParameterTypeName(8);
+                    assertEquals(microsoft.sql.Types.GEOMETRY, sqlType8);
+                    assertEquals("geometry", sqlTypeName8);
+
+                    // Column 9: GEOGRAPHY
+                    int sqlType9 = paramMetaData.getParameterType(9);
+                    String sqlTypeName9 = paramMetaData.getParameterTypeName(9);
+                    assertEquals(microsoft.sql.Types.GEOGRAPHY, sqlType9);
+                    assertEquals("geography", sqlTypeName9);
+
+                    // Column 10: VECTOR(3)
+                    int sqlType10 = paramMetaData.getParameterType(10);
+                    String sqlTypeName10 = paramMetaData.getParameterTypeName(10);
+                    assertEquals(microsoft.sql.Types.VECTOR, sqlType10);
+                    assertEquals("vector", sqlTypeName10);
+
+                    // Column 11: JSON
+                    int sqlType11 = paramMetaData.getParameterType(11);
+                    String sqlTypeName11 = paramMetaData.getParameterTypeName(11);
+                    assertEquals(microsoft.sql.Types.JSON, sqlType11);
+                    assertEquals("json", sqlTypeName11);
+
+                }
+
+                // Also verify ResultSetMetaData returns consistent types
+                try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                        .executeQuery("SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(dataTypesTableName))) {
+                    ResultSetMetaData rsmd = rs.getMetaData();
+
+                    assertEquals(11, rsmd.getColumnCount());
+
+                    // Column 1: DATETIMEOFFSET(7)
+                    assertEquals(microsoft.sql.Types.DATETIMEOFFSET, rsmd.getColumnType(1));
+                    assertEquals("datetimeoffset", rsmd.getColumnTypeName(1));
+
+                    // Column 2: DATETIME
+                    assertEquals(java.sql.Types.TIMESTAMP, rsmd.getColumnType(2));
+                    assertEquals("datetime", rsmd.getColumnTypeName(2));
+
+                    // Column 3: SMALLDATETIME
+                    assertEquals(java.sql.Types.TIMESTAMP, rsmd.getColumnType(3));
+                    assertEquals("smalldatetime", rsmd.getColumnTypeName(3));
+
+                    // Column 4: MONEY
+                    assertEquals(java.sql.Types.DECIMAL, rsmd.getColumnType(4));
+                    assertEquals("money", rsmd.getColumnTypeName(4));
+
+                    // Column 5: SMALLMONEY
+                    assertEquals(java.sql.Types.DECIMAL, rsmd.getColumnType(5));
+                    assertEquals("smallmoney", rsmd.getColumnTypeName(5));
+
+                    // Column 6: UNIQUEIDENTIFIER
+                    assertEquals(java.sql.Types.CHAR, rsmd.getColumnType(6));
+                    assertEquals("uniqueidentifier", rsmd.getColumnTypeName(6));
+
+                    // Column 7: SQL_VARIANT
+                    assertEquals(microsoft.sql.Types.SQL_VARIANT, rsmd.getColumnType(7));
+                    assertEquals("sql_variant", rsmd.getColumnTypeName(7));
+
+                    // Column 8: GEOMETRY
+                    assertEquals(microsoft.sql.Types.GEOMETRY, rsmd.getColumnType(8));
+                    assertEquals("geometry", rsmd.getColumnTypeName(8));
+
+                    // Column 9: GEOGRAPHY
+                    assertEquals(microsoft.sql.Types.GEOGRAPHY, rsmd.getColumnType(9));
+                    assertEquals("geography", rsmd.getColumnTypeName(9));
+
+                    // Column 10: VECTOR(3)
+                    assertEquals(microsoft.sql.Types.VECTOR, rsmd.getColumnType(10));
+                    assertEquals("vector", rsmd.getColumnTypeName(10));
+
+                    // Column 11: JSON
+                    assertEquals(microsoft.sql.Types.JSON, rsmd.getColumnType(11));
+                    assertEquals("json", rsmd.getColumnTypeName(11));
+
+                }
+            } finally {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(dataTypesTableName), stmt);
             }
         }
     }
