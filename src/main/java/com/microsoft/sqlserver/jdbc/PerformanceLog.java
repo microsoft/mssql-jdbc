@@ -13,6 +13,9 @@ class PerformanceLog {
     static final java.util.logging.Logger perfLoggerConnection = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.PerformanceMetrics.Connection");
 
+    static final java.util.logging.Logger perfLoggerStatement = java.util.logging.Logger
+            .getLogger("com.microsoft.sqlserver.jdbc.PerformanceMetrics.Statement");
+
     private static PerformanceLogCallback callback;
     private static boolean callbackInitialized = false;
 
