@@ -33,8 +33,7 @@ public final class Constants {
      * vectorTest - - - - -For tests requiring vector setup
      * JSONTest -  - - - - For tests requiring JSON setup
      * CodeCov - - - - - - For tests tracked in coverage-only runs
-     * legacyFx - - - - - For tests validating legacy FX regressions
-     * legacyFX  - - - - - For tests based on legacy FX framework models
+     * legacyFx  - - - - - For tests validating legacy FX regressions
      * vectorFloat16Test - For tests requiring vector(float16) setup
      * </pre>
      */
