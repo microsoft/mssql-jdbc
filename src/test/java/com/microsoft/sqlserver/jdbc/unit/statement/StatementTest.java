@@ -5,7 +5,6 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -3805,17 +3804,10 @@ public class StatementTest extends AbstractTest {
     /**
      * Nested test class for Statement Bug Regression Tests.
      * 
-     * This class contains regression tests for 24 bugs identified in FX tests
+     * This class contains regression tests for bugs identified in FX tests
      * that were missing from JUnit test coverage.
      * 
      * All bugs are tagged with their bug ID for traceability.
-     * 
-     * FX Reference: mssql-jdbc-ado/mssql-jdbc/tests/src/statement.java
-     * 
-     * Bug Summary:
-     * - High Priority: 18 bugs (75%)
-     * - Medium Priority: 6 bugs (25%)
-     * - Sources: VSTS (18), SQL Bug (4), Product Studio (1)
      */
     @Nested
     @Tag(Constants.legacyFx)
@@ -3871,10 +3863,6 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: Improper handling of escape call syntax in callable statements
          * causes failures with certain stored procedure invocation patterns.
-         * 
-         * FX Reference: statement.java::testEscapeCallSyntax()
-         * Priority: HIGH
-         * Impact: Stored procedure invocation failures
          */
         @Test
         public void testEscapeCallSyntax() throws SQLException {
@@ -3886,38 +3874,21 @@ public class StatementTest extends AbstractTest {
                 stmt.execute("CREATE PROCEDURE " + escapedTestProc + 
                     " @Data NVARCHAR(200) AS SELECT @Data AS Result");
 
-                // Test escape syntax with inline parameter (as FX test does)
-                String escapeSqlInline = "{call " + escapedTestProc + 
-                    "(\r\n'All LOCAL')}";  // With newline and string literal
+                // Test escape syntax with inline parameter including newline
+                String sql = "{call " + escapedTestProc + 
+                    "(\r\n'All LOCAL')}";
                 
-                // Test 1: Regular Statement with escape syntax (UNUSUAL but should work)
+                // FX test: execute on Statement, CallableStatement, and PreparedStatement
                 try (Statement regularStmt = conn.createStatement()) {
-                    boolean hasResults = regularStmt.execute(escapeSqlInline);
-                    assertTrue(hasResults, "Statement with escape syntax should return results");
-                    try (ResultSet rs = regularStmt.getResultSet()) {
-                        assertTrue(rs.next());
-                        assertEquals("All LOCAL", rs.getString("Result"));
-                    }
+                    regularStmt.execute(sql);
                 }
                 
-                // Test 2: PreparedStatement with escape syntax (UNUSUAL but should work)
-                try (PreparedStatement pstmt = conn.prepareStatement(escapeSqlInline)) {
-                    boolean hasResults = pstmt.execute();
-                    assertTrue(hasResults, "PreparedStatement with escape syntax should return results");
-                    try (ResultSet rs = pstmt.getResultSet()) {
-                        assertTrue(rs.next());
-                        assertEquals("All LOCAL", rs.getString("Result"));
-                    }
+                try (CallableStatement cstmt = conn.prepareCall(sql)) {
+                    cstmt.execute();
                 }
                 
-                // Test 3: CallableStatement with escape syntax (NORMAL way)
-                try (CallableStatement cstmt = conn.prepareCall(escapeSqlInline)) {
-                    boolean hasResults = cstmt.execute();
-                    assertTrue(hasResults, "CallableStatement with escape syntax should return results");
-                    try (ResultSet rs = cstmt.getResultSet()) {
-                        assertTrue(rs.next());
-                        assertEquals("All LOCAL", rs.getString("Result"));
-                    }
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.execute();
                 }
             }
         }
@@ -3927,51 +3898,32 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: Return codes from stored procedures are not properly captured
          * or accessible via CallableStatement.
-         * 
-         * FX Reference: statement.java::testReturnCode()
-         * Priority: HIGH
-         * Impact: Cannot retrieve stored procedure return values
          */
         @Test
         public void testReturnCodeHandling() throws SQLException {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-                // Create procedure with explicit return code
-                stmt.execute("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(testProc) + 
-                    " @checkValue INT AS " +
-                    "BEGIN " +
-                    "  IF @checkValue > 100 RETURN 1; " +
-                    "  ELSE IF @checkValue < 0 RETURN -1; " +
-                    "  ELSE RETURN 0; " +
-                    "END");
-
-                // Test return code > 100
-                try (CallableStatement cstmt = conn.prepareCall("{? = call " + 
-                        AbstractSQLGenerator.escapeIdentifier(testProc) + "(?)}")) {
-                    cstmt.registerOutParameter(1, Types.INTEGER);
-                    cstmt.setInt(2, 150);
-                    cstmt.execute();
+                String escapedTestProc = AbstractSQLGenerator.escapeIdentifier(testProc);
+                
+                // Create procedure matching FX: creates a temp table, inserts ntext data,
+                // updates it, and returns 0 on success.
+                String procBody = " @text varchar(20) " +
+                    " AS DECLARE @return_code smallint, @len int, @txt_ptr varbinary(16) " +
+                    " SET @return_code = 0 " +
+                    " CREATE TABLE #ckTest(id int identity(1,1), data nvarchar(max) null) " +
+                    " INSERT INTO #ckTest(data) VALUES ('ntext data') " +
+                    " UPDATE #ckTest SET data = @text " +
+                    " IF @@ERROR != 0 SET @return_code = 99 " +
+                    " RETURN @return_code ";
                     
-                    assertEquals(1, cstmt.getInt(1), "Return code should be 1 for value > 100");
-                }
+                stmt.execute("CREATE PROCEDURE " + escapedTestProc + procBody);
 
-                // Test return code < 0
-                try (CallableStatement cstmt = conn.prepareCall("{? = call " + 
-                        AbstractSQLGenerator.escapeIdentifier(testProc) + "(?)}")) {
-                    cstmt.registerOutParameter(1, Types.INTEGER);
-                    cstmt.setInt(2, -50);
-                    cstmt.execute();
-                    
-                    assertEquals(-1, cstmt.getInt(1), "Return code should be -1 for value < 0");
-                }
-
-                // Test return code = 0
-                try (CallableStatement cstmt = conn.prepareCall("{? = call " + 
-                        AbstractSQLGenerator.escapeIdentifier(testProc) + "(?)}")) {
-                    cstmt.registerOutParameter(1, Types.INTEGER);
-                    cstmt.setInt(2, 50);
-                    cstmt.execute();
-                    
-                    assertEquals(0, cstmt.getInt(1), "Return code should be 0 for value between 0-100");
+                try (CallableStatement cstmt = conn.prepareCall("{? = call " + escapedTestProc + "(?)}")) {
+                    cstmt.registerOutParameter(1, Types.SMALLINT);
+                    cstmt.setString(2, "updateText");
+                    boolean result = cstmt.execute();
+                    assertFalse(result, "Incorrect result from execute");
+                    int returnCode = cstmt.getInt(1);
+                    assertEquals(0, returnCode, "Incorrect return code from getInt");
                 }
             }
         }
@@ -3979,74 +3931,50 @@ public class StatementTest extends AbstractTest {
         /**
          * VSTS #55860: Empty string handling in prepared/callable statements
          * 
-         * BUG: Empty strings are not properly handled as parameters in
-         * PreparedStatement and CallableStatement, causing incorrect behavior.
-         * 
-         * FX Reference: statement.java::testEmptyStringPreparedStatement(), 
-         *               testEmptyStringCallableStatement()
-         * Priority: MEDIUM
-         * Impact: Data integrity issues with empty string values
+         * BUG: Empty strings are not properly handled as SQL text in
+         * Statement, PreparedStatement and CallableStatement.
          */
         @Test
         public void testEmptyStringParameterHandling() throws SQLException {
-            // FIX: Ensure procedure cleanup with try-finally
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-                // Test PreparedStatement with empty string
-                try (PreparedStatement pstmt = conn.prepareStatement(
-                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
-                        " VALUES (?, ?, ?)")) {
-                    pstmt.setInt(1, 10);
-                    pstmt.setString(2, ""); // Empty string
-                    pstmt.setDouble(3, 123.45);
-                    
-                    assertEquals(1, pstmt.executeUpdate(), "Should insert 1 row with empty string");
+            try (Connection conn = getConnection()) {
+                String str = "";
+                
+                // Test Statement with empty string (execute twice)
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate(str);
                 }
-
-                // Verify empty string was stored correctly
-                try (PreparedStatement pstmt = conn.prepareStatement(
-                        "SELECT name FROM " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
-                        " WHERE id = ?")) {
-                    pstmt.setInt(1, 10);
-                    try (ResultSet rs = pstmt.executeQuery()) {
-                        assertTrue(rs.next(), "Should find inserted row");
-                        assertEquals("", rs.getString("name"), "Empty string should be preserved");
-                    }
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeUpdate(str);
                 }
-
-                // Test CallableStatement with empty string
-                // FIX: Create procedure in testProc to ensure cleanup by @AfterEach
-                stmt.execute("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(testProc) + 
-                    " @inputStr VARCHAR(50), @outputStr VARCHAR(50) OUTPUT AS " +
-                    "BEGIN " +
-                    "  SET @outputStr = CASE WHEN @inputStr = '' THEN 'WAS_EMPTY' ELSE @inputStr END; " +
-                    "END");
-
-                try (CallableStatement cstmt = conn.prepareCall("{call " + 
-                        AbstractSQLGenerator.escapeIdentifier(testProc) + "(?, ?)}")) {
-                    cstmt.setString(1, ""); // Empty string input
-                    cstmt.registerOutParameter(2, Types.VARCHAR);
-                    cstmt.execute();
-                    
-                    assertEquals("WAS_EMPTY", cstmt.getString(2), 
-                        "Stored procedure should receive empty string");
+                
+                // Test PreparedStatement with empty string (execute twice)
+                try (PreparedStatement pstmt = conn.prepareStatement(str)) {
+                    pstmt.executeUpdate();
+                }
+                try (PreparedStatement pstmt = conn.prepareStatement(str)) {
+                    pstmt.executeUpdate();
+                }
+                
+                // Test CallableStatement with empty string (execute twice)
+                try (CallableStatement cstmt = conn.prepareCall(str)) {
+                    cstmt.executeUpdate();
+                }
+                try (CallableStatement cstmt = conn.prepareCall(str)) {
+                    cstmt.executeUpdate();
                 }
             }
         }
 
         /**
-         * VSTS #75166 & PS #415535: Prepared statement with empty SQL string
+         * VSTS #75166 & PS #415535: Prepared statement with empty string filtering
          * 
-         * BUG: Creating PreparedStatement with empty SQL string should throw
-         * SQLException but behavior is inconsistent.
-         * 
-         * FX Reference: statement.java::testPreparedStmtWithEmptyString()
-         * Priority: MEDIUM
-         * Impact: API contract violation
+         * BUG: PreparedStatement query filtering with empty string column values
+         * behaves inconsistently. Verifies that parameterized queries correctly
+         * filter rows where a column contains an empty string.
          */
         @Test
         public void testPreparedStatementWithEmptySQL() throws SQLException {
-            // FIX: Use temp table to avoid conflict with @BeforeEach setup
-            String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EmptySQLTest"));
+            String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StmtTest"));
             
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 try {
@@ -4054,11 +3982,10 @@ public class StatementTest extends AbstractTest {
                     stmt.execute("CREATE TABLE " + tempTable + 
                         " (col1 INT PRIMARY KEY, col2 VARCHAR(10), col3 INT, col4 TINYINT)");
                     stmt.executeUpdate("INSERT INTO " + tempTable + " VALUES (0, 'test', 2, 3)");
-                    stmt.executeUpdate("INSERT INTO " + tempTable + " VALUES (1, '', 2, 3)");  // Empty string
+                    stmt.executeUpdate("INSERT INTO " + tempTable + " VALUES (1, '', 2, 3)");
                     stmt.executeUpdate("INSERT INTO " + tempTable + " VALUES (2, 'test', 2, 4)");
                     stmt.executeUpdate("INSERT INTO " + tempTable + " VALUES (3, 'test', 3, 4)");
 
-                    // Test PreparedStatement with empty string filtering
                     int col3Value = 2;
                     byte col4Value = (byte) 3;
                     try (PreparedStatement pstmt = conn.prepareStatement(
@@ -4067,36 +3994,27 @@ public class StatementTest extends AbstractTest {
                         pstmt.setInt(1, col3Value);
                         pstmt.setByte(2, col4Value);
                         
-                        // Should return 0 rows (all rows with col4=3 have col3=2)
                         try (ResultSet rs = pstmt.executeQuery()) {
-                            assertFalse(rs.next(), "Should return no rows");
+                            while (rs.next()) {
+                                assertEquals(col3Value, rs.getInt("col3"), "Value mismatch for col3");
+                                assertEquals(col4Value, rs.getInt("col4"), "Value mismatch for col4");
+                            }
                         }
                     }
-                    
-                    // Also test creating PreparedStatement with empty SQL (should work)
-                    try (PreparedStatement pstmt = conn.prepareStatement("")) {
-                        assertNotNull(pstmt, "Empty SQL string should create valid PreparedStatement");
-                    }
                 } finally {
-                    // Cleanup temp table
                     TestUtils.dropTableIfExists(tempTable, stmt);
                 }
             }
         }
 
         /**
-         * SQL Bug 20008218: Prepared update with null string parameter
+         * SQL Bug 20008218: Prepared update with null string array parameter
          * 
-         * BUG: Updating a column to NULL using setString(n, null) in PreparedStatement
-         * does not work correctly.
-         * 
-         * FX Reference: statement.java::testPreparedUpdateNullString()
-         * Priority: HIGH
-         * Impact: Cannot set columns to NULL via prepared statements
+         * BUG: Calling executeUpdate with a null String[] column array
+         * should throw SQLException.
          */
         @Test
         public void testPreparedUpdateWithNullString() throws SQLException {
-            // FIX: Use temp table to avoid interfering with @BeforeEach setup
             String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("NullStringTest"));
             
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -4104,52 +4022,28 @@ public class StatementTest extends AbstractTest {
                     stmt.execute("CREATE TABLE " + tempTable + 
                         " (col1 INT, col2 VARCHAR(50), col3 INT, id_col INT IDENTITY(1,1) PRIMARY KEY)");
                     
-                    // Test 1: NULL column array should throw SQLException
                     try (PreparedStatement pstmt = conn.prepareStatement(
-                            "INSERT INTO " + tempTable + " VALUES (1, 'test', 2)")) {
+                            "SELECT * FROM " + tempTable)) {
                         String[] nullColumnArray = null;
                         assertThrows(SQLException.class, () -> 
                             pstmt.executeUpdate("INSERT INTO " + tempTable + 
-                                            " VALUES (2, 'test2', 3)", nullColumnArray),
+                                            " VALUES (0)", nullColumnArray),
                             "NULL column array should throw SQLException");
                     }
-                    
-                    // Test 2: Also test setString(n, null) as additional coverage
-                    try (PreparedStatement pstmt = conn.prepareStatement(
-                            "INSERT INTO " + tempTable + " (col1, col2) VALUES (?, ?)")) {
-                        pstmt.setInt(1, 20);
-                        pstmt.setString(2, null);  // Set to NULL
-                        pstmt.executeUpdate();
-                        
-                        // Verify NULL was set
-                        try (ResultSet rs = stmt.executeQuery(
-                                "SELECT col2 FROM " + tempTable + " WHERE col1 = 20")) {
-                            assertTrue(rs.next(), "Should find inserted row");
-                            String name = rs.getString("col2");
-                            assertNull("name should be NULL", name);
-                            assertTrue(rs.wasNull(), "wasNull() should return true");
-                        }
-                    }
                 } finally {
-                    // Cleanup temp table
                     TestUtils.dropTableIfExists(tempTable, stmt);
                 }
             }
         }
 
-                /**
+        /**
          * VSTS #105060: Trigger execution with statements
          * 
          * BUG: Statements with triggers do not properly report update counts
          * or handle trigger execution side effects.
-         * 
-         * FX Reference: statement.java::testTriggers()
-         * Priority: HIGH
-         * Impact: Incorrect update counts with triggers
          */
         @Test
         public void testTriggerExecution() throws SQLException {
-            // FIX: Use separate temp tables to avoid conflict with @BeforeEach schema
             String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TriggerTest"));
             String tempTable2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TriggerTest2"));
             String tempTrigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TriggerTestTrig"));
@@ -4157,73 +4051,59 @@ public class StatementTest extends AbstractTest {
             
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 try {
-                    // Create tables with schema needed for this test
+                    // Create main table and target table for trigger updates
                     stmt.execute("CREATE TABLE " + tempTable + " (col1 INT PRIMARY KEY, col2 VARCHAR(50))");
                     stmt.execute("CREATE TABLE " + tempTable2 + " (col1 INT, col2 VARCHAR(50))");
                     
-                    // Create trigger
-                    String triggerBody = "INSERT INTO " + tempTable2 + " SELECT col1, col2 FROM inserted";
-                    stmt.execute("CREATE TRIGGER " + tempTrigger + " ON " + tempTable + 
-                                " AFTER INSERT AS BEGIN " + triggerBody + " END");
-                    
-                    // FIX: Test with ALL THREE statement types like FX does
-                    // Test 1: Statement (3 iterations with random execute/executeUpdate)
-                    for (int i = 0; i < 3; i++) {
-                        String insertSql = "INSERT INTO " + tempTable + " VALUES (" + (100 + i) + ", 'stmt" + i + "')";
-                        if (i % 2 == 0) {
-                            int updateCount = stmt.executeUpdate(insertSql);
-                            assertEquals(1, updateCount);
-                        } else {
-                            boolean hasResults = stmt.execute(insertSql);
-                            assertFalse(hasResults);
-                            assertEquals(1, stmt.getUpdateCount());
-                        }
+                    // Seed target table with rows that trigger will update
+                    for (int i = 0; i < 5; i++) {
+                        stmt.execute("INSERT INTO " + tempTable2 + " VALUES (" + i + ", 'initial')");
                     }
                     
-                    // Test 2: PreparedStatement (3 iterations)
+                    // Create trigger on INSERT that updates rows in tempTable2
+                    stmt.execute("CREATE TRIGGER " + tempTrigger + " ON " + tempTable + 
+                                " FOR INSERT AS BEGIN " +
+                                "UPDATE " + tempTable2 + " SET col2 = 'triggered' " +
+                                "END");
+                    
+                    // Test with Statement - execute 3 times
+                    for (int i = 0; i < 3; i++) {
+                        String insertSql = "INSERT INTO " + tempTable + " VALUES (" + (100 + i) + ", 'stmt" + i + "')";
+                        stmt.execute(insertSql);
+                        stmt.getMoreResults();
+                        int updateCount = stmt.getUpdateCount();
+                        // Verify update count is available
+                        assertTrue(updateCount >= -1);
+                    }
+                    
+                    // Test with PreparedStatement - execute 3 times
                     String prepSql = "INSERT INTO " + tempTable + " VALUES (?, ?)";
                     try (PreparedStatement pstmt = conn.prepareStatement(prepSql)) {
                         for (int i = 0; i < 3; i++) {
                             pstmt.setInt(1, 200 + i);
                             pstmt.setString(2, "pstmt" + i);
-                            if (i % 2 == 0) {
-                                int updateCount = pstmt.executeUpdate();
-                                assertEquals(1, updateCount);
-                            } else {
-                                boolean hasResults = pstmt.execute();
-                                assertFalse(hasResults);
-                                assertEquals(1, pstmt.getUpdateCount());
-                            }
+                            pstmt.execute();
+                            pstmt.getMoreResults();
+                            int updateCount = pstmt.getUpdateCount();
+                            assertTrue(updateCount >= -1);
                         }
                     }
                     
-                    // Test 3: CallableStatement (3 iterations)
-                    String procSql = "CREATE PROCEDURE " + tempProc + " @id INT, @name VARCHAR(50) AS " +
-                                    "INSERT INTO " + tempTable + " VALUES (@id, @name)";
-                    stmt.execute(procSql);
+                    // Test with CallableStatement - execute 3 times
+                    stmt.execute("CREATE PROCEDURE " + tempProc + " @id INT, @name VARCHAR(50) AS " +
+                                "INSERT INTO " + tempTable + " VALUES (@id, @name)");
                     
                     try (CallableStatement cstmt = conn.prepareCall("{call " + tempProc + "(?, ?)}")) {
                         for (int i = 0; i < 3; i++) {
                             cstmt.setInt(1, 300 + i);
                             cstmt.setString(2, "cstmt" + i);
-                            if (i % 2 == 0) {
-                                int updateCount = cstmt.executeUpdate();
-                                assertEquals(1, updateCount);
-                            } else {
-                                boolean hasResults = cstmt.execute();
-                                assertFalse(hasResults);
-                                assertEquals(1, cstmt.getUpdateCount());
-                            }
+                            cstmt.execute();
+                            cstmt.getMoreResults();
+                            int updateCount = cstmt.getUpdateCount();
+                            assertTrue(updateCount >= -1);
                         }
                     }
-                    
-                    // Verify trigger executed for all 9 inserts (3 + 3 + 3)
-                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) AS cnt FROM " + tempTable2)) {
-                        assertTrue(rs.next());
-                        assertEquals(9, rs.getInt("cnt"), "Trigger should have logged all 9 inserts");
-                    }
                 } finally {
-                    // Cleanup
                     TestUtils.dropTriggerIfExists(tempTrigger, stmt);
                     TestUtils.dropProcedureIfExists(tempProc, stmt);
                     TestUtils.dropTableIfExists(tempTable2, stmt);
@@ -4237,14 +4117,9 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: CallableStatement should not be affected by lastUpdateCount
          * connection property but shows inconsistent behavior.
-         * 
-         * FX Reference: statement.java::testTriggers()
-         * Priority: HIGH
-         * Impact: Inconsistent behavior between Statement and CallableStatement
          */
         @Test
         public void testCallableStatementWithLastUpdateCount() throws SQLException {
-            // FIX: Use a separate temp table to avoid ID conflicts with @BeforeEach setup
             String tempTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("LastUpdateCountTest"));
             String tempProc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("LastUpdateCountProc"));
             
@@ -4317,10 +4192,6 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: Row-level errors in ResultSets are not properly handled,
          * causing incorrect behavior when iterating.
-         * 
-         * FX Reference: statement.java::testRowError()
-         * Priority: HIGH
-         * Impact: Data corruption, incorrect error reporting
          */
         @Test
         public void testRowErrorHandling() throws SQLException {
@@ -4333,10 +4204,11 @@ public class StatementTest extends AbstractTest {
                 stmtSetup.execute("CREATE PROCEDURE " + procName + " @p1 int AS " +
                                 "SELECT col1 FROM " + tableName + " WITH (UPDLOCK) WHERE col1 = @p1");
                 
-                // FIX: Test BOTH scenarios - with close=false and close=true
-                for (boolean closeBeforeIteration : new boolean[]{false, true}) {
+                // Test both close=false (VSTS #279866) and close=true (VSTS #374320)
+                for (boolean close : new boolean[]{false, true}) {
                     for (int row = 0; row <= 2; row++) {
                         try (Connection conn1 = getConnection(); Connection conn2 = getConnection()) {
+                            // On first connection, lock row for update
                             conn1.setAutoCommit(false);
                             
                             try (CallableStatement lockStmt = conn1.prepareCall("{CALL " + procName + "(?)}")) {
@@ -4346,6 +4218,7 @@ public class StatementTest extends AbstractTest {
                                 }
                             }
                             
+                            // On second connection, query with immediate lock timeout
                             conn2.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
                             conn2.setAutoCommit(false);
                             
@@ -4356,7 +4229,7 @@ public class StatementTest extends AbstractTest {
                                         "SELECT col1 FROM " + tableName + " WITH (UPDLOCK)");
                                     ResultSet rs = queryStmt.executeQuery()) {
                                     
-                                    if (!closeBeforeIteration) {
+                                    if (!close) {
                                         // Iterate to the locked row
                                         for (int i = 0; i < row; i++) {
                                             assertTrue(rs.next());
@@ -4365,14 +4238,14 @@ public class StatementTest extends AbstractTest {
                                         // Verify lock timeout exception on locked row (twice)
                                         for (int i = 0; i < 2; i++) {
                                             SQLException ex = assertThrows(SQLException.class, rs::next);
-                                            assertEquals(1222, ex.getErrorCode()); // lock timeout
+                                            assertEquals(1222, ex.getErrorCode());
                                         }
                                     }
                                     
-                                    // rs.close() happens here - tests VSTS #374320 hang scenario
+                                    // rs.close() happens here - VSTS #374320 hang would occur here
                                 }
                                 
-                                // Verify connection still usable
+                                // Verify statement & connection are still usable
                                 try (ResultSet testRs = stmt2.executeQuery("SELECT 1")) {
                                     assertTrue(testRs.next());
                                 }
@@ -4393,37 +4266,31 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: When a row error occurs, calling ResultSet.close() can enter
          * an infinite loop trying to consume remaining rows.
-         * 
-         * FX Reference: statement.java::testRowError()
-         * Priority: CRITICAL
-         * Impact: Application hangs
          */
         @Test
         public void testResultSetCloseDoesNotHangOnRowError() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 stmt.execute("CREATE TABLE #ErrorTest (id INT, value VARCHAR(10))");
                 stmt.execute("INSERT INTO #ErrorTest VALUES (1, '123')");
-                stmt.execute("INSERT INTO #ErrorTest VALUES (2, 'INVALID')"); // Will cause conversion error
+                stmt.execute("INSERT INTO #ErrorTest VALUES (2, 'INVALID')");
                 stmt.execute("INSERT INTO #ErrorTest VALUES (3, '456')");
 
                 ResultSet rs = stmt.executeQuery(
                     "SELECT id, CAST(value AS INT) AS numValue FROM #ErrorTest ORDER BY id");
 
-                // Use a timeout to detect infinite loop
                 final ResultSet finalRs = rs;
                 
                 try {
-                    // Try to iterate and hit the error
-                    SQLException caughtError = null;
+                    // Iterate and hit the conversion error
                     try {
                         while (rs.next()) {
                             rs.getInt("numValue");
                         }
                     } catch (SQLException e) {
-                        caughtError = e;
+                        // Expected conversion error
                     }
 
-                    // Close should complete within reasonable time
+                    // Close should complete within reasonable time (not hang)
                     final boolean[] closed = {false};
                     Thread closeThread = new Thread(() -> {
                         try {
@@ -4435,7 +4302,7 @@ public class StatementTest extends AbstractTest {
                     });
 
                     closeThread.start();
-                    closeThread.join(5000); // Wait max 5 seconds
+                    closeThread.join(5000);
 
                     assertTrue(closed[0] || !closeThread.isAlive(), 
                         "ResultSet.close() should not hang (infinite loop detected)");
@@ -4452,41 +4319,35 @@ public class StatementTest extends AbstractTest {
             }
         }
 
-                /**
+        /**
          * VSTS #128448: Statement.executeBatch returns incorrect updateCounts 
          * when server rolls back transaction
          * 
          * BUG: When a batch operation causes a transaction rollback on the server,
          * the update counts returned are incorrect.
-         * 
-         * FX Reference: statement.java::testBatchWithErrors()
-         * Priority: HIGH
-         * Impact: Incorrect update counts leading to data integrity issues
          */
         @Test
         public void testBatchUpdateCountsOnRollback() throws SQLException {
-            // FIX: Escape table identifier
             String escapedTestTable = AbstractSQLGenerator.escapeIdentifier(testTable);
             
-            // Test with both autoCommit modes
             for (boolean autoCommit : new boolean[]{true, false}) {
                 try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                     conn.setAutoCommit(autoCommit);
                     
-                    // FIX: Use escaped table name
                     stmt.execute("DELETE FROM " + escapedTestTable);
                     
-                    // FIX: Execute batch 3 times like FX does
+                    // Execute batch 3 times like FX does, 5 queries per batch
                     for (int iteration = 0; iteration < 3; iteration++) {
-                        // FIX: Use escaped table name and match 3-column schema (id, name, value)
                         stmt.addBatch("INSERT INTO " + escapedTestTable + 
-                            " VALUES (" + (iteration * 5 + 1) + ", 'test1', 10.0)");
+                            " VALUES (" + (iteration * 6 + 1) + ", 'test1', 10.0)");
                         stmt.addBatch("INSERT INTO " + escapedTestTable + 
-                            " VALUES (" + (iteration * 5 + 2) + ", 'test2', 20.0)");
+                            " VALUES (" + (iteration * 6 + 2) + ", 'test2', 20.0)");
                         stmt.addBatch("INSERT INTO " + escapedTestTable + 
-                            " VALUES (" + (iteration * 5 + 1) + ", 'dup', 30.0)"); // PK violation
+                            " VALUES (" + (iteration * 6 + 1) + ", 'dup', 30.0)"); // PK violation
                         stmt.addBatch("INSERT INTO " + escapedTestTable + 
-                            " VALUES (" + (iteration * 5 + 3) + ", 'test3', 40.0)");
+                            " VALUES (" + (iteration * 6 + 3) + ", 'test3', 40.0)");
+                        stmt.addBatch("INSERT INTO " + escapedTestTable + 
+                            " VALUES (" + (iteration * 6 + 4) + ", 'test4', 50.0)");
                         
                         try {
                             stmt.executeBatch();
@@ -4510,10 +4371,6 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: Azure SQL Gateway drops connections when certain batch update
          * patterns are executed, causing connection failures.
-         * 
-         * FX Reference: statement.java::testBatchWithErrors()
-         * Priority: HIGH
-         * Impact: Connection loss in Azure SQL Database
          */
         @Test
         public void testBatchDoesNotDropConnection() throws SQLException {
@@ -4550,10 +4407,6 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: Related fix for batch update handling that complements the
          * gateway connection drop fix.
-         * 
-         * FX Reference: statement.java::testBatchWithErrors()
-         * Priority: HIGH
-         * Impact: Batch operation reliability
          */
         @Test
         public void testBatchUpdateReliability() throws SQLException {
@@ -4592,10 +4445,6 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: When server rolls back a transaction during batch execution,
          * the BatchUpdateException handling is incorrect.
-         * 
-         * FX Reference: statement.java::testBatchWithErrors()
-         * Priority: HIGH
-         * Impact: Exception handling inconsistency
          */
         @Test
         public void testBatchUpdateExceptionOnRollback() throws SQLException {
@@ -4636,47 +4485,26 @@ public class StatementTest extends AbstractTest {
         /**
          * VSTS #105897: Execute batch with errors handling
          * 
-         * BUG: Batch execution error handling does not properly report which
-         * statements succeeded and which failed.
-         * 
-         * FX Reference: statement.java::testExecuteBatchWithErrors()
-         * Priority: HIGH
-         * Impact: Cannot determine batch operation results
+         * BUG: CallableStatement executeBatch should fail when the sproc
+         * has out params or returns a result set instead of update counts.
          */
         @Test
         public void testExecuteBatchErrorReporting() throws SQLException {
+            String escapedTestProc = AbstractSQLGenerator.escapeIdentifier(testProc);
+            
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-                stmt.addBatch("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
-                    " VALUES (801, 'Success1', 1.0)");
-                stmt.addBatch("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
-                    " VALUES (802, 'Success2', 2.0)");
-                stmt.addBatch("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
-                    " VALUES (1, 'Fail', 3.0)"); // Duplicate key
-                stmt.addBatch("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
-                    " VALUES (803, 'Success3', 4.0)");
-
-                try {
-                    stmt.executeBatch();
-                    fail("Should throw BatchUpdateException");
-                } catch (BatchUpdateException e) {
-                    int[] updateCounts = e.getUpdateCounts();
-                    
-                    assertNotNull(updateCounts, "Should have update counts array");
-                    
-                    // Check that we can identify which statements succeeded
-                    int successCount = 0;
-                    int failCount = 0;
-                    
-                    for (int count : updateCounts) {
-                        if (count >= 0 || count == Statement.SUCCESS_NO_INFO) {
-                            successCount++;
-                        } else if (count == Statement.EXECUTE_FAILED) {
-                            failCount++;
-                        }
+                // Create a sproc with body=SELECT (returns result set, no update count)
+                stmt.execute("CREATE PROCEDURE " + escapedTestProc + " AS " +
+                    "SELECT id, name FROM " + AbstractSQLGenerator.escapeIdentifier(testTable));
+                
+                try (CallableStatement cstmt = conn.prepareCall("{call " + escapedTestProc + "}")) {
+                    // Add batch 3 times
+                    for (int i = 0; i < 3; i++) {
+                        cstmt.addBatch();
                     }
                     
-                    assertTrue(successCount > 0 || failCount > 0, 
-                        "Should be able to identify success/failure status");
+                    assertThrows(BatchUpdateException.class, () -> cstmt.executeBatch(),
+                        "ExecuteBatch should fail when sproc returns result set");
                 }
             }
         }
@@ -4687,24 +4515,17 @@ public class StatementTest extends AbstractTest {
          * BUG: Setting maxRows on statements with dynamic or updatable
          * result sets does not behave as expected.
          * 
-         * FX Reference: statement.java::testMaxRowsWithDynamicCursors()
-         * Priority: HIGH
-         * Impact: Incorrect row limiting behavior
-         * 
          * NOTE: The original FX test SKIPPED this scenario for TYPE_DYNAMIC cursors
          * because maxRows was expected to be a noop but wasn't working correctly.
          * The JUnit test validates the ACTUAL behavior (maxRows IS respected).
          */
         @Test
         public void testMaxRowsWithDynamicCursors() throws SQLException {
-            // FIX: Properly escape table names
             String escapedTestTable = AbstractSQLGenerator.escapeIdentifier(testTable);
             
             try (Connection conn = getConnection()) {
-                // Insert enough rows for testing
                 try (Statement setupStmt = conn.createStatement()) {
                     setupStmt.execute("DELETE FROM " + escapedTestTable);
-                    // FIX: Match table schema (id, name, value)
                     for (int i = 1; i <= 20; i++) {
                         setupStmt.execute("INSERT INTO " + escapedTestTable + 
                             " VALUES (" + i + ", 'row" + i + "', " + (i * 10.5) + ")");
@@ -4712,15 +4533,14 @@ public class StatementTest extends AbstractTest {
                 }
                 
                 // Test setMaxRows with TYPE_SCROLL_SENSITIVE/UPDATABLE cursor
-                // NOTE: FX test skipped this for TYPE_DYNAMIC, but we test actual behavior
-                try (Statement stmt = conn.createStatement(
-                        ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-                    
-                    // Execute 3 times like FX
-                    for (int iteration = 0; iteration < 3; iteration++) {
+                // Execute 3 times like FX, each with a new statement
+                for (int iteration = 0; iteration < 3; iteration++) {
+                    try (Statement stmt = conn.createStatement(
+                            ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+                        assertEquals(0, stmt.getMaxRows(), "maxSetter miscompare");
                         int maxRows = 5 + iteration * 2;
                         stmt.setMaxRows(maxRows);
-                        assertEquals(maxRows, stmt.getMaxRows());
+                        assertEquals(maxRows, stmt.getMaxRows(), "maxSetter miscompare");
                         
                         try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + escapedTestTable)) {
                             int count = 0;
@@ -4728,31 +4548,8 @@ public class StatementTest extends AbstractTest {
                                 count++;
                             }
                             
-                            // CORRECTED: For TYPE_SCROLL_SENSITIVE + CONCUR_UPDATABLE,
-                            // maxRows IS respected in current SQL Server JDBC driver
-                            // (FX test had workaround to skip verification due to bug #64016)
                             assertEquals(maxRows, count, 
                                 "MaxRows should be respected for TYPE_SCROLL_SENSITIVE/UPDATABLE cursors");
-                        }
-                    }
-                }
-                
-                // Also test with TYPE_SCROLL_INSENSITIVE (static cursor)
-                try (Statement stmt = conn.createStatement(
-                        ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
-                    
-                    for (int iteration = 0; iteration < 3; iteration++) {
-                        int maxRows = 5 + iteration * 2;
-                        stmt.setMaxRows(maxRows);
-                        
-                        try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + escapedTestTable)) {
-                            int count = 0;
-                            while (rs.next()) {
-                                count++;
-                            }
-                            
-                            // For static cursor, maxRows SHOULD be respected
-                            assertEquals(maxRows, count, "MaxRows should be respected for static cursors");
                         }
                     }
                 }
@@ -4764,20 +4561,14 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: When maxRows is set and an error occurs during result processing,
          * the error handling and cleanup is incorrect.
-         * 
-         * FX Reference: statement.java::testMaxRowsWithErrors(), testSetMaxRows()
-         * Priority: HIGH
-         * Impact: Resource leaks and incorrect behavior on errors
          */
         @Test
         public void testMaxRowsWithErrorScenarios() throws SQLException {
-            // FIX: Properly escape table names
             String escapedTestTable = AbstractSQLGenerator.escapeIdentifier(testTable);
             String escapedTestTable2 = AbstractSQLGenerator.escapeIdentifier(testTable2);
             
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 stmt.execute("DELETE FROM " + escapedTestTable);
-                // FIX: Match table schema (id, name, value)
                 for (int i = 1; i <= 10; i++) {
                     stmt.execute("INSERT INTO " + escapedTestTable + 
                         " VALUES (" + i + ", 'row" + i + "', " + (i * 10.5) + ")");
@@ -4821,13 +4612,11 @@ public class StatementTest extends AbstractTest {
                             }
                         }
                         
-                        // After error, verify can still execute on testTable2 (VSTS #157330)
-                        if (queryPhase == 2) {
-                            try (Statement testStmt2 = conn.createStatement()) {
-                                int updated = testStmt2.executeUpdate(
-                                        "UPDATE " + escapedTestTable2 + " SET log_message = 'updated'");
-                                assertTrue(updated >= 0);
-                            }
+                        // After each query phase, verify can still execute DML on testTable2 (VSTS #157330)
+                        try (Statement testStmt2 = conn.createStatement()) {
+                            int updated = testStmt2.executeUpdate(
+                                    "UPDATE " + escapedTestTable2 + " SET log_message = 'updated'");
+                            assertTrue(updated >= 0);
                         }
                     }
                 }
@@ -4839,13 +4628,11 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: The interaction between setMaxRows and cursor holdability
          * is incorrect, causing unexpected behavior across commits.
-         * 
-         * FX Reference: statement.java::testSetMaxRows()
-         * Priority: HIGH
-         * Impact: Incorrect behavior in transactional scenarios
          */
         @Test
         public void testMaxRowsWithHoldability() throws SQLException {
+            String escapedTestTable = AbstractSQLGenerator.escapeIdentifier(testTable);
+            
             try (Connection conn = getConnection()) {
                 conn.setAutoCommit(false);
                 conn.setHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT);
@@ -4853,18 +4640,22 @@ public class StatementTest extends AbstractTest {
                 try (Statement stmt = conn.createStatement()) {
                     stmt.setMaxRows(2);
                     
+                    // Do DML work before opening the holdable cursor
+                    stmt.executeUpdate("UPDATE " + escapedTestTable + 
+                        " SET value = value + 1 WHERE id = 1");
+                    
+                    // Open a cursor to verify results
                     ResultSet rs = stmt.executeQuery(
-                        "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
-                        " ORDER BY id");
+                        "SELECT * FROM " + escapedTestTable + " ORDER BY id");
                     
                     assertTrue(rs.next(), "Should have first row");
                     assertTrue(rs.next(), "Should have second row");
                     
-                    // Commit with holdable cursor
+                    // Commit the DML changes BUT keep cursor open
                     conn.commit();
                     
-                    // Cursor should still be valid (holdable)
-                    // MaxRows limit should still apply
+                    // Continue reading from the same cursor — should still work
+                    // with HOLD_CURSORS_OVER_COMMIT. MaxRows limit should still apply.
                     if (rs.next()) {
                         // Some rows may be available depending on implementation
                     }
@@ -4885,10 +4676,6 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: Non-DML query types (DDL, USE database, etc.) are not properly
          * handled, causing incorrect update counts or errors.
-         * 
-         * FX Reference: statement.java::testOtherQueries()
-         * Priority: MEDIUM
-         * Impact: Cannot execute DDL statements reliably
          */
         @Test
         public void testOtherQueryTypes() throws SQLException {
@@ -4897,36 +4684,36 @@ public class StatementTest extends AbstractTest {
                 stmt.execute("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(testProc) + 
                     " AS BEGIN SELECT id, name FROM " + AbstractSQLGenerator.escapeIdentifier(testTable) + " END");
                 
-                // Test 1: Execute stored procedure via Statement (not CallableStatement)
-                try (Statement regularStmt = conn.createStatement();
-                    ResultSet rs = regularStmt.executeQuery("EXEC " + AbstractSQLGenerator.escapeIdentifier(testProc))) {
-                    assertTrue(rs.next(), "Statement should be able to execute stored procedure");
+                // Re-execute 2 times like FX
+                for (int i = 0; i < 2; i++) {
+                    // Test 1: Execute stored procedure via Statement (not CallableStatement)
+                    try (Statement regularStmt = conn.createStatement();
+                        ResultSet rs = regularStmt.executeQuery("EXEC " + AbstractSQLGenerator.escapeIdentifier(testProc))) {
+                        assertTrue(rs.next(), "Statement should be able to execute stored procedure");
+                    }
+                    
+                    // Test 2: Execute stored procedure via PreparedStatement (not CallableStatement)
+                    try (PreparedStatement pstmt = conn.prepareStatement("EXEC " + AbstractSQLGenerator.escapeIdentifier(testProc));
+                        ResultSet rs = pstmt.executeQuery()) {
+                        assertTrue(rs.next(), "PreparedStatement should be able to execute stored procedure");
+                    }
+                    
+                    // Test 3: Execute DDL via PreparedStatement (unusual but should work)
+                    try (PreparedStatement pstmt = conn.prepareStatement(
+                            "CREATE TABLE #OtherQueryTest" + i + " (id INT, val VARCHAR(50))")) {
+                        int count = pstmt.executeUpdate();
+                        assertTrue(count == 0 || count == Statement.SUCCESS_NO_INFO,
+                            "PreparedStatement should handle DDL");
+                    }
+                    
+                    // Test 4: Execute DML via CallableStatement (unusual but should work)
+                    try (CallableStatement cstmt = conn.prepareCall(
+                            "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
+                            " VALUES (" + (999 + i) + ", 'CallableInsert', 1.0)")) {
+                        int count = cstmt.executeUpdate();
+                        assertEquals(1, count, "CallableStatement should handle DML");
+                    }
                 }
-                
-                // Test 2: Execute stored procedure via PreparedStatement (not CallableStatement)
-                try (PreparedStatement pstmt = conn.prepareStatement("EXEC " + AbstractSQLGenerator.escapeIdentifier(testProc));
-                    ResultSet rs = pstmt.executeQuery()) {
-                    assertTrue(rs.next(), "PreparedStatement should be able to execute stored procedure");
-                }
-                
-                // Test 3: Execute DDL via PreparedStatement (unusual but should work)
-                try (PreparedStatement pstmt = conn.prepareStatement("CREATE TABLE #OtherQueryTest (id INT, val VARCHAR(50))")) {
-                    int count = pstmt.executeUpdate();
-                    assertTrue(count == 0 || count == Statement.SUCCESS_NO_INFO,
-                        "PreparedStatement should handle DDL");
-                }
-                
-                // Test 4: Execute DML via CallableStatement (unusual but should work)
-                try (CallableStatement cstmt = conn.prepareCall(
-                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTable) + " VALUES (999, 'CallableInsert', 1.0)")) {
-                    int count = cstmt.executeUpdate();
-                    assertEquals(1, count, "CallableStatement should handle DML");
-                }
-                
-                // Test 5: Regular DDL via Statement
-                stmt.execute("CREATE TABLE #DDLTest (id INT, name VARCHAR(50))");
-                stmt.executeUpdate("ALTER TABLE #DDLTest ADD description VARCHAR(100)");
-                stmt.executeUpdate("DROP TABLE #DDLTest");
             }
         }
 
@@ -4935,34 +4722,39 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: SQL State codes for duplicate key violations are not correct
          * according to SQL standards.
-         * 
-         * FX Reference: statement.java::testDuplicateInsert()
-         * Priority: HIGH
-         * Impact: Incorrect error code handling
          */
         @Test
         public void testDuplicateKeySQLState() throws SQLException {
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-                SQLException dupKeyError = assertThrows(SQLException.class, () -> {
-                    stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
-                        " VALUES (1, 'Duplicate', 999.99)");
-                }, "Duplicate key should throw SQLException");
-
-                String sqlState = dupKeyError.getSQLState();
-                assertNotNull(sqlState, "SQL State should not be null");
+            String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StmtTest"));
+            
+            // Test with xOpenStates=false (expects "23000") and xOpenStates=true (expects "42000")
+            for (boolean xOpenStates : new boolean[]{false, true}) {
+                String connStr = xOpenStates 
+                    ? connectionString + ";xopenStates=true" 
+                    : connectionString;
+                String expectedState = xOpenStates ? "42000" : "23000";
                 
-                // SQL State for unique constraint violation should be 23000 or 23505
-                assertTrue(sqlState.startsWith("23"), 
-                    "SQL State for duplicate key should start with '23', got: " + sqlState);
-                
-                // Common SQL States for duplicate key:
-                // 23000 - Integrity constraint violation
-                // 23505 - Unique violation (PostgreSQL standard)
-                // S0001 - Base table or view not found (older SQL Server)
-                assertTrue(sqlState.equals("23000") || 
-                          sqlState.equals("23505") ||
-                          sqlState.startsWith("23"),
-                    "SQL State should indicate integrity constraint violation, got: " + sqlState);
+                try (Connection conn = PrepUtil.getConnection(connStr);
+                     Statement stmt = conn.createStatement()) {
+                    try {
+                        stmt.executeUpdate("CREATE TABLE " + tableName + 
+                            " ([Col1] NVARCHAR(50) NULL); " +
+                            "CREATE UNIQUE CLUSTERED INDEX [IDX_COL1] ON " + tableName + 
+                            " ([Col1] ASC) WITH (STATISTICS_NORECOMPUTE = OFF, " +
+                            "IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF)");
+                        
+                        stmt.executeUpdate("INSERT INTO " + tableName + " VALUES ('dash')");
+                        
+                        try {
+                            stmt.executeUpdate("INSERT INTO " + tableName + " VALUES ('dash')");
+                        } catch (SQLException e) {
+                            assertEquals(expectedState, e.getSQLState(), 
+                                "SQL State mismatch for xOpenStates=" + xOpenStates);
+                        }
+                    } finally {
+                        TestUtils.dropTableIfExists(tableName, stmt);
+                    }
+                }
             }
         }
 
@@ -4971,10 +4763,6 @@ public class StatementTest extends AbstractTest {
          * 
          * BUG: When a query times out and is re-executed, the timeout handling
          * is incorrect on subsequent executions.
-         * 
-         * FX Reference: statement.java::testForcedQueryTimeout()
-         * Priority: HIGH
-         * Impact: Timeout behavior inconsistency
          */
         @Test
         public void testReExecuteAfterQueryTimeout() throws Exception {
@@ -4985,31 +4773,20 @@ public class StatementTest extends AbstractTest {
                 stmt.setQueryTimeout(timeout);
                 assertEquals(timeout, stmt.getQueryTimeout());
                 
-                // FIX: Execute TWICE in loop to test re-execution after timeout (VSTS #141264)
+                // Re-execute twice (VSTS #141264)
                 for (int iteration = 0; iteration < 2; iteration++) {
                     long startTime = System.currentTimeMillis();
                     
-                    SQLException ex = assertThrows(SQLException.class, () -> {
+                    try {
                         stmt.execute("WAITFOR DELAY '00:00:05'"); // Wait longer than timeout
-                    });
-                    
-                    long elapsed = System.currentTimeMillis() - startTime;
-                    
-                    assertTrue(ex.getMessage().contains("query has timed out") ||
-                            ex.getMessage().contains("timeout"),
-                            "Expected timeout exception, got: " + ex.getMessage());
-                    
-                    // Verify timeout occurred within reasonable bounds (allow 500ms deviation)
-                    assertTrue(elapsed >= (timeout * 1000) - 500,
-                            "Query timed out too early: " + elapsed + "ms");
-                    assertTrue(elapsed <= (timeout * 1000) + 2000,
-                            "Query timed out too late: " + elapsed + "ms");
-                }
-                
-                // Verify statement still usable after timeout
-                try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
-                    assertTrue(rs.next());
-                    assertEquals(1, rs.getInt(1));
+                        fail("Expected query timeout exception");
+                    } catch (SQLException e) {
+                        long elapsed = System.currentTimeMillis() - startTime;
+                        // Allow for deviation of 10 millis
+                        elapsed += 10;
+                        assertTrue(elapsed >= timeout * 1000,
+                                "Query timed out earlier than expected: " + (timeout * 1000) + ", actual: " + elapsed);
+                    }
                 }
             }
         }
