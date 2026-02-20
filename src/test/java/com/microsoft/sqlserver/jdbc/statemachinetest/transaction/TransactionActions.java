@@ -108,8 +108,13 @@ public final class TransactionActions {
         private String tableName;
 
         public CommitAction(StateMachineTest sm) {
+            this(sm, null);
+        }
+
+        public CommitAction(StateMachineTest sm, String tableName) {
             super("commit", 10);
             this.sm = sm;
+            this.tableName = tableName;
         }
 
         public void setTableName(String tableName) {
@@ -161,8 +166,13 @@ public final class TransactionActions {
         private String tableName;
 
         public RollbackAction(StateMachineTest sm) {
+            this(sm, null);
+        }
+
+        public RollbackAction(StateMachineTest sm, String tableName) {
             super("rollback", 10);
             this.sm = sm;
+            this.tableName = tableName;
         }
 
         public void setTableName(String tableName) {
@@ -211,8 +221,13 @@ public final class TransactionActions {
         private String tableName;
 
         public ExecuteUpdateAction(StateMachineTest sm) {
+            this(sm, null);
+        }
+
+        public ExecuteUpdateAction(StateMachineTest sm, String tableName) {
             super("executeUpdate", 15);
             this.sm = sm;
+            this.tableName = tableName;
         }
 
         public void setTableName(String tableName) {
@@ -253,8 +268,13 @@ public final class TransactionActions {
         private String tableName;
 
         public SelectAction(StateMachineTest sm) {
+            this(sm, null);
+        }
+
+        public SelectAction(StateMachineTest sm, String tableName) {
             super("executeQuery", 10);
             this.sm = sm;
+            this.tableName = tableName;
         }
 
         public void setTableName(String tableName) {

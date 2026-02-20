@@ -85,24 +85,12 @@ public class TransactionStateTest extends AbstractTest {
             sm.setState(CLOSED, false);
 
             // Setup actions - validation fields set directly (no context object needed)
-            CommitAction commit = new CommitAction(sm);
-            commit.setTableName(TABLE_NAME_CONST);
-
-            RollbackAction rollback = new RollbackAction(sm);
-            rollback.setTableName(TABLE_NAME_CONST);
-
-            ExecuteUpdateAction update = new ExecuteUpdateAction(sm);
-            update.setTableName(TABLE_NAME_CONST);
-
-            SelectAction select = new SelectAction(sm);
-            select.setTableName(TABLE_NAME_CONST);
-
             sm.addAction(new SetAutoCommitFalseAction(sm));
             sm.addAction(new SetAutoCommitTrueAction(sm));
-            sm.addAction(commit);
-            sm.addAction(rollback);
-            sm.addAction(update);
-            sm.addAction(select);
+            sm.addAction(new CommitAction(sm, TABLE_NAME_CONST));
+            sm.addAction(new RollbackAction(sm, TABLE_NAME_CONST));
+            sm.addAction(new ExecuteUpdateAction(sm, TABLE_NAME_CONST));
+            sm.addAction(new SelectAction(sm, TABLE_NAME_CONST));
 
             Result result = Engine.run(sm).withMaxActions(50).execute();
 
@@ -130,24 +118,12 @@ public class TransactionStateTest extends AbstractTest {
             sm.setState(PENDING_VALUE, null); // No pending changes
 
             // Setup actions with validation data - shared via state machine state
-            CommitAction commit = new CommitAction(sm);
-            commit.setTableName(TABLE_NAME_CONST);
-
-            RollbackAction rollback = new RollbackAction(sm);
-            rollback.setTableName(TABLE_NAME_CONST);
-
-            ExecuteUpdateAction update = new ExecuteUpdateAction(sm);
-            update.setTableName(TABLE_NAME_CONST);
-
-            SelectAction select = new SelectAction(sm);
-            select.setTableName(TABLE_NAME_CONST);
-
             sm.addAction(new SetAutoCommitFalseAction(sm));
             sm.addAction(new SetAutoCommitTrueAction(sm));
-            sm.addAction(commit);
-            sm.addAction(rollback);
-            sm.addAction(update);
-            sm.addAction(select);
+            sm.addAction(new CommitAction(sm, TABLE_NAME_CONST));
+            sm.addAction(new RollbackAction(sm, TABLE_NAME_CONST));
+            sm.addAction(new ExecuteUpdateAction(sm, TABLE_NAME_CONST));
+            sm.addAction(new SelectAction(sm, TABLE_NAME_CONST));
 
             Result result = Engine.run(sm).withMaxActions(50).withSeed(12345).execute();
 

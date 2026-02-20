@@ -13,17 +13,13 @@ import java.util.Map;
 
 /**
  * Cache of expected row data used for validation.
- * Stores rows (as column-name->value maps) and column metadata.
+ * Stores rows (as column-name->value maps).
  * Actions compare actual JDBC results against cached expected values.
  */
 public class DataCache {
 
     /** Expected rows, indexed by row number (0-based) */
     private final List<Map<String, Object>> rows = new ArrayList<>();
-
-    /** Metadata about expected data structure */
-    private final List<String> columnNames = new ArrayList<>();
-    private final Map<String, String> columnTypes = new HashMap<>();
 
     /**
      * Adds a new row of expected data.
@@ -82,40 +78,6 @@ public class DataCache {
      */
     public void clear() {
         rows.clear();
-        columnNames.clear();
-        columnTypes.clear();
-    }
-
-    /**
-     * Adds column metadata.
-     * 
-     * @param columnName name of the column
-     * @param columnType SQL type name (e.g., "INT", "VARCHAR")
-     */
-    public void addColumn(String columnName, String columnType) {
-        if (!columnNames.contains(columnName)) {
-            columnNames.add(columnName);
-        }
-        columnTypes.put(columnName, columnType);
-    }
-
-    /**
-     * Gets column names in order.
-     * 
-     * @return list of column names
-     */
-    public List<String> getColumnNames() {
-        return new ArrayList<>(columnNames);
-    }
-
-    /**
-     * Gets the type of a column.
-     * 
-     * @param columnName name of the column
-     * @return SQL type name, or null if column doesn't exist
-     */
-    public String getColumnType(String columnName) {
-        return columnTypes.get(columnName);
     }
 
     /**
@@ -134,6 +96,6 @@ public class DataCache {
 
     @Override
     public String toString() {
-        return "DataCache{rows=" + rows.size() + ", columns=" + columnNames.size() + "}";
+        return "DataCache{rows=" + rows.size() + "}";
     }
 }

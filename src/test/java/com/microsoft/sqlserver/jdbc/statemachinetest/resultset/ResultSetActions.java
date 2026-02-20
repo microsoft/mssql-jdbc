@@ -63,22 +63,11 @@ public final class ResultSetActions {
         }
 
         // Verify each column
-        for (String columnName : cache.getColumnNames()) {
-            Object expected = expectedRow.get(columnName);
-            Object actual;
+        for (Map.Entry<String, Object> entry : expectedRow.entrySet()) {
+            String columnName = entry.getKey();
+            Object expected = entry.getValue();
+            Object actual = rs.getObject(columnName);
 
-            // Get actual value based on column type
-            String colType = cache.getColumnType(columnName);
-            if ("INT".equals(colType)) {
-                actual = rs.getInt(columnName);
-                if (rs.wasNull()) {
-                    actual = null;
-                }
-            } else {
-                actual = rs.getString(columnName);
-            }
-
-            // Strict comparison - throws on mismatch
             action.assertExpected(actual, expected,
                     String.format("Row %d column '%s' mismatch", currentRow, columnName));
         }
@@ -90,7 +79,11 @@ public final class ResultSetActions {
         private final StateMachineTest sm;
 
         public NextAction(StateMachineTest sm) {
-            super("next", 10);
+            this(sm, null);
+        }
+
+        public NextAction(StateMachineTest sm, DataCache cache) {
+            super("next", 10, cache);
             this.sm = sm;
         }
 
@@ -128,7 +121,11 @@ public final class ResultSetActions {
         private final StateMachineTest sm;
 
         public PreviousAction(StateMachineTest sm) {
-            super("previous", 8);
+            this(sm, null);
+        }
+
+        public PreviousAction(StateMachineTest sm, DataCache cache) {
+            super("previous", 8, cache);
             this.sm = sm;
         }
 
@@ -166,7 +163,11 @@ public final class ResultSetActions {
         private final StateMachineTest sm;
 
         public FirstAction(StateMachineTest sm) {
-            super("first", 5);
+            this(sm, null);
+        }
+
+        public FirstAction(StateMachineTest sm, DataCache cache) {
+            super("first", 5, cache);
             this.sm = sm;
         }
 
@@ -204,7 +205,11 @@ public final class ResultSetActions {
         private final StateMachineTest sm;
 
         public LastAction(StateMachineTest sm) {
-            super("last", 5);
+            this(sm, null);
+        }
+
+        public LastAction(StateMachineTest sm, DataCache cache) {
+            super("last", 5, cache);
             this.sm = sm;
         }
 
@@ -242,7 +247,11 @@ public final class ResultSetActions {
         private final StateMachineTest sm;
 
         public AbsoluteAction(StateMachineTest sm) {
-            super("absolute", 6);
+            this(sm, null);
+        }
+
+        public AbsoluteAction(StateMachineTest sm, DataCache cache) {
+            super("absolute", 6, cache);
             this.sm = sm;
         }
 
@@ -286,7 +295,11 @@ public final class ResultSetActions {
         private final StateMachineTest sm;
 
         public GetStringAction(StateMachineTest sm) {
-            super("getString", 10);
+            this(sm, null);
+        }
+
+        public GetStringAction(StateMachineTest sm, DataCache cache) {
+            super("getString", 10, cache);
             this.sm = sm;
         }
 
@@ -325,7 +338,11 @@ public final class ResultSetActions {
         private final StateMachineTest sm;
 
         public GetIntAction(StateMachineTest sm) {
-            super("getInt", 10);
+            this(sm, null);
+        }
+
+        public GetIntAction(StateMachineTest sm, DataCache cache) {
+            super("getInt", 10, cache);
             this.sm = sm;
         }
 

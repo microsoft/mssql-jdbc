@@ -29,6 +29,13 @@ import com.microsoft.sqlserver.jdbc.statemachinetest.core.DataCache;
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.Engine;
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.Result;
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.StateMachineTest;
+import com.microsoft.sqlserver.jdbc.statemachinetest.resultset.ResultSetActions.AbsoluteAction;
+import com.microsoft.sqlserver.jdbc.statemachinetest.resultset.ResultSetActions.FirstAction;
+import com.microsoft.sqlserver.jdbc.statemachinetest.resultset.ResultSetActions.GetIntAction;
+import com.microsoft.sqlserver.jdbc.statemachinetest.resultset.ResultSetActions.GetStringAction;
+import com.microsoft.sqlserver.jdbc.statemachinetest.resultset.ResultSetActions.LastAction;
+import com.microsoft.sqlserver.jdbc.statemachinetest.resultset.ResultSetActions.NextAction;
+import com.microsoft.sqlserver.jdbc.statemachinetest.resultset.ResultSetActions.PreviousAction;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -114,9 +121,6 @@ public class ResultSetStateTest extends AbstractTest {
 
         // Create DataCache with expected values
         DataCache cache = new DataCache();
-        cache.addColumn("id", "INT");
-        cache.addColumn("name", "VARCHAR");
-        cache.addColumn("value", "INT");
 
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(TABLE_NAME, stmt);
@@ -146,34 +150,14 @@ public class ResultSetStateTest extends AbstractTest {
             sm.setState(CURRENT_ROW, 0);
 
             // Setup actions with DataCache for validation
-            NextAction next = new NextAction(sm);
-            next.setDataCache(cache);
-            
-            PreviousAction previous = new PreviousAction(sm);
-            previous.setDataCache(cache);
-            
-            FirstAction first = new FirstAction(sm);
-            first.setDataCache(cache);
-            
-            LastAction last = new LastAction(sm);
-            last.setDataCache(cache);
-            
-            AbsoluteAction absolute = new AbsoluteAction(sm);
-            absolute.setDataCache(cache);
-            
-            GetStringAction getString = new GetStringAction(sm);
-            getString.setDataCache(cache);
-            
-            GetIntAction getInt = new GetIntAction(sm);
-            getInt.setDataCache(cache);
-
-            sm.addAction(next);
-            sm.addAction(previous);
-            sm.addAction(first);
-            sm.addAction(last);
-            sm.addAction(absolute);
-            sm.addAction(getString);
-            sm.addAction(getInt);
+            sm.addAction(new NextAction(sm, cache));
+            sm.addAction(new PreviousAction(sm, cache));
+            sm.addAction(new FirstAction(sm, cache));
+            sm.addAction(new LastAction(sm, cache));
+            sm.addAction(new PreviousAction(sm, cache));
+            sm.addAction(new AbsoluteAction(sm, cache));
+            sm.addAction(new GetStringAction(sm, cache));
+            sm.addAction(new GetIntAction(sm, cache));
 
             Result result = Engine.run(sm).withMaxActions(50).withSeed(12345).execute();
 

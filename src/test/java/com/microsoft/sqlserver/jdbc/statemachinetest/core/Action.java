@@ -35,11 +35,16 @@ public abstract class Action {
     protected DataCache dataCache;
 
     public Action(String name, int weight) {
+        this(name, weight, null);
+    }
+
+    public Action(String name, int weight, DataCache dataCache) {
         this.name = Objects.requireNonNull(name, "name must not be null");
         if (weight < 0) {
             throw new IllegalArgumentException("weight must be >= 0, got: " + weight);
         }
         this.weight = weight;
+        this.dataCache = dataCache;
     }
 
     /**
