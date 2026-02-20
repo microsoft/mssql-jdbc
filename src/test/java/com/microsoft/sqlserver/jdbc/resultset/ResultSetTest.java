@@ -2105,16 +2105,12 @@ public class ResultSetTest extends AbstractTest {
                             assertNotNull(caughtException, 
                                 "updateRow() should throw on downgraded (read-only) cursor");
                             
-                            String message = caughtException.getMessage().toLowerCase();
+                            String message = caughtException.getMessage();
                             assertTrue(
-                                message.contains("not updatable") ||
-                                message.contains("read only") ||
-                                message.contains("read-only") ||
-                                message.contains("concurrency") ||
-                                message.contains("no column") ||
-                                message.contains("not.*update"),
-                                "Exception should indicate update cannot proceed. Got: " + 
-                                    caughtException.getMessage());
+                                message.contains("The result set is not updatable.") ||
+                                message.contains("No column parameter values were specified to update the row."),
+                                "Expected result set not updatable or no column values error but got: " + 
+                                    message);
                         }
                     }
                 } finally {
