@@ -9,10 +9,8 @@ import java.util.List;
 
 
 /**
- * Result of a state machine execution.
- * 
- * Contains execution statistics and the seed for reproducibility.
- * If a test fails, use the same seed to reproduce the exact sequence.
+ * Immutable result of a state machine execution.
+ * Use {@code seed} to reproduce the exact action sequence.
  */
 public class Result {
     /** True if execution completed without errors. */

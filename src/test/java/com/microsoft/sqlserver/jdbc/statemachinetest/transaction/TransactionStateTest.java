@@ -83,14 +83,14 @@ public class TransactionStateTest extends AbstractTest {
             sm.setState(CONN, conn);
             sm.setState(AUTO_COMMIT, true);
             sm.setState(CLOSED, false);
-            sm.setState(TABLE_NAME, TABLE_NAME_CONST);
 
+            // Setup actions - validation fields set directly (no context object needed)
             sm.addAction(new SetAutoCommitFalseAction(sm));
             sm.addAction(new SetAutoCommitTrueAction(sm));
-            sm.addAction(new CommitAction(sm));
-            sm.addAction(new RollbackAction(sm));
-            sm.addAction(new ExecuteUpdateAction(sm));
-            sm.addAction(new SelectAction(sm));
+            sm.addAction(new CommitAction(sm, TABLE_NAME_CONST));
+            sm.addAction(new RollbackAction(sm, TABLE_NAME_CONST));
+            sm.addAction(new ExecuteUpdateAction(sm, TABLE_NAME_CONST));
+            sm.addAction(new SelectAction(sm, TABLE_NAME_CONST));
 
             Result result = Engine.run(sm).withMaxActions(50).execute();
 
@@ -98,6 +98,38 @@ public class TransactionStateTest extends AbstractTest {
             conn.setAutoCommit(true);
 
             System.out.println("\nReal DB transaction test: " + result.actionCount + " actions");
+            assertTrue(result.isSuccess());
+        }
+    }
+
+    @Test
+    @DisplayName("Transaction Validation Test")
+    void testTransactionWithValidation() throws SQLException {
+        Assumptions.assumeTrue(connectionString != null, "No database connection configured");
+
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            createTestTable(conn);
+
+            StateMachineTest sm = new StateMachineTest("TransactionValidation");
+            sm.setState(CONN, conn);
+            sm.setState(AUTO_COMMIT, true);
+            sm.setState(CLOSED, false);
+            sm.setState(EXPECTED_VALUE, 100); // Initial committed value
+            sm.setState(PENDING_VALUE, null); // No pending changes
+
+            // Setup actions with validation data - shared via state machine state
+            sm.addAction(new SetAutoCommitFalseAction(sm));
+            sm.addAction(new SetAutoCommitTrueAction(sm));
+            sm.addAction(new CommitAction(sm, TABLE_NAME_CONST));
+            sm.addAction(new RollbackAction(sm, TABLE_NAME_CONST));
+            sm.addAction(new ExecuteUpdateAction(sm, TABLE_NAME_CONST));
+            sm.addAction(new SelectAction(sm, TABLE_NAME_CONST));
+
+            Result result = Engine.run(sm).withMaxActions(50).withSeed(12345).execute();
+
+            conn.setAutoCommit(true);
+
+            System.out.println("\nTransaction validation test: " + result.actionCount + " actions");
             assertTrue(result.isSuccess());
         }
     }

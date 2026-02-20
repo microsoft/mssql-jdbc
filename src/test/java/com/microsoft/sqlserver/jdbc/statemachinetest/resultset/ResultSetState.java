@@ -9,12 +9,10 @@ import com.microsoft.sqlserver.jdbc.statemachinetest.core.StateKey;
 
 
 /**
- * State keys for ResultSet state machine testing.
+ * State keys for ResultSet state machine - Pure Domain Model.
  * 
- * Defines all states tracked during ResultSet operations:
- * - ResultSet object
- * - Closed status
- * - Valid row position
+ * Represents the actual state of a JDBC ResultSet object.
+ * Contains only domain concepts, no test infrastructure.
  */
 public enum ResultSetState implements StateKey {
 
@@ -25,7 +23,10 @@ public enum ResultSetState implements StateKey {
     CLOSED("closed"),
 
     /** Whether cursor is on a valid row (boolean). True = on valid row. */
-    ON_VALID_ROW("onValidRow");
+    ON_VALID_ROW("onValidRow"),
+
+    /** Current row index (1-based, 0 = before first). */
+    CURRENT_ROW("currentRow");
 
     private final String key;
 

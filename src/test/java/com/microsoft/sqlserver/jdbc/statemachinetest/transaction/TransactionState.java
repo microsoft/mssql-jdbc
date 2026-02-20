@@ -9,13 +9,10 @@ import com.microsoft.sqlserver.jdbc.statemachinetest.core.StateKey;
 
 
 /**
- * State keys for Transaction state machine testing.
+ * State keys for Transaction state machine - Pure Domain Model.
  * 
- * Defines all states tracked during transaction operations:
- * - Connection object
- * - Auto-commit mode
- * - Connection closed status
- * - Table name for queries
+ * Represents the actual state of a JDBC Connection's transaction behavior.
+ * Contains only domain concepts, no test infrastructure.
  */
 public enum TransactionState implements StateKey {
 
@@ -28,8 +25,11 @@ public enum TransactionState implements StateKey {
     /** Connection closed status (boolean). True = connection is closed. */
     CLOSED("closed"),
 
-    /** Table name used in queries (String). */
-    TABLE_NAME("tableName");
+    /** Last committed value (Integer) - test artifact for validation. */
+    EXPECTED_VALUE("expectedValue"),
+
+    /** Uncommitted value after UPDATE (Integer) - test artifact for validation. */
+    PENDING_VALUE("pendingValue");
 
     private final String key;
 
