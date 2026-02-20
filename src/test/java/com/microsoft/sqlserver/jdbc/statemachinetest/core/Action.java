@@ -5,6 +5,8 @@
  */
 package com.microsoft.sqlserver.jdbc.statemachinetest.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.Objects;
 
 /**
@@ -90,45 +92,9 @@ public abstract class Action {
     /**
      * Asserts that {@code actual} equals {@code expected}.
      *
-     * @throws ValidationException if values don't match
+     * @throws AssertionFailedError if values don't match
      */
     public final void assertExpected(Object actual, Object expected, String message) {
-        if (!Objects.equals(expected, actual)) {
-            throw new ValidationException(message, actual, expected);
-        }
-    }
-
-    /** Asserts that {@code actual} equals {@code expected} (int overload). */
-    public final void assertExpected(int actual, int expected, String message) {
-        if (actual != expected) {
-            throw new ValidationException(message, actual, expected);
-        }
-    }
-
-    /**
-     * Thrown when a validation assertion fails. Carries actual and expected values.
-     */
-    public static class ValidationException extends RuntimeException {
-        private static final long serialVersionUID = 1L;
-        private final Object actual;
-        private final Object expected;
-
-        public ValidationException(String message, Object actual, Object expected) {
-            super(formatMessage(message, actual, expected));
-            this.actual = actual;
-            this.expected = expected;
-        }
-
-        public Object getActual() {
-            return actual;
-        }
-
-        public Object getExpected() {
-            return expected;
-        }
-
-        private static String formatMessage(String message, Object actual, Object expected) {
-            return message + "\n  Expected: " + expected + "\n  Actual:   " + actual;
-        }
+        assertEquals(expected, actual, message);
     }
 }

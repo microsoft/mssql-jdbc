@@ -37,7 +37,7 @@ public final class ResultSetActions {
      * Core validation pattern:
      * - Get expected data from DataCache for current row
      * - Compare actual ResultSet values against expected values
-     * - Throws ValidationException if any value doesn't match
+     * - Throws AssertionFailedError if any value doesn't match
      * 
      * @param action the action performing validation
      * @param sm     the state machine
