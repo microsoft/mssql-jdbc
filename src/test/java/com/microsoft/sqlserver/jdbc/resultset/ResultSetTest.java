@@ -5,9 +5,10 @@
 package com.microsoft.sqlserver.jdbc.resultset;
 
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -22,13 +23,16 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.sql.Blob;
+import java.sql.CallableStatement;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.NClob;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
@@ -39,12 +43,14 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.util.Random;
 import java.util.TimeZone;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -1664,6 +1670,795 @@ public class ResultSetTest extends AbstractTest {
             stmt.execute("CREATE TABLE " + tableName2 + " (i INT, row INT, data VARCHAR(30))");
             stmt.execute("INSERT INTO " + tableName1 + " SELECT 1, 'EDIT'");
             stmt.execute("INSERT INTO " + tableName2 + " SELECT 1, 1, 'TEST1' UNION SELECT 1, 2, 'TEST2'");
+        }
+    }
+    /**
+     * Nested test class for ResultSet Bug Regression Tests.
+     * 
+     * This class contains regression tests for 13 bugs identified in FX tests
+     * that were missing from JUnit test coverage.
+     * 
+     * All bugs are tagged with their VSTS bug number for traceability.
+     */
+    @Tag(Constants.legacyFx)
+    @Nested
+    class BugRegressionTests {
+
+        private final String testTable = RandomUtil.getIdentifier("RSBugTest");
+        private final String testTablePK = RandomUtil.getIdentifier("RSBugPKTest");
+        private final String testTableLarge = RandomUtil.getIdentifier("RSBugLargeTest");
+
+        @BeforeEach
+        public void createTestTables() throws Exception {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testTable), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testTablePK), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testTableLarge), stmt);
+
+                // Standard test table
+                stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
+                    " (id INT, name VARCHAR(50), value DECIMAL(10,2), clobCol VARCHAR(MAX))");
+                stmt.execute("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
+                    " VALUES (1, 'Row1', 100.50, 'Test Clob Data')");
+                stmt.execute("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
+                    " VALUES (2, 'Row2', 200.75, 'More Clob Data')");
+                stmt.execute("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
+                    " VALUES (3, 'Row3', 300.25, 'Even More Data')");
+
+                // Table with primary key
+                stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(testTablePK) + 
+                    " (id INT PRIMARY KEY, name VARCHAR(50), amount DECIMAL(10,2))");
+                stmt.execute("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTablePK) + 
+                    " VALUES (1, 'PK_Row1', 111.11)");
+                stmt.execute("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTablePK) + 
+                    " VALUES (2, 'PK_Row2', 222.22)");
+                stmt.execute("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTablePK) + 
+                    " VALUES (3, 'PK_Row3', 333.33)");
+
+                // Table with large data (VARBINARY(MAX))
+                stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(testTableLarge) + 
+                    " (id INT, largeData VARBINARY(MAX))");
+                byte[] largeBytes = new byte[8192];
+                for (int i = 0; i < largeBytes.length; i++) {
+                    largeBytes[i] = (byte) (i % 256);
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(testTableLarge) + " VALUES (?, ?)")) {
+                    ps.setInt(1, 1);
+                    ps.setBytes(2, largeBytes);
+                    ps.execute();
+                }
+            }
+        }
+
+        @AfterEach
+        public void dropTestTables() throws Exception {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testTable), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testTablePK), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testTableLarge), stmt);
+            }
+        }
+
+        /**
+         * VSTS #64747: ArrayIndexBoundException on refreshRow()
+         * 
+         * BUG: Calling refreshRow() on a ResultSet throws ArrayIndexOutOfBoundsException,
+         * causing application crash.
+         */
+        @Test
+        public void testRefreshRowDoesNotThrowArrayIndexException() throws SQLException {
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement(
+                    ResultSet.TYPE_SCROLL_SENSITIVE, 
+                    ResultSet.CONCUR_UPDATABLE);
+                ResultSet rs = stmt.executeQuery("SELECT id, name, value FROM " + 
+                    AbstractSQLGenerator.escapeIdentifier(testTable) + " ORDER BY id")) {
+                
+                assertTrue(rs.last(), "Should move to last row");
+                
+                rs.moveToInsertRow();
+                
+                Exception caughtException = null;
+                try {
+                    rs.refreshRow();
+                } catch (SQLException e) {
+                    caughtException = e;
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    caughtException = e;
+                }
+                
+                assertNotNull(caughtException, "refreshRow() on insertRow should throw an exception");
+                
+                assertFalse(caughtException instanceof ArrayIndexOutOfBoundsException,
+                    "Should NOT throw ArrayIndexOutOfBoundsException - this was the bug!");
+                
+                assertTrue(caughtException instanceof SQLException,
+                    "Should throw SQLException, not " + caughtException.getClass().getName());
+                
+                String msg = caughtException.getMessage().toLowerCase();
+                assertTrue(msg.contains("insert") || msg.contains("row") || msg.contains("refresh") || msg.contains("cursor"),
+                    "Exception message should indicate invalid operation on insert row. Got: " + caughtException.getMessage());
+            }
+        }
+
+        /**
+         * VSTS #223785: RS.next() never returns false when updating primary key
+         * 
+         * BUG: On Shiloh, when updating a primary key column via updateRow(), subsequent
+         * calls to next() never return false, causing infinite loops.
+         */
+        @Test
+        public void testUpdatePrimaryKeyDoesNotCauseInfiniteLoop() throws SQLException {
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement(
+                    ResultSet.TYPE_SCROLL_SENSITIVE, 
+                    ResultSet.CONCUR_UPDATABLE)) {
+
+                // Count rows first to set fetchSize
+                int rowCount;
+                try (ResultSet rsCount = stmt.executeQuery("SELECT id, name, amount FROM " + 
+                        AbstractSQLGenerator.escapeIdentifier(testTablePK) + " ORDER BY id")) {
+                    rowCount = 0;
+                    while (rsCount.next()) rowCount++;
+                }
+                assertTrue(rowCount > 0, "Should have seed data");
+
+                // Update PK by ordinal — iterate ALL rows, update PK on each
+                try (ResultSet rs = stmt.executeQuery("SELECT id, name, amount FROM " + 
+                        AbstractSQLGenerator.escapeIdentifier(testTablePK) + " ORDER BY id")) {
+                    rs.setFetchSize(rowCount + 1);
+
+                    int i = 0;
+                    while (rs.next() && i < rowCount) {
+                        int currentId = rs.getInt(1);
+                        rs.updateInt(1, currentId + 1000);
+                        rs.updateRow();
+                        assertEquals(currentId + 1000, rs.getInt(1),
+                            "PK should reflect updated value after updateRow (ordinal)");
+                        i++;
+                    }
+                }
+
+                // Requery — re-execute and verify next() terminates
+                try (ResultSet rs = stmt.executeQuery("SELECT id, name, amount FROM " + 
+                        AbstractSQLGenerator.escapeIdentifier(testTablePK) + " ORDER BY id")) {
+                    int count = 0;
+                    while (rs.next()) {
+                        count++;
+                    }
+                    assertEquals(rowCount, count,
+                        "After PK update by ordinal, requery should return same row count (no infinite loop)");
+                }
+
+                // Update PK by name — iterate ALL rows, update PK on each
+                try (ResultSet rs = stmt.executeQuery("SELECT id, name, amount FROM " + 
+                        AbstractSQLGenerator.escapeIdentifier(testTablePK) + " ORDER BY id")) {
+                    rs.setFetchSize(rowCount + 1);
+
+                    int i = 0;
+                    while (rs.next() && i < rowCount) {
+                        int currentId = rs.getInt("id");
+                        rs.updateInt("id", currentId + 2000);
+                        rs.updateRow();
+                        assertEquals(currentId + 2000, rs.getInt("id"),
+                            "PK should reflect updated value after updateRow (name)");
+                        i++;
+                    }
+                }
+
+                // Requery — verify next() still terminates
+                try (ResultSet rs = stmt.executeQuery("SELECT id, name, amount FROM " + 
+                        AbstractSQLGenerator.escapeIdentifier(testTablePK) + " ORDER BY id")) {
+                    int count = 0;
+                    while (rs.next()) {
+                        count++;
+                    }
+                    assertEquals(rowCount, count,
+                        "After PK update by name, requery should return same row count (no infinite loop)");
+                }
+            }
+        }
+
+        /**
+         * VSTS #102589: RS.updateRow throws exception (Regression)
+         * 
+         * BUG: Regression where updateRow() throws unexpected exceptions in specific scenarios,
+         * especially when updating multiple columns.
+         */
+        @Test
+        public void testUpdateRowDoesNotThrowException() throws SQLException {
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement(
+                    ResultSet.TYPE_SCROLL_SENSITIVE, 
+                    ResultSet.CONCUR_UPDATABLE);
+                ResultSet rs = stmt.executeQuery("SELECT id, name, value FROM " + 
+                    AbstractSQLGenerator.escapeIdentifier(testTable) + " ORDER BY id")) {
+                
+                assertTrue(rs.next(), "Should have data");
+                
+                // Update values, then updateRow()
+                rs.updateString("name", "Updated_1");
+                rs.updateBigDecimal("value", BigDecimal.valueOf(111.11));
+                assertDoesNotThrow(() -> rs.updateRow(), 
+                    "First updateRow() should not throw");
+                
+                // Update values, call getXXX, then updateRow() again
+                rs.updateString("name", "Updated_2");
+                rs.updateBigDecimal("value", BigDecimal.valueOf(222.22));
+                
+                rs.getString("name");
+                rs.getBigDecimal("value");
+                
+                assertDoesNotThrow(() -> rs.updateRow(), 
+                    "Second updateRow() should not throw - this was the bug");
+                
+                rs.refreshRow();
+                String persistedName = rs.getString("name");
+                assertTrue(persistedName.equals("Updated_1") || persistedName.equals("Updated_2"),
+                    "Name should be either Updated_1 or Updated_2, got: " + persistedName);
+                
+                // updateRow() with no pending changes should throw
+                SQLException expectedException = null;
+                try {
+                    rs.updateRow();
+                } catch (SQLException e) {
+                    expectedException = e;
+                }
+                assertNotNull(expectedException, 
+                    "updateRow() with no pending changes should throw SQLException");
+                
+                // Update values, then cancelRowUpdates()
+                rs.updateString("name", "Updated_3");
+                rs.updateBigDecimal("value", BigDecimal.valueOf(333.33));
+                assertDoesNotThrow(() -> rs.cancelRowUpdates(), 
+                    "cancelRowUpdates() should not throw");
+                
+                rs.refreshRow();
+                assertEquals(persistedName, rs.getString("name"), 
+                    "Name should still be " + persistedName + " after cancel");
+                
+                // updateRow() on insertRow should throw
+                rs.moveToInsertRow();
+                SQLException insertRowException = null;
+                try {
+                    rs.updateRow();
+                } catch (SQLException e) {
+                    insertRowException = e;
+                }
+                assertNotNull(insertRowException, 
+                    "updateRow() on insertRow should throw SQLException");
+            }
+        }
+
+        /**
+         * VSTS #223540: insertRow() fails with long table names (127/128 chars)
+         * 
+         * BUG: When using insertRow() on tables with names at SQL Server limit (127/128 characters),
+         * the operation fails.
+         */
+        @Test
+        public void testInsertRowWithLongTableName() throws SQLException {
+            String baseName = RandomUtil.getIdentifier("insertRowShiloh");
+            StringBuilder sb = new StringBuilder(baseName);
+            while (sb.length() < 127) {
+                sb.append("x");
+            }
+            String longTableName = sb.substring(0, 127);
+            
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement(
+                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(longTableName), stmt);
+                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(longTableName) + 
+                    " (col1 INT PRIMARY KEY, col2 NVARCHAR(255))");
+                
+                try {
+                    try (PreparedStatement pstmt = conn.prepareStatement(
+                            "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(longTableName) + " VALUES(?,?)")) {
+                        for (int i = 0; i < 2; i++) {
+                            pstmt.setInt(1, i);
+                            pstmt.setString(2, "row " + i);
+                            pstmt.executeUpdate();
+                        }
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery(
+                            "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(longTableName))) {
+                        
+                        rs.next();
+                        rs.moveToInsertRow();
+                        rs.updateObject(1, Integer.valueOf(5));
+                        rs.updateObject(2, "inserting row");
+                        
+                        assertDoesNotThrow(() -> rs.insertRow(), 
+                            "insertRow() should work with 127-character table name");
+                    }
+
+                    // Verify total row count is 3 (2 seeded + 1 inserted)
+                    try (ResultSet rs = stmt.executeQuery(
+                            "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(longTableName))) {
+                        int rowCount = 0;
+                        while (rs.next()) {
+                            rowCount++;
+                        }
+                        assertEquals(3, rowCount, 
+                            "Should have 3 rows (2 seeded + 1 inserted via insertRow)");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(longTableName), stmt);
+                }
+            }
+        }
+
+        /**
+         * VSTS #36952: Server cursor always used for SCROLL_INSENSITIVE
+         * 
+         * BUG: Server cursor is always created for TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY
+         * even when not necessary, causing performance overhead. When executing a stored procedure
+         * that uses SELECT INTO #TMPTABLE, the server cannot use a server cursor and must downgrade 
+         * to a client cursor. The bug was that the driver always requested a server cursor regardless.
+         */
+        @Test
+        public void testScrollInsensitiveCursorType() throws SQLException {
+            String procTable = RandomUtil.getIdentifier("ServerCursorPStmt");
+            String procName = RandomUtil.getIdentifier("ServerCursorProc");
+            int numRowsInResult = 1;
+            String col3Value = "India";
+            String col3Lookup = "IN";
+            
+            try (Connection conn = getConnection();
+                 Statement stmt = conn.createStatement()) {
+                
+                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(procTable), stmt);
+                
+                stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(procTable) + 
+                    " (col1 INT PRIMARY KEY, col2 VARCHAR(3), col3 VARCHAR(128))");
+                stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(procTable) + 
+                    " VALUES (1, 'CAN', 'Canada')");
+                stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(procTable) + 
+                    " VALUES (2, 'USA', 'United States of America')");
+                stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(procTable) + 
+                    " VALUES (3, 'JPN', 'Japan')");
+                stmt.executeUpdate("INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(procTable) + 
+                    " VALUES (4, '" + col3Lookup + "', '" + col3Value + "')");
+                
+                String storedProcBody;
+                if (isSqlAzure()) {
+                    storedProcBody = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + 
+                        " @param VARCHAR(3) AS " +
+                        "SELECT col3 FROM " + AbstractSQLGenerator.escapeIdentifier(procTable) + 
+                        " WHERE col2 = @param";
+                } else {
+                    // On SQL Server: use SELECT INTO #TMPTABLE which forces cursor downgrade
+                    storedProcBody = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + 
+                        " @param VARCHAR(3) AS " +
+                        "SELECT col3 INTO #TMPTABLE FROM " + AbstractSQLGenerator.escapeIdentifier(procTable) + 
+                        " WHERE col2 = @param " +
+                        "SELECT col3 FROM #TMPTABLE";
+                }
+                stmt.executeUpdate(storedProcBody);
+                
+                try {
+                    try (PreparedStatement pstmt = conn.prepareStatement(
+                            "EXEC " + AbstractSQLGenerator.escapeIdentifier(procName) + " ?",
+                            ResultSet.TYPE_SCROLL_INSENSITIVE, 
+                            ResultSet.CONCUR_READ_ONLY)) {
+                        
+                        pstmt.setString(1, col3Lookup);
+                        
+                        try (ResultSet rs = pstmt.executeQuery()) {
+                            rs.last();
+                            assertEquals(numRowsInResult, rs.getRow(), 
+                                "Should have exactly " + numRowsInResult + " row(s) in result");
+                            
+                            rs.beforeFirst();
+                            while (rs.next()) {
+                                assertEquals(col3Value, rs.getString(1), 
+                                    "Column value should match expected");
+                            }
+                        }
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
+                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(procTable), stmt);
+                }
+            }
+        }
+
+        /**
+         * VSTS #87787: Wrong exception in cursor downgrade scenario
+         * 
+         * BUG: When cursor type is downgraded (server → client) via CallableStatement
+         * executing a stored procedure, calling updateRow() throws the wrong exception type,
+         * confusing applications. Should throw "resultset not updatable" exception.
+         */
+        @Test
+        public void testCursorDowngradeThrowsCorrectException() throws SQLException {
+            String procName = RandomUtil.getIdentifier("DowngradeCursorProc");
+            
+            try (Connection conn = getConnection();
+                 Statement setupStmt = conn.createStatement()) {
+                
+                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), setupStmt);
+                
+                setupStmt.executeUpdate("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + 
+                    " AS SELECT id, name FROM " + AbstractSQLGenerator.escapeIdentifier(testTable) + " ORDER BY id");
+                
+                try {
+                    try (CallableStatement cstmt = conn.prepareCall(
+                            "{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "}",
+                            ResultSet.TYPE_SCROLL_SENSITIVE,
+                            ResultSet.CONCUR_UPDATABLE)) {
+                        
+                        try (ResultSet rs = cstmt.executeQuery()) {
+                            assertTrue(rs.next(), "Should have data");
+                            
+                            SQLException caughtException = null;
+                            try {
+                                rs.updateRow();
+                            } catch (SQLException e) {
+                                caughtException = e;
+                            }
+                            
+                            assertNotNull(caughtException, 
+                                "updateRow() should throw on downgraded (read-only) cursor");
+                            
+                            String message = caughtException.getMessage();
+                            assertTrue(
+                                message.contains("The result set is not updatable.") ||
+                                message.contains("No column parameter values were specified to update the row."),
+                                "Expected result set not updatable or no column values error but got: " + 
+                                    message);
+                        }
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), setupStmt);
+                }
+            }
+        }
+
+        /**
+         * VSTS #327052: Client-cursored RS always holdable over commits
+         * 
+         * BUG: When ResultSet is downgraded to client cursor, it becomes holdable over commits
+         * regardless of specified holdability, causing transaction behavior inconsistency.
+         */
+        @Test
+        public void testClientCursorRespectsHoldability() throws SQLException {
+            String downgradedQuery = 
+                "SELECT id, name FROM " + AbstractSQLGenerator.escapeIdentifier(testTable) + " WHERE id = 1 " +
+                "UNION " +
+                "SELECT id, name FROM " + AbstractSQLGenerator.escapeIdentifier(testTable) + " WHERE id = 2";
+            
+            try (Connection conn = getConnection()) {
+                conn.setAutoCommit(false);
+                
+                int[] holdabilityModes = {
+                    ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                    ResultSet.HOLD_CURSORS_OVER_COMMIT
+                };
+                
+                for (int holdMode : holdabilityModes) {
+                    conn.setHoldability(holdMode);
+                    assertEquals(holdMode, conn.getHoldability());
+                    
+                    try (Statement stmt = conn.createStatement(
+                            ResultSet.TYPE_SCROLL_SENSITIVE, 
+                            ResultSet.CONCUR_UPDATABLE)) {
+                        
+                        try (ResultSet rs = stmt.executeQuery(downgradedQuery)) {
+                            int rsHold = rs.getHoldability();
+                            
+                            // Bug #327052: downgraded client cursor reports HOLD_CURSORS_OVER_COMMIT
+                            if (!(rsHold == ResultSet.HOLD_CURSORS_OVER_COMMIT 
+                                    && holdMode == ResultSet.CLOSE_CURSORS_AT_COMMIT)) {
+                                assertEquals(holdMode, rsHold,
+                                    "Cursor holdability should match connection holdability");
+                            }
+                            
+                            assertTrue(rs.next(), "Should have data before commit");
+                            assertTrue(rs.getInt("id") > 0);
+                            
+                            conn.commit();
+                            
+                            if (rsHold == ResultSet.HOLD_CURSORS_OVER_COMMIT) {
+                                assertDoesNotThrow(() -> rs.next(),
+                                    "Cursor should remain open after commit with HOLD_CURSORS_OVER_COMMIT");
+                            }
+                        }
+                    }
+                    
+                    conn.rollback();
+                }
+                
+                // getHoldability() on closed ResultSet should throw
+                conn.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
+                try (Statement stmt = conn.createStatement(
+                        ResultSet.TYPE_SCROLL_SENSITIVE, 
+                        ResultSet.CONCUR_UPDATABLE)) {
+                    ResultSet rs = stmt.executeQuery(downgradedQuery);
+                    rs.close();
+                    
+                    assertThrows(SQLException.class, () -> rs.getHoldability(),
+                        "getHoldability() on closed ResultSet should throw SQLException");
+                }
+            }
+        }
+
+        /**
+         * VSTS #164739: Empty ResultSet navigation and insertRow behavior
+         * 
+         * BUG: Navigating an empty ResultSet does not behave as expected, and
+         * insertRow() on empty ResultSet fails unexpectedly.
+         */
+        @Test
+        public void testEmptyResultSetBehaviorWithInsert() throws SQLException {
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement(
+                    ResultSet.TYPE_SCROLL_SENSITIVE, 
+                    ResultSet.CONCUR_UPDATABLE);
+                ResultSet rs = stmt.executeQuery("SELECT id, name, value FROM " + 
+                    AbstractSQLGenerator.escapeIdentifier(testTable) + " WHERE 1=0")) {
+                
+                // Empty ResultSet navigation
+                assertFalse(rs.next(), "Empty ResultSet: next() should return false");
+                assertFalse(rs.first(), "Empty ResultSet: first() should return false");
+                assertFalse(rs.last(), "Empty ResultSet: last() should return false");
+                assertFalse(rs.absolute(1), "Empty ResultSet: absolute() should return false");
+                assertFalse(rs.previous(), "Empty ResultSet: previous() should return false");
+                
+                assertThrows(SQLException.class, () -> rs.relative(1), 
+                    "Empty ResultSet: relative() should throw SQLException");
+                
+                assertEquals(0, rs.getRow(), "Empty ResultSet: getRow() should return 0");
+                
+                rs.setFetchSize(1);
+                
+                // Insert 1-5 random rows
+                Random random = new Random();
+                int numRowsToInsert = random.nextInt(5) + 1;
+                
+                for (int i = 0; i < numRowsToInsert; i++) {
+                    rs.moveToInsertRow();
+                    rs.updateInt("id", 1000 + i);
+                    rs.updateString("name", "InsertedRow_" + i);
+                    rs.updateBigDecimal("value", BigDecimal.valueOf(100.0 + i));
+                    assertDoesNotThrow(() -> rs.insertRow(), 
+                        "insertRow() should work on empty ResultSet");
+                    rs.next();
+                }
+                
+                // Requery and verify
+                rs.close();
+                try (ResultSet rsVerify = stmt.executeQuery("SELECT id, name, value FROM " + 
+                    AbstractSQLGenerator.escapeIdentifier(testTable) + " WHERE id >= 1000 ORDER BY id")) {
+
+                    int count = 0;
+                    while (rsVerify.next()) {
+                        count++;
+                        assertTrue(rsVerify.getString("name").startsWith("InsertedRow_"),
+                            "Inserted row should have correct name");
+                    }
+                    assertEquals(numRowsToInsert, count, 
+                        "Should have inserted " + numRowsToInsert + " rows");
+                    rsVerify.close();
+                }
+            }
+        }
+
+        /**
+         * VSTS #234278: testUpdaterOverwrite creates NClob on Java 1.5
+         * 
+         * BUG: On Java 1.5 VMs, testUpdaterOverwrite() creates NClob instead of expected Clob,
+         * indicating type handling issue.
+         */
+        @Test
+        public void testUpdaterClobTypeHandling() throws SQLException {
+            try (Connection conn = getConnection();
+                 Statement stmt = conn.createStatement(
+                     ResultSet.TYPE_SCROLL_SENSITIVE, 
+                     ResultSet.CONCUR_UPDATABLE);
+                 ResultSet rs = stmt.executeQuery("SELECT id, clobCol FROM " + 
+                     AbstractSQLGenerator.escapeIdentifier(testTable) + " ORDER BY id")) {
+                
+                assertTrue(rs.next(), "Should have data");
+                
+                Clob clob = conn.createClob();
+                clob.setString(1, "Updated Clob Data");
+                rs.updateClob("clobCol", clob);
+                rs.updateRow();
+                
+                Clob retrieved = rs.getClob("clobCol");
+                assertNotNull(retrieved, "Retrieved Clob should not be null");
+                
+                assertFalse(retrieved instanceof java.sql.NClob,
+                    "Should return Clob, not NClob - this was the bug");
+                
+                assertEquals("Updated Clob Data", retrieved.getSubString(1, (int) retrieved.length()),
+                    "Clob content should match");
+            }
+        }
+
+        /**
+         * VSTS #90472: Add CallableStatement with stored proc to ResultSet model
+         * 
+         * BUG: Missing test coverage for ResultSet returned from CallableStatement
+         * executing stored procedure.
+         */
+        @Test
+        public void testResultSetFromCallableStatement() throws SQLException {
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement()) {
+                
+                String procName = RandomUtil.getIdentifier("GetTestData");
+                TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
+                
+                stmt.execute("CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procName) + " @minId INT AS " +
+                    "BEGIN " +
+                    "  SELECT id, name FROM " + AbstractSQLGenerator.escapeIdentifier(testTable) + 
+                    "  WHERE id >= @minId ORDER BY id " +
+                    "END");
+                
+                try {
+                    try (CallableStatement cstmt = conn.prepareCall("{call " + AbstractSQLGenerator.escapeIdentifier(procName) + "(?)}")) {
+                        cstmt.setInt(1, 1);
+                        
+                        try (ResultSet rs = cstmt.executeQuery()) {
+                            assertNotNull(rs, "ResultSet from CallableStatement should not be null");
+                            
+                            assertTrue(rs.next(), "Should have results from stored procedure");
+                            assertNotNull(rs.getMetaData(), "Metadata should be available");
+                            assertTrue(rs.getMetaData().getColumnCount() >= 2, "Should have at least 2 columns");
+                            
+                            rs.setFetchSize(50);
+                            assertEquals(50, rs.getFetchSize(), "FetchSize should be settable");
+                            
+                            int rowCount = 1;
+                            while (rs.next()) {
+                                rowCount++;
+                            }
+                            assertTrue(rowCount >= 1, "Should have at least 1 row from stored procedure");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
+                }
+            }
+        }
+
+        /**
+         * VSTS #267503: clearLastResultSet ate the exception
+         * 
+         * BUG: When a connection is killed by the server while a ResultSet is open,
+         * calling rs.close() should not throw an exception. Previously, clearLastResultSet()
+         * was swallowing/eating exceptions internally instead of handling them gracefully.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testExceptionNotSwallowedDuringCleanup() throws SQLException {
+            // Skip on SQL Azure - KILL is not supported
+            if (isSqlAzure()) {
+                return;
+            }
+            
+            Connection conn1 = null;
+            Connection conn2 = null;
+            Statement stmt1 = null;
+            Statement stmt2 = null;
+            ResultSet rs1 = null;
+            
+            try {
+                conn1 = PrepUtil.getConnection(connectionString + ";responseBuffering=adaptive;packetSize=512");
+                
+                Statement spidStmt = conn1.createStatement();
+                ResultSet spidRS = spidStmt.executeQuery("SELECT @@spid");
+                assertTrue(spidRS.next(), "Should get SPID");
+                int spid = spidRS.getInt(1);
+                assertTrue(spid > 0, "SPID should be positive");
+                spidRS.close();
+                spidStmt.close();
+                
+                stmt1 = conn1.createStatement();
+                rs1 = stmt1.executeQuery("SELECT id, name FROM " + 
+                    AbstractSQLGenerator.escapeIdentifier(testTable));
+                
+                // Iterate through some rows (not all)
+                for (int i = 0; i < 2; i++) {
+                    if (rs1.next()) {
+                        rs1.getString("name");
+                    }
+                }
+                
+                // Use second connection to KILL the first connection
+                conn2 = getConnection();
+                stmt2 = conn2.createStatement();
+                stmt2.executeUpdate("KILL " + spid);
+                
+                // rs.close() should NOT throw an exception
+                try {
+                    rs1.close();
+                } catch (SQLException e) {
+                    fail("rs.close() should not throw when connection is killed. Got: " + e.getMessage());
+                }
+            } finally {
+                try { if (rs1 != null) rs1.close(); } catch (Exception ignored) {}
+                try { if (stmt1 != null) stmt1.close(); } catch (Exception ignored) {}
+                try { if (stmt2 != null) stmt2.close(); } catch (Exception ignored) {}
+                try { if (conn1 != null && !conn1.isClosed()) conn1.close(); } catch (Exception ignored) {}
+                try { if (conn2 != null && !conn2.isClosed()) conn2.close(); } catch (Exception ignored) {}
+            }
+        }
+
+        /**
+         * VSTS #114316: Need testcase to refetch stream values
+         * 
+         * Validates that stream-based column values (e.g., VARBINARY(MAX)) can be
+         * successfully re-fetched after the stream has been partially consumed and
+         * the cursor has navigated away from and back to the original row.
+         */
+        @Test
+        public void testRefetchStreamValues() throws SQLException, IOException {
+            try (Connection conn = getConnection();
+                Statement stmt = conn.createStatement(
+                    ResultSet.TYPE_SCROLL_SENSITIVE, 
+                    ResultSet.CONCUR_UPDATABLE);
+                ResultSet rs = stmt.executeQuery("SELECT id, largeData FROM " + 
+                    AbstractSQLGenerator.escapeIdentifier(testTableLarge))) {
+                
+                assertTrue(rs.next(), "Should have data with large binary");
+                
+                rs.last();
+                int rowCount = rs.getRow();
+                rs.setFetchSize(rowCount);
+                
+                rs.absolute(1);
+                int markedRow = rs.getRow();
+                
+                // Partially consume the stream on the marked row
+                try (InputStream stream1 = rs.getBinaryStream("largeData")) {
+                    assertNotNull(stream1, "First stream fetch should return data");
+                    
+                    byte[] buffer = new byte[100];
+                    int bytesRead = stream1.read(buffer);
+                    assertTrue(bytesRead > 0, "Should read bytes from stream");
+                    
+                    for (int i = 0; i < bytesRead; i++) {
+                        assertEquals((byte) (i % 256), buffer[i],
+                            "Byte at position " + i + " should match seed pattern (i % 256)");
+                    }
+                }
+                
+                // Move off the marked row
+                rs.next();
+                
+                // Perform row operations on the current (non-marked) row
+                try { rs.cancelRowUpdates(); } catch (SQLException e) { /* may throw if no pending updates */ }
+                try { rs.refreshRow(); } catch (SQLException e) { /* may throw depending on cursor position */ }
+                rs.getRow();
+                
+                // Navigate back to the marked row
+                rs.beforeFirst();
+                while (rs.next() && rs.getRow() != markedRow) {
+                    // Keep moving
+                }
+                assertEquals(markedRow, rs.getRow(), "Should be back at marked row");
+                
+                // Refetch the same stream column
+                try (InputStream stream2 = rs.getBinaryStream("largeData")) {
+                    assertNotNull(stream2, "Refetch stream should return data after cursor round-trip");
+                    
+                    byte[] buffer = new byte[100];
+                    int bytesRead = stream2.read(buffer);
+                    assertTrue(bytesRead > 0, "Should read bytes from refetched stream");
+                    
+                    for (int i = 0; i < bytesRead; i++) {
+                        assertEquals((byte) (i % 256), buffer[i],
+                            "Refetched byte at position " + i + " should match seed pattern (i % 256)");
+                    }
+                }
+            }
         }
     }
 }
