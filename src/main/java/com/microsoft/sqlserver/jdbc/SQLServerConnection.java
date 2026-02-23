@@ -3818,7 +3818,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 int levelNum = Integer.parseInt(transactionIsolationValue);
                 if (connectionlogger.isLoggable(Level.FINE)) {
                     connectionlogger.log(Level.FINE, "{0} Setting transaction isolation level from connection property: {1}",
-                            new Object[] {toString(), levelNum});
+                            new Object[]{toString(), levelNum});
                 }
                 setTransactionIsolation(levelNum);
             } catch (NumberFormatException e) {
