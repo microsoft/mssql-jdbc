@@ -2933,8 +2933,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 calcBigDecimalPrecision = isBooleanPropertyOn(sPropKey, sPropValue);
 
-                // Validate reachable transactionIsolation level before physical connection
-                // to prevent subsequent failed commands.
+                // Here we validate that the transactionIsolation value is one of the levels
+                // supported by SQL Server
+                // before attempting to establish the physical connection, avoiding subsequent
+                // failed commands.
                 sPropKey = SQLServerDriverStringProperty.TRANSACTION_ISOLATION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue && !sPropValue.isEmpty()) {
@@ -3948,8 +3950,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
 
-        // Check transactionIsolation property. Added log block to facilitate handshake
-        // auditing and troubleshooting concurrency or unexpected lock issues.
+        // I have added this preventive log block so that, in case of concurrency
+        // problems or unexpected locks,
+        // it is easy to confirm from the logs what isolation level was requested during
+        // the handshake.
         String transactionIsolationProperty = SQLServerDriverStringProperty.TRANSACTION_ISOLATION.toString();
         String transactionIsolationValue = activeConnectionProperties.getProperty(transactionIsolationProperty);
         if (null != transactionIsolationValue && !transactionIsolationValue.isEmpty()) {
