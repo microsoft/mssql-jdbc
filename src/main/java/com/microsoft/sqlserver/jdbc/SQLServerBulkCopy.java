@@ -1457,6 +1457,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return SSType.VARBINARY.toString() + "(" + bulkPrecision + ")";
 
             case microsoft.sql.Types.VECTOR:
+                // bulkScale is bytes-per-dimension: 4 for FLOAT32, 2 for FLOAT16
+                if (bulkScale == 2) {
+                    return SSType.VECTOR.toString() + "(" + bulkPrecision + ", FLOAT16)";
+                }
                 return SSType.VECTOR.toString() + "(" + bulkPrecision + ")";
             case microsoft.sql.Types.DATETIME:
             case microsoft.sql.Types.SMALLDATETIME:
