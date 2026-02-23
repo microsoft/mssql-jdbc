@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.util.ListResourceBundle;
 
-
 /**
  * Represents a simple resource bundle containing the strings for localizing.
  *
@@ -30,7 +29,8 @@ public final class SQLServerResource extends ListResourceBundle {
     }
 
     /*
-     * The keys must be prefixed with R_ to denote they are resource strings and their names should follow the
+     * The keys must be prefixed with R_ to denote they are resource strings and
+     * their names should follow the
      * camelCasing convention and be descriptive.
      */
     // @formatter:off
@@ -246,6 +246,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_accessTokenCallbackPropertyDescription", "A SQLServerAccessTokenCallback object which is used to call a callback method to return an access token."},
         {"R_quotedIdentifierPropertyDescription", "Indicates whether quotedIdentifier property is set."},
         {"R_concatNullYieldsNullPropertyDescription", "Indicates whether concatNullYieldsNull property is set."},
+        {"R_transactionIsolationPropertyDescription", "The transaction isolation level for the connection."},
         {"R_noParserSupport", "An error occurred while instantiating the required parser. Error: \"{0}\""},
         {"R_writeOnlyXML", "Cannot read from this SQLXML instance. This instance is for writing data only."},
         {"R_dataHasBeenReadXML", "Cannot read from this SQLXML instance. The data has already been read."},
