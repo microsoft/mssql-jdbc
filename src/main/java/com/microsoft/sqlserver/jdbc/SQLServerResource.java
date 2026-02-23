@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.util.ListResourceBundle;
 
+
 /**
  * Represents a simple resource bundle containing the strings for localizing.
  *
@@ -29,8 +30,7 @@ public final class SQLServerResource extends ListResourceBundle {
     }
 
     /*
-     * The keys must be prefixed with R_ to denote they are resource strings and
-     * their names should follow the
+     * The keys must be prefixed with R_ to denote they are resource strings and their names should follow the
      * camelCasing convention and be descriptive.
      */
     // @formatter:off
