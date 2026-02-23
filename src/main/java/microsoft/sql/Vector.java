@@ -13,7 +13,7 @@ import java.util.Arrays;
 public final class Vector implements java.io.Serializable {
 
     public enum VectorDimensionType {
-        // FLOAT16, 16-bit (half precision) float
+        FLOAT16, // 16-bit (half precision) float
         FLOAT32 // 32-bit (single precision) float
     }
 
@@ -121,8 +121,8 @@ public final class Vector implements java.io.Serializable {
         switch (scale) {
             case 4:
                 return VectorDimensionType.FLOAT32;
-            // case 2:
-            // return VectorDimensionType.FLOAT16;
+            case 2:
+                return VectorDimensionType.FLOAT16;
             default:
                 return VectorDimensionType.FLOAT32;
         }

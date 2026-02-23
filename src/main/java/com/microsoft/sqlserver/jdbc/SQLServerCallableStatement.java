@@ -390,9 +390,13 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         checkClosed();
 
         registerOutParameter(index, sqlType);
-        inOutParam[index - 1].setOutScale(scale);
+
         if (microsoft.sql.Types.VECTOR == sqlType) {
-            inOutParam[index - 1].setValueLength(VectorUtils.getDefaultPrecision()); // default 32-bit (single precision) float
+            // For VECTOR, the scale parameter represents the dimension count
+            inOutParam[index - 1].setValueLength(scale);
+            inOutParam[index - 1].setOutScale(VectorUtils.getDefaultPrecision());
+        } else {
+            inOutParam[index - 1].setOutScale(scale);
         }
 
         loggerExternal.exiting(getClassNameLogging(), "registerOutParameter");
@@ -822,7 +826,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             if (returnValue == null) {
                 TypeInfo typeInfo = getterGetParam(index).getTypeInfo();
                 int precision = typeInfo.getPrecision();
-                VectorDimensionType scale = VectorUtils.getVectorDimensionType(typeInfo.getScale());
+                VectorDimensionType scale = VectorUtils.getVectorDimensionType(
+                        VectorUtils.getScaleByte(typeInfo.getScale()));
                 vector = new Vector(precision, scale, null);
             } else {
                 vector = VectorUtils.fromBytes((byte[]) returnValue);

@@ -19,8 +19,8 @@ class VectorUtils {
     private static final int VECTOR_HEADER_LENGTH = 8;
     private static final int BYTES_PER_FLOAT = 4;
     private static final byte SCALE_BYTE_FLOAT32 = 0x00;
-    // private static final int BYTES_PER_SHORT = 2;
-    // private static final byte SCALE_BYTE_FLOAT16 = 0x01;
+    private static final int BYTES_PER_SHORT = 2;
+    private static final byte SCALE_BYTE_FLOAT16 = 0x01;
 
     /**
      * Converts a byte array to a Vector object. The byte array must contain the following:
@@ -44,16 +44,7 @@ class VectorUtils {
         }
 
         int objectCount = (bytes.length - getHeaderLength()) / bytesPerDimension; // 8 bytes for header
-        Object[] objectArray;
-        switch (vectorType) {
-            // case FLOAT16:
-            // objectArray = new Short[objectCount];
-            // break;
-            case FLOAT32:
-            default:
-                objectArray = new Float[objectCount];
-                break;
-        }
+        Object[] objectArray = new Float[objectCount]; // Always Float[] for user - conversion handled internally
 
         ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
 
@@ -65,7 +56,12 @@ class VectorUtils {
         ((Buffer) buffer).position(getHeaderLength()); // Skip the first 8 bytes (header)
 
         for (int i = 0; i < objectCount; i++) {
-            objectArray[i] = buffer.getFloat();
+            if (vectorType == VectorDimensionType.FLOAT16) {
+                // Server sends 2-byte float16, convert to 4-byte float for user
+                objectArray[i] = float16ToFloat(buffer.getShort());
+            } else {
+                objectArray[i] = buffer.getFloat(); // Read 4 bytes for FLOAT32
+            }
         }
 
         return new Vector(objectCount, vectorType, objectArray);
@@ -97,11 +93,12 @@ class VectorUtils {
 
         Object[] data = vector.getData();
         switch (vector.getVectorDimensionType()) {
-            // case FLOAT16:
-            //     for (Object value : data) {
-            //         buffer.putShort((short) ((Number) value).intValue());
-            //     }
-            //     break;
+            case FLOAT16:
+                for (Object value : data) {
+                    value = floatToFloat16((Float) value);
+                    buffer.putShort((short) ((Number) value).intValue());
+                }
+                break;
             case FLOAT32:
             default:
                 for (Object value : data) {
@@ -129,8 +126,8 @@ class VectorUtils {
         switch (scaleByte) {
             case 0:
                 return VectorDimensionType.FLOAT32;
-            // case 1:
-            // return VectorDimensionType.FLOAT16;
+            case 1:
+                return VectorDimensionType.FLOAT16;
             default:
                 return VectorDimensionType.FLOAT32;
         }
@@ -152,8 +149,8 @@ class VectorUtils {
         switch (scaleByte) {
             case 0:
                 return BYTES_PER_FLOAT;
-            // case 1:
-            // return BYTES_PER_SHORT;
+            case 1:
+                return BYTES_PER_SHORT;
             default:
                 return BYTES_PER_FLOAT;
         }
@@ -165,8 +162,8 @@ class VectorUtils {
      */
     static int getBytesPerDimensionFromScale(VectorDimensionType vectorType) {
         switch (vectorType) {
-            // case FLOAT16:
-            // return BYTES_PER_SHORT;
+            case FLOAT16:
+                return BYTES_PER_SHORT;
             case FLOAT32:
             default:
                 return BYTES_PER_FLOAT;
@@ -179,8 +176,8 @@ class VectorUtils {
      */
     static byte getScaleByte(VectorDimensionType vectorType) {
         switch (vectorType) {
-            // case FLOAT16:
-            // return SCALE_BYTE_FLOAT16;
+            case FLOAT16:
+                return SCALE_BYTE_FLOAT16;
             case FLOAT32:
             default:
                 return SCALE_BYTE_FLOAT32;
@@ -193,8 +190,8 @@ class VectorUtils {
      */
     static byte getScaleByte(int scale) {
         switch (scale) {
-            // case BYTES_PER_SHORT:
-            // return SCALE_BYTE_FLOAT16;
+            case BYTES_PER_SHORT:
+                return SCALE_BYTE_FLOAT16;
             case BYTES_PER_FLOAT:
             default:
                 return SCALE_BYTE_FLOAT32;
@@ -208,9 +205,9 @@ class VectorUtils {
     static int getVectorLength(Vector vector) {
         int bytesPerDimension;
         switch (vector.getVectorDimensionType()) {
-            // case FLOAT16:
-            // bytesPerDimension = BYTES_PER_SHORT;
-            // break;
+            case FLOAT16:
+                bytesPerDimension = BYTES_PER_SHORT;
+                break;
             case FLOAT32:
             default:
                 bytesPerDimension = BYTES_PER_FLOAT;
@@ -230,22 +227,36 @@ class VectorUtils {
     /**
      * Returns the SQL type definition string for a vector parameter.
      * 
-     * @param vector      The vector instance (may be null for output-only
-     *                    parameters)
-     * @param scale       Number of bytes per dimension (e.g., 4 for FLOAT32, 2 for
-     *                    FLOAT16)
-     * @param isOutput    True if the parameter is an output parameter
-     * @param outScale    Output parameter's bytes per dimension (if applicable)
-     * @param valueLength The value length for output parameters
-     * @return SQL type definition string, e.g., VECTOR(128)
+     * @param vector             The vector instance (may be null for output-only
+     *                           parameters)
+     * @param scale              Number of bytes per dimension (e.g., 4 for FLOAT32, 2 for
+     *                           FLOAT16)
+     * @param isOutput           True if the parameter is an output parameter
+     * @param outScale           Output parameter's bytes per dimension (if applicable)
+     * @param valueLength        The value length for output parameters
+     * @param negotiatedVersion  The negotiated vector version (1 for v1, 2 for v2)
+     * @return SQL type definition string, e.g., VECTOR(3, FLOAT16) or VECTOR(3)
      */
-    static String getTypeDefinition(Vector vector, int scale, boolean isOutput, int outScale, int valueLength) {
+    static String getTypeDefinition(Vector vector, int scale, boolean isOutput, int outScale, int valueLength,
+            byte negotiatedVersion) {
         int precision = 0;
-        if (isOutput && scale < outScale) {
+        if (isOutput && vector == null) {
             precision = valueLength;
         } else if (vector != null) {
             precision = vector.getDimensionCount();
         }
+
+        // V1: Only FLOAT32 is supported, use VECTOR(dimensionCount)
+        // V2: Explicitly specify type for both FLOAT32 and FLOAT16
+        //     VECTOR(dimensionCount, FLOAT32) or VECTOR(dimensionCount, FLOAT16)
+        if (negotiatedVersion >= 2) {
+            if (scale == BYTES_PER_SHORT) {
+                return "VECTOR(" + precision + ", FLOAT16)";
+            } else {
+                return "VECTOR(" + precision + ", FLOAT32)";
+            }
+        }
+        // V1: FLOAT32 only - use VECTOR(dimensionCount)
         return "VECTOR(" + precision + ")";
     }
 
