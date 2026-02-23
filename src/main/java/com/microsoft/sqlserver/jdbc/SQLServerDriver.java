@@ -663,7 +663,9 @@ enum SQLServerDriverStringProperty {
     QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.ON.toString()),
     CONCAT_NULL_YIELDS_NULL("concatNullYieldsNull", OnOffOption.ON.toString()),
     VECTOR_TYPE_SUPPORT("vectorTypeSupport", VectorTypeSupport.V1.toString()),
-    // Property added for visibility in JDBC introspection tools.
+    // The property has been added at the end of the enum following the driver's
+    // order, and it has been included in
+    // getPropertyInfo to be visible in JDBC introspection tools.
     TRANSACTION_ISOLATION("transactionIsolation", null);
 
     private final String name;
