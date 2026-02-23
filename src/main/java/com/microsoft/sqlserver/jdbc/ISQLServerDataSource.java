@@ -7,9 +7,9 @@ package com.microsoft.sqlserver.jdbc;
 
 import org.ietf.jgss.GSSCredential;
 
-
 /**
- * Provides a factory to create connections to the data source represented by this object. This interface was added in
+ * Provides a factory to create connections to the data source represented by
+ * this object. This interface was added in
  * SQL Server JDBC Driver 3.0.
  * 
  * This interface is implemented by {@link SQLServerDataSource} Class.
@@ -20,7 +20,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the application intent.
      * 
      * @param applicationIntent
-     *        A String that contains the application intent.
+     *                          A String that contains the application intent.
      */
     void setApplicationIntent(String applicationIntent);
 
@@ -35,14 +35,15 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the application name.
      * 
      * @param applicationName
-     *        A String that contains the name of the application.
+     *                        A String that contains the name of the application.
      */
     void setApplicationName(String applicationName);
 
     /**
      * Returns the application name.
      * 
-     * @return A String that contains the application name, or "Microsoft JDBC Driver for SQL Server" if no value is
+     * @return A String that contains the application name, or "Microsoft JDBC
+     *         Driver for SQL Server" if no value is
      *         set.
      */
     String getApplicationName();
@@ -51,7 +52,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the database name to connect to.
      * 
      * @param databaseName
-     *        A String that contains the database name.
+     *                     A String that contains the database name.
      */
     void setDatabaseName(String databaseName);
 
@@ -66,7 +67,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the SQL Server instance name.
      * 
      * @param instanceName
-     *        A String that contains the instance name.
+     *                     A String that contains the instance name.
      */
     void setInstanceName(String instanceName);
 
@@ -78,23 +79,26 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getInstanceName();
 
     /**
-     * Sets a Boolean value that indicates if the integratedSecurity property is enabled.
+     * Sets a Boolean value that indicates if the integratedSecurity property is
+     * enabled.
      * 
      * @param enable
-     *        true if integratedSecurity is enabled. Otherwise, false.
+     *               true if integratedSecurity is enabled. Otherwise, false.
      */
     void setIntegratedSecurity(boolean enable);
 
     /**
-     * Sets a Boolean value that indicates if the lastUpdateCount property is enabled.
+     * Sets a Boolean value that indicates if the lastUpdateCount property is
+     * enabled.
      * 
      * @param lastUpdateCount
-     *        true if lastUpdateCount is enabled. Otherwise, false.
+     *                        true if lastUpdateCount is enabled. Otherwise, false.
      */
     void setLastUpdateCount(boolean lastUpdateCount);
 
     /**
-     * Returns a Boolean value that indicates if the lastUpdateCount property is enabled.
+     * Returns a Boolean value that indicates if the lastUpdateCount property is
+     * enabled.
      * 
      * @return true if lastUpdateCount is enabled. Otherwise, false.
      */
@@ -104,7 +108,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the option whether TLS encryption is used.
      * 
      * @param encryptOption
-     *        TLS encrypt option. Default is "true"
+     *                      TLS encrypt option. Default is "true"
      */
     void setEncrypt(String encryptOption);
 
@@ -112,8 +116,9 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the option whether TLS encryption is used.
      * 
      * @param encryptOption
-     *        TLS encrypt option. Default is true
-     * @deprecated Use {@link ISQLServerDataSource#setEncrypt(String encryptOption)} instead
+     *                      TLS encrypt option. Default is true
+     * @deprecated Use {@link ISQLServerDataSource#setEncrypt(String encryptOption)}
+     *             instead
      */
     @Deprecated(since = "10.1.0", forRemoval = true)
     void setEncrypt(boolean encryptOption);
@@ -136,26 +141,34 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the connection property 'serverCertificate' on the connection.
      *
      * @param cert
-     *        The path to the server certificate.
+     *             The path to the server certificate.
      */
     void setServerCertificate(String cert);
 
     /**
-     * Sets the value to enable/disable Transparent Network IP Resolution (TNIR). Beginning in version 6.0 of the
-     * Microsoft JDBC Driver for SQL Server, a new connection property transparentNetworkIPResolution (TNIR) is added
-     * for transparent connection to Always On availability groups or to a server which has multiple IP addresses
-     * associated. When transparentNetworkIPResolution is true, the driver attempts to connect to the first IP address
-     * available. If the first attempt fails, the driver tries to connect to all IP addresses in parallel until the
-     * timeout expires, discarding any pending connection attempts when one of them succeeds.
+     * Sets the value to enable/disable Transparent Network IP Resolution (TNIR).
+     * Beginning in version 6.0 of the
+     * Microsoft JDBC Driver for SQL Server, a new connection property
+     * transparentNetworkIPResolution (TNIR) is added
+     * for transparent connection to Always On availability groups or to a server
+     * which has multiple IP addresses
+     * associated. When transparentNetworkIPResolution is true, the driver attempts
+     * to connect to the first IP address
+     * available. If the first attempt fails, the driver tries to connect to all IP
+     * addresses in parallel until the
+     * timeout expires, discarding any pending connection attempts when one of them
+     * succeeds.
      * <p>
      * transparentNetworkIPResolution is ignored if multiSubnetFailover is true
      * <p>
      * transparentNetworkIPResolution is ignored if database mirroring is used
      * <p>
-     * transparentNetworkIPResolution is ignored if there are more than 64 IP addresses
+     * transparentNetworkIPResolution is ignored if there are more than 64 IP
+     * addresses
      * 
      * @param tnir
-     *        if set to true, the driver attempts to connect to the first IP address available. It is true by default.
+     *             if set to true, the driver attempts to connect to the first IP
+     *             address available. It is true by default.
      */
     void setTransparentNetworkIPResolution(boolean tnir);
 
@@ -167,19 +180,24 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getTransparentNetworkIPResolution();
 
     /**
-     * Sets a boolean value that indicates if the trustServerCertificate property is enabled.
+     * Sets a boolean value that indicates if the trustServerCertificate property is
+     * enabled.
      * 
      * @param e
-     *        true, if the server Secure Sockets Layer (SSL) certificate should be automatically trusted when the
-     *        communication layer is encrypted using SSL. false, if server SLL certificate should not be trusted
-     *        certificate location, if encrypt=strict
+     *          true, if the server Secure Sockets Layer (SSL) certificate should be
+     *          automatically trusted when the
+     *          communication layer is encrypted using SSL. false, if server SLL
+     *          certificate should not be trusted
+     *          certificate location, if encrypt=strict
      */
     void setTrustServerCertificate(boolean e);
 
     /**
-     * Returns a boolean value that indicates if the trustServerCertificate property is enabled.
+     * Returns a boolean value that indicates if the trustServerCertificate property
+     * is enabled.
      * 
-     * @return true if trustServerCertificate is enabled. Otherwise, false. If encrypt=strict, returns server
+     * @return true if trustServerCertificate is enabled. Otherwise, false. If
+     *         encrypt=strict, returns server
      *         certificate location
      */
     boolean getTrustServerCertificate();
@@ -188,7 +206,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the keystore type for the trustStore.
      * 
      * @param trustStoreType
-     *        A String that contains the trust store type
+     *                       A String that contains the trust store type
      */
     void setTrustStoreType(String trustStoreType);
 
@@ -203,14 +221,16 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the path (including file name) to the certificate trustStore file.
      * 
      * @param trustStore
-     *        A String that contains the path (including file name) to the certificate trustStore file.
+     *                   A String that contains the path (including file name) to
+     *                   the certificate trustStore file.
      */
     void setTrustStore(String trustStore);
 
     /**
      * Returns the path (including file name) to the certificate trustStore file.
      * 
-     * @return trustStore A String that contains the path (including file name) to the certificate trustStore file, or
+     * @return trustStore A String that contains the path (including file name) to
+     *         the certificate trustStore file, or
      *         null if no value is set.
      */
     String getTrustStore();
@@ -219,38 +239,45 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the password that is used to check the integrity of the trustStore data.
      * 
      * @param trustStorePassword
-     *        A String that contains the password that is used to check the integrity of the trustStore data.
+     *                           A String that contains the password that is used to
+     *                           check the integrity of the trustStore data.
      */
     void setTrustStorePassword(String trustStorePassword);
 
     /**
-     * Sets the host name to be used in validating the SQL Server Secure Sockets Layer (SSL) certificate.
+     * Sets the host name to be used in validating the SQL Server Secure Sockets
+     * Layer (SSL) certificate.
      * 
      * @param hostName
-     *        A String that contains the host name.
+     *                 A String that contains the host name.
      */
     void setHostNameInCertificate(String hostName);
 
     /**
-     * Returns the host name used in validating the SQL Server Secure Sockets Layer (SSL) certificate.
+     * Returns the host name used in validating the SQL Server Secure Sockets Layer
+     * (SSL) certificate.
      * 
      * @return A String that contains the host name, or null if no value is set.
      */
     String getHostNameInCertificate();
 
     /**
-     * Sets an int value that indicates the number of milliseconds to wait before the database reports a lock time out.
+     * Sets an int value that indicates the number of milliseconds to wait before
+     * the database reports a lock time out.
      * 
      * @param lockTimeout
-     *        An int value that contains the number of milliseconds to wait.
+     *                    An int value that contains the number of milliseconds to
+     *                    wait.
      */
     void setLockTimeout(int lockTimeout);
 
     /**
-     * Returns an int value that indicates the number of milliseconds that the database will wait before reporting a
+     * Returns an int value that indicates the number of milliseconds that the
+     * database will wait before reporting a
      * lock time out.
      * 
-     * @return An int value that contains the number of milliseconds that the database will wait.
+     * @return An int value that contains the number of milliseconds that the
+     *         database will wait.
      */
     int getLockTimeout();
 
@@ -258,7 +285,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the password that will be used to connect to SQL Server.
      * 
      * @param password
-     *        A String that contains the password.
+     *                 A String that contains the password.
      */
     void setPassword(String password);
 
@@ -266,7 +293,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the port number to be used to communicate with SQL Server.
      * 
      * @param portNumber
-     *        An int value that contains the port number.
+     *                   An int value that contains the port number.
      */
     void setPortNumber(int portNumber);
 
@@ -278,16 +305,18 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     int getPortNumber();
 
     /**
-     * Sets the default cursor type that is used for all result sets that are created by using this SQLServerDataSource
+     * Sets the default cursor type that is used for all result sets that are
+     * created by using this SQLServerDataSource
      * object.
      * 
      * @param selectMethod
-     *        A String value that contains the default cursor type.
+     *                     A String value that contains the default cursor type.
      */
     void setSelectMethod(String selectMethod);
 
     /**
-     * Returns the default cursor type used for all result sets that are created by using this SQLServerDataSource
+     * Returns the default cursor type used for all result sets that are created by
+     * using this SQLServerDataSource
      * object.
      * 
      * @return A String value that contains the default cursor type.
@@ -295,11 +324,13 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getSelectMethod();
 
     /**
-     * Sets the response buffering mode for connections created by using this SQLServerDataSource object.
+     * Sets the response buffering mode for connections created by using this
+     * SQLServerDataSource object.
      * 
      * @param bufferingMode
-     *        A String that contains the buffering and streaming mode. The valid mode can be one of the following
-     *        case-insensitive Strings: full or adaptive.
+     *                      A String that contains the buffering and streaming mode.
+     *                      The valid mode can be one of the following
+     *                      case-insensitive Strings: full or adaptive.
      */
     void setResponseBuffering(String bufferingMode);
 
@@ -314,14 +345,16 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the value to enable/disable the replication connection property.
      * 
      * @param replication
-     *        A Boolean value. When true, tells the server that the connection is used for replication.
+     *                    A Boolean value. When true, tells the server that the
+     *                    connection is used for replication.
      */
     void setReplication(boolean replication);
 
     /**
      * Returns the value of the replication connection property.
      * 
-     * @return true if the connection is to be used for replication. Otherwise false.
+     * @return true if the connection is to be used for replication. Otherwise
+     *         false.
      */
     boolean getReplication();
 
@@ -329,17 +362,23 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the value to enable/disable the sendTimeAsDatetime connection property.
      * 
      * @param sendTimeAsDatetime
-     *        A Boolean value. When true, causes java.sql.Time values to be sent to the server as SQL Server datetime
-     *        types. When false, causes java.sql.Time values to be sent to the server as SQL Server time types.
+     *                           A Boolean value. When true, causes java.sql.Time
+     *                           values to be sent to the server as SQL Server
+     *                           datetime
+     *                           types. When false, causes java.sql.Time values to
+     *                           be sent to the server as SQL Server time types.
      */
     void setSendTimeAsDatetime(boolean sendTimeAsDatetime);
 
     /**
-     * Returns the value of the sendTimeAsDatetime connection property. This method was added in SQL Server JDBC Driver
+     * Returns the value of the sendTimeAsDatetime connection property. This method
+     * was added in SQL Server JDBC Driver
      * 3.0. Returns the setting of the sendTimeAsDatetime connection property.
      * 
-     * @return true if java.sql.Time values will be sent to the server as a SQL Server datetime type. false if
-     *         java.sql.Time values will be sent to the server as a SQL Server time type.
+     * @return true if java.sql.Time values will be sent to the server as a SQL
+     *         Server datetime type. false if
+     *         java.sql.Time values will be sent to the server as a SQL Server time
+     *         type.
      */
     boolean getSendTimeAsDatetime();
 
@@ -347,13 +386,15 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the SQL server datatype to use for Java datetime and timestamp values.
      * 
      * @param datetimeParameterType
-     *        The SQL datatype to use when encoding Java dates for SQL Server. Valid values are:
-     *        datetime, datetime2 or datetimeoffset.
+     *                              The SQL datatype to use when encoding Java dates
+     *                              for SQL Server. Valid values are:
+     *                              datetime, datetime2 or datetimeoffset.
      */
     void setDatetimeParameterType(String datetimeParameterType);
 
     /**
-     * Returns the value of the datetimeParameterType connection property. This method was added in SQL Server JDBC Driver
+     * Returns the value of the datetimeParameterType connection property. This
+     * method was added in SQL Server JDBC Driver
      * 12.2. Returns the setting of the datetimeParameterType connection property.
      * 
      * @return Returns the value of the datetimeParameterType property.
@@ -361,30 +402,38 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getDatetimeParameterType();
 
     /**
-     * Sets a boolean value that indicates if sending string parameters to the server in UNICODE format is enabled.
+     * Sets a boolean value that indicates if sending string parameters to the
+     * server in UNICODE format is enabled.
      * 
      * @param sendStringParametersAsUnicode
-     *        true if string parameters are sent to the server in UNICODE format. Otherwise, false.
+     *                                      true if string parameters are sent to
+     *                                      the server in UNICODE format. Otherwise,
+     *                                      false.
      */
     void setSendStringParametersAsUnicode(boolean sendStringParametersAsUnicode);
 
     /**
-     * Returns whether sending string parameters to the server in UNICODE format is enabled.
+     * Returns whether sending string parameters to the server in UNICODE format is
+     * enabled.
      * 
-     * @return true if string parameters are sent to the server in UNICODE format. Otherwise, false.
+     * @return true if string parameters are sent to the server in UNICODE format.
+     *         Otherwise, false.
      */
     boolean getSendStringParametersAsUnicode();
 
     /**
-     * Sets whether the serverName will be translated from Unicode to ASCII Compatible Encoding (ACE).
+     * Sets whether the serverName will be translated from Unicode to ASCII
+     * Compatible Encoding (ACE).
      * 
      * @param serverNameAsACE
-     *        if enabled the servername will be translated to ASCII Compatible Encoding (ACE)
+     *                        if enabled the servername will be translated to ASCII
+     *                        Compatible Encoding (ACE)
      */
     void setServerNameAsACE(boolean serverNameAsACE);
 
     /**
-     * Returns if the serverName should be translated from Unicode to ASCII Compatible Encoding (ACE).
+     * Returns if the serverName should be translated from Unicode to ASCII
+     * Compatible Encoding (ACE).
      * 
      * @return if enabled, will return true. Otherwise, false.
      */
@@ -394,7 +443,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the name of the computer that is running SQL Server.
      * 
      * @param serverName
-     *        A String that contains the server name.
+     *                   A String that contains the server name.
      */
     void setServerName(String serverName);
 
@@ -409,7 +458,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the name of the preferred type of IP Address.
      * 
      * @param iPAddressPreference
-     *        A String that contains the preferred type of IP Address.
+     *                            A String that contains the preferred type of IP
+     *                            Address.
      */
     void setIPAddressPreference(String iPAddressPreference);
 
@@ -422,17 +472,20 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getIPAddressPreference();
 
     /**
-     * Sets the name of the failover server that is used in a database mirroring configuration.
+     * Sets the name of the failover server that is used in a database mirroring
+     * configuration.
      * 
      * @param serverName
-     *        A String that contains the failover server name.
+     *                   A String that contains the failover server name.
      */
     void setFailoverPartner(String serverName);
 
     /**
-     * Returns the name of the failover server that is used in a database mirroring configuration.
+     * Returns the name of the failover server that is used in a database mirroring
+     * configuration.
      * 
-     * @return A String that contains the name of the failover partner, or null if none is set.
+     * @return A String that contains the name of the failover partner, or null if
+     *         none is set.
      */
     String getFailoverPartner();
 
@@ -440,14 +493,16 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the value of the multiSubnetFailover connection property.
      * 
      * @param multiSubnetFailover
-     *        The new value of the multiSubnetFailover connection property.
+     *                            The new value of the multiSubnetFailover
+     *                            connection property.
      */
     void setMultiSubnetFailover(boolean multiSubnetFailover);
 
     /**
      * Returns the value of the multiSubnetFailover connection property.
      * 
-     * @return Returns true or false, depending on the current setting of the connection property.
+     * @return Returns true or false, depending on the current setting of the
+     *         connection property.
      */
     boolean getMultiSubnetFailover();
 
@@ -455,7 +510,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the user name that is used to connect the data source.
      * 
      * @param user
-     *        A String that contains the user name.
+     *             A String that contains the user name.
      */
     void setUser(String user);
 
@@ -467,15 +522,17 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getUser();
 
     /**
-     * Sets the name of the client computer name that is used to connect to the data source.
+     * Sets the name of the client computer name that is used to connect to the data
+     * source.
      * 
      * @param workstationID
-     *        A String that contains the client computer name.
+     *                      A String that contains the client computer name.
      */
     void setWorkstationID(String workstationID);
 
     /**
-     * Returns the name of the client computer name that is used to connect to the data source.
+     * Returns the name of the client computer name that is used to connect to the
+     * data source.
      * 
      * @return A String that contains the client computer name.
      */
@@ -485,14 +542,17 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets whether converting SQL states to XOPEN compliant states is enabled.
      * 
      * @param xopenStates
-     *        true if converting SQL states to XOPEN compliant states is enabled. Otherwise, false.
+     *                    true if converting SQL states to XOPEN compliant states is
+     *                    enabled. Otherwise, false.
      */
     void setXopenStates(boolean xopenStates);
 
     /**
-     * Returns the value that indicates if converting SQL states to XOPEN compliant states is enabled.
+     * Returns the value that indicates if converting SQL states to XOPEN compliant
+     * states is enabled.
      * 
-     * @return true if converting SQL states to XOPEN compliant states is enabled. Otherwise, false.
+     * @return true if converting SQL states to XOPEN compliant states is enabled.
+     *         Otherwise, false.
      */
     boolean getXopenStates();
 
@@ -500,7 +560,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the URL that is used to connect to the data source.
      * 
      * @param url
-     *        A String that contains the URL.
+     *            A String that contains the URL.
      */
     void setURL(String url);
 
@@ -515,27 +575,30 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the description of the data source.
      * 
      * @param description
-     *        A String that contains the description.
+     *                    A String that contains the description.
      */
     void setDescription(String description);
 
     /**
      * Returns a description of the data source.
      * 
-     * @return A String that contains the data source description or null if no value is set.
+     * @return A String that contains the data source description or null if no
+     *         value is set.
      */
     String getDescription();
 
     /**
-     * Sets the current network packet size used to communicate with SQL Server, specified in bytes.
+     * Sets the current network packet size used to communicate with SQL Server,
+     * specified in bytes.
      * 
      * @param packetSize
-     *        An int value containing the network packet size.
+     *                   An int value containing the network packet size.
      */
     void setPacketSize(int packetSize);
 
     /**
-     * Returns the current network packet size used to communicate with SQL Server, specified in bytes.
+     * Returns the current network packet size used to communicate with SQL Server,
+     * specified in bytes.
      * 
      * @return An int value containing the current network packet size.
      */
@@ -545,7 +608,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the kind of integrated security you want your application to use.
      * 
      * @param authenticationScheme
-     *        Values are "JavaKerberos" and the default "NativeAuthentication".
+     *                             Values are "JavaKerberos" and the default
+     *                             "NativeAuthentication".
      */
     void setAuthenticationScheme(String authenticationScheme);
 
@@ -553,7 +617,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the authentication mode.
      * 
      * @param authentication
-     *        the authentication mode
+     *                       the authentication mode
      */
     void setAuthentication(String authentication);
 
@@ -568,7 +632,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the realm for Kerberos authentication.
      * 
      * @param realm
-     *        A String that contains the realm
+     *              A String that contains the realm
      */
     void setRealm(String realm);
 
@@ -583,7 +647,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the server spn.
      * 
      * @param serverSpn
-     *        A String that contains the server spn
+     *                  A String that contains the server spn
      */
     void setServerSpn(String serverSpn);
 
@@ -598,7 +662,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the value to indicate whether useDefaultGSSCredential is enabled.
      *
      * @param enable
-     *        true if useDefaultGSSCredential is enabled. Otherwise, false.
+     *               true if useDefaultGSSCredential is enabled. Otherwise, false.
      */
     void setUseDefaultGSSCredential(boolean enable);
 
@@ -613,7 +677,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the GSSCredential.
      *
      * @param userCredential
-     *        the credential
+     *                       the credential
      */
     void setGSSCredentials(GSSCredential userCredential);
 
@@ -628,7 +692,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the access token.
      * 
      * @param accessToken
-     *        to be set in the string property.
+     *                    to be set in the string property.
      */
     void setAccessToken(String accessToken);
 
@@ -640,52 +704,65 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getAccessToken();
 
     /**
-     * Sets the value to enable/disable Always Encrypted functionality for the data source object. The default is
+     * Sets the value to enable/disable Always Encrypted functionality for the data
+     * source object. The default is
      * Disabled.
      * 
      * @param columnEncryptionSetting
-     *        Enables/disables Always Encrypted functionality for the data source object. The default is Disabled.
+     *                                Enables/disables Always Encrypted
+     *                                functionality for the data source object. The
+     *                                default is Disabled.
      */
     void setColumnEncryptionSetting(String columnEncryptionSetting);
 
     /**
-     * Returns the Always Encrypted functionality setting for the data source object.
+     * Returns the Always Encrypted functionality setting for the data source
+     * object.
      * 
-     * @return the Always Encrypted functionality setting for the data source object.
+     * @return the Always Encrypted functionality setting for the data source
+     *         object.
      */
     String getColumnEncryptionSetting();
 
     /**
-     * Sets the name that identifies a key store. Only value supported is the "JavaKeyStorePassword" for identifying the
+     * Sets the name that identifies a key store. Only value supported is the
+     * "JavaKeyStorePassword" for identifying the
      * Java Key Store. The default is null.
      * 
      * @param keyStoreAuthentication
-     *        the name that identifies a key store.
+     *                               the name that identifies a key store.
      */
     void setKeyStoreAuthentication(String keyStoreAuthentication);
 
     /**
-     * Returns the value of the keyStoreAuthentication setting for the data source object.
+     * Returns the value of the keyStoreAuthentication setting for the data source
+     * object.
      * 
-     * @return the value of the keyStoreAuthentication setting for the data source object.
+     * @return the value of the keyStoreAuthentication setting for the data source
+     *         object.
      */
     String getKeyStoreAuthentication();
 
     /**
-     * Sets the password for the Java keystore. Note that, for Java Key Store provider the password for the keystore and
-     * the key must be the same. Note that, keyStoreAuthentication must be set with "JavaKeyStorePassword".
+     * Sets the password for the Java keystore. Note that, for Java Key Store
+     * provider the password for the keystore and
+     * the key must be the same. Note that, keyStoreAuthentication must be set with
+     * "JavaKeyStorePassword".
      * 
      * @param keyStoreSecret
-     *        the password to use for the keystore as well as for the key
+     *                       the password to use for the keystore as well as for the
+     *                       key
      */
     void setKeyStoreSecret(String keyStoreSecret);
 
     /**
-     * Sets the location including the file name for the Java keystore. Note that, keyStoreAuthentication must be set
+     * Sets the location including the file name for the Java keystore. Note that,
+     * keyStoreAuthentication must be set
      * with "JavaKeyStorePassword".
      * 
      * @param keyStoreLocation
-     *        the location including the file name for the Java keystore.
+     *                         the location including the file name for the Java
+     *                         keystore.
      */
     void setKeyStoreLocation(String keyStoreLocation);
 
@@ -700,15 +777,17 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Setting the query timeout.
      * 
      * @param queryTimeout
-     *        The number of seconds to wait before a timeout has occurred on a query. The default value is 0, which
-     *        means infinite timeout.
+     *                     The number of seconds to wait before a timeout has
+     *                     occurred on a query. The default value is 0, which
+     *                     means infinite timeout.
      */
     void setQueryTimeout(int queryTimeout);
 
     /**
      * Returns the query timeout.
      * 
-     * @return The number of seconds to wait before a timeout has occurred on a query.
+     * @return The number of seconds to wait before a timeout has occurred on a
+     *         query.
      */
     int getQueryTimeout();
 
@@ -716,54 +795,74 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the cancel timeout.
      * 
      * @param cancelQueryTimeout
-     *        The number of seconds to wait before we wait for the query timeout to happen.
+     *                           The number of seconds to wait before we wait for
+     *                           the query timeout to happen.
      */
     void setCancelQueryTimeout(int cancelQueryTimeout);
 
     /**
      * Returns the cancel timeout.
      * 
-     * @return the number of seconds to wait before we wait for the query timeout to happen.
+     * @return the number of seconds to wait before we wait for the query timeout to
+     *         happen.
      */
     int getCancelQueryTimeout();
 
     /**
-     * Sets the value that enables/disables whether the first execution of a prepared statement will call sp_executesql
-     * and not prepare a statement. If this configuration is false the first execution of a prepared statement will call
-     * sp_executesql and not prepare a statement, once the second execution happens it will call sp_prepexec and
-     * actually setup a prepared statement handle. Following executions will call sp_execute. This relieves the need for
-     * sp_unprepare on prepared statement close if the statement is only executed once.
+     * Sets the value that enables/disables whether the first execution of a
+     * prepared statement will call sp_executesql
+     * and not prepare a statement. If this configuration is false the first
+     * execution of a prepared statement will call
+     * sp_executesql and not prepare a statement, once the second execution happens
+     * it will call sp_prepexec and
+     * actually setup a prepared statement handle. Following executions will call
+     * sp_execute. This relieves the need for
+     * sp_unprepare on prepared statement close if the statement is only executed
+     * once.
      * 
      * @param enablePrepareOnFirstPreparedStatementCall
-     *        Changes the setting per the description.
+     *                                                  Changes the setting per the
+     *                                                  description.
      */
     void setEnablePrepareOnFirstPreparedStatementCall(boolean enablePrepareOnFirstPreparedStatementCall);
 
     /**
-     * Returns the value that indicates whether the first execution of a prepared statement will call sp_executesql and
-     * not prepare a statement. If this configuration returns false the first execution of a prepared statement will
-     * call sp_executesql and not prepare a statement, once the second execution happens it will call sp_prepexec and
-     * actually setup a prepared statement handle. Following executions will call sp_execute. This relieves the need for
-     * sp_unprepare on prepared statement close if the statement is only executed once.
+     * Returns the value that indicates whether the first execution of a prepared
+     * statement will call sp_executesql and
+     * not prepare a statement. If this configuration returns false the first
+     * execution of a prepared statement will
+     * call sp_executesql and not prepare a statement, once the second execution
+     * happens it will call sp_prepexec and
+     * actually setup a prepared statement handle. Following executions will call
+     * sp_execute. This relieves the need for
+     * sp_unprepare on prepared statement close if the statement is only executed
+     * once.
      * 
      * @return Returns the current setting per the description.
      */
     boolean getEnablePrepareOnFirstPreparedStatementCall();
 
     /**
-     * Sets the value that controls how many outstanding prepared statement discard actions (sp_unprepare) can be
-     * outstanding per connection before a call to clean-up the outstanding handles on the server is executed. If the
-     * setting is {@literal <=} 1 unprepare actions will be executed immedietely on prepared statement close. If it is
-     * set to {@literal >} 1 these calls will be batched together to avoid overhead of calling sp_unprepare too often.
+     * Sets the value that controls how many outstanding prepared statement discard
+     * actions (sp_unprepare) can be
+     * outstanding per connection before a call to clean-up the outstanding handles
+     * on the server is executed. If the
+     * setting is {@literal <=} 1 unprepare actions will be executed immedietely on
+     * prepared statement close. If it is
+     * set to {@literal >} 1 these calls will be batched together to avoid overhead
+     * of calling sp_unprepare too often.
      * 
      * @param serverPreparedStatementDiscardThreshold
-     *        Changes the setting per the description.
+     *                                                Changes the setting per the
+     *                                                description.
      */
     void setServerPreparedStatementDiscardThreshold(int serverPreparedStatementDiscardThreshold);
 
     /**
-     * Returns the value of the setting that controls how many outstanding prepared statement discard actions
-     * (sp_unprepare) can be outstanding per connection before a call to clean-up the outstanding handles on the server
+     * Returns the value of the setting that controls how many outstanding prepared
+     * statement discard actions
+     * (sp_unprepare) can be outstanding per connection before a call to clean-up
+     * the outstanding handles on the server
      * is executed.
      * 
      * @return Returns the current setting per the description.
@@ -771,15 +870,17 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     int getServerPreparedStatementDiscardThreshold();
 
     /**
-     * Sets the size of the prepared statement cache for this connection. A value less than 1 means no cache.
+     * Sets the size of the prepared statement cache for this connection. A value
+     * less than 1 means no cache.
      * 
      * @param statementPoolingCacheSize
-     *        Changes the setting per the description.
+     *                                  Changes the setting per the description.
      */
     void setStatementPoolingCacheSize(int statementPoolingCacheSize);
 
     /**
-     * Returns the size of the prepared statement cache for this connection. A value less than 1 means no cache.
+     * Returns the size of the prepared statement cache for this connection. A value
+     * less than 1 means no cache.
      * 
      * @return Returns the current setting per the description.
      */
@@ -789,7 +890,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the value to disable/enable statement pooling.
      * 
      * @param disableStatementPooling
-     *        true to disable statement pooling, false to enable it.
+     *                                true to disable statement pooling, false to
+     *                                enable it.
      */
     void setDisableStatementPooling(boolean disableStatementPooling);
 
@@ -804,25 +906,30 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the socket timeout value.
      * 
      * @param socketTimeout
-     *        The number of milliseconds to wait before a timeout is occurred on a socket read or accept. The default
-     *        value is 0, which means infinite timeout.
+     *                      The number of milliseconds to wait before a timeout is
+     *                      occurred on a socket read or accept. The default
+     *                      value is 0, which means infinite timeout.
      */
     void setSocketTimeout(int socketTimeout);
 
     /**
      * Returns the socket timeout value.
      * 
-     * @return The number of milliseconds to wait before a timeout is occurred on a socket read or accept.
+     * @return The number of milliseconds to wait before a timeout is occurred on a
+     *         socket read or accept.
      */
     int getSocketTimeout();
 
     /**
-     * Sets the login configuration name for Kerberos authentication. This overrides the default configuration <i>
+     * Sets the login configuration name for Kerberos authentication. This overrides
+     * the default configuration <i>
      * SQLJDBCDriver </i>
      * 
      * @param configurationName
-     *        the configuration name
-     * @deprecated Use {@link ISQLServerDataSource#setJAASConfigurationName(String configurationName)} instead
+     *                          the configuration name
+     * @deprecated Use
+     *             {@link ISQLServerDataSource#setJAASConfigurationName(String configurationName)}
+     *             instead
      * 
      */
     @Deprecated(since = "9.3.0", forRemoval = true)
@@ -833,19 +940,21 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *
      * 
      * @return login configuration file name
-     * @deprecated Use {@link ISQLServerDataSource#getJAASConfigurationName()} instead
+     * @deprecated Use {@link ISQLServerDataSource#getJAASConfigurationName()}
+     *             instead
      * 
      */
     @Deprecated(since = "9.3.0", forRemoval = true)
     String getJASSConfigurationName();
 
     /**
-     * Sets the login configuration name for Kerberos authentication. This overrides the default configuration <i>
+     * Sets the login configuration name for Kerberos authentication. This overrides
+     * the default configuration <i>
      * SQLJDBCDriver </i>
      * 
      * 
      * @param configurationName
-     *        the configuration name
+     *                          the configuration name
      */
     void setJAASConfigurationName(String configurationName);
 
@@ -864,37 +973,43 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getUseDefaultJaasConfig();
 
     /**
-     * Sets whether the default JAAS Configuration will be used. This means the system-wide JAAS configuration
-     * is ignored to avoid conflicts with libraries that override the JAAS configuration.
+     * Sets whether the default JAAS Configuration will be used. This means the
+     * system-wide JAAS configuration
+     * is ignored to avoid conflicts with libraries that override the JAAS
+     * configuration.
      *
      * @param useDefaultJaasConfig
-     *        boolean property to use the default JAAS configuration
+     *                             boolean property to use the default JAAS
+     *                             configuration
      */
     void setUseDefaultJaasConfig(boolean useDefaultJaasConfig);
 
     /**
-     * Sets whether Fips Mode should be enabled/disabled on the connection. For FIPS enabled JVM this property should be
+     * Sets whether Fips Mode should be enabled/disabled on the connection. For FIPS
+     * enabled JVM this property should be
      * true.
      * 
      * @param fips
-     *        Boolean property to enable/disable fips
+     *             Boolean property to enable/disable fips
      */
     void setFIPS(boolean fips);
 
     /**
-     * Returns the value of connection property "fips". For FIPS enabled JVM this property should be true.
+     * Returns the value of connection property "fips". For FIPS enabled JVM this
+     * property should be true.
      * 
      * @return fips boolean value
      */
     boolean getFIPS();
 
     /**
-     * Sets the sslProtocol property for connection Set this value to specify TLS protocol keyword.
+     * Sets the sslProtocol property for connection Set this value to specify TLS
+     * protocol keyword.
      * 
      * Acceptable values are: TLS, TLSv1, TLSv1.1, and TLSv1.2.
      * 
      * @param sslProtocol
-     *        Value for SSL Protocol to be set.
+     *                    Value for SSL Protocol to be set.
      */
     void setSSLProtocol(String sslProtocol);
 
@@ -916,7 +1031,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the connection property 'socketFactoryClass' on the connection.
      *
      * @param socketFactoryClass
-     *        The fully qualified class name of a custom javax.net.SocketFactory.
+     *                           The fully qualified class name of a custom
+     *                           javax.net.SocketFactory.
      */
     void setSocketFactoryClass(String socketFactoryClass);
 
@@ -928,10 +1044,11 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getSocketFactoryConstructorArg();
 
     /**
-     * Sets Constructor Arguments to be provided on constructor of 'socketFactoryClass'.
+     * Sets Constructor Arguments to be provided on constructor of
+     * 'socketFactoryClass'.
      *
      * @param socketFactoryConstructorArg
-     *        'socketFactoryClass' constructor arguments
+     *                                    'socketFactoryClass' constructor arguments
      */
     void setSocketFactoryConstructorArg(String socketFactoryConstructorArg);
 
@@ -939,7 +1056,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the connection property 'trustManagerClass' on the connection.
      * 
      * @param trustManagerClass
-     *        The fully qualified class name of a custom javax.net.ssl.TrustManager.
+     *                          The fully qualified class name of a custom
+     *                          javax.net.ssl.TrustManager.
      */
     void setTrustManagerClass(String trustManagerClass);
 
@@ -951,10 +1069,11 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getTrustManagerClass();
 
     /**
-     * Sets Constructor Arguments to be provided on constructor of 'trustManagerClass'.
+     * Sets Constructor Arguments to be provided on constructor of
+     * 'trustManagerClass'.
      * 
      * @param trustManagerConstructorArg
-     *        'trustManagerClass' constructor arguments
+     *                                   'trustManagerClass' constructor arguments
      */
     void setTrustManagerConstructorArg(String trustManagerConstructorArg);
 
@@ -968,7 +1087,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     /**
      * Returns whether the use Bulk Copy API is used for Batch Insert.
      * 
-     * @return whether the driver should use Bulk Copy API for Batch Insert operations.
+     * @return whether the driver should use Bulk Copy API for Batch Insert
+     *         operations.
      */
     boolean getUseBulkCopyForBatchInsert();
 
@@ -976,112 +1096,158 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets whether the use Bulk Copy API should be used for Batch Insert.
      * 
      * @param useBulkCopyForBatchInsert
-     *        indicates whether Bulk Copy API should be used for Batch Insert operations.
+     *                                  indicates whether Bulk Copy API should be
+     *                                  used for Batch Insert operations.
      */
     void setUseBulkCopyForBatchInsert(boolean useBulkCopyForBatchInsert);
 
     /**
-     * Sets the default batch size for bulk copy operations created from batch insert operations.
+     * Sets the default batch size for bulk copy operations created from batch
+     * insert operations.
      * 
      * @param bulkCopyForBatchInsertBatchSize
-     *        the default batch size for bulk copy operations created from batch insert operations.
+     *                                        the default batch size for bulk copy
+     *                                        operations created from batch insert
+     *                                        operations.
      */
     void setBulkCopyForBatchInsertBatchSize(int bulkCopyForBatchInsertBatchSize);
 
     /**
-     * Returns the default batch size for bulk copy operations created from batch insert operations.
+     * Returns the default batch size for bulk copy operations created from batch
+     * insert operations.
      * 
-     * @return the default batch size for bulk copy operations created from batch insert operations.
+     * @return the default batch size for bulk copy operations created from batch
+     *         insert operations.
      */
     int getBulkCopyForBatchInsertBatchSize();
 
     /**
-     * Sets whether to check constraints during bulk copy operations created from batch insert operations.
+     * Sets whether to check constraints during bulk copy operations created from
+     * batch insert operations.
      * 
      * @param bulkCopyForBatchInsertCheckConstraints
-     *        indicates whether to check constraints during bulk copy operations created from batch insert operations.
+     *                                               indicates whether to check
+     *                                               constraints during bulk copy
+     *                                               operations created from batch
+     *                                               insert operations.
      */
     void setBulkCopyForBatchInsertCheckConstraints(boolean bulkCopyForBatchInsertCheckConstraints);
 
     /**
-     * Returns whether to check constraints during bulk copy operations created from batch insert operations.
+     * Returns whether to check constraints during bulk copy operations created from
+     * batch insert operations.
      * 
-     * @return whether to check constraints during bulk copy operations created from batch insert operations.
+     * @return whether to check constraints during bulk copy operations created from
+     *         batch insert operations.
      */
     boolean getBulkCopyForBatchInsertCheckConstraints();
 
     /**
-     * Sets whether to fire triggers during bulk copy operations created from batch insert operations.
+     * Sets whether to fire triggers during bulk copy operations created from batch
+     * insert operations.
      * 
      * @param bulkCopyForBatchInsertFireTriggers
-     *        indicates whether to fire triggers during bulk copy operations created from batch insert operations.
+     *                                           indicates whether to fire triggers
+     *                                           during bulk copy operations created
+     *                                           from batch insert operations.
      */
     void setBulkCopyForBatchInsertFireTriggers(boolean bulkCopyForBatchInsertFireTriggers);
 
     /**
-     * Returns whether to fire triggers during bulk copy operations created from batch insert operations.
+     * Returns whether to fire triggers during bulk copy operations created from
+     * batch insert operations.
      * 
-     * @return whether to fire triggers during bulk copy operations created from batch insert operations.
+     * @return whether to fire triggers during bulk copy operations created from
+     *         batch insert operations.
      */
     boolean getBulkCopyForBatchInsertFireTriggers();
 
     /**
-     * Sets whether to keep identity values during bulk copy operations created from batch insert operations.
+     * Sets whether to keep identity values during bulk copy operations created from
+     * batch insert operations.
      * 
      * @param bulkCopyForBatchInsertKeepIdentity
-     *        indicates whether to keep identity values during bulk copy operations created from batch insert operations.
+     *                                           indicates whether to keep identity
+     *                                           values during bulk copy operations
+     *                                           created from batch insert
+     *                                           operations.
      */
     void setBulkCopyForBatchInsertKeepIdentity(boolean bulkCopyForBatchInsertKeepIdentity);
 
     /**
-     * Returns whether to keep identity values during bulk copy operations created from batch insert operations.
+     * Returns whether to keep identity values during bulk copy operations created
+     * from batch insert operations.
      * 
-     * @return whether to keep identity values during bulk copy operations created from batch insert operations.
+     * @return whether to keep identity values during bulk copy operations created
+     *         from batch insert operations.
      */
     boolean getBulkCopyForBatchInsertKeepIdentity();
 
     /**
-     * Sets whether to keep null values during bulk copy operations created from batch insert operations.
+     * Sets whether to keep null values during bulk copy operations created from
+     * batch insert operations.
      * 
      * @param bulkCopyForBatchInsertKeepNulls
-     *        indicates whether to keep null values during bulk copy operations created from batch insert operations.
+     *                                        indicates whether to keep null values
+     *                                        during bulk copy operations created
+     *                                        from batch insert operations.
      */
     void setBulkCopyForBatchInsertKeepNulls(boolean bulkCopyForBatchInsertKeepNulls);
 
     /**
-     * Returns whether to keep null values during bulk copy operations created from batch insert operations.
+     * Returns whether to keep null values during bulk copy operations created from
+     * batch insert operations.
      * 
-     * @return whether to keep null values during bulk copy operations created from batch insert operations.
+     * @return whether to keep null values during bulk copy operations created from
+     *         batch insert operations.
      */
     boolean getBulkCopyForBatchInsertKeepNulls();
 
     /**
-     * Sets whether to use table lock during bulk copy operations created from batch insert operations.
+     * Sets whether to use table lock during bulk copy operations created from batch
+     * insert operations.
      * 
      * @param bulkCopyForBatchInsertTableLock
-     *        indicates whether to use table lock during bulk copy operations created from batch insert operations.
+     *                                        indicates whether to use table lock
+     *                                        during bulk copy operations created
+     *                                        from batch insert operations.
      */
     void setBulkCopyForBatchInsertTableLock(boolean bulkCopyForBatchInsertTableLock);
 
     /**
-     * Returns whether to use table lock during bulk copy operations created from batch insert operations.
+     * Returns whether to use table lock during bulk copy operations created from
+     * batch insert operations.
      * 
-     * @return whether to use table lock during bulk copy operations created from batch insert operations.
+     * @return whether to use table lock during bulk copy operations created from
+     *         batch insert operations.
      */
     boolean getBulkCopyForBatchInsertTableLock();
 
     /**
-     * Sets whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
+     * Sets whether to allow encrypted value modifications during bulk copy
+     * operations created from batch insert operations.
      * 
      * @param bulkCopyForBatchInsertAllowEncryptedValueModifications
-     *        indicates whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
+     *                                                               indicates
+     *                                                               whether to
+     *                                                               allow encrypted
+     *                                                               value
+     *                                                               modifications
+     *                                                               during bulk
+     *                                                               copy operations
+     *                                                               created from
+     *                                                               batch insert
+     *                                                               operations.
      */
-    void setBulkCopyForBatchInsertAllowEncryptedValueModifications(boolean bulkCopyForBatchInsertAllowEncryptedValueModifications);
+    void setBulkCopyForBatchInsertAllowEncryptedValueModifications(
+            boolean bulkCopyForBatchInsertAllowEncryptedValueModifications);
 
     /**
-     * Returns whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
+     * Returns whether to allow encrypted value modifications during bulk copy
+     * operations created from batch insert operations.
      * 
-     * @return whether to allow encrypted value modifications during bulk copy operations created from batch insert operations.
+     * @return whether to allow encrypted value modifications during bulk copy
+     *         operations created from batch insert operations.
      */
     boolean getBulkCopyForBatchInsertAllowEncryptedValueModifications();
 
@@ -1089,12 +1255,13 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the value of the vectorTypeSupport connection property.
      *
      * @param vectorTypeSupport
-     * A string that indicates the vector type support during connection initialization.
-     * Valid values are :
-     * - "off" (vector types are returned as strings)
-     * - "v1" (supports float32 vector type)
-     * - "v2" (supports float32 and float16 vector types)
-     * Default is "v1".
+     *                          A string that indicates the vector type support
+     *                          during connection initialization.
+     *                          Valid values are :
+     *                          - "off" (vector types are returned as strings)
+     *                          - "v1" (supports float32 vector type)
+     *                          - "v2" (supports float32 and float16 vector types)
+     *                          Default is "v1".
      */
     void setVectorTypeSupport(String vectorTypeSupport);
 
@@ -1105,12 +1272,14 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *         The current vector type support setting ("off"|"v1"|"v2").
      */
     String getVectorTypeSupport();
-        
+
     /**
-     * Sets the client id to be used to retrieve the access token for a user-assigned Managed Identity.
+     * Sets the client id to be used to retrieve the access token for a
+     * user-assigned Managed Identity.
      * 
      * @param managedIdentityClientId
-     *        Client ID of the user-assigned Managed Identity.
+     *                                Client ID of the user-assigned Managed
+     *                                Identity.
      * @deprecated Use {@link ISQLServerDataSource#setUser(String user)} instead.
      */
     @Deprecated(since = "12.1.0", forRemoval = true)
@@ -1131,10 +1300,10 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * 
      * @param keyStorePrincipalId
      * 
-     *        <pre>
+     *                            <pre>
      *        When keyStoreAuthentication = keyVaultClientSecret, set this value to a valid Azure Active Directory Application Client ID.
      *        When keyStoreAuthentication = keyVaultManagedIdentity, set this value to a valid Azure Active Directory Application Object ID (optional, for user-assigned only).
-     *        </pre>
+     *                            </pre>
      */
     void setKeyStorePrincipalId(String keyStorePrincipalId);
 
@@ -1146,10 +1315,12 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getKeyStorePrincipalId();
 
     /**
-     * Sets the Azure Key Vault (AKV) Provider Client Id to provided value to be used for column encryption.
+     * Sets the Azure Key Vault (AKV) Provider Client Id to provided value to be
+     * used for column encryption.
      * 
      * @param keyVaultProviderClientId
-     *        Client Id of Azure Key Vault (AKV) Provider to be used for column encryption.
+     *                                 Client Id of Azure Key Vault (AKV) Provider
+     *                                 to be used for column encryption.
      */
     void setKeyVaultProviderClientId(String keyVaultProviderClientId);
 
@@ -1161,10 +1332,12 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getKeyVaultProviderClientId();
 
     /**
-     * Sets the Azure Key Vault (AKV) Provider Client Key to provided value to be used for column encryption.
+     * Sets the Azure Key Vault (AKV) Provider Client Key to provided value to be
+     * used for column encryption.
      * 
      * @param keyVaultProviderClientKey
-     *        Client Key of Azure Key Vault (AKV) Provider to be used for column encryption.
+     *                                  Client Key of Azure Key Vault (AKV) Provider
+     *                                  to be used for column encryption.
      */
     void setKeyVaultProviderClientKey(String keyVaultProviderClientKey);
 
@@ -1179,7 +1352,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the 'domain' connection property used for NTLM Authentication.
      *
      * @param domain
-     *        Windows domain name
+     *               Windows domain name
      */
     void setDomain(String domain);
 
@@ -1194,37 +1367,41 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Specifies the flag to use FMTONLY for parameter metadata queries.
      *
      * @param useFmtOnly
-     *        boolean value for 'useFmtOnly'.
+     *                   boolean value for 'useFmtOnly'.
      */
     void setUseFmtOnly(boolean useFmtOnly);
 
     /**
-     * Returns the enclave attestation URL used in Always Encrypted with Secure Enclaves.
+     * Returns the enclave attestation URL used in Always Encrypted with Secure
+     * Enclaves.
      * 
      * @return enclave attestation URL.
      */
     String getEnclaveAttestationUrl();
 
     /**
-     * Sets the enclave attestation URL used in Always Encrypted with Secure Enclaves.
+     * Sets the enclave attestation URL used in Always Encrypted with Secure
+     * Enclaves.
      * 
      * @param url
-     *        Enclave attestation URL.
+     *            Enclave attestation URL.
      */
     void setEnclaveAttestationUrl(String url);
 
     /**
-     * Returns the enclave attestation protocol used in Always Encrypted with Secure Enclaves.
+     * Returns the enclave attestation protocol used in Always Encrypted with Secure
+     * Enclaves.
      * 
      * @return Enclave attestation protocol.
      */
     String getEnclaveAttestationProtocol();
 
     /**
-     * Sets the enclave attestation protocol to be used in Always Encrypted with Secure Enclaves.
+     * Sets the enclave attestation protocol to be used in Always Encrypted with
+     * Secure Enclaves.
      * 
      * @param protocol
-     *        Enclave attestation protocol.
+     *                 Enclave attestation protocol.
      */
     void setEnclaveAttestationProtocol(String protocol);
 
@@ -1239,7 +1416,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets client certificate path for client certificate authentication.
      * 
      * @param certPath
-     *        Client certificate path.
+     *                 Client certificate path.
      */
     void setClientCertificate(String certPath);
 
@@ -1254,15 +1431,16 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets Private key file path for client certificate authentication.
      * 
      * @param keyPath
-     *        Private key file path.
+     *                Private key file path.
      */
     void setClientKey(String keyPath);
 
     /**
-     * Sets the password to be used for Private key provided by the user for client certificate authentication.
+     * Sets the password to be used for Private key provided by the user for client
+     * certificate authentication.
      * 
      * @param password
-     *        Private key password.
+     *                 Private key password.
      */
     void setClientKeyPassword(String password);
 
@@ -1270,7 +1448,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Specifies the flag to load LOBs instead of streaming them.
      *
      * @param delayLoadingLobs
-     *        boolean value for 'delayLoadingLobs'.
+     *                         boolean value for 'delayLoadingLobs'.
      */
     void setDelayLoadingLobs(boolean delayLoadingLobs);
 
@@ -1292,7 +1470,8 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Specifies the flag to send temporal datatypes as String for Bulk Copy.
      * 
      * @param sendTemporalDataTypesAsStringForBulkCopy
-     *        boolean value for 'sendTemporalDataTypesAsStringForBulkCopy'.
+     *                                                 boolean value for
+     *                                                 'sendTemporalDataTypesAsStringForBulkCopy'.
      */
     void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
 
@@ -1308,22 +1487,25 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
 
     /**
      *
-     * Sets the 'AADSecurePrincipalId' connection property used for Active Directory Service Principal authentication.
+     * Sets the 'AADSecurePrincipalId' connection property used for Active Directory
+     * Service Principal authentication.
      * 
      * @param aadSecurePrincipalId
-     *        Active Directory Service Principal Id.
+     *                             Active Directory Service Principal Id.
      * @deprecated Use {@link ISQLServerDataSource#setUser(String user)} instead
      */
     @Deprecated(since = "9.4.1", forRemoval = true)
     void setAADSecurePrincipalId(String aadSecurePrincipalId);
 
     /**
-     * Sets the 'AADSecurePrincipalSecret' connection property used for Active Directory Service Principal
+     * Sets the 'AADSecurePrincipalSecret' connection property used for Active
+     * Directory Service Principal
      * authentication.
      * 
      * @param aadSecurePrincipalSecret
-     *        Active Directory Service Principal secret.
-     * @deprecated Use {@link ISQLServerDataSource#setPassword(String password)} instead
+     *                                 Active Directory Service Principal secret.
+     * @deprecated Use {@link ISQLServerDataSource#setPassword(String password)}
+     *             instead
      */
     @Deprecated(since = "9.4.1", forRemoval = true)
     void setAADSecurePrincipalSecret(String aadSecurePrincipalSecret);
@@ -1339,7 +1521,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the value for 'maxResultBuffer' property
      *
      * @param maxResultBuffer
-     *        String value for 'maxResultBuffer'
+     *                        String value for 'maxResultBuffer'
      */
     void setMaxResultBuffer(String maxResultBuffer);
 
@@ -1347,27 +1529,30 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the maximum number of attempts to reestablish a broken connection.
      *
      * @param connectRetryCount
-     *        maximum number of attempts
+     *                          maximum number of attempts
      */
     void setConnectRetryCount(int connectRetryCount);
 
     /**
-     * Returns the maximum number of attempts set to reestablish a broken connection.
+     * Returns the maximum number of attempts set to reestablish a broken
+     * connection.
      *
      * @return maximum number of attempts
      */
     int getConnectRetryCount();
 
     /**
-     * Sets the interval, in seconds, between attempts to reestablish a broken connection.
+     * Sets the interval, in seconds, between attempts to reestablish a broken
+     * connection.
      *
      * @param connectRetryInterval
-     *        interval in seconds
+     *                             interval in seconds
      */
     void setConnectRetryInterval(int connectRetryInterval);
 
     /**
-     * Returns the interval set, in seconds, between attempts to reestablish a broken connection.
+     * Returns the interval set, in seconds, between attempts to reestablish a
+     * broken connection.
      *
      * @return interval in seconds
      */
@@ -1377,7 +1562,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the behavior for the prepare method. {@link PrepareMethod}
      *
      * @param prepareMethod
-     *        Changes the setting as per description
+     *                      Changes the setting as per description
      */
     void setPrepareMethod(String prepareMethod);
 
@@ -1393,7 +1578,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * This method is a no-op for backwards compatibility only.
      *
      * @param timeToLive
-     *        Time-to-live is no longer supported.
+     *                   Time-to-live is no longer supported.
      * 
      * @deprecated
      */
@@ -1415,19 +1600,21 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the {@link SQLServerAccessTokenCallback} delegate.
      *
      * @param accessTokenCallback
-     *        Access token callback delegate.
+     *                            Access token callback delegate.
      */
     void setAccessTokenCallback(SQLServerAccessTokenCallback accessTokenCallback);
 
     /**
-     * Returns a {@link SQLServerAccessTokenCallback}, the access token callback delegate.
+     * Returns a {@link SQLServerAccessTokenCallback}, the access token callback
+     * delegate.
      *
      * @return Access token callback delegate.
      */
     SQLServerAccessTokenCallback getAccessTokenCallback();
 
     /**
-     * Returns the fully qualified class name of the implementing class for {@link SQLServerAccessTokenCallback}.
+     * Returns the fully qualified class name of the implementing class for
+     * {@link SQLServerAccessTokenCallback}.
      *
      * @return accessTokenCallbackClass
      */
@@ -1438,7 +1625,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * of the implementing class for {@link SQLServerAccessTokenCallback}.
      *
      * @param accessTokenCallbackClass
-     *        access token callback class
+     *                                 access token callback class
      * 
      */
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
@@ -1447,7 +1634,9 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Returns value of 'calcBigDecimalPrecision' from Connection String.
      *
      * @param calcBigDecimalPrecision
-     *        indicates whether the driver should attempt to calculate precision from inputted big decimal values
+     *                                indicates whether the driver should attempt to
+     *                                calculate precision from inputted big decimal
+     *                                values
      */
     void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision);
 
@@ -1462,7 +1651,9 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Returns value of 'cacheBulkCopyMetadata' from Connection String.
      *
      * @param cacheBulkCopyMetadata
-     *        indicates whether the driver should use connection level caching of metadata for bulk copy
+     *                              indicates whether the driver should use
+     *                              connection level caching of metadata for bulk
+     *                              copy
      */
     void setcacheBulkCopyMetadata(boolean cacheBulkCopyMetadata);
 
@@ -1477,7 +1668,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Returns value of 'retryExec' from Connection String.
      *
      * @param retryExec
-     *        Set of rules used for statement (execution) retry
+     *                  Set of rules used for statement (execution) retry
      */
     void setRetryExec(String retryExec);
 
@@ -1493,7 +1684,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Returns value of 'retryConn' from Connection String.
      *
      * @param retryConn
-     *          Set of rules used for connection retry
+     *                  Set of rules used for connection retry
      */
     void setRetryConn(String retryConn);
 
@@ -1506,23 +1697,34 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     String getRetryConn();
 
     /**
-     * useFlexibleCallableStatements is temporarily removed. This is meant as a no-op.
+     * useFlexibleCallableStatements is temporarily removed. This is meant as a
+     * no-op.
      *
      * Sets whether or not sp_sproc_columns will be used for parameter name lookup.
      *
      * @param useFlexibleCallableStatements
-     *        When set to false, sp_sproc_columns is not used for parameter name lookup
-     *        in callable statements. This eliminates a round trip to the server but imposes limitations
-     *        on how parameters are set. When set to false, applications must either reference
-     *        parameters by name or by index, not both. Parameters must also be set in the same
-     *        order as the stored procedure definition.
+     *                                      When set to false, sp_sproc_columns is
+     *                                      not used for parameter name lookup
+     *                                      in callable statements. This eliminates
+     *                                      a round trip to the server but imposes
+     *                                      limitations
+     *                                      on how parameters are set. When set to
+     *                                      false, applications must either
+     *                                      reference
+     *                                      parameters by name or by index, not
+     *                                      both. Parameters must also be set in the
+     *                                      same
+     *                                      order as the stored procedure
+     *                                      definition.
      */
     void setUseFlexibleCallableStatements(boolean useFlexibleCallableStatements);
 
     /**
-     * useFlexibleCallableStatements is temporarily removed. This is meant as a no-op.
+     * useFlexibleCallableStatements is temporarily removed. This is meant as a
+     * no-op.
      *
-     * Returns whether or not sp_sproc_columns is being used for parameter name lookup.
+     * Returns whether or not sp_sproc_columns is being used for parameter name
+     * lookup.
      *
      * @return useFlexibleCallableStatements
      */
@@ -1540,7 +1742,7 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the value for 'quotedIdentifier' property
      *
      * @param quotedIdentifier
-     *        boolean value
+     *                         boolean value
      * 
      */
     void setQuotedIdentifier(String quotedIdentifier);
@@ -1557,8 +1759,24 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Sets the value for 'concatNullYieldsNull' property
      *
      * @param concatNullYieldsNull
-     *        boolean value
+     *                             boolean value
      * 
      */
     void setConcatNullYieldsNull(String concatNullYieldsNull);
+
+    /**
+     * Sets the transaction isolation level for the connection.
+     * 
+     * @param level
+     *              An int that contains the transaction isolation level.
+     */
+    void setTransactionIsolation(int level);
+
+    /**
+     * Returns the transaction isolation level.
+     * 
+     * @return transactionIsolation An int that contains the transaction isolation
+     *         level.
+     */
+    int getTransactionIsolation();
 }
