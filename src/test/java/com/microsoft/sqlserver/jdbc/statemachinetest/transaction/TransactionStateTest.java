@@ -43,7 +43,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * - commit() - Commit transaction (requires autoCommit=false)
  * - rollback() - Rollback transaction (requires autoCommit=false)
  */
-@Tag(Constants.legacyFX)
+@Tag(Constants.legacyFx)
 public class TransactionStateTest extends AbstractTest {
 
     private static final String TABLE_NAME_CONST = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SM_Transaction_Test"));

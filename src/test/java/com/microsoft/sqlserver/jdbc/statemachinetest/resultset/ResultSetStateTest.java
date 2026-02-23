@@ -44,7 +44,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * - Scrollable cursor navigation (next, previous, first, last, absolute)
  * - Data retrieval (getString)
  */
-@Tag(Constants.legacyFX)
+@Tag(Constants.legacyFx)
 public class ResultSetStateTest extends AbstractTest {
 
     private static final String TABLE_NAME = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SM_ResultSet_Test"));
