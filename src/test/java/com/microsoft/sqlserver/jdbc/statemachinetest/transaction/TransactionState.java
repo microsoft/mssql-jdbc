@@ -9,10 +9,10 @@ import com.microsoft.sqlserver.jdbc.statemachinetest.core.StateKey;
 
 
 /**
- * State keys for Transaction state machine - Pure Domain Model.
+ * State keys for Transaction state machine.
  * 
- * Represents the actual state of a JDBC Connection's transaction behavior.
- * Contains only domain concepts, no test infrastructure.
+ * Represents the state of a JDBC Connection's transaction behavior,
+ * including test validation state for tracking expected vs pending values.
  */
 public enum TransactionState implements StateKey {
 

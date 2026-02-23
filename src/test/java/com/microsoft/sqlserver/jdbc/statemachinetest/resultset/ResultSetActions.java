@@ -1,3 +1,8 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved.
+ * This program is made available under the terms of the MIT License.
+ * See the LICENSE file in the project root for more information.
+ */
 package com.microsoft.sqlserver.jdbc.statemachinetest.resultset;
 
 import static com.microsoft.sqlserver.jdbc.statemachinetest.resultset.ResultSetState.*;
@@ -101,6 +106,8 @@ public final class ResultSetActions {
             // Update current row position using actual cursor position
             if (valid) {
                 sm.setState(CURRENT_ROW, rs.getRow());
+            } else {
+                sm.setState(CURRENT_ROW, 0);
             }
 
             System.out.println("  next() -> " + valid +
@@ -143,6 +150,8 @@ public final class ResultSetActions {
             // Update current row position using actual cursor position
             if (valid) {
                 sm.setState(CURRENT_ROW, rs.getRow());
+            } else {
+                sm.setState(CURRENT_ROW, 0);
             }
 
             System.out.println("  previous() -> " + valid +
@@ -185,6 +194,8 @@ public final class ResultSetActions {
             // Update current row position using actual cursor position
             if (valid) {
                 sm.setState(CURRENT_ROW, rs.getRow());
+            } else {
+                sm.setState(CURRENT_ROW, 0);
             }
 
             System.out.println("  first() -> " + valid +
@@ -227,6 +238,8 @@ public final class ResultSetActions {
             // Update current row position using actual cursor position
             if (valid) {
                 sm.setState(CURRENT_ROW, rs.getRow());
+            } else {
+                sm.setState(CURRENT_ROW, 0);
             }
 
             System.out.println("  last() -> " + valid +
@@ -275,6 +288,8 @@ public final class ResultSetActions {
             // Update current row position using actual cursor position
             if (valid) {
                 sm.setState(CURRENT_ROW, rs.getRow());
+            } else {
+                sm.setState(CURRENT_ROW, 0);
             }
 
             System.out.println("  absolute(" + target + ") -> " + valid +
@@ -293,6 +308,7 @@ public final class ResultSetActions {
 
     public static class GetStringAction extends Action {
         private final StateMachineTest sm;
+        private String lastValue;
 
         public GetStringAction(StateMachineTest sm) {
             this(sm, null);
@@ -312,22 +328,19 @@ public final class ResultSetActions {
         @Override
         public void run() throws SQLException {
             ResultSet rs = (ResultSet) sm.getStateValue(RS);
-            String actualName = rs.getString("name");
-            System.out.println("  getString('name') -> " + actualName);
+            lastValue = rs.getString("name");
+            System.out.println("  getString('name') -> " + lastValue);
         }
 
         @Override
         public void validate() throws SQLException {
-            // Framework calls this after run()
-            ResultSet rs = (ResultSet) sm.getStateValue(RS);
-            String actualName = rs.getString("name");
-
+            // Framework calls this after run() - reuse value from run()
             DataCache cache = getDataCache();
             if (cache != null && !cache.isEmpty()) {
                 int currentRow = sm.getStateInt(CURRENT_ROW);
                 if (currentRow >= 1 && currentRow <= cache.getRowCount()) {
                     Object expectedName = cache.getValue(currentRow - 1, "name");
-                    assertExpected(actualName, expectedName,
+                    assertExpected(lastValue, expectedName,
                             String.format("getString('name') mismatch at row %d", currentRow));
                 }
             }
@@ -336,6 +349,8 @@ public final class ResultSetActions {
 
     public static class GetIntAction extends Action {
         private final StateMachineTest sm;
+        private int lastValue;
+        private boolean hasLastValue;
 
         public GetIntAction(StateMachineTest sm) {
             this(sm, null);
@@ -355,15 +370,16 @@ public final class ResultSetActions {
         @Override
         public void run() throws SQLException {
             ResultSet rs = (ResultSet) sm.getStateValue(RS);
-            int actualValue = rs.getInt("value");
-            System.out.println("  getInt('value') -> " + actualValue);
+            lastValue = rs.getInt("value");
+            hasLastValue = true;
+            System.out.println("  getInt('value') -> " + lastValue);
         }
 
         @Override
         public void validate() throws SQLException {
-            // Framework calls this after run()
-            ResultSet rs = (ResultSet) sm.getStateValue(RS);
-            int actualValue = rs.getInt("value");
+            // Framework calls this after run() - reuse value from run()
+            if (!hasLastValue)
+                return;
 
             DataCache cache = getDataCache();
             if (cache != null && !cache.isEmpty()) {
@@ -371,7 +387,7 @@ public final class ResultSetActions {
                 if (currentRow >= 1 && currentRow <= cache.getRowCount()) {
                     Object expectedValue = cache.getValue(currentRow - 1, "value");
                     if (expectedValue != null) {
-                        assertExpected(actualValue, ((Number) expectedValue).intValue(),
+                        assertExpected(lastValue, ((Number) expectedValue).intValue(),
                                 String.format("getInt('value') mismatch at row %d", currentRow));
                     }
                 }

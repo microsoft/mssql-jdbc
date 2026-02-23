@@ -89,10 +89,20 @@ public final class TransactionActions {
 
         @Override
         public void run() throws SQLException {
+            Integer pending = (Integer) sm.getStateValue(PENDING_VALUE);
             Connection conn = (Connection) sm.getStateValue(CONN);
             conn.setAutoCommit(true); // Pure driver behavior
             sm.setState(AUTO_COMMIT, true);
-            System.out.println("  setAutoCommit(true) - implicit commit");
+
+            // setAutoCommit(true) implicitly commits any pending transaction
+            if (pending != null) {
+                sm.setState(EXPECTED_VALUE, pending);
+                sm.setState(PENDING_VALUE, null);
+            }
+
+            Integer expectedVal = (Integer) sm.getStateValue(EXPECTED_VALUE);
+            System.out.println("  setAutoCommit(true) - implicit commit"
+                    + (expectedVal != null ? ", expected=" + expectedVal : ""));
         }
     }
 
@@ -150,7 +160,8 @@ public final class TransactionActions {
             if (expectedVal != null && tableName != null) {
                 Connection conn = (Connection) sm.getStateValue(CONN);
                 try (Statement stmt = conn.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT value FROM " + tableName + " WHERE id = 1")) {
+                        ResultSet rs = stmt
+                                .executeQuery("SELECT value FROM " + tableName + " WHERE id = 1")) {
                     if (rs.next()) {
                         int actualValue = rs.getInt("value");
                         assertExpected(actualValue, expectedVal.intValue(),
@@ -205,7 +216,8 @@ public final class TransactionActions {
             if (expectedVal != null && tableName != null) {
                 Connection conn = (Connection) sm.getStateValue(CONN);
                 try (Statement stmt = conn.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT value FROM " + tableName + " WHERE id = 1")) {
+                        ResultSet rs = stmt
+                                .executeQuery("SELECT value FROM " + tableName + " WHERE id = 1")) {
                     if (rs.next()) {
                         int actualValue = rs.getInt("value");
                         assertExpected(actualValue, expectedVal.intValue(),
@@ -246,7 +258,8 @@ public final class TransactionActions {
             int newValue = sm.getRandom().nextInt(1000);
 
             try (Statement stmt = conn.createStatement()) {
-                int rows = stmt.executeUpdate("UPDATE " + table + " SET value = " + newValue + " WHERE id = 1");
+                int rows = stmt.executeUpdate(
+                        "UPDATE " + table + " SET value = " + newValue + " WHERE id = 1");
 
                 // FX Pattern: Track pending value (not yet committed)
                 sm.setState(PENDING_VALUE, newValue);
@@ -266,6 +279,8 @@ public final class TransactionActions {
     public static class SelectAction extends Action {
         private final StateMachineTest sm;
         private String tableName;
+        private int lastValue;
+        private boolean hasLastValue;
 
         public SelectAction(StateMachineTest sm) {
             this(sm, null);
@@ -294,15 +309,19 @@ public final class TransactionActions {
             try (Statement stmt = conn.createStatement();
                     ResultSet rs = stmt.executeQuery("SELECT value FROM " + table + " WHERE id = 1")) {
                 if (rs.next()) {
-                    int actualValue = rs.getInt("value");
-                    System.out.println("  SELECT -> value=" + actualValue + " (verified)");
+                    lastValue = rs.getInt("value");
+                    hasLastValue = true;
+                    System.out.println("  SELECT -> value=" + lastValue + " (verified)");
                 }
             }
         }
 
         @Override
         public void validate() throws SQLException {
-            // Framework calls this after run()
+            // Framework calls this after run() - reuse value from run()
+            if (!hasLastValue)
+                return;
+
             Integer expectedVal = (Integer) sm.getStateValue(EXPECTED_VALUE);
             Integer pendingVal = (Integer) sm.getStateValue(PENDING_VALUE);
 
@@ -310,17 +329,10 @@ public final class TransactionActions {
             // So we validate against PENDING if it exists, otherwise EXPECTED
             Integer valueToCheck = (pendingVal != null) ? pendingVal : expectedVal;
 
-            if (valueToCheck != null && tableName != null) {
-                Connection conn = (Connection) sm.getStateValue(CONN);
-                try (Statement stmt = conn.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT value FROM " + tableName + " WHERE id = 1")) {
-                    if (rs.next()) {
-                        int actualValue = rs.getInt("value");
-                        assertExpected(actualValue, valueToCheck.intValue(),
-                                String.format("SELECT: expected %svalue %d",
-                                        (pendingVal != null ? "pending " : "committed "), valueToCheck));
-                    }
-                }
+            if (valueToCheck != null) {
+                assertExpected(lastValue, valueToCheck.intValue(),
+                        String.format("SELECT: expected %svalue %d",
+                                (pendingVal != null ? "pending " : "committed "), valueToCheck));
             }
         }
     }
