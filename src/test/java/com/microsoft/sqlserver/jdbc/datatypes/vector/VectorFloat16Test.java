@@ -30,20 +30,21 @@ import microsoft.sql.Vector.VectorDimensionType;
 
 /**
  * Test class for FLOAT16 vector data type.
- * 
- * <p>This class extends {@link AbstractVectorTest} and provides FLOAT16-specific
- * configuration. All test methods are inherited from the abstract base class.</p>
- * 
- * <p>SQL Syntax: VECTOR(n, float16) where n is the dimension count</p>
- * <p>Scale: 2 (FLOAT16)</p>
- * <p>Max Dimensions: 1998</p>
- * 
- * <p><b>Note:</b> This test class is tagged with {@link Constants#vectorFloat16Test}
- * for pipeline exclusion since the server does not yet support FLOAT16 vectors.</p>
+ *
+ * This class extends {@link AbstractVectorTest} and provides FLOAT16-specific
+ * configuration. All test methods are inherited from the abstract base class.
+ *
+ * - SQL Syntax: VECTOR(n, float16) where n is the dimension count
+ * - Scale: 2 (FLOAT16)
+ * - Max Dimensions: 3996
+ *
+ * Note: This test class is tagged with {@link Constants#vectorFloat16Test}
+ * for pipeline exclusion since the server does not yet support FLOAT16 vectors.
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type - FLOAT16")
 @vectorJsonTest
+@Tag(Constants.vectorTest)
 @Tag(Constants.vectorFloat16Test)
 public class VectorFloat16Test extends AbstractVectorTest {
 

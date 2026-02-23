@@ -40,14 +40,12 @@ import microsoft.sql.Vector.VectorDimensionType;
 /**
  * Utility tests for Vector data type that are not parameterized across vector types.
  * 
- * <p>This class contains:</p>
- * <ul>
- *   <li>Connection property tests (vectorTypeSupport: off, v1, v2)</li>
- *   <li>Vector negotiation tests (nested class)</li>
- * </ul>
+ * This class contains:
+ * - Connection property tests (vectorTypeSupport: off, v1, v2)
+ * - Vector negotiation tests (nested class)
  * 
- * <p>For parameterized tests across FLOAT32, FLOAT16, etc., see {@link AbstractVectorTest} 
- * and its concrete implementations.</p>
+ * For parameterized tests across FLOAT32, FLOAT16, etc., see {@link AbstractVectorTest}
+ * and its concrete implementations.
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("Vector Utility Tests")
@@ -283,6 +281,11 @@ public class VectorUtilityTest extends AbstractTest {
 
         /**
          * Test: Verify serverSupportsVector flag consistency with negotiatedVectorVersion
+         * - If negotiatedVectorVersion > 0, serverSupportsVector should be true
+         * - If negotiatedVectorVersion == 0, serverSupportsVector should be false
+         * 
+         * Also verifies that when vectorTypeSupport=off, 
+         * serverSupportsVector is always false regardless of negotiated version.
          */
         @Test
         @DisplayName("Verify serverSupportsVector flag consistency with negotiatedVectorVersion")

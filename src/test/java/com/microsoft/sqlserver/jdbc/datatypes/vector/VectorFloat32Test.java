@@ -29,13 +29,13 @@ import microsoft.sql.Vector.VectorDimensionType;
 
 /**
  * Test class for FLOAT32 vector data type.
- * 
- * <p>This class extends {@link AbstractVectorTest} and provides FLOAT32-specific
- * configuration. All test methods are inherited from the abstract base class.</p>
- * 
- * <p>SQL Syntax: VECTOR(n) where n is the dimension count</p>
- * <p>Scale: 4 (FLOAT32)</p>
- * <p>Max Dimensions: 1998</p>
+ *
+ * This class extends {@link AbstractVectorTest} and provides FLOAT32-specific
+ * configuration. All test methods are inherited from the abstract base class.
+ *
+ * - SQL Syntax: VECTOR(n) where n is the dimension count
+ * - Scale: 4 (FLOAT32)
+ * - Max Dimensions: 1998
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type - FLOAT32")
@@ -151,6 +151,10 @@ public class VectorFloat32Test extends AbstractVectorTest {
     // UDF Normalization Tests (FLOAT32 only)
     // ============================================================================
 
+    /**
+     * Tests the vector_normalize UDF with FLOAT32 vectors.
+     * This test verifies that the UDF correctly normalizes a FLOAT32 vector and returns expected results.
+     */
     @Test
     public void testVectorNormalizeUdf() throws SQLException {
         String vectorsTable = TestUtils.escapeSingleQuotes(
@@ -224,6 +228,10 @@ public class VectorFloat32Test extends AbstractVectorTest {
         }
     }
 
+    /**
+     * Tests the vector_identity UDF with FLOAT32 vectors.
+     * This test verifies that the UDF correctly returns the input vector without modification.
+     */
     @Test
     public void testVectorIdentityScalarFunction() throws SQLException {
         String schemaName = "testschemaVector" + uuid.substring(0, 8);

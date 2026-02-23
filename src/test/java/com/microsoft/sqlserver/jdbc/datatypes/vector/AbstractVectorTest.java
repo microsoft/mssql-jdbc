@@ -46,15 +46,19 @@ import microsoft.sql.Vector.VectorDimensionType;
 /**
  * Abstract base class for Vector data type tests. This class contains all parameterized test methods
  * that can be run for different vector types (FLOAT32, FLOAT16, etc.).
- * 
- * <p>Concrete implementations should extend this class and provide the vector type-specific
- * configurations via abstract methods.</p>
- * 
- * <p>Example concrete implementations:</p>
- * <ul>
- *   <li>{@link VectorFloat32Test} - Tests for FLOAT32 vector type</li>
- *   <li>{@link VectorFloat16Test} - Tests for FLOAT16 vector type</li>
- * </ul>
+ *
+ * Concrete implementations should extend this class and provide the vector type-specific
+ * configurations via the following abstract methods:
+ * - {@code getVectorDimensionType()} - returns the VectorDimensionType (FLOAT32 or FLOAT16)
+ * - {@code getColumnDefinition(int)} - returns the SQL column definition for the vector type
+ * - {@code getScale()} - returns the scale value (4 for FLOAT32, 2 for FLOAT16)
+ * - {@code getTypeName()} - returns the type name for display purposes
+ * - {@code getMaxDimensionCount()} - returns the maximum dimension count for the vector type
+ * - {@code getRequiredVectorTypeSupport()} - returns the required vectorTypeSupport connection property value
+ *
+ * Example concrete implementations:
+ * - {@link VectorFloat32Test} - Tests for FLOAT32 vector type (v1, scale=4, max 1998 dimensions)
+ * - {@link VectorFloat16Test} - Tests for FLOAT16 vector type (v2, scale=2, max 3996 dimensions)
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractVectorTest extends AbstractTest {
@@ -255,6 +259,9 @@ public abstract class AbstractVectorTest extends AbstractTest {
     // Vector Support Tests
     // ============================================================================
 
+    /**
+     * Validates that the connection has vector support enabled and is negotiating the expected version.
+     */
     @Test
     public void testVectorSupport() {
         boolean isVectorSupportEnabled;
@@ -272,6 +279,10 @@ public abstract class AbstractVectorTest extends AbstractTest {
     // Basic Insert and Retrieve Tests
     // ============================================================================
 
+    /**
+     * Validates basic vector data insert and retrieve for this vector type.
+     * FLOAT16 has reduced precision (10-bit mantissa) so values may differ slightly after round-trip.
+     */
     @Test
     public void validateVectorDataWithPrecisionScale() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
@@ -298,6 +309,9 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that a vector with null data can be inserted and retrieved correctly.
+     */
     @Test
     public void testInsertNullVector() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
@@ -323,6 +337,10 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that a vector with null data can be inserted into a source table 
+     * and then copied to a destination table correctly.
+     */
     @Test
     public void testInsertFromTableWithNullVectorData() throws SQLException {
         String sourceTable = AbstractSQLGenerator.escapeIdentifier("SourceTable_" + getTypeName() + "_" + uuid.substring(0, 8));
@@ -381,6 +399,9 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that inserting a vector with mismatched dimensions throws an error.
+     */
     @Test
     public void testInsertVectorWithMismatchedDimensions() throws SQLException {
         String sourceTable = AbstractSQLGenerator.escapeIdentifier("SourceTable_Mismatch_" + uuid.substring(0, 8));
@@ -430,6 +451,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that a table with multiple vector columns can be inserted and retrieved correctly.
+     * This test inserts a row with two vector columns (v1 and v2) and 
+     * verifies that both can be retrieved with correct data and dimensions.
+     */
     @Test
     public void validateVectorDataWithMultipleVectorColumn() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableNameWithMultipleVectorColumn)
@@ -485,6 +511,10 @@ public abstract class AbstractVectorTest extends AbstractTest {
     // Backward Compatibility Tests
     // ============================================================================
 
+    /**
+     * Validates that calling getString() on a VECTOR column throws an appropriate error.
+     * This ensures that VECTOR data cannot be implicitly converted to string, which would be incorrect.
+     */
     @Test
     public void validateVectorDataUsingGetString() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
@@ -514,6 +544,9 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that calling getString() on a VECTOR column with null data returns null.
+     */
     @Test
     public void validateNullVectorDataUsingGetString() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";
@@ -541,6 +574,9 @@ public abstract class AbstractVectorTest extends AbstractTest {
     // Validation Tests
     // ============================================================================
 
+    /**
+     * Validates that creating a Vector with a negative dimension count throws an appropriate error.
+     */
     @Test
     public void testVectorDataWithNegativeDimensionCount() throws SQLException {
         Float[] originalData = createTestData(0.45f, 7.9f, 63.0f);
@@ -553,6 +589,9 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that creating a Vector with an incorrect dimension count throws an appropriate error.
+     */
     @Test
     public void testVectorDataWithIncorrectDimensionCount() throws SQLException {
         Float[] originalData = createTestData(0.45f, 7.9f, 63.0f);
@@ -569,6 +608,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
     // Max Vector Data Tests
     // ============================================================================
 
+    /**
+     * Validates that a vector with the maximum allowed dimensions can be inserted and retrieved correctly.
+     * This test creates a vector with the maximum dimension count for this vector type, inserts it into the database,
+     * and retrieves it to verify that all dimensions and data are intact.
+     */
     @Test
     public void validateMaxVectorData() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName) + " (id, v) VALUES (?, ?)";
@@ -602,6 +646,10 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that a vector with the maximum allowed dimensions can be inserted and retrieved correctly at scale.
+     * This test inserts multiple rows with vectors of maximum dimension count and verifies that all rows are retrieved correctly.
+     */
     @Test
     public void validateMaxVectorDataAtScale() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName) + " (id, v) VALUES (?, ?)";
@@ -648,6 +696,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
         assertEquals(recordCount, rowsRead, "Mismatch in number of rows read vs inserted.");
     }
 
+    /**
+     * Validates that inserting a vector with dimensions exceeding the maximum allowed throws an appropriate error.
+     * This test attempts to insert a vector with one more dimension than the maximum allowed 
+     * and verifies that an error is thrown.
+     */
     @Test
     public void validateVectorExceedingMaxDimension() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName) + " (id, v) VALUES (?, ?)";
@@ -692,6 +745,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that a vector can be passed as both input and output parameters in a stored procedure.
+     * This test creates a stored procedure that takes a VECTOR input parameter and an OUTPUT VECTOR parameter,
+     * calls the procedure with a test vector, and verifies that the output vector matches the input.
+     */
     @Test
     public void testVectorStoredProcedureInputOutput() throws SQLException {
         createProcedure();
@@ -710,6 +768,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that a null vector can be passed as both input and output parameters in a stored procedure.
+     * This test creates a stored procedure that takes a VECTOR input parameter and an OUTPUT VECTOR parameter,
+     * calls the procedure with a null vector, and verifies that the output vector is also null.
+     */
     @Test
     public void testNullVectorStoredProcedureInputOutput() throws SQLException {
         createProcedure();
@@ -732,6 +795,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
     // TVP Tests
     // ============================================================================
 
+    /**
+     * Validates that a vector can be inserted using a Table-Valued Parameter (TVP).
+     * This test creates a TVP with a VECTOR column, inserts a row with a test vector, 
+     * and retrieves it to verify correctness.
+     */
     @Test
     public void testVectorTVP() throws SQLException {
         Vector expectedVector = new Vector(3, getVectorDimensionType(), createTestData(0.1f, 0.2f, 0.3f));
@@ -757,6 +825,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that a null vector can be inserted using a Table-Valued Parameter (TVP).
+     * This test creates a TVP with a VECTOR column, inserts a row with a null vector, 
+     * and retrieves it to verify that the data is null.
+     */
     @Test
     public void testNullVectorInsertTVP() throws SQLException {
         String testTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("NullVectorTVPTest_" + uuid.substring(0, 8)));
@@ -806,6 +879,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that a stored procedure can return a TVP containing VECTOR data.
+     * This test creates a TVP type with a VECTOR column, creates a stored procedure that returns this TVP,
+     * calls the procedure with a test TVP containing vector data, and verifies that the returned data is correct.
+     */
     @Test
     public void testStoredProcedureReturnsTVPWithVector() throws SQLException {
         String tvpTypeName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("VectorTVPType_" + uuid.substring(0, 8)));
@@ -870,6 +948,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that a vector can be passed to a scalar UDF and returned correctly.
+     * This test creates a scalar UDF that takes a VECTOR parameter and returns it,
+     * calls the UDF with a test vector, and verifies that the returned vector matches the input.
+     */
     @Test
     public void testVectorUdf() throws SQLException {
         createVectorUdf();
@@ -911,6 +994,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that a TVP containing VECTOR data can be passed to a table-valued UDF and returned correctly.
+     * This test creates a table-valued UDF that takes a TVP with a VECTOR column, calls the UDF with a test TVP,
+     * and verifies that the returned data matches the input.
+     */
     @Test
     public void testVectorUdfReturnsTVP() throws SQLException {
         createTVPReturnUdf();
@@ -950,6 +1038,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
     // SELECT INTO Tests
     // ============================================================================
 
+    /**
+     * Validates that a VECTOR column can be selected into a new table using SELECT INTO.
+     * This test creates a source table with a VECTOR column, inserts test data, and then uses SELECT INTO to create a new table.
+     * It then verifies that the data in the new table matches the original data.
+     */
     @Test
     public void testSelectIntoForVector() throws SQLException {
         String sourceTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("srcTableVector_" + uuid.substring(0, 8)));
@@ -1015,6 +1108,10 @@ public abstract class AbstractVectorTest extends AbstractTest {
     // Temporary Table Tests
     // ============================================================================
 
+    /**
+     * Validates that a vector can be inserted into and retrieved from a global temporary table.
+     * This test creates a global temporary table with a VECTOR column, inserts a test vector, and retrieves it to verify correctness.
+     */
     @Test
     public void testVectorInsertionInGlobalTempTable() throws SQLException {
         String dstTable = TestUtils.escapeSingleQuotes(
@@ -1053,6 +1150,10 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
+    /**
+     * Validates that a vector can be inserted into and retrieved from a local temporary table.
+     * This test creates a local temporary table with a VECTOR column, inserts a test vector, and retrieves it to verify correctness.
+     */
     @Test
     public void testVectorInsertionInLocalTempTable() throws SQLException {
         String connStr = connectionString + ";vectorTypeSupport=" + getRequiredVectorTypeSupport();
@@ -1092,6 +1193,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
     // Transaction Tests
     // ============================================================================
 
+    /**
+     * Validates that vector data is correctly rolled back in a transaction.
+     * This test creates a table with a VECTOR column, inserts data within a transaction, and then rolls back the transaction.
+     * It verifies that the data is not present after the rollback, ensuring that vector data is properly handled in transactions.
+     */
     @Test
     public void testTransactionRollbackForVector() throws SQLException {
         String transactionTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("transactionTable_" + uuid.substring(0, 8)));
@@ -1172,6 +1278,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
     // View Tests
     // ============================================================================
 
+    /**
+     * Validates that a VECTOR column can be included in a view and that data can be retrieved correctly through the view.
+     * This test creates a table with a VECTOR column, inserts test data, creates a view that selects from this table,
+     * and then queries the view to verify that the vector data is returned correctly.
+     */
     @Test
     public void testViewWithVectorDataType() throws SQLException {
         String viewTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("VectorTable_" + uuid.substring(0, 8)));
@@ -1292,7 +1403,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
         }
     }
 
-
+    /**
+     * Validates that the VECTOR parameter type is correctly reported in ParameterMetaData for a PreparedStatement.
+     * This test prepares a statement with a VECTOR parameter, retrieves the ParameterMetaData, 
+     * and verifies that the parameter type and type name are correct.
+     */
     @Test
     public void validatePreparedStatementMetaData() throws SQLException {
         String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (id, v) VALUES (?, ?)";

@@ -626,12 +626,21 @@ final class Parameter {
                     break;
 
                 case VECTOR:
+                    // Determine the bytes-per-dimension (scale) for the vector type definition.
+                    // For non-null vectors, derive the scale from the vector's dimension type
+                    // (e.g. FLOAT32 = 4 bytes, FLOAT16 = 2 bytes).
+                    // For null or output parameters, fall back to the registered output scale
+                    // or the default precision if neither is available.
                     Vector vectorValue = (Vector) dtv.getSetterValue();
                     int vectorScale = (vectorValue != null)
                             ? VectorUtils.getBytesPerDimensionFromScale(vectorValue.getVectorDimensionType())
                             : (param.isOutput() ? param.getOutScale()
                                     : VectorUtils.getDefaultPrecision());
-                                    
+
+                    // Build the type definition string using the negotiated vector protocol version.
+                    // v1: VECTOR(n)           - only FLOAT32, dimension type is implicit
+                    // v2: VECTOR(n, FLOAT32)  - explicit dimension type required
+                    //     VECTOR(n, FLOAT16)
                     param.typeDefinition = VectorUtils.getTypeDefinition(
                             vectorValue, vectorScale, param.isOutput(),
                             param.getOutScale(), param.getValueLength(),
