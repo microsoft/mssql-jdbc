@@ -163,7 +163,8 @@ public abstract class AbstractTest {
             // no config file used
         }
 
-        connectionString = getConfiguredPropertyOrEnv(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
+        //connectionString = getConfiguredPropertyOrEnv(Constants.MSSQL_JDBC_TEST_CONNECTION_PROPERTIES);
+        connectionString = "jdbc:sqlserver://MuskanLenovo\\VECTOR_FLOAT16:1433;encrypt=true;username=muskan;password=Test@123;databaseName=WebSite";
 
         applicationClientID = getConfiguredProperty("applicationClientID");
         applicationKey = getConfiguredProperty("applicationKey");

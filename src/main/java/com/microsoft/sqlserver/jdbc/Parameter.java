@@ -626,9 +626,16 @@ final class Parameter {
                     break;
 
                 case VECTOR:
+                    Vector vectorValue = (Vector) dtv.getSetterValue();
+                    int vectorScale = (vectorValue != null)
+                            ? VectorUtils.getBytesPerDimensionFromScale(vectorValue.getVectorDimensionType())
+                            : (param.isOutput() ? param.getOutScale()
+                                    : VectorUtils.getDefaultPrecision());
+                                    
                     param.typeDefinition = VectorUtils.getTypeDefinition(
-                            (Vector) dtv.getSetterValue(), scale, param.isOutput(), 
-                            param.getOutScale(), param.getValueLength());
+                            vectorValue, vectorScale, param.isOutput(),
+                            param.getOutScale(), param.getValueLength(),
+                            con.getNegotiatedVectorVersion());
                     break;
 
                 case DATE:

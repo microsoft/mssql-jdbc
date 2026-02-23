@@ -449,6 +449,9 @@
 			<properties>
 				<bundle.version.suffix>${version}.jre21${releaseExt}</bundle.version.suffix>
 			</properties>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
 			<dependencies>
 				<!-- JDK 21 compatible Mockito -->
 				<dependency>
@@ -506,9 +509,7 @@
 			<properties>
 				<bundle.version.suffix>${version}.jre25${releaseExt}</bundle.version.suffix>
 			</properties>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
+			
 			<dependencies>
 				<!-- JDK 25 compatible Mockito -->
 				<dependency>
