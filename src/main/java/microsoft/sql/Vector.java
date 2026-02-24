@@ -43,7 +43,7 @@ public final class Vector implements java.io.Serializable {
      * 
      * @param dimensionCount The number of dimensions in the vector.
      * @param vectorType     The type of the vector.
-     * @param data           The object array representing the vector data.
+     * @param data           The vector data. Must be {@code Float[]} or {@code null}.
      */
     public Vector(int dimensionCount, VectorDimensionType vectorType, Object[] data) {
         validateVectorParameters(dimensionCount, vectorType, data);
@@ -57,8 +57,8 @@ public final class Vector implements java.io.Serializable {
      * Constructor for Vector with precision and scale value.
      * 
      * @param precision The number of dimensions in the vector.
-     * @param scale     The scale value of the vector (4 for FLOAT32).
-     * @param data      The object array representing the vector data.
+     * @param scale     The scale value of the vector (4 for FLOAT32, 2 for FLOAT16).
+     * @param data      The vector data. Must be {@code Float[]} or {@code null}.
      */
     public Vector(int precision, int scale, Object[] data) {
         this(precision, getVectorDimensionTypeFromScaleValue(scale), data);
@@ -67,7 +67,7 @@ public final class Vector implements java.io.Serializable {
     /**
      * Returns the data of the vector.
      * 
-     * @return The object array representing the vector data.
+     * @return The vector data as {@code Float[]}, or {@code null}.
      */
     public Object[] getData() {
         return data;

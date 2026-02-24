@@ -535,7 +535,7 @@ public abstract class VectorTest extends AbstractTest {
                 assertTrue(rs.next(), "No result found for inserted vector.");
 
                 try {
-                    String vectorString = rs.getString("v");
+                    rs.getString("v");
                     fail("Expected an exception when calling getString() on VECTOR type, but none was thrown.");
                 } catch (SQLException e) {
                     assertEquals("The conversion from vector to CHAR is unsupported.", e.getMessage(),
@@ -770,24 +770,50 @@ public abstract class VectorTest extends AbstractTest {
     }
 
     /**
-     * Validates that a single INOUT parameter can be used to pass a vector and receive it back.
-     * This test creates a stored procedure with a single VECTOR INOUT parameter,
-     * sets a non-null vector value on it, registers it as an output parameter, and
-     * verifies that the returned vector matches the input.
+     * Validates that a vector can be used as an INOUT parameter in a stored procedure.
+     * The same parameter index is registered as both input (setObject) and output (registerOutParameter).
+     * The stored procedure echoes the input back through the output parameter.
      */
     @Test
     public void testVectorStoredProcedureInOut() throws SQLException {
-        // Create a procedure with a single INOUT vector parameter
+        // createProcedure() creates a SP that echoes input to output: SET @outVector = @inVector
+        createProcedure();
+
+        String call = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?, ?)}";
+        try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(call)) {
+            Vector inputVector = new Vector(3, getVectorDimensionType(), createTestData(0.5f, 1.0f, 1.5f));
+
+            // Same parameter is both input and output (INOUT)
+            cstmt.setObject(1, inputVector, microsoft.sql.Types.VECTOR);
+            cstmt.registerOutParameter(2, microsoft.sql.Types.VECTOR, 3, getScale());
+            cstmt.execute();
+
+            Vector result = cstmt.getObject(2, Vector.class);
+            assertNotNull(result, "Returned vector should not be null");
+            assertVectorDataEquals(inputVector.getData(), result.getData(), "Vector data mismatch.");
+        }
+    }
+
+    /**
+     * Validates that an INOUT parameter actually round-trips through the server.
+     * The stored procedure overwrites the input vector with a different value, so the test
+     * can distinguish between the driver correctly reading the server's output versus
+     * accidentally returning the cached input.
+     */
+    @Test
+    public void testVectorStoredProcedureInOutOverwrite() throws SQLException {
+        // Create a procedure that overwrites the INOUT parameter with a different vector
         try (Statement stmt = connection.createStatement()) {
             String sql = "CREATE OR ALTER PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "\n" +
                     "    @ioVector " + getColumnDefinition(3) + " OUTPUT\n" +
                     "AS\n" +
                     "BEGIN\n" +
-                    "    -- Simply pass the value back\n" +
-                    "    SET @ioVector = @ioVector\n" +
+                    "    SET @ioVector = CAST('[4.0, 5.0, 6.0]' AS " + getColumnDefinition(3) + ")\n" +
                     "END";
             stmt.execute(sql);
         }
+
+        Float[] expectedOutput = createTestData(4.0f, 5.0f, 6.0f);
 
         String call = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
         try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(call)) {
@@ -800,14 +826,16 @@ public abstract class VectorTest extends AbstractTest {
 
             Vector result = cstmt.getObject(1, Vector.class);
             assertNotNull(result, "Returned vector should not be null");
-            assertVectorDataEquals(inputVector.getData(), result.getData(), "INOUT vector data mismatch.");
+            assertVectorDataEquals(expectedOutput, result.getData(),
+                    "INOUT vector should contain the SP-assigned value, not the input.");
         }
     }
 
     /**
      * Validates that a null vector can be passed as both input and output parameters in a stored procedure.
      * This test creates a stored procedure that takes a VECTOR input parameter and an OUTPUT VECTOR parameter,
-     * calls the procedure with a null vector, and verifies that the output vector is also null.
+     * calls the procedure with a null-data vector, and verifies that the returned Vector object is non-null
+     * but contains null data (i.e., the metadata envelope is preserved while the payload is null).
      */
     @Test
     public void testNullVectorStoredProcedureInputOutput() throws SQLException {

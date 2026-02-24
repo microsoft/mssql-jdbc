@@ -44,7 +44,7 @@ class VectorUtils {
         }
 
         int objectCount = (bytes.length - getHeaderLength()) / bytesPerDimension; // 8 bytes for header
-        Object[] objectArray = new Float[objectCount]; // Always Float[] for user - conversion handled internally
+        Object[] objectArray = new Float[objectCount];
 
         ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
 
