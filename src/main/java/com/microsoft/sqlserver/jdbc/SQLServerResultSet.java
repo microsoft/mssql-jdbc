@@ -53,6 +53,9 @@ enum RowType {
  */
 public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializable {
 
+    //TODO make it configurable/adaptive
+    public static boolean prefetch = true;
+
     /**
      * Always refresh SerialVersionUID when prompted
      */
@@ -98,7 +101,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /** the statement that generated this result set */
-    private final SQLServerStatement stmt;
+    protected final SQLServerStatement stmt;
 
     /** max rows to return from this result set */
     private final int maxRows;
@@ -131,7 +134,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     private boolean isOnInsertRow = false;
 
     /** true if the last value read was SQL NULL */
-    private boolean lastValueWasNull = false;
+    protected boolean lastValueWasNull = false;
 
     /** The index (1-based) of the last column in the current row that has been marked for reading */
     private int lastColumnIndex;
@@ -215,7 +218,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     private int rowCount;
 
     /** The current row's column values */
-    private final transient Column[] columns;
+    protected final transient Column[] columns;
 
     /** The CekTable retrieved from the COLMETADATA token for this resultset */
     private CekTable cekTable = null;
@@ -246,7 +249,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     }
 
     /** TDS reader from which row values are read */
-    private TDSReader tdsReader;
+    protected TDSReader tdsReader;
 
     TDSReader getTDSReader() {
         return tdsReader;
@@ -784,7 +787,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
      * 
      * @throws SQLServerException
      */
-    private void initializeNullCompressedColumns() throws SQLServerException {
+    protected void initializeNullCompressedColumns() throws SQLServerException {
         if (resultSetCurrentRowType.equals(RowType.NBCROW) && (!areNullCompressedColumnsInitialized)) {
             int columnNo = 0;
             // no of bytes to be read from the stream
@@ -2090,7 +2093,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return loadColumn(index);
     }
 
-    private Object getValue(int columnIndex, JDBCType jdbcType) throws SQLServerException {
+    protected Object getValue(int columnIndex, JDBCType jdbcType) throws SQLServerException {
         return getValue(columnIndex, jdbcType, null, null);
     }
 
@@ -2103,7 +2106,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return getValue(columnIndex, jdbcType, getterArgs, null);
     }
 
-    private Object getValue(int columnIndex, JDBCType jdbcType, InputStreamGetterArgs getterArgs,
+    protected Object getValue(int columnIndex, JDBCType jdbcType, InputStreamGetterArgs getterArgs,
             Calendar cal) throws SQLServerException {
         Object o = getterGetColumn(columnIndex).getValue(jdbcType, getterArgs, cal, tdsReader, stmt);
         lastValueWasNull = (null == o);
@@ -5053,7 +5056,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "refreshRow");
     }
 
-    private void doRefreshRow() throws SQLServerException {
+    protected void doRefreshRow() throws SQLServerException {
         assert hasCurrentRow();
 
         // Save off the current row offset into the fetch buffer so that we can attempt to
