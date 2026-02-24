@@ -194,6 +194,37 @@ public class SQLServerDriverTest extends AbstractTest {
             }
         }
     }
+
+    /**
+     * test connection properties
+     * 
+     * @throws SQLException
+     */
+    @Test
+    public void testDefaultProperties() throws SQLException {
+        SQLServerDriver d = new SQLServerDriver();
+        Properties defaults = new Properties();
+        defaults.setProperty(SQLServerDriverIntProperty.PORT_NUMBER.toString(), "101");
+        defaults.setProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString(), "test");
+
+        Properties info = new Properties(defaults);
+        StringBuffer url = new StringBuffer();
+        url.append(Constants.JDBC_PREFIX).append(randomServer).append(";packetSize=512;");
+
+        // test defaults
+        DriverPropertyInfo[] infoArray = d.getPropertyInfo(url.toString(), info);
+
+        for (DriverPropertyInfo anInfoArray : infoArray) {
+            if (anInfoArray.name.equalsIgnoreCase(Constants.PORT_NUMBER)) {
+                assertTrue(anInfoArray.value.equalsIgnoreCase("101"),
+                        TestResource.getResource("R_valuesAreDifferent"));
+            }
+            if (anInfoArray.name.equalsIgnoreCase(Constants.DATABASE_NAME)) {
+                assertTrue(anInfoArray.value.equalsIgnoreCase("test"),
+                        TestResource.getResource("R_valuesAreDifferent"));
+            }
+        }
+    }
     
     /**
      * test application name
