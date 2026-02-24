@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -61,19 +62,19 @@ import microsoft.sql.Vector.VectorDimensionType;
  * - {@link VectorFloat16Test} - Tests for FLOAT16 vector type (v2, scale=2, max 3996 dimensions)
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public abstract class AbstractVectorTest extends AbstractTest {
+public abstract class VectorTest extends AbstractTest {
 
     // Table and procedure names - will be unique per test instance
     protected String tableName;
-    protected String tableNameWithMultipleVectorColumn;
-    protected String maxVectorDataTableName;
-    protected String procedureName;
-    protected String functionName;
+    private String tableNameWithMultipleVectorColumn;
+    private String maxVectorDataTableName;
+    private String procedureName;
+    private String functionName;
     protected String functionTvpName;
-    protected String vectorUdf;
-    protected String TABLE_NAME;
-    protected String TVP_NAME;
-    protected String TVP;
+    private String vectorUdf;
+    private String tvpTableName;
+    private String tvpTypeName;
+    private String tvpUdfTypeName;
     protected final String uuid = UUID.randomUUID().toString().replaceAll("-", "");
 
     // ============================================================================
@@ -130,16 +131,17 @@ public abstract class AbstractVectorTest extends AbstractTest {
         assertNotNull(actual, message + " - actual is null");
         assertEquals(expected.length, actual.length, message + " - length mismatch");
         
-        // FLOAT16 has a 10-bit mantissa, so its rounding step grows with magnitude
-        // (e.g. step = 1.0 for values in [1024, 2048]). A fixed absolute tolerance
-        // like 0.01 is therefore insufficient for large values. Using a relative
-        // tolerance of 0.1% (≈ 2^-10) accounts for precision loss at any magnitude.
+        // FLOAT16 has a 10-bit mantissa so its rounding step (1 ULP) scales with
+        // magnitude. The only lossy conversion is float32 -> float16 (round-to-nearest-even);
+        // the reverse (float16 -> float32) is exact. Maximum error is therefore
+        // 0.5 ULP of float16 = 2^-11 ~ 0.000488 relative. We use 0.05% (0.0005)
+        // as a tight bound just above that theoretical worst case.
         boolean isFloat16 = (getVectorDimensionType() == VectorDimensionType.FLOAT16);
         
         for (int i = 0; i < expected.length; i++) {
             float expectedVal = (Float) expected[i];
             float actualVal = (Float) actual[i];
-            float tolerance = isFloat16 ? Math.max(0.001f * Math.abs(expectedVal), 1e-7f) : 0.0f;
+            float tolerance = isFloat16 ? Math.max(0.0005f * Math.abs(expectedVal), 1e-7f) : 0.0f;
             assertEquals(expectedVal, actualVal, tolerance, 
                 message + " at index " + i + ": expected " + expectedVal + " but was " + actualVal);
         }
@@ -175,14 +177,13 @@ public abstract class AbstractVectorTest extends AbstractTest {
         String connStr = connectionString + ";vectorTypeSupport=" + vectorSupport;
         connection = (SQLServerConnection) java.sql.DriverManager.getConnection(connStr);
         
-        // Verify the server negotiated the required version
+        // Skip all tests if the server did not negotiate the required version
         byte negotiatedVersion = connection.getNegotiatedVectorVersion();
         byte requiredVersion = "v2".equals(vectorSupport) ? (byte) 2 : (byte) 1;
-        if (negotiatedVersion < requiredVersion) {
-            System.out.println("WARNING: Server negotiated vector version " + negotiatedVersion + 
-                ", but " + getTypeName() + " tests require version " + requiredVersion + 
-                ". Some tests may be skipped.");
-        }
+        Assumptions.assumeTrue(negotiatedVersion >= requiredVersion,
+                "Server negotiated vector version " + negotiatedVersion +
+                ", but " + getTypeName() + " tests require version " + requiredVersion +
+                ". Skipping tests.");
         
         initializeTableNames();
         createTestTables();
@@ -197,9 +198,9 @@ public abstract class AbstractVectorTest extends AbstractTest {
         functionName = RandomUtil.getIdentifier("VECTOR_Test_Func_" + suffix);
         functionTvpName = RandomUtil.getIdentifier("VECTOR_Test_TVP_Func_" + suffix);
         vectorUdf = RandomUtil.getIdentifier("VectorUdf_" + suffix);
-        TABLE_NAME = RandomUtil.getIdentifier("VECTOR_TVP_Test_" + suffix);
-        TVP_NAME = RandomUtil.getIdentifier("VECTOR_TVP_Type_" + suffix);
-        TVP = RandomUtil.getIdentifier("VECTOR_TVP_UDF_Type_" + suffix);
+        tvpTableName = RandomUtil.getIdentifier("VECTOR_TVP_Test_" + suffix);
+        tvpTypeName = RandomUtil.getIdentifier("VECTOR_TVP_Type_" + suffix);
+        tvpUdfTypeName = RandomUtil.getIdentifier("VECTOR_TVP_UDF_Type_" + suffix);
     }
 
     private void createTestTables() throws SQLException {
@@ -210,11 +211,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
                     + " (id INT PRIMARY KEY, v1 " + getColumnDefinition(3) + ", v2 " + getColumnDefinition(4) + ")");
             stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName)
                     + " (id INT PRIMARY KEY, v " + getColumnDefinition(getMaxDimensionCount()) + ")");
-            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(TABLE_NAME) 
+            stmt.executeUpdate("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tvpTableName) 
                     + " (rowId INT IDENTITY, c1 " + getColumnDefinition(3) + " NULL)");
-            stmt.executeUpdate("CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(TVP_NAME) 
+            stmt.executeUpdate("CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpTypeName) 
                     + " AS TABLE (c1 " + getColumnDefinition(3) + " NULL)");
-            stmt.executeUpdate("CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(TVP) 
+            stmt.executeUpdate("CREATE TYPE " + AbstractSQLGenerator.escapeIdentifier(tvpUdfTypeName) 
                     + " AS TABLE (c1 " + getColumnDefinition(4) + " NULL)");
         }
     }
@@ -236,11 +237,11 @@ public abstract class AbstractVectorTest extends AbstractTest {
             TestUtils.dropTableIfExists(tableName, stmt);
             TestUtils.dropTableIfExists(tableNameWithMultipleVectorColumn, stmt);
             TestUtils.dropTableIfExists(maxVectorDataTableName, stmt);
-            TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+            TestUtils.dropTableIfExists(tvpTableName, stmt);
             
             // Drop types last (they may be referenced by functions/procedures)
-            TestUtils.dropTypeIfExists(TVP_NAME, stmt);
-            TestUtils.dropTypeIfExists(TVP, stmt);
+            TestUtils.dropTypeIfExists(tvpTypeName, stmt);
+            TestUtils.dropTypeIfExists(tvpUdfTypeName, stmt);
         }
     }
 
@@ -251,7 +252,7 @@ public abstract class AbstractVectorTest extends AbstractTest {
             stmt.executeUpdate("DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(tableName));
             stmt.executeUpdate("DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(tableNameWithMultipleVectorColumn));
             stmt.executeUpdate("DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(maxVectorDataTableName));
-            stmt.executeUpdate("DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(TABLE_NAME));
+            stmt.executeUpdate("DELETE FROM " + AbstractSQLGenerator.escapeIdentifier(tvpTableName));
         }
     }
 
@@ -844,13 +845,13 @@ public abstract class AbstractVectorTest extends AbstractTest {
         tvp.addRow(expectedVector);
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
-                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(TABLE_NAME) + " SELECT * FROM ?;")) {
-            pstmt.setStructured(1, TVP_NAME, tvp);
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tvpTableName) + " SELECT * FROM ?;")) {
+            pstmt.setStructured(1, tvpTypeName, tvp);
             pstmt.execute();
 
             try (Statement stmt = connection.createStatement();
                     ResultSet rs = stmt.executeQuery(
-                            "SELECT c1 FROM " + AbstractSQLGenerator.escapeIdentifier(TABLE_NAME) + " ORDER BY rowId")) {
+                            "SELECT c1 FROM " + AbstractSQLGenerator.escapeIdentifier(tvpTableName) + " ORDER BY rowId")) {
                 while (rs.next()) {
                     Vector actual = rs.getObject("c1", Vector.class);
                     assertNotNull(actual, "Returned vector should not be null");
@@ -1021,7 +1022,7 @@ public abstract class AbstractVectorTest extends AbstractTest {
     private void createTVPReturnUdf() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             String sql = "CREATE OR ALTER FUNCTION " + AbstractSQLGenerator.escapeIdentifier(vectorUdf) +
-                    "(@tvpInput " + AbstractSQLGenerator.escapeIdentifier(TVP) + " READONLY)\n" +
+                    "(@tvpInput " + AbstractSQLGenerator.escapeIdentifier(tvpUdfTypeName) + " READONLY)\n" +
                     "RETURNS TABLE\n" +
                     "AS\n" +
                     "RETURN SELECT c1 FROM @tvpInput;";
@@ -1047,7 +1048,7 @@ public abstract class AbstractVectorTest extends AbstractTest {
 
         String query = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(vectorUdf) + "(?)";
         try (SQLServerPreparedStatement selectStmt = (SQLServerPreparedStatement) connection.prepareStatement(query)) {
-            selectStmt.setStructured(1, TVP, tvp);
+            selectStmt.setStructured(1, tvpUdfTypeName, tvp);
             try (ResultSet rs = selectStmt.executeQuery()) {
                 int rowCount = 0;
                 while (rs.next()) {

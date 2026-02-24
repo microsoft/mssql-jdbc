@@ -124,9 +124,9 @@ class VectorUtils {
      */
     static VectorDimensionType getVectorDimensionType(int scaleByte) {
         switch (scaleByte) {
-            case 0:
+            case SCALE_BYTE_FLOAT32:
                 return VectorDimensionType.FLOAT32;
-            case 1:
+            case SCALE_BYTE_FLOAT16:
                 return VectorDimensionType.FLOAT16;
             default:
                 return VectorDimensionType.FLOAT32;
@@ -147,9 +147,9 @@ class VectorUtils {
      */
     static int getBytesPerDimensionFromScale(int scaleByte) {
         switch (scaleByte) {
-            case 0:
+            case SCALE_BYTE_FLOAT32:
                 return BYTES_PER_FLOAT;
-            case 1:
+            case SCALE_BYTE_FLOAT16:
                 return BYTES_PER_SHORT;
             default:
                 return BYTES_PER_FLOAT;
@@ -226,22 +226,27 @@ class VectorUtils {
 
     /**
      * Returns the SQL type definition string for a vector parameter.
-     * 
-     * @param vector             The vector instance (may be null for output parameters)
-     * @param scale              Number of bytes per dimension (e.g., 4 for FLOAT32, 2 for
-     *                           FLOAT16)
+     *
+     * Resolves the bytes-per-dimension scale internally:
+     * - For non-null vectors the scale is derived from the vector's dimension type
+     *   (e.g. FLOAT32 = 4, FLOAT16 = 2).
+     * - For null or output parameters, falls back to outScale (if output)
+     *   or the default precision.
+     *
+     * @param vector             The vector instance (may be null for null / output parameters)
+     * @param isOutput           Whether this is a registered output parameter
+     * @param outScale           The registered output scale (used only when isOutput is true)
      * @param valueLength        The dimension count for null vector parameters
      * @param negotiatedVersion  The negotiated vector version (1 for v1, 2 for v2)
      * @return SQL type definition string, e.g., VECTOR(3, FLOAT16) or VECTOR(3)
      */
-    static String getTypeDefinition(Vector vector, int scale, int valueLength,
-            byte negotiatedVersion) {
-        int precision = 0;
-        if (vector != null) {
-            precision = vector.getDimensionCount();
-        } else {
-            precision = valueLength;
-        }
+    static String getTypeDefinition(Vector vector, boolean isOutput, int outScale,
+            int valueLength, byte negotiatedVersion) {
+        int scale = (vector != null)
+                ? getBytesPerDimensionFromScale(vector.getVectorDimensionType())
+                : (isOutput ? outScale : getDefaultPrecision());
+
+        int precision = (vector != null) ? vector.getDimensionCount() : valueLength;
 
         // V1: Only FLOAT32 is supported, use VECTOR(dimensionCount)
         // V2: Explicitly specify type for both FLOAT32 and FLOAT16

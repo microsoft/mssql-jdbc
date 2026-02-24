@@ -10,7 +10,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -30,7 +32,7 @@ import microsoft.sql.Vector.VectorDimensionType;
 /**
  * Test class for FLOAT32 vector data type.
  *
- * This class extends {@link AbstractVectorTest} and provides FLOAT32-specific
+ * This class extends {@link VectorTest} and provides FLOAT32-specific
  * configuration. All test methods are inherited from the abstract base class.
  *
  * - SQL Syntax: VECTOR(n) where n is the dimension count
@@ -41,7 +43,7 @@ import microsoft.sql.Vector.VectorDimensionType;
 @DisplayName("Test Vector Data Type - FLOAT32")
 @vectorJsonTest
 @Tag(Constants.vectorTest)
-public class VectorFloat32Test extends AbstractVectorTest {
+public class VectorFloat32Test extends VectorTest {
 
     @Override
     protected VectorDimensionType getVectorDimensionType() {

@@ -44,7 +44,7 @@ import microsoft.sql.Vector.VectorDimensionType;
  * - Connection property tests (vectorTypeSupport: off, v1, v2)
  * - Vector negotiation tests (nested class)
  * 
- * For parameterized tests across FLOAT32, FLOAT16, etc., see {@link AbstractVectorTest}
+ * For parameterized tests across FLOAT32, FLOAT16, etc., see {@link VectorTest}
  * and its concrete implementations.
  */
 @RunWith(JUnitPlatform.class)

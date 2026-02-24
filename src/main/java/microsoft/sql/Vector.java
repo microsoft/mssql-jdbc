@@ -10,6 +10,22 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.Arrays;
 
+/**
+ * Represents a SQL Server {@code VECTOR} data type value.
+ *
+ * A vector stores a fixed-length array of floating-point values, with support for
+ * {@link VectorDimensionType#FLOAT32 FLOAT32} (32-bit) and
+ * {@link VectorDimensionType#FLOAT16 FLOAT16} (16-bit half-precision) element types.
+ *
+ * Example usage:
+ * {@code
+ * Float[] data = new Float[] { 0.1f, 0.2f, 0.3f };
+ * Vector vector = new Vector(3, VectorDimensionType.FLOAT32, data);
+ * pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
+ * }
+ *
+ * @since 13.3.2
+ */
 public final class Vector implements java.io.Serializable {
 
     public enum VectorDimensionType {
