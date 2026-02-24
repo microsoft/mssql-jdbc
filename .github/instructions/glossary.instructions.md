@@ -8,7 +8,6 @@ This glossary defines terms and acronyms commonly used in the Microsoft JDBC Dri
 |------|-----------|-------------|
 | **TDS** | Tabular Data Stream | Microsoft's proprietary protocol for communication between clients and SQL Server. The driver implements TDS 7.x and 8.0. |
 | **TDS Token** | TDS Token | A unit of data in the TDS protocol. Examples: COLMETADATA, ROW, DONE, LOGINACK. |
-| **MARS** | Multiple Active Result Sets | Feature allowing multiple active statements on a single connection. |
 | **RPC** | Remote Procedure Call | TDS message type for executing stored procedures. |
 | **SQL Batch** | SQL Batch | TDS message type for executing SQL statements. |
 | **Attention** | Attention Signal | TDS mechanism to cancel an in-progress request. |
@@ -40,7 +39,6 @@ This glossary defines terms and acronyms commonly used in the Microsoft JDBC Dri
 | **MSAL** | Microsoft Authentication Library | Library for Azure AD authentication (replaced ADAL). |
 | **ADAL** | Azure AD Authentication Library | Legacy Azure AD library, deprecated and replaced by MSAL. |
 | **SPN** | Service Principal Name | Unique identifier for a service instance in Kerberos. |
-| **UPN** | User Principal Name | User identifier format: `user@domain.com`. |
 | **MFA** | Multi-Factor Authentication | Authentication requiring multiple verification methods. |
 | **MSI** | Managed Service Identity | Azure-managed identity for services (now called Managed Identity). Synonym: `ActiveDirectoryMSI` maps to `ActiveDirectoryManagedIdentity`. |
 | **FedAuth** | Federated Authentication | TDS feature extension (`0x02`) for Azure AD token-based authentication flows. |
@@ -488,3 +486,131 @@ All SQL Server types supported by the driver, mapped from the `SSType` enum in `
 | **TDS 7.4 (DENALI)** | Protocol version for SQL Server 2012+. Constant: `VER_DENALI` (`0x74000004`). |
 | **TDS 8.0** | Protocol version with strict encryption (SQL Server 2022+). Constant: `VER_TDS80` (`0x08000000`). |
 | **SQL Server Codenames** | YUKON = 2005, KATMAI = 2008, DENALI = 2012. Used in TDS version constants and throughout the codebase. |
+
+## Common Error Messages
+
+Error messages defined in `SQLServerResource.java` as `R_` prefixed keys. Used with `SQLServerException.getErrString("R_key")`.
+
+### Connection Errors
+
+| Key | Message |
+|-----|---------|
+| `R_connectionIsClosed` | "The connection is closed." |
+| `R_connectionTimedOut` | "Connection timed out: no further information." |
+| `R_tcpipConnectionFailed` | "The TCP/IP connection to the host {0}, port {1} has failed." |
+| `R_tcpOpenFailed` | "Verify the connection properties. Make sure that an instance of SQL Server is running on the host and accepting TCP/IP connections at the port." |
+| `R_notSQLServer` | "The driver received an unexpected pre-login response." |
+| `R_noServerResponse` | "SQL Server did not return a response. The connection has been closed." |
+| `R_errorConnectionString` | "The connection string contains a badly formed name or value." |
+| `R_unsupportedServerVersion` | "SQL Server version {0} is not supported by this driver." |
+
+### Authentication Errors
+
+| Key | Message |
+|-----|---------|
+| `R_MSALExecution` | "Failed to authenticate the user {0} in Active Directory (Authentication={1})." |
+| `R_SetAccesstokenWhenIntegratedSecurityTrue` | "Cannot set the AccessToken property if IntegratedSecurity is true." |
+| `R_AccessTokenWithUserPassword` | "Cannot set the AccessToken property if User, UserName or Password has been specified." |
+| `R_SetBothAuthenticationAndAccessToken` | "Cannot set the AccessToken property if Authentication has been specified." |
+| `R_NtlmNoUserPasswordDomain` | "User and Password must be specified for NTLM authentication." |
+| `R_kerberosLoginFailed` | "Kerberos Login failed: {0} due to {1} ({2})" |
+| `R_integratedAuthenticationFailed` | "Integrated authentication failed." |
+| `R_NotConfiguredForIntegrated` | "This driver is not configured for integrated authentication." |
+
+### Statement & Query Errors
+
+| Key | Message |
+|-----|---------|
+| `R_statementIsClosed` | "The statement is closed." |
+| `R_queryTimedOut` | "The query has timed out." |
+| `R_queryCanceled` | "The query was canceled." |
+| `R_statementMustBeExecuted` | "The statement must be executed before any results can be obtained." |
+| `R_noResultset` | "The statement did not return a result set." |
+| `R_cannotTakeArgumentsPreparedOrCallable` | "The method {0} cannot take arguments on a PreparedStatement or CallableStatement." |
+
+### Parameter Errors
+
+| Key | Message |
+|-----|---------|
+| `R_valueNotSetForParameter` | "The value is not set for the parameter number {0}." |
+| `R_invalidParameterNumber` | "The parameter number {0} is not valid." |
+| `R_outputParameterNotRegisteredForOutput` | "The output parameter {0} was not registered for output." |
+| `R_parameterNotDefinedForProcedure` | "Parameter {0} was not defined for stored procedure {1}." |
+
+### ResultSet Errors
+
+| Key | Message |
+|-----|---------|
+| `R_resultsetClosed` | "The result set is closed." |
+| `R_resultsetNotUpdatable` | "The result set is not updatable." |
+| `R_indexOutOfRange` | "The index {0} is out of range." |
+| `R_resultsetNoCurrentRow` | "The result set has no current row." |
+
+### Data Type Conversion Errors
+
+| Key | Message |
+|-----|---------|
+| `R_unsupportedConversionFromTo` | "The conversion from {0} to {1} is unsupported." |
+| `R_errorConvertingValue` | "An error occurred while converting the {0} value to JDBC data type {1}." |
+| `R_valueOutOfRange` | "One or more values is out of range of values for the {0} SQL Server data type." |
+| `R_unknownSSType` | "Invalid SQL Server data type {0}." |
+| `R_unknownJDBCType` | "Invalid JDBC data type {0}." |
+
+### Bulk Copy Errors
+
+| Key | Message |
+|-----|---------|
+| `R_invalidDestinationTable` | "Destination table name is missing or invalid." |
+| `R_unableRetrieveColMeta` | "Unable to retrieve column metadata." |
+| `R_unableRetrieveSourceData` | "Unable to retrieve data from the source." |
+| `R_BulkTypeNotSupported` | "Data type {0} is not supported in bulk copy." |
+| `R_DataSchemaMismatch` | "Source data does not match source schema." |
+
+### Always Encrypted Errors
+
+| Key | Message |
+|-----|---------|
+| `R_AE_NotSupportedByServer` | "SQL Server in use does not support column encryption." |
+| `R_UnrecognizedKeyStoreProviderName` | "Failed to decrypt a column encryption key. Invalid key store provider name: {0}." |
+| `R_UnsupportedDataTypeAE` | "Encryption and decryption of data type {0} is not supported." |
+| `R_CEKDecryptionFailed` | "Exception while decryption of encrypted column encryption key: {0}" |
+| `R_CustomKeyStoreProviderSetOnce` | "Key store providers cannot be set more than once." |
+
+### SSL/TLS Errors
+
+| Key | Message |
+|-----|---------|
+| `R_sslFailed` | "The driver could not establish a secure connection using SSL encryption." |
+| `R_certNameFailed` | "Failed to validate the server name in a certificate during SSL initialization." |
+
+### Timeout Errors
+
+| Key | Message |
+|-----|---------|
+| `R_invalidQueryTimeout` | "The queryTimeout {0} is not valid." |
+| `R_invalidSocketTimeout` | "The socketTimeout {0} is not valid." |
+| `R_invalidLockTimeOut` | "The lockTimeOut {0} is not valid." |
+
+### TVP Errors
+
+| Key | Message |
+|-----|---------|
+| `R_unsupportedDataTypeTVP` | "Data type {0} not supported in Table-Valued Parameter." |
+| `R_invalidTVPName` | "The Table-Valued Parameter must have a valid type name." |
+| `R_TVPEmptyMetadata` | "Structured types must have at least one field." |
+
+### Vector Errors
+
+| Key | Message |
+|-----|---------|
+| `R_invalidVectorData` | "The provided type of data is not supported for vector." |
+| `R_VectorDimensionCountMismatch` | "Mismatch between vector dimension count and provided data." |
+| `R_vectorByteArrayLength` | "Vector byte array length must be at least 8 bytes." |
+| `R_invalidVectorTypeSupport` | "Invalid value for vectorTypeSupport: {0}. Valid values are off, v1, or v2." |
+
+### Connection Resiliency Errors
+
+| Key | Message |
+|-----|---------|
+| `R_crClientAllRecoveryAttemptsFailed` | "The client driver attempted to recover the connection one or more times and all attempts failed." |
+| `R_crServerSessionStateNotRecoverable` | "The connection is marked by the server as unrecoverable." |

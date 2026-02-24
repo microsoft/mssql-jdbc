@@ -312,3 +312,115 @@ public class MyMessageHandler implements ISQLServerMessageHandler {
     // Implement to handle SQL Server messages/warnings
 }
 ```
+
+## Entry Points
+
+Primary public API classes and interfaces that external consumers use.
+
+### Connection Entry Points
+
+| Class / Interface | Description |
+|-------------------|-------------|
+| `SQLServerDriver` | `java.sql.Driver` implementation. Registered via `META-INF/services/java.sql.Driver`. |
+| `SQLServerDataSource` | Standard `javax.sql.DataSource` for pooled and non-pooled connections. |
+| `SQLServerConnectionPoolDataSource` | `javax.sql.ConnectionPoolDataSource` — returns `PooledConnection` objects. |
+| `SQLServerXADataSource` | `javax.sql.XADataSource` — returns `XAConnection` for distributed transactions. |
+| `SQLServerConnection` | Core connection object returned by all DataSource / Driver paths. Implements `ISQLServerConnection`. |
+| `DriverManager.getConnection()` | Standard JDBC URL-based entry point that delegates to `SQLServerDriver.connect()`. |
+| `SQLServerAccessTokenCallback` | Callback interface for custom token-based authentication. |
+
+### Statement Creation
+
+| Method | Returns |
+|--------|---------|
+| `connection.createStatement()` | `SQLServerStatement` |
+| `connection.prepareStatement()` | `SQLServerPreparedStatement` |
+| `connection.prepareCall()` | `SQLServerCallableStatement` |
+
+### Statement Execution
+
+| Method | Description |
+|--------|-------------|
+| `statement.executeQuery()` | Returns a `SQLServerResultSet` for SELECT queries. |
+| `statement.executeUpdate()` | Returns row count for INSERT/UPDATE/DELETE. |
+| `statement.execute()` | Returns boolean; use `getResultSet()` / `getUpdateCount()` for results. |
+| `statement.executeBatch()` | Executes accumulated batch of commands. |
+
+### Result Processing
+
+| Class / Interface | Description |
+|-------------------|-------------|
+| `SQLServerResultSet` | Scrollable / updatable result set. Implements `ISQLServerResultSet`. |
+| `SQLServerResultSetMetaData` | Column metadata (names, types, nullability). |
+| `SQLServerParameterMetaData` | Parameter metadata for prepared statements. |
+
+### Database Metadata
+
+| Method / Class | Description |
+|----------------|-------------|
+| `connection.getMetaData()` | Returns `SQLServerDatabaseMetaData`. |
+| `databaseMetaData.getTables()` | Lists tables matching a pattern. |
+| `databaseMetaData.getColumns()` | Lists columns for a table. |
+| `databaseMetaData.getProcedures()` | Lists stored procedures. |
+| `databaseMetaData.getPrimaryKeys()` | Lists primary key columns for a table. |
+| `databaseMetaData.getIndexInfo()` | Lists indexes for a table. |
+| `databaseMetaData.getSchemas()` | Lists schemas in the database. |
+
+### Bulk Copy
+
+| Class / Interface | Description |
+|-------------------|-------------|
+| `SQLServerBulkCopy` | High-performance bulk insert. Wraps TDS bulk-insert protocol. |
+| `SQLServerBulkCopyOptions` | Configuration for bulk copy (batch size, timeout, keep identity, etc.). |
+| `SQLServerBulkCSVFileRecord` | Reads CSV files as input for `SQLServerBulkCopy`. Implements `ISQLServerBulkData`. |
+| `ISQLServerBulkRecord` | Interface to provide custom row data for bulk copy. |
+
+### Always Encrypted
+
+| Class / Interface | Description |
+|-------------------|-------------|
+| `SQLServerColumnEncryptionKeyStoreProvider` | Abstract class for custom key store providers. |
+| `SQLServerColumnEncryptionJavaKeyStoreProvider` | Java Key Store (JKS/PKCS12) key store provider. |
+| `SQLServerColumnEncryptionAzureKeyVaultProvider` | Azure Key Vault key store provider. |
+| `SQLServerConnection.registerColumnEncryptionKeyStoreProviders()` | Registers custom key store providers globally. |
+
+### Spatial Types
+
+| Class | Description |
+|-------|-------------|
+| `Geography` | Represents `geography` spatial type. Factory methods: `point()`, `STGeomFromText()`, `STGeomFromWKB()`, `deserialize()`. |
+| `Geometry` | Represents `geometry` spatial type. Same factory methods as `Geography`. |
+
+### Vector Types
+
+| Class / Method | Description |
+|----------------|-------------|
+| `SQLServerPreparedStatement.setVector()` | Sets a vector parameter with specified base type. |
+| `SQLServerResultSet.getVector()` | Retrieves a vector column value as a typed list. |
+| `SQLServerCallableStatement.getVector()` | Retrieves a vector output parameter. |
+
+### Table-Valued Parameters (TVP)
+
+| Class / Interface | Description |
+|-------------------|-------------|
+| `SQLServerDataTable` | In-memory table for TVP data. |
+| `SQLServerDataColumn` | Column metadata for `SQLServerDataTable`. |
+| `ISQLServerDataRecord` | Interface for streaming TVP rows. |
+| `SQLServerPreparedStatement.setStructured()` | Binds a TVP parameter. |
+
+### Data Classification
+
+| Class | Description |
+|-------|-------------|
+| `SensitivityClassification` | Top-level container for data classification labels on a result set. |
+| `ColumnSensitivity` | Per-column sensitivity information. |
+| `SensitivityProperty` | Label + information-type pair. |
+| `SQLServerResultSet.getSensitivityClassification()` | Retrieves classification metadata for the current result set. |
+
+### Performance Monitoring
+
+| Class / Method | Description |
+|----------------|-------------|
+| `SQLServerConnection.getStatistics()` | Returns `Hashtable` of performance counters (bytes sent/received, prepares, etc.). |
+| `SQLServerConnection.setStatisticsEnabled(true)` | Enables per-connection performance statistics gathering. |
+| `SQLServerConnectionPoolDataSource.setMaxPoolSize()` | Controls connection pool sizing. |

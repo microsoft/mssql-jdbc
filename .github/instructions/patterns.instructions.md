@@ -625,3 +625,183 @@ public class MyCustomKeyStoreProvider extends SQLServerColumnEncryptionKeyStoreP
     private byte[] customEncrypt(String keyPath, byte[] data) { /* ... */ }
 }
 ```
+
+---
+
+## Anti-Patterns (Avoid These)
+
+### 1. SQL Injection via String Concatenation
+
+```java
+// BAD — SQL injection risk
+String sql = "SELECT * FROM " + userInput;
+stmt.execute(sql);
+
+// GOOD — Use parameterized queries
+PreparedStatement pstmt = con.prepareStatement("SELECT * FROM users WHERE id = ?");
+pstmt.setInt(1, userId);
+```
+
+Note: Calling `executeQuery(String)` on a `PreparedStatement` throws `R_cannotTakeArgumentsPreparedOrCallable`.
+
+### 2. Resource Leaks (Missing try-with-resources)
+
+```java
+// BAD — Resources leak if exception occurs between open and close
+Connection con = ds.getConnection();
+Statement stmt = con.createStatement();
+ResultSet rs = stmt.executeQuery(sql);
+// ... use rs ...
+rs.close(); stmt.close(); con.close();
+
+// GOOD — Auto-close on exception or normal exit
+try (Connection con = ds.getConnection();
+     Statement stmt = con.createStatement();
+     ResultSet rs = stmt.executeQuery(sql)) {
+    while (rs.next()) { /* ... */ }
+}
+
+// GOOD — SQLServerBulkCopy also implements AutoCloseable
+try (SQLServerBulkCopy bc = new SQLServerBulkCopy(con)) {
+    bc.setDestinationTableName("target");
+    bc.writeToServer(rs);
+}
+```
+
+### 3. Properties-Only Properties in Connection String
+
+`accessToken`, `accessTokenCallback`, and `gsscredential` **cannot** be set in the connection URL — they must be passed via `java.util.Properties`.
+
+```java
+// BAD — accessToken silently ignored in connection string
+String url = "jdbc:sqlserver://server;accessToken=eyJ...";
+
+// GOOD — Pass via Properties
+Properties props = new Properties();
+props.put("accessToken", tokenString);
+Connection con = DriverManager.getConnection(url, props);
+```
+
+### 4. Sharing Connections Across Threads
+
+`SQLServerConnection`, `SQLServerStatement`, and `SQLServerResultSet` are **NOT** thread-safe.
+
+```java
+// BAD — Race condition on shared connection
+Connection sharedCon = ds.getConnection();
+pool.submit(() -> sharedCon.createStatement().execute(sql1));
+pool.submit(() -> sharedCon.createStatement().execute(sql2));
+
+// GOOD — Connection-per-thread or use connection pool
+pool.submit(() -> {
+    try (Connection con = ds.getConnection()) {
+        con.createStatement().execute(sql1);
+    }
+});
+```
+
+Use `SQLServerConnectionPoolDataSource` or `SQLServerXADataSource` for pooling.
+
+### 5. Catching Exception Instead of SQLException
+
+```java
+// BAD — Catches NPE, ClassCastException, etc.
+try {
+    stmt.execute(sql);
+} catch (Exception e) {
+    logger.warning(e.getMessage());
+}
+
+// GOOD — Catch specific exception type
+try {
+    stmt.execute(sql);
+} catch (SQLException e) {
+    SQLServerException.makeFromDriverError(con, this, e.getMessage(), null, false);
+}
+```
+
+### 6. Using isClosed() to Check Connection Validity
+
+`isClosed()` only checks a **local flag** — it does NOT verify the server is reachable.
+
+```java
+// BAD — isClosed() doesn't detect broken network connections
+if (!con.isClosed()) {
+    stmt.execute(sql);  // May still fail if server is unreachable
+}
+
+// GOOD — isValid() sends SELECT 1 to the server
+if (con.isValid(5)) {  // 5-second timeout
+    stmt.execute(sql);
+}
+```
+
+### 7. Statement Pooling Misconfiguration
+
+Pooling requires **both** `disableStatementPooling=false` AND `statementPoolingCacheSize > 0`. Defaults disable it.
+
+```java
+// BAD — Only set one property, pooling still disabled
+props.put("statementPoolingCacheSize", "10");
+// disableStatementPooling defaults to true → pooling is OFF
+
+// GOOD — Set both
+props.put("disableStatementPooling", "false");
+props.put("statementPoolingCacheSize", "10");
+```
+
+### 8. sendStringParametersAsUnicode Performance Impact
+
+Defaults to `true`. All string params are sent as `nvarchar`, which prevents index seeks on `varchar` columns due to implicit conversion.
+
+```java
+// BAD — Default causes nvarchar parameters on varchar columns
+// SQL Server sees: WHERE varchar_col = N'value' → index scan, not seek
+PreparedStatement pstmt = con.prepareStatement("SELECT * FROM t WHERE varchar_col = ?");
+pstmt.setString(1, "value");
+
+// GOOD — For varchar-heavy schemas, disable Unicode sending
+props.put("sendStringParametersAsUnicode", "false");
+```
+
+### 9. Timeout Unit Confusion
+
+Different timeout properties use **different units**:
+
+| Property | Unit | Default |
+|----------|------|---------|
+| `loginTimeout` | seconds | 30 |
+| `queryTimeout` | seconds | -1 (server default) |
+| `cancelQueryTimeout` | seconds | -1 |
+| `socketTimeout` | **milliseconds** | 0 (infinite) |
+| `lockTimeout` | **milliseconds** | -1 (wait forever) |
+
+```java
+// BAD — Wrong units
+props.put("socketTimeout", "30");   // 30 milliseconds, NOT 30 seconds!
+props.put("queryTimeout", "30000"); // 30,000 seconds (8+ hours), NOT milliseconds!
+
+// GOOD — Correct units
+props.put("socketTimeout", "30000");  // 30 seconds in milliseconds
+props.put("queryTimeout", "30");      // 30 seconds
+```
+
+### 10. Bulk Copy Without Options
+
+```java
+// BAD — No batch size, no timeout, no table lock, no try-with-resources
+SQLServerBulkCopy bc = new SQLServerBulkCopy(con);
+bc.setDestinationTableName("target");
+bc.writeToServer(rs);  // Sends ALL rows in one batch
+
+// GOOD — Configure for production use
+try (SQLServerBulkCopy bc = new SQLServerBulkCopy(con)) {
+    SQLServerBulkCopyOptions opts = new SQLServerBulkCopyOptions();
+    opts.setBatchSize(10000);
+    opts.setBulkCopyTimeout(120);
+    opts.setTableLock(true);  // TABLOCK for performance
+    bc.setBulkCopyOptions(opts);
+    bc.setDestinationTableName("target");
+    bc.writeToServer(rs);
+}
+```
