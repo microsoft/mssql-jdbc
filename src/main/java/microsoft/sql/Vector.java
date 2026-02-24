@@ -98,8 +98,7 @@ public final class Vector implements java.io.Serializable {
      */
     @Override
     public String toString() {
-        return "VECTOR(" + vectorType + ", " + dimensionCount + ") : " +
-                (data != null ? Arrays.toString(data) : "null");
+        return "VECTOR(" + vectorType + ", " + dimensionCount + ") : " + Arrays.toString(data);
     }
 
     private static void validateVectorParameters(int dimensionCount, VectorDimensionType vectorType, Object[] data) {
