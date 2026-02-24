@@ -141,7 +141,7 @@ public class VectorFloat16Test extends AbstractVectorTest {
             pstmt.executeUpdate();
             fail("Expected SQLServerException for out-of-range FLOAT16 values, but insert succeeded.");
         } catch (SQLServerException e) {
-            assertTrue(e.getMessage().contains("not a valid half precison floating point number"),
+            assertTrue(e.getMessage().contains("not a valid half precision floating point number"),
                     "Expected error about invalid half precision float, but got: " + e.getMessage());
         }
     }
@@ -179,4 +179,5 @@ public class VectorFloat16Test extends AbstractVectorTest {
             }
         }
     }
+
 }
