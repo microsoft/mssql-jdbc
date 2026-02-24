@@ -642,8 +642,7 @@ final class Parameter {
                     // v2: VECTOR(n, FLOAT32)  - explicit dimension type required
                     //     VECTOR(n, FLOAT16)
                     param.typeDefinition = VectorUtils.getTypeDefinition(
-                            vectorValue, vectorScale, param.isOutput(),
-                            param.getOutScale(), param.getValueLength(),
+                            vectorValue, vectorScale, param.getValueLength(),
                             con.getNegotiatedVectorVersion());
                     break;
 

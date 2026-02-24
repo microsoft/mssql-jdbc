@@ -769,6 +769,41 @@ public abstract class AbstractVectorTest extends AbstractTest {
     }
 
     /**
+     * Validates that a single INOUT parameter can be used to pass a vector and receive it back.
+     * This test creates a stored procedure with a single VECTOR INOUT parameter,
+     * sets a non-null vector value on it, registers it as an output parameter, and
+     * verifies that the returned vector matches the input.
+     */
+    @Test
+    public void testVectorStoredProcedureInOut() throws SQLException {
+        // Create a procedure with a single INOUT vector parameter
+        try (Statement stmt = connection.createStatement()) {
+            String sql = "CREATE OR ALTER PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "\n" +
+                    "    @ioVector " + getColumnDefinition(3) + " OUTPUT\n" +
+                    "AS\n" +
+                    "BEGIN\n" +
+                    "    -- Simply pass the value back\n" +
+                    "    SET @ioVector = @ioVector\n" +
+                    "END";
+            stmt.execute(sql);
+        }
+
+        String call = "{call " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "(?)}";
+        try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) connection.prepareCall(call)) {
+            Vector inputVector = new Vector(3, getVectorDimensionType(), createTestData(0.5f, 1.0f, 1.5f));
+
+            // Same parameter is both input and output (INOUT)
+            cstmt.setObject(1, inputVector, microsoft.sql.Types.VECTOR);
+            cstmt.registerOutParameter(1, microsoft.sql.Types.VECTOR, 3, getScale());
+            cstmt.execute();
+
+            Vector result = cstmt.getObject(1, Vector.class);
+            assertNotNull(result, "Returned vector should not be null");
+            assertVectorDataEquals(inputVector.getData(), result.getData(), "INOUT vector data mismatch.");
+        }
+    }
+
+    /**
      * Validates that a null vector can be passed as both input and output parameters in a stored procedure.
      * This test creates a stored procedure that takes a VECTOR input parameter and an OUTPUT VECTOR parameter,
      * calls the procedure with a null vector, and verifies that the output vector is also null.

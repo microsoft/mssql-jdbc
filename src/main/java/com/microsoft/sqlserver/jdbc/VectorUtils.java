@@ -230,13 +230,11 @@ class VectorUtils {
      * @param vector             The vector instance (may be null for output parameters)
      * @param scale              Number of bytes per dimension (e.g., 4 for FLOAT32, 2 for
      *                           FLOAT16)
-     * @param isOutput           True if the parameter is an output parameter
-     * @param outScale           Output parameter's bytes per dimension (if applicable)
      * @param valueLength        The dimension count for null vector parameters
      * @param negotiatedVersion  The negotiated vector version (1 for v1, 2 for v2)
      * @return SQL type definition string, e.g., VECTOR(3, FLOAT16) or VECTOR(3)
      */
-    static String getTypeDefinition(Vector vector, int scale, boolean isOutput, int outScale, int valueLength,
+    static String getTypeDefinition(Vector vector, int scale, int valueLength,
             byte negotiatedVersion) {
         int precision = 0;
         if (vector != null) {
