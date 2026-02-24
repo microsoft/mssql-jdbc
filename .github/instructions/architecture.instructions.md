@@ -83,9 +83,9 @@ com.microsoft.sqlserver.jdbc/
 │   ├── tdsparser.java                   # Token stream parsing
 │   ├── StreamPacket.java                # Base packet handler
 │   ├── StreamColInfo.java               # Column info token
-│   ├── StreamColumns.java               # Column metadata token
+│   ├── StreamColumns.java              # Column metadata token
 │   ├── StreamDone.java                  # Done token
-│   ├── StreamLoginAck.java              # Login acknowledgment
+│   ├── StreamLoginAck.java             # Login acknowledgment
 │   ├── StreamRetStatus.java             # Return status
 │   ├── StreamRetValue.java              # Return value
 │   └── StreamTabName.java               # Table name token
@@ -94,9 +94,9 @@ com.microsoft.sqlserver.jdbc/
 │   ├── DataTypes.java                   # Type mappings
 │   ├── DDC.java                         # Data type conversion
 │   ├── dtv.java                         # Data type value handling
-│   ├── SQLServerBlob.java               # BLOB support
-│   ├── SQLServerClob.java               # CLOB support
-│   ├── SQLServerNClob.java              # NCLOB support
+│   ├── SQLServerBlob.java              # BLOB support
+│   ├── SQLServerClob.java              # CLOB support
+│   ├── SQLServerNClob.java             # NCLOB support
 │   ├── SQLServerSQLXML.java             # XML support
 │   ├── Geography.java                   # Spatial - Geography
 │   ├── Geometry.java                    # Spatial - Geometry
