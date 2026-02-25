@@ -101,7 +101,8 @@ public class Engine {
                 count++;
                 selected.execute();  // Framework calls execute() which runs then validates
                 log.add(selected.name);
-                System.out.println(String.format("[%3d] %-20s | %s", count, selected.name, sm.getState()));
+                System.out
+                        .println(String.format("[%3d] %-20s | %s", count, selected.name, sm.getDataCache().getRow(0)));
             }
         } catch (Exception e) {
             error = e;

@@ -8,14 +8,25 @@ package com.microsoft.sqlserver.jdbc.statemachinetest.core;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 
 /**
- * Central state whiteboard for Model-Based Testing (MBT).
- * Holds state variables (key-value map), registered {@link Action}s, and a
- * seeded {@link java.util.Random}.
+ * Central container for Model-Based Testing (MBT).
+ * Internally owns a {@link DataCache}, registered {@link Action}s,
+ * and a seeded {@link java.util.Random}.
+ *
+ * <p>
+ * The DataCache is created internally with an empty state row (row 0).
+ * Tests populate state via {@code getDataCache().updateValue(0, key, value)}
+ * and add expected data rows via {@code getDataCache().addRow(row)}.
+ *
+ * <p>
+ * State management is handled by {@link Action} convenience methods
+ * ({@code setState}, {@code getState}, {@code isState}, {@code getStateInt})
+ * which read/write DataCache row 0. {@code StateMachineTest} itself does not
+ * provide state mutation — it is simply the container that links actions
+ * to their shared DataCache.
  *
  * @see Action
  * @see Engine
@@ -23,11 +34,15 @@ import java.util.Random;
  */
 public class StateMachineTest {
 
-    /** 
-     * State storage - holds all variables that define the current state of the system under test.
-     * Example: row position, connection status, dirty flags, etc.
+    /**
+     * Internally owned DataCache — single source of truth for all state and test
+     * data.
+     * Row 0 holds state variables (keyed by {@link StateKey#key()}).
+     * Rows 1+ hold expected test data (if any).
+     * Created at construction with an empty state row; auto-linked to all
+     * actions via {@link #addAction}.
      */
-    private Map<String, Object> state = new HashMap<>();
+    private final DataCache dataCache;
 
     /**
      * List of all possible actions that can be executed on the system under test.
@@ -47,47 +62,22 @@ public class StateMachineTest {
      */
     private Random random = new Random();
 
+    /**
+     * Creates a state machine with an internally-owned DataCache.
+     * Row 0 (state row) is pre-initialized as an empty map.
+     * Use {@link #getDataCache()} to populate state and add data rows.
+     *
+     * @param name display name for logging
+     */
     public StateMachineTest(String name) {
         this.name = name;
+        this.dataCache = new DataCache();
+        this.dataCache.addRow(new HashMap<>()); // Row 0: empty state row
     }
 
-    public StateMachineTest() {
-        this.name = "StateMachineTest";
-    }
-
-    // ==================== State Management ====================
-
-    /** Sets a state variable using enum key. */
-    public void setState(StateKey key, Object value) {
-        state.put(key.key(), value);
-    }
-
-    /** Gets a state variable using enum key. Returns null if not found. */
-    public Object getStateValue(StateKey key) {
-        return state.get(key.key());
-    }
-
-    /**
-     * Gets an integer state variable using enum key. Returns 0 if not found or not
-     * a number.
-     */
-    public int getStateInt(StateKey key) {
-        Object v = state.get(key.key());
-        return v instanceof Number ? ((Number) v).intValue() : 0;
-    }
-
-    /**
-     * Gets a boolean state variable using enum key. Returns false if not found or
-     * not a boolean.
-     */
-    public boolean isState(StateKey key) {
-        Object v = state.get(key.key());
-        return v instanceof Boolean && (Boolean) v;
-    }
-
-    /** Returns a copy of the current state for inspection. */
-    public Map<String, Object> getState() {
-        return new HashMap<>(state);
+    /** Returns the underlying DataCache backing this state machine. */
+    public DataCache getDataCache() {
+        return dataCache;
     }
 
     /** Returns the name of this state machine. */
@@ -98,7 +88,7 @@ public class StateMachineTest {
     /**
      * Returns the seeded random number generator.
      * Actions should use this for any random choices to ensure reproducibility.
-     * Example: sm.getRandom().nextInt(10) instead of (int)(Math.random() * 10)
+     * Example: getRandom().nextInt(10) instead of (int)(Math.random() * 10)
      */
     public Random getRandom() {
         return random;
@@ -115,8 +105,15 @@ public class StateMachineTest {
 
     // ==================== Action Management ====================
 
-    /** Registers an action that can be executed during exploration. */
+    /**
+     * Registers an action and auto-links it to this state machine's DataCache
+     * and Random. After this call, the action can use {@code setState()},
+     * {@code getState()}, {@code isState()}, {@code getStateInt()}, and
+     * {@code getRandom()}.
+     */
     public void addAction(Action a) {
+        a.dataCache = dataCache;
+        a.sm = this;
         actions.add(a);
     }
 

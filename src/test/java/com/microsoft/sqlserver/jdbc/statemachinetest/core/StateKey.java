@@ -8,8 +8,9 @@ package com.microsoft.sqlserver.jdbc.statemachinetest.core;
 
 /**
  * Type-safe key for state variables. Implement as an enum per domain.
- *
- * @see StateMachineTest#setState(StateKey, Object)
+ * State is stored in {@link DataCache} row 0 and accessed via
+ * {@link Action#setState}, {@link Action#getState}, {@link Action#isState},
+ * {@link Action#getStateInt}.
  */
 public interface StateKey {
     
