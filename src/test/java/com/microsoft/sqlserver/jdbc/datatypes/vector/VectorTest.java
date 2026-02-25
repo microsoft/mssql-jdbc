@@ -18,6 +18,7 @@ import java.sql.DriverManager;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Savepoint;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
@@ -312,6 +313,7 @@ public abstract class VectorTest extends AbstractTest {
 
     /**
      * Validates that a vector with null data can be inserted and retrieved correctly.
+     * In null data case, dimension count and type should still be preserved while data is null.
      */
     @Test
     public void testInsertNullVector() throws SQLException {
@@ -402,6 +404,7 @@ public abstract class VectorTest extends AbstractTest {
 
     /**
      * Validates that inserting a vector with mismatched dimensions throws an error.
+     * Example: inserting a VECTOR(4) into a VECTOR(3) column should fail with a dimension mismatch error.
      */
     @Test
     public void testInsertVectorWithMismatchedDimensions() throws SQLException {
@@ -733,6 +736,8 @@ public abstract class VectorTest extends AbstractTest {
     // Stored Procedure Tests
     // ============================================================================
 
+    // Helper method to create a stored procedure that takes a VECTOR input parameter 
+    // and an OUTPUT VECTOR parameter.
     private void createProcedure() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             String sql = "CREATE OR ALTER PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + "\n" +
@@ -866,6 +871,7 @@ public abstract class VectorTest extends AbstractTest {
      */
     @Test
     public void testVectorTVP() throws SQLException {
+        String escapedTvpTableName = AbstractSQLGenerator.escapeIdentifier(tvpTableName);
         Vector expectedVector = new Vector(3, getVectorDimensionType(), createTestData(0.1f, 0.2f, 0.3f));
 
         SQLServerDataTable tvp = new SQLServerDataTable();
@@ -873,13 +879,13 @@ public abstract class VectorTest extends AbstractTest {
         tvp.addRow(expectedVector);
 
         try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
-                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tvpTableName) + " SELECT * FROM ?;")) {
+                "INSERT INTO " + escapedTvpTableName + " SELECT * FROM ?;")) {
             pstmt.setStructured(1, tvpTypeName, tvp);
             pstmt.execute();
 
             try (Statement stmt = connection.createStatement();
                     ResultSet rs = stmt.executeQuery(
-                            "SELECT c1 FROM " + AbstractSQLGenerator.escapeIdentifier(tvpTableName) + " ORDER BY rowId")) {
+                            "SELECT c1 FROM " + escapedTvpTableName)) {
                 while (rs.next()) {
                     Vector actual = rs.getObject("c1", Vector.class);
                     assertNotNull(actual, "Returned vector should not be null");
@@ -931,6 +937,7 @@ public abstract class VectorTest extends AbstractTest {
         }
     }
 
+    // Helper method to create a stored procedure that returns a TVP with VECTOR data
     private void createTVPReturnProcedure(String procName, String tvpTypeName) throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             String sql = "CREATE OR ALTER PROCEDURE " + procName + "\n" +
@@ -998,6 +1005,7 @@ public abstract class VectorTest extends AbstractTest {
     // UDF Tests
     // ============================================================================
 
+    // Helper method to create a scalar UDF that takes a VECTOR parameter and returns it
     private void createVectorUdf() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             String sql =
@@ -1047,6 +1055,7 @@ public abstract class VectorTest extends AbstractTest {
         }
     }
 
+    // Helper method to create a table-valued UDF that returns a TVP with VECTOR data
     private void createTVPReturnUdf() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             String sql = "CREATE OR ALTER FUNCTION " + AbstractSQLGenerator.escapeIdentifier(vectorUdf) +
@@ -1334,6 +1343,78 @@ public abstract class VectorTest extends AbstractTest {
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(transactionTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Validates that rolling back to a savepoint mid-transaction correctly undoes only the
+     * work performed after the savepoint, while preserving earlier vector inserts.
+     * This test inserts two vectors in a single transaction with a savepoint between them,
+     * rolls back to the savepoint (undoing the second insert), then commits. It verifies
+     * that only the first vector row survives.
+     */
+    @Test
+    public void testSavepointRollbackForVector() throws SQLException {
+        String savepointTable = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("savepointTable_" + uuid.substring(0, 8)));
+
+        try (Statement outerStmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(savepointTable, outerStmt);
+            outerStmt.executeUpdate("CREATE TABLE " + savepointTable
+                    + " (id INT PRIMARY KEY, v " + getColumnDefinition(3) + ")");
+
+            connection.setAutoCommit(false);
+            try {
+                // Insert first vector — this should survive
+                Float[] data1 = createTestData(1.0f, 2.0f, 3.0f);
+                Vector vector1 = new Vector(3, getVectorDimensionType(), data1);
+                try (PreparedStatement pstmt = connection.prepareStatement(
+                        "INSERT INTO " + savepointTable + " (id, v) VALUES (?, ?)")) {
+                    pstmt.setInt(1, 1);
+                    pstmt.setObject(2, vector1, microsoft.sql.Types.VECTOR);
+                    pstmt.executeUpdate();
+                }
+
+                // Create savepoint after first insert
+                Savepoint sp = connection.setSavepoint("afterFirstInsert");
+
+                // Insert second vector — this should be rolled back
+                Float[] data2 = createTestData(4.0f, 5.0f, 6.0f);
+                Vector vector2 = new Vector(3, getVectorDimensionType(), data2);
+                try (PreparedStatement pstmt = connection.prepareStatement(
+                        "INSERT INTO " + savepointTable + " (id, v) VALUES (?, ?)")) {
+                    pstmt.setInt(1, 2);
+                    pstmt.setObject(2, vector2, microsoft.sql.Types.VECTOR);
+                    pstmt.executeUpdate();
+                }
+
+                // Rollback to savepoint — undoes second insert, keeps first
+                connection.rollback(sp);
+                connection.commit();
+
+            } catch (Exception e) {
+                connection.rollback();
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
+
+            // Verify: only row 1 exists
+            try (ResultSet rs = outerStmt.executeQuery(
+                    "SELECT id, v FROM " + savepointTable + " ORDER BY id")) {
+                assertTrue(rs.next(), "First row should exist after partial rollback.");
+                assertEquals(1, rs.getInt("id"));
+                Vector result = rs.getObject("v", Vector.class);
+                assertNotNull(result, "Vector should not be null after commit.");
+                assertVectorDataEquals(createTestData(1.0f, 2.0f, 3.0f), result.getData(),
+                        "Vector data mismatch after savepoint rollback.");
+
+                assertFalse(rs.next(), "Second row should not exist after savepoint rollback.");
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(savepointTable, stmt);
             }
         }
     }

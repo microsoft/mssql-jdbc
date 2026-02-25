@@ -207,6 +207,7 @@ public class VectorFloat32Test extends VectorTest {
         }
     }
 
+    // Helper method to set up a simple SVF for testing with FLOAT32 vectors
     private void setupSVF(String schemaName, String funcName, String tableName) throws SQLException {
         String escapedSchema = AbstractSQLGenerator.escapeIdentifier(schemaName);
         String escapedFunc = AbstractSQLGenerator.escapeIdentifier(funcName);
