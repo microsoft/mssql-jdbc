@@ -11,6 +11,10 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
@@ -34,62 +38,30 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
- * Self-Contained Transaction State Machine Tests
- * 
- * This test demonstrates a SELF-CONTAINED design where:
- * - States are defined inline (not in separate enum)
- * - Actions are inner classes within this test
- * - All behavior is visible in one file for easier understanding
- * 
- * Migrated from FX Framework:
- * - Based on fxConnection model actions
- * - Implements Model-Based Testing (MBT) for JDBC transaction operations
- * 
- * Test scenarios covered:
- * - setAutoCommit(true/false) - Toggle auto-commit mode
- * - commit() - Commit transaction (requires autoCommit=false)
- * - rollback() - Rollback transaction (requires autoCommit=false)
+ * MBT transaction tests: commit, rollback, autoCommit with
+ * INSERT/UPDATE/DELETE.
  */
 @Tag(Constants.legacyFX)
 public class TransactionStateTest extends AbstractTest {
 
     private static final String TABLE_NAME_CONST = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SM_Transaction_Test"));
 
-    // ========================================================================
-    // STATE DEFINITIONS - Self-contained, specific to this test
-    // ========================================================================
-
-    /** State key for Connection object */
+    // STATE DEFINITIONS
     private static final StateKey CONN = () -> "conn";
-
-    /** State key for autoCommit mode (Boolean) */
     private static final StateKey AUTO_COMMIT = () -> "autoCommit";
-
-    /** State key for connection closed status (Boolean) */
     private static final StateKey CLOSED = () -> "closed";
 
-    /** State key for whether initial data has been inserted (Boolean) */
-    private static final StateKey TABLE_READY = () -> "tableReady";
-
     /**
-     * Reference to the state machine's DataCache for post-test assertions.
-     * The DataCache is owned by StateMachineTest; this reference is obtained
-     * via {@code sm.getDataCache()} after SM construction.
-     *
-     * Row 0 columns:
-     * - State: "conn", "autoCommit", "closed", "tableReady"
-     * - Data (set by InsertAction): "value", "pendingValue", "commitCount",
-     * "rollbackCount"
+     * Row 0: State (conn, autoCommit, closed, commitCount, rollbackCount, nextId)
+     * Rows 1-N: Per-row data (id, value, pendingValue, rowState:
+     * committed|pending_insert|pending_delete|removed)
      */
     private static DataCache cache;
-
-    // ========================================================================
-    // TEST SETUP & TEARDOWN
-    // ========================================================================
 
     @BeforeAll
     static void setupTests() throws Exception {
         setConnection();
+        createTestTable(connection);
     }
 
     @AfterAll
@@ -99,39 +71,61 @@ public class TransactionStateTest extends AbstractTest {
         }
     }
 
+    // TEST CASE
+
     /**
-     * Creates the test table schema (no data - InsertAction handles that).
+     * E-commerce transaction simulation: orders are inserted, prices updated,
+     * cancelled orders deleted — all within transactions that commit or rollback
+     * randomly. Weights reflect real-world frequency: inserts and updates are
+     * frequent, deletes and rollbacks are rare, commits dominate.
      */
-    private static void createTestTable(Connection conn) throws SQLException {
-        try (Statement stmt = conn.createStatement()) {
-            TestUtils.dropTableIfExists(TABLE_NAME_CONST, stmt);
-            stmt.execute("CREATE TABLE " + TABLE_NAME_CONST + " (id INT PRIMARY KEY, value INT)");
+    @Test
+    @DisplayName("E-Commerce Transaction Simulation")
+    void testECommerceTransactions() throws SQLException {
+        Assumptions.assumeTrue(connectionString != null, "No database connection configured");
+
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
+            StateMachineTest sm = new StateMachineTest("ECommerceTransactions");
+            cache = sm.getDataCache();
+            cache.updateValue(0, CONN.key(), conn);
+            cache.updateValue(0, AUTO_COMMIT.key(), true);
+            cache.updateValue(0, CLOSED.key(), false);
+            cache.updateValue(0, "commitCount", 0);
+            cache.updateValue(0, "rollbackCount", 0);
+            cache.updateValue(0, "nextId", 1);
+
+            sm.addAction(new InsertAction(20)); // new orders arrive frequently
+            sm.addAction(new SetAutoCommitFalseAction(8)); // begin transaction
+            sm.addAction(new SetAutoCommitTrueAction(4)); // implicit commit (less common)
+            sm.addAction(new CommitAction(30)); // most transactions succeed
+            sm.addAction(new RollbackAction(5)); // occasional cancellations
+            sm.addAction(new ExecuteUpdateAction(25)); // price/quantity updates
+            sm.addAction(new SelectAction(5)); // order lookups
+            sm.addAction(new DeleteAction(3)); // order removals are rare
+
+            Result result = Engine.run(sm).withMaxActions(200).execute();
+            conn.setAutoCommit(true);
+
+            Integer commitCount = (Integer) cache.getValue(0, "commitCount");
+            Integer rollbackCount = (Integer) cache.getValue(0, "rollbackCount");
+
+            System.out.println(String.format("Result: actions=%d, commits=%d, rollbacks=%d",
+                    result.actionCount, commitCount != null ? commitCount : 0,
+                    rollbackCount != null ? rollbackCount : 0));
+
+            assertTrue(result.isSuccess(), "State machine test should complete successfully");
+            assertTrue(commitCount != null && commitCount >= 3,
+                    String.format("Expected at least 3 commits, got %d",
+                            commitCount != null ? commitCount : 0));
         }
     }
 
-    // ========================================================================
-    // ACTION DEFINITIONS - Self-contained inner classes for this test
-    // ========================================================================
+    // ACTION DEFINITIONS
 
-    /**
-     * Action: Insert initial data row into the test table.
-     * 
-     * This is the first action that must run — all other data actions
-     * (UPDATE, SELECT, COMMIT, ROLLBACK) require TABLE_READY=true,
-     * which this action sets after inserting.
-     * 
-     * After run():
-     * - DB has: id=1, value=100
-     * - DataCache row 0: {value=100, pendingValue=null, commitCount=0,
-     * rollbackCount=0}
-     * - TABLE_READY=true (unlocks other actions)
-     */
+    /** Insert a new row (repeatable). */
     private static class InsertAction extends Action {
-        private static final int INITIAL_VALUE = 100;
-
-        InsertAction() {
-            this(10);
-        }
+        private int insertedId;
+        private int insertedValue;
 
         InsertAction(int weight) {
             super("insert", weight);
@@ -139,36 +133,49 @@ public class TransactionStateTest extends AbstractTest {
 
         @Override
         public boolean canRun() {
-            // Can only run once — before data is initialized
-            return !isState(CLOSED) && !isState(TABLE_READY);
+            return !isState(CLOSED);
         }
 
         @Override
         public void run() throws SQLException {
             Connection conn = (Connection) getState(CONN);
+            int nextId = (Integer) dataCache.getValue(0, "nextId");
+            insertedId = nextId;
+            insertedValue = getRandom().nextInt(1000);
+
             try (Statement stmt = conn.createStatement()) {
-                stmt.execute("INSERT INTO " + TABLE_NAME_CONST + " VALUES (1, " + INITIAL_VALUE + ")");
+                stmt.execute("INSERT INTO " + TABLE_NAME_CONST
+                        + " VALUES (" + insertedId + ", " + insertedValue + ")");
             }
 
-            // Initialize data columns in DataCache row 0
-            dataCache.updateValue(0, "value", INITIAL_VALUE);
-            dataCache.updateValue(0, "pendingValue", null);
-            dataCache.updateValue(0, "commitCount", 0);
-            dataCache.updateValue(0, "rollbackCount", 0);
+            String rowState = isState(AUTO_COMMIT) ? "committed" : "pending_insert";
+            Map<String, Object> row = new HashMap<>();
+            row.put("id", insertedId);
+            row.put("value", insertedValue);
+            row.put("pendingValue", null);
+            row.put("rowState", rowState);
+            dataCache.addRow(row);
+            dataCache.updateValue(0, "nextId", nextId + 1);
 
-            setState(TABLE_READY, true);
-            System.out.println("  + INSERT id=1, value=" + INITIAL_VALUE + " — table data initialized");
+            System.out.println(String.format("INSERT id=%d val=%d %s",
+                    insertedId, insertedValue, isState(AUTO_COMMIT) ? "committed" : "pending"));
+        }
+
+        @Override
+        public void validate() throws SQLException {
+            Connection conn = (Connection) getState(CONN);
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "SELECT value FROM " + TABLE_NAME_CONST + " WHERE id = " + insertedId)) {
+                assertTrue(rs.next(), "Inserted row id=" + insertedId + " should be visible");
+                assertExpected(rs.getInt("value"), insertedValue,
+                        "Inserted row id=" + insertedId + " value mismatch");
+            }
         }
     }
 
-    /**
-     * Action: Disable auto-commit to enable transaction mode
-     */
+    /** Disable auto-commit to enable transaction mode. */
     private static class SetAutoCommitFalseAction extends Action {
-
-        SetAutoCommitFalseAction() {
-            this(5);
-        }
 
         SetAutoCommitFalseAction(int weight) {
             super("setAutoCommit(false)", weight);
@@ -184,18 +191,12 @@ public class TransactionStateTest extends AbstractTest {
             Connection conn = (Connection) getState(CONN);
             conn.setAutoCommit(false);
             setState(AUTO_COMMIT, false);
-            System.out.println("  → setAutoCommit(false)");
+            System.out.println("setAutoCommit(false)");
         }
     }
 
-    /**
-     * Action: Enable auto-commit (implicitly commits pending changes)
-     */
+    /** Enable auto-commit (implicitly commits all pending changes). */
     private static class SetAutoCommitTrueAction extends Action {
-
-        SetAutoCommitTrueAction() {
-            this(5);
-        }
 
         SetAutoCommitTrueAction(int weight) {
             super("setAutoCommit(true)", weight);
@@ -209,40 +210,23 @@ public class TransactionStateTest extends AbstractTest {
         @Override
         public void run() throws SQLException {
             Connection conn = (Connection) getState(CONN);
-            Integer pending = (Integer) dataCache.getValue(0, "pendingValue");
 
             conn.setAutoCommit(true);
             setState(AUTO_COMMIT, true);
 
-            // setAutoCommit(true) implicitly commits pending transaction
-            if (pending != null) {
-                dataCache.updateValue(0, "value", pending);
-                dataCache.updateValue(0, "pendingValue", null);
-            }
+            promoteAllPending(dataCache);
+            System.out.println("setAutoCommit(true) - implicit commit");
+        }
 
-            Object expected = dataCache.getValue(0, "value");
-            System.out.println("  → setAutoCommit(true) - implicit commit" +
-                    (expected != null ? ", expected=" + expected : ""));
+        @Override
+        public void validate() throws SQLException {
+            Connection conn = (Connection) getState(CONN);
+            validateAllRows(this, conn);
         }
     }
 
-    /**
-     * Action: Commit transaction and validate data persistence
-     * 
-     * What this commits:
-     * - Any previous UPDATE statement executed by ExecuteUpdateAction
-     * - Makes pendingValue permanent → updates committed value in DataCache
-     * 
-     * Example flow:
-     * 1. ExecuteUpdateAction: UPDATE table SET value=542 → pendingValue=542
-     * 2. CommitAction: commit() → value=542, pendingValue=null in DataCache
-     * 3. Validation: SELECT value FROM table → confirms DB has 542
-     */
+    /** Commit transaction: promotes all pending changes to committed. */
     private static class CommitAction extends Action {
-
-        CommitAction() {
-            this(10);
-        }
 
         CommitAction(int weight) {
             super("commit", weight);
@@ -250,69 +234,30 @@ public class TransactionStateTest extends AbstractTest {
 
         @Override
         public boolean canRun() {
-            return !isState(CLOSED) && !isState(AUTO_COMMIT) && isState(TABLE_READY);
+            return !isState(CLOSED) && !isState(AUTO_COMMIT);
         }
 
         @Override
         public void run() throws SQLException {
             Connection conn = (Connection) getState(CONN);
-            Integer pending = (Integer) dataCache.getValue(0, "pendingValue");
-            Object oldExpected = dataCache.getValue(0, "value");
 
-            // This commits any UPDATE executed earlier (tracked in pendingValue)
             conn.commit();
-
-            // Promote pending → committed in DataCache
-            if (pending != null) {
-                System.out.println(String.format("  ✓ commit() - committing UPDATE: value %s → %s",
-                        oldExpected, pending));
-                dataCache.updateValue(0, "value", pending);
-                dataCache.updateValue(0, "pendingValue", null);
-            } else {
-                System.out.println("  ✓ commit() - no pending changes");
-            }
-
-            // Track commit count in DataCache
+            promoteAllPending(dataCache);
             int commitCount = (Integer) dataCache.getValue(0, "commitCount");
             dataCache.updateValue(0, "commitCount", commitCount + 1);
+
+            System.out.println("commit #" + (commitCount + 1));
         }
 
         @Override
         public void validate() throws SQLException {
-            // Validate: Database value matches expected (committed) value in DataCache
-            Integer expected = (Integer) dataCache.getValue(0, "value");
-            if (expected != null) {
-                Connection conn = (Connection) getState(CONN);
-                try (Statement stmt = conn.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT value FROM " + TABLE_NAME_CONST + " WHERE id = 1")) {
-                    if (rs.next()) {
-                        int actual = rs.getInt("value");
-                        assertExpected(actual, expected.intValue(),
-                                "After COMMIT: DB value should match committed value");
-                    }
-                }
-            }
+            Connection conn = (Connection) getState(CONN);
+            validateAllRows(this, conn);
         }
     }
 
-    /**
-     * Action: Rollback transaction and validate data reverts
-     * 
-     * What this rolls back:
-     * - Any previous UPDATE statement executed by ExecuteUpdateAction
-     * - Discards pendingValue, DB reverts to committed value in DataCache
-     * 
-     * Example flow:
-     * 1. Initial state: DataCache row 0: {value=100}, DB has 100
-     * 2. ExecuteUpdateAction: UPDATE table SET value=542 → pendingValue=542
-     * 3. RollbackAction: rollback() → pendingValue cleared, DB still has 100
-     * 4. Validation: SELECT value FROM table → confirms DB reverted to 100
-     */
+    /** Rollback transaction: discards all pending changes. */
     private static class RollbackAction extends Action {
-
-        RollbackAction() {
-            this(10);
-        }
 
         RollbackAction(int weight) {
             super("rollback", weight);
@@ -320,75 +265,35 @@ public class TransactionStateTest extends AbstractTest {
 
         @Override
         public boolean canRun() {
-            return !isState(CLOSED) && !isState(AUTO_COMMIT) && isState(TABLE_READY);
+            return !isState(CLOSED) && !isState(AUTO_COMMIT);
         }
 
         @Override
         public void run() throws SQLException {
             Connection conn = (Connection) getState(CONN);
-            Integer pending = (Integer) dataCache.getValue(0, "pendingValue");
-            Object expected = dataCache.getValue(0, "value");
 
-            // This rolls back any UPDATE executed earlier (tracked in pendingValue)
             conn.rollback();
-
-            if (pending != null) {
-                System.out.println(String.format("  ↺ rollback() - discarding UPDATE: value %s (pending) reverts to %s",
-                        pending, expected));
-            } else {
-                System.out.println("  ↺ rollback() - no pending changes to discard");
-            }
-
-            dataCache.updateValue(0, "pendingValue", null); // Discard pending
-
-            // Track rollback count in DataCache
+            discardAllPending(dataCache);
             int rollbackCount = (Integer) dataCache.getValue(0, "rollbackCount");
             dataCache.updateValue(0, "rollbackCount", rollbackCount + 1);
+
+            System.out.println("rollback #" + (rollbackCount + 1));
         }
 
         @Override
         public void validate() throws SQLException {
-            // Validate: Database value matches expected (reverted) value in DataCache
-            Integer expected = (Integer) dataCache.getValue(0, "value");
-            if (expected != null) {
-                Connection conn = (Connection) getState(CONN);
-                try (Statement stmt = conn.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT value FROM " + TABLE_NAME_CONST + " WHERE id = 1")) {
-                    if (rs.next()) {
-                        int actual = rs.getInt("value");
-                        assertExpected(actual, expected.intValue(),
-                                "After ROLLBACK: DB value should revert to last committed value");
-                    }
-                }
-            }
+            Connection conn = (Connection) getState(CONN);
+            validateAllRows(this, conn);
         }
     }
 
     /**
-     * Action: Execute UPDATE to generate data for commit/rollback testing
-     * 
-     * What this does:
-     * - Executes: UPDATE table SET value=<random> WHERE id=1
-     * - Sets pendingValue=<random> in DataCache (uncommitted until commit/rollback)
-     * - This UPDATE is what CommitAction commits or RollbackAction discards
-     * 
-     * Example flow:
-     * 1. Initial: DataCache row 0: {value=100}, DB has 100
-     * 2. ExecuteUpdateAction: UPDATE table SET value=542
-     * → pendingValue=542, DB sees 542 but not committed
-     * 3. Next action decides fate:
-     * - CommitAction → DB permanently has 542
-     * - RollbackAction → DB reverts to 100
-     * 
-     * In autoCommit mode:
-     * - UPDATE is immediately committed (no pending state)
-     * - DataCache updated immediately
+     * UPDATE a random visible row. Auto-committed immediately or pending until
+     * commit/rollback.
      */
     private static class ExecuteUpdateAction extends Action {
-
-        ExecuteUpdateAction() {
-            this(15);
-        }
+        private int updatedId;
+        private int updatedValue;
 
         ExecuteUpdateAction(int weight) {
             super("executeUpdate", weight);
@@ -396,47 +301,52 @@ public class TransactionStateTest extends AbstractTest {
 
         @Override
         public boolean canRun() {
-            return !isState(CLOSED) && isState(TABLE_READY);
+            return !isState(CLOSED) && hasVisibleRows(dataCache);
         }
 
         @Override
         public void run() throws SQLException {
             Connection conn = (Connection) getState(CONN);
-            Object oldValue = dataCache.getValue(0, "value");
-            int newValue = getRandom().nextInt(1000);
+            List<Integer> visible = getVisibleRowIndices(dataCache);
+            int targetIdx = visible.get(getRandom().nextInt(visible.size()));
+            updatedId = (Integer) dataCache.getValue(targetIdx, "id");
+            Object oldValue = dataCache.getValue(targetIdx, "value");
+            updatedValue = getRandom().nextInt(1000);
 
             try (Statement stmt = conn.createStatement()) {
-                // THIS IS THE STATEMENT that commit() will commit or rollback() will discard
-                int rows = stmt.executeUpdate(
-                        "UPDATE " + TABLE_NAME_CONST + " SET value = " + newValue + " WHERE id = 1");
-
-                // Track as pending (uncommitted) in DataCache
-                dataCache.updateValue(0, "pendingValue", newValue);
-
-                // In autoCommit mode, changes are immediately committed
+                stmt.executeUpdate(
+                        "UPDATE " + TABLE_NAME_CONST + " SET value = " + updatedValue + " WHERE id = " + updatedId);
+                dataCache.updateValue(targetIdx, "pendingValue", updatedValue);
                 if (isState(AUTO_COMMIT)) {
-                    dataCache.updateValue(0, "value", newValue);
-                    dataCache.updateValue(0, "pendingValue", null);
-                    System.out.println(String.format("  ✎ UPDATE value %s → %s (auto-committed)",
-                            oldValue, newValue));
+                    dataCache.updateValue(targetIdx, "value", updatedValue);
+                    dataCache.updateValue(targetIdx, "pendingValue", null);
+                    System.out.println(String.format("UPDATE id=%d %s->%s committed",
+                            updatedId, oldValue, updatedValue));
                 } else {
-                    System.out.println(String.format("  ✎ UPDATE value %s → %s (PENDING - awaiting commit/rollback)",
-                            oldValue, newValue));
+                    System.out.println(String.format("UPDATE id=%d %s->%s pending",
+                            updatedId, oldValue, updatedValue));
                 }
+            }
+        }
+
+        @Override
+        public void validate() throws SQLException {
+            Connection conn = (Connection) getState(CONN);
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "SELECT value FROM " + TABLE_NAME_CONST + " WHERE id = " + updatedId)) {
+                assertTrue(rs.next(), "Updated row id=" + updatedId + " should be visible");
+                assertExpected(rs.getInt("value"), updatedValue,
+                        "Updated row id=" + updatedId + " value mismatch");
             }
         }
     }
 
-    /**
-     * Action: Execute SELECT to verify current database state
-     */
+    /** SELECT a random visible row and verify value against DataCache. */
     private static class SelectAction extends Action {
         private int lastValue;
+        private int lastRowIndex;
         private boolean hasValue;
-
-        SelectAction() {
-            this(5);
-        }
 
         SelectAction(int weight) {
             super("select", weight);
@@ -444,19 +354,24 @@ public class TransactionStateTest extends AbstractTest {
 
         @Override
         public boolean canRun() {
-            return !isState(CLOSED) && isState(TABLE_READY);
+            return !isState(CLOSED) && hasVisibleRows(dataCache);
         }
 
         @Override
         public void run() throws SQLException {
             Connection conn = (Connection) getState(CONN);
+            List<Integer> visible = getVisibleRowIndices(dataCache);
+            lastRowIndex = visible.get(getRandom().nextInt(visible.size()));
+            int targetId = (Integer) dataCache.getValue(lastRowIndex, "id");
+            hasValue = false;
 
             try (Statement stmt = conn.createStatement();
-                    ResultSet rs = stmt.executeQuery("SELECT value FROM " + TABLE_NAME_CONST + " WHERE id = 1")) {
+                    ResultSet rs = stmt.executeQuery(
+                            "SELECT value FROM " + TABLE_NAME_CONST + " WHERE id = " + targetId)) {
                 if (rs.next()) {
                     lastValue = rs.getInt("value");
                     hasValue = true;
-                    System.out.println("  ⚬ SELECT → value=" + lastValue);
+                    System.out.println("SELECT id=" + targetId + " val=" + lastValue);
                 }
             }
         }
@@ -466,178 +381,163 @@ public class TransactionStateTest extends AbstractTest {
             if (!hasValue)
                 return;
 
-            Integer expected = (Integer) dataCache.getValue(0, "value");
-            Integer pending = (Integer) dataCache.getValue(0, "pendingValue");
+            Integer expected = (Integer) dataCache.getValue(lastRowIndex, "value");
+            Integer pending = (Integer) dataCache.getValue(lastRowIndex, "pendingValue");
 
-            // In a transaction, SELECT sees uncommitted changes
             Integer valueToCheck = (pending != null) ? pending : expected;
 
             if (valueToCheck != null) {
+                int rowId = (Integer) dataCache.getValue(lastRowIndex, "id");
                 assertExpected(lastValue, valueToCheck.intValue(),
-                        "SELECT should see " + (pending != null ? "pending" : "committed") + " value");
+                        "SELECT id=" + rowId + " should see "
+                                + (pending != null ? "pending" : "committed") + " value");
             }
         }
     }
 
-    // ========================================================================
-    // TEST CASES
-    // ========================================================================
+    /**
+     * DELETE a random visible row. Committed rows become pending_delete;
+     * pending_insert rows are removed.
+     */
+    private static class DeleteAction extends Action {
+        private int deletedId;
 
-    @Test
-    @DisplayName("FX Model: Real Database - Transaction Commit/Rollback")
-    void testRealDatabaseTransaction() throws SQLException {
-        Assumptions.assumeTrue(connectionString != null, "No database connection configured");
+        DeleteAction(int weight) {
+            super("delete", weight);
+        }
 
-        try (Connection conn = PrepUtil.getConnection(connectionString)) {
-            // ===== DATA SETUP: Initialize test table =====
-            // Creates table with initial data: id=1, value=100
-            createTestTable(conn);
+        @Override
+        public boolean canRun() {
+            return !isState(CLOSED) && hasVisibleRows(dataCache);
+        }
 
-            // SM owns DataCache internally (row 0 = empty state row)
-            StateMachineTest sm = new StateMachineTest("RealTransaction");
-            cache = sm.getDataCache();
-            cache.updateValue(0, CONN.key(), conn);
-            cache.updateValue(0, AUTO_COMMIT.key(), true);
-            cache.updateValue(0, CLOSED.key(), false);
-            cache.updateValue(0, TABLE_READY.key(), false);
+        @Override
+        public void run() throws SQLException {
+            Connection conn = (Connection) getState(CONN);
+            List<Integer> visible = getVisibleRowIndices(dataCache);
+            int targetIdx = visible.get(getRandom().nextInt(visible.size()));
+            deletedId = (Integer) dataCache.getValue(targetIdx, "id");
+            String currentState = (String) dataCache.getValue(targetIdx, "rowState");
 
-            // InsertAction runs first (TABLE_READY=false) and initializes DataCache, then
-            // unlocks the rest
-            sm.addAction(new InsertAction());
-            sm.addAction(new SetAutoCommitFalseAction());
-            sm.addAction(new SetAutoCommitTrueAction());
-            sm.addAction(new CommitAction());
-            sm.addAction(new RollbackAction());
-            sm.addAction(new ExecuteUpdateAction());
-            sm.addAction(new SelectAction());
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("DELETE FROM " + TABLE_NAME_CONST + " WHERE id = " + deletedId);
+            }
 
-            // ===== EXECUTION =====
-            Result result = Engine.run(sm).withMaxActions(50).execute();
+            if (isState(AUTO_COMMIT) || "pending_insert".equals(currentState)) {
+                dataCache.updateValue(targetIdx, "rowState", "removed");
+                dataCache.updateValue(targetIdx, "pendingValue", null);
+                System.out.println(String.format("DELETE id=%d %s",
+                        deletedId, isState(AUTO_COMMIT) ? "committed" : "cancelled pending"));
+            } else {
+                dataCache.updateValue(targetIdx, "rowState", "pending_delete");
+                dataCache.updateValue(targetIdx, "pendingValue", null);
+                System.out.println(String.format("DELETE id=%d pending", deletedId));
+            }
+        }
 
-            // Cleanup - ensure autocommit is restored
-            conn.setAutoCommit(true);
-
-            System.out.println("\n=== Test Complete ===");
-            System.out.println("Real DB transaction test: " + result.actionCount + " actions");
-            assertTrue(result.isSuccess());
+        @Override
+        public void validate() throws SQLException {
+            Connection conn = (Connection) getState(CONN);
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "SELECT COUNT(*) FROM " + TABLE_NAME_CONST + " WHERE id = " + deletedId)) {
+                rs.next();
+                assertExpected(rs.getInt(1), 0,
+                        "Deleted row id=" + deletedId + " should not be visible");
+            }
         }
     }
 
-    @Test
-    @DisplayName("Transaction Validation Test")
-    void testTransactionWithValidation() throws SQLException {
-        Assumptions.assumeTrue(connectionString != null, "No database connection configured");
+    // UTILITY METHODS
 
-        try (Connection conn = PrepUtil.getConnection(connectionString)) {
-            // ===== DATA SETUP: Initialize test table =====
-            // Creates table with: id=1, value=100
-            createTestTable(conn);
-
-            // SM owns DataCache internally (row 0 = empty state row)
-            StateMachineTest sm = new StateMachineTest("TransactionValidation");
-            cache = sm.getDataCache();
-            cache.updateValue(0, CONN.key(), conn);
-            cache.updateValue(0, AUTO_COMMIT.key(), true);
-            cache.updateValue(0, CLOSED.key(), false);
-            cache.updateValue(0, TABLE_READY.key(), false);
-
-            // InsertAction initializes DataCache (including counters), then other actions
-            // unlock
-            sm.addAction(new InsertAction());
-            sm.addAction(new SetAutoCommitFalseAction());
-            sm.addAction(new SetAutoCommitTrueAction());
-            sm.addAction(new CommitAction());
-            sm.addAction(new RollbackAction());
-            sm.addAction(new ExecuteUpdateAction());
-            sm.addAction(new SelectAction());
-
-            // Vlaidate -> Action within, At last also .... Divang
-            // ===== EXECUTION =====
-            Result result = Engine.run(sm).withMaxActions(50).withSeed(12345).execute();
-
-            conn.setAutoCommit(true);
-
-            System.out.println("\n=== Test Complete ===");
-            System.out.println("Transaction validation test: " + result.actionCount + " actions");
-            assertTrue(result.isSuccess());
+    private static void createTestTable(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(TABLE_NAME_CONST, stmt);
+            stmt.execute("CREATE TABLE " + TABLE_NAME_CONST + " (id INT PRIMARY KEY, value INT)");
         }
     }
 
     /**
-     * FX Framework Migration: TCModelFocusCommit
-     * 
-     * This test migrates the commit-focused Model-Based Testing pattern
-     * from FX's DistributedTransactions.TCModelFocusCommit.
-     * 
-     * Pattern:
-     * - Uses WEIGHTED actions to focus heavily on commit operations
-     * - Tracks successful commit count (similar to FX's ModelRequirement)
-     * - Runs for many iterations to stress-test commit behavior
-     * - Validates data persistence after commits
-     * 
-     * Original FX Pattern:
-     * - engine.Options.MaxActions = 10,000
-     * - Weighted actions: commit=100, end=100, start=100
-     * - ModelRequirement: stop after N successful commits
+     * Returns DataCache row indices where rowState is "committed" or
+     * "pending_insert".
      */
-    @Test
-    @DisplayName("FX Migration: TCModelFocusCommit - Commit-Focused Testing")
-    void testCommitFocused() throws SQLException {
-        Assumptions.assumeTrue(connectionString != null, "No database connection configured");
+    private static List<Integer> getVisibleRowIndices(DataCache dc) {
+        List<Integer> visible = new ArrayList<>();
+        for (int i = 1; i < dc.getRowCount(); i++) {
+            String state = (String) dc.getValue(i, "rowState");
+            if ("committed".equals(state) || "pending_insert".equals(state)) {
+                visible.add(i);
+            }
+        }
+        return visible;
+    }
 
-        try (Connection conn = PrepUtil.getConnection(connectionString)) {
-            createTestTable(conn);
+    private static boolean hasVisibleRows(DataCache dc) {
+        return !getVisibleRowIndices(dc).isEmpty();
+    }
 
-            // SM owns DataCache internally (row 0 = empty state row)
-            StateMachineTest sm = new StateMachineTest("CommitFocused");
-            cache = sm.getDataCache();
-            cache.updateValue(0, CONN.key(), conn);
-            cache.updateValue(0, AUTO_COMMIT.key(), true);
-            cache.updateValue(0, CLOSED.key(), false);
-            cache.updateValue(0, TABLE_READY.key(), false);
+    /**
+     * Commit semantics: pending_insert→committed, pending_delete→removed,
+     * pendingValue→value.
+     */
+    private static void promoteAllPending(DataCache dc) {
+        for (int i = 1; i < dc.getRowCount(); i++) {
+            String rowState = (String) dc.getValue(i, "rowState");
+            if ("pending_insert".equals(rowState)) {
+                dc.updateValue(i, "rowState", "committed");
+            } else if ("pending_delete".equals(rowState)) {
+                dc.updateValue(i, "rowState", "removed");
+            }
+            Integer pending = (Integer) dc.getValue(i, "pendingValue");
+            if (pending != null) {
+                dc.updateValue(i, "value", pending);
+                dc.updateValue(i, "pendingValue", null);
+            }
+        }
+    }
 
-            // InsertAction initializes DataCache (including counters), then commit-focused
-            // weighted actions take over
-            sm.addAction(new InsertAction());
-            sm.addAction(new SetAutoCommitFalseAction(10));
-            sm.addAction(new SetAutoCommitTrueAction(5));
-            sm.addAction(new CommitAction(50)); // HIGH: focus on commits
-            sm.addAction(new RollbackAction(2)); // Very low
-            sm.addAction(new ExecuteUpdateAction(30)); // Moderate - generate data
-            sm.addAction(new SelectAction(3));
+    /**
+     * Rollback semantics: pending_insert→removed, pending_delete→committed,
+     * pendingValue discarded.
+     */
+    private static void discardAllPending(DataCache dc) {
+        for (int i = 1; i < dc.getRowCount(); i++) {
+            String rowState = (String) dc.getValue(i, "rowState");
+            if ("pending_insert".equals(rowState)) {
+                dc.updateValue(i, "rowState", "removed");
+            } else if ("pending_delete".equals(rowState)) {
+                dc.updateValue(i, "rowState", "committed");
+            }
+            dc.updateValue(i, "pendingValue", null);
+        }
+    }
 
-            // Run with high iteration count (FX used 10,000, using 500 for practicality)
-            // Use seed for reproducibility
-            Result result = Engine.run(sm).withMaxActions(500).withSeed(67890).execute();
+    /** Validates committed rows in DataCache match DB via Map-based comparison. */
+    private static void validateAllRows(Action action, Connection conn) throws SQLException {
+        DataCache dc = action.getDataCache();
 
-            conn.setAutoCommit(true);
+        Map<Integer, Integer> expected = new HashMap<>();
+        for (int i = 1; i < dc.getRowCount(); i++) {
+            String rowState = (String) dc.getValue(i, "rowState");
+            if ("committed".equals(rowState)) {
+                expected.put((Integer) dc.getValue(i, "id"), (Integer) dc.getValue(i, "value"));
+            }
+        }
 
-            // Validate results from DataCache
-            Integer finalCommitCount = (Integer) cache.getValue(0, "commitCount");
-            Integer finalRollbackCount = (Integer) cache.getValue(0, "rollbackCount");
+        Map<Integer, Integer> actual = new HashMap<>();
+        try (Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT id, value FROM " + TABLE_NAME_CONST + " ORDER BY id")) {
+            while (rs.next()) {
+                actual.put(rs.getInt("id"), rs.getInt("value"));
+            }
+        }
 
-            System.out.println("\n=== Commit-Focused Test Results ===");
-            System.out.println("Total actions executed: " + result.actionCount);
-            System.out.println("Successful commits: " + (finalCommitCount != null ? finalCommitCount : 0));
-            System.out.println("Rollbacks: " + (finalRollbackCount != null ? finalRollbackCount : 0));
-            System.out.println("Commit focus ratio: "
-                    + String.format("%.1f%%",
-                            (finalCommitCount != null ? finalCommitCount : 0) * 100.0
-                                    / (result.actionCount > 0 ? result.actionCount : 1)));
-
-            assertTrue(result.isSuccess(), "State machine test should complete successfully");
-
-            // Assert commit-focused behavior: should have executed multiple commits
-            // FX TCModelFocusCommit tracked "total committed transactions" via
-            // ModelRequirement
-            assertTrue(finalCommitCount != null && finalCommitCount >= 5,
-                    String.format("Commit-focused test should execute at least 5 commits, got %d",
-                            finalCommitCount != null ? finalCommitCount : 0));
-
-            // Commit count should dominate rollback count (weighted heavily toward commits)
-            assertTrue(finalCommitCount > finalRollbackCount,
-                    String.format("Commits (%d) should exceed rollbacks (%d) in commit-focused test",
-                            finalCommitCount, finalRollbackCount));
+        action.assertExpected(actual.size(), expected.size(),
+                String.format("Row count mismatch: DB has %d rows, expected %d", actual.size(), expected.size()));
+        for (Map.Entry<Integer, Integer> entry : expected.entrySet()) {
+            Integer actualValue = actual.get(entry.getKey());
+            action.assertExpected(actualValue != null ? actualValue : -1, entry.getValue(),
+                    String.format("Row id=%d: expected %d", entry.getKey(), entry.getValue()));
         }
     }
 }
