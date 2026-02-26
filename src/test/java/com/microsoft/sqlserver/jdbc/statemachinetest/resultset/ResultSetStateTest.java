@@ -536,7 +536,6 @@ public class ResultSetStateTest extends AbstractTest {
             sm.addAction(new PreviousAction());
             sm.addAction(new FirstAction());
             sm.addAction(new LastAction());
-            sm.addAction(new PreviousAction());
             sm.addAction(new AbsoluteAction());
             sm.addAction(new GetStringAction());
             sm.addAction(new GetIntAction());

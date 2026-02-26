@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc.statemachinetest.core;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +41,7 @@ public class DataCache {
         if (rowIndex < 0 || rowIndex >= rows.size()) {
             return null;
         }
-        return new HashMap<>(rows.get(rowIndex));
+        return Collections.unmodifiableMap(rows.get(rowIndex));
     }
 
     /**
@@ -51,7 +52,10 @@ public class DataCache {
      * @return expected value, or null if row/column doesn't exist
      */
     public Object getValue(int rowIndex, String columnName) {
-        Map<String, Object> row = getRow(rowIndex);
+        if (rowIndex < 0 || rowIndex >= rows.size()) {
+            return null;
+        }
+        Map<String, Object> row = rows.get(rowIndex);
         return row != null ? row.get(columnName) : null;
     }
 
@@ -89,9 +93,11 @@ public class DataCache {
      * @param newValue new expected value
      */
     public void updateValue(int rowIndex, String columnName, Object newValue) {
-        if (rowIndex >= 0 && rowIndex < rows.size()) {
-            rows.get(rowIndex).put(columnName, newValue);
+        if (rowIndex < 0 || rowIndex >= rows.size()) {
+            throw new IndexOutOfBoundsException(
+                    "Row index " + rowIndex + " out of bounds for DataCache with " + rows.size() + " rows");
         }
+        rows.get(rowIndex).put(columnName, newValue);
     }
 
     @Override

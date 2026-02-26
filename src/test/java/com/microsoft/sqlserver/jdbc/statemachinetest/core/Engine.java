@@ -62,7 +62,7 @@ public class Engine {
         long start = System.currentTimeMillis();
         long end = start + timeout * 1000L;
         List<String> log = new ArrayList<>();
-        Exception error = null;
+        Throwable error = null;
         int count = 0;
 
         System.out.println(sm.getName() + " | Seed:" + seed + " | Max:" + maxActions + " | Timeout:" + timeout + "s");
@@ -104,7 +104,7 @@ public class Engine {
                 System.out
                         .println(String.format("[%3d] %-20s | %s", count, selected.name, sm.getDataCache().getRow(0)));
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             error = e;
             String msg = e.getMessage() != null ? e.getMessage() : "(no message)";
             System.out.println("ERROR: " + e.getClass().getSimpleName() + ": " + msg);
