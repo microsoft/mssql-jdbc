@@ -629,7 +629,7 @@ mvn test -Dtest="com.microsoft.sqlserver.jdbc.statemachinetest.resultset.ResultS
 
 **Prerequisite:** Set the connection string environment variable:
 ```
-MSSQL_JDBC_TEST_CONNECTION_PROPERTIES=jdbc:sqlserver://SERVER;databaseName=test;userName=...;password=...;
+MSSQL_JDBC_TEST_CONNECTION_PROPERTIES=jdbc:sqlserver://SERVER;databaseName=test;
 ```
 
 ---
