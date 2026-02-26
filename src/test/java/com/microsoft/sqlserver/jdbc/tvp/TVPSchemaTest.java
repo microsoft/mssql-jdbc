@@ -44,6 +44,7 @@ public class TVPSchemaTest extends AbstractTest {
     private static String tvpNameWithSchema;
     private static String charTable;
     private static String procedureName;
+    private static String procedureNameWithReturn;
 
     /**
      * PreparedStatement with storedProcedure
@@ -130,6 +131,120 @@ public class TVPSchemaTest extends AbstractTest {
         }
     }
 
+    /**
+     * PreparedStatement with StoredProcedure using setObject instead of setStructured.
+     * FX: TVPSchema.java "setObject" variations
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @DisplayName("TVPSchemaPreparedStatementSetObject()")
+    public void testTVPSchemaPreparedStatementSetObject() throws SQLException {
+
+        final String sql = "{call " + procedureName + "(?)}";
+
+        tvp.setTvpName(tvpNameWithSchema);
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
+                SQLServerPreparedStatement P_C_statement = (SQLServerPreparedStatement) conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+            P_C_statement.setObject(1, tvp);
+            P_C_statement.execute();
+
+            verify(rs);
+        }
+    }
+
+    /**
+     * CallableStatement with StoredProcedure using setObject instead of setStructured.
+     * FX: TVPSchema.java "CallableSatement" + "setObject" variation
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @DisplayName("TVPSchemaCallableStatementSetObject()")
+    public void testTVPSchemaCallableStatementSetObject() throws SQLException {
+
+        final String sql = "{call " + procedureName + "(?)}";
+
+        tvp.setTvpName(tvpNameWithSchema);
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
+                SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) conn.prepareCall(sql);
+                ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+            P_C_statement.setObject(1, tvp);
+            P_C_statement.execute();
+
+            verify(rs);
+        }
+    }
+
+    /**
+     * StoredProcedure with return value using setStructured.
+     * FX: TVPSchema.java testTVPSchema_StoredProcedure_WithReturn "setStructured" variation
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @DisplayName("TVPSchemaStoredProcedureWithReturnSetStructured()")
+    public void testTVPSchemaStoredProcedureWithReturnSetStructured() throws SQLException {
+
+        createProcedureWithReturn();
+
+        final String sql = "{? = call " + procedureNameWithReturn + "(?)}";
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
+                SQLServerCallableStatement cstmt = (SQLServerCallableStatement) conn.prepareCall(sql)) {
+            cstmt.registerOutParameter(1, java.sql.Types.INTEGER);
+            cstmt.setStructured(2, tvpNameWithSchema, tvp);
+            cstmt.execute();
+
+            String expectedValue = "123";
+            String actualReturnValue = cstmt.getString(1);
+            assertEquals(expectedValue, actualReturnValue, "Return value should be 123");
+
+            try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                verify(rs);
+            }
+        } finally {
+            dropProcedureWithReturn();
+        }
+    }
+
+    /**
+     * StoredProcedure with return value using setObject.
+     * FX: TVPSchema.java testTVPSchema_StoredProcedure_WithReturn "setObject" variation
+     * 
+     * @throws SQLException
+     */
+    @Test
+    @DisplayName("TVPSchemaStoredProcedureWithReturnSetObject()")
+    public void testTVPSchemaStoredProcedureWithReturnSetObject() throws SQLException {
+
+        createProcedureWithReturn();
+
+        final String sql = "{? = call " + procedureNameWithReturn + "(?)}";
+
+        tvp.setTvpName(tvpNameWithSchema);
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
+                SQLServerCallableStatement cstmt = (SQLServerCallableStatement) conn.prepareCall(sql)) {
+            cstmt.registerOutParameter(1, java.sql.Types.INTEGER);
+            cstmt.setObject(2, tvp);
+            cstmt.execute();
+
+            String expectedValue = "123";
+            String actualReturnValue = cstmt.getString(1);
+            assertEquals(expectedValue, actualReturnValue, "Return value should be 123");
+
+            try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                verify(rs);
+            }
+        } finally {
+            dropProcedureWithReturn();
+        }
+    }
+
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
@@ -145,6 +260,8 @@ public class TVPSchemaTest extends AbstractTest {
                 + AbstractSQLGenerator.escapeIdentifier("tvpCharTable");
         procedureName = AbstractSQLGenerator.escapeIdentifier(schemaName) + "."
                 + AbstractSQLGenerator.escapeIdentifier("procedureThatCallsTVP");
+        procedureNameWithReturn = AbstractSQLGenerator.escapeIdentifier(schemaName) + "."
+                + AbstractSQLGenerator.escapeIdentifier("procedureThatCallsTVPWithReturn");
 
         createSchema();
         createTVPS();
@@ -166,6 +283,7 @@ public class TVPSchemaTest extends AbstractTest {
     private void dropObjects() throws SQLException {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             dropProcedure(stmt);
+            dropProcedureWithReturn();
             dropTables(stmt);
             dropTVPS(stmt);
             dropSchema(stmt);
@@ -190,6 +308,25 @@ public class TVPSchemaTest extends AbstractTest {
                 + " DROP PROCEDURE " + procedureName;
 
         stmt.execute(sql);
+    }
+
+    private void dropProcedureWithReturn() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            String sql = " IF EXISTS (select * from sysobjects where id = object_id(N'"
+                    + TestUtils.escapeSingleQuotes(procedureNameWithReturn)
+                    + "') and OBJECTPROPERTY(id, N'IsProcedure') = 1)" + " DROP PROCEDURE "
+                    + procedureNameWithReturn;
+            stmt.execute(sql);
+        }
+    }
+
+    private static void createProcedureWithReturn() throws SQLException {
+        String sql = "CREATE PROCEDURE " + procedureNameWithReturn + " @InputData " + tvpNameWithSchema + " READONLY "
+                + " AS " + " BEGIN " + " INSERT INTO " + charTable + " SELECT * FROM @InputData" + " return 123"
+                + " END";
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
     }
 
     private static void dropTables(Statement stmt2) throws SQLException {
