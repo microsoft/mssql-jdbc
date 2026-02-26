@@ -20,7 +20,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @DisplayName("Test Vector Float16 Data Type")
 @Tag(Constants.vectorTest)
-public class VectorFloat16Test extends AbstractTest {
+public class VectorFloat16DataTest extends AbstractTest {
 
     @BeforeAll
     private static void setupTest() throws Exception {
