@@ -1859,6 +1859,21 @@ public class SQLServerDataSource
         return new SerializationProxy(this);
     }
 
+    @Override
+    public void setTransactionIsolation(int level) {
+        connectionProps.setProperty(SQLServerDriverStringProperty.TRANSACTION_ISOLATION.toString(), Integer.toString(level));
+    }
+
+    @Override
+    public int getTransactionIsolation() {
+        int level = Connection.TRANSACTION_READ_COMMITTED;
+        String levelStr = connectionProps.getProperty(SQLServerDriverStringProperty.TRANSACTION_ISOLATION.toString());
+        if (null != levelStr) {
+            level = Integer.parseInt(levelStr);
+        }
+        return level;
+    }
+
     /**
      * For added security/robustness, the only way to rehydrate a serialized SQLServerDataSource is to use a
      * SerializationProxy. Direct use of readObject() is not supported.
