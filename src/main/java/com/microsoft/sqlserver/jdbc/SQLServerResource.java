@@ -404,7 +404,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_GenerateSignature", "Unable to generate signature using a specified Azure Key Vault Key URL."},
         {"R_SignedHashLengthError", "Signed hash length does not match the RSA key size."},
         {"R_InvalidSignatureComputed", "Invalid signature of the encrypted column encryption key computed."},
-        {"R_UnableLoadADALSqlDll", "Unable to load adalsql.dll. Error code: 0x{0}. For details, see: http://go.microsoft.com/fwlink/?LinkID=513072"},
+        {"R_UnableLoadMSSQLAuthDll", "Unable to load mssql-auth.dll. Error code: 0x{0}. For details, see: http://go.microsoft.com/fwlink/?LinkID=513072"},
         {"R_ADALAuthenticationMiddleErrorMessage", "Error code 0x{0}; state {1}."},
         {"R_unsupportedDataTypeTVP", "Data type {0} not supported in Table-Valued Parameter."},
         {"R_moreDataInRowThanColumnInTVP", "Input array is longer than the number of columns in this table."},
