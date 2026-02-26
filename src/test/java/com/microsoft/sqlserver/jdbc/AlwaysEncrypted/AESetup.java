@@ -259,6 +259,10 @@ public class AESetup extends AbstractTest {
      * @throws SQLException
      */
     public static void dropAll() throws Exception {
+        // Skip if connection was never established (e.g., test was skipped)
+        if (null == connection) {
+            return;
+        }
         try (Statement stmt = connection.createStatement()) {
             dropTables(stmt);
 
@@ -285,10 +289,12 @@ public class AESetup extends AbstractTest {
      */
     @AfterAll
     public static void cleanUp() throws Exception {
-        dropAll();
-        if (null != connection) {
-            connection.close();
+        // Skip cleanup if connection was never established (e.g., test was skipped)
+        if (null == connection) {
+            return;
         }
+        dropAll();
+        connection.close();
     }
 
     /**

@@ -167,6 +167,10 @@ public class BulkCopySendTemporalDataTypesAsStringAETest extends AESetup {
 
     @AfterAll
     public static void cleanTest() throws SQLException {
+        // Skip cleanup if AETestConnectionString was never set (e.g., test was skipped)
+        if (null == AETestConnectionString) {
+            return;
+        }
         // Make sure to clean objects against the AE connection string, not the common connection
         try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement stmt = con.createStatement()) {

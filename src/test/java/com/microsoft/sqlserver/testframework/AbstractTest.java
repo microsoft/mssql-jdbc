@@ -34,8 +34,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
+import com.azure.identity.AzureCliCredential;
+import com.azure.identity.AzureCliCredentialBuilder;
+import com.azure.identity.ChainedTokenCredential;
+import com.azure.identity.ChainedTokenCredentialBuilder;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
+import com.azure.identity.EnvironmentCredential;
+import com.azure.identity.EnvironmentCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
@@ -177,6 +183,17 @@ public abstract class AbstractTest {
         accessTokenClientId = getConfiguredProperty("accessTokenClientId");
         accessTokenSecret = getConfiguredProperty("accessTokenSecret");
 
+        // If USE_ACCESS_TOKEN env var is set to "true" and no SQL auth credentials are present,
+        // add accessTokenCallbackClass to connection string for token-based authentication
+        String useAccessToken = System.getenv("USE_ACCESS_TOKEN");
+        boolean hasUserCredentials = TestUtils.getProperty(connectionString, "user") != null
+                || TestUtils.getProperty(connectionString, "userName") != null
+                || TestUtils.getProperty(connectionString, "password") != null;
+        if ("true".equalsIgnoreCase(useAccessToken) && !hasUserCredentials) {
+            connectionString = TestUtils.addOrOverrideProperty(connectionString, "accessTokenCallbackClass",
+                    "com.microsoft.sqlserver.testframework.AzureCliAccessTokenCallback");
+        }
+
         encrypt = getConfiguredProperty("encrypt", "false");
         connectionString = TestUtils.addOrOverrideProperty(connectionString, "encrypt", encrypt);
 
@@ -244,7 +261,35 @@ public abstract class AbstractTest {
             map.put(Constants.CUSTOM_KEYSTORE_NAME, jksProvider);
         }
 
-        if (null == akvProvider && null != akvProviderManagedClientId) {
+        // Check if AzureCliCredential should be used for AKV authentication
+        // This takes priority over ManagedIdentityCredential when USE_ACCESS_TOKEN=true
+        boolean useAzureCliForAkv = TestUtils.useAccessTokenAuth(connectionString);
+        System.out.println("[AbstractTest] USE_ACCESS_TOKEN env var: " + System.getenv("USE_ACCESS_TOKEN"));
+        System.out.println("[AbstractTest] useAzureCliForAkv: " + useAzureCliForAkv);
+        System.out.println("[AbstractTest] akvProvider is null: " + (akvProvider == null));
+        System.out.println("[AbstractTest] akvProviderManagedClientId: " + akvProviderManagedClientId);
+        
+        if (null == akvProvider && useAzureCliForAkv) {
+            // When using accessTokenCallbackClass for SQL auth (e.g., Azure CLI),
+            // use AzureCliCredential for AKV to match the authentication method
+            // Note: We exclude ManagedIdentityCredential to ensure AzureCLI@2 task credentials are used
+            try {
+                EnvironmentCredential envCredential = new EnvironmentCredentialBuilder().build();
+                AzureCliCredential cliCredential = new AzureCliCredentialBuilder().build();
+                ChainedTokenCredential credential = new ChainedTokenCredentialBuilder()
+                        .addFirst(envCredential)
+                        .addLast(cliCredential)
+                        .build();
+                akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+                map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            } catch (Exception e) {
+                System.out.println("Could not initialize AKV provider with AzureCliCredential: " + e.getMessage());
+                // Don't fall through to ManagedIdentity - throw or skip AKV tests
+                throw new RuntimeException("Failed to initialize AKV provider with AzureCliCredential", e);
+            }
+        } else if (null == akvProvider && !useAzureCliForAkv && null != akvProviderManagedClientId) {
+            // Only use ManagedIdentityCredential if NOT using AzureCli auth
+            System.out.println("[AbstractTest] Using ManagedIdentityCredential for AKV with clientId: " + akvProviderManagedClientId);
             ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
                     .clientId(akvProviderManagedClientId).build();
             akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
@@ -479,11 +524,21 @@ public abstract class AbstractTest {
                         case Constants.PREPARE_METHOD:
                             ds.setPrepareMethod(value);
                             break;
+                        case Constants.ACCESS_TOKEN_CALLBACK_CLASS:
+                            ds.setAccessTokenCallbackClass(value);
+                            break;
                         default:
                             break;
                     }
                 }
             }
+        }
+        // If USE_ACCESS_TOKEN env var is set to "true", accessTokenCallbackClass is not already configured,
+        // and no SQL auth credentials are present, use AzureCliAccessTokenCallback for token-based authentication
+        String useAccessToken = System.getenv("USE_ACCESS_TOKEN");
+        boolean hasUserCredentials = ds.getUser() != null || TestUtils.getProperty(connectionString, "password") != null;
+        if ("true".equalsIgnoreCase(useAccessToken) && ds.getAccessTokenCallbackClass() == null && !hasUserCredentials) {
+            ds.setAccessTokenCallbackClass("com.microsoft.sqlserver.testframework.AzureCliAccessTokenCallback");
         }
         return ds;
     }
