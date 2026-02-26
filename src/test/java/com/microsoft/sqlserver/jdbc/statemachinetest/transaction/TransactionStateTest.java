@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -80,8 +81,8 @@ public class TransactionStateTest extends AbstractTest {
      * frequent, deletes and rollbacks are rare, commits dominate.
      */
     @Test
-    @DisplayName("E-Commerce Transaction Simulation")
-    void testECommerceTransactions() throws SQLException {
+    @DisplayName("Randomized Transaction State Validation")
+    void testRandomizedTransactions() throws SQLException {
         Assumptions.assumeTrue(connectionString != null, "No database connection configured");
 
         try (Connection conn = PrepUtil.getConnection(connectionString)) {
@@ -93,6 +94,8 @@ public class TransactionStateTest extends AbstractTest {
             cache.updateValue(0, "commitCount", 0);
             cache.updateValue(0, "rollbackCount", 0);
             cache.updateValue(0, "nextId", 1);
+            cache.updateValue(0, "savepoint", null);
+            cache.updateValue(0, "savepointSnapshot", null);
 
             sm.addAction(new InsertAction(20)); // new orders arrive frequently
             sm.addAction(new SetAutoCommitFalseAction(8)); // begin transaction
@@ -102,8 +105,12 @@ public class TransactionStateTest extends AbstractTest {
             sm.addAction(new ExecuteUpdateAction(25)); // price/quantity updates
             sm.addAction(new SelectAction(5)); // order lookups
             sm.addAction(new DeleteAction(3)); // order removals are rare
+            sm.addAction(new DuplicateKeyInsertAction(3)); // error recovery
+            sm.addAction(new BatchInsertAction(5)); // batch operations
+            sm.addAction(new SavepointAction(4)); // partial rollback
+            sm.addAction(new RollbackToSavepointAction(3)); // undo to savepoint
 
-            Result result = Engine.run(sm).withMaxActions(200).execute();
+            Result result = Engine.run(sm).withMaxActions(300).execute();
             conn.setAutoCommit(true);
 
             Integer commitCount = (Integer) cache.getValue(0, "commitCount");
@@ -215,6 +222,8 @@ public class TransactionStateTest extends AbstractTest {
             setState(AUTO_COMMIT, true);
 
             promoteAllPending(dataCache);
+            dataCache.updateValue(0, "savepoint", null);
+            dataCache.updateValue(0, "savepointSnapshot", null);
             System.out.println("setAutoCommit(true) - implicit commit");
         }
 
@@ -245,6 +254,8 @@ public class TransactionStateTest extends AbstractTest {
             promoteAllPending(dataCache);
             int commitCount = (Integer) dataCache.getValue(0, "commitCount");
             dataCache.updateValue(0, "commitCount", commitCount + 1);
+            dataCache.updateValue(0, "savepoint", null);
+            dataCache.updateValue(0, "savepointSnapshot", null);
 
             System.out.println("commit #" + (commitCount + 1));
         }
@@ -276,6 +287,8 @@ public class TransactionStateTest extends AbstractTest {
             discardAllPending(dataCache);
             int rollbackCount = (Integer) dataCache.getValue(0, "rollbackCount");
             dataCache.updateValue(0, "rollbackCount", rollbackCount + 1);
+            dataCache.updateValue(0, "savepoint", null);
+            dataCache.updateValue(0, "savepointSnapshot", null);
 
             System.out.println("rollback #" + (rollbackCount + 1));
         }
@@ -448,6 +461,168 @@ public class TransactionStateTest extends AbstractTest {
         }
     }
 
+    /** Insert with duplicate PK — tests error recovery within transaction. */
+    private static class DuplicateKeyInsertAction extends Action {
+        private int targetId;
+
+        DuplicateKeyInsertAction(int weight) {
+            super("duplicateKeyInsert", weight);
+        }
+
+        @Override
+        public boolean canRun() {
+            return !isState(CLOSED) && hasVisibleRows(dataCache);
+        }
+
+        @Override
+        public void run() throws SQLException {
+            Connection conn = (Connection) getState(CONN);
+            List<Integer> visible = getVisibleRowIndices(dataCache);
+            int targetIdx = visible.get(getRandom().nextInt(visible.size()));
+            targetId = (Integer) dataCache.getValue(targetIdx, "id");
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("INSERT INTO " + TABLE_NAME_CONST
+                        + " VALUES (" + targetId + ", " + getRandom().nextInt(1000) + ")");
+                assertTrue(false, "Expected duplicate key violation for id=" + targetId);
+            } catch (SQLException e) {
+                System.out.println(String.format("DUP_KEY id=%d error expected", targetId));
+            }
+        }
+
+        @Override
+        public void validate() throws SQLException {
+            Connection conn = (Connection) getState(CONN);
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "SELECT COUNT(*) FROM " + TABLE_NAME_CONST + " WHERE id = " + targetId)) {
+                rs.next();
+                assertExpected(rs.getInt(1), 1,
+                        "Row id=" + targetId + " should still exist after dup key error");
+            }
+        }
+    }
+
+    /** Batch insert 2-4 rows via addBatch/executeBatch. */
+    private static class BatchInsertAction extends Action {
+        private List<int[]> batchRows;
+
+        BatchInsertAction(int weight) {
+            super("batchInsert", weight);
+        }
+
+        @Override
+        public boolean canRun() {
+            return !isState(CLOSED);
+        }
+
+        @Override
+        public void run() throws SQLException {
+            Connection conn = (Connection) getState(CONN);
+            int batchSize = 2 + getRandom().nextInt(3);
+            batchRows = new ArrayList<>();
+            int nextId = (Integer) dataCache.getValue(0, "nextId");
+
+            try (Statement stmt = conn.createStatement()) {
+                for (int i = 0; i < batchSize; i++) {
+                    int id = nextId + i;
+                    int value = getRandom().nextInt(1000);
+                    batchRows.add(new int[] { id, value });
+                    stmt.addBatch("INSERT INTO " + TABLE_NAME_CONST
+                            + " VALUES (" + id + ", " + value + ")");
+                }
+                stmt.executeBatch();
+            }
+
+            String rowState = isState(AUTO_COMMIT) ? "committed" : "pending_insert";
+            for (int[] row : batchRows) {
+                Map<String, Object> rowData = new HashMap<>();
+                rowData.put("id", row[0]);
+                rowData.put("value", row[1]);
+                rowData.put("pendingValue", null);
+                rowData.put("rowState", rowState);
+                dataCache.addRow(rowData);
+            }
+            dataCache.updateValue(0, "nextId", nextId + batchSize);
+
+            System.out.println(String.format("BATCH INSERT %d rows ids %d-%d %s",
+                    batchSize, batchRows.get(0)[0], batchRows.get(batchRows.size() - 1)[0],
+                    isState(AUTO_COMMIT) ? "committed" : "pending"));
+        }
+
+        @Override
+        public void validate() throws SQLException {
+            Connection conn = (Connection) getState(CONN);
+            for (int[] row : batchRows) {
+                try (Statement stmt = conn.createStatement();
+                        ResultSet rs = stmt.executeQuery(
+                                "SELECT value FROM " + TABLE_NAME_CONST + " WHERE id = " + row[0])) {
+                    assertTrue(rs.next(), "Batch row id=" + row[0] + " should be visible");
+                    assertExpected(rs.getInt("value"), row[1],
+                            "Batch row id=" + row[0] + " value mismatch");
+                }
+            }
+        }
+    }
+
+    /** Create a savepoint within an active transaction. */
+    private static class SavepointAction extends Action {
+
+        SavepointAction(int weight) {
+            super("savepoint", weight);
+        }
+
+        @Override
+        public boolean canRun() {
+            return !isState(CLOSED) && !isState(AUTO_COMMIT)
+                    && dataCache.getValue(0, "savepoint") == null;
+        }
+
+        @Override
+        public void run() throws SQLException {
+            Connection conn = (Connection) getState(CONN);
+            Savepoint sp = conn.setSavepoint("mbt_sp");
+            dataCache.updateValue(0, "savepoint", sp);
+            dataCache.updateValue(0, "savepointSnapshot", snapshotRows(dataCache));
+            System.out.println("SAVEPOINT created");
+        }
+    }
+
+    /** Rollback to savepoint — undoes changes made after savepoint. */
+    private static class RollbackToSavepointAction extends Action {
+
+        RollbackToSavepointAction(int weight) {
+            super("rollbackToSavepoint", weight);
+        }
+
+        @Override
+        public boolean canRun() {
+            return !isState(CLOSED) && !isState(AUTO_COMMIT)
+                    && dataCache.getValue(0, "savepoint") != null;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public void run() throws SQLException {
+            Connection conn = (Connection) getState(CONN);
+            Savepoint sp = (Savepoint) dataCache.getValue(0, "savepoint");
+            conn.rollback(sp);
+
+            List<Map<String, Object>> snapshot = (List<Map<String, Object>>) dataCache.getValue(0, "savepointSnapshot");
+            restoreRows(dataCache, snapshot);
+
+            dataCache.updateValue(0, "savepoint", null);
+            dataCache.updateValue(0, "savepointSnapshot", null);
+            System.out.println("ROLLBACK TO SAVEPOINT");
+        }
+
+        @Override
+        public void validate() throws SQLException {
+            Connection conn = (Connection) getState(CONN);
+            validateVisibleRows(this, conn);
+        }
+    }
+
     // UTILITY METHODS
 
     private static void createTestTable(Connection conn) throws SQLException {
@@ -509,6 +684,66 @@ public class TransactionStateTest extends AbstractTest {
                 dc.updateValue(i, "rowState", "committed");
             }
             dc.updateValue(i, "pendingValue", null);
+        }
+    }
+
+    private static List<Map<String, Object>> snapshotRows(DataCache dc) {
+        List<Map<String, Object>> snapshot = new ArrayList<>();
+        for (int i = 1; i < dc.getRowCount(); i++) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("id", dc.getValue(i, "id"));
+            row.put("value", dc.getValue(i, "value"));
+            row.put("pendingValue", dc.getValue(i, "pendingValue"));
+            row.put("rowState", dc.getValue(i, "rowState"));
+            snapshot.add(row);
+        }
+        return snapshot;
+    }
+
+    private static void restoreRows(DataCache dc, List<Map<String, Object>> snapshot) {
+        for (int i = 0; i < snapshot.size(); i++) {
+            int rowIdx = i + 1;
+            Map<String, Object> row = snapshot.get(i);
+            dc.updateValue(rowIdx, "id", row.get("id"));
+            dc.updateValue(rowIdx, "value", row.get("value"));
+            dc.updateValue(rowIdx, "pendingValue", row.get("pendingValue"));
+            dc.updateValue(rowIdx, "rowState", row.get("rowState"));
+        }
+        for (int i = snapshot.size() + 1; i < dc.getRowCount(); i++) {
+            dc.updateValue(i, "rowState", "removed");
+            dc.updateValue(i, "pendingValue", null);
+        }
+    }
+
+    /** Validates visible rows (committed + pending_insert) match DB. */
+    private static void validateVisibleRows(Action action, Connection conn) throws SQLException {
+        DataCache dc = action.getDataCache();
+        Map<Integer, Integer> expected = new HashMap<>();
+        for (int i = 1; i < dc.getRowCount(); i++) {
+            String rowState = (String) dc.getValue(i, "rowState");
+            if ("committed".equals(rowState) || "pending_insert".equals(rowState)) {
+                Integer pending = (Integer) dc.getValue(i, "pendingValue");
+                Integer val = (pending != null) ? pending : (Integer) dc.getValue(i, "value");
+                expected.put((Integer) dc.getValue(i, "id"), val);
+            }
+        }
+
+        Map<Integer, Integer> actual = new HashMap<>();
+        try (Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(
+                        "SELECT id, value FROM " + TABLE_NAME_CONST + " ORDER BY id")) {
+            while (rs.next()) {
+                actual.put(rs.getInt("id"), rs.getInt("value"));
+            }
+        }
+
+        action.assertExpected(actual.size(), expected.size(),
+                String.format("Visible row count mismatch: DB=%d, expected=%d",
+                        actual.size(), expected.size()));
+        for (Map.Entry<Integer, Integer> entry : expected.entrySet()) {
+            Integer actualValue = actual.get(entry.getKey());
+            action.assertExpected(actualValue != null ? actualValue : -1, entry.getValue(),
+                    String.format("Row id=%d: expected %d", entry.getKey(), entry.getValue()));
         }
     }
 
