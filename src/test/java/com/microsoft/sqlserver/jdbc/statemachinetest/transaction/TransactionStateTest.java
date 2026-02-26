@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
@@ -45,8 +44,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  */
 @Tag(Constants.legacyFX)
 public class TransactionStateTest extends AbstractTest {
-
-    private static final Logger LOGGER = Logger.getLogger(TransactionStateTest.class.getName());
 
     private static final String TABLE_NAME_CONST = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SM_Transaction_Test"));
 
@@ -170,7 +167,7 @@ public class TransactionStateTest extends AbstractTest {
             dataCache.addRow(row);
             dataCache.updateValue(0, "nextId", nextId + 1);
 
-            LOGGER.fine(String.format("INSERT id=%d val=%d %s",
+            System.out.println(String.format("INSERT id=%d val=%d %s",
                     insertedId, insertedValue, isState(AUTO_COMMIT) ? "committed" : "pending"));
         }
 
@@ -204,7 +201,7 @@ public class TransactionStateTest extends AbstractTest {
             Connection conn = (Connection) getState(CONN);
             conn.setAutoCommit(false);
             setState(AUTO_COMMIT, false);
-            LOGGER.fine("setAutoCommit(false)");
+            System.out.println("setAutoCommit(false)");
         }
     }
 
@@ -230,7 +227,7 @@ public class TransactionStateTest extends AbstractTest {
             promoteAllPending(dataCache);
             dataCache.updateValue(0, "savepoint", null);
             dataCache.updateValue(0, "savepointSnapshot", null);
-            LOGGER.fine("setAutoCommit(true) - implicit commit");
+            System.out.println("setAutoCommit(true) - implicit commit");
         }
 
         @Override
@@ -263,7 +260,7 @@ public class TransactionStateTest extends AbstractTest {
             dataCache.updateValue(0, "savepoint", null);
             dataCache.updateValue(0, "savepointSnapshot", null);
 
-            LOGGER.fine("commit #" + (commitCount + 1));
+            System.out.println("commit #" + (commitCount + 1));
         }
 
         @Override
@@ -296,7 +293,7 @@ public class TransactionStateTest extends AbstractTest {
             dataCache.updateValue(0, "savepoint", null);
             dataCache.updateValue(0, "savepointSnapshot", null);
 
-            LOGGER.fine("rollback #" + (rollbackCount + 1));
+            System.out.println("rollback #" + (rollbackCount + 1));
         }
 
         @Override
@@ -339,10 +336,10 @@ public class TransactionStateTest extends AbstractTest {
                 if (isState(AUTO_COMMIT)) {
                     dataCache.updateValue(targetIdx, "value", updatedValue);
                     dataCache.updateValue(targetIdx, "pendingValue", null);
-                    LOGGER.fine(String.format("UPDATE id=%d %s->%s committed",
+                    System.out.println(String.format("UPDATE id=%d %s->%s committed",
                             updatedId, oldValue, updatedValue));
                 } else {
-                    LOGGER.fine(String.format("UPDATE id=%d %s->%s pending",
+                    System.out.println(String.format("UPDATE id=%d %s->%s pending",
                             updatedId, oldValue, updatedValue));
                 }
             }
@@ -390,7 +387,7 @@ public class TransactionStateTest extends AbstractTest {
                 if (rs.next()) {
                     lastValue = rs.getInt("value");
                     hasValue = true;
-                    LOGGER.fine("SELECT id=" + targetId + " val=" + lastValue);
+                    System.out.println("SELECT id=" + targetId + " val=" + lastValue);
                 }
             }
         }
@@ -445,12 +442,12 @@ public class TransactionStateTest extends AbstractTest {
             if (isState(AUTO_COMMIT) || "pending_insert".equals(currentState)) {
                 dataCache.updateValue(targetIdx, "rowState", "removed");
                 dataCache.updateValue(targetIdx, "pendingValue", null);
-                LOGGER.fine(String.format("DELETE id=%d %s",
+                System.out.println(String.format("DELETE id=%d %s",
                         deletedId, isState(AUTO_COMMIT) ? "committed" : "cancelled pending"));
             } else {
                 dataCache.updateValue(targetIdx, "rowState", "pending_delete");
                 dataCache.updateValue(targetIdx, "pendingValue", null);
-                LOGGER.fine(String.format("DELETE id=%d pending", deletedId));
+                System.out.println(String.format("DELETE id=%d pending", deletedId));
             }
         }
 
@@ -498,7 +495,7 @@ public class TransactionStateTest extends AbstractTest {
                 assertTrue(isDuplicateKey,
                         "Unexpected SQLException for duplicate key insert. SQLState=" + sqlState
                                 + ", errorCode=" + errorCode + ", id=" + targetId);
-                LOGGER.fine(String.format("DUP_KEY id=%d error expected", targetId));
+                System.out.println(String.format("DUP_KEY id=%d error expected", targetId));
             }
         }
 
@@ -557,7 +554,7 @@ public class TransactionStateTest extends AbstractTest {
             }
             dataCache.updateValue(0, "nextId", nextId + batchSize);
 
-            LOGGER.fine(String.format("BATCH INSERT %d rows ids %d-%d %s",
+            System.out.println(String.format("BATCH INSERT %d rows ids %d-%d %s",
                     batchSize, batchRows.get(0)[0], batchRows.get(batchRows.size() - 1)[0],
                     isState(AUTO_COMMIT) ? "committed" : "pending"));
         }
@@ -596,7 +593,7 @@ public class TransactionStateTest extends AbstractTest {
             Savepoint sp = conn.setSavepoint("mbt_sp");
             dataCache.updateValue(0, "savepoint", sp);
             dataCache.updateValue(0, "savepointSnapshot", snapshotRows(dataCache));
-            LOGGER.fine("SAVEPOINT created");
+            System.out.println("SAVEPOINT created");
         }
     }
 
@@ -625,7 +622,7 @@ public class TransactionStateTest extends AbstractTest {
 
             dataCache.updateValue(0, "savepoint", null);
             dataCache.updateValue(0, "savepointSnapshot", null);
-            LOGGER.fine("ROLLBACK TO SAVEPOINT");
+            System.out.println("ROLLBACK TO SAVEPOINT");
         }
 
         @Override
