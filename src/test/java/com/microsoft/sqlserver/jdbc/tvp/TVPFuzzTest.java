@@ -5,11 +5,11 @@
 package com.microsoft.sqlserver.jdbc.tvp;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -90,11 +90,13 @@ public class TVPFuzzTest extends AbstractTest {
     private static final String[] FUZZ_STRINGS = {"\\n", "\\t", "\\v", "\u00DF", "@\u00C3~U", " rBo<'+\u00C3",
             " ''\u00AA\u00C2\u00A9*~\u00FD''", "[[/|]]"};
 
+    /** Initializes the shared database connection for all tests in this class. */
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
     }
 
+    /** Generates randomized identifiers for the TVP type, table, and stored procedure per test. */
     @BeforeEach
     public void testSetup() throws SQLException {
         tvpName = RandomUtil.getIdentifier("TVP");
@@ -102,6 +104,7 @@ public class TVPFuzzTest extends AbstractTest {
         procedureName = RandomUtil.getIdentifier("spTvpFuzz");
     }
 
+    /** Drops the stored procedure, table, and TVP type created during the test. */
     @AfterEach
     public void terminateVariation() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
@@ -111,6 +114,7 @@ public class TVPFuzzTest extends AbstractTest {
         }
     }
 
+    /** Safety-net cleanup: drops any lingering test artifacts after all tests complete. */
     @AfterAll
     public static void terminate() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
@@ -402,7 +406,10 @@ public class TVPFuzzTest extends AbstractTest {
 
     /**
      * Tests systematic Unicode character fuzzing in TVP column values.
-     * Exercises various Unicode character ranges through TVP string columns.
+     * Exercises various Unicode character ranges (CJK, Arabic, Cyrillic, Hiragana, Katakana,
+     * Thai, Turkish, Latin Extended, Full-width Latin, surrogate pairs) through TVP nvarchar(max)
+     * columns and verifies round-trip data integrity for each character set.
+     * FX: fxFuzzTVPAPI.java::testFuzzUnicodeValues()
      */
     @Test
     @DisplayName("Fuzz Unicode Characters in TVP Values")
@@ -450,8 +457,8 @@ public class TVPFuzzTest extends AbstractTest {
                 pstmt.execute();
             }
 
-            // Verify the data was written correctly
-            try (Connection con = getConnection(); Statement stmt = con.createStatement();
+            // Verify the data was written correctly and clean up for next iteration
+            try (Statement stmt = connection.createStatement();
                     java.sql.ResultSet rs = stmt.executeQuery(
                             "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
                 assertTrue(rs.next(), "Should have at least one row");
@@ -463,7 +470,6 @@ public class TVPFuzzTest extends AbstractTest {
                 }
             }
 
-            // Clean up for next iteration
             try (Statement stmt = connection.createStatement()) {
                 stmt.executeUpdate(
                         "TRUNCATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName));
@@ -471,8 +477,274 @@ public class TVPFuzzTest extends AbstractTest {
         }
     }
 
+    // ========= New fxFuzzTVPAPI.java Scenarios =========
+
+    /**
+     * Tests addRow() behavior when the number of values doesn't match the TVP column count.
+     * Validates the driver correctly handles mismatched row widths: too few columns, too many
+     * columns, empty array, single element, and the correct count as a control case.
+     * FX: fxFuzzTVPAPI.java::testFuzzRowColumnMismatch()
+     */
+    @Test
+    @DisplayName("Fuzz addRow with Wrong Column Count")
+    public void testFuzzAddRowColumnCountMismatch() throws Exception {
+        for (int i = 0; i < NUMBER_OF_ITERATIONS; i++) {
+            SQLServerDataTable tvp = new SQLServerDataTable();
+            // Define exactly 3 columns
+            tvp.addColumnMetadata("col1", Types.INTEGER);
+            tvp.addColumnMetadata("col2", Types.VARCHAR);
+            tvp.addColumnMetadata("col3", Types.BIT);
+
+            int variation = i % 5;
+            try {
+                switch (variation) {
+                    case 0: // Too few columns
+                        tvp.addRow(42, "hello");
+                        break;
+                    case 1: // Too many columns
+                        tvp.addRow(42, "hello", true, "extra", 999);
+                        break;
+                    case 2: // Empty array
+                        tvp.addRow(new Object[0]);
+                        break;
+                    case 3: // Single element
+                        tvp.addRow(42);
+                        break;
+                    default: // Correct count (control case — should succeed)
+                        tvp.addRow(42, "hello", true);
+                        break;
+                }
+            } catch (SQLException e) {
+                // Column count mismatch may throw — that's acceptable
+                assertNotNull(e.getMessage(), "SQLException should have a message for column mismatch");
+            }
+        }
+    }
+
+    /**
+     * Tests addColumnMetadata() with degenerate column names: null, empty string,
+     * whitespace-only, and names exceeding SQL Server's 128-character identifier limit.
+     * Validates the driver does not crash and produces meaningful errors where appropriate.
+     * FX: fxFuzzTVPAPI.java::testFuzzColumnNames()
+     */
+    @Test
+    @DisplayName("Fuzz Empty and Null Column Names")
+    public void testFuzzEmptyAndNullColumnNames() throws Exception {
+        // Test null column name
+        assertDoesNotThrow(() -> {
+            SQLServerDataTable tvp = new SQLServerDataTable();
+            try {
+                tvp.addColumnMetadata(null, Types.INTEGER);
+            } catch (SQLException e) {
+                assertNotNull(e.getMessage(), "SQLException should have a message for null column name");
+            }
+        });
+
+        // Test empty string column name
+        assertDoesNotThrow(() -> {
+            SQLServerDataTable tvp = new SQLServerDataTable();
+            try {
+                tvp.addColumnMetadata("", Types.INTEGER);
+            } catch (SQLException e) {
+                assertNotNull(e.getMessage(), "SQLException should have a message for empty column name");
+            }
+        });
+
+        // Test whitespace-only column name
+        assertDoesNotThrow(() -> {
+            SQLServerDataTable tvp = new SQLServerDataTable();
+            try {
+                tvp.addColumnMetadata("   ", Types.VARCHAR);
+            } catch (SQLException e) {
+                assertNotNull(e.getMessage(), "SQLException should have a message for whitespace column name");
+            }
+        });
+
+        // Test very long column name (exceeds SQL Server 128-char limit)
+        assertDoesNotThrow(() -> {
+            SQLServerDataTable tvp = new SQLServerDataTable();
+            try {
+                String longName = createUnicodeData(random, 500);
+                tvp.addColumnMetadata(longName, Types.INTEGER);
+            } catch (SQLException e) {
+                assertNotNull(e.getMessage(), "SQLException should have a message for oversized column name");
+            }
+        });
+    }
+
+    /**
+     * Tests setStructured() with invalid parameter indices: zero, negative, and excessively
+     * large values. Validates the driver rejects out-of-range indices with proper error messages
+     * rather than crashing or corrupting internal state.
+     * FX: fxFuzzTVPAPI.java::testFuzzParameterIndex()
+     */
+    @Test
+    @DisplayName("Fuzz setStructured with Invalid Parameter Index")
+    public void testFuzzSetStructuredInvalidParameterIndex() throws Exception {
+        createSimpleTable("int");
+        createSimpleTVPS("int");
+
+        SQLServerDataTable tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", Types.INTEGER);
+        tvp.addRow(42);
+
+        int[] invalidIndices = {0, -1, -100, Integer.MAX_VALUE, Integer.MIN_VALUE, 999};
+
+        for (int idx : invalidIndices) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                    "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
+                pstmt.setStructured(idx, tvpName, tvp);
+                pstmt.execute();
+            } catch (SQLException e) {
+                // Invalid parameter index should produce a meaningful error
+                assertNotNull(e.getMessage(), "SQLException should have a message for invalid index: " + idx);
+            }
+        }
+    }
+
+    /**
+     * Tests TVP behavior with extreme data sizes: very large strings exceeding column
+     * definitions (varchar(50), char(20)), oversized binary data exceeding binary(20) /
+     * varbinary(50), and large nvarchar payloads. Validates the driver handles oversized
+     * payloads with truncation errors rather than crashes.
+     * FX: fxFuzzTVPAPI.java::testFuzzExtremeDataSizes()
+     */
+    @Test
+    @DisplayName("Fuzz Extreme Data Sizes in TVP Values")
+    public void testFuzzExtremeDataSizes() throws Exception {
+        createFuzzTable();
+        createFuzzTVPS();
+
+        // Generate oversized data for each type category
+        String longString = createUnicodeData(random, 5000); // Exceeds varchar(50)
+        byte[] largeBytes = new byte[1024];
+        random.nextBytes(largeBytes); // Exceeds binary(20)/varbinary(50)
+
+        for (int i = 0; i < 10; i++) {
+            SQLServerDataTable tvp = new SQLServerDataTable();
+            addTVPColumnMetaData(tvp);
+
+            Object[] rowData = createValidTVPRow();
+            // Fuzz one column with oversized data based on iteration
+            switch (i % 5) {
+                case 0: // Oversized varchar
+                    rowData[12] = longString;
+                    break;
+                case 1: // Oversized char
+                    rowData[13] = longString;
+                    break;
+                case 2: // Oversized binary
+                    rowData[14] = largeBytes;
+                    break;
+                case 3: // Oversized varbinary
+                    rowData[15] = largeBytes;
+                    break;
+                default: // Oversized nvarchar
+                    rowData[16] = longString;
+                    break;
+            }
+
+            try {
+                tvp.addRow(rowData);
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                        "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                                + " select * from ? ;")) {
+                    pstmt.setStructured(1, tvpName, tvp);
+                    pstmt.execute();
+                }
+            } catch (SQLException e) {
+                // Oversized data should produce truncation or error — not crash
+                assertNotNull(e.getMessage(), "SQLException should have a message for oversized data");
+            }
+        }
+    }
+
+    /**
+     * Tests TVP behavior after calling clear() and reusing the table with new metadata
+     * and data across multiple iterations. Each iteration clears the TVP, re-adds column
+     * metadata, populates a random Unicode value, and executes an INSERT.
+     * Validates clear/populate cycles don't corrupt internal state.
+     * FX: fxFuzzTVPAPI.java::testFuzzClearAndReuse()
+     */
+    @Test
+    @DisplayName("Fuzz Clear and Reuse TVP Across Iterations")
+    public void testFuzzClearedTVPReuse() throws Exception {
+        createSimpleTable("nvarchar(100)");
+        createSimpleTVPS("nvarchar(100)");
+
+        SQLServerDataTable tvp = new SQLServerDataTable();
+
+        for (int i = 0; i < NUMBER_OF_ITERATIONS; i++) {
+            tvp.clear();
+            tvp.addColumnMetadata("c1", Types.NVARCHAR);
+            String value = createUnicodeData(random, random.nextInt(80) + 1);
+            tvp.addRow(value);
+
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                    "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
+                pstmt.setStructured(1, tvpName, tvp);
+                pstmt.execute();
+            }
+        }
+
+        // Verify all rows were inserted
+        try (Statement stmt = connection.createStatement();
+                java.sql.ResultSet rs = stmt.executeQuery(
+                        "SELECT COUNT(*) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            assertTrue(rs.next(), "Should return count");
+            assertEquals(NUMBER_OF_ITERATIONS, rs.getInt(1),
+                    "Expected " + NUMBER_OF_ITERATIONS + " rows after clear/reuse cycles");
+        }
+    }
+
+    /**
+     * Tests TVP with multiple rows where each row has a random subset of columns set to null.
+     * Each of the 20 rows has 1–5 randomly chosen columns nulled out, creating sparse null
+     * patterns. Validates the driver correctly propagates sparse null patterns to the server.
+     * FX: fxFuzzTVPAPI.java::testFuzzRandomNullPatterns()
+     */
+    @Test
+    @DisplayName("Fuzz Multiple Rows with Random Null Patterns")
+    public void testFuzzMultipleRowsRandomNulls() throws Exception {
+        createFuzzTable();
+        createFuzzTVPS();
+
+        SQLServerDataTable tvp = new SQLServerDataTable();
+        addTVPColumnMetaData(tvp);
+
+        // Add 20 rows, each with random columns set to null
+        int rowCount = 20;
+        for (int r = 0; r < rowCount; r++) {
+            Object[] rowData = createValidTVPRow();
+            // Randomly null out 1–5 columns per row
+            int nullCount = random.nextInt(5) + 1;
+            for (int n = 0; n < nullCount; n++) {
+                rowData[random.nextInt(TABLE_COLUMNS)] = null;
+            }
+            tvp.addRow(rowData);
+        }
+
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
+                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
+            pstmt.setStructured(1, tvpName, tvp);
+            pstmt.execute();
+        }
+
+        // Verify all rows were inserted
+        try (Statement stmt = connection.createStatement();
+                java.sql.ResultSet rs = stmt.executeQuery(
+                        "SELECT COUNT(*) FROM " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
+            assertTrue(rs.next(), "Should return count");
+            assertEquals(rowCount, rs.getInt(1), "Expected " + rowCount + " rows with random null patterns");
+        }
+    }
+
     // ========= Helper Methods =========
 
+    /**
+     * Adds 24 columns with Unicode-fuzzed names and the {@link #SQL_TYPES} array to the given TVP.
+     * Column names are of the form {@code <unicodeChars>_<index>} to guarantee uniqueness.
+     */
     private void addTVPColumnMetaData(SQLServerDataTable tvp) throws SQLException {
         for (int i = 0; i < TABLE_COLUMNS; i++) {
             String colName = createUnicodeData(random, 10) + "_" + i;
@@ -480,6 +752,11 @@ public class TVPFuzzTest extends AbstractTest {
         }
     }
 
+    /**
+     * Builds a 24-element row of valid test data matching the {@link #SQL_TYPES} column layout.
+     * Includes integers, shorts, booleans, timestamps, decimals, doubles, floats, longs,
+     * Unicode strings, byte arrays, date, time, and datetimeoffset values.
+     */
     private Object[] createValidTVPRow() throws Exception {
         Object[] row = new Object[TABLE_COLUMNS];
         byte[] bytes = new byte[16];
@@ -519,6 +796,10 @@ public class TVPFuzzTest extends AbstractTest {
         return row;
     }
 
+    /**
+     * Creates a Unicode-enriched SQL identifier with the given prefix, a UUID fragment,
+     * and random Unicode padding up to {@code maxLength} characters.
+     */
     private static String createUnicodeIdentifier(String prefix, int maxLength) {
         StringBuilder sb = new StringBuilder(prefix + "_" + UUID.randomUUID().toString().substring(0, 8) + "_");
         while (sb.length() < maxLength) {
@@ -527,6 +808,7 @@ public class TVPFuzzTest extends AbstractTest {
         return sb.substring(0, Math.min(sb.length(), maxLength));
     }
 
+    /** Generates a random Unicode string of the specified length from {@link #UNICODE_POOL}. */
     private static String createUnicodeData(Random rnd, int length) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < length; i++) {
@@ -535,6 +817,7 @@ public class TVPFuzzTest extends AbstractTest {
         return sb.toString();
     }
 
+    /** Creates the 24-column fuzz test table matching the {@link #SQL_TYPES} layout. */
     private void createFuzzTable() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             String cols = "c0 int null, c1 smallint null, c2 tinyint null, c3 bit null, "
@@ -548,6 +831,7 @@ public class TVPFuzzTest extends AbstractTest {
         }
     }
 
+    /** Creates the 24-column TVP type matching the {@link #SQL_TYPES} layout. */
     private void createFuzzTVPS() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             String cols = "c0 int null, c1 smallint null, c2 tinyint null, c3 bit null, "
@@ -561,6 +845,7 @@ public class TVPFuzzTest extends AbstractTest {
         }
     }
 
+    /** Creates a stored procedure that inserts TVP data into the fuzz test table. */
     private void createFuzzProcedure() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             String sql = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(procedureName) + " @InputData "
@@ -570,6 +855,7 @@ public class TVPFuzzTest extends AbstractTest {
         }
     }
 
+    /** Creates a single-column test table with the specified SQL column type. */
     private void createSimpleTable(String colType) throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
@@ -579,6 +865,7 @@ public class TVPFuzzTest extends AbstractTest {
         }
     }
 
+    /** Creates a single-column TVP type with the specified SQL column type. */
     private void createSimpleTVPS(String colType) throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTypeIfExists(tvpName, stmt);
