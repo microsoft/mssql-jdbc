@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
-## [13.2.2] Preview Release
+## [13.3.2] Preview Release
 
 ### Added
 
