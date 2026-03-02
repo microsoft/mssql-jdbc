@@ -43,6 +43,7 @@ import microsoft.sql.DateTimeOffset;
  */
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
+@Tag(Constants.legacyFx)
 public class TVPPrecisionScaleTest extends AbstractTest {
 
     private static String tvpName;
@@ -168,8 +169,8 @@ public class TVPPrecisionScaleTest extends AbstractTest {
         tvp.addColumnMetadata("decimal4", java.sql.Types.DECIMAL);
         tvp.addColumnMetadata("float1", java.sql.Types.DOUBLE);
         tvp.addColumnMetadata("float2", java.sql.Types.DOUBLE);
-        tvp.addColumnMetadata("real1", java.sql.Types.FLOAT);
-        tvp.addColumnMetadata("real2", java.sql.Types.FLOAT);
+        tvp.addColumnMetadata("real1", java.sql.Types.REAL);
+        tvp.addColumnMetadata("real2", java.sql.Types.REAL);
         tvp.addColumnMetadata("TIME1", java.sql.Types.TIME);
         tvp.addColumnMetadata("TIME2", java.sql.Types.TIME);
         tvp.addColumnMetadata("TIME3", java.sql.Types.TIME);
@@ -571,7 +572,7 @@ public class TVPPrecisionScaleTest extends AbstractTest {
         tvp.addColumnMetadata("n1", java.sql.Types.NUMERIC);
         tvp.addColumnMetadata("d1", java.sql.Types.DECIMAL);
         tvp.addColumnMetadata("f1", java.sql.Types.DOUBLE);
-        tvp.addColumnMetadata("r1", java.sql.Types.FLOAT);
+        tvp.addColumnMetadata("r1", java.sql.Types.REAL);
         tvp.addColumnMetadata("t1", java.sql.Types.TIME);
         tvp.addColumnMetadata("dt1", java.sql.Types.TIMESTAMP);
         tvp.addColumnMetadata("dto1", microsoft.sql.Types.DATETIMEOFFSET);

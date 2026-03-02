@@ -58,13 +58,13 @@ public class TVPSchemaTest extends AbstractTest {
         final String sql = "{call " + procedureName + "(?)}";
 
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
-                SQLServerPreparedStatement P_C_statement = (SQLServerPreparedStatement) conn.prepareStatement(sql);
-                ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                SQLServerPreparedStatement P_C_statement = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
             P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
             P_C_statement.execute();
 
-            verify(rs);
-
+            try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                verify(rs);
+            }
         }
     }
 
@@ -80,12 +80,13 @@ public class TVPSchemaTest extends AbstractTest {
         final String sql = "{call " + procedureName + "(?)}";
 
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
-                SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) conn.prepareCall(sql);
-                ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) conn.prepareCall(sql)) {
             P_C_statement.setStructured(1, tvpNameWithSchema, tvp);
             P_C_statement.execute();
 
-            verify(rs);
+            try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                verify(rs);
+            }
         }
     }
 
@@ -101,12 +102,13 @@ public class TVPSchemaTest extends AbstractTest {
 
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
                 SQLServerPreparedStatement P_C_stmt = (SQLServerPreparedStatement) conn
-                        .prepareStatement("INSERT INTO " + charTable + " select * from ? ;");
-                ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                        .prepareStatement("INSERT INTO " + charTable + " select * from ? ;")) {
             P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
             P_C_stmt.executeUpdate();
 
-            verify(rs);
+            try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                verify(rs);
+            }
         }
     }
 
@@ -122,12 +124,13 @@ public class TVPSchemaTest extends AbstractTest {
 
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
                 SQLServerCallableStatement P_C_stmt = (SQLServerCallableStatement) conn
-                        .prepareCall("INSERT INTO " + charTable + " select * from ? ;");
-                ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                        .prepareCall("INSERT INTO " + charTable + " select * from ? ;")) {
             P_C_stmt.setStructured(1, tvpNameWithSchema, tvp);
             P_C_stmt.executeUpdate();
 
-            verify(rs);
+            try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                verify(rs);
+            }
         }
     }
 
@@ -138,6 +141,7 @@ public class TVPSchemaTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.legacyFx)
     @DisplayName("TVPSchemaPreparedStatementSetObject()")
     public void testTVPSchemaPreparedStatementSetObject() throws SQLException {
 
@@ -146,12 +150,13 @@ public class TVPSchemaTest extends AbstractTest {
         tvp.setTvpName(tvpNameWithSchema);
 
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
-                SQLServerPreparedStatement P_C_statement = (SQLServerPreparedStatement) conn.prepareStatement(sql);
-                ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                SQLServerPreparedStatement P_C_statement = (SQLServerPreparedStatement) conn.prepareStatement(sql)) {
             P_C_statement.setObject(1, tvp);
             P_C_statement.execute();
 
-            verify(rs);
+            try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                verify(rs);
+            }
         }
     }
 
@@ -162,6 +167,7 @@ public class TVPSchemaTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.legacyFx)
     @DisplayName("TVPSchemaCallableStatementSetObject()")
     public void testTVPSchemaCallableStatementSetObject() throws SQLException {
 
@@ -170,12 +176,13 @@ public class TVPSchemaTest extends AbstractTest {
         tvp.setTvpName(tvpNameWithSchema);
 
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
-                SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) conn.prepareCall(sql);
-                ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                SQLServerCallableStatement P_C_statement = (SQLServerCallableStatement) conn.prepareCall(sql)) {
             P_C_statement.setObject(1, tvp);
             P_C_statement.execute();
 
-            verify(rs);
+            try (ResultSet rs = stmt.executeQuery("select * from " + charTable)) {
+                verify(rs);
+            }
         }
     }
 
@@ -186,6 +193,7 @@ public class TVPSchemaTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.legacyFx)
     @DisplayName("TVPSchemaStoredProcedureWithReturnSetStructured()")
     public void testTVPSchemaStoredProcedureWithReturnSetStructured() throws SQLException {
 
@@ -218,6 +226,7 @@ public class TVPSchemaTest extends AbstractTest {
      * @throws SQLException
      */
     @Test
+    @Tag(Constants.legacyFx)
     @DisplayName("TVPSchemaStoredProcedureWithReturnSetObject()")
     public void testTVPSchemaStoredProcedureWithReturnSetObject() throws SQLException {
 

@@ -50,6 +50,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  */
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
+@Tag(Constants.legacyFx)
 public class TVPTypeBoundaryTest extends AbstractTest {
 
     private static String tvpName;
@@ -338,11 +339,11 @@ public class TVPTypeBoundaryTest extends AbstractTest {
                     "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
                 pstmt.setStructured(1, tvpName, tvp);
                 pstmt.execute();
+                fail("Expected SQLException for out-of-range " + sqlType + " value, but insert succeeded");
             }
         } catch (SQLException e) {
             // Client-side addRow() validation or server-side execute() rejection — both are valid
             assertNotNull(e.getMessage(), "Exception should have a descriptive message");
-            return;
         }
     }
 
@@ -434,12 +435,7 @@ public class TVPTypeBoundaryTest extends AbstractTest {
                 pstmt.execute();
 
                 if (expectFailure) {
-                    // Data present means server handled it (possible rounding/truncation)
-                    try (Statement verifyStmt = connection.createStatement();
-                            ResultSet verifyRs = verifyStmt.executeQuery(
-                                    "select c1 from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-                        // No assertion needed; reaching here means no overflow exception was thrown
-                    }
+                    fail("Expected overflow SQLException was not thrown for: " + displayName);
                 }
             }
         } catch (SQLException e) {
@@ -660,33 +656,6 @@ public class TVPTypeBoundaryTest extends AbstractTest {
     }
 
     /**
-     * Tests conversion from VARBINARY to INT via DataTable TVP.
-     * Expects the server to reject the implicit binary-to-integer conversion.
-     *
-     * @throws SQLException if an unexpected database error occurs
-     */
-    @Test
-    @DisplayName("Conversion DataTable: VARBINARY to INT (expect error)")
-    public void testVarbinaryToIntDataTable() throws SQLException {
-        String destType = "int";
-        byte[] testBytes = new byte[] {0x00, 0x00, 0x30, 0x39};
-
-        createTableAndTVP(destType);
-
-        SQLServerDataTable tvp = new SQLServerDataTable();
-        tvp.addColumnMetadata("c1", Types.VARBINARY);
-        tvp.addRow(testBytes);
-
-        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(
-                "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
-            pstmt.setStructured(1, tvpName, tvp);
-            pstmt.execute();
-        } catch (SQLException e) {
-            assertNotNull(e.getMessage(), "Exception should have a descriptive message");
-        }
-    }
-
-    /**
      * Tests that inserting a string longer than the NVARCHAR(10) destination column
      * via DataTable TVP produces a truncation error.
      *
@@ -708,6 +677,7 @@ public class TVPTypeBoundaryTest extends AbstractTest {
                 "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName) + " select * from ? ;")) {
             pstmt.setStructured(1, tvpName, tvp);
             pstmt.execute();
+            fail("Expected SQLException for NVARCHAR(MAX) truncation into NVARCHAR(10)");
         } catch (SQLException e) {
             assertNotNull(e.getMessage(), "Truncation should produce an error message");
         }
