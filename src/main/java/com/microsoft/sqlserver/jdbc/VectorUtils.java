@@ -17,9 +17,9 @@ import microsoft.sql.Vector.VectorDimensionType;
 class VectorUtils {
 
     private static final int VECTOR_HEADER_LENGTH = 8;
-    private static final int BYTES_PER_FLOAT = 4;
+    private static final int BYTES_PER_FLOAT32 = 4;
     private static final byte SCALE_BYTE_FLOAT32 = 0x00;
-    private static final int BYTES_PER_SHORT = 2;
+    private static final int BYTES_PER_FLOAT16 = 2;
     private static final byte SCALE_BYTE_FLOAT16 = 0x01;
 
     /**
@@ -111,7 +111,7 @@ class VectorUtils {
     }
 
     static int getDefaultPrecision() {
-        return BYTES_PER_FLOAT; // FLOAT32
+        return BYTES_PER_FLOAT32; // FLOAT32
     }
 
     static int getHeaderLength() {
@@ -148,11 +148,11 @@ class VectorUtils {
     static int getBytesPerDimensionFromScale(int scaleByte) {
         switch (scaleByte) {
             case SCALE_BYTE_FLOAT32:
-                return BYTES_PER_FLOAT;
+                return BYTES_PER_FLOAT32;
             case SCALE_BYTE_FLOAT16:
-                return BYTES_PER_SHORT;
+                return BYTES_PER_FLOAT16;
             default:
-                return BYTES_PER_FLOAT;
+                return BYTES_PER_FLOAT32;
         }
     }
 
@@ -163,10 +163,10 @@ class VectorUtils {
     static int getBytesPerDimensionFromScale(VectorDimensionType vectorType) {
         switch (vectorType) {
             case FLOAT16:
-                return BYTES_PER_SHORT;
+                return BYTES_PER_FLOAT16;
             case FLOAT32:
             default:
-                return BYTES_PER_FLOAT;
+                return BYTES_PER_FLOAT32;
         }
     }
 
@@ -190,9 +190,9 @@ class VectorUtils {
      */
     static byte getScaleByte(int scale) {
         switch (scale) {
-            case BYTES_PER_SHORT:
+            case BYTES_PER_FLOAT16:
                 return SCALE_BYTE_FLOAT16;
-            case BYTES_PER_FLOAT:
+            case BYTES_PER_FLOAT32:
             default:
                 return SCALE_BYTE_FLOAT32;
         }
@@ -206,11 +206,11 @@ class VectorUtils {
         int bytesPerDimension;
         switch (vector.getVectorDimensionType()) {
             case FLOAT16:
-                bytesPerDimension = BYTES_PER_SHORT;
+                bytesPerDimension = BYTES_PER_FLOAT16;
                 break;
             case FLOAT32:
             default:
-                bytesPerDimension = BYTES_PER_FLOAT;
+                bytesPerDimension = BYTES_PER_FLOAT32;
                 break;
         }
         return getHeaderLength() + bytesPerDimension * vector.getDimensionCount(); // 8-byte header + dimension payload
@@ -248,11 +248,20 @@ class VectorUtils {
 
         int precision = (vector != null) ? vector.getDimensionCount() : valueLength;
 
-        // V1: Only FLOAT32 is supported, use VECTOR(dimensionCount)
-        // V2: Explicitly specify type for both FLOAT32 and FLOAT16
-        //     VECTOR(dimensionCount, FLOAT32) or VECTOR(dimensionCount, FLOAT16)
+        // Version 0: Server does not support vector at all
+        if (negotiatedVersion <= 0) {
+            throw vectorException("R_vectorNotSupported");
+        }
+
+        // Version 1: Only FLOAT32 is supported; reject FLOAT16
+        if (negotiatedVersion == 1 && scale == BYTES_PER_FLOAT16) {
+            throw vectorException("R_float16VectorNotSupported");
+        }
+
+        // V2+: Explicitly specify type for both FLOAT32 and FLOAT16
+        //      VECTOR(dimensionCount, FLOAT32) or VECTOR(dimensionCount, FLOAT16)
         if (negotiatedVersion >= 2) {
-            if (scale == BYTES_PER_SHORT) {
+            if (scale == BYTES_PER_FLOAT16) {
                 return "VECTOR(" + precision + ", FLOAT16)";
             } else {
                 return "VECTOR(" + precision + ", FLOAT32)";

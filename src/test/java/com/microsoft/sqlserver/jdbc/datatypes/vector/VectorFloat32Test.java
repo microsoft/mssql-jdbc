@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc.datatypes.vector;
 
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -13,7 +14,9 @@ import java.sql.Statement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -21,6 +24,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -84,6 +88,87 @@ public class VectorFloat32Test extends VectorTest {
     // ============================================================================
     // FLOAT32-Specific Tests
     // ============================================================================
+
+    /**
+     * Tests that inserting a FLOAT32 vector is rejected on a v0 (off) connection.
+     * When vectorTypeSupport is "off", the server does not negotiate vector support
+     * and any vector insert should throw an IllegalArgumentException.
+     */
+    @Test
+    public void testFloat32VectorRejectedOnV0Connection() throws SQLException {
+        String connStr = connectionString + ";vectorTypeSupport=off";
+        try (SQLServerConnection v0Connection = (SQLServerConnection) DriverManager.getConnection(connStr)) {
+            Assumptions.assumeTrue(v0Connection.getNegotiatedVectorVersion() == 0,
+                    "Expected negotiated vector version 0 for 'off' connection. Skipping test.");
+
+            String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id, v) VALUES (?, ?)";
+            Float[] data = createTestData(1.0f, 2.0f, 3.0f);
+            Vector float32Vector = new Vector(3, VectorDimensionType.FLOAT32, data);
+
+            try (PreparedStatement pstmt = v0Connection.prepareStatement(insertSql)) {
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, float32Vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+                fail("Expected IllegalArgumentException when inserting FLOAT32 vector on v0 connection.");
+            } catch (IllegalArgumentException e) {
+                assertTrue(e.getMessage().contains("Vector type is not supported by the server"),
+                        "Expected vectorNotSupported error, but got: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Tests that inserting a FLOAT16 vector is rejected on a v0 (off) connection.
+     * When vectorTypeSupport is "off", the server does not negotiate vector support
+     * and any vector insert should throw an IllegalArgumentException.
+     */
+    @Test
+    public void testFloat16VectorRejectedOnV0Connection() throws SQLException {
+        String connStr = connectionString + ";vectorTypeSupport=off";
+        try (SQLServerConnection v0Connection = (SQLServerConnection) DriverManager.getConnection(connStr)) {
+            Assumptions.assumeTrue(v0Connection.getNegotiatedVectorVersion() == 0,
+                    "Expected negotiated vector version 0 for 'off' connection. Skipping test.");
+
+            String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id, v) VALUES (?, ?)";
+            Float[] data = createTestData(1.0f, 2.0f, 3.0f);
+            Vector float16Vector = new Vector(3, VectorDimensionType.FLOAT16, data);
+
+            try (PreparedStatement pstmt = v0Connection.prepareStatement(insertSql)) {
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, float16Vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+                fail("Expected IllegalArgumentException when inserting FLOAT16 vector on v0 connection.");
+            } catch (IllegalArgumentException e) {
+                assertTrue(e.getMessage().contains("Vector type is not supported by the server"),
+                        "Expected vectorNotSupported error, but got: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Tests that inserting a FLOAT16 vector is rejected on a v1 connection.
+     * The v1 protocol only supports FLOAT32 vectors; attempting to send FLOAT16
+     * should throw an IllegalArgumentException before any data reaches the server.
+     */
+    @Test
+    public void testFloat16VectorRejectedOnV1Connection() throws SQLException {
+        String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (id, v) VALUES (?, ?)";
+        Float[] data = createTestData(1.0f, 2.0f, 3.0f);
+        Vector float16Vector = new Vector(3, VectorDimensionType.FLOAT16, data);
+
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+            pstmt.setInt(1, 1);
+            pstmt.setObject(2, float16Vector, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+            fail("Expected IllegalArgumentException when inserting FLOAT16 vector on v1 connection.");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("FLOAT16 vector type is not supported"),
+                    "Expected FLOAT16 not supported error, but got: " + e.getMessage());
+        }
+    }
 
     /**
      * Tests inserting Float.MAX_VALUE and Float.MIN_VALUE into a FLOAT32 vector.

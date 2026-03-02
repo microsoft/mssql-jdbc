@@ -607,6 +607,8 @@ Error messages defined in `SQLServerResource.java` as `R_` prefixed keys. Used w
 | `R_VectorDimensionCountMismatch` | "Mismatch between vector dimension count and provided data." |
 | `R_vectorByteArrayLength` | "Vector byte array length must be at least 8 bytes." |
 | `R_invalidVectorTypeSupport` | "Invalid value for vectorTypeSupport: {0}. Valid values are off, v1, or v2." |
+| `R_vectorNotSupported` | "Vector type is not supported by the server. Enable vector support by setting the vectorTypeSupport connection property." |
+| `R_float16VectorNotSupported` | "FLOAT16 vector type is not supported by the server. The server only supports FLOAT32 vectors (vector version 1)." |
 
 ### Connection Resiliency Errors
 
