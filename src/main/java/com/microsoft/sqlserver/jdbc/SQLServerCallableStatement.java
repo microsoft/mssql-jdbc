@@ -1919,7 +1919,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     public void setDateTimeOffset(String parameterName, java.time.OffsetDateTime value,
             int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {parameterName, value});
+            loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset",
+                    new Object[] {parameterName, value, scale});
         checkClosed();
         setValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET,
                 (value == null) ? null : microsoft.sql.DateTimeOffset.valueOf(value), JavaType.DATETIMEOFFSET, null,
