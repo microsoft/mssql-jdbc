@@ -2479,19 +2479,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 }
             }
         } else if (type == java.time.OffsetDateTime.class) {
-            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(columnIndex);
-            if (dateTimeOffset == null) {
-                returnValue = null;
-            } else {
-                returnValue = dateTimeOffset.getOffsetDateTime();
-            }
+            returnValue = getOffsetDateTime(columnIndex);
         } else if (type == java.time.OffsetTime.class) {
-            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(columnIndex);
-            if (dateTimeOffset == null) {
-                returnValue = null;
-            } else {
-                returnValue = dateTimeOffset.getOffsetDateTime().toOffsetTime();
-            }
+            java.time.OffsetDateTime odt = getOffsetDateTime(columnIndex);
+            returnValue = (odt == null) ? null : odt.toOffsetTime();
         } else if (type == microsoft.sql.DateTimeOffset.class) {
             returnValue = getDateTimeOffset(columnIndex);
         } else if (type == UUID.class) {

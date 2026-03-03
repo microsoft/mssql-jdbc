@@ -169,7 +169,9 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException;
 
     /**
-     * Returns the {@link java.time.OffsetDateTime} value of parameter with index parameterIndex.
+     * Returns the {@link java.time.OffsetDateTime} value of parameter with index parameterIndex. This is the
+     * preferred way to retrieve SQL Server {@code datetimeoffset} output parameters. The equivalent JDBC-standard
+     * approach is {@code callableStatement.getObject(parameterIndex, java.time.OffsetDateTime.class)}.
      *
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, and so on
@@ -181,7 +183,9 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
     java.time.OffsetDateTime getOffsetDateTime(int parameterIndex) throws SQLServerException;
 
     /**
-     * Returns the {@link java.time.OffsetDateTime} value of parameter with name parameterName.
+     * Returns the {@link java.time.OffsetDateTime} value of parameter with name parameterName. This is the preferred
+     * way to retrieve SQL Server {@code datetimeoffset} output parameters. The equivalent JDBC-standard approach is
+     * {@code callableStatement.getObject(parameterName, java.time.OffsetDateTime.class)}.
      *
      * @param parameterName
      *        the name of the parameter
@@ -572,7 +576,9 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
-     * Sets parameter parameterName to the given {@link java.time.OffsetDateTime} value.
+     * Sets parameter parameterName to the given {@link java.time.OffsetDateTime} value. This is the preferred way
+     * to set SQL Server {@code datetimeoffset} parameters using the standard Java time API. The equivalent
+     * JDBC-standard approach is {@code callableStatement.setObject(parameterName, offsetDateTimeValue)}.
      *
      * @param parameterName
      *        the name of the parameter

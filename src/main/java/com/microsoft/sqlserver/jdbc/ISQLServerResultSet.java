@@ -267,7 +267,9 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
 
     /**
      * Returns the value of the designated column as a {@link java.time.OffsetDateTime} object, given a zero-based
-     * column ordinal.
+     * column ordinal. This is the preferred way to retrieve SQL Server {@code datetimeoffset} values using the
+     * standard Java time API. The equivalent JDBC-standard approach is
+     * {@code resultSet.getObject(columnIndex, java.time.OffsetDateTime.class)}.
      *
      * @param columnIndex
      *        The zero-based ordinal of a column.
@@ -279,6 +281,9 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
 
     /**
      * Returns the value of the column specified as a {@link java.time.OffsetDateTime} object, given a column name.
+     * This is the preferred way to retrieve SQL Server {@code datetimeoffset} values using the standard Java time API.
+     * The equivalent JDBC-standard approach is
+     * {@code resultSet.getObject(columnName, java.time.OffsetDateTime.class)}.
      *
      * @param columnName
      *        The name of a column.

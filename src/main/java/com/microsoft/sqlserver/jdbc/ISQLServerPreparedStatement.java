@@ -31,7 +31,9 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x) throws SQLServerException;
 
     /**
-     * Sets the designated parameter to the given {@link java.time.OffsetDateTime} value.
+     * Sets the designated parameter to the given {@link java.time.OffsetDateTime} value. This is the preferred way
+     * to set SQL Server {@code datetimeoffset} parameters using the standard Java time API. The equivalent
+     * JDBC-standard approach is {@code preparedStatement.setObject(parameterIndex, offsetDateTimeValue)}.
      *
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
