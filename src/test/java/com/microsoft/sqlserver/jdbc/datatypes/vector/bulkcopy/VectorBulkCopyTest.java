@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc.datatypes.vector.bulkcopy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -48,20 +49,18 @@ import microsoft.sql.Vector.VectorDimensionType;
  * Abstract base class for Vector bulk copy tests. Contains all bulk copy test methods
  * that can be run for different vector types (FLOAT32, FLOAT16, etc.).
  *
- * <p>Concrete implementations should extend this class and provide the vector type-specific
- * configurations via abstract methods.</p>
+ * Concrete implementations should extend this class and provide the vector type-specific
+ * configurations via abstract methods.
  *
- * <p>This class includes tests for:</p>
- * <ul>
- *   <li>Direct bulk copy using {@link ISQLServerBulkData}</li>
- *   <li>Bulk copy via PreparedStatement with {@code useBulkCopyForBatchInsert=true}</li>
- *   <li>Table-to-table bulk copy between different column types</li>
- *   <li>Error handling for incompatible types and mismatched dimensions</li>
- *   <li>Performance testing with large numbers of records</li>
- * </ul>
+ * This class includes tests for:
+ * - Direct bulk copy using {@link ISQLServerBulkData}
+ * - Bulk copy via PreparedStatement with {@code useBulkCopyForBatchInsert=true}
+ * - Table-to-table bulk copy between different column types
+ * - Error handling for incompatible types and mismatched dimensions
+ * - Performance testing with large numbers of records
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public abstract class AbstractVectorBulkCopyTest extends AbstractTest {
+public abstract class VectorBulkCopyTest extends AbstractTest {
 
     protected final String uuid = UUID.randomUUID().toString().replaceAll("-", "");
     protected String csvFilePath;
@@ -166,12 +165,17 @@ public abstract class AbstractVectorBulkCopyTest extends AbstractTest {
         assertNotNull(actual, message + " - actual is null");
         assertEquals(expected.length, actual.length, message + " - length mismatch");
 
+        // FLOAT16 has a 10-bit mantissa so its rounding step (1 ULP) scales with
+        // magnitude. The only lossy conversion is float32 -> float16 (round-to-nearest-even);
+        // the reverse (float16 -> float32) is exact. Maximum error is therefore
+        // 0.5 ULP of float16 = 2^-11 ~ 0.000488 relative. We use 0.05% (0.0005)
+        // as a tight bound just above that theoretical worst case.
         boolean isFloat16 = (getVectorDimensionType() == VectorDimensionType.FLOAT16);
 
         for (int i = 0; i < expected.length; i++) {
             float expectedVal = (Float) expected[i];
             float actualVal = (Float) actual[i];
-            float tolerance = isFloat16 ? Math.max(0.001f * Math.abs(expectedVal), 1e-7f) : 0.0f;
+            float tolerance = isFloat16 ? Math.max(0.0005f * Math.abs(expectedVal), 1e-7f) : 0.0f;
             assertEquals(expectedVal, actualVal, tolerance,
                     message + " at index " + i + ": expected " + expectedVal + " but was " + actualVal);
         }
@@ -193,7 +197,7 @@ public abstract class AbstractVectorBulkCopyTest extends AbstractTest {
             float actualVal = Float.parseFloat(parts[i].trim());
             float expectedVal = expected[i];
             boolean isFloat16 = (getVectorDimensionType() == VectorDimensionType.FLOAT16);
-            float tolerance = isFloat16 ? Math.max(0.001f * Math.abs(expectedVal), 1e-7f) : 1e-6f;
+            float tolerance = isFloat16 ? Math.max(0.0005f * Math.abs(expectedVal), 1e-7f) : 1e-6f;
             assertEquals(expectedVal, actualVal, tolerance,
                     message + " - value mismatch at index " + i);
         }
@@ -280,6 +284,149 @@ public abstract class AbstractVectorBulkCopyTest extends AbstractTest {
                 try (Statement stmt = conn.createStatement()) {
                     TestUtils.dropTableIfExists(dstTable, stmt);
                 }
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy with multiple rows containing mixed null and non-null vector data
+     * using ISQLServerBulkData. Validates that all rows are correctly transferred and
+     * that null vectors are preserved.
+     */
+    @Test
+    public void testBulkCopyMultipleRowsMixedNullAndNonNull() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(
+                        AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableBulkCopyMultiRow")));
+
+        try (Connection conn = DriverManager.getConnection(getVectorConnectionString())) {
+            try (Statement dstStmt = conn.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (v " + getColumnDefinition(3) + ");");
+
+                // Prepare multiple rows: non-null, null, non-null
+                List<Object[]> rows = new ArrayList<>();
+                Float[] data1 = createTestData(1.0f, 2.0f, 3.0f);
+                Float[] data2 = createTestData(10.0f, 20.0f, 30.0f);
+                rows.add(new Object[] {new Vector(3, getVectorDimensionType(), data1)});
+                rows.add(new Object[] {new Vector(3, getVectorDimensionType(), null)});
+                rows.add(new Object[] {new Vector(3, getVectorDimensionType(), data2)});
+
+                bulkCopy.setDestinationTableName(dstTable);
+                ISQLServerBulkData multiRowData = new VectorBulkDataPerformance(rows, 3,
+                        getVectorDimensionType());
+                bulkCopy.writeToServer(multiRowData);
+
+                // Validate all rows
+                String select = "SELECT v FROM " + dstTable;
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    // Row 1: non-null
+                    assertTrue(rs.next(), "Expected row 1");
+                    Vector v1 = rs.getObject("v", Vector.class);
+                    assertNotNull(v1, "Row 1 vector is null.");
+                    assertEquals(getVectorDimensionType(), v1.getVectorDimensionType(),
+                            "Row 1 dimension type mismatch.");
+                    assertVectorDataEquals(data1, v1.getData(), "Row 1 data mismatch");
+
+                    // Row 2: null data
+                    assertTrue(rs.next(), "Expected row 2");
+                    Vector v2 = rs.getObject("v", Vector.class);
+                    assertNull(v2.getData(), "Row 2 expected null data.");
+
+                    // Row 3: non-null
+                    assertTrue(rs.next(), "Expected row 3");
+                    Vector v3 = rs.getObject("v", Vector.class);
+                    assertNotNull(v3, "Row 3 vector is null.");
+                    assertEquals(getVectorDimensionType(), v3.getVectorDimensionType(),
+                            "Row 3 dimension type mismatch.");
+                    assertVectorDataEquals(data2, v3.getData(), "Row 3 data mismatch");
+
+                    assertFalse(rs.next(), "Expected only 3 rows.");
+                }
+            } finally {
+                try (Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+    }
+
+    /**
+     * Test table-to-table bulk copy from a VECTOR source to a VECTOR destination
+     * with the same type and dimensions. Validates that data is preserved through
+     * the ResultSet-based bulk copy path.
+     */
+    @Test
+    public void testBulkCopyVectorToVector() throws SQLException {
+        String srcTable = TestUtils
+                .escapeSingleQuotes(
+                        AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("srcTableVecToVec")));
+        String dstTable = TestUtils
+                .escapeSingleQuotes(
+                        AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableVecToVec")));
+
+        try (Connection conn = DriverManager.getConnection(getVectorConnectionString());
+                Statement stmt = conn.createStatement()) {
+
+            // Create source and destination tables
+            stmt.executeUpdate(
+                    "CREATE TABLE " + srcTable + " (vectorCol " + getColumnDefinition(3) + ")");
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (vectorCol " + getColumnDefinition(3) + ")");
+
+            // Insert data into source table
+            Float[] data1 = createTestData(1.5f, 2.5f, 3.5f);
+            Float[] data2 = createTestData(4.5f, 5.5f, 6.5f);
+            try (PreparedStatement pstmt = conn.prepareStatement(
+                    "INSERT INTO " + srcTable + " (vectorCol) VALUES (?)")) {
+                pstmt.setObject(1, new Vector(3, getVectorDimensionType(), data1), microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+                pstmt.setObject(1, new Vector(3, getVectorDimensionType(), null), microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+                pstmt.setObject(1, new Vector(3, getVectorDimensionType(), data2), microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            // Bulk copy from source to destination
+            String selectSql = "SELECT * FROM " + srcTable;
+            try (ResultSet resultSet = stmt.executeQuery(selectSql);
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+                bulkCopy.setDestinationTableName(dstTable);
+                bulkCopy.writeToServer(resultSet);
+            }
+
+            // Validate destination table
+            try (ResultSet rs = stmt.executeQuery("SELECT vectorCol FROM " + dstTable)) {
+                // Row 1
+                assertTrue(rs.next(), "Expected row 1 in destination.");
+                Vector v1 = rs.getObject("vectorCol", Vector.class);
+                assertNotNull(v1, "Row 1 vector is null.");
+                assertEquals(getVectorDimensionType(), v1.getVectorDimensionType(),
+                        "Row 1 dimension type mismatch.");
+                assertVectorDataEquals(data1, v1.getData(), "Row 1 data mismatch");
+
+                // Row 2: null
+                assertTrue(rs.next(), "Expected row 2 in destination.");
+                Vector v2 = rs.getObject("vectorCol", Vector.class);
+                assertNull(v2.getData(), "Row 2 expected null data.");
+
+                // Row 3
+                assertTrue(rs.next(), "Expected row 3 in destination.");
+                Vector v3 = rs.getObject("vectorCol", Vector.class);
+                assertNotNull(v3, "Row 3 vector is null.");
+                assertEquals(getVectorDimensionType(), v3.getVectorDimensionType(),
+                        "Row 3 dimension type mismatch.");
+                assertVectorDataEquals(data2, v3.getData(), "Row 3 data mismatch");
+
+                assertFalse(rs.next(), "Expected only 3 rows in destination.");
+            }
+        } finally {
+            try (Connection conn = DriverManager.getConnection(getVectorConnectionString());
+                    Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(srcTable, stmt);
+                TestUtils.dropTableIfExists(dstTable, stmt);
             }
         }
     }
@@ -490,6 +637,120 @@ public abstract class AbstractVectorBulkCopyTest extends AbstractTest {
         // Cleanup
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(bulkCopyTableName, stmt);
+        }
+    }
+
+    /**
+     * Test inserting multiple rows with mixed null and non-null vector data
+     * using prepared statement with bulk copy enabled. Validates that all rows
+     * including nulls are correctly inserted and retrieved.
+     */
+    @Test
+    public void testInsertMultipleRowsWithBulkCopy() throws Exception {
+        String bulkCopyTableName = RandomUtil.getIdentifier("BulkCopyMultiRowTest");
+        String connStr = connectionString + ";vectorTypeSupport=" + getRequiredVectorTypeSupport()
+                + ";useBulkCopyForBatchInsert=true;";
+        String sqlString = "insert into " + AbstractSQLGenerator.escapeIdentifier(bulkCopyTableName)
+                + " (vectorCol) values (?)";
+
+        try (SQLServerConnection conn = (SQLServerConnection) DriverManager.getConnection(connStr);
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(sqlString);
+                Statement stmt = conn.createStatement()) {
+
+            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(bulkCopyTableName), stmt);
+            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(bulkCopyTableName)
+                    + " (vectorCol " + getColumnDefinition(3) + ")";
+            stmt.execute(createTable);
+
+            Float[] data1 = createTestData(1.0f, 2.0f, 3.0f);
+            Float[] data2 = createTestData(7.0f, 8.0f, 9.0f);
+
+            // Add 3 rows: non-null, null, non-null
+            pstmt.setObject(1, new Vector(3, getVectorDimensionType(), data1), microsoft.sql.Types.VECTOR);
+            pstmt.addBatch();
+            pstmt.setObject(1, new Vector(3, getVectorDimensionType(), null), microsoft.sql.Types.VECTOR);
+            pstmt.addBatch();
+            pstmt.setObject(1, new Vector(3, getVectorDimensionType(), data2), microsoft.sql.Types.VECTOR);
+            pstmt.addBatch();
+            pstmt.executeBatch();
+
+            try (ResultSet rs = stmt.executeQuery(
+                    "select vectorCol from " + AbstractSQLGenerator.escapeIdentifier(bulkCopyTableName))) {
+                // Row 1
+                assertTrue(rs.next(), "Expected row 1");
+                Vector v1 = rs.getObject("vectorCol", Vector.class);
+                assertNotNull(v1, "Row 1 vector is null.");
+                assertEquals(getVectorDimensionType(), v1.getVectorDimensionType(),
+                        "Row 1 dimension type mismatch.");
+                assertVectorDataEquals(data1, v1.getData(), "Row 1 data mismatch.");
+
+                // Row 2: null
+                assertTrue(rs.next(), "Expected row 2");
+                Vector v2 = rs.getObject("vectorCol", Vector.class);
+                assertNull(v2.getData(), "Row 2 expected null data.");
+
+                // Row 3
+                assertTrue(rs.next(), "Expected row 3");
+                Vector v3 = rs.getObject("vectorCol", Vector.class);
+                assertNotNull(v3, "Row 3 vector is null.");
+                assertEquals(getVectorDimensionType(), v3.getVectorDimensionType(),
+                        "Row 3 dimension type mismatch.");
+                assertVectorDataEquals(data2, v3.getData(), "Row 3 data mismatch.");
+
+                assertFalse(rs.next(), "Expected only 3 rows.");
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(bulkCopyTableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Test bulk copy with max dimensions and validate that data is correctly preserved.
+     * Unlike the performance test, this test verifies data integrity for a single row
+     * at the maximum dimension count.
+     */
+    @Test
+    public void testBulkCopyMaxDimensionsWithDataValidation() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(
+                        AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstTableMaxDimValidation")));
+        int dimensionCount = getMaxDimensionCount();
+        Float[] vectorData = new Float[dimensionCount];
+        for (int i = 0; i < dimensionCount; i++) {
+            vectorData[i] = (i % 100) + 0.5f;
+        }
+
+        try (Connection conn = DriverManager.getConnection(getVectorConnectionString())) {
+            try (Statement dstStmt = conn.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+
+                dstStmt.executeUpdate(
+                        "CREATE TABLE " + dstTable + " (vectorCol " + getColumnDefinition(dimensionCount) + ");");
+
+                bulkCopy.setDestinationTableName(dstTable);
+                Vector vector = new Vector(dimensionCount, getVectorDimensionType(), vectorData);
+                VectorBulkData vectorBulkData = new VectorBulkData(vector, dimensionCount,
+                        vector.getVectorDimensionType());
+                bulkCopy.writeToServer(vectorBulkData);
+
+                String select = "SELECT * FROM " + dstTable;
+                try (ResultSet rs = dstStmt.executeQuery(select)) {
+                    assertTrue(rs.next(), "No data found in destination table.");
+                    Vector resultVector = rs.getObject("vectorCol", Vector.class);
+                    assertNotNull(resultVector, "Retrieved vector is null.");
+                    assertEquals(dimensionCount, resultVector.getDimensionCount(), "Dimension count mismatch.");
+                    assertEquals(getVectorDimensionType(), resultVector.getVectorDimensionType(),
+                            "Vector dimension type mismatch.");
+                    assertVectorDataEquals(vectorData, resultVector.getData(),
+                            "Max dimension vector data mismatch");
+                }
+            } finally {
+                try (Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
         }
     }
 
@@ -901,6 +1162,10 @@ public abstract class AbstractVectorBulkCopyTest extends AbstractTest {
                     // Validate ID
                     assertEquals(expectedData.get(rowCount)[0], id, "Mismatch in ID at row " + (rowCount + 1));
 
+                    // Validate vector dimension type
+                    assertEquals(getVectorDimensionType(), vectorObject.getVectorDimensionType(),
+                            "Vector dimension type mismatch at row " + (rowCount + 1));
+
                     // Validate vector data
                     if (expectedData.get(rowCount)[1] == null) {
                         assertEquals(null, vectorObject.getData(),
@@ -974,6 +1239,16 @@ public abstract class AbstractVectorBulkCopyTest extends AbstractTest {
                     Vector vectorCol1 = rs.getObject("vectorCol1", Vector.class);
                     Vector vectorCol2 = rs.getObject("vectorCol2", Vector.class);
 
+                    // Validate vector dimension type
+                    if (vectorCol1 != null) {
+                        assertEquals(getVectorDimensionType(), vectorCol1.getVectorDimensionType(),
+                                "vectorCol1 dimension type mismatch at row " + (rowCount + 1));
+                    }
+                    if (vectorCol2 != null) {
+                        assertEquals(getVectorDimensionType(), vectorCol2.getVectorDimensionType(),
+                                "vectorCol2 dimension type mismatch at row " + (rowCount + 1));
+                    }
+
                     Float[][] expected = expectedData.get(rowCount);
                     Object[] actualData1 = vectorCol1 != null ? vectorCol1.getData() : null;
                     Object[] actualData2 = vectorCol2 != null ? vectorCol2.getData() : null;
@@ -1045,6 +1320,16 @@ public abstract class AbstractVectorBulkCopyTest extends AbstractTest {
                     Vector vectorCol1 = rs.getObject("vectorCol1", Vector.class);
                     Vector vectorCol2 = rs.getObject("vectorCol2", Vector.class);
 
+                    // Validate vector dimension type
+                    if (vectorCol1 != null) {
+                        assertEquals(getVectorDimensionType(), vectorCol1.getVectorDimensionType(),
+                                "vectorCol1 dimension type mismatch at row " + (rowCount + 1));
+                    }
+                    if (vectorCol2 != null) {
+                        assertEquals(getVectorDimensionType(), vectorCol2.getVectorDimensionType(),
+                                "vectorCol2 dimension type mismatch at row " + (rowCount + 1));
+                    }
+
                     Float[][] expected = expectedData.get(rowCount);
                     Object[] actualData1 = vectorCol1 != null ? vectorCol1.getData() : null;
                     Object[] actualData2 = vectorCol2 != null ? vectorCol2.getData() : null;
@@ -1111,6 +1396,192 @@ public abstract class AbstractVectorBulkCopyTest extends AbstractTest {
         } finally {
             try (Connection con = DriverManager.getConnection(getVectorConnectionString());
                     Statement stmt = con.createStatement()) {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        }
+    }
+
+    // ============================================================================
+    // Vector Version Mismatch Tests (vectorTypeSupport=off)
+    // ============================================================================
+
+    /**
+     * Test that bulk copying FLOAT32 vector data via ISQLServerBulkData with vectorTypeSupport
+     * disabled throws an error. The server does not negotiate vector support, so negotiated
+     * vector version is 0.
+     */
+    @Test
+    public void testBulkCopyFloat32VectorWithVectorSupportOff() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(
+                        AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstBCF32Off")));
+
+        // Create table using vector-enabled connection
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (vectorCol " + getColumnDefinition(3) + ");");
+        }
+
+        String offConnStr = connectionString + ";vectorTypeSupport=off";
+
+        try {
+            // Bulk copy with vectorTypeSupport off (negotiated version = 0)
+            try (Connection offConn = DriverManager.getConnection(offConnStr);
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(offConn)) {
+
+                bulkCopy.setDestinationTableName(dstTable);
+                Float[] vectorData = createTestData(1.0f, 2.0f, 3.0f);
+                Vector vector = new Vector(vectorData.length, VectorDimensionType.FLOAT32, vectorData);
+                VectorBulkData vectorBulkData = new VectorBulkData(vector, vectorData.length,
+                        VectorDimensionType.FLOAT32);
+
+                bulkCopy.writeToServer(vectorBulkData);
+                fail("Expected SQLException for FLOAT32 vector with vectorTypeSupport=off.");
+            }
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Vector type is not supported"),
+                    "Expected vector not supported error, got: " + e.getMessage());
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test that bulk copying FLOAT16 vector data via ISQLServerBulkData with vectorTypeSupport
+     * disabled throws an error. The server does not negotiate vector support, so negotiated
+     * vector version is 0.
+     */
+    @Test
+    public void testBulkCopyFloat16VectorWithVectorSupportOff() throws SQLException {
+        String dstTable = TestUtils
+                .escapeSingleQuotes(
+                        AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dstBCF16Off")));
+
+        // Create table using vector-enabled connection
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (vectorCol " + getColumnDefinition(3) + ");");
+        }
+
+        String offConnStr = connectionString + ";vectorTypeSupport=off";
+
+        try {
+            // Bulk copy with vectorTypeSupport off (negotiated version = 0)
+            try (Connection offConn = DriverManager.getConnection(offConnStr);
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(offConn)) {
+
+                bulkCopy.setDestinationTableName(dstTable);
+                Float[] vectorData = createTestData(1.0f, 2.0f, 3.0f);
+                Vector vector = new Vector(vectorData.length, VectorDimensionType.FLOAT16, vectorData);
+                VectorBulkData vectorBulkData = new VectorBulkData(vector, vectorData.length,
+                        VectorDimensionType.FLOAT16);
+
+                bulkCopy.writeToServer(vectorBulkData);
+                fail("Expected SQLException for FLOAT16 vector with vectorTypeSupport=off.");
+            }
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Vector type is not supported"),
+                    "Expected vector not supported error, got: " + e.getMessage());
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test that bulk copying FLOAT32 vector data from CSV with vectorTypeSupport
+     * disabled throws an error.
+     */
+    @Test
+    @vectorJsonTest
+    public void testBulkCopyFloat32VectorFromCSVWithVectorSupportOff() throws SQLException {
+        String dstTable = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("dstBCCsvF32Off"));
+        String fileName = csvFilePath + VECTOR_INPUT_CSV_FILE;
+
+        // Create table using vector-enabled connection
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (id INT, vectorCol " + getColumnDefinition(3) + ");");
+        }
+
+        String offConnStr = connectionString + ";vectorTypeSupport=off";
+
+        try (Connection offConn = DriverManager.getConnection(offConnStr);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(offConn);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, null, ",", true)) {
+
+            // FLOAT32 scale = 4
+            fileRecord.addColumnMetadata(1, "id", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(2, "vectorCol", microsoft.sql.Types.VECTOR, 3, 4);
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+
+            bulkCopy.setDestinationTableName(dstTable);
+
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            options.setBulkCopyTimeout(60);
+            bulkCopy.setBulkCopyOptions(options);
+
+            bulkCopy.writeToServer(fileRecord);
+            fail("Expected SQLException for FLOAT32 CSV with vectorTypeSupport=off.");
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Vector type is not supported"),
+                    "Expected vector not supported error, got: " + e.getMessage());
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Test that bulk copying FLOAT16 vector data from CSV with vectorTypeSupport
+     * disabled throws an error.
+     */
+    @Test
+    @vectorJsonTest
+    public void testBulkCopyFloat16VectorFromCSVWithVectorSupportOff() throws SQLException {
+        String dstTable = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("dstBCCsvF16Off"));
+        String fileName = csvFilePath + VECTOR_INPUT_CSV_FILE;
+
+        // Create table using vector-enabled connection
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(
+                    "CREATE TABLE " + dstTable + " (id INT, vectorCol " + getColumnDefinition(3) + ");");
+        }
+
+        String offConnStr = connectionString + ";vectorTypeSupport=off";
+
+        try (Connection offConn = DriverManager.getConnection(offConnStr);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(offConn);
+                SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(fileName, null, ",", true)) {
+
+            // FLOAT16 scale = 2
+            fileRecord.addColumnMetadata(1, "id", java.sql.Types.INTEGER, 0, 0);
+            fileRecord.addColumnMetadata(2, "vectorCol", microsoft.sql.Types.VECTOR, 3, 2);
+            fileRecord.setEscapeColumnDelimitersCSV(true);
+
+            bulkCopy.setDestinationTableName(dstTable);
+
+            SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+            options.setKeepIdentity(false);
+            options.setTableLock(true);
+            options.setBulkCopyTimeout(60);
+            bulkCopy.setBulkCopyOptions(options);
+
+            bulkCopy.writeToServer(fileRecord);
+            fail("Expected SQLException for FLOAT16 CSV with vectorTypeSupport=off.");
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Vector type is not supported"),
+                    "Expected vector not supported error, got: " + e.getMessage());
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(dstTable, stmt);
             }
         }
