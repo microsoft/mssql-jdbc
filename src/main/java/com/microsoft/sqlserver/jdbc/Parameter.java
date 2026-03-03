@@ -626,9 +626,15 @@ final class Parameter {
                     break;
 
                 case VECTOR:
+                    // Delegate scale resolution and type definition building to VectorUtils.
+                    // v1: VECTOR(n)           - only FLOAT32, dimension type is implicit
+                    // v2: VECTOR(n, FLOAT32)  - explicit dimension type required
+                    //     VECTOR(n, FLOAT16)
                     param.typeDefinition = VectorUtils.getTypeDefinition(
-                            (Vector) dtv.getSetterValue(), scale, param.isOutput(), 
-                            param.getOutScale(), param.getValueLength());
+                            (Vector) dtv.getSetterValue(),
+                            param.isOutput(), param.getOutScale(),
+                            param.getValueLength(),
+                            con.getNegotiatedVectorVersion());
                     break;
 
                 case DATE:
