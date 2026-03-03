@@ -25,8 +25,25 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         if parameterIndex does not correspond to a parameter marker in the SQL statement; if a database access
      *         error occurs or this method is called on a closed <code>PreparedStatement</code>
+     * @deprecated Use {@link #setDateTimeOffset(int, java.time.OffsetDateTime)} instead.
      */
+    @Deprecated(since = "13.3.1")
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x) throws SQLServerException;
+
+    /**
+     * Sets the designated parameter to the given {@link java.time.OffsetDateTime} value. This is the preferred way
+     * to set SQL Server {@code datetimeoffset} parameters using the standard Java time API. The equivalent
+     * JDBC-standard approach is {@code preparedStatement.setObject(parameterIndex, offsetDateTimeValue)}.
+     *
+     * @param parameterIndex
+     *        the first parameter is 1, the second is 2, ...
+     * @param x
+     *        the parameter value
+     * @throws SQLServerException
+     *         if parameterIndex does not correspond to a parameter marker in the SQL statement; if a database access
+     *         error occurs or this method is called on a closed <code>PreparedStatement</code>
+     */
+    void setDateTimeOffset(int parameterIndex, java.time.OffsetDateTime x) throws SQLServerException;
 
     /**
      * Sets the value of the designated parameter with the given object.
@@ -563,7 +580,9 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *        the scale of the column
      * @throws SQLServerException
      *         when an error occurs
+     * @deprecated Use {@link #setDateTimeOffset(int, java.time.OffsetDateTime, int)} instead.
      */
+    @Deprecated(since = "13.3.1")
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException;
 
     /**
@@ -581,8 +600,43 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *        forceEncrypt is set to false, the driver will not force encryption on parameters.
      * @throws SQLServerException
      *         when an error occurs
+     * @deprecated Use {@link #setDateTimeOffset(int, java.time.OffsetDateTime, int, boolean)} instead.
      */
+    @Deprecated(since = "13.3.1")
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x, int scale,
+            boolean forceEncrypt) throws SQLServerException;
+
+    /**
+     * Sets the designated parameter to the given {@link java.time.OffsetDateTime} value.
+     *
+     * @param parameterIndex
+     *        the first parameter is 1, the second is 2, ...
+     * @param x
+     *        the parameter value
+     * @param scale
+     *        the scale of the column
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void setDateTimeOffset(int parameterIndex, java.time.OffsetDateTime x, int scale) throws SQLServerException;
+
+    /**
+     * Sets the designated parameter to the given {@link java.time.OffsetDateTime} value.
+     *
+     * @param parameterIndex
+     *        the first parameter is 1, the second is 2, ...
+     * @param x
+     *        the parameter value
+     * @param scale
+     *        the scale of the column
+     * @param forceEncrypt
+     *        If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column
+     *        is encrypted and Always Encrypted is enabled on the connection or on the statement. If the boolean
+     *        forceEncrypt is set to false, the driver will not force encryption on parameters.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void setDateTimeOffset(int parameterIndex, java.time.OffsetDateTime x, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
