@@ -5,11 +5,13 @@
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -4788,6 +4790,531 @@ public class StatementTest extends AbstractTest {
                                 "Query timed out earlier than expected: " + (timeout * 1000) + ", actual: " + elapsed);
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Test case for GitHub issue #2115: Exception chaining doesn't work in JDBC driver
+     * 
+     * This test verifies that when nested stored procedures raise multiple errors,
+     * the JDBC driver properly chains the exceptions using SQLException.getNextException().
+     * 
+     * Scenario:
+     * - Inner procedure P2 raises an error with RAISERROR and returns 1
+     * - Outer procedure P1 catches the error from P2 and raises another error
+     * - The JDBC client should be able to access both exceptions via exception chaining
+     * 
+     * This confirms SQL Server DOES send both exceptions, but JDBC driver fails to chain them.
+     */
+    @Nested
+    @Tag(Constants.xAzureSQLDW)
+    public class TCExceptionChaining {
+
+        private static final String PROC_P2 = "p2_inner_exception_test";
+        private static final String PROC_P1 = "p1_outer_exception_test";
+
+        /**
+         * Set up test by creating the stored procedures
+         */
+        @BeforeEach
+        public void setupTest() throws Exception {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                
+                // Drop procedures if they exist
+                TestUtils.dropProcedureIfExists(PROC_P2, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P1, stmt);
+
+                // Create inner procedure P2 that raises an error
+                String createP2 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + " AS "
+                        + "BEGIN " + "  RAISERROR('P2 - inner exception text', 16, 1) WITH NOWAIT; " + "  RETURN 1; "
+                        + "END";
+
+                stmt.execute(createP2);
+
+                // Create outer procedure P1 that calls P2 and raises another error
+                String createP1 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P1) + " AS "
+                        + "BEGIN " + "  DECLARE @returnValue INT; " + "  EXEC @returnValue = "
+                        + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + "; " + "  IF @returnValue <> 0 " + "  BEGIN "
+                        + "    RAISERROR('P1 - P2 raised an error', 16, 1) WITH NOWAIT; " + "  END " + "END";
+
+                stmt.execute(createP1);
+            }
+        }
+
+        /**
+         * Test that exception chaining works when nested stored procedures raise multiple errors.
+         * 
+         * This is a reproduction test for issue #2115.
+         */
+        @Test
+        public void testExceptionChaining() throws Exception {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+
+                try {
+                    // Execute the outer procedure which will trigger both exceptions
+                    stmt.execute("EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P1));
+                    fail("Expected SQLException to be thrown");
+                } catch (SQLException e) {
+                    // Verify first exception (from P2 - inner procedure)
+                    assertNotNull(e, "First exception should not be null");
+                    String firstMessage = e.getMessage();
+                    assertTrue(firstMessage.contains("P2 - inner exception text"),
+                            "First exception should contain 'P2 - inner exception text', but was: " + firstMessage);
+
+                    // Verify exception chaining - there should be a next exception
+                    SQLException nextException = e.getNextException();
+                    
+                    // This is the main assertion for issue #2115
+                    // According to the issue, getNextException() returns NULL when it should return the second exception
+                    assertNotNull(nextException, 
+                            "Second exception should be chained via getNextException() - this is the bug in issue #2115");
+                
+                    String secondMessage = nextException.getMessage();
+                    assertTrue(secondMessage.contains("P1 - P2 raised an error"),
+                            "Second exception should contain 'P1 - P2 raised an error', but was: " + secondMessage);
+                    
+                    // Verify no more exceptions after P1
+                    assertNull(nextException.getNextException(),
+                            "There should be no more exceptions after P1");
+                }
+            }
+        }
+
+        /**
+         * Test exception chaining with 4 nested stored procedures.
+         * Tests that all 4 exceptions are properly chained via getNextException().
+         * 
+         * Chain: P4 (innermost) → P3 → P2 → P1 (outermost)
+         */
+        @Test
+        public void testExceptionChainingWith4NestedProcs() throws Exception {
+            final String PROC_P4 = "p4_innermost_exception_test";
+            final String PROC_P3 = "p3_exception_test";
+            
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                // Create 4 nested procedures
+                TestUtils.dropProcedureIfExists(PROC_P4, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P3, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P2, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P1, stmt);
+
+                // P4 - innermost procedure
+                String createP4 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P4) + " AS "
+                        + "BEGIN " + "  RAISERROR('P4 - innermost exception', 16, 1) WITH NOWAIT; " + "  RETURN 1; "
+                        + "END";
+                stmt.execute(createP4);
+
+                // P3 - calls P4
+                String createP3 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P3) + " AS "
+                        + "BEGIN " + "  DECLARE @returnValue INT; " + "  EXEC @returnValue = "
+                        + AbstractSQLGenerator.escapeIdentifier(PROC_P4) + "; " + "  IF @returnValue <> 0 " + "  BEGIN "
+                        + "    RAISERROR('P3 - P4 raised an error', 16, 1) WITH NOWAIT; " + "    RETURN 1; " + "  END "
+                        + "END";
+                stmt.execute(createP3);
+
+                // P2 - calls P3
+                String createP2 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + " AS "
+                        + "BEGIN " + "  DECLARE @returnValue INT; " + "  EXEC @returnValue = "
+                        + AbstractSQLGenerator.escapeIdentifier(PROC_P3) + "; " + "  IF @returnValue <> 0 " + "  BEGIN "
+                        + "    RAISERROR('P2 - P3 raised an error', 16, 1) WITH NOWAIT; " + "    RETURN 1; " + "  END "
+                        + "END";
+                stmt.execute(createP2);
+
+                // P1 - outermost, calls P2
+                String createP1 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P1) + " AS "
+                        + "BEGIN " + "  DECLARE @returnValue INT; " + "  EXEC @returnValue = "
+                        + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + "; " + "  IF @returnValue <> 0 " + "  BEGIN "
+                        + "    RAISERROR('P1 - P2 raised an error', 16, 1) WITH NOWAIT; " + "  END " + "END";
+                stmt.execute(createP1);
+
+                // Execute and verify all 4 exceptions are chained
+                try {
+                    stmt.execute("EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P1));
+                    fail("Expected SQLException to be thrown");
+                } catch (SQLException e) {
+                    // Count and verify all exceptions
+                    int exceptionCount = 0;
+                    boolean hasP4 = false, hasP3 = false, hasP2 = false, hasP1 = false;
+                    
+                    SQLException ex = e;
+                    while (ex != null) {
+                        exceptionCount++;
+                        String message = ex.getMessage();
+                        if (message.contains("P4 - innermost exception")) hasP4 = true;
+                        if (message.contains("P3 - P4 raised an error")) hasP3 = true;
+                        if (message.contains("P2 - P3 raised an error")) hasP2 = true;
+                        if (message.contains("P1 - P2 raised an error")) hasP1 = true;
+                        
+                        ex = ex.getNextException();
+                    }
+
+                    // Verify all 4 exceptions are present
+                    assertEquals(4, exceptionCount, "Expected 4 chained exceptions, but got " + exceptionCount);
+                    assertTrue(hasP4, "Exception chain should contain P4 (innermost) exception");
+                    assertTrue(hasP3, "Exception chain should contain P3 exception");
+                    assertTrue(hasP2, "Exception chain should contain P2 exception");
+                    assertTrue(hasP1, "Exception chain should contain P1 (outermost) exception");
+                }
+
+                // Cleanup
+                TestUtils.dropProcedureIfExists(PROC_P4, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P3, stmt);
+            }
+        }
+
+        /**
+         * Test exception chaining using getMoreResults() approach.
+         * 
+         * Demonstrates collecting all errors from nested stored procedures by:
+         * 1. execute() throws first exception (from inner procedure P2)
+         * 2. getMoreResults() throws second exception (from outer procedure P1)
+         * 
+         * This approach leverages JDBC's existing parsing resume capability.
+         */
+        @Test
+        public void testExceptionChainingWithGetMoreResults() throws Exception {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+
+                SQLException firstException = null;
+                SQLException secondException = null;
+
+                try {
+                    stmt.execute("EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P1));
+                    fail("Expected SQLException to be thrown");
+                } catch (SQLException e) {
+                    firstException = e;
+                    
+                    // Call getMoreResults() to retrieve the second exception
+                    try {
+                        stmt.getMoreResults();
+                    } catch (SQLException e2) {
+                        secondException = e2;
+                    }
+                }
+
+                // Verify both exceptions were collected
+                assertNotNull(firstException, "First exception (P2) should be thrown from execute()");
+                assertTrue(firstException.getMessage().contains("P2 - inner exception text"),
+                        "First exception should be from P2: " + firstException.getMessage());
+
+                assertNotNull(secondException, "Second exception (P1) should be thrown from getMoreResults()");
+                assertTrue(secondException.getMessage().contains("P1 - P2 raised an error"),
+                        "Second exception should be from P1: " + secondException.getMessage());
+            }
+        }
+
+        /**
+         * Test exception chaining with 3 nested stored procedures using getNextException().
+         * 
+         * Validates that all 3 exceptions are properly chained via getNextException() API.
+         * Chain: P3 (innermost) → P2 → P1 (outermost)
+         */
+        @Test
+        public void testExceptionChainingWith3NestedProcs() throws Exception {
+            final String PROC_P3 = "p3_exception_test";
+            
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                // Create 3 nested procedures
+                TestUtils.dropProcedureIfExists(PROC_P3, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P2, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P1, stmt);
+
+                // P3 - innermost procedure
+                String createP3 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P3) + " AS "
+                        + "BEGIN " + "  RAISERROR('P3 - innermost exception', 16, 1) WITH NOWAIT; " + "  RETURN 1; "
+                        + "END";
+                stmt.execute(createP3);
+
+                // P2 - calls P3
+                String createP2 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + " AS "
+                        + "BEGIN " + "  DECLARE @returnValue INT; " + "  EXEC @returnValue = "
+                        + AbstractSQLGenerator.escapeIdentifier(PROC_P3) + "; " + "  IF @returnValue <> 0 " + "  BEGIN "
+                        + "    RAISERROR('P2 - P3 raised an error', 16, 1) WITH NOWAIT; " + "    RETURN 1; " + "  END "
+                        + "END";
+                stmt.execute(createP2);
+
+                // P1 - outermost, calls P2
+                String createP1 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P1) + " AS "
+                        + "BEGIN " + "  DECLARE @returnValue INT; " + "  EXEC @returnValue = "
+                        + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + "; " + "  IF @returnValue <> 0 " + "  BEGIN "
+                        + "    RAISERROR('P1 - P2 raised an error', 16, 1) WITH NOWAIT; " + "  END " + "END";
+                stmt.execute(createP1);
+
+                // Execute and verify all 3 exceptions are chained via getNextException()
+                try {
+                    stmt.execute("EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P1));
+                    fail("Expected SQLException to be thrown");
+                } catch (SQLException e) {
+                    // Count and verify all exceptions using getNextException()
+                    int exceptionCount = 0;
+                    boolean hasP3 = false, hasP2 = false, hasP1 = false;
+                    
+                    SQLException ex = e;
+                    while (ex != null) {
+                        exceptionCount++;
+                        String message = ex.getMessage();
+                        
+                        if (message.contains("P3 - innermost exception")) hasP3 = true;
+                        if (message.contains("P2 - P3 raised an error")) hasP2 = true;
+                        if (message.contains("P1 - P2 raised an error")) hasP1 = true;
+                        
+                        ex = ex.getNextException();
+                    }
+
+                    // Verify all 3 exceptions are present
+                    assertEquals(3, exceptionCount, "Expected 3 chained exceptions, but got " + exceptionCount);
+                    assertTrue(hasP3, "Exception chain should contain P3 (innermost) exception");
+                    assertTrue(hasP2, "Exception chain should contain P2 exception");
+                    assertTrue(hasP1, "Exception chain should contain P1 (outermost) exception");
+                }
+
+                // Cleanup
+                TestUtils.dropProcedureIfExists(PROC_P3, stmt);
+            }
+        }
+
+        /**
+         * Test exception chaining with 3 nested stored procedures throwing DIFFERENT types of errors.
+         * This verifies that the exception chaining mechanism works correctly with various SQL error types,
+         * not just RAISERROR.
+         * 
+         * Each procedure throws a unique error type WITHOUT catching/re-throwing:
+         * - P3: Division by zero (Error 8134)
+         * - P2: RAISERROR with message containing "P2"
+         * - P1: RAISERROR with message containing "P1"
+         */
+        @Test
+        public void testExceptionChainingWithDifferentErrorTypes() throws Exception {
+            final String PROC_P3 = "p3_diff_error_divide_by_zero";
+            
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                // Cleanup first
+                TestUtils.dropProcedureIfExists(PROC_P3, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P2, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P1, stmt);
+
+                // P3 - innermost procedure - throws arithmetic error (division by zero)
+                // Uses WITH NOWAIT so the error is sent immediately to the client
+                String createP3 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P3) + " AS "
+                        + "BEGIN " 
+                        + "  DECLARE @result INT; "
+                        + "  SET @result = 1/0; "  // Division by zero error (8134)
+                        + "  RETURN 1; "
+                        + "END";
+                stmt.execute(createP3);
+
+                // P2 - calls P3, then raises its own unique error
+                // The key is: EXEC P3 will cause div/0 error, but execution continues
+                // and P2 then raises its OWN error with NOWAIT
+                String createP2 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + " AS "
+                        + "BEGIN " 
+                        + "  EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P3) + "; "
+                        + "  RAISERROR('P2 - unique conversion style error', 16, 1) WITH NOWAIT; "
+                        + "  RETURN 1; "
+                        + "END";
+                stmt.execute(createP2);
+
+                // P1 - outermost, calls P2, then raises its own unique error
+                String createP1 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P1) + " AS "
+                        + "BEGIN " 
+                        + "  EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + "; "
+                        + "  RAISERROR('P1 - unique custom error message', 16, 1) WITH NOWAIT; "
+                        + "END";
+                stmt.execute(createP1);
+
+                // Execute and verify all different error types are chained
+                try {
+                    stmt.execute("EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P1));
+                    fail("Expected SQLException to be thrown");
+                } catch (SQLException e) {
+                    // Count and categorize exceptions - each should be UNIQUE
+                    int exceptionCount = 0;
+                    boolean hasDivideByZero = false;
+                    boolean hasP2Error = false;
+                    boolean hasP1Error = false;
+                    
+                    StringBuilder allMessages = new StringBuilder();
+                    
+                    SQLException ex = e;
+                    while (ex != null) {
+                        exceptionCount++;
+                        String message = ex.getMessage();
+                        allMessages.append("[").append(exceptionCount).append("] ").append(message).append("\n");
+                        
+                        // Check for division by zero error (SQL Server error 8134)
+                        if (message.contains("divide by zero") || message.contains("Divide by zero")) {
+                            hasDivideByZero = true;
+                        }
+                        
+                        // Check for P2's unique error message
+                        if (message.contains("P2 - unique conversion style error")) {
+                            hasP2Error = true;
+                        }
+                        
+                        // Check for P1's unique error message
+                        if (message.contains("P1 - unique custom error message")) {
+                            hasP1Error = true;
+                        }
+                        
+                        ex = ex.getNextException();
+                    }
+
+                    // Verify we got exactly 3 different exceptions
+                    assertEquals(3, exceptionCount, 
+                            "Expected exactly 3 chained exceptions, but got " + exceptionCount 
+                            + ". Messages:\n" + allMessages);
+                    
+                    // Verify each unique error type is present (not duplicates)
+                    assertTrue(hasDivideByZero,
+                            "Should have division by zero error from P3. Messages:\n" + allMessages);
+                    assertTrue(hasP2Error,
+                            "Should have P2's unique error message. Messages:\n" + allMessages);
+                    assertTrue(hasP1Error,
+                            "Should have P1's unique error message. Messages:\n" + allMessages);
+                }
+
+                // Cleanup
+                TestUtils.dropProcedureIfExists(PROC_P3, stmt);
+            }
+        }
+
+        /**
+         * Test that getNextException() gracefully handles a closed statement.
+         * 
+         * When the statement is closed after an exception is thrown but before
+         * getNextException() is called, the method should return null rather than
+         * throwing a "statement is closed" error that would mask the original exception.
+         */
+        @Test
+        public void testExceptionChainingWithClosedStatement() throws Exception {
+            SQLException caughtException = null;
+            
+            try (Connection conn = getConnection()) {
+                Statement stmt = conn.createStatement();
+                
+                try {
+                    stmt.execute("EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P1));
+                    fail("Expected SQLException to be thrown");
+                } catch (SQLException e) {
+                    caughtException = e;
+                    
+                    // Verify first exception was caught
+                    assertNotNull(caughtException, "First exception should not be null");
+                    assertTrue(caughtException.getMessage().contains("P2"),
+                            "First exception should be from P2");
+                    
+                    // Close the statement BEFORE calling getNextException()
+                    stmt.close();
+                    
+                    // Now call getNextException() - should gracefully return null
+                    // instead of throwing "statement is closed" error
+                    SQLException nextException = caughtException.getNextException();
+                    
+                    // The implementation should handle closed statement gracefully
+                    // and return null (since we can't fetch more exceptions from a closed statement)
+                    assertNull(nextException, 
+                            "getNextException() should return null when statement is closed, not throw an error");
+                }
+            }
+        }
+
+        /**
+         * Test exception chaining with result set between exceptions (lazy loading).
+         * 
+         * Validates lazy exception chaining when a result set appears between two errors:
+         * - P3 (inner) throws error → P2 returns result set → P1 (outer) throws error
+         * 
+         * Expected TDS stream: ERROR(P3) → COLMETADATA → ROW → DONE → ERROR(P1) → DONE
+         * 
+         * Driver behavior:
+         * - execute() throws P3 immediately and stores statement reference
+         * - getNextException() lazily loads P1 by calling getMoreResults() to process P2's result set
+         * 
+         * This lazy loading pattern matches SqlClient's eager collection (SqlException.Errors)
+         * but uses JDBC's standard exception chaining API.
+         */
+        @Test
+        public void testExceptionChainingWithResultSetBetweenExceptions() throws Exception {
+            final String PROC_P3 = "p3_inner_exception_with_resultset";
+            
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                // Cleanup first
+                TestUtils.dropProcedureIfExists(PROC_P3, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P2, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P1, stmt);
+
+                // P3 - innermost procedure throws exception
+                String createP3 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P3) + " AS "
+                        + "BEGIN " 
+                        + "  RAISERROR('P3 - inner exception', 16, 1) WITH NOWAIT; "
+                        + "  RETURN 1; "
+                        + "END";
+                stmt.execute(createP3);
+
+                // P2 - middle procedure returns a result set (NO exception)
+                String createP2 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + " AS "
+                        + "BEGIN " 
+                        + "  EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P3) + "; "
+                        + "  SELECT 'P2 Result' AS Message, 42 AS ResultCode; "
+                        + "  RETURN 0; "
+                        + "END";
+                stmt.execute(createP2);
+
+                // P1 - outermost procedure throws exception after calling P2
+                String createP1 = "CREATE PROCEDURE " + AbstractSQLGenerator.escapeIdentifier(PROC_P1) + " AS "
+                        + "BEGIN " 
+                        + "  EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P2) + "; "
+                        + "  RAISERROR('P1 - outer exception after result set', 16, 1) WITH NOWAIT; "
+                        + "END";
+                stmt.execute(createP1);
+
+                // Execute and verify behavior
+                boolean hasP3Exception = false;
+                boolean hasP1Exception = false;
+                
+                try {
+                    stmt.execute("EXEC " + AbstractSQLGenerator.escapeIdentifier(PROC_P1));
+                    fail("Expected SQLException to be thrown");
+                } catch (SQLException e) {
+                    // The first exception should be P3 (innermost)
+                    SQLException ex = e;
+                    
+                    String message = ex.getMessage();
+                    if (message.contains("P3 - inner exception")) {
+                        hasP3Exception = true;
+                    }
+                    assertTrue(hasP3Exception, 
+                        "Should have caught P3's inner exception as the first exception");
+                    
+                    // Move to next exception in the chain
+                    ex = ex.getNextException();
+                    
+                    // The next exception should be P1 (outer exception after result set)
+                    if (ex != null) {
+                        message = ex.getMessage();
+                        if (message.contains("P1 - outer exception")) {
+                            hasP1Exception = true;
+                        }
+                    }
+                    
+                    assertTrue(hasP1Exception, 
+                        "Should have caught P1's outer exception via exception chaining");
+                    
+                }
+                // Cleanup
+                TestUtils.dropProcedureIfExists(PROC_P3, stmt);
+            }
+        }
+
+        /**
+         * Clean up test by dropping the stored procedures
+         */
+        @AfterEach
+        public void cleanupTest() throws Exception {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropProcedureIfExists(PROC_P2, stmt);
+                TestUtils.dropProcedureIfExists(PROC_P1, stmt);
             }
         }
     }

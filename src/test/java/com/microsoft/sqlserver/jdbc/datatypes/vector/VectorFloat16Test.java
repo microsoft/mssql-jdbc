@@ -6,23 +6,23 @@
 package com.microsoft.sqlserver.jdbc.datatypes.vector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -33,22 +33,23 @@ import microsoft.sql.Vector.VectorDimensionType;
 
 /**
  * Test class for FLOAT16 vector data type.
- * 
- * <p>This class extends {@link AbstractVectorTest} and provides FLOAT16-specific
- * configuration. All test methods are inherited from the abstract base class.</p>
- * 
- * <p>SQL Syntax: VECTOR(n, float16) where n is the dimension count</p>
- * <p>Scale: 2 (FLOAT16)</p>
- * <p>Max Dimensions: 1998</p>
- * 
- * <p><b>Note:</b> This test class is tagged with {@link Constants#vectorFloat16Test}
- * for pipeline exclusion since the server does not yet support FLOAT16 vectors.</p>
+ *
+ * This class extends {@link VectorTest} and provides FLOAT16-specific
+ * configuration. All test methods are inherited from the abstract base class.
+ *
+ * - SQL Syntax: VECTOR(n, float16) where n is the dimension count
+ * - Scale: 2 (FLOAT16)
+ * - Max Dimensions: 3996
+ *
+ * Note: This test class is tagged with {@link Constants#vectorFloat16Test}
+ * for pipeline exclusion since the server does not yet support FLOAT16 vectors.
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type - FLOAT16")
 @vectorJsonTest
+@Tag(Constants.vectorTest)
 @Tag(Constants.vectorFloat16Test)
-public class VectorFloat16Test extends AbstractVectorTest {
+public class VectorFloat16Test extends VectorTest {
 
     @Override
     protected VectorDimensionType getVectorDimensionType() {
@@ -92,68 +93,88 @@ public class VectorFloat16Test extends AbstractVectorTest {
     // ============================================================================
 
     /**
-     * Test for VECTOR column metadata (FLOAT16).
-     * Validates column name, type, display size, precision, scale, searchability, and class name.
-     *
-     * @throws SQLException
+     * Tests that inserting a FLOAT32 vector is rejected on a v0 (off) connection.
+     * When vectorTypeSupport is "off", the server does not negotiate vector support
+     * and any vector insert should throw an IllegalArgumentException.
      */
     @Test
-    public void testVectorMetaData() throws SQLException {
-        String vectorTableName = com.microsoft.sqlserver.jdbc.RandomUtil.getIdentifier("vectorTable");
+    public void testFloat32VectorRejectedOnV0Connection() throws SQLException {
+        String connStr = connectionString + ";vectorTypeSupport=off";
+        try (SQLServerConnection v0Connection = (SQLServerConnection) DriverManager.getConnection(connStr)) {
+            Assumptions.assumeTrue(v0Connection.getNegotiatedVectorVersion() == 0,
+                    "Expected negotiated vector version 0 for 'off' connection. Skipping test.");
 
-        try (Statement stmt = connection.createStatement()) {
-            // Create a table with a VECTOR(3, float16) column
-            String sql = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(vectorTableName)
-                    + " (c1 " + getColumnDefinition(3) + " NULL);";
-            stmt.execute(sql);
+            String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id, v) VALUES (?, ?)";
+            Float[] data = createTestData(1.0f, 2.0f, 3.0f);
+            Vector float32Vector = new Vector(3, VectorDimensionType.FLOAT32, data);
 
-            // Query the table and retrieve metadata
-            String query = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(vectorTableName);
-            try (Statement statement = connection.createStatement();
-                    ResultSet resultSet = statement.executeQuery(query)) {
-
-                ResultSetMetaData metaData = resultSet.getMetaData();
-                int columnCount = metaData.getColumnCount();
-                assertEquals(1, columnCount, "Column count should be 1");
-
-                // Validate column name
-                String columnName = metaData.getColumnName(1);
-                assertEquals("c1", columnName, "Column name should be 'c1'");
-
-                // Validate column type name
-                String columnType = metaData.getColumnTypeName(1);
-                assertTrue("VECTOR".equalsIgnoreCase(columnType), "Column type should be 'VECTOR'");
-
-                // Validate column type
-                int columnTypeInt = metaData.getColumnType(1);
-                assertEquals(microsoft.sql.Types.VECTOR, columnTypeInt,
-                        "Column type should be microsoft.sql.Types.VECTOR");
-
-                // Validate column display size
-                int columnDisplaySize = metaData.getColumnDisplaySize(1);
-                assertTrue(columnDisplaySize > 0, "Column display size should be greater than 0");
-
-                // Validate column precision
-                int columnPrecision = metaData.getPrecision(1);
-                assertEquals(3, columnPrecision, "Column precision should be same as dimensionCount");
-
-                // Validate column scale
-                int columnScale = metaData.getScale(1);
-                assertEquals(getScale(), columnScale, "Column scale should be " + getScale());
-
-                // Validate column is searchable
-                boolean columnSearchable = metaData.isSearchable(1);
-                assertFalse(columnSearchable, "Column should be non-searchable");
-
-                // Validate column class name
-                String columnClassName = metaData.getColumnClassName(1);
-                assertEquals(microsoft.sql.Vector.class.getName(), columnClassName,
-                        "Column class name should be 'microsoft.sql.Vector'");
+            try (PreparedStatement pstmt = v0Connection.prepareStatement(insertSql)) {
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, float32Vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+                fail("Expected IllegalArgumentException when inserting FLOAT32 vector on v0 connection.");
+            } catch (IllegalArgumentException e) {
+                assertTrue(e.getMessage().contains("Vector type is not supported by the server"),
+                        "Expected vectorNotSupported error, but got: " + e.getMessage());
             }
-        } finally {
-            // Cleanup: Drop the table
-            try (Statement stmt = connection.createStatement()) {
-                stmt.execute("DROP TABLE IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(vectorTableName));
+        }
+    }
+
+    /**
+     * Tests that inserting a FLOAT16 vector is rejected on a v0 (off) connection.
+     * When vectorTypeSupport is "off", the server does not negotiate vector support
+     * and any vector insert should throw an IllegalArgumentException.
+     */
+    @Test
+    public void testFloat16VectorRejectedOnV0Connection() throws SQLException {
+        String connStr = connectionString + ";vectorTypeSupport=off";
+        try (SQLServerConnection v0Connection = (SQLServerConnection) DriverManager.getConnection(connStr)) {
+            Assumptions.assumeTrue(v0Connection.getNegotiatedVectorVersion() == 0,
+                    "Expected negotiated vector version 0 for 'off' connection. Skipping test.");
+
+            String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id, v) VALUES (?, ?)";
+            Float[] data = createTestData(1.0f, 2.0f, 3.0f);
+            Vector float16Vector = new Vector(3, VectorDimensionType.FLOAT16, data);
+
+            try (PreparedStatement pstmt = v0Connection.prepareStatement(insertSql)) {
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, float16Vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+                fail("Expected IllegalArgumentException when inserting FLOAT16 vector on v0 connection.");
+            } catch (IllegalArgumentException e) {
+                assertTrue(e.getMessage().contains("Vector type is not supported by the server"),
+                        "Expected vectorNotSupported error, but got: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Tests that inserting a FLOAT16 vector is rejected when using a v1 connection.
+     * Even though this test class normally uses a v2 connection, this test explicitly
+     * creates a v1 connection to verify the FLOAT16 validation guard in getTypeDefinition.
+     */
+    @Test
+    public void testFloat16VectorRejectedOnV1Connection() throws SQLException {
+        String connStr = connectionString + ";vectorTypeSupport=v1";
+        try (SQLServerConnection v1Connection = (SQLServerConnection) DriverManager.getConnection(connStr)) {
+            Assumptions.assumeTrue(v1Connection.getNegotiatedVectorVersion() >= 1,
+                    "Server did not negotiate vector version 1. Skipping test.");
+
+            String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id, v) VALUES (?, ?)";
+            Float[] data = createTestData(1.0f, 2.0f, 3.0f);
+            Vector float16Vector = new Vector(3, VectorDimensionType.FLOAT16, data);
+
+            try (PreparedStatement pstmt = v1Connection.prepareStatement(insertSql)) {
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, float16Vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+                fail("Expected IllegalArgumentException when inserting FLOAT16 vector on v1 connection.");
+            } catch (IllegalArgumentException e) {
+                assertTrue(e.getMessage().contains("FLOAT16 vector type is not supported"),
+                        "Expected FLOAT16 not supported error, but got: " + e.getMessage());
             }
         }
     }
@@ -210,6 +231,7 @@ public class VectorFloat16Test extends AbstractVectorTest {
             pstmt.executeUpdate();
             fail("Expected SQLServerException for out-of-range FLOAT16 values, but insert succeeded.");
         } catch (SQLServerException e) {
+            // Note: The server error message contains a typo ("precison" instead of "precision")
             assertTrue(e.getMessage().contains("not a valid half precison floating point number"),
                     "Expected error about invalid half precision float, but got: " + e.getMessage());
         }
@@ -248,4 +270,5 @@ public class VectorFloat16Test extends AbstractVectorTest {
             }
         }
     }
+
 }

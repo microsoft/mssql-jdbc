@@ -1925,7 +1925,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Check for errors first.
         if (null != nextResult.getDatabaseError()) {
             SQLServerException.makeFromDatabaseError(connection, null, nextResult.getDatabaseError().getErrorMessage(),
-                    nextResult.getDatabaseError(), false);
+                    nextResult.getDatabaseError(), false, this);
         }
 
         // If we didn't clear current ResultSet, we wanted to read only warnings. Return back from here.

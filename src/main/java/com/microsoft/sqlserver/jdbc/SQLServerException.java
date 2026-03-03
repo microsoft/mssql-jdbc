@@ -99,12 +99,70 @@ public final class SQLServerException extends java.sql.SQLException {
     /** SQL server error */
     private SQLServerError sqlServerError;
 
+    /** Reference to the statement that threw this exception (for lazy exception chaining via getMoreResults) */
+    private transient SQLServerStatement sourceStatement;
+
     final int getDriverErrorCode() {
         return driverErrorCode;
     }
 
     final void setDriverErrorCode(int value) {
         driverErrorCode = value;
+    }
+
+    /**
+     * Sets the source statement for lazy exception chaining.
+     * 
+     * @param stmt the statement that threw this exception
+     */
+    final void setSourceStatement(SQLServerStatement stmt) {
+        this.sourceStatement = stmt;
+    }
+
+    /**
+     * Returns the next SQLException in the chain. This implementation supports lazy fetching
+     * of additional exceptions from nested stored procedures (issue #2115).
+     * 
+     * @return the next SQLException in the chain, or null if none exists
+     */
+    @Override
+    public java.sql.SQLException getNextException() {
+        java.sql.SQLException nextException = super.getNextException();
+        if (nextException != null) {
+            return nextException;
+        }
+        
+        synchronized(this) {
+            if (sourceStatement != null) {
+                try {
+                    if (sourceStatement.isClosed()) {
+                        sourceStatement = null;
+                        return null;
+                    }
+                    
+                    // Keep calling getMoreResults() to process remaining results
+                    // until we hit another error or run out of results
+                    while (sourceStatement.getMoreResults() || sourceStatement.getUpdateCount() != -1) {
+                        // Continue processing results
+                    }
+                    
+                    // No more results and no error encountered
+                    sourceStatement = null;
+                    return null;
+                } catch (java.sql.SQLException e) {
+                    // Pass statement reference to next exception for continued chaining
+                    if (e instanceof SQLServerException) {
+                        ((SQLServerException) e).setSourceStatement(sourceStatement);
+                    }
+                    sourceStatement = null;
+                    super.setNextException(e);
+                    return e;
+                }
+            }
+        
+        }
+        
+        return null;
     }
 
     /**
@@ -272,11 +330,36 @@ public final class SQLServerException extends java.sql.SQLException {
      */
     static void makeFromDatabaseError(SQLServerConnection con, Object obj, String errText,
             SQLServerError sqlServerError, boolean bStack) throws SQLServerException {
+        makeFromDatabaseError(con, obj, errText, sqlServerError, bStack, null);
+    }
+
+    /**
+     * Builds a new SQL Exception from a SQLServerError detected by the driver.
+     * 
+     * @param con
+     *        the connection
+     * @param obj
+     * @param errText
+     *        the exception message
+     * @param sqlServerError
+     * @param bStack
+     *        true to generate the stack trace
+     * @param stmt
+     *        the statement that encountered the error (for lazy exception chaining)
+     * @throws SQLServerException
+     */
+    static void makeFromDatabaseError(SQLServerConnection con, Object obj, String errText,
+            SQLServerError sqlServerError, boolean bStack, SQLServerStatement stmt) throws SQLServerException {
         String state = generateStateCode(con, sqlServerError.getErrorNumber(), sqlServerError.getErrorState());
 
         SQLServerException theException = new SQLServerException(obj,
                 SQLServerException.checkAndAppendClientConnId(errText, con), state, sqlServerError, bStack);
         theException.setDriverErrorCode(DRIVER_ERROR_FROM_DATABASE);
+
+        // Set the source statement for lazy exception chaining (issue #2115)
+        if (stmt != null) {
+            theException.setSourceStatement(stmt);
+        }
 
         // Add any extra messages to the SQLException error chain
         List<SQLServerError> errorChain = sqlServerError.getErrorChain();

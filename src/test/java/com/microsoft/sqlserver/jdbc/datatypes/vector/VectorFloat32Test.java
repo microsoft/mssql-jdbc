@@ -5,14 +5,18 @@
 
 package com.microsoft.sqlserver.jdbc.datatypes.vector;
 
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -20,6 +24,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -30,19 +35,19 @@ import microsoft.sql.Vector.VectorDimensionType;
 
 /**
  * Test class for FLOAT32 vector data type.
- * 
- * <p>This class extends {@link AbstractVectorTest} and provides FLOAT32-specific
- * configuration. All test methods are inherited from the abstract base class.</p>
- * 
- * <p>SQL Syntax: VECTOR(n) where n is the dimension count</p>
- * <p>Scale: 4 (FLOAT32)</p>
- * <p>Max Dimensions: 1998</p>
+ *
+ * This class extends {@link VectorTest} and provides FLOAT32-specific
+ * configuration. All test methods are inherited from the abstract base class.
+ *
+ * - SQL Syntax: VECTOR(n) where n is the dimension count
+ * - Scale: 4 (FLOAT32)
+ * - Max Dimensions: 1998
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test Vector Data Type - FLOAT32")
 @vectorJsonTest
 @Tag(Constants.vectorTest)
-public class VectorFloat32Test extends AbstractVectorTest {
+public class VectorFloat32Test extends VectorTest {
 
     @Override
     protected VectorDimensionType getVectorDimensionType() {
@@ -85,69 +90,83 @@ public class VectorFloat32Test extends AbstractVectorTest {
     // ============================================================================
 
     /**
-     * Test for VECTOR column metadata (FLOAT32).
-     * Validates column name, type, display size, precision, scale, searchability, and class name.
-     *
-     * @throws SQLException
+     * Tests that inserting a FLOAT32 vector is rejected on a v0 (off) connection.
+     * When vectorTypeSupport is "off", the server does not negotiate vector support
+     * and any vector insert should throw an IllegalArgumentException.
      */
     @Test
-    public void testVectorMetaData() throws SQLException {
-        String vectorTableName = RandomUtil.getIdentifier("vectorTable");
+    public void testFloat32VectorRejectedOnV0Connection() throws SQLException {
+        String connStr = connectionString + ";vectorTypeSupport=off";
+        try (SQLServerConnection v0Connection = (SQLServerConnection) DriverManager.getConnection(connStr)) {
+            Assumptions.assumeTrue(v0Connection.getNegotiatedVectorVersion() == 0,
+                    "Expected negotiated vector version 0 for 'off' connection. Skipping test.");
 
-        try (Statement stmt = connection.createStatement()) {
-            // Create a table with a VECTOR(3) column (FLOAT32)
-            String sql = "CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(vectorTableName)
-                    + " (c1 " + getColumnDefinition(3) + " NULL);";
-            stmt.execute(sql);
+            String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id, v) VALUES (?, ?)";
+            Float[] data = createTestData(1.0f, 2.0f, 3.0f);
+            Vector float32Vector = new Vector(3, VectorDimensionType.FLOAT32, data);
 
-            // Query the table and retrieve metadata
-            String query = "SELECT * FROM " + AbstractSQLGenerator.escapeIdentifier(vectorTableName);
-            try (Statement statement = connection.createStatement();
-                    ResultSet resultSet = statement.executeQuery(query)) {
-
-                ResultSetMetaData metaData = resultSet.getMetaData();
-                int columnCount = metaData.getColumnCount();
-                assertEquals(1, columnCount, "Column count should be 1");
-
-                // Validate column name
-                String columnName = metaData.getColumnName(1);
-                assertEquals("c1", columnName, "Column name should be 'c1'");
-
-                // Validate column type name
-                String columnType = metaData.getColumnTypeName(1);
-                assertTrue("VECTOR".equalsIgnoreCase(columnType), "Column type should be 'VECTOR'");
-
-                // Validate column type
-                int columnTypeInt = metaData.getColumnType(1);
-                assertEquals(microsoft.sql.Types.VECTOR, columnTypeInt,
-                        "Column type should be microsoft.sql.Types.VECTOR");
-
-                // Validate column display size
-                int columnDisplaySize = metaData.getColumnDisplaySize(1);
-                assertTrue(columnDisplaySize > 0, "Column display size should be greater than 0");
-
-                // Validate column precision
-                int columnPrecision = metaData.getPrecision(1);
-                assertEquals(3, columnPrecision, "Column precision should be same as dimensionCount");
-
-                // Validate column scale
-                int columnScale = metaData.getScale(1);
-                assertEquals(getScale(), columnScale, "Column scale should be " + getScale());
-
-                // Validate column is searchable
-                boolean columnSearchable = metaData.isSearchable(1);
-                assertFalse(columnSearchable, "Column should be non-searchable");
-
-                // Validate column class name
-                String columnClassName = metaData.getColumnClassName(1);
-                assertEquals(microsoft.sql.Vector.class.getName(), columnClassName,
-                        "Column class name should be 'microsoft.sql.Vector'");
+            try (PreparedStatement pstmt = v0Connection.prepareStatement(insertSql)) {
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, float32Vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+                fail("Expected IllegalArgumentException when inserting FLOAT32 vector on v0 connection.");
+            } catch (IllegalArgumentException e) {
+                assertTrue(e.getMessage().contains("Vector type is not supported by the server"),
+                        "Expected vectorNotSupported error, but got: " + e.getMessage());
             }
-        } finally {
-            // Cleanup: Drop the table
-            try (Statement stmt = connection.createStatement()) {
-                stmt.execute("DROP TABLE IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(vectorTableName));
+        }
+    }
+
+    /**
+     * Tests that inserting a FLOAT16 vector is rejected on a v0 (off) connection.
+     * When vectorTypeSupport is "off", the server does not negotiate vector support
+     * and any vector insert should throw an IllegalArgumentException.
+     */
+    @Test
+    public void testFloat16VectorRejectedOnV0Connection() throws SQLException {
+        String connStr = connectionString + ";vectorTypeSupport=off";
+        try (SQLServerConnection v0Connection = (SQLServerConnection) DriverManager.getConnection(connStr)) {
+            Assumptions.assumeTrue(v0Connection.getNegotiatedVectorVersion() == 0,
+                    "Expected negotiated vector version 0 for 'off' connection. Skipping test.");
+
+            String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                    + " (id, v) VALUES (?, ?)";
+            Float[] data = createTestData(1.0f, 2.0f, 3.0f);
+            Vector float16Vector = new Vector(3, VectorDimensionType.FLOAT16, data);
+
+            try (PreparedStatement pstmt = v0Connection.prepareStatement(insertSql)) {
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, float16Vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+                fail("Expected IllegalArgumentException when inserting FLOAT16 vector on v0 connection.");
+            } catch (IllegalArgumentException e) {
+                assertTrue(e.getMessage().contains("Vector type is not supported by the server"),
+                        "Expected vectorNotSupported error, but got: " + e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Tests that inserting a FLOAT16 vector is rejected on a v1 connection.
+     * The v1 protocol only supports FLOAT32 vectors; attempting to send FLOAT16
+     * should throw an IllegalArgumentException before any data reaches the server.
+     */
+    @Test
+    public void testFloat16VectorRejectedOnV1Connection() throws SQLException {
+        String insertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " (id, v) VALUES (?, ?)";
+        Float[] data = createTestData(1.0f, 2.0f, 3.0f);
+        Vector float16Vector = new Vector(3, VectorDimensionType.FLOAT16, data);
+
+        try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+            pstmt.setInt(1, 1);
+            pstmt.setObject(2, float16Vector, microsoft.sql.Types.VECTOR);
+            pstmt.executeUpdate();
+            fail("Expected IllegalArgumentException when inserting FLOAT16 vector on v1 connection.");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("FLOAT16 vector type is not supported"),
+                    "Expected FLOAT16 not supported error, but got: " + e.getMessage());
         }
     }
 
@@ -219,6 +238,10 @@ public class VectorFloat32Test extends AbstractVectorTest {
     // UDF Normalization Tests (FLOAT32 only)
     // ============================================================================
 
+    /**
+     * Tests the vector_normalize UDF with FLOAT32 vectors.
+     * This test verifies that the UDF correctly normalizes a FLOAT32 vector and returns expected results.
+     */
     @Test
     public void testVectorNormalizeUdf() throws SQLException {
         String vectorsTable = TestUtils.escapeSingleQuotes(
@@ -269,6 +292,7 @@ public class VectorFloat32Test extends AbstractVectorTest {
         }
     }
 
+    // Helper method to set up a simple SVF for testing with FLOAT32 vectors
     private void setupSVF(String schemaName, String funcName, String tableName) throws SQLException {
         String escapedSchema = AbstractSQLGenerator.escapeIdentifier(schemaName);
         String escapedFunc = AbstractSQLGenerator.escapeIdentifier(funcName);
@@ -292,6 +316,10 @@ public class VectorFloat32Test extends AbstractVectorTest {
         }
     }
 
+    /**
+     * Tests the vector_identity UDF with FLOAT32 vectors.
+     * This test verifies that the UDF correctly returns the input vector without modification.
+     */
     @Test
     public void testVectorIdentityScalarFunction() throws SQLException {
         String schemaName = "testschemaVector" + uuid.substring(0, 8);
