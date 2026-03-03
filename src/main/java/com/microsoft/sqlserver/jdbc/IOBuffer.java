@@ -3412,6 +3412,14 @@ final class TDSWriter {
     private ByteBuffer socketBuffer;
     private ByteBuffer logBuffer;
 
+    // Buffer allocation strategy (supports both traditional heap and MemorySegment
+    // for JDK 22+)
+    private static final boolean USE_MEMORY_SEGMENT = Boolean
+            .parseBoolean(System.getProperty("mssql.jdbc.useMemorySegment", "false"));
+    private BufferAllocator stagingAllocator;
+    private BufferAllocator socketAllocator;
+    private BufferAllocator logAllocator;
+
     // Intermediate arrays
     // It is assumed, startMessage is called before use, to alloc arrays
     private char[] streamCharBuffer;
@@ -3423,6 +3431,49 @@ final class TDSWriter {
         this.tdsChannel = tdsChannel;
         this.con = con;
         traceID = "TDSWriter@" + Integer.toHexString(hashCode()) + " (" + con.toString() + ")";
+    }
+
+    /**
+     * Factory method to create the appropriate BufferAllocator based on
+     * configuration and JVM version.
+     * Attempts to use MemorySegmentBufferAllocator (Java 22+) if configured,
+     * otherwise uses HeapBufferAllocator.
+     * 
+     * @return A BufferAllocator instance
+     */
+    private static BufferAllocator createBufferAllocator() {
+        if (USE_MEMORY_SEGMENT) {
+            try {
+                // Try to instantiate MemorySegmentBufferAllocator (only available in Java 22+)
+                Class<?> allocatorClass = Class.forName(
+                        "com.microsoft.sqlserver.jdbc.MemorySegmentBufferAllocator");
+                BufferAllocator allocator = (BufferAllocator) allocatorClass.getDeclaredConstructor().newInstance();
+
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine("Using " + allocator.getDescription() + " for buffer allocation");
+                }
+                return allocator;
+            } catch (ClassNotFoundException | NoClassDefFoundError e) {
+                // MemorySegment API not available (Java < 22)
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.warning("MemorySegment mode requested but not available (requires Java 22+). " +
+                            "Falling back to heap buffers. Exception: " + e.getClass().getSimpleName());
+                }
+            } catch (Exception e) {
+                // Other instantiation errors
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.warning("Failed to instantiate MemorySegmentBufferAllocator: " + e.getMessage() +
+                            ". Falling back to heap buffers.");
+                }
+            }
+        }
+
+        // Default: use traditional heap-based ByteBuffer allocation
+        BufferAllocator allocator = new HeapBufferAllocator();
+        if (logger.isLoggable(Level.FINE)) {
+            logger.fine("Using " + allocator.getDescription() + " for buffer allocation");
+        }
+        return allocator;
     }
 
     /**
@@ -3485,9 +3536,27 @@ final class TDSWriter {
         // then allocate new buffers that are the correct size.
         int negotiatedPacketSize = con.getTDSPacketSize();
         if (currentPacketSize != negotiatedPacketSize) {
-            socketBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
-            stagingBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
-            logBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
+            // Clean up previous allocators if they exist
+            if (stagingAllocator != null) {
+                stagingAllocator.cleanup();
+            }
+            if (socketAllocator != null) {
+                socketAllocator.cleanup();
+            }
+            if (logAllocator != null) {
+                logAllocator.cleanup();
+            }
+
+            // Create new allocators based on configuration
+            stagingAllocator = createBufferAllocator();
+            socketAllocator = createBufferAllocator();
+            logAllocator = createBufferAllocator();
+
+            // Allocate buffers using the strategy pattern
+            stagingBuffer = stagingAllocator.allocate(negotiatedPacketSize);
+            socketBuffer = socketAllocator.allocate(negotiatedPacketSize);
+            logBuffer = logAllocator.allocate(negotiatedPacketSize);
+
             currentPacketSize = negotiatedPacketSize;
             streamCharBuffer = new char[2 * currentPacketSize];
             streamByteBuffer = new byte[4 * currentPacketSize];
