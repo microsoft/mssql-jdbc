@@ -1086,6 +1086,7 @@ public abstract class VectorBulkCopyTest extends AbstractTest {
                 bulkCopy.setDestinationTableName(desTable);
                 bulkCopy.addColumnMapping("vectorCol1", "vectorCol2");
                 bulkCopy.writeToServer(resultSet);
+                fail("Expected an exception due to dimension mismatch, but none was thrown.");
             }
 
         } catch (Exception e) {
