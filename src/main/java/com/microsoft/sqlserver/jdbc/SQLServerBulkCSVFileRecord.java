@@ -433,7 +433,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                             }
                         
                             String vectorData = data[pair.getKey() - 1].trim();
-                            Vector.VectorDimensionType vectorDimensionType = VectorUtils.getVectorDimensionType(cm.scale);
+                            // cm.scale is bytes-per-dimension (4=FLOAT32, 2=FLOAT16),
+                            // convert to scale byte (0=FLOAT32, 1=FLOAT16) for getVectorDimensionType()
+                            Vector.VectorDimensionType vectorDimensionType = VectorUtils.getVectorDimensionType(VectorUtils.getScaleByte(cm.scale));
                         
                             if ("NULL".equalsIgnoreCase(vectorData) || "\"NULL\"".equalsIgnoreCase(vectorData)) {
                                 dataRow[pair.getKey() - 1] = new Vector(dimensionCount, vectorDimensionType, null);
