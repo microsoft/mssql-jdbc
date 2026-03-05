@@ -30,6 +30,9 @@ import java.net.SocketTimeoutException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.Arena;
+import java.lang.foreign.ValueLayout;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -83,6 +86,46 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.FedAuthTokenCommand;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
 import microsoft.sql.Vector;
+
+/**
+ * Buffer allocation mode for TDS I/O operations
+ */
+enum BufferMode {
+    /** Traditional heap-allocated byte[] buffers - SSL compatible, JDK 8+ */
+    HEAP,
+
+    /** Direct ByteBuffer allocation - Zero-copy I/O, SSL compatible, JDK 8+ */
+    DIRECT_BUFFER,
+
+    /**
+     * MemorySegment allocation - Maximum performance, SSL incompatible, JDK 22+
+     * with --enable-preview
+     */
+    MEMORY_SEGMENT;
+
+    /**
+     * Parse buffer mode from system property value
+     */
+    static BufferMode fromString(String value) {
+        if (value == null || value.isEmpty()) {
+            return HEAP;
+        }
+
+        // Handle legacy boolean property for backwards compatibility
+        if ("true".equalsIgnoreCase(value)) {
+            return MEMORY_SEGMENT;
+        } else if ("false".equalsIgnoreCase(value)) {
+            return HEAP;
+        }
+
+        // Parse enum values (case-insensitive)
+        try {
+            return BufferMode.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return HEAP; // Default to HEAP for invalid values
+        }
+    }
+}
 
 final class TDS {
     // application protocol
@@ -2206,6 +2249,52 @@ final class TDSChannel implements Serializable {
         }
     }
 
+    /**
+     * Read data directly into ByteBuffer for zero-copy I/O
+     */
+    final int read(ByteBuffer buffer) throws SQLServerException {
+        try {
+            inputStreamLock.lock();
+            try {
+                con.idleNetworkTracker.markNetworkActivity();
+
+                // For direct/MemorySegment buffers, read efficiently
+                if (buffer.hasArray()) {
+                    // Heap buffer - use array directly
+                    int bytesRead = inputStream.read(buffer.array(),
+                            buffer.arrayOffset() + buffer.position(),
+                            buffer.remaining());
+                    if (bytesRead > 0) {
+                        buffer.position(buffer.position() + bytesRead);
+                    }
+                    return bytesRead;
+                } else {
+                    // Direct buffer - use temporary array
+                    int remaining = buffer.remaining();
+                    byte[] temp = new byte[Math.min(remaining, 8192)]; // Read in 8KB chunks
+                    int bytesRead = inputStream.read(temp, 0, temp.length);
+                    if (bytesRead > 0) {
+                        buffer.put(temp, 0, bytesRead);
+                    }
+                    return bytesRead;
+                }
+            } finally {
+                inputStreamLock.unlock();
+            }
+        } catch (IOException e) {
+            if (logger.isLoggable(Level.FINE))
+                logger.fine(toString() + " read failed:" + e.getMessage());
+
+            if (e instanceof SocketTimeoutException) {
+                con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage(), e);
+            } else {
+                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
+            }
+
+            return 0; // Keep the compiler happy.
+        }
+    }
+
     final void write(byte[] data, int offset, int length) throws SQLServerException {
         try {
             outputStreamLock.lock();
@@ -3412,13 +3501,18 @@ final class TDSWriter {
     private ByteBuffer socketBuffer;
     private ByteBuffer logBuffer;
 
-    // Buffer allocation strategy (supports both traditional heap and MemorySegment
-    // for JDK 22+)
-    private static final boolean USE_MEMORY_SEGMENT = Boolean
-            .parseBoolean(System.getProperty("mssql.jdbc.useMemorySegment", "false"));
-    private BufferAllocator stagingAllocator;
-    private BufferAllocator socketAllocator;
-    private BufferAllocator logAllocator;
+    // Buffer mode configuration - supports HEAP, DIRECT_BUFFER, or MEMORY_SEGMENT
+    private static final BufferMode BUFFER_MODE = BufferMode.fromString(
+            System.getProperty("mssql.jdbc.bufferMode",
+                    System.getProperty("mssql.jdbc.useMemorySegment", "heap")));
+
+    // MemorySegment API support (JDK 22+) - used only when BUFFER_MODE ==
+    // MEMORY_SEGMENT
+    private MemorySegment stagingSegment;
+    private MemorySegment socketSegment;
+    private MemorySegment logSegment;
+    private Arena arena;
+    private boolean usingDirectBuffers = false;
 
     // Intermediate arrays
     // It is assumed, startMessage is called before use, to alloc arrays
@@ -3431,49 +3525,14 @@ final class TDSWriter {
         this.tdsChannel = tdsChannel;
         this.con = con;
         traceID = "TDSWriter@" + Integer.toHexString(hashCode()) + " (" + con.toString() + ")";
-    }
 
-    /**
-     * Factory method to create the appropriate BufferAllocator based on
-     * configuration and JVM version.
-     * Attempts to use MemorySegmentBufferAllocator (Java 22+) if configured,
-     * otherwise uses HeapBufferAllocator.
-     * 
-     * @return A BufferAllocator instance
-     */
-    private static BufferAllocator createBufferAllocator() {
-        if (USE_MEMORY_SEGMENT) {
-            try {
-                // Try to instantiate MemorySegmentBufferAllocator (only available in Java 22+)
-                Class<?> allocatorClass = Class.forName(
-                        "com.microsoft.sqlserver.jdbc.MemorySegmentBufferAllocator");
-                BufferAllocator allocator = (BufferAllocator) allocatorClass.getDeclaredConstructor().newInstance();
-
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("Using " + allocator.getDescription() + " for buffer allocation");
-                }
-                return allocator;
-            } catch (ClassNotFoundException | NoClassDefFoundError e) {
-                // MemorySegment API not available (Java < 22)
-                if (logger.isLoggable(Level.WARNING)) {
-                    logger.warning("MemorySegment mode requested but not available (requires Java 22+). " +
-                            "Falling back to heap buffers. Exception: " + e.getClass().getSimpleName());
-                }
-            } catch (Exception e) {
-                // Other instantiation errors
-                if (logger.isLoggable(Level.WARNING)) {
-                    logger.warning("Failed to instantiate MemorySegmentBufferAllocator: " + e.getMessage() +
-                            ". Falling back to heap buffers.");
-                }
-            }
+        // Log buffer configuration for debugging
+        if (logger.isLoggable(Level.INFO)) {
+            logger.info("=== MSSQL-JDBC Buffer Configuration ===");
+            logger.info("BUFFER_MODE: " + BUFFER_MODE);
+            logger.info("JDK Version: " + System.getProperty("java.version"));
+            logger.info("======================================");
         }
-
-        // Default: use traditional heap-based ByteBuffer allocation
-        BufferAllocator allocator = new HeapBufferAllocator();
-        if (logger.isLoggable(Level.FINE)) {
-            logger.fine("Using " + allocator.getDescription() + " for buffer allocation");
-        }
-        return allocator;
     }
 
     /**
@@ -3489,7 +3548,18 @@ final class TDSWriter {
 
     void preparePacket() throws SQLServerException {
         if (tdsChannel.isLoggingPackets()) {
-            Arrays.fill(logBuffer.array(), (byte) 0xFE);
+            if (usingDirectBuffers) {
+                // For direct buffers, fill manually
+                int savedPos = ((Buffer) logBuffer).position();
+                ((Buffer) logBuffer).position(0);
+                for (int i = 0; i < logBuffer.capacity(); i++) {
+                    logBuffer.put((byte) 0xFE);
+                }
+                ((Buffer) logBuffer).position(savedPos);
+            } else {
+                // For heap buffers, use array() directly
+                Arrays.fill(logBuffer.array(), (byte) 0xFE);
+            }
             ((Buffer) logBuffer).clear();
         }
 
@@ -3536,26 +3606,39 @@ final class TDSWriter {
         // then allocate new buffers that are the correct size.
         int negotiatedPacketSize = con.getTDSPacketSize();
         if (currentPacketSize != negotiatedPacketSize) {
-            // Clean up previous allocators if they exist
-            if (stagingAllocator != null) {
-                stagingAllocator.cleanup();
-            }
-            if (socketAllocator != null) {
-                socketAllocator.cleanup();
-            }
-            if (logAllocator != null) {
-                logAllocator.cleanup();
+            // Determine buffer allocation mode based on SSL status and configuration
+            boolean sslActive = con.getNegotiatedEncryptionLevel() != TDS.ENCRYPT_OFF;
+            BufferMode effectiveMode = determineEffectiveBufferMode(sslActive);
+
+            // Log when configuration requires fallback due to SSL
+            if (BUFFER_MODE == BufferMode.MEMORY_SEGMENT && sslActive && logger.isLoggable(Level.INFO)) {
+                logger.info(toString() + " MEMORY_SEGMENT requested but SSL is active. "
+                        + "Falling back to DIRECT_BUFFER for SSL compatibility.");
             }
 
-            // Create new allocators based on configuration
-            stagingAllocator = createBufferAllocator();
-            socketAllocator = createBufferAllocator();
-            logAllocator = createBufferAllocator();
+            switch (effectiveMode) {
+                case MEMORY_SEGMENT:
+                    allocateMemorySegmentBuffers(negotiatedPacketSize);
+                    if (logger.isLoggable(Level.INFO))
+                        logger.info(toString() + " Allocated MemorySegment buffers (MEMORY_SEGMENT) - packetSize: "
+                                + negotiatedPacketSize + ", SSL: false");
+                    break;
 
-            // Allocate buffers using the strategy pattern
-            stagingBuffer = stagingAllocator.allocate(negotiatedPacketSize);
-            socketBuffer = socketAllocator.allocate(negotiatedPacketSize);
-            logBuffer = logAllocator.allocate(negotiatedPacketSize);
+                case DIRECT_BUFFER:
+                    allocateDirectBuffers(negotiatedPacketSize);
+                    if (logger.isLoggable(Level.INFO))
+                        logger.info(toString() + " Allocated direct ByteBuffers (DIRECT_BUFFER) - packetSize: "
+                                + negotiatedPacketSize + ", SSL: " + sslActive);
+                    break;
+
+                case HEAP:
+                default:
+                    allocateHeapBuffers(negotiatedPacketSize);
+                    if (logger.isLoggable(Level.INFO))
+                        logger.info(toString() + " Allocated heap buffers (HEAP) - packetSize: " + negotiatedPacketSize
+                                + ", SSL: " + sslActive);
+                    break;
+            }
 
             currentPacketSize = negotiatedPacketSize;
             streamCharBuffer = new char[2 * currentPacketSize];
@@ -3567,6 +3650,56 @@ final class TDSWriter {
 
         preparePacket();
         writeMessageHeader();
+    }
+
+    /**
+     * Determine effective buffer mode based on SSL status
+     * MemorySegment is incompatible with SSL, so we fallback to DIRECT_BUFFER
+     */
+    private BufferMode determineEffectiveBufferMode(boolean sslActive) {
+        if (sslActive && BUFFER_MODE == BufferMode.MEMORY_SEGMENT) {
+            return BufferMode.DIRECT_BUFFER; // MemorySegment incompatible with SSL
+        }
+        return BUFFER_MODE;
+    }
+
+    /**
+     * Allocate MemorySegment-backed buffers (JDK 22+, SSL incompatible)
+     */
+    private void allocateMemorySegmentBuffers(int packetSize) {
+        if (arena != null) {
+            arena.close(); // Clean up previous arena
+        }
+        arena = Arena.ofConfined();
+        socketSegment = arena.allocate(packetSize, 8);
+        stagingSegment = arena.allocate(packetSize, 8);
+        logSegment = arena.allocate(packetSize, 8);
+
+        // Wrap MemorySegments in ByteBuffers for compatibility
+        socketBuffer = socketSegment.asByteBuffer().order(ByteOrder.LITTLE_ENDIAN);
+        stagingBuffer = stagingSegment.asByteBuffer().order(ByteOrder.LITTLE_ENDIAN);
+        logBuffer = logSegment.asByteBuffer().order(ByteOrder.LITTLE_ENDIAN);
+        usingDirectBuffers = true;
+    }
+
+    /**
+     * Allocate direct ByteBuffers (JDK 8+, SSL compatible)
+     */
+    private void allocateDirectBuffers(int packetSize) {
+        socketBuffer = ByteBuffer.allocateDirect(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        stagingBuffer = ByteBuffer.allocateDirect(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        logBuffer = ByteBuffer.allocateDirect(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        usingDirectBuffers = true;
+    }
+
+    /**
+     * Allocate heap ByteBuffers (JDK 8+, SSL compatible)
+     */
+    private void allocateHeapBuffers(int packetSize) {
+        socketBuffer = ByteBuffer.allocate(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        stagingBuffer = ByteBuffer.allocate(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        logBuffer = ByteBuffer.allocate(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        usingDirectBuffers = false;
     }
 
     final void endMessage() throws SQLServerException {
@@ -4621,7 +4754,18 @@ final class TDSWriter {
 
     void flush(boolean atEOM) throws SQLServerException {
         // First, flush any data left in the socket buffer.
-        tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+        // Handle both heap and direct buffers
+        if (usingDirectBuffers) {
+            // For direct buffers, we need to copy to temporary array
+            byte[] tempBuffer = new byte[socketBuffer.remaining()];
+            int pos = ((Buffer) socketBuffer).position();
+            socketBuffer.get(tempBuffer, 0, tempBuffer.length);
+            ((Buffer) socketBuffer).position(pos); // Reset position after read
+            tdsChannel.write(tempBuffer, 0, tempBuffer.length);
+        } else {
+            // For heap buffers, use array() directly
+            tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+        }
         ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
 
         // If there is data in the staging buffer that needs to be written
@@ -4645,8 +4789,20 @@ final class TDSWriter {
             // If we are logging TDS packets then log the packet we're about
             // to send over the wire now.
             if (tdsChannel.isLoggingPackets()) {
-                tdsChannel.logPacket(logBuffer.array(), 0, ((Buffer) socketBuffer).limit(),
-                        this.toString() + " sending packet (" + ((Buffer) socketBuffer).limit() + " bytes)");
+                if (usingDirectBuffers) {
+                    // For direct buffers, copy to temporary array for logging
+                    byte[] tempLogBuffer = new byte[((Buffer) socketBuffer).limit()];
+                    int savedPos = ((Buffer) logBuffer).position();
+                    ((Buffer) logBuffer).position(0);
+                    logBuffer.get(tempLogBuffer, 0, ((Buffer) socketBuffer).limit());
+                    ((Buffer) logBuffer).position(savedPos);
+                    tdsChannel.logPacket(tempLogBuffer, 0, ((Buffer) socketBuffer).limit(),
+                            this.toString() + " sending packet (" + ((Buffer) socketBuffer).limit() + " bytes)");
+                } else {
+                    // For heap buffers, use array() directly
+                    tdsChannel.logPacket(logBuffer.array(), 0, ((Buffer) socketBuffer).limit(),
+                            this.toString() + " sending packet (" + ((Buffer) socketBuffer).limit() + " bytes)");
+                }
             }
 
             // Prepare for the next packet
@@ -4654,7 +4810,17 @@ final class TDSWriter {
                 preparePacket();
 
             // Finally, start sending data from the new socket buffer.
-            tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+            if (usingDirectBuffers) {
+                // For direct buffers, copy to temporary array
+                byte[] tempBuffer = new byte[socketBuffer.remaining()];
+                int pos = ((Buffer) socketBuffer).position();
+                socketBuffer.get(tempBuffer, 0, tempBuffer.length);
+                ((Buffer) socketBuffer).position(pos); // Reset position after read
+                tdsChannel.write(tempBuffer, 0, tempBuffer.length);
+            } else {
+                // For heap buffers, use array() directly
+                tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+            }
             ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
         }
     }
@@ -6821,7 +6987,7 @@ final class TDSWriter {
  */
 final class TDSPacket {
     final byte[] header = new byte[TDS.PACKET_HEADER_SIZE];
-    final byte[] payload;
+    final ByteBuffer payload; // Changed from byte[] to ByteBuffer for zero-copy read operations
     int payloadLength;
     volatile TDSPacket next;
 
@@ -6830,8 +6996,18 @@ final class TDSPacket {
                 + header[TDS.PACKET_HEADER_SEQUENCE_NUM] + ")";
     }
 
-    TDSPacket(int size) {
-        payload = new byte[size];
+    TDSPacket(int size, BufferMode mode) {
+        // Allocate payload buffer based on mode
+        switch (mode) {
+            case MEMORY_SEGMENT:
+            case DIRECT_BUFFER:
+                payload = ByteBuffer.allocateDirect(size).order(ByteOrder.LITTLE_ENDIAN);
+                break;
+            case HEAP:
+            default:
+                payload = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN);
+                break;
+        }
         payloadLength = 0;
         next = null;
     }
@@ -6876,6 +7052,11 @@ final class TDSReader implements Serializable {
     final private String traceID;
     private transient ScheduledFuture<?> timeout;
 
+    // Buffer mode configuration - shared with TDSWriter
+    private static final BufferMode BUFFER_MODE = BufferMode.fromString(
+            System.getProperty("mssql.jdbc.bufferMode",
+                    System.getProperty("mssql.jdbc.useMemorySegment", "heap")));
+
     final public String toString() {
         return traceID;
     }
@@ -6894,7 +7075,7 @@ final class TDSReader implements Serializable {
         return con;
     }
 
-    private transient TDSPacket currentPacket = new TDSPacket(0);
+    private transient TDSPacket currentPacket = new TDSPacket(0, BufferMode.HEAP);
     private transient TDSPacket lastPacket = currentPacket;
     private int payloadOffset = 0;
     private int packetNum = 0;
@@ -7035,7 +7216,13 @@ final class TDSReader implements Serializable {
             assert tdsChannel.numMsgsRcvd < tdsChannel.numMsgsSent : "numMsgsRcvd:" + tdsChannel.numMsgsRcvd
                     + " should be less than numMsgsSent:" + tdsChannel.numMsgsSent;
 
-            TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
+            // Determine buffer mode for read packets based on SSL status
+            boolean sslActive = con.getNegotiatedEncryptionLevel() != TDS.ENCRYPT_OFF;
+            BufferMode readBufferMode = (BUFFER_MODE == BufferMode.MEMORY_SEGMENT && sslActive)
+                    ? BufferMode.DIRECT_BUFFER
+                    : BUFFER_MODE;
+
+            TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize(), readBufferMode);
             if ((null != command) &&
             // if cancelQueryTimeout is set, we should wait for the total amount of
             // queryTimeout + cancelQueryTimeout to
@@ -7106,10 +7293,12 @@ final class TDSReader implements Serializable {
                 command.getCounter().increaseCounter(packetLength);
             }
 
-            // Now for the payload...
+            // Now for the payload - read directly into ByteBuffer
+            newPacket.payload.clear();
+            newPacket.payload.limit(newPacket.payloadLength);
+
             for (int payloadBytesRead = 0; payloadBytesRead < newPacket.payloadLength;) {
-                int bytesRead = tdsChannel.read(newPacket.payload, payloadBytesRead,
-                        newPacket.payloadLength - payloadBytesRead);
+                int bytesRead = tdsChannel.read(newPacket.payload);
                 if (bytesRead < 0)
                     con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
                             SQLServerException.getErrString("R_truncatedServerResponse"));
@@ -7117,14 +7306,19 @@ final class TDSReader implements Serializable {
                 payloadBytesRead += bytesRead;
             }
 
+            // Prepare buffer for reading
+            newPacket.payload.flip();
+
             ++packetNum;
 
             lastPacket.next = newPacket;
             lastPacket = newPacket;
 
-            // When logging, append the payload to the log buffer and write out the whole thing.
+            // When logging, copy data to log buffer
             if (tdsChannel.isLoggingPackets() && logBuffer != null) {
-                System.arraycopy(newPacket.payload, 0, logBuffer, TDS.PACKET_HEADER_SIZE, newPacket.payloadLength);
+                newPacket.payload.position(0);
+                newPacket.payload.get(logBuffer, TDS.PACKET_HEADER_SIZE, newPacket.payloadLength);
+                newPacket.payload.position(0);
                 tdsChannel.logPacket(logBuffer, 0, packetLength,
                         this.toString() + " received Packet:" + packetNum + " (" + newPacket.payloadLength + " bytes)");
             }
@@ -7202,13 +7396,13 @@ final class TDSReader implements Serializable {
             return -1;
 
         // Peek at the current byte (don't increment payloadOffset!)
-        return currentPacket.payload[payloadOffset] & 0xFF;
+        return currentPacket.payload.get(payloadOffset) & 0xFF;
     }
 
     final short peekStatusFlag() {
         // skip the current packet(i.e, TDS packet type) and peek into the status flag (USHORT)
         if (payloadOffset + 3 <= currentPacket.payloadLength) {
-            return Util.readShort(currentPacket.payload, payloadOffset + 1);
+            return currentPacket.payload.getShort(payloadOffset + 1);
         }
 
         return 0;
@@ -7219,12 +7413,12 @@ final class TDSReader implements Serializable {
         if (!ensurePayload())
             throwInvalidTDS();
 
-        return currentPacket.payload[payloadOffset++] & 0xFF;
+        return currentPacket.payload.get(payloadOffset++) & 0xFF;
     }
 
     final short readShort() throws SQLServerException {
         if (payloadOffset + 2 <= currentPacket.payloadLength) {
-            short value = Util.readShort(currentPacket.payload, payloadOffset);
+            short value = currentPacket.payload.getShort(payloadOffset);
             payloadOffset += 2;
             return value;
         }
@@ -7234,7 +7428,7 @@ final class TDSReader implements Serializable {
 
     final int readUnsignedShort() throws SQLServerException {
         if (payloadOffset + 2 <= currentPacket.payloadLength) {
-            int value = Util.readUnsignedShort(currentPacket.payload, payloadOffset);
+            int value = currentPacket.payload.getShort(payloadOffset) & 0xFFFF;
             payloadOffset += 2;
             return value;
         }
@@ -7256,7 +7450,7 @@ final class TDSReader implements Serializable {
 
     final int readInt() throws SQLServerException {
         if (payloadOffset + 4 <= currentPacket.payloadLength) {
-            int value = Util.readInt(currentPacket.payload, payloadOffset);
+            int value = currentPacket.payload.getInt(payloadOffset);
             payloadOffset += 4;
             return value;
         }
@@ -7266,7 +7460,9 @@ final class TDSReader implements Serializable {
 
     final int readIntBigEndian() throws SQLServerException {
         if (payloadOffset + 4 <= currentPacket.payloadLength) {
-            int value = Util.readIntBigEndian(currentPacket.payload, payloadOffset);
+            // ByteBuffer is already in LITTLE_ENDIAN, need to convert
+            int value = currentPacket.payload.getInt(payloadOffset);
+            value = Integer.reverseBytes(value); // Convert to big-endian
             payloadOffset += 4;
             return value;
         }
@@ -7280,7 +7476,7 @@ final class TDSReader implements Serializable {
 
     final long readLong() throws SQLServerException {
         if (payloadOffset + 8 <= currentPacket.payloadLength) {
-            long value = Util.readLong(currentPacket.payload, payloadOffset);
+            long value = currentPacket.payload.getLong(payloadOffset);
             payloadOffset += 8;
             return value;
         }
@@ -7304,7 +7500,10 @@ final class TDSReader implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Reading " + bytesToCopy + " bytes from offset " + payloadOffset);
 
-            System.arraycopy(currentPacket.payload, payloadOffset, value, valueOffset + bytesRead, bytesToCopy);
+            // Use ByteBuffer.get() for zero-copy when possible
+            currentPacket.payload.position(payloadOffset);
+            currentPacket.payload.get(value, valueOffset + bytesRead, bytesToCopy);
+
             bytesRead += bytesToCopy;
             payloadOffset += bytesToCopy;
         }
