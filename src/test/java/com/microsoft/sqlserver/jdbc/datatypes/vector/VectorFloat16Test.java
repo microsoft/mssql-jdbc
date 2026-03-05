@@ -54,7 +54,11 @@ import microsoft.sql.Vector.VectorDimensionType;
  * Test class for FLOAT16 vector data type.
  *
  * This class extends {@link VectorTest} and provides FLOAT16-specific
- * configuration. All test methods are inherited from the abstract base class.
+ * configuration. All single-type FLOAT16 tests are inherited from the abstract
+ * base class. In addition, the {@link MixedVectorTypeTest} nested class validates
+ * scenarios involving tables with both FLOAT32 and FLOAT16 vector columns, including
+ * DML, stored procedures, UDFs, transactions, savepoints, metadata, temp tables,
+ * views, and table-to-table copy operations.
  *
  * - SQL Syntax: VECTOR(n, float16) where n is the dimension count
  * - Scale: 2 (FLOAT16)
@@ -319,6 +323,8 @@ public class VectorFloat16Test extends VectorTest {
         private String mixedTvpTypeName;
         private final String mixedUuid = UUID.randomUUID().toString().replaceAll("-", "");
 
+        // Setup before all tests in this nested class run.
+        // Creates a v2 connection and necessary database objects for mixed-type testing.
         @BeforeAll
         public void setupMixedTests() throws Exception {
             String connStr = connectionString + ";vectorTypeSupport=v2";
@@ -354,6 +360,7 @@ public class VectorFloat16Test extends VectorTest {
             }
         }
 
+        // Cleanup after all tests in this class have run
         @AfterAll
         public void cleanupMixedTests() throws SQLException {
             if (mixedConnection != null && !mixedConnection.isClosed()) {
@@ -367,6 +374,7 @@ public class VectorFloat16Test extends VectorTest {
             }
         }
 
+        // Cleanup after each test to ensure isolation between tests
         @AfterEach
         public void cleanupAfterEachMixedTest() throws SQLException {
             try (Statement stmt = mixedConnection.createStatement()) {
@@ -1600,8 +1608,8 @@ public class VectorFloat16Test extends VectorTest {
                         VectorDimensionType.FLOAT16, "UDF should return FLOAT16 input");
             } finally {
                 try (Statement stmt = mixedConnection.createStatement()) {
-                    stmt.execute("DROP TABLE IF EXISTS " + tempTable);
-                    stmt.execute("DROP FUNCTION IF EXISTS " + udfName);
+                    TestUtils.dropTableIfExists(tempTable, stmt);
+                    TestUtils.dropFunctionIfExists(udfName, stmt);
                 }
             }
         }
@@ -1737,8 +1745,8 @@ public class VectorFloat16Test extends VectorTest {
                 fail("Expected an error when inserting wrong vector types into mixed columns.");
             } catch (SQLException e) {
                 // Server should reject the type mismatch
-                assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
-                        "Expected a non-empty error message for type mismatch.");
+                assertTrue(e.getMessage() != null && e.getMessage()
+                                .contains("Conversion of vector from data type float16 to float32 is not allowed."));
             }
         }
 

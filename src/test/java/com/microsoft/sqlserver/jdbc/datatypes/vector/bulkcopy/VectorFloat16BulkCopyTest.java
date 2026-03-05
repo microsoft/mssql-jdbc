@@ -26,6 +26,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
@@ -53,7 +55,12 @@ import microsoft.sql.Vector.VectorDimensionType;
  * Test class for FLOAT16 vector bulk copy operations.
  *
  * This class extends {@link VectorBulkCopyTest} and provides FLOAT16-specific
- * configuration. All test methods are inherited from the abstract base class.
+ * configuration. All single-type FLOAT16 bulk copy tests are inherited from the
+ * abstract base class. In addition, the {@link MixedVectorTypeBulkCopyTest} nested
+ * class validates bulk copy scenarios involving tables with both FLOAT32 and FLOAT16
+ * vector columns, including table-to-table copy, ISQLServerBulkData,
+ * CSV file import, NULL handling, column mapping mismatches, dimension mismatches,
+ * different dimension counts, and explicit VECTOR(n, float32) syntax.
  *
  * SQL Syntax: VECTOR(n, float16) where n is the dimension count
  * Scale: 2 (FLOAT16)
@@ -133,19 +140,21 @@ public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
         private static final String MIXED_CSV_FILE = "BulkCopyCSVTestInputMixedVectorType.csv";
         private final String mixedUuid = UUID.randomUUID().toString().replaceAll("-", "");
 
-        @org.junit.jupiter.api.BeforeAll
+        // Setup before all tests in this nested class run.
+        @BeforeAll
         public void setupMixedBulkCopyTests() throws Exception {
             String connStr = connectionString + ";vectorTypeSupport=v2";
             mixedBcConnection = (SQLServerConnection) DriverManager.getConnection(connStr);
 
             byte negotiatedVersion = mixedBcConnection.getNegotiatedVectorVersion();
-            org.junit.jupiter.api.Assumptions.assumeTrue(negotiatedVersion >= 2,
+            Assumptions.assumeTrue(negotiatedVersion >= 2,
                     "Server negotiated vector version " + negotiatedVersion
                             + ", but mixed-type bulk copy tests require version 2. Skipping.");
 
             csvFilePath = TestUtils.getCurrentClassPath();
         }
 
+        // Cleanup after each test to ensure isolation between tests
         @AfterAll
         public void cleanupMixedBulkCopyTests() throws SQLException {
             if (mixedBcConnection != null && !mixedBcConnection.isClosed()) {
@@ -153,6 +162,7 @@ public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
             }
         }
 
+        // Helper method to create Float[] from float varargs for test data setup
         private Float[] data(float... values) {
             Float[] arr = new Float[values.length];
             for (int i = 0; i < values.length; i++) {
@@ -755,8 +765,8 @@ public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
                 }
             } catch (Exception e) {
                 // Server should reject the type mismatch
-                assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
-                        "Expected a non-empty error message for column mapping type mismatch.");
+                assertTrue(e.getMessage() != null && e.getMessage()
+                                .contains("Conversion of vector from data type float32 to float16 is not allowed."));
             } finally {
                 try (Connection conn = DriverManager.getConnection(getMixedConnectionString());
                         Statement stmt = conn.createStatement()) {
@@ -814,6 +824,7 @@ public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
                     fail("Expected dimension mismatch error for FLOAT16 column.");
                 }
             } catch (Exception e) {
+                assertNotNull(e.getMessage(), "Expected an exception message for dimension mismatch.");
                 assertTrue(e.getMessage().contains("The vector dimensions 3 and 5 do not match"),
                         "Expected dimension mismatch error, got: " + e.getMessage());
             } finally {
