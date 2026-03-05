@@ -2,6 +2,80 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
+
+## [13.3.2] Preview Release
+
+### Added
+
+- **Add VECTOR(FLOAT16) Subtype Support** [#2899](https://github.com/microsoft/mssql-jdbc/pull/2899)
+**What was added**: Introduced support for the VECTOR(FLOAT16) subtype, including feature negotiation and IEEE-754 compliant serialization/deserialization between Java Float[] and half-precision wire format.
+**Who benefits**: Applications building AI, embeddings, and vector search workloads that require reduced memory footprint and network payload.
+**Impact**: Enables efficient float16 vector storage and transmission while preserving backward compatibility and the existing Java programming model.
+
+- **Add prepareMethod=none Execution Path**[#2890](https://github.com/microsoft/mssql-jdbc/pull/2890)
+**What was added**: New prepareMethod=none option that forces literal parameter substitution with SQL batch execution, bypassing server-side prepared statement handles (sp_prepexec / sp_prepare).
+**Who benefits**: Applications preferring SQL Server–managed plan caching without driver-managed prepared handle reuse.
+**Impact**: Executes prepared statements as plain SQL batches, maintaining connection-level temp tables and providing a simplified alternative execution model while leaving the default behavior unchanged.
+
+- **Statement-Level Performance Logger Metrics**[#2885](https://github.com/microsoft/mssql-jdbc/pull/2885)
+**What was added**: Extended Performance Logger to capture detailed execution metrics for Statement and PreparedStatement (REQUEST_BUILD, FIRST_SERVER_RESPONSE, PREPARE, PREPEXEC, EXECUTE).
+**Who benefits**: Developers and performance engineers analyzing execution timing and driver behavior.
+**Impact**: Provides granular observability across all statement execution paths with minimal overhead.
+
+- **StateMachineTest Framework for JUnit 5**[#2887](https://github.com/microsoft/mssql-jdbc/pull/2887)
+**What was added**: Lightweight, seed-reproducible state-machine testing framework for randomized JDBC state exploration.
+**Who benefits**: Driver maintainers and CI stability efforts.
+**Impact**: Improves edge-case detection with reproducible failures without third-party dependencies.
+
+- **Add AI-Assisted Development Context Files**[#2882](https://github.com/microsoft/mssql-jdbc/pull/2882)
+**What was added**: ARCHITECTURE.md, GLOSSARY.md, and PATTERNS.md to guide AI-assisted development.
+**Who benefits**: Contributors using AI coding assistants.
+**Impact**: Improves code consistency and productivity by documenting architecture and established design patterns.
+
+- **Enhance Code Coverage (CallableStatement, DatabaseMetaData, PreparedStatement)**[#2875](https://github.com/microsoft/mssql-jdbc/pull/2875)
+**What was added**: Expanded unit and integration test coverage for key driver components including SQLServerCallableStatement, SQLServerDatabaseMetaData, and SQLServerPreparedStatement.
+**Who benefits**: Driver maintainers and users relying on stable metadata, statement execution, and callable behavior.
+**Impact**: Improves regression detection and long-term stability.
+
+- **New Bug Regression Tests in JUnit**[#2888](https://github.com/microsoft/mssql-jdbc/pull/2888)
+**What was added**: Migrated legacy FX regression tests (37 scenarios) covering statement execution, ResultSet behavior, batching, cursors, and transaction flows into JUnit with full behavioral parity.
+**Who benefits**: Contributors and CI validation pipelines.
+**Impact**: Achieves complete FX regression coverage with reproducible execution paths and improved long-term reliability.
+
+###Changed
+
+- **Remove ADAL Dependency – Migrate Windows AAD Integrated Auth to MSQA APIs**[#2864](https://github.com/microsoft/mssql-jdbc/pull/2864)
+**What was changed**: Replaced deprecated ADAL-based adalsql.dll flow with MSQA (mssql-auth.dll, MSAL C++).
+**Who benefits**: Users of Windows Active Directory Integrated Authentication.
+**Impact**: Fully removes legacy ADAL dependency, aligns with Microsoft deprecation guidance, and modernizes authentication architecture.
+
+- **Refactor DatabaseMetaData.getColumns() to use sp_columns_170 with fallback**[#2883](https://github.com/microsoft/mssql-jdbc/pull/2883)
+**What was changed**: getColumns() now prefers sp_columns_170 (SQL Server 2025) for accurate metadata on newer types such as VECTOR and enhanced JSON, with automatic fallback to sp_columns_100.
+**Who benefits**: Applications performing schema discovery against SQL Server 2025 and Azure environments.
+**Impact**: Ensures correct metadata for new engine features while preserving backward compatibility with older SQL Server versions.
+
+- **Version Bumps to Address CVEs in Transitive Dependencies**[#2894](https://github.com/microsoft/mssql-jdbc/pull/2894)
+**What was changed**: Upgraded azure-identity to 1.18.2 and msal4j to 1.23.1, which in turn update transitive dependencies including Netty (4.1.130.Final), Reactor Netty (1.2.13), and Nimbus JOSE JWT (10.0.1).
+**Who benefits**: Applications using Azure Active Directory authentication and Azure Identity–based connection flows.
+**Impact**: Resolves security vulnerabilities in transitive dependencies, including CVE-2025-67735, CVE-2025-53864, CVE-2025-58056, CVE-2025-58057, CVE-2025-55163, CVE-2025-24970, CVE-2025-22227, and CVE-2025-25193, with no breaking API changes.
+
+###Fixed
+
+- **Fix Cross-Database Stored Procedure Execution with Named Parameters**[#2895](https://github.com/microsoft/mssql-jdbc/pull/2895)
+**What was fixed**: Ensured sp_sproc_columns is fully qualified with database.sys to avoid context errors.
+**Who benefits**: Applications calling procedures across databases with named parameters.
+**Impact**: Resolves metadata lookup failures and eliminates schema name-squatting security risks.
+
+- **Exception Chaining for Nested Stored Procedure Errors**[#2886](https://github.com/microsoft/mssql-jdbc/pull/2886)
+**What was fixed**: Multiple nested RAISERROR calls now surface correctly via SQLException.getNextException.
+**Who benefits**: Applications invoking nested stored procedures.
+**Impact**: Aligns driver behavior with SQL Server semantics while preserving backward compatibility through lazy exception chaining.
+
+- **Remove Outdated Regex Delimiter Comment (Bulk CSV)**[#2880](https://github.com/microsoft/mssql-jdbc/pull/2880)
+**What was fixed**: Updated comment to clarify delimiters are treated as literal text in SQLServerBulkCSVFileRecord.
+**Who benefits**: Users of bulk CSV ingestion.
+**Impact**: Aligns documentation with actual driver behavior.
+
 ## [13.3.1] Preview Release
 
 ### Added
