@@ -64,8 +64,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     // uniqueidentifier https://msdn.microsoft.com/en-us/library/ms187942.aspx
     static final int UNIQUEIDENTIFIER_SIZE = 36;
 
-    // Stored procedure names for getting column metadata
-    private static final String SP_COLUMNS_170 = "sp_columns_170"; // SQL Server 2025 and later
+    // Stored procedure names for getting column metadata.
+    // sp_columns_170 is available on SQL Server 2025+ and returns vector and JSON type metadata;
+    // sp_columns_100 is the legacy procedure that does not support vector or JSON types.
+    // The choice between these is based on whether the vector feature was successfully
+    // negotiated during the TDS login handshake (see getServerSupportsVector()).
+    private static final String SP_COLUMNS_170 = "sp_columns_170";
     private static final String SP_COLUMNS_100 = "sp_columns_100";
 
     enum CallableHandles {
@@ -686,7 +690,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /**
      * getColumns() method to retrieve a description of table columns available in a catalog.
-     * This function try to use sp_columns_170 first, fall back to sp_columns_100 if needed.
+     * Uses sp_columns_170 when the vector feature has been negotiated on the connection,
+     * otherwise uses sp_columns_100.
      * 
      * @param catalog
      *        a catalog name; "" retrieves those without a catalog; null means that the catalog name should not be used to narrow
@@ -726,15 +731,26 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /**
      * Helper method to get columns for regular SQL Server (non-Azure DW).
-     * Tries sp_columns_170 first, falls back to sp_columns_100 if needed.
+     * Uses sp_columns_170 when the vector feature has been negotiated on the connection,
+     * otherwise uses sp_columns_100.
      */
     private java.sql.ResultSet getColumnsNonAzureDW(String catalog, String schema, String table, String col)
             throws SQLException {
 
         String originalCatalog = switchCatalogs(catalog);
 
-        String spColumnsProcName = SP_COLUMNS_170;
+        // Select the stored procedure based on whether the vector feature was negotiated.
+        // sp_columns_170 supports vector and JSON type metadata and is only available when the server
+        // acknowledged vector support during the TDS feature negotiation handshake.
+        String spColumnsProcName = connection.getServerSupportsVector() ? SP_COLUMNS_170 : SP_COLUMNS_100;
 
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.finer("getColumnsNonAzureDW: using " + spColumnsProcName
+                    + " (vectorSupport=" + connection.getServerSupportsVector() + ")");
+        }
+
+        // SQL template that captures stored procedure output into a temp table variable,
+        // then re-selects with JDBC-standard column aliases and ordering.
         String spColumnsSqlTemplate = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
             + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
             + "LENGTH INT, SCALE SMALLINT, RADIX SMALLINT, NULLABLE SMALLINT, REMARKS VARCHAR(254), COLUMN_DEF NVARCHAR(4000),"
@@ -768,36 +784,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
             setColumnsParameters(pstmt, table, schema, catalog, col);
 
-            try {
-                rs = (SQLServerResultSet) pstmt.executeQuery();
-                if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer("Successfully executed " + spColumnsProcName);
-                }
-            } catch (SQLException e) {
-                // If getColumns() fails with sp_columns_170, fall back to sp_columns_100
-
-                if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer(spColumnsProcName + " failed, falling back to sp_columns_100: " + e.getMessage());
-                }
-
-                // fallback to SP_COLUMNS_100
-                pstmt.close();
-                spColumnsProcName = SP_COLUMNS_100;
-
-                pstmt = (SQLServerPreparedStatement) this.connection
-                        .prepareStatement(String.format(spColumnsSqlTemplate, spColumnsProcName));
-                pstmt.closeOnCompletion();
-
-                setColumnsParameters(pstmt, table, schema, catalog, col);
-
-                rs = (SQLServerResultSet) pstmt.executeQuery();
-                if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer("Successfully executed " + spColumnsProcName);
-                }
+            rs = (SQLServerResultSet) pstmt.executeQuery();
+            if (loggerExternal.isLoggable(Level.FINER)) {
+                loggerExternal.finer("Successfully executed " + spColumnsProcName);
             }
 
             // Set filters on relevant columns
-            applyColumnsFilters(rs);     
+            applyColumnsFilters(rs);
 
         } catch (SQLException e) {
             if (null != pstmt) {
@@ -821,7 +814,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /**
      * Helper method to get columns for Azure DW.
-     * Tries sp_columns_170 first, falls back to sp_columns_100 if needed.
+     * Uses sp_columns_170 when the vector feature has been negotiated on the connection,
+     * otherwise uses sp_columns_100.
      */
     private java.sql.ResultSet getColumnsAzureDW(String catalog, String schema, String table, String col)
             throws SQLException {
@@ -923,7 +917,15 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             LOCK.unlock();
         }
 
-        String spColumnsProcName = SP_COLUMNS_170;
+        // Select the stored procedure based on whether the vector feature was negotiated.
+        // sp_columns_170 supports vector and json type metadata and is only available when the server
+        // acknowledged vector support during the TDS feature negotiation handshake.
+        String spColumnsProcName = connection.getServerSupportsVector() ? SP_COLUMNS_170 : SP_COLUMNS_100;
+
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.finer("getColumnsAzureDW: using " + spColumnsProcName
+                    + " (vectorSupport=" + connection.getServerSupportsVector() + ")");
+        }
 
         try (PreparedStatement storedProcPstmt = this.connection
                 .prepareStatement("EXEC " + spColumnsProcName + " ?,?,?,?,?,?;")) {
@@ -935,27 +937,6 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     loggerExternal.finer("Successfully executed " + spColumnsProcName);
                 }
                 return buildAzureDWResultSet(rs);
-            } 
-        } catch (SQLException primaryEx) {
-
-            // If sp_columns_170 fails on Azure DW, fallback to sp_columns_100
-            if (loggerExternal.isLoggable(Level.FINER)) {
-                loggerExternal.finer(spColumnsProcName + " failed on Azure DW, falling back to sp_columns_100: "
-                        + primaryEx.getMessage());
-            }
-
-            spColumnsProcName = SP_COLUMNS_100;
-            try (PreparedStatement storedProcPstmt = this.connection
-                    .prepareStatement("EXEC " + spColumnsProcName + " ?,?,?,?,?,?;")) {
-
-                setColumnsParameters(storedProcPstmt, table, schema, catalog, col);
-                
-                try (ResultSet rs = storedProcPstmt.executeQuery()) {
-                    if (loggerExternal.isLoggable(Level.FINER)) {
-                        loggerExternal.finer("Successfully executed " + spColumnsProcName);
-                    }
-                    return buildAzureDWResultSet(rs);
-                }
             }
         }
     }

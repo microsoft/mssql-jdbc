@@ -277,10 +277,14 @@ public class ParameterMetaDataTest extends AbstractTest {
      * 
      * It verifies that the JDBC driver correctly reports the SQL type code and type name for each column
      * through both ParameterMetaData (for INSERT statement parameters) and ResultSetMetaData (for SELECT
-     * query results). 
+     * query results).
      * 
      * Parameter type information is retrieved from the TDS stream, where SQL Server-specific
      * types (SSType) are mapped to microsoft.sql.Types constants in DataType.java.
+     * 
+     * Note: VECTOR and JSON types require the vector feature to be negotiated during the TDS login
+     * handshake. When negotiated, the driver uses sp_columns_170 which correctly reports these types;
+     * otherwise sp_columns_100 is used, which does not support them.
      * 
      * @throws SQLException if a database access error occurs
      */

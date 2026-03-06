@@ -1986,9 +1986,12 @@ public class DatabaseMetaDataTest extends AbstractTest {
      * Validates that JSON and VECTOR columns are present in {@code DatabaseMetaData.getColumns()}.
      * 
      * The {@code getColumns()} method internally calls the {@code sp_columns} system stored procedure
-     * to retrieve column metadata. JSON and VECTOR types are supported via {@code sp_columns_170},
-     * which is available in SQL Server 2025 and later. In earlier versions or unsupported environments,
-     * the driver falls back to {@code sp_columns_100}, which returns {@code null} for these types.
+     * to retrieve column metadata. The stored procedure version is selected based on whether the
+     * vector feature was successfully negotiated during the TDS login handshake:
+     * - {@code sp_columns_170}: used when the server supports vector types (SQL Server 2025+);
+     *   correctly reports JSON and VECTOR type metadata.
+     * - {@code sp_columns_100}: used when vector support was not negotiated; returns {@code null}
+     *   for JSON and VECTOR types.
      * 
      * Note: The {@code DATA_TYPE} value returned by the JDBC driver may differ from the SQL Server
      * native type code. To retrieve the actual SQL Server data type, access the {@code SQL_DATA_TYPE}
