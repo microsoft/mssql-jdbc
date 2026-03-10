@@ -404,7 +404,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_GenerateSignature", "Unable to generate signature using a specified Azure Key Vault Key URL."},
         {"R_SignedHashLengthError", "Signed hash length does not match the RSA key size."},
         {"R_InvalidSignatureComputed", "Invalid signature of the encrypted column encryption key computed."},
-        {"R_UnableLoadADALSqlDll", "Unable to load adalsql.dll. Error code: 0x{0}. For details, see: http://go.microsoft.com/fwlink/?LinkID=513072"},
+        {"R_UnableLoadMSSQLAuthDll", "Unable to load mssql-auth.dll. Error code: 0x{0}. For details, see: http://go.microsoft.com/fwlink/?LinkID=513072"},
         {"R_ADALAuthenticationMiddleErrorMessage", "Error code 0x{0}; state {1}."},
         {"R_unsupportedDataTypeTVP", "Data type {0} not supported in Table-Valued Parameter."},
         {"R_moreDataInRowThanColumnInTVP", "Input array is longer than the number of columns in this table."},
@@ -575,6 +575,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_vectorByteArrayLength", "Vector byte array length must be at least 8 bytes."},
         {"R_invalidVectorData", "The provided type of data is not supported for vector."},
         {"R_vectorByteArrayMultipleOfBytesPerDimension", "Byte array length must be a multiple of {0} for vector of type {1}."},
+        {"R_vectorNotSupported", "Vector type is not supported by the server. Enable vector support by setting the vectorTypeSupport connection property."},
+        {"R_float16VectorNotSupported", "FLOAT16 vector type is not supported by the server. The server only supports FLOAT32 vectors (vector version 1)."},
         {"R_severeError", "A severe error occurred on the current command.  The results, if any, should be discarded."},
            
     };

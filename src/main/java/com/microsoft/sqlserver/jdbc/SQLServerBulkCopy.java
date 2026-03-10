@@ -1103,6 +1103,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 break;
 
             case microsoft.sql.Types.VECTOR: // 0xF5
+                // Version 0: server does not support vector at all
+                if (connection.getNegotiatedVectorVersion() <= 0) {
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_vectorNotSupported"), null, 0, null);
+                }
+                // Version 1: only FLOAT32 is supported; reject FLOAT16
+                if (srcScale == 2 && connection.getNegotiatedVectorVersion() == 1) {
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_float16VectorNotSupported"), null, 0, null);
+                }
                 tdsWriter.writeByte(TDSType.VECTOR.byteValue());
                 tdsWriter.writeShort((short) (VectorUtils.getVectorLength(srcScale, srcPrecision))); //length
                 byte srcByte = (byte) (VectorUtils.getScaleByte(srcScale));
@@ -1457,6 +1467,20 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return SSType.VARBINARY.toString() + "(" + bulkPrecision + ")";
 
             case microsoft.sql.Types.VECTOR:
+                // bulkScale is bytes-per-dimension: 4 for FLOAT32, 2 for FLOAT16
+                // Version 0: server does not support vector at all
+                if (connection.getNegotiatedVectorVersion() <= 0) {
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_vectorNotSupported"), null, 0, null);
+                }
+                // Version 1: only FLOAT32 is supported; reject FLOAT16
+                if (bulkScale == 2 && connection.getNegotiatedVectorVersion() == 1) {
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_float16VectorNotSupported"), null, 0, null);
+                }
+                if (bulkScale == 2) {
+                    return SSType.VECTOR.toString() + "(" + bulkPrecision + ", FLOAT16)";
+                }
                 return SSType.VECTOR.toString() + "(" + bulkPrecision + ")";
             case microsoft.sql.Types.DATETIME:
             case microsoft.sql.Types.SMALLDATETIME:
