@@ -295,6 +295,188 @@ public class VectorFloat16Test extends VectorTest {
     }
 
     // ============================================================================
+    // Cross-Type Conversion Failure Tests (FLOAT32 <-> FLOAT16)
+    // ============================================================================
+
+    /**
+     * Tests that INSERT INTO a FLOAT32 table by SELECTing from a FLOAT16 table
+     * is rejected by the server with a conversion error.
+     *
+     * SQL Server does not allow implicit conversion between vector subtypes:
+     * "Conversion of vector from data type float16 to float32 is not allowed."
+     */
+    @Test
+    public void testInsertFloat32FromFloat16TableFails() throws SQLException {
+        String f16Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F16_CrossType_" + uuid.substring(0, 8)));
+        String f32Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F32_CrossType_" + uuid.substring(0, 8)));
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + f16Table + " (f16_col VECTOR(3, float16))");
+            stmt.executeUpdate("CREATE TABLE " + f32Table + " (f32_col VECTOR(3))");
+
+            // Seed the FLOAT16 table
+            stmt.executeUpdate("INSERT INTO " + f16Table + " (f16_col) VALUES ('[0.3, 0.2, 0.1]')");
+
+            // Attempt cross-type insert: FLOAT16 -> FLOAT32 should fail
+            try {
+                stmt.executeUpdate("INSERT INTO " + f32Table + " (f32_col) SELECT f16_col FROM " + f16Table);
+                fail("Expected SQLException for cross-type vector conversion (float16 -> float32).");
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("Conversion of vector from data type float16 to float32 is not allowed."),
+                        "Expected vector conversion error, but got: " + e.getMessage());
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(f32Table, stmt);
+                TestUtils.dropTableIfExists(f16Table, stmt);
+            }
+        }
+    }
+
+    /**
+     * Tests that INSERT INTO a FLOAT16 table by SELECTing from a FLOAT32 table
+     * is rejected by the server with a conversion error.
+     *
+     * SQL Server does not allow implicit conversion between vector subtypes:
+     * "Conversion of vector from data type float32 to float16 is not allowed."
+     */
+    @Test
+    public void testInsertFloat16FromFloat32TableFails() throws SQLException {
+        String f16Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F16_CrossType2_" + uuid.substring(0, 8)));
+        String f32Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F32_CrossType2_" + uuid.substring(0, 8)));
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + f16Table + " (f16_col VECTOR(3, float16))");
+            stmt.executeUpdate("CREATE TABLE " + f32Table + " (f32_col VECTOR(3))");
+
+            // Seed the FLOAT32 table
+            stmt.executeUpdate("INSERT INTO " + f32Table + " (f32_col) VALUES ('[0.3, 0.2, 0.1]')");
+
+            // Attempt cross-type insert: FLOAT32 -> FLOAT16 should fail
+            try {
+                stmt.executeUpdate("INSERT INTO " + f16Table + " (f16_col) SELECT f32_col FROM " + f32Table);
+                fail("Expected SQLException for cross-type vector conversion (float32 -> float16).");
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("Conversion of vector from data type float32 to float16 is not allowed."),
+                        "Expected vector conversion error, but got: " + e.getMessage());
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(f32Table, stmt);
+                TestUtils.dropTableIfExists(f16Table, stmt);
+            }
+        }
+    }
+
+    /**
+     * Tests that reading a Vector object from a FLOAT32 column and using that
+     * object as-is via setObject to insert into a FLOAT16 column is rejected
+     * by the server with a conversion error.
+     *
+     * The driver faithfully sends the FLOAT32 Vector (scale=4) to the server,
+     * which rejects the type mismatch:
+     * "Conversion of vector from data type float32 to float16 is not allowed."
+     */
+    @Test
+    public void testSetObjectFloat32VectorIntoFloat16ColumnFails() throws SQLException {
+        String f32Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F32_SetObj_" + uuid.substring(0, 8)));
+        String f16Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F16_SetObj_" + uuid.substring(0, 8)));
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + f32Table + " (id INT PRIMARY KEY, v VECTOR(3))");
+            stmt.executeUpdate("CREATE TABLE " + f16Table + " (id INT PRIMARY KEY, v VECTOR(3, float16))");
+
+            // Seed a FLOAT32 row
+            stmt.executeUpdate("INSERT INTO " + f32Table + " (id, v) VALUES (1, '[1.0, 2.0, 3.0]')");
+
+            // Read the Vector object from the FLOAT32 column
+            Vector float32Vector;
+            try (ResultSet rs = stmt.executeQuery("SELECT v FROM " + f32Table + " WHERE id = 1")) {
+                assertTrue(rs.next(), "No result found in FLOAT32 table.");
+                float32Vector = rs.getObject("v", Vector.class);
+                assertNotNull(float32Vector, "Retrieved FLOAT32 vector is null.");
+                assertEquals(VectorDimensionType.FLOAT32, float32Vector.getVectorDimensionType(),
+                        "Expected FLOAT32 vector type.");
+            }
+
+            // Use the FLOAT32 Vector object as-is to insert into the FLOAT16 column
+            String insertSql = "INSERT INTO " + f16Table + " (id, v) VALUES (?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, float32Vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+                fail("Expected SQLException when inserting FLOAT32 Vector object into FLOAT16 column.");
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("Conversion of vector from data type float32 to float16 is not allowed."),
+                        "Expected vector conversion error, but got: " + e.getMessage());
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(f16Table, stmt);
+                TestUtils.dropTableIfExists(f32Table, stmt);
+            }
+        }
+    }
+
+    /**
+     * Tests that reading a Vector object from a FLOAT16 column and using that
+     * object as-is via setObject to insert into a FLOAT32 column is rejected
+     * by the server with a conversion error.
+     *
+     * The driver faithfully sends the FLOAT16 Vector (scale=2) to the server,
+     * which rejects the type mismatch:
+     * "Conversion of vector from data type float16 to float32 is not allowed."
+     */
+    @Test
+    public void testSetObjectFloat16VectorIntoFloat32ColumnFails() throws SQLException {
+        String f16Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F16_SetObj2_" + uuid.substring(0, 8)));
+        String f32Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F32_SetObj2_" + uuid.substring(0, 8)));
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + f16Table + " (id INT PRIMARY KEY, v VECTOR(3, float16))");
+            stmt.executeUpdate("CREATE TABLE " + f32Table + " (id INT PRIMARY KEY, v VECTOR(3))");
+
+            // Seed a FLOAT16 row
+            stmt.executeUpdate("INSERT INTO " + f16Table + " (id, v) VALUES (1, '[1.0, 2.0, 3.0]')");
+
+            // Read the Vector object from the FLOAT16 column
+            Vector float16Vector;
+            try (ResultSet rs = stmt.executeQuery("SELECT v FROM " + f16Table + " WHERE id = 1")) {
+                assertTrue(rs.next(), "No result found in FLOAT16 table.");
+                float16Vector = rs.getObject("v", Vector.class);
+                assertNotNull(float16Vector, "Retrieved FLOAT16 vector is null.");
+                assertEquals(VectorDimensionType.FLOAT16, float16Vector.getVectorDimensionType(),
+                        "Expected FLOAT16 vector type.");
+            }
+
+            // Use the FLOAT16 Vector object as-is to insert into the FLOAT32 column
+            String insertSql = "INSERT INTO " + f32Table + " (id, v) VALUES (?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertSql)) {
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, float16Vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+                fail("Expected SQLException when inserting FLOAT16 Vector object into FLOAT32 column.");
+            } catch (SQLException e) {
+                assertTrue(e.getMessage().contains("Conversion of vector from data type float16 to float32 is not allowed."),
+                        "Expected vector conversion error, but got: " + e.getMessage());
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(f32Table, stmt);
+                TestUtils.dropTableIfExists(f16Table, stmt);
+            }
+        }
+    }
+
+    // ============================================================================
     // Mixed Vector Type Tests (FLOAT32 + FLOAT16 in same table)
     // ============================================================================
 

@@ -998,6 +998,100 @@ public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
         }
 
         // ================================================================
+        // Cross-Type Bulk Copy Failure Tests
+        // ================================================================
+
+        /**
+         * Tests that bulk copying from a FLOAT16 source table to a FLOAT32
+         * destination table is rejected by the server with a conversion error.
+         *
+         * SQL Server does not allow implicit conversion between vector subtypes:
+         * "Conversion of vector from data type float16 to float32 is not allowed."
+         */
+        @Test
+        public void testBulkCopyFloat16ToFloat32TableFails() throws SQLException {
+            String srcTable = TestUtils.escapeSingleQuotes(
+                    AbstractSQLGenerator.escapeIdentifier(
+                            RandomUtil.getIdentifier("srcF16ToF32_" + mixedUuid.substring(0, 8))));
+            String dstTable = TestUtils.escapeSingleQuotes(
+                    AbstractSQLGenerator.escapeIdentifier(
+                            RandomUtil.getIdentifier("dstF16ToF32_" + mixedUuid.substring(0, 8))));
+
+            try (Connection conn = DriverManager.getConnection(getMixedConnectionString());
+                    Statement stmt = conn.createStatement()) {
+
+                stmt.executeUpdate("CREATE TABLE " + srcTable + " (v VECTOR(3, float16))");
+                stmt.executeUpdate("CREATE TABLE " + dstTable + " (v VECTOR(3))");
+
+                // Seed the FLOAT16 source table
+                stmt.executeUpdate("INSERT INTO " + srcTable + " (v) VALUES ('[0.3, 0.2, 0.1]')");
+
+                // Bulk copy: FLOAT16 -> FLOAT32 should fail
+                try (ResultSet resultSet = stmt.executeQuery("SELECT * FROM " + srcTable);
+                        SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+                    bulkCopy.setDestinationTableName(dstTable);
+                    bulkCopy.writeToServer(resultSet);
+                    fail("Expected SQLException for cross-type bulk copy (float16 -> float32).");
+                }
+            } catch (Exception e) {
+                assertTrue(e.getMessage() != null
+                                && e.getMessage().contains("Conversion of vector from data type float16 to float32 is not allowed."),
+                        "Expected vector conversion error, but got: " + e.getMessage());
+            } finally {
+                try (Connection conn = DriverManager.getConnection(getMixedConnectionString());
+                        Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(srcTable, stmt);
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+
+        /**
+         * Tests that bulk copying from a FLOAT32 source table to a FLOAT16
+         * destination table is rejected by the server with a conversion error.
+         *
+         * SQL Server does not allow implicit conversion between vector subtypes:
+         * "Conversion of vector from data type float32 to float16 is not allowed."
+         */
+        @Test
+        public void testBulkCopyFloat32ToFloat16TableFails() throws SQLException {
+            String srcTable = TestUtils.escapeSingleQuotes(
+                    AbstractSQLGenerator.escapeIdentifier(
+                            RandomUtil.getIdentifier("srcF32ToF16_" + mixedUuid.substring(0, 8))));
+            String dstTable = TestUtils.escapeSingleQuotes(
+                    AbstractSQLGenerator.escapeIdentifier(
+                            RandomUtil.getIdentifier("dstF32ToF16_" + mixedUuid.substring(0, 8))));
+
+            try (Connection conn = DriverManager.getConnection(getMixedConnectionString());
+                    Statement stmt = conn.createStatement()) {
+
+                stmt.executeUpdate("CREATE TABLE " + srcTable + " (v VECTOR(3))");
+                stmt.executeUpdate("CREATE TABLE " + dstTable + " (v VECTOR(3, float16))");
+
+                // Seed the FLOAT32 source table
+                stmt.executeUpdate("INSERT INTO " + srcTable + " (v) VALUES ('[0.3, 0.2, 0.1]')");
+
+                // Bulk copy: FLOAT32 -> FLOAT16 should fail
+                try (ResultSet resultSet = stmt.executeQuery("SELECT * FROM " + srcTable);
+                        SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+                    bulkCopy.setDestinationTableName(dstTable);
+                    bulkCopy.writeToServer(resultSet);
+                    fail("Expected SQLException for cross-type bulk copy (float32 -> float16).");
+                }
+            } catch (Exception e) {
+                assertTrue(e.getMessage() != null
+                                && e.getMessage().contains("Conversion of vector from data type float32 to float16 is not allowed."),
+                        "Expected vector conversion error, but got: " + e.getMessage());
+            } finally {
+                try (Connection conn = DriverManager.getConnection(getMixedConnectionString());
+                        Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(srcTable, stmt);
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+
+        // ================================================================
         // Inner Helper Classes for Mixed Bulk Data
         // ================================================================
 
