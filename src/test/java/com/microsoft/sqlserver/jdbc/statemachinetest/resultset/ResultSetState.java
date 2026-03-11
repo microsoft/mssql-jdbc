@@ -18,14 +18,17 @@ import com.microsoft.sqlserver.jdbc.statemachinetest.core.StateKey;
  */
 public enum ResultSetState implements StateKey {
 
-    /** The JDBC ResultSet object. */
     RS("rs"),
-
-    /** ResultSet closed status (boolean). True = ResultSet is closed. */
     CLOSED("closed"),
-
-    /** Whether cursor is on a valid row (boolean). True = on valid row. */
-    ON_VALID_ROW("onValidRow");
+    ON_VALID_ROW("onValidRow"),
+    STMT("stmt"),
+    CONN("conn"),
+    ON_INSERT_ROW("onInsertRow"),
+    ROW_DELETED("rowDeleted"),
+    ROW_COUNT("rowCount"),
+    TABLE_NAME("tableName"),
+    IS_UPDATABLE("isUpdatable"),
+    IS_SCROLLABLE("isScrollable");
 
     private final String key;
 
