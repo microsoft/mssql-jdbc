@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [13.4.0] Stable Release
+
+### Added
+
+- **Add Test Coverage for Mixed-Type Vector Columns (FLOAT32 and FLOAT16)** [2907](https://github.com/microsoft/mssql-jdbc/pull/2907)
+**What was added**: Expanded the vector test suite to validate scenarios where VECTOR(FLOAT32) and VECTOR(FLOAT16) columns coexist in the same schema, including coverage for JDBC operations and bulk copy workflows.
+**Who benefits**: Developers building vector-based workloads that mix float32 and float16 vector columns within the same database schema.
+**Impact**: Ensures reliable driver behavior and compatibility for mixed vector types across CRUD operations, bulk copy, metadata, and advanced database objects such as stored procedures and TVPs.
+
 ## [13.3.2] Preview Release
 
 ### Added
