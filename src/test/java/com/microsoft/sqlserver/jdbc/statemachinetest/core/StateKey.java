@@ -7,28 +7,14 @@ package com.microsoft.sqlserver.jdbc.statemachinetest.core;
 
 
 /**
- * Interface for state keys used in StateMachineTest.
- * 
- * Implement this interface as an enum to define domain-specific state keys
- * with compile-time safety and easy visualization of all states.
- * 
- * Example:
- * <pre>
- * public enum MyState implements StateKey {
- *     CONNECTION("conn"),
- *     IS_OPEN("isOpen");
- *     
- *     private final String key;
- *     MyState(String key) { this.key = key; }
- *     public String key() { return key; }
- * }
- * </pre>
+ * Type-safe key for state variables. Typically implemented either as an enum per domain
+ * or as lambda/constant instances of this functional interface.
+ * State is stored in {@link DataCache} row 0 and accessed via
+ * {@link Action#setState}, {@link Action#getState}, {@link Action#isState},
+ * {@link Action#getStateInt}.
  */
 public interface StateKey {
     
-    /**
-     * Returns the string key used for state storage.
-     * This allows enums to define their own key names.
-     */
+    /** Returns the string key used for state storage. */
     String key();
 }
