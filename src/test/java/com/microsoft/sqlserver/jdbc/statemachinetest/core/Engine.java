@@ -11,16 +11,9 @@ import java.util.Random;
 
 
 /**
- * Engine that executes state machine exploration.
- * 
- * The engine randomly selects and executes valid actions until:
- * - Maximum action count is reached (configurable)
- * - Timeout occurs (configurable)
- * - No valid actions remain
- * - An error occurs
- * 
- * Uses weighted random selection to simulate realistic usage patterns.
- * Seed-based randomness ensures reproducibility for debugging.
+ * Execution engine for state machine exploration.
+ * Performs weighted random action selection with seed-based reproducibility.
+ * Stops when max actions, timeout, no valid actions, or an error occurs.
  */
 public class Engine {
     private StateMachineTest sm;
@@ -37,16 +30,13 @@ public class Engine {
         return new Engine(sm);
     }
 
-    /** Sets the random seed for reproducibility. Use same seed to reproduce a test run. */
+    /** Sets the random seed for reproducibility. */
     public Engine withSeed(long s) {
         seed = s;
         return this;
     }
 
-    /**
-     * Sets maximum number of actions to execute. Default is 500. Must be at least
-     * 1.
-     */
+    /** Sets maximum actions to execute. Default 500. */
     public Engine withMaxActions(int n) {
         if (n < 1) {
             throw new IllegalArgumentException("maxActions must be at least 1, got: " + n);
@@ -55,7 +45,7 @@ public class Engine {
         return this;
     }
 
-    /** Sets timeout in seconds. Default is 30. Must be at least 1. */
+    /** Sets timeout in seconds. Default 30. */
     public Engine withTimeout(int s) {
         if (s < 1) {
             throw new IllegalArgumentException("timeout must be at least 1 second, got: " + s);
@@ -72,7 +62,7 @@ public class Engine {
         long start = System.currentTimeMillis();
         long end = start + timeout * 1000L;
         List<String> log = new ArrayList<>();
-        Exception error = null;
+        Throwable error = null;
         int count = 0;
 
         System.out.println(sm.getName() + " | Seed:" + seed + " | Max:" + maxActions + " | Timeout:" + timeout + "s");
@@ -109,11 +99,12 @@ public class Engine {
                 }
 
                 count++;
-                selected.run();
+                selected.execute();  // Framework calls execute() which runs then validates
                 log.add(selected.name);
-                System.out.println(String.format("[%3d] %-20s | %s", count, selected.name, sm.getState()));
+                System.out
+                        .println(String.format("[%3d] %-20s | %s", count, selected.name, sm.getDataCache().getRow(0)));
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             error = e;
             String msg = e.getMessage() != null ? e.getMessage() : "(no message)";
             System.out.println("ERROR: " + e.getClass().getSimpleName() + ": " + msg);
