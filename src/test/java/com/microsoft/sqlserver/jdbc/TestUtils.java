@@ -188,6 +188,23 @@ public final class TestUtils {
     private TestUtils() {}
 
     /**
+     * Checks if access token authentication (via AzureCliCredential) should be used.
+     * This is true when accessTokenCallbackClass is set in the connection string,
+     * or when USE_ACCESS_TOKEN environment variable is set to "true".
+     * 
+     * When this returns true, tests should use AzureCliCredential (via ChainedTokenCredential)
+     * instead of ManagedIdentityCredential for Azure authentication.
+     * 
+     * @param connectionString the connection string to check
+     * @return true if access token authentication should be used
+     */
+    public static boolean useAccessTokenAuth(String connectionString) {
+        String useAccessTokenEnv = System.getenv("USE_ACCESS_TOKEN");
+        return (connectionString != null && connectionString.contains("accessTokenCallbackClass="))
+                || "true".equalsIgnoreCase(useAccessTokenEnv);
+    }
+
+    /**
      * Checks if the connection session recovery object has negotiated reflection.
      * 
      * @param con
@@ -1056,7 +1073,18 @@ public final class TestUtils {
      * @return The updated connection string
      */
     public static String addOrOverrideProperty(String connectionString, String property, String value) {
-        return connectionString + ";" + property + "=" + value + ";";
+        // Check if property already exists - if so, remove it first
+        if (getProperty(connectionString, property) != null) {
+            connectionString = removeProperty(connectionString, property);
+        }
+        // Ensure connection string doesn't end with multiple semicolons
+        while (connectionString.endsWith(";;")) {
+            connectionString = connectionString.substring(0, connectionString.length() - 1);
+        }
+        if (!connectionString.endsWith(";")) {
+            connectionString = connectionString + ";";
+        }
+        return connectionString + property + "=" + value + ";";
     }
 
     /**
@@ -1069,7 +1097,27 @@ public final class TestUtils {
      * @return The updated connection string
      */
     public static String removeProperty(String connectionString, String property) {
-        int start = connectionString.toLowerCase().indexOf(property.toLowerCase());
+        // Need to match property name followed by = to avoid partial matches
+        // e.g., "database=" should not match "msjdbctest.database.windows.net"
+        String lowerConn = connectionString.toLowerCase();
+        String lowerProp = property.toLowerCase() + "=";
+        
+        int start = -1;
+        int searchFrom = 0;
+        
+        // Find the property that appears after a semicolon or at the start
+        while ((start = lowerConn.indexOf(lowerProp, searchFrom)) != -1) {
+            // Check if this is a standalone property (at start or after semicolon)
+            if (start == 0 || connectionString.charAt(start - 1) == ';') {
+                break;
+            }
+            searchFrom = start + 1;
+        }
+        
+        if (start == -1) {
+            return connectionString; // Property not found
+        }
+        
         int end = connectionString.indexOf(";", start);
         String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
         return connectionString.replace(propertyStr, "");
@@ -1085,10 +1133,26 @@ public final class TestUtils {
      * @return The the value of the connection property or null if not found
      */
     public static String getProperty(String connectionString, String property) {
-        int start = connectionString.indexOf(property);
-        if (-1 == start) {
+        // Need to match property name followed by = to avoid partial matches
+        String lowerConn = connectionString.toLowerCase();
+        String lowerProp = property.toLowerCase() + "=";
+        
+        int start = -1;
+        int searchFrom = 0;
+        
+        // Find the property that appears after a semicolon or at the start
+        while ((start = lowerConn.indexOf(lowerProp, searchFrom)) != -1) {
+            // Check if this is a standalone property (at start or after semicolon)
+            if (start == 0 || connectionString.charAt(start - 1) == ';') {
+                break;
+            }
+            searchFrom = start + 1;
+        }
+        
+        if (start == -1) {
             return null;
         }
+        
         start = connectionString.indexOf("=", start) + 1;
         int end = connectionString.indexOf(";", start);
         return connectionString.substring(start, -1 != end ? end : connectionString.length());

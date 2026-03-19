@@ -583,6 +583,10 @@ public class FedauthTest extends FedauthCommon {
 
     @AfterAll
     public static void terminate() throws SQLException {
+        // Skip cleanup if test was skipped and connection string was never set
+        if (null == adPasswordConnectionStr) {
+            return;
+        }
         try (Connection conn = DriverManager.getConnection(adPasswordConnectionStr);
                 Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(charTable, stmt);
