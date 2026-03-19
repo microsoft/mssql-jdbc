@@ -1561,4 +1561,19 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * 
      */
     void setConcatNullYieldsNull(String concatNullYieldsNull);
+
+    /**
+     * Sets the transaction isolation level for the connection.
+     * 
+     * @param level
+     *        An int that contains the transaction isolation level.
+     */
+    void setTransactionIsolation(int level);
+
+    /**
+     * Returns the transaction isolation level.
+     * 
+     * @return transactionIsolation An int that contains the transaction isolation level.
+     */
+    int getTransactionIsolation();
 }
