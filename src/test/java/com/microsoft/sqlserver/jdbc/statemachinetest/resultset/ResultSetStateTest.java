@@ -54,7 +54,6 @@ public class ResultSetStateTest extends AbstractTest {
 
     private static final String TABLE_NAME = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SM_ResultSet_Test"));
 
-    // State definitions
     private static final StateKey RS = () -> "rs";
     private static final StateKey CLOSED = () -> "closed";
     private static final StateKey ON_VALID_ROW = () -> "onValidRow";
@@ -459,8 +458,6 @@ public class ResultSetStateTest extends AbstractTest {
         createTestTable(conn, tableName, 10);
     }
 
-    // ==================== Additional Actions for Model Runs ====================
-
     /** Move cursor by relative offset. */
     private static class RelativeAction extends Action {
 
@@ -802,8 +799,6 @@ public class ResultSetStateTest extends AbstractTest {
             System.out.println("isAfterLast() -> " + result);
         }
     }
-
-    // ==================== TestModelRun — Randomized Model Tests ====================
 
     @Tag(Constants.legacyFx)
     @Nested
