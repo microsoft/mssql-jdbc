@@ -25,7 +25,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         if parameterIndex does not correspond to a parameter marker in the SQL statement; if a database access
      *         error occurs or this method is called on a closed <code>PreparedStatement</code>
-     * @deprecated Use {@link #setDateTimeOffset(int, java.time.OffsetDateTime)} instead.
+     * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime)} instead.
      */
     @Deprecated(since = "13.4.1")
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x) throws SQLServerException;
@@ -43,7 +43,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *         if parameterIndex does not correspond to a parameter marker in the SQL statement; if a database access
      *         error occurs or this method is called on a closed <code>PreparedStatement</code>
      */
-    void setDateTimeOffset(int parameterIndex, java.time.OffsetDateTime x) throws SQLServerException;
+    void setOffsetDateTime(int parameterIndex, java.time.OffsetDateTime x) throws SQLServerException;
 
     /**
      * Sets the value of the designated parameter with the given object.
@@ -580,7 +580,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *        the scale of the column
      * @throws SQLServerException
      *         when an error occurs
-     * @deprecated Use {@link #setDateTimeOffset(int, java.time.OffsetDateTime, int)} instead.
+     * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime, int)} instead.
      */
     @Deprecated(since = "13.4.1")
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException;
@@ -600,7 +600,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *        forceEncrypt is set to false, the driver will not force encryption on parameters.
      * @throws SQLServerException
      *         when an error occurs
-     * @deprecated Use {@link #setDateTimeOffset(int, java.time.OffsetDateTime, int, boolean)} instead.
+     * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime, int, boolean)} instead.
      */
     @Deprecated(since = "13.4.1")
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x, int scale,
@@ -618,7 +618,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    void setDateTimeOffset(int parameterIndex, java.time.OffsetDateTime x, int scale) throws SQLServerException;
+    void setOffsetDateTime(int parameterIndex, java.time.OffsetDateTime x, int scale) throws SQLServerException;
 
     /**
      * Sets the designated parameter to the given {@link java.time.OffsetDateTime} value.
@@ -636,7 +636,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         when an error occurs
      */
-    void setDateTimeOffset(int parameterIndex, java.time.OffsetDateTime x, int scale,
+    void setOffsetDateTime(int parameterIndex, java.time.OffsetDateTime x, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
