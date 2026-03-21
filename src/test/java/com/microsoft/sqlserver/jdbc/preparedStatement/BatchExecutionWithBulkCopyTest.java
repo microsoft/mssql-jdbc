@@ -1017,7 +1017,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setObject(3, dateTime2Val); // DATETIME2
             pstmt.setDate(4, dateVal); // DATE
             pstmt.setObject(5, timeVal); // TIME
-            pstmt.setDateTimeOffset(6, dateTimeOffsetVal); // DATETIMEOFFSET
+            pstmt.setOffsetDateTime(6, offsetDateTimeVal); // DATETIMEOFFSET
             pstmt.setMoney(7, moneyVal); // MONEY
             pstmt.setSmallMoney(8, smallMoneyVal); // SMALLMONEY
 
@@ -1087,7 +1087,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setObject(3, null); // DATETIME2
             pstmt.setDate(4, null); // DATE
             pstmt.setObject(5, null); // TIME
-            pstmt.setDateTimeOffset(6, null); // DATETIMEOFFSET
+            pstmt.setOffsetDateTime(6, null); // DATETIMEOFFSET
             pstmt.setMoney(7, null); // MONEY
             pstmt.setSmallMoney(8, null); // SMALLMONEY
 
@@ -1170,7 +1170,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setObject(3, dateTime2Val); // DATETIME2
             pstmt.setDate(4, dateVal); // DATE
             pstmt.setTimestamp(5, timeVal); // TIME
-            pstmt.setDateTimeOffset(6, dateTimeOffsetVal); // DATETIMEOFFSET
+            pstmt.setOffsetDateTime(6, offsetDateTimeVal); // DATETIMEOFFSET
             pstmt.setMoney(7, moneyVal); // MONEY
             pstmt.setSmallMoney(8, smallMoneyVal); // SMALLMONEY
 
@@ -1240,7 +1240,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setObject(3, null); // DATETIME2
             pstmt.setDate(4, null); // DATE
             pstmt.setObject(5, null); // TIME
-            pstmt.setDateTimeOffset(6, null); // DATETIMEOFFSET
+            pstmt.setOffsetDateTime(6, null); // DATETIMEOFFSET
             pstmt.setMoney(7, null); // MONEY
             pstmt.setSmallMoney(8, null); // SMALLMONEY
 

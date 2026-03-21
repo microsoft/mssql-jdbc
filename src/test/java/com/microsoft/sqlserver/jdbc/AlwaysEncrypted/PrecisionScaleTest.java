@@ -558,12 +558,12 @@ public class PrecisionScaleTest extends AESetup {
 
         // datetimeoffset scale
         for (int i = 7; i <= 9; i++) {
-            pstmt.setDateTimeOffset(i, null, scale);
+            pstmt.setOffsetDateTime(i, null, scale);
         }
 
         // datetimeoffset default
         for (int i = 10; i <= 12; i++) {
-            pstmt.setDateTimeOffset(i, null);
+            pstmt.setOffsetDateTime(i, null);
         }
 
         // time scale

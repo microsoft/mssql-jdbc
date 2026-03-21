@@ -205,9 +205,9 @@ public class SetObjectTest extends AbstractTest {
                         pstmt.setObject(2, dateTimeOffset);
                         pstmt.executeUpdate();
 
-                        // Set DateTimeOffset
+                        // Set OffsetDateTime
                         pstmt.setInt(1, 4);
-                        pstmt.setDateTimeOffset(2, dateTimeOffset);
+                        pstmt.setOffsetDateTime(2, offsetDateTime);
                         pstmt.executeUpdate();
 
                         // Set String
