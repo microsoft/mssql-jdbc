@@ -792,19 +792,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 }
             }
         } else if (type == java.time.OffsetDateTime.class) {
-            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(index);
-            if (dateTimeOffset == null) {
-                returnValue = null;
-            } else {
-                returnValue = dateTimeOffset.getOffsetDateTime();
-            }
+            returnValue = getOffsetDateTime(index);
         } else if (type == java.time.OffsetTime.class) {
-            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(index);
-            if (dateTimeOffset == null) {
-                returnValue = null;
-            } else {
-                returnValue = dateTimeOffset.getOffsetDateTime().toOffsetTime();
-            }
+            java.time.OffsetDateTime odt = getOffsetDateTime(index);
+            returnValue = (odt == null) ? null : odt.toOffsetTime();
         } else if (type == microsoft.sql.DateTimeOffset.class) {
             returnValue = getDateTimeOffset(index);
         } else if (type == UUID.class) {
@@ -1056,6 +1047,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return value;
     }
 
+    /**
+     * @deprecated Use {@link #getOffsetDateTime(int)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public microsoft.sql.DateTimeOffset getDateTimeOffset(int index) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -1072,6 +1067,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         return value;
     }
 
+    /**
+     * @deprecated Use {@link #getOffsetDateTime(String)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", parameterName);
@@ -1085,6 +1084,27 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         microsoft.sql.DateTimeOffset value = (microsoft.sql.DateTimeOffset) getValue(findColumn(parameterName),
                 JDBCType.DATETIMEOFFSET);
         loggerExternal.exiting(getClassNameLogging(), "getDateTimeOffset", value);
+        return value;
+    }
+
+    @Override
+    public java.time.OffsetDateTime getOffsetDateTime(int index) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getOffsetDateTime", index);
+        @SuppressWarnings("deprecation")
+        microsoft.sql.DateTimeOffset dto = getDateTimeOffset(index);
+        java.time.OffsetDateTime value = (dto == null) ? null : dto.getOffsetDateTime();
+        loggerExternal.exiting(getClassNameLogging(), "getOffsetDateTime", value);
+        return value;
+    }
+
+    @Override
+    public java.time.OffsetDateTime getOffsetDateTime(String parameterName) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getOffsetDateTime", parameterName);
+        @SuppressWarnings("deprecation")
+        microsoft.sql.DateTimeOffset dto = getDateTimeOffset(parameterName);
+        java.time.OffsetDateTime value = (dto == null) ? null : dto.getOffsetDateTime();
+        loggerExternal.exiting(getClassNameLogging(), "getOffsetDateTime", value);
         return value;
     }
 
@@ -1832,6 +1852,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         loggerExternal.exiting(getClassNameLogging(), "setTimestamp");
     }
 
+    /**
+     * @deprecated Use {@link #setDateTimeOffset(String, java.time.OffsetDateTime)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -1841,6 +1865,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
     }
 
+    /**
+     * @deprecated Use {@link #setDateTimeOffset(String, java.time.OffsetDateTime, int)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value,
             int scale) throws SQLServerException {
@@ -1852,6 +1880,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
     }
 
+    /**
+     * @deprecated Use {@link #setDateTimeOffset(String, java.time.OffsetDateTime, int, boolean)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value, int scale,
             boolean forceEncrypt) throws SQLServerException {
@@ -1862,6 +1894,42 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         setValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET, value, JavaType.DATETIMEOFFSET, null, scale,
                 forceEncrypt);
         loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
+    }
+
+    @Override
+    public void setOffsetDateTime(String parameterName, java.time.OffsetDateTime value) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime", new Object[] {parameterName, value});
+        checkClosed();
+        setValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET,
+                (value == null) ? null : microsoft.sql.DateTimeOffset.valueOf(value), JavaType.DATETIMEOFFSET, false);
+        loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
+    }
+
+    @Override
+    public void setOffsetDateTime(String parameterName, java.time.OffsetDateTime value,
+            int scale) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime",
+                    new Object[] {parameterName, value, scale});
+        checkClosed();
+        setValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET,
+                (value == null) ? null : microsoft.sql.DateTimeOffset.valueOf(value), JavaType.DATETIMEOFFSET, null,
+                scale, false);
+        loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
+    }
+
+    @Override
+    public void setOffsetDateTime(String parameterName, java.time.OffsetDateTime value, int scale,
+            boolean forceEncrypt) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime",
+                    new Object[] {parameterName, value, forceEncrypt});
+        checkClosed();
+        setValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET,
+                (value == null) ? null : microsoft.sql.DateTimeOffset.valueOf(value), JavaType.DATETIMEOFFSET, null,
+                scale, forceEncrypt);
+        loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
     }
 
     @Override

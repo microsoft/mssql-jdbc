@@ -2479,19 +2479,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 }
             }
         } else if (type == java.time.OffsetDateTime.class) {
-            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(columnIndex);
-            if (dateTimeOffset == null) {
-                returnValue = null;
-            } else {
-                returnValue = dateTimeOffset.getOffsetDateTime();
-            }
+            returnValue = getOffsetDateTime(columnIndex);
         } else if (type == java.time.OffsetTime.class) {
-            microsoft.sql.DateTimeOffset dateTimeOffset = getDateTimeOffset(columnIndex);
-            if (dateTimeOffset == null) {
-                returnValue = null;
-            } else {
-                returnValue = dateTimeOffset.getOffsetDateTime().toOffsetTime();
-            }
+            java.time.OffsetDateTime odt = getOffsetDateTime(columnIndex);
+            returnValue = (odt == null) ? null : odt.toOffsetTime();
         } else if (type == microsoft.sql.DateTimeOffset.class) {
             returnValue = getDateTimeOffset(columnIndex);
         } else if (type == UUID.class) {
@@ -2799,6 +2790,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return value;
     }
 
+    /**
+     * @deprecated Use {@link #getOffsetDateTime(int)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", columnIndex);
@@ -2815,6 +2810,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         return value;
     }
 
+    /**
+     * @deprecated Use {@link #getOffsetDateTime(String)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", columnName);
@@ -2828,6 +2827,26 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         microsoft.sql.DateTimeOffset value = (microsoft.sql.DateTimeOffset) getValue(findColumn(columnName),
                 JDBCType.DATETIMEOFFSET);
         loggerExternal.exiting(getClassNameLogging(), "getDateTimeOffset", value);
+        return value;
+    }
+
+    @Override
+    public java.time.OffsetDateTime getOffsetDateTime(int columnIndex) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getOffsetDateTime", columnIndex);
+        @SuppressWarnings("deprecation")
+        microsoft.sql.DateTimeOffset dto = getDateTimeOffset(columnIndex);
+        java.time.OffsetDateTime value = (dto == null) ? null : dto.getOffsetDateTime();
+        loggerExternal.exiting(getClassNameLogging(), "getOffsetDateTime", value);
+        return value;
+    }
+
+    @Override
+    public java.time.OffsetDateTime getOffsetDateTime(String columnName) throws SQLServerException {
+        loggerExternal.entering(getClassNameLogging(), "getOffsetDateTime", columnName);
+        @SuppressWarnings("deprecation")
+        microsoft.sql.DateTimeOffset dto = getDateTimeOffset(columnName);
+        java.time.OffsetDateTime value = (dto == null) ? null : dto.getOffsetDateTime();
+        loggerExternal.exiting(getClassNameLogging(), "getOffsetDateTime", value);
         return value;
     }
 
@@ -3744,6 +3763,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "updateSmallDateTime");
     }
 
+    /**
+     * @deprecated Use {@link #updateOffsetDateTime(int, java.time.OffsetDateTime)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -3755,6 +3778,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "updateDateTimeOffset");
     }
 
+    /**
+     * @deprecated Use {@link #updateOffsetDateTime(int, java.time.OffsetDateTime, Integer)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x,
             Integer scale) throws SQLServerException {
@@ -3767,6 +3794,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "updateDateTimeOffset");
     }
 
+    /**
+     * @deprecated Use {@link #updateOffsetDateTime(int, java.time.OffsetDateTime, Integer, boolean)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x, Integer scale,
             boolean forceEncrypt) throws SQLServerException {
@@ -3778,6 +3809,46 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         updateValue(index, JDBCType.DATETIMEOFFSET, x, JavaType.DATETIMEOFFSET, null, scale, forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateDateTimeOffset");
+    }
+
+    @Override
+    public void updateOffsetDateTime(int index, java.time.OffsetDateTime x) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateOffsetDateTime", new Object[] {index, x});
+
+        checkClosed();
+        updateValue(index, JDBCType.DATETIMEOFFSET,
+                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, false);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateOffsetDateTime");
+    }
+
+    @Override
+    public void updateOffsetDateTime(int index, java.time.OffsetDateTime x, Integer scale) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateOffsetDateTime", new Object[] {index, x, scale});
+
+        checkClosed();
+        updateValue(index, JDBCType.DATETIMEOFFSET,
+                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, null, scale,
+                false);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateOffsetDateTime");
+    }
+
+    @Override
+    public void updateOffsetDateTime(int index, java.time.OffsetDateTime x, Integer scale,
+            boolean forceEncrypt) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateOffsetDateTime",
+                    new Object[] {index, x, scale, forceEncrypt});
+
+        checkClosed();
+        updateValue(index, JDBCType.DATETIMEOFFSET,
+                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, null, scale,
+                forceEncrypt);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateOffsetDateTime");
     }
 
     @Override
@@ -4577,6 +4648,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "updateSmallDateTime");
     }
 
+    /**
+     * @deprecated Use {@link #updateOffsetDateTime(String, java.time.OffsetDateTime)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -4588,6 +4663,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "updateDateTimeOffset");
     }
 
+    /**
+     * @deprecated Use {@link #updateOffsetDateTime(String, java.time.OffsetDateTime, int)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x,
             int scale) throws SQLServerException {
@@ -4600,6 +4679,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         loggerExternal.exiting(getClassNameLogging(), "updateDateTimeOffset");
     }
 
+    /**
+     * @deprecated Use {@link #updateOffsetDateTime(String, java.time.OffsetDateTime, int, boolean)} instead.
+     */
+    @Deprecated(since = "13.4.1")
     @Override
     public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x, int scale,
             boolean forceEncrypt) throws SQLServerException {
@@ -4612,6 +4695,47 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 forceEncrypt);
 
         loggerExternal.exiting(getClassNameLogging(), "updateDateTimeOffset");
+    }
+
+    @Override
+    public void updateOffsetDateTime(String columnName, java.time.OffsetDateTime x) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateOffsetDateTime", new Object[] {columnName, x});
+
+        checkClosed();
+        updateValue(findColumn(columnName), JDBCType.DATETIMEOFFSET,
+                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, false);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateOffsetDateTime");
+    }
+
+    @Override
+    public void updateOffsetDateTime(String columnName, java.time.OffsetDateTime x, int scale) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateOffsetDateTime",
+                    new Object[] {columnName, x, scale});
+
+        checkClosed();
+        updateValue(findColumn(columnName), JDBCType.DATETIMEOFFSET,
+                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, null, scale,
+                false);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateOffsetDateTime");
+    }
+
+    @Override
+    public void updateOffsetDateTime(String columnName, java.time.OffsetDateTime x, int scale,
+            boolean forceEncrypt) throws SQLServerException {
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "updateOffsetDateTime",
+                    new Object[] {columnName, x, scale, forceEncrypt});
+
+        checkClosed();
+        updateValue(findColumn(columnName), JDBCType.DATETIMEOFFSET,
+                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, null, scale,
+                forceEncrypt);
+
+        loggerExternal.exiting(getClassNameLogging(), "updateOffsetDateTime");
     }
 
     @Override

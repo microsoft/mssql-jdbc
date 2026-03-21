@@ -17,8 +17,12 @@ import java.util.TimeZone;
  *
  * The DateTimeOffset class represents a java.sql.Timestamp, including fractional seconds, plus an integer representing
  * the number of minutes offset from GMT.
- * 
+ *
+ * @deprecated Use {@link java.time.OffsetDateTime} instead. Methods accepting or returning
+ *             {@code microsoft.sql.DateTimeOffset} have been deprecated in favor of equivalents that use
+ *             {@code java.time.OffsetDateTime}.
  */
+@Deprecated(since = "13.4.1")
 public final class DateTimeOffset implements java.io.Serializable, java.lang.Comparable<DateTimeOffset> {
     private static final long serialVersionUID = 541973748553014280L;
 
