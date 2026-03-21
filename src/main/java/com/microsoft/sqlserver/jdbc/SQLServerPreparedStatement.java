@@ -2180,37 +2180,37 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setDateTimeOffset(int n, java.time.OffsetDateTime x) throws SQLServerException {
+    public final void setOffsetDateTime(int n, java.time.OffsetDateTime x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {n, x});
+            loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime", new Object[] {n, x});
         checkClosed();
         setValue(n, JDBCType.DATETIMEOFFSET,
                 (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, false);
-        loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
+        loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
     }
 
     @Override
-    public final void setDateTimeOffset(int n, java.time.OffsetDateTime x, int scale) throws SQLServerException {
+    public final void setOffsetDateTime(int n, java.time.OffsetDateTime x, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset", new Object[] {n, x, scale});
+            loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime", new Object[] {n, x, scale});
         checkClosed();
         setValue(n, JDBCType.DATETIMEOFFSET,
                 (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, null, scale,
                 false);
-        loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
+        loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
     }
 
     @Override
-    public final void setDateTimeOffset(int n, java.time.OffsetDateTime x, int scale,
+    public final void setOffsetDateTime(int n, java.time.OffsetDateTime x, int scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setDateTimeOffset",
+            loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime",
                     new Object[] {n, x, scale, forceEncrypt});
         checkClosed();
         setValue(n, JDBCType.DATETIMEOFFSET,
                 (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, null, scale,
                 forceEncrypt);
-        loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
+        loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
     }
 
     @Override

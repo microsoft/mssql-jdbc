@@ -532,7 +532,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *        DateTimeOffset value
      * @throws SQLServerException
      *         if an error occurs
-     * @deprecated Use {@link #setDateTimeOffset(String, java.time.OffsetDateTime)} instead.
+     * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime)} instead.
      */
     @Deprecated(since = "13.4.1")
     void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value) throws SQLServerException;
@@ -548,7 +548,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *        the scale of the parameter
      * @throws SQLServerException
      *         if an error occurs
-     * @deprecated Use {@link #setDateTimeOffset(String, java.time.OffsetDateTime, int)} instead.
+     * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime, int)} instead.
      */
     @Deprecated(since = "13.4.1")
     void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value,
@@ -569,7 +569,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *        forceEncrypt is set to false, the driver will not force encryption on parameters.
      * @throws SQLServerException
      *         if an error occurs
-     * @deprecated Use {@link #setDateTimeOffset(String, java.time.OffsetDateTime, int, boolean)} instead.
+     * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime, int, boolean)} instead.
      */
     @Deprecated(since = "13.4.1")
     void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value, int scale,
@@ -587,7 +587,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         if an error occurs
      */
-    void setDateTimeOffset(String parameterName, java.time.OffsetDateTime value) throws SQLServerException;
+    void setOffsetDateTime(String parameterName, java.time.OffsetDateTime value) throws SQLServerException;
 
     /**
      * Sets parameter parameterName to the given {@link java.time.OffsetDateTime} value.
@@ -601,7 +601,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         if an error occurs
      */
-    void setDateTimeOffset(String parameterName, java.time.OffsetDateTime value, int scale) throws SQLServerException;
+    void setOffsetDateTime(String parameterName, java.time.OffsetDateTime value, int scale) throws SQLServerException;
 
     /**
      * Sets parameter parameterName to the given {@link java.time.OffsetDateTime} value.
@@ -619,7 +619,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         if an error occurs
      */
-    void setDateTimeOffset(String parameterName, java.time.OffsetDateTime value, int scale,
+    void setOffsetDateTime(String parameterName, java.time.OffsetDateTime value, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
