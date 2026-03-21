@@ -87,8 +87,10 @@ public class WrapperTest extends AbstractTest {
                             .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.ISQLServerPreparedStatement"))) {
                         stmt3.setResponseBuffering("adaptive");
 
-                        if (isKatmaiServer())
+                        if (isKatmaiServer()) {
+                            stmt3.setDateTimeOffset(1, null);
                             stmt3.setOffsetDateTime(1, null);
+                        }
 
                         // Try Unwrapping CallableStatement to a callableStatement
                         isWrapper = ((SQLServerCallableStatement) cs)
@@ -100,6 +102,7 @@ public class WrapperTest extends AbstractTest {
                                 .unwrap(Class.forName("com.microsoft.sqlserver.jdbc.SQLServerCallableStatement"))) {
                             stmt4.setResponseBuffering("adaptive");
                             if (isKatmaiServer()) {
+                                stmt4.setDateTimeOffset(1, null);
                                 stmt4.setOffsetDateTime(1, null);
                             }
                         }
