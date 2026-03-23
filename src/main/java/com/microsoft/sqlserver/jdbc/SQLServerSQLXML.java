@@ -433,19 +433,21 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             // Defense-in-depth: disable DTD and external entity support to prevent XXE attacks.
             // Although SQL Server's xml data type rejects DTDs at the storage layer, these safeguards
             // protect against tampered TDS streams or non-xml-typed sources, consistent with getDOMSource().
-            // Properties are set best-effort: if a StAX implementation does not recognize a property,
-            // we log and continue so the StAXSource path remains functional across different providers/JVMs.
+            // If a StAX implementation does not recognize these properties, we fail closed rather than
+            // continuing without the intended protections.
             try {
                 factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
             } catch (IllegalArgumentException e) {
-                if (logger.isLoggable(java.util.logging.Level.FINER))
-                    logger.finer("StAX provider does not support IS_SUPPORTING_EXTERNAL_ENTITIES: " + e.getMessage());
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
+                Object[] msgArgs = {e.toString()};
+                SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
             }
             try {
                 factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
             } catch (IllegalArgumentException e) {
-                if (logger.isLoggable(java.util.logging.Level.FINER))
-                    logger.finer("StAX provider does not support SUPPORT_DTD: " + e.getMessage());
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
+                Object[] msgArgs = {e.toString()};
+                SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
             }
 
             XMLStreamReader r = factory.createXMLStreamReader(contents);
