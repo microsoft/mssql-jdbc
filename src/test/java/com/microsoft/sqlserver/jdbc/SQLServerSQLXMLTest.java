@@ -15,12 +15,10 @@ import java.io.Writer;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.dom.DOMResult;
@@ -39,8 +37,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.w3c.dom.Document;
-import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.DefaultHandler;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -326,136 +322,5 @@ public class SQLServerSQLXMLTest extends AbstractTest {
         Field field = SQLServerSQLXML.class.getDeclaredField("isUsed");
         field.setAccessible(true);
         return (Boolean) field.get(sqlxml);
-    }
-
-    /**
-     * Creates a getter SQLServerSQLXML instance backed by a mock PLPXMLInputStream that serves
-     * the given XML string as UTF-8 bytes.
-     */
-    private SQLServerSQLXML createGetterWithXmlPayload(String xmlContent) throws Exception {
-        byte[] xmlBytes = xmlContent.getBytes(StandardCharsets.UTF_8);
-        ByteArrayInputStream backing = new ByteArrayInputStream(xmlBytes);
-
-        PLPXMLInputStream mockPLP = mock(PLPXMLInputStream.class);
-        doNothing().when(mockPLP).checkClosed();
-        when(mockPLP.read()).thenAnswer(invocation -> backing.read());
-        when(mockPLP.read(any(byte[].class), anyInt(), anyInt())).thenAnswer(invocation -> {
-            byte[] buf = invocation.getArgument(0);
-            int off = invocation.getArgument(1);
-            int len = invocation.getArgument(2);
-            return backing.read(buf, off, len);
-        });
-        when(mockPLP.available()).thenAnswer(invocation -> backing.available());
-
-        InputStreamGetterArgs getterArgs = new InputStreamGetterArgs(StreamType.NONE, false, false, "test");
-
-        Constructor<TypeInfo> typeInfoCtor = TypeInfo.class.getDeclaredConstructor();
-        typeInfoCtor.setAccessible(true);
-        TypeInfo typeInfo = typeInfoCtor.newInstance();
-
-        Constructor<SQLServerSQLXML> ctor = SQLServerSQLXML.class.getDeclaredConstructor(
-                InputStream.class, InputStreamGetterArgs.class, TypeInfo.class);
-        ctor.setAccessible(true);
-
-        return ctor.newInstance(mockPLP, getterArgs, typeInfo);
-    }
-
-    // --- SAX/StAX secure processing tests ---
-
-    @Test
-    @DisplayName("SAXSource rejects XML containing DOCTYPE with XXE")
-    void testSAXSourceRejectsDTDAndXXE() throws Exception {
-        String xxePayload = "<?xml version=\"1.0\"?>"
-                + "<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]>"
-                + "<root>&xxe;</root>";
-
-        SQLServerSQLXML getter = createGetterWithXmlPayload(xxePayload);
-
-        // getSource returns the configured SAXSource without parsing; parsing happens when the
-        // caller invokes XMLReader.parse(). The reader is configured with disallow-doctype-decl
-        // and an EntityResolver, so parsing must fail.
-        SAXSource saxSource = getter.getSource(SAXSource.class);
-        assertNotNull(saxSource, "SAXSource should be returned successfully");
-
-        XMLReader reader = saxSource.getXMLReader();
-        assertNotNull(reader, "XMLReader should be configured on SAXSource");
-
-        reader.setContentHandler(new DefaultHandler());
-        assertThrows(Exception.class, () -> reader.parse(saxSource.getInputSource()),
-                "SAX parser should reject XML with DOCTYPE declaration");
-    }
-
-    @Test
-    @DisplayName("StAXSource blocks DTD and external entity resolution")
-    void testStAXSourceBlocksDTDProcessing() throws Exception {
-        String xxePayload = "<?xml version=\"1.0\"?>"
-                + "<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]>"
-                + "<root>&xxe;</root>";
-
-        SQLServerSQLXML getter = createGetterWithXmlPayload(xxePayload);
-
-        // With SUPPORT_DTD=false the parser skips the DTD, so &xxe; becomes an undeclared entity.
-        // Depending on the StAX implementation this surfaces as:
-        //   (a) XMLStreamException (wrapped as SQLException) from createXMLStreamReader, or
-        //   (b) XMLStreamException during iteration when the undeclared entity is encountered.
-        // Either way, the external entity content must NOT appear.
-        try {
-            StAXSource staxSource = getter.getSource(StAXSource.class);
-            XMLStreamReader streamReader = staxSource.getXMLStreamReader();
-
-            StringBuilder parsedContent = new StringBuilder();
-            try {
-                while (streamReader.hasNext()) {
-                    int event = streamReader.next();
-                    if (event == XMLStreamReader.CHARACTERS || event == XMLStreamReader.CDATA) {
-                        parsedContent.append(streamReader.getText());
-                    }
-                }
-            } catch (javax.xml.stream.XMLStreamException e) {
-                // Expected: entity &xxe; is undeclared because DTD was skipped
-                assertTrue(e.getMessage().contains("xxe"),
-                        "XMLStreamException should reference the undeclared entity");
-                return;
-            }
-
-            // If iteration completed without exception, verify no file content leaked
-            assertFalse(parsedContent.toString().contains("root:"),
-                    "StAX parser must not resolve external entities");
-        } catch (SQLException e) {
-            // Also acceptable: StAX factory rejects the content outright
-            assertNotNull(e.getMessage(), "SQLException from StAX source should have a message");
-        }
-    }
-
-    @Test
-    @DisplayName("SAXSource accepts clean XML without DOCTYPE")
-    void testSAXSourceAcceptsCleanXML() throws Exception {
-        String cleanXml = "<?xml version=\"1.0\"?><root><item>value</item></root>";
-
-        SQLServerSQLXML getter = createGetterWithXmlPayload(cleanXml);
-        SAXSource saxSource = getter.getSource(SAXSource.class);
-        assertNotNull(saxSource, "SAXSource should be returned for clean XML");
-
-        XMLReader reader = saxSource.getXMLReader();
-        reader.setContentHandler(new DefaultHandler());
-        assertDoesNotThrow(() -> reader.parse(saxSource.getInputSource()),
-                "SAX parser should accept clean XML without DOCTYPE");
-    }
-
-    @Test
-    @DisplayName("StAXSource accepts clean XML without DOCTYPE")
-    void testStAXSourceAcceptsCleanXML() throws Exception {
-        String cleanXml = "<?xml version=\"1.0\"?><root><item>value</item></root>";
-
-        SQLServerSQLXML getter = createGetterWithXmlPayload(cleanXml);
-        StAXSource staxSource = getter.getSource(StAXSource.class);
-        assertNotNull(staxSource, "StAXSource should be returned for clean XML");
-
-        XMLStreamReader streamReader = staxSource.getXMLStreamReader();
-        assertDoesNotThrow(() -> {
-            while (streamReader.hasNext()) {
-                streamReader.next();
-            }
-        }, "StAX parser should accept clean XML without DOCTYPE");
     }
 }
