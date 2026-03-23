@@ -376,6 +376,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             // The limit is implementation specific. For IBM it's 100,000
             // whereas for oracle it is 64,000.
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
             builder = factory.newDocumentBuilder();
 
             // set an entity resolver to disable parsing of external entities
