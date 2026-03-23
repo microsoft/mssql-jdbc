@@ -1006,7 +1006,30 @@ final class Util {
     @SuppressWarnings("unchecked")
     static <T> T newInstance(Class<?> returnType, String className, String constructorArg,
             Object[] msgArgs) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
-        Class<?> clazz = Class.forName(className, false, Thread.currentThread().getContextClassLoader());
+        Class<?> clazz = null;
+        ClassNotFoundException firstFailure = null;
+        // Try to load using the thread context ClassLoader first, if available.
+        ClassLoader tccl = Thread.currentThread().getContextClassLoader();
+        if (tccl != null) {
+            try {
+                clazz = Class.forName(className, false, tccl);
+            } catch (ClassNotFoundException e) {
+                firstFailure = e;
+            }
+        }
+        // If TCCL is null or could not find the class, fall back to a more stable ClassLoader.
+        if (clazz == null) {
+            ClassLoader fallbackLoader = (returnType != null) ? returnType.getClassLoader()
+                    : Util.class.getClassLoader();
+            try {
+                clazz = Class.forName(className, false, fallbackLoader);
+            } catch (ClassNotFoundException e) {
+                if (firstFailure != null) {
+                    e.addSuppressed(firstFailure);
+                }
+                throw e;
+            }
+        }
         if (!returnType.isAssignableFrom(clazz)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unassignableError"));
             throw new IllegalArgumentException(form.format(msgArgs));
