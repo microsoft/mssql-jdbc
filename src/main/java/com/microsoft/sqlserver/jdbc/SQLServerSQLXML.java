@@ -376,6 +376,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             // The limit is implementation specific. For IBM it's 100,000
             // whereas for oracle it is 64,000.
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
             builder = factory.newDocumentBuilder();
 
             // set an entity resolver to disable parsing of external entities
@@ -404,8 +405,19 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
         try {
             InputSource src = new InputSource(contents);
             SAXParserFactory factory = SAXParserFactory.newInstance();
+
+            // Defense-in-depth: disable external entity resolution to prevent XXE attacks.
+            // Although SQL Server's xml data type rejects DTDs at the storage layer, these safeguards
+            // protect against tampered TDS streams or non-xml-typed sources, consistent with getDOMSource().
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+
             SAXParser parser = factory.newSAXParser();
             XMLReader reader = parser.getXMLReader();
+
+            // Set an entity resolver as a fallback in case feature flags are ignored by the parser,
+            // consistent with getDOMSource() which uses SQLServerEntityResolver.
+            reader.setEntityResolver(new SQLServerEntityResolver());
             return new SAXSource(reader, src);
         } catch (SAXException | ParserConfigurationException e) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToParseXML"));
@@ -416,8 +428,29 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
     }
 
     private StAXSource getStAXSource() throws SQLException {
-        XMLInputFactory factory = XMLInputFactory.newInstance();
         try {
+            XMLInputFactory factory = XMLInputFactory.newInstance();
+
+            // Defense-in-depth: disable DTD and external entity support to prevent XXE attacks.
+            // Although SQL Server's xml data type rejects DTDs at the storage layer, these safeguards
+            // protect against tampered TDS streams or non-xml-typed sources, consistent with getDOMSource().
+            // If a StAX implementation does not recognize these properties, we fail closed rather than
+            // continuing without the intended protections.
+            try {
+                factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+            } catch (IllegalArgumentException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
+                Object[] msgArgs = {e.toString()};
+                SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
+            }
+            try {
+                factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+            } catch (IllegalArgumentException e) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_noParserSupport"));
+                Object[] msgArgs = {e.toString()};
+                SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, true);
+            }
+
             XMLStreamReader r = factory.createXMLStreamReader(contents);
             return new StAXSource(r);
         } catch (XMLStreamException e) {
