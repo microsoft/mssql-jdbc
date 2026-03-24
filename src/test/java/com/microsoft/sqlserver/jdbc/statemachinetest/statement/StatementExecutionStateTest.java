@@ -5,8 +5,6 @@
  */
 package com.microsoft.sqlserver.jdbc.statemachinetest.statement;
 
-import static com.microsoft.sqlserver.jdbc.statemachinetest.statement.StatementExecutionActions.*;
-import static com.microsoft.sqlserver.jdbc.statemachinetest.statement.StatementExecutionState.*;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -48,8 +46,10 @@ import org.junit.jupiter.api.Test;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.jdbc.statemachinetest.core.Action;
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.Engine;
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.Result;
+import com.microsoft.sqlserver.jdbc.statemachinetest.core.StateKey;
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.StateMachineTest;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -58,33 +58,31 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
- * Statement Execution State Machine Tests - Covers all FX framework non-bug/non-VSTS
- * statement execution scenarios as JUnit tests with legacyFx tag.
- * 
- * FX test class mapping:
- * <ul>
- *   <li>TCStatementSanity - testSRR/testAllSRR/testDML/testAllDML/testBatchDML/testPartialConsumption/
- *       testClosedConnection/testOtherQueries/testRandomWalk</li>
- *   <li>TCStatementEx - testStmtPooling</li>
- *   <li>TCCancel - testCancel/testCancelWaitfor/testCancelMultipleStmts</li>
- *   <li>TCWarnings - testWarnings/testWarningsExceptions</li>
- *   <li>TCGetters - testGetConnection/testMaxGetters/testMaxSetters/testMaxSettersInvalid/
- *       testMaxSettersMultipleStmt/testSetMaxRows/testCursorName/testCursorNameValue/
- *       testCursorNameValueTooLarge/testSetResponseBuffering/testSetResponseBufferingMultipleStmt/
- *       testSetResponseBufferingInvalid</li>
- *   <li>TCAllCursors - testGetFetchSize/testGetFetchDirection/testSetFetchSizeDefault/testSetFetchSizeValid/
- *       testSetFetchSizeInvalid/testGetResultSetConcurrency/testGetResultSetType/testForcedQueryTimeout</li>
- *   <li>TCBatching - testBatchDML/testBatchSQL/testBatchWarning/testBatchException/testBatchWithErrors</li>
- *   <li>TCPreparedStatement - SRR/DML/batch for prepared statements</li>
- *   <li>TCCallableStatement - SRR/DML/batch for callable statements</li>
- *   <li>TCMultipleStatements - testAccessRS/testAccessCSTMT/testModel</li>
- * </ul>
- * 
- * Bug/VSTS scenarios are excluded - they are already in
- * StatementTest.BugRegressionTests.
+ * State-machine-driven tests for Statement, PreparedStatement, and CallableStatement execution.
+ * Includes a randomized model test and deterministic scenario tests covering SRR, DML, batching,
+ * cancellation, warnings, cursor properties, generated keys, concurrency, and error handling.
  */
 @Tag(Constants.legacyFx)
 public class StatementExecutionStateTest extends AbstractTest {
+
+    private static final StateKey CONN = () -> "conn";
+    private static final StateKey STMT = () -> "stmt";
+    private static final StateKey CLOSED = () -> "closed";
+    private static final StateKey EXECUTED = () -> "executed";
+    private static final StateKey HAS_RESULT_SET = () -> "hasResultSet";
+    private static final StateKey LAST_EXECUTE_WAS_BATCH = () -> "lastExecuteWasBatch";
+    private static final StateKey LAST_EXECUTE_WAS_UPDATE = () -> "lastExecuteWasUpdate";
+    private static final StateKey LAST_EXECUTE_GENERATED_KEYS = () -> "lastExecuteGeneratedKeys";
+    private static final StateKey MAX_ROWS = () -> "maxRows";
+    private static final StateKey MAX_FIELD_SIZE = () -> "maxFieldSize";
+    private static final StateKey HAS_WARNINGS = () -> "hasWarnings";
+    private static final StateKey FETCH_SIZE = () -> "fetchSize";
+    private static final StateKey CURSOR_TYPE = () -> "cursorType";
+    private static final StateKey CONCURRENCY = () -> "concurrency";
+    private static final StateKey HOLDABILITY = () -> "holdability";
+    private static final StateKey QUERY_INDEX = () -> "queryIndex";
+    private static final StateKey SM_TABLE_NAME = () -> "tableName";
+    private static final StateKey ROW_COUNT = () -> "rowCount";
 
     private static final String TABLE_NAME = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("SM_StmtExec_Test"));
@@ -129,15 +127,463 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== State Machine Randomized Test ====================
 
-    /**
-     * FX Model: Randomized state machine exploration of Statement execution.
-     * Exercises execute/executeQuery/executeUpdate/batch/getMoreResults/getResultSet/
-     * getUpdateCount/property getters and setters in random order.
-     */
+    /** Execute SELECT — sets HAS_RESULT_SET=true. */
+    private static class ExecuteSelectAction extends Action {
+        private final StateMachineTest sm;
+        ExecuteSelectAction(StateMachineTest sm) { super("execute(SELECT)", 10); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            boolean hasResultSet = stmt.execute("SELECT * FROM " + tableName);
+            sm.setState(EXECUTED, true);
+            sm.setState(HAS_RESULT_SET, hasResultSet);
+            sm.setState(LAST_EXECUTE_WAS_BATCH, false);
+            sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            sm.setState(QUERY_INDEX, 0);
+            if (!hasResultSet) throw new AssertionError("execute(SELECT) should return true");
+        }
+    }
+
+    /** Execute DML (UPDATE). */
+    private static class ExecuteDMLAction extends Action {
+        private final StateMachineTest sm;
+        ExecuteDMLAction(StateMachineTest sm) { super("execute(UPDATE)", 10); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
+            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId);
+            sm.setState(EXECUTED, true);
+            sm.setState(HAS_RESULT_SET, hasResultSet);
+            sm.setState(LAST_EXECUTE_WAS_BATCH, false);
+            sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            sm.setState(QUERY_INDEX, 0);
+            if (hasResultSet) throw new AssertionError("execute(UPDATE) should return false");
+        }
+    }
+
+    /** executeQuery(SELECT) — consumes result inline. */
+    private static class ExecuteQueryAction extends Action {
+        private final StateMachineTest sm;
+        ExecuteQueryAction(StateMachineTest sm) { super("executeQuery", 10); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
+                sm.setState(LAST_EXECUTE_WAS_BATCH, false);
+                sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
+                sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+                sm.setState(QUERY_INDEX, 0);
+                while (rs.next()) {}
+            }
+        }
+    }
+
+    /** executeUpdate(DML). */
+    private static class ExecuteUpdateAction extends Action {
+        private final StateMachineTest sm;
+        ExecuteUpdateAction(StateMachineTest sm) { super("executeUpdate", 10); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
+            int updateCount = stmt.executeUpdate("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId);
+            sm.setState(EXECUTED, true);
+            sm.setState(HAS_RESULT_SET, false);
+            sm.setState(LAST_EXECUTE_WAS_BATCH, false);
+            sm.setState(LAST_EXECUTE_WAS_UPDATE, true);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            sm.setState(QUERY_INDEX, 0);
+            if (updateCount != 1) throw new AssertionError("executeUpdate should affect 1 row, got " + updateCount);
+        }
+    }
+
+    /** execute(sql, autokeys). */
+    private static class ExecuteWithGeneratedKeysAction extends Action {
+        private final StateMachineTest sm;
+        ExecuteWithGeneratedKeysAction(StateMachineTest sm) { super("execute(genKeys)", 5); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
+            int autoKeyFlag = sm.getRandom().nextBoolean() ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS;
+            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, autoKeyFlag);
+            sm.setState(EXECUTED, true);
+            sm.setState(HAS_RESULT_SET, hasResultSet);
+            sm.setState(LAST_EXECUTE_WAS_BATCH, false);
+            sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            sm.setState(QUERY_INDEX, 0);
+        }
+    }
+
+    /** executeUpdate(sql, autokeys). */
+    private static class ExecuteUpdateWithGeneratedKeysAction extends Action {
+        private final StateMachineTest sm;
+        ExecuteUpdateWithGeneratedKeysAction(StateMachineTest sm) { super("executeUpdate(genKeys)", 5); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
+            int autoKeyFlag = sm.getRandom().nextBoolean() ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS;
+            stmt.executeUpdate("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, autoKeyFlag);
+            sm.setState(EXECUTED, true);
+            sm.setState(HAS_RESULT_SET, false);
+            sm.setState(LAST_EXECUTE_WAS_BATCH, false);
+            sm.setState(LAST_EXECUTE_WAS_UPDATE, true);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            sm.setState(QUERY_INDEX, 0);
+        }
+    }
+
+    /** execute(sql, int[] columnIndexes). */
+    private static class ExecuteWithColumnIndexesAction extends Action {
+        private final StateMachineTest sm;
+        ExecuteWithColumnIndexesAction(StateMachineTest sm) { super("execute(colIndexes)", 3); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
+            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{1});
+            sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, hasResultSet);
+            sm.setState(LAST_EXECUTE_WAS_BATCH, false); sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false); sm.setState(QUERY_INDEX, 0);
+        }
+    }
+
+    /** execute(sql, String[] columnNames). */
+    private static class ExecuteWithColumnNamesAction extends Action {
+        private final StateMachineTest sm;
+        ExecuteWithColumnNamesAction(StateMachineTest sm) { super("execute(colNames)", 3); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
+            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, new String[]{"id"});
+            sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, hasResultSet);
+            sm.setState(LAST_EXECUTE_WAS_BATCH, false); sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false); sm.setState(QUERY_INDEX, 0);
+        }
+    }
+
+    /** executeUpdate(sql, int[] columnIndexes). */
+    private static class ExecuteUpdateWithColumnIndexesAction extends Action {
+        private final StateMachineTest sm;
+        ExecuteUpdateWithColumnIndexesAction(StateMachineTest sm) { super("executeUpdate(colIdx)", 3); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
+            stmt.executeUpdate("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{1});
+            sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, false);
+            sm.setState(LAST_EXECUTE_WAS_BATCH, false); sm.setState(LAST_EXECUTE_WAS_UPDATE, true);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false); sm.setState(QUERY_INDEX, 0);
+        }
+    }
+
+    /** executeUpdate(sql, String[] columnNames). */
+    private static class ExecuteUpdateWithColumnNamesAction extends Action {
+        private final StateMachineTest sm;
+        ExecuteUpdateWithColumnNamesAction(StateMachineTest sm) { super("executeUpdate(colNames)", 3); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
+            stmt.executeUpdate("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, new String[]{"id"});
+            sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, false);
+            sm.setState(LAST_EXECUTE_WAS_BATCH, false); sm.setState(LAST_EXECUTE_WAS_UPDATE, true);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false); sm.setState(QUERY_INDEX, 0);
+        }
+    }
+
+    /** addBatch(DML). */
+    private static class AddBatchAction extends Action {
+        private final StateMachineTest sm;
+        AddBatchAction(StateMachineTest sm) { super("addBatch", 10); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
+            stmt.addBatch("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId);
+        }
+    }
+
+    /** executeBatch(). */
+    private static class ExecuteBatchAction extends Action {
+        private final StateMachineTest sm;
+        ExecuteBatchAction(StateMachineTest sm) { super("executeBatch", 8); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            stmt.executeBatch();
+            sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, false);
+            sm.setState(LAST_EXECUTE_WAS_BATCH, true); sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false); sm.setState(QUERY_INDEX, 0);
+        }
+    }
+
+    /** clearBatch(). */
+    private static class ClearBatchAction extends Action {
+        private final StateMachineTest sm;
+        ClearBatchAction(StateMachineTest sm) { super("clearBatch", 5); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException { ((Statement) sm.getStateValue(STMT)).clearBatch(); }
+    }
+
+    /** getMoreResults(). */
+    private static class GetMoreResultsAction extends Action {
+        private final StateMachineTest sm;
+        GetMoreResultsAction(StateMachineTest sm) { super("getMoreResults", 10); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED) && sm.isState(EXECUTED); }
+        @Override public void run() throws SQLException {
+            boolean hasMore = ((Statement) sm.getStateValue(STMT)).getMoreResults();
+            sm.setState(HAS_RESULT_SET, hasMore);
+            sm.setState(QUERY_INDEX, sm.getStateInt(QUERY_INDEX) + 1);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+        }
+    }
+
+    /** getMoreResults(int flag). */
+    private static class GetMoreResultsWithFlagAction extends Action {
+        private final StateMachineTest sm;
+        GetMoreResultsWithFlagAction(StateMachineTest sm) { super("getMoreResults(flag)", 5); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED) && sm.isState(EXECUTED); }
+        @Override public void run() throws SQLException {
+            int flag = sm.getRandom().nextBoolean() ? Statement.CLOSE_CURRENT_RESULT : Statement.CLOSE_ALL_RESULTS;
+            boolean hasMore = ((Statement) sm.getStateValue(STMT)).getMoreResults(flag);
+            sm.setState(HAS_RESULT_SET, hasMore);
+            sm.setState(QUERY_INDEX, sm.getStateInt(QUERY_INDEX) + 1);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+        }
+    }
+
+    /** getResultSet() — only when HAS_RESULT_SET=true. */
+    private static class GetResultSetAction extends Action {
+        private final StateMachineTest sm;
+        GetResultSetAction(StateMachineTest sm) { super("getResultSet", 10); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED) && sm.isState(EXECUTED) && sm.isState(HAS_RESULT_SET); }
+        @Override public void run() throws SQLException {
+            ResultSet rs = ((Statement) sm.getStateValue(STMT)).getResultSet();
+            if (rs != null) { while (rs.next()) {} rs.close(); }
+            sm.setState(HAS_RESULT_SET, false);
+        }
+    }
+
+    /** getUpdateCount() — skipped after executeBatch (VSTS #79390). */
+    private static class GetUpdateCountAction extends Action {
+        private final StateMachineTest sm;
+        GetUpdateCountAction(StateMachineTest sm) { super("getUpdateCount", 10); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED) && sm.isState(EXECUTED) && !sm.isState(LAST_EXECUTE_WAS_BATCH); }
+        @Override public void run() throws SQLException { ((Statement) sm.getStateValue(STMT)).getUpdateCount(); }
+    }
+
+    /** getGeneratedKeys() — only when keys were requested. */
+    private static class GetGeneratedKeysAction extends Action {
+        private final StateMachineTest sm;
+        GetGeneratedKeysAction(StateMachineTest sm) { super("getGeneratedKeys", 5); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED) && sm.isState(EXECUTED) && sm.isState(LAST_EXECUTE_GENERATED_KEYS); }
+        @Override public void run() throws SQLException {
+            try (ResultSet keys = ((Statement) sm.getStateValue(STMT)).getGeneratedKeys()) { while (keys.next()) {} }
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+        }
+    }
+
+    /** setMaxRows / getMaxRows. */
+    private static class SetMaxRowsAction extends Action {
+        private final StateMachineTest sm;
+        SetMaxRowsAction(StateMachineTest sm) { super("setMaxRows", 5); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            int maxRows = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT) * 2);
+            stmt.setMaxRows(maxRows);
+            if (stmt.getMaxRows() != maxRows) throw new AssertionError("setMaxRows/getMaxRows mismatch");
+            sm.setState(MAX_ROWS, maxRows);
+        }
+    }
+
+    /** setMaxFieldSize / getMaxFieldSize. */
+    private static class SetMaxFieldSizeAction extends Action {
+        private final StateMachineTest sm;
+        SetMaxFieldSizeAction(StateMachineTest sm) { super("setMaxFieldSize", 3); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            int size = sm.getRandom().nextInt(8000);
+            stmt.setMaxFieldSize(size);
+            if (stmt.getMaxFieldSize() != size) throw new AssertionError("setMaxFieldSize mismatch");
+            sm.setState(MAX_FIELD_SIZE, size);
+        }
+    }
+
+    /** setFetchSize / getFetchSize. */
+    private static class SetFetchSizeAction extends Action {
+        private final StateMachineTest sm;
+        SetFetchSizeAction(StateMachineTest sm) { super("setFetchSize", 5); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            int fetchSize = sm.getRandom().nextInt(200) + 1;
+            stmt.setFetchSize(fetchSize);
+            if (stmt.getFetchSize() != fetchSize) throw new AssertionError("setFetchSize mismatch");
+            sm.setState(FETCH_SIZE, fetchSize);
+        }
+    }
+
+    /** setFetchDirection / getFetchDirection. */
+    private static class SetFetchDirectionAction extends Action {
+        private final StateMachineTest sm;
+        SetFetchDirectionAction(StateMachineTest sm) { super("setFetchDirection", 3); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            int cursorType = sm.getStateInt(CURSOR_TYPE);
+            int direction = (cursorType == ResultSet.TYPE_FORWARD_ONLY) ? ResultSet.FETCH_FORWARD
+                    : new int[]{ResultSet.FETCH_FORWARD, ResultSet.FETCH_REVERSE, ResultSet.FETCH_UNKNOWN}[sm.getRandom().nextInt(3)];
+            stmt.setFetchDirection(direction);
+        }
+    }
+
+    /** setQueryTimeout / getQueryTimeout. */
+    private static class SetQueryTimeoutAction extends Action {
+        private final StateMachineTest sm;
+        SetQueryTimeoutAction(StateMachineTest sm) { super("setQueryTimeout", 3); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            int timeout = sm.getRandom().nextInt(30);
+            stmt.setQueryTimeout(timeout);
+            if (stmt.getQueryTimeout() != timeout) throw new AssertionError("setQueryTimeout mismatch");
+            stmt.setQueryTimeout(0);
+        }
+    }
+
+    /** setEscapeProcessing. */
+    private static class SetEscapeProcessingAction extends Action {
+        private final StateMachineTest sm;
+        SetEscapeProcessingAction(StateMachineTest sm) { super("setEscapeProcessing", 2); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException { ((Statement) sm.getStateValue(STMT)).setEscapeProcessing(sm.getRandom().nextBoolean()); }
+    }
+
+    /** getResultSetType — validates against CURSOR_TYPE state. */
+    private static class GetResultSetTypeAction extends Action {
+        private final StateMachineTest sm;
+        GetResultSetTypeAction(StateMachineTest sm) { super("getResultSetType", 5); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            int type = ((Statement) sm.getStateValue(STMT)).getResultSetType();
+            if (type != sm.getStateInt(CURSOR_TYPE)) throw new AssertionError("getResultSetType mismatch");
+        }
+    }
+
+    /** getResultSetConcurrency — validates against CONCURRENCY state. */
+    private static class GetResultSetConcurrencyAction extends Action {
+        private final StateMachineTest sm;
+        GetResultSetConcurrencyAction(StateMachineTest sm) { super("getResultSetConcurrency", 5); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            int c = ((Statement) sm.getStateValue(STMT)).getResultSetConcurrency();
+            if (c != sm.getStateInt(CONCURRENCY)) throw new AssertionError("getResultSetConcurrency mismatch");
+        }
+    }
+
+    /** getResultSetHoldability. */
+    private static class GetResultSetHoldabilityAction extends Action {
+        private final StateMachineTest sm;
+        GetResultSetHoldabilityAction(StateMachineTest sm) { super("getResultSetHoldability", 3); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException { ((Statement) sm.getStateValue(STMT)).getResultSetHoldability(); }
+    }
+
+    /** getConnection — validates same instance. */
+    private static class GetConnectionAction extends Action {
+        private final StateMachineTest sm;
+        GetConnectionAction(StateMachineTest sm) { super("getConnection", 5); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Connection conn = ((Statement) sm.getStateValue(STMT)).getConnection();
+            if (conn != sm.getStateValue(CONN)) throw new AssertionError("getConnection() returned different instance");
+        }
+    }
+
+    /** getWarnings / clearWarnings. */
+    private static class ClearWarningsAction extends Action {
+        private final StateMachineTest sm;
+        ClearWarningsAction(StateMachineTest sm) { super("clearWarnings", 5); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            stmt.getWarnings(); stmt.clearWarnings(); sm.setState(HAS_WARNINGS, false);
+        }
+    }
+
+    /** setPoolable / isPoolable. */
+    private static class SetPoolableAction extends Action {
+        private final StateMachineTest sm;
+        SetPoolableAction(StateMachineTest sm) { super("setPoolable", 2); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            boolean poolable = sm.getRandom().nextBoolean();
+            stmt.setPoolable(poolable);
+            if (stmt.isPoolable() != poolable) throw new AssertionError("setPoolable mismatch");
+        }
+    }
+
+    /** cancel(). */
+    private static class CancelAction extends Action {
+        private final StateMachineTest sm;
+        CancelAction(StateMachineTest sm) { super("cancel", 1); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException { ((Statement) sm.getStateValue(STMT)).cancel(); }
+    }
+
+    /** isClosed — validates against CLOSED state. */
+    private static class IsClosedAction extends Action {
+        private final StateMachineTest sm;
+        IsClosedAction(StateMachineTest sm) { super("isClosed", 5); this.sm = sm; }
+        @Override public boolean canRun() { return true; }
+        @Override public void run() throws SQLException {
+            boolean closed = ((Statement) sm.getStateValue(STMT)).isClosed();
+            if (closed != sm.isState(CLOSED)) throw new AssertionError("isClosed mismatch");
+        }
+    }
+
+    /** setResponseBuffering / getResponseBuffering (SQLServerStatement). */
+    private static class SetResponseBufferingAction extends Action {
+        private final StateMachineTest sm;
+        SetResponseBufferingAction(StateMachineTest sm) { super("setResponseBuffering", 3); this.sm = sm; }
+        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        @Override public void run() throws SQLException {
+            Statement stmt = (Statement) sm.getStateValue(STMT);
+            if (stmt instanceof SQLServerStatement) {
+                SQLServerStatement ssStmt = (SQLServerStatement) stmt;
+                String value = sm.getRandom().nextBoolean() ? "adaptive" : "full";
+                ssStmt.setResponseBuffering(value);
+                if (!ssStmt.getResponseBuffering().equalsIgnoreCase(value))
+                    throw new AssertionError("setResponseBuffering mismatch");
+            }
+        }
+    }
+
+
     @Test
-    @DisplayName("FX Model: Randomized Statement Execution Exploration")
+    @DisplayName("Randomized Statement Execution Exploration")
     void testRandomizedStatementExecution() throws SQLException {
         Assumptions.assumeTrue(connectionString != null, "No database connection configured");
 
@@ -161,7 +607,7 @@ public class StatementExecutionStateTest extends AbstractTest {
                 sm.setState(CONCURRENCY, ResultSet.CONCUR_READ_ONLY);
                 sm.setState(HOLDABILITY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
                 sm.setState(QUERY_INDEX, 0);
-                sm.setState(StatementExecutionState.TABLE_NAME, TABLE_NAME);
+                sm.setState(SM_TABLE_NAME, TABLE_NAME);
                 sm.setState(ROW_COUNT, ROW_COUNT_VAL);
 
                 sm.addAction(new ExecuteSelectAction(sm));
@@ -199,23 +645,19 @@ public class StatementExecutionStateTest extends AbstractTest {
                 sm.addAction(new SetResponseBufferingAction(sm));
 
                 Result result = Engine.run(sm).withMaxActions(100).withTimeout(60).execute();
-
-                System.out.println("\nStatement execution state machine: " + result.actionCount + " actions");
-                assertTrue(result.isSuccess(), "State machine should complete without errors. Error: "
-                        + (result.error != null ? result.error.getMessage() : "none"));
+                assertTrue(result.isSuccess(), "Model run failed: " + result);
             }
         }
     }
 
-    // ==================== TCStatementSanity: SRR Tests ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCStatementSanity: Single Result Set Read (SRR)")
+    @DisplayName("Single Result Set Read (SRR)")
     class SRRTests {
 
         /**
-         * FX: TCStatementSanity.testSRR - Statement SRR.
+         * Statement SRR.
          * Create Statement, execute SELECT, verify result set returned.
          * Cursor types: default, FORWARD_ONLY, SCROLL_INSENSITIVE, SCROLL_SENSITIVE.
          */
@@ -237,9 +679,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCStatementSanity.testSRR - PreparedStatement SRR.
-         */
         @Test
         @DisplayName("testSRR: PreparedStatement executeQuery returns ResultSet")
         void testSRR_PreparedStatement() throws SQLException {
@@ -258,9 +697,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCStatementSanity.testSRR - CallableStatement SRR.
-         */
         @Test
         @DisplayName("testSRR: CallableStatement executeQuery returns ResultSet")
         void testSRR_CallableStatement() throws SQLException {
@@ -291,7 +727,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCStatementSanity.testAllSRR - All execute states with SRR.
+         * All execute states with SRR.
          * Loop through execute/executeQuery for each statement type.
          */
         @Test
@@ -338,7 +774,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCStatementSanity.testSRR with scrollable cursor types.
+         * TCStatementSanity.testSRR with scrollable cursor types.
          * FORWARD_ONLY, SCROLL_INSENSITIVE, SCROLL_SENSITIVE.
          */
         @Test
@@ -367,15 +803,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCStatementSanity: DML Tests ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCStatementSanity: Data Manipulation (DML)")
+    @DisplayName("Data Manipulation (DML)")
     class DMLTests {
 
         /**
-         * FX: TCStatementSanity.testDML - Statement DML.
+         * Statement DML.
          * Create Statement, execute UPDATE, verify update count.
          */
         @Test
@@ -392,9 +827,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCStatementSanity.testDML - PreparedStatement DML.
-         */
         @Test
         @DisplayName("testDML: PreparedStatement executeUpdate returns correct count")
         void testDML_PreparedStatement() throws SQLException {
@@ -411,9 +843,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCStatementSanity.testDML - CallableStatement DML.
-         */
         @Test
         @DisplayName("testDML: CallableStatement executeUpdate returns correct count")
         void testDML_CallableStatement() throws SQLException {
@@ -442,7 +871,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCStatementSanity.testAllDML - All execute states with DML.
+         * All execute states with DML.
          * Loop through execute/executeUpdate for all statement types.
          */
         @Test
@@ -483,7 +912,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCStatementSanity.testDML with all cursor types.
+         * TCStatementSanity.testDML with all cursor types.
          */
         @Test
         @DisplayName("testDML: All cursor types with executeUpdate")
@@ -509,15 +938,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCStatementSanity: Batch DML ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCStatementSanity + TCBatching: Batch Operations")
+    @DisplayName("Batch Operations")
     class BatchTests {
 
         /**
-         * FX: TCStatementSanity.testBatchDML - Statement batch DML.
+         * Statement batch DML.
          * addBatch(DML), addBatch(DML), executeBatch, clearBatch.
          */
         @Test
@@ -540,9 +968,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCBatching.testBatchDML - PreparedStatement batch.
-         */
         @Test
         @DisplayName("testBatchDML: PreparedStatement addBatch/executeBatch")
         void testBatchDML_PreparedStatement() throws SQLException {
@@ -566,7 +991,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCBatching.testBatchSQL - Complex batch SQL (mixed queries).
+         * Complex batch SQL (mixed queries).
          * Execute complex query with SELECT and UPDATE combined.
          */
         @Test
@@ -600,7 +1025,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCBatching.testBatchWarning - Batch with RAISERROR level < 10 (warning).
+         * Batch with RAISERROR level < 10 (warning).
          */
         @Test
         @DisplayName("testBatchWarning: Batch with warning-level RAISERROR")
@@ -619,7 +1044,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCBatching.testBatchException - Batch with RAISERROR level >= 11 (error).
+         * Batch with RAISERROR level >= 11 (error).
          */
         @Test
         @DisplayName("testBatchException: Batch with error-level RAISERROR throws BatchUpdateException")
@@ -637,7 +1062,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCBatching.testBatchWithErrors - Batch with PK violation.
+         * Batch with PK violation.
          * addBatch(good), addBatch(PK violation), executeBatch, verify exception & update counts.
          */
         @Test
@@ -660,15 +1085,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCStatementSanity: Partial Consumption ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCStatementSanity: Partial Consumption & Multi-Result")
+    @DisplayName("Partial Consumption & Multi-Result")
     class PartialConsumptionTests {
 
         /**
-         * FX: TCStatementSanity.testPartialConsumption - Execute query,
+         * Execute query,
          * consume partial rows, re-execute.
          */
         @Test
@@ -699,9 +1123,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCStatementSanity.testPartialConsumption - PreparedStatement.
-         */
         @Test
         @DisplayName("testPartialConsumption: PreparedStatement partial consumption")
         void testPartialConsumption_PreparedStatement() throws SQLException {
@@ -727,7 +1148,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCStatementSanity.testRandomWalk / testOtherQueries -
+         * TCStatementSanity.testRandomWalk / testOtherQueries -
          * Multiple result sets with getMoreResults navigation.
          */
         @Test
@@ -760,7 +1181,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCStatementSanity.testOtherQueries - Cross-statement type execution.
+         * Cross-statement type execution.
          * Execute a sproc via Statement (not CallableStatement).
          */
         @Test
@@ -805,15 +1226,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCStatementSanity: Closed Connection ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCStatementSanity: Closed Connection / Statement")
+    @DisplayName("Closed Connection / Statement")
     class ClosedConnectionTests {
 
         /**
-         * FX: TCStatementSanity.testClosedConnection - Operations on closed stmt throw.
+         * Operations on closed stmt throw.
          * Also covers testStmtMethodsWhenClosed.
          */
         @Test
@@ -843,7 +1263,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCStatementSanity.testClosedConnection - isClosed variations.
+         * isClosed variations.
          * Verify isClosed before and after close, multiple close calls.
          */
         @Test
@@ -865,7 +1285,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCStatementSanity.testClosedConnection - Operations on statement
+         * Operations on statement
          * after connection close.
          */
         @Test
@@ -885,16 +1305,12 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCCancel ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCCancel: Statement Cancellation")
+    @DisplayName("Statement Cancellation")
     class CancelTests {
 
-        /**
-         * FX: TCCancel.testCancel - Cancel before and after execute.
-         */
         @Test
         @DisplayName("testCancel: Cancel before execute (no-op) and after execute")
         void testCancel() throws SQLException {
@@ -912,7 +1328,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCCancel.testCancelWaitfor - Cancel a long-running WAITFOR query
+         * Cancel a long-running WAITFOR query
          * from another thread.
          */
         @Test
@@ -946,7 +1362,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCCancel.testCancelMultipleStmts - Cancel multiple statements on
+         * Cancel multiple statements on
          * same connection from cancel thread.
          */
         @Test
@@ -972,15 +1388,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCWarnings ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCWarnings: Warnings and Exceptions")
+    @DisplayName("Warnings and Exceptions")
     class WarningsTests {
 
         /**
-         * FX: TCWarnings.testWarnings - Execute RAISERROR with level < 10,
+         * Execute RAISERROR with level < 10,
          * verify getWarnings/clearWarnings.
          */
         @Test
@@ -1007,7 +1422,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCWarnings.testWarningsExceptions - RAISERROR level 11-18
+         * RAISERROR level 11-18
          * throws exception with no warning.
          */
         @Test
@@ -1034,15 +1449,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCGetters ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCGetters: Statement Property Getters/Setters")
+    @DisplayName("Statement Property Getters/Setters")
     class GetterSetterTests {
 
         /**
-         * FX: TCGetters.testGetConnection - Verify getConnection returns same instance.
+         * Verify getConnection returns same instance.
          */
         @Test
         @DisplayName("testGetConnection: getConnection returns parent connection")
@@ -1060,7 +1474,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCGetters.testMaxGetters - getMaxFieldSize/getMaxRows default to 0.
+         * getMaxFieldSize/getMaxRows default to 0.
          */
         @Test
         @DisplayName("testMaxGetters: Default maxFieldSize and maxRows are 0")
@@ -1077,7 +1491,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCGetters.testMaxSetters - setMaxFieldSize/setMaxRows and verify.
+         * setMaxFieldSize/setMaxRows and verify.
          */
         @Test
         @DisplayName("testMaxSetters: Set and verify maxFieldSize/maxRows")
@@ -1107,9 +1521,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCGetters.testMaxSettersInvalid - Negative values throw.
-         */
         @Test
         @DisplayName("testMaxSettersInvalid: Negative maxFieldSize/maxRows throw SQLException")
         void testMaxSettersInvalid() throws SQLException {
@@ -1125,7 +1536,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCGetters.testMaxSettersMultipleStmt - maxFieldSize/maxRows are per-statement.
+         * maxFieldSize/maxRows are per-statement.
          */
         @Test
         @DisplayName("testMaxSettersMultipleStmt: maxRows/maxFieldSize are per-statement")
@@ -1155,7 +1566,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCGetters.testSetMaxRows - maxRows with executeUpdate and executeBatch.
+         * maxRows with executeUpdate and executeBatch.
          * Automates VSTS #157330.
          */
         @Test
@@ -1181,7 +1592,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCGetters.testCursorName - setCursorName(null).
+         * setCursorName(null).
          */
         @Test
         @DisplayName("testCursorName: setCursorName(null) does not throw")
@@ -1197,7 +1608,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCGetters.testCursorNameValue - setCursorName(value).
+         * setCursorName(value).
          */
         @Test
         @DisplayName("testCursorNameValue: setCursorName with valid value")
@@ -1214,7 +1625,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCGetters.testCursorNameValueTooLarge - setCursorName with > 128 chars.
+         * setCursorName with > 128 chars.
          */
         @Test
         @DisplayName("testCursorNameValueTooLarge: setCursorName with oversized name")
@@ -1235,7 +1646,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCGetters.testGetHoldability (from FX commented-out test).
+         * Verify getResultSetHoldability returns a valid holdability constant.
          */
         @Test
         @DisplayName("testGetHoldability: getResultSetHoldability returns valid value")
@@ -1253,15 +1664,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCGetters: Response Buffering ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCGetters: Response Buffering")
+    @DisplayName("Response Buffering")
     class ResponseBufferingTests {
 
         /**
-         * FX: TCGetters.testSetResponseBuffering - All conn/stmt level combos.
+         * All conn/stmt level combos.
          */
         @Test
         @DisplayName("testSetResponseBuffering: adaptive and full modes")
@@ -1294,7 +1704,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCGetters.testSetResponseBufferingMultipleStmt - Per-statement setting.
+         * Per-statement setting.
          */
         @Test
         @DisplayName("testSetResponseBufferingMultipleStmt: Per-statement response buffering")
@@ -1324,9 +1734,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCGetters.testSetResponseBufferingInvalid - Invalid value throws.
-         */
         @Test
         @DisplayName("testSetResponseBufferingInvalid: Invalid value throws SQLException")
         @SuppressWarnings("resource")
@@ -1345,16 +1752,12 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCAllCursors ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCAllCursors: Cursor Properties")
+    @DisplayName("Cursor Properties")
     class CursorPropertyTests {
 
-        /**
-         * FX: TCAllCursors.testGetFetchSize - Verify default fetch size for cursors.
-         */
         @Test
         @DisplayName("testGetFetchSize: Default fetch size per cursor type")
         void testGetFetchSize() throws SQLException {
@@ -1376,9 +1779,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCAllCursors.testGetFetchDirection - Verify default fetch direction.
-         */
         @Test
         @DisplayName("testGetFetchDirection: Default fetch direction per cursor type")
         void testGetFetchDirection() throws SQLException {
@@ -1402,7 +1802,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCAllCursors.testSetFetchSizeDefault - setFetchSize(0) resets to default.
+         * setFetchSize(0) resets to default.
          */
         @Test
         @DisplayName("testSetFetchSizeDefault: setFetchSize(0) resets to default")
@@ -1423,9 +1823,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCAllCursors.testSetFetchSizeValid - Random valid value.
-         */
         @Test
         @DisplayName("testSetFetchSizeValid: Set random valid fetch size")
         void testSetFetchSizeValid() throws SQLException {
@@ -1443,9 +1840,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCAllCursors.testSetFetchSizeInvalid - Negative value throws.
-         */
         @Test
         @DisplayName("testSetFetchSizeInvalid: Negative fetch size throws SQLException")
         void testSetFetchSizeInvalid() throws SQLException {
@@ -1458,9 +1852,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCAllCursors.testGetResultSetConcurrency - Verify matches creation param.
-         */
         @Test
         @DisplayName("testGetResultSetConcurrency: Matches statement creation parameter")
         void testGetResultSetConcurrency() throws SQLException {
@@ -1479,9 +1870,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: TCAllCursors.testGetResultSetType - Verify matches creation param.
-         */
         @Test
         @DisplayName("testGetResultSetType: Matches statement creation parameter")
         void testGetResultSetType() throws SQLException {
@@ -1501,8 +1889,8 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCAllCursors.testForcedQueryTimeout - Set timeout, execute WAITFOR,
-         * verify timeout exception. FX loops twice (VSTS #141264 re-execute).
+         * Set timeout, execute WAITFOR,
+         * verify timeout exception. Loops twice to test re-execute after timeout (VSTS #141264).
          */
         @Test
         @DisplayName("testForcedQueryTimeout: Query timeout with WAITFOR")
@@ -1513,11 +1901,11 @@ public class StatementExecutionStateTest extends AbstractTest {
                 assertEquals(0, stmt.getQueryTimeout(), "Default queryTimeout should be 0");
 
                 int timeout = 2;
-                int waittime = 1 + 2 * timeout; // FX: waittime = 1 + 2*timeout
+                int waittime = 1 + 2 * timeout;
                 stmt.setQueryTimeout(timeout);
                 assertEquals(timeout, stmt.getQueryTimeout(), "setQueryTimeout mismatch");
 
-                // FX: VSTS #141264, Re-execute - loop twice to verify re-execute after timeout
+                // VSTS #141264, Re-execute - loop twice to verify re-execute after timeout
                 for (int i = 0; i < 2; i++) {
                     long startTime = System.currentTimeMillis();
                     try {
@@ -1529,7 +1917,7 @@ public class StatementExecutionStateTest extends AbstractTest {
                         assertTrue("The query has timed out.".equalsIgnoreCase(e.getMessage()),
                                 "Should get 'The query has timed out.' but got: " + e.getMessage());
                         // Verify actual timeout >= configured timeout (with small tolerance)
-                        long diff = elapsed + 10; // FX allows 10ms deviation
+                        long diff = elapsed + 10; // allow 10ms deviation
                         assertTrue(diff >= timeout * 1000L,
                                 "Query timed out earlier than expected: " + (timeout * 1000L)
                                         + ", actual: " + elapsed);
@@ -1539,15 +1927,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCStatementEx: Pooling ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCStatementEx: Statement Pooling")
+    @DisplayName("Statement Pooling")
     class PoolingTests {
 
         /**
-         * FX: TCStatementEx.testStmtPooling - isPoolable/setPoolable.
+         * isPoolable/setPoolable.
          * Check default, toggle, verify closed throws.
          */
         @Test
@@ -1573,15 +1960,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCPreparedStatement + TCCallableStatement ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCPreparedStatement/TCCallableStatement: Prepared & Callable Tests")
+    @DisplayName("Prepared & Callable Tests")
     class PreparedCallableTests {
 
         /**
-         * FX: TCPreparedStatement - SRR with all cursor types for PreparedStatement.
+         * TCPreparedStatement - SRR with all cursor types for PreparedStatement.
          */
         @Test
         @DisplayName("PreparedStatement SRR with all cursor types")
@@ -1610,7 +1996,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCPreparedStatement - DML with all cursor types.
+         * TCPreparedStatement - DML with all cursor types.
          */
         @Test
         @DisplayName("PreparedStatement DML with all cursor types")
@@ -1637,7 +2023,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCCallableStatement - SRR with all cursor types.
+         * TCCallableStatement - SRR with all cursor types.
          */
         @Test
         @DisplayName("CallableStatement SRR with all cursor types")
@@ -1677,7 +2063,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCCallableStatement - DML with callable statement.
+         * TCCallableStatement - DML with callable statement.
          */
         @Test
         @DisplayName("CallableStatement DML with cursor types")
@@ -1707,7 +2093,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: CallableStatement batch updates via addBatch.
+         * CallableStatement batch updates via addBatch.
          */
         @Test
         @DisplayName("CallableStatement batch DML with addBatch")
@@ -1740,15 +2126,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCMultipleStatements ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCMultipleStatements: Multiple Statements on Same Connection")
+    @DisplayName("Multiple Statements on Same Connection")
     class MultipleStatementTests {
 
         /**
-         * FX: TCMultipleStatements.testAccessRS - Execute multiple statements
+         * Execute multiple statements
          * returning ResultSets, access concurrently on same connection.
          */
         @Test
@@ -1789,7 +2174,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: Multiple statements with mixed DML and SELECT.
+         * Multiple statements with mixed DML and SELECT.
          */
         @Test
         @DisplayName("Multiple statements: DML interleaved with SELECT")
@@ -1811,76 +2196,12 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== Execute with Generated Keys ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX: Execute with Generated Keys")
+    @DisplayName("Execute with Generated Keys")
     class GeneratedKeysTests {
 
-        /**
-         * FX: fxStatement.execute(sql, RETURN_GENERATED_KEYS).
-         */
-        @Test
-        @DisplayName("execute with RETURN_GENERATED_KEYS")
-        void testExecuteWithGeneratedKeys() throws SQLException {
-            Assumptions.assumeTrue(connectionString != null);
-            String identTable = AbstractSQLGenerator
-                    .escapeIdentifier(RandomUtil.getIdentifier("SM_GenKeys"));
-            try (Connection conn = PrepUtil.getConnection(connectionString)) {
-                try (Statement stmt = conn.createStatement()) {
-                    TestUtils.dropTableIfExists(identTable, stmt);
-                    stmt.execute("CREATE TABLE " + identTable
-                            + " (id INT IDENTITY(1,1) PRIMARY KEY, value INT)");
-
-                    stmt.execute("INSERT INTO " + identTable + " (value) VALUES (100)",
-                            Statement.RETURN_GENERATED_KEYS);
-                    try (ResultSet keys = stmt.getGeneratedKeys()) {
-                        assertTrue(keys.next(), "Should have generated key");
-                        int generatedId = keys.getInt(1);
-                        assertTrue(generatedId > 0, "Generated key should be positive");
-                    }
-                } finally {
-                    try (Statement cleanup = conn.createStatement()) {
-                        TestUtils.dropTableIfExists(identTable, cleanup);
-                    }
-                }
-            }
-        }
-
-        /**
-         * FX: fxStatement.executeUpdate(sql, RETURN_GENERATED_KEYS).
-         */
-        @Test
-        @DisplayName("executeUpdate with RETURN_GENERATED_KEYS")
-        void testExecuteUpdateWithGeneratedKeys() throws SQLException {
-            Assumptions.assumeTrue(connectionString != null);
-            String identTable = AbstractSQLGenerator
-                    .escapeIdentifier(RandomUtil.getIdentifier("SM_GenKeysUpd"));
-            try (Connection conn = PrepUtil.getConnection(connectionString)) {
-                try (Statement stmt = conn.createStatement()) {
-                    TestUtils.dropTableIfExists(identTable, stmt);
-                    stmt.execute("CREATE TABLE " + identTable
-                            + " (id INT IDENTITY(1,1) PRIMARY KEY, value INT)");
-
-                    int uc = stmt.executeUpdate(
-                            "INSERT INTO " + identTable + " (value) VALUES (200)",
-                            Statement.RETURN_GENERATED_KEYS);
-                    assertEquals(1, uc, "Should insert 1 row");
-                    try (ResultSet keys = stmt.getGeneratedKeys()) {
-                        assertTrue(keys.next(), "Should have generated key");
-                    }
-                } finally {
-                    try (Statement cleanup = conn.createStatement()) {
-                        TestUtils.dropTableIfExists(identTable, cleanup);
-                    }
-                }
-            }
-        }
-
-        /**
-         * FX: fxStatement.execute(sql, int[]) - with column indexes.
-         */
         @Test
         @DisplayName("execute with column indexes for generated keys")
         void testExecuteWithColumnIndexes() throws SQLException {
@@ -1906,9 +2227,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: fxStatement.execute(sql, String[]) - with column names.
-         */
         @Test
         @DisplayName("execute with column names for generated keys")
         void testExecuteWithColumnNames() throws SQLException {
@@ -1935,16 +2253,15 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== Additional FX Scenarios ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX: Additional Statement Scenarios")
+    @DisplayName("Additional Statement Scenarios")
     class AdditionalScenarios {
 
         /**
-         * FX: TCStatementSanity.testEmptyString - Execute empty string via Statement.
-         * FX executes executeUpdate("") twice with new statements — no exception expected.
+         * Execute empty string via Statement.
+         * Executes executeUpdate("") twice with new statements — no exception expected.
          */
         @Test
         @DisplayName("testEmptyStringText: Execute empty string SQL")
@@ -1963,8 +2280,8 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCStatementSanity.testEmptyStringPreparedStatement - Execute empty string
-         * via PreparedStatement. FX executes twice with new pstmt — no exception expected.
+         * Execute empty string
+         * via PreparedStatement. Executes twice with new pstmt — no exception expected.
          */
         @Test
         @DisplayName("testEmptyStringPreparedStatement: PrepareStatement with empty SQL")
@@ -1983,8 +2300,8 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: TCStatementSanity.testEmptyStringCallableStatement - Execute empty string
-         * via CallableStatement. FX executes twice with new cstmt — no exception expected.
+         * Execute empty string
+         * via CallableStatement. Executes twice with new cstmt — no exception expected.
          */
         @Test
         @DisplayName("testEmptyStringCallableStatement: prepareCall with empty SQL")
@@ -2002,9 +2319,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: fxStatement.getMetaData() - get result set metadata after execute.
-         */
         @Test
         @DisplayName("testGetMetaData: getMetaData after executeQuery")
         void testGetMetaData() throws SQLException {
@@ -2022,9 +2336,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: setEscapeProcessing and execute.
-         */
         @Test
         @DisplayName("testSetEscapeProcessing: Enable/disable escape processing")
         void testSetEscapeProcessing() throws SQLException {
@@ -2049,7 +2360,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: Execute compound statement - executeQuery with update counts.
+         * Execute compound statement - executeQuery with update counts.
          */
         @Test
         @DisplayName("testExecuteQueryWithUpdateCounts: Compound SQL via execute")
@@ -2077,7 +2388,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: Execute compound statement - executeUpdate with result sets.
+         * Execute compound statement - executeUpdate with result sets.
          */
         @Test
         @DisplayName("testExecuteUpdateWithResultSets: SELECT then UPDATE via execute")
@@ -2108,7 +2419,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: SET NOCOUNT ON/OFF behavior.
+         * SET NOCOUNT ON/OFF behavior.
          */
         @Test
         @DisplayName("testSetNoCount: SET NOCOUNT ON suppresses update counts")
@@ -2131,7 +2442,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: SET NOCOUNT with IDENTITY - insert with identity and NOCOUNT.
+         * SET NOCOUNT with IDENTITY - insert with identity and NOCOUNT.
          */
         @Test
         @DisplayName("testNoCountWithIdentity: NOCOUNT with IDENTITY column")
@@ -2159,7 +2470,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: Duplicate insert (PK violation).
+         * Duplicate insert (PK violation).
          */
         @Test
         @DisplayName("testDuplicateInsert: PK violation throws SQLException")
@@ -2177,7 +2488,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testReusePreparedStatement - Re-execute prepared statement multiple times.
+         * testReusePreparedStatement - Re-execute prepared statement multiple times.
          */
         @Test
         @DisplayName("testReusePreparedStatement: Re-execute same pstmt multiple times")
@@ -2200,7 +2511,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testUpdateCount - getUpdateCount after various operations.
+         * testUpdateCount - getUpdateCount after various operations.
          */
         @Test
         @DisplayName("testUpdateCount: getUpdateCount verification after execute")
@@ -2226,7 +2537,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testForXmlAuto - Execute FOR XML AUTO query.
+         * testForXmlAuto - Execute FOR XML AUTO query.
          */
         @Test
         @DisplayName("testForXmlAuto: SELECT ... FOR XML AUTO")
@@ -2246,7 +2557,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: getMoreResults(CLOSE_CURRENT_RESULT / CLOSE_ALL_RESULTS).
+         * getMoreResults(CLOSE_CURRENT_RESULT / CLOSE_ALL_RESULTS).
          */
         @Test
         @DisplayName("testGetMoreResultsWithFlags: CLOSE_CURRENT_RESULT and CLOSE_ALL_RESULTS")
@@ -2279,15 +2590,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCStatementRegressionCases: Regression Scenarios ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCStatementRegressionCases: Regression Scenarios")
+    @DisplayName("Regression Scenarios")
     class RegressionCaseTests {
 
         /**
-         * FX: testSelectInto - SELECT INTO with SCROLL_SENSITIVE/CONCUR_UPDATABLE
+         * testSelectInto - SELECT INTO with SCROLL_SENSITIVE/CONCUR_UPDATABLE
          * should throw "statement did not return result set" when executeQuery
          * is called with a SELECT INTO statement.
          */
@@ -2319,7 +2629,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testDDLReturnValue - CREATE TABLE and DROP TABLE should return 0,
+         * testDDLReturnValue - CREATE TABLE and DROP TABLE should return 0,
          * INSERT should return 1.
          */
         @Test
@@ -2345,9 +2655,9 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testCallableIfExists - CallableStatement with IF EXISTS query
+         * testCallableIfExists - CallableStatement with IF EXISTS query
          * should return a ResultSet without error.
-         * FX uses a simple unique identifier (no special chars) since the name
+         * Uses a simple unique identifier (no special chars) since the name
          * appears inside a string literal in object_id().
          */
         @Test
@@ -2371,7 +2681,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testUpdatePrepareCall - prepareCall with SCROLL_SENSITIVE/CONCUR_UPDATABLE
+         * testUpdatePrepareCall - prepareCall with SCROLL_SENSITIVE/CONCUR_UPDATABLE
          * cursor to INSERT via ResultSet.
          */
         @Test
@@ -2409,7 +2719,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testPLPInputStream - read XML column as BinaryStream and close it twice.
+         * testPLPInputStream - read XML column as BinaryStream and close it twice.
          * Verifies PLP InputStream behavior with XML data type.
          */
         @Test
@@ -2440,7 +2750,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testTableSpaces - table with spaces in name can be used for
+         * testTableSpaces - table with spaces in name can be used for
          * FORWARD_ONLY/CONCUR_UPDATABLE insertRow.
          */
         @Test
@@ -2474,7 +2784,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testParseEnvChanges - stored proc that does BEGIN TRAN / SELECT / COMMIT TRAN
+         * testParseEnvChanges - stored proc that does BEGIN TRAN / SELECT / COMMIT TRAN
          * should not leave active transactions via Statement, PreparedStatement, or CallableStatement.
          */
         @Test
@@ -2506,9 +2816,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: testParseEnvChanges via PreparedStatement.
-         */
         @Test
         @DisplayName("testParseEnvChanges: stored proc with tran (PreparedStatement)")
         void testParseEnvChangesPreparedStatement() throws SQLException {
@@ -2539,9 +2846,6 @@ public class StatementExecutionStateTest extends AbstractTest {
             }
         }
 
-        /**
-         * FX: testParseEnvChanges via CallableStatement.
-         */
         @Test
         @DisplayName("testParseEnvChanges: stored proc with tran (CallableStatement)")
         void testParseEnvChangesCallableStatement() throws SQLException {
@@ -2573,7 +2877,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testEmptyIndices - passing null int[] or null String[] for generated key
+         * testEmptyIndices - passing null int[] or null String[] for generated key
          * column names/indices to Statement/PreparedStatement.
          */
         @Test
@@ -2592,7 +2896,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testEmptyIndices - null String[] column names for Statement.
+         * testEmptyIndices - null String[] column names for Statement.
          */
         @Test
         @DisplayName("testEmptyIndices: null column names for Statement execute")
@@ -2610,7 +2914,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testEmptyIndices - null int[] for PreparedStatement DML.
+         * testEmptyIndices - null int[] for PreparedStatement DML.
          */
         @Test
         @DisplayName("testEmptyIndices: null column indices for PreparedStatement")
@@ -2626,7 +2930,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testEmptyStringLiteral - query with empty string literal ''
+         * testEmptyStringLiteral - query with empty string literal ''
          * appended to SELECT for Statement, PreparedStatement, CallableStatement.
          */
         @Test
@@ -2648,7 +2952,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testEmptyStringLiteral via PreparedStatement.
+         * testEmptyStringLiteral via PreparedStatement.
          */
         @Test
         @DisplayName("testEmptyStringLiteral: SELECT with '' literal via PreparedStatement")
@@ -2671,7 +2975,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testEmptyStringLiteral via CallableStatement.
+         * testEmptyStringLiteral via CallableStatement.
          */
         @Test
         @DisplayName("testEmptyStringLiteral: SELECT with '' literal via CallableStatement")
@@ -2692,7 +2996,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testEmptyStringText - stored proc that handles empty string text parameter,
+         * testEmptyStringText - stored proc that handles empty string text parameter,
          * inserting and updating text data.
          */
         @Test
@@ -2735,15 +3039,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCStatementInvalidCases ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCStatementInvalidCases: Invalid Statement Operations")
+    @DisplayName("Invalid Statement Operations")
     class InvalidCaseTests {
 
         /**
-         * FX: testBatchInvalidStatement - PreparedStatement and CallableStatement
+         * testBatchInvalidStatement - PreparedStatement and CallableStatement
          * should throw when addBatch(String) is called (JDBC spec violation).
          */
         @Test
@@ -2764,7 +3067,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testBatchInvalidStatement - CallableStatement variant.
+         * testBatchInvalidStatement - CallableStatement variant.
          */
         @Test
         @DisplayName("testBatchInvalidStatement: addBatch(String) on CallableStatement should fail")
@@ -2792,7 +3095,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testUnsupportedCursor - creating statement with random invalid
+         * testUnsupportedCursor - creating statement with random invalid
          * ResultSet type/concurrency should throw SQLException.
          */
         @Test
@@ -2809,7 +3112,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testUnsupportedCursor - PreparedStatement variant.
+         * testUnsupportedCursor - PreparedStatement variant.
          */
         @Test
         @DisplayName("testUnsupportedCursor: invalid RS type/concurrency for PreparedStatement")
@@ -2827,7 +3130,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testUnsupportedCursor - CallableStatement variant.
+         * testUnsupportedCursor - CallableStatement variant.
          */
         @Test
         @DisplayName("testUnsupportedCursor: invalid RS type/concurrency for CallableStatement")
@@ -2845,15 +3148,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCPreparedStatement: Parameter Tests ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCPreparedStatement: Parameter Handling")
+    @DisplayName("Parameter Handling")
     class PreparedStatementParamTests {
 
         /**
-         * FX: testParametersEachRow - set params for each row with strongly-typed setters,
+         * testParametersEachRow - set params for each row with strongly-typed setters,
          * execute SELECT with WHERE clause per row.
          */
         @Test
@@ -2878,7 +3180,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testParametersEachRowObject - set params via setObject for UPDATE per row.
+         * testParametersEachRowObject - set params via setObject for UPDATE per row.
          */
         @Test
         @DisplayName("testParametersEachRowObject: setObject per row for UPDATE")
@@ -2907,7 +3209,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testParametersEachRowDML - set params for DML, then re-execute
+         * testParametersEachRowDML - set params for DML, then re-execute
          * same PreparedStatement with updated params.
          */
         @Test
@@ -2924,7 +3226,7 @@ public class StatementExecutionStateTest extends AbstractTest {
                         int count = pstmt.executeUpdate();
                         assertEquals(1, count, "UPDATE should affect 1 row");
 
-                        // Re-execute with different value (mimics FX re-execute pattern)
+                        // Re-execute with different value
                         pstmt.setInt(1, i * 200);
                         pstmt.setInt(2, i);
                         count = pstmt.executeUpdate();
@@ -2935,7 +3237,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testParametersNullEachRow - set null params for each row via setNull.
+         * testParametersNullEachRow - set null params for each row via setNull.
          */
         @Test
         @DisplayName("testParametersNullEachRow: setNull per row for UPDATE")
@@ -2964,7 +3266,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testClearParameters - clearParameters and re-execute should throw,
+         * testClearParameters - clearParameters and re-execute should throw,
          * then re-set params and execute should succeed.
          */
         @Test
@@ -2996,7 +3298,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testStreamReset - stream parameter not reset between executions
+         * testStreamReset - stream parameter not reset between executions
          * should throw. Re-setting the stream should allow execute.
          */
         @Test
@@ -3028,7 +3330,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testStreamReset - even with stream.reset(), re-execute without
+         * testStreamReset - even with stream.reset(), re-execute without
          * calling setCharacterStream again should throw.
          */
         @Test
@@ -3062,15 +3364,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCCallableStatement: Parameter Tests ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCCallableStatement: Parameter Handling")
+    @DisplayName("Parameter Handling")
     class CallableStatementParamTests {
 
         /**
-         * FX: testParams - CallableStatement with input and output params.
+         * testParams - CallableStatement with input and output params.
          * Default sproc: returns out params and result set.
          */
         @Test
@@ -3101,7 +3402,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testParams with update sproc (insert with input params only).
+         * testParams with update sproc (insert with input params only).
          */
         @Test
         @DisplayName("testParams: callable with insert sproc, in params only")
@@ -3138,7 +3439,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testInvalidGetParams - getObject on params before execution should throw.
+         * testInvalidGetParams - getObject on params before execution should throw.
          * After registering in-params and executing, should work for out-params.
          */
         @Test
@@ -3171,7 +3472,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testWasNull - set in-params to null, execute, call wasNull on out-params.
+         * testWasNull - set in-params to null, execute, call wasNull on out-params.
          */
         @Test
         @DisplayName("testWasNull: wasNull() returns true for null out-params")
@@ -3209,7 +3510,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testClearParams - clearParameters then execute should fail if
+         * testClearParams - clearParameters then execute should fail if
          * sproc needs input params, succeed if only out params.
          */
         @Test
@@ -3247,7 +3548,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testExecuteBatchWithErrors - batch on CallableStatement with
+         * testExecuteBatchWithErrors - batch on CallableStatement with
          * out params should throw BatchUpdateException.
          */
         @Test
@@ -3280,7 +3581,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testExecuteBatchWithErrors - batch on CallableStatement with
+         * testExecuteBatchWithErrors - batch on CallableStatement with
          * SELECT (no update count) should throw BatchUpdateException.
          */
         @Test
@@ -3310,7 +3611,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testExecuteWithParamErrors - execute callable where server cannot
+         * testExecuteWithParamErrors - execute callable where server cannot
          * assign out-param value due to type mismatch (overflow).
          */
         @Test
@@ -3339,7 +3640,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testReExecuteSameParams - execute CallableStatement twice without
+         * testReExecuteSameParams - execute CallableStatement twice without
          * re-setting input params between executions should succeed.
          */
         @Test
@@ -3375,15 +3676,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== TCMultipleStatements: Concurrent Access ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCMultipleStatements: Concurrent Statement Access")
+    @DisplayName("Concurrent Statement Access")
     class ConcurrentStatementTests {
 
         /**
-         * FX: testAccessCSTMT - CallableStatement with DML and output params,
+         * testAccessCSTMT - CallableStatement with DML and output params,
          * concurrent access pattern.
          */
         @Test
@@ -3415,7 +3715,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testAccessCSTMT - CallableStatement with SELECT and output params,
+         * testAccessCSTMT - CallableStatement with SELECT and output params,
          * walking through ResultSet and out params.
          */
         @Test
@@ -3452,7 +3752,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testModel - state machine model-based exploration with ANY statement type
+         * testModel - state machine model-based exploration with ANY statement type
          * and various query types (SRR, MRR, DML, MDML, MIX).
          * This is already covered by testRandomizedStatementExecution but
          * here we exercise specific combinations.
@@ -3491,7 +3791,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testModel - DML model exploration.
+         * testModel - DML model exploration.
          */
         @Test
         @DisplayName("testModel: model-based DML exploration")
@@ -3515,7 +3815,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testModel - mixed query exploration (UPDATE + SELECT).
+         * testModel - mixed query exploration (UPDATE + SELECT).
          */
         @Test
         @DisplayName("testModel: model-based mixed query (DML+SELECT)")
@@ -3543,15 +3843,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== SSPAU: SendStringParametersAsUnicode Tests ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX SSPAU: SendStringParametersAsUnicode")
+    @DisplayName("SendStringParametersAsUnicode")
     class SSPAUTests {
 
         /**
-         * FX: testParametersSSPAUUnicodeInCollation - PreparedStatement with
+         * testParametersSSPAUUnicodeInCollation - PreparedStatement with
          * sendStringParametersAsUnicode=true, using setString for textual columns
          * in the database collation.
          */
@@ -3606,7 +3905,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testParametersSSPAUUnicodeNotInCollation - PreparedStatement with
+         * testParametersSSPAUUnicodeNotInCollation - PreparedStatement with
          * sendStringParametersAsUnicode=false, potential data corruption for
          * Unicode characters not in the database collation.
          */
@@ -3649,7 +3948,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testParamsSSPAUUnicodeInCollation - CallableStatement with
+         * testParamsSSPAUUnicodeInCollation - CallableStatement with
          * sendStringParametersAsUnicode=true, using setString for callable params.
          */
         @Test
@@ -3693,7 +3992,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testParamsSSPAUUnicodeNotInCollation - CallableStatement with
+         * testParamsSSPAUUnicodeNotInCollation - CallableStatement with
          * sendStringParametersAsUnicode=false, testing potential corruption.
          */
         @Test
@@ -3726,15 +4025,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== AE Variant Tests ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX AE Variant: Additional Statement Scenarios")
+    @DisplayName("Additional Statement Scenarios")
     class AEVariantTests {
 
         /**
-         * FX: testFourPartSproc - four-part sproc name execution
+         * testFourPartSproc - four-part sproc name execution
          * (server.database.schema.proc). Tests that CallableStatement can
          * handle fully qualified four-part naming for stored procedures.
          */
@@ -3772,9 +4070,9 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testInvalidStmtJDBC4Methods - JDBC4 specific Statement methods.
+         * testInvalidStmtJDBC4Methods - JDBC4 specific Statement methods.
          * Tests isClosed, setPoolable, isPoolable on Statement.
-         * (Original FX test was for pre-JDBC4 JVM - we verify methods work on modern JVM.)
+         * (Verifies JDBC4 methods work correctly on modern JVM.)
          */
         @Test
         @DisplayName("testInvalidStmtJDBC4Methods: JDBC4 Statement methods work correctly")
@@ -3797,7 +4095,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testInvalidPStmtJDBC4Methods - JDBC4 specific PreparedStatement methods.
+         * testInvalidPStmtJDBC4Methods - JDBC4 specific PreparedStatement methods.
          * Tests setNString, setNCharacterStream, setNClob on PreparedStatement.
          */
         @Test
@@ -3836,7 +4134,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testInvalidCStmtJDBC4Methods - JDBC4 specific CallableStatement methods.
+         * testInvalidCStmtJDBC4Methods - JDBC4 specific CallableStatement methods.
          * Tests getNString, getNCharacterStream on CallableStatement.
          */
         @Test
@@ -3871,15 +4169,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== Statement Methods When Closed ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCStatementRegressionCases: Closed Statement Method Validation")
+    @DisplayName("Closed Statement Method Validation")
     class ClosedStatementMethodTests {
 
         /**
-         * FX: testStmtMethodsWhenClosed - calling methods on a closed Statement
+         * testStmtMethodsWhenClosed - calling methods on a closed Statement
          * should throw "Statement is closed" for Statement type.
          */
         @Test
@@ -3907,7 +4204,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testStmtMethodsWhenClosed - PreparedStatement variant.
+         * testStmtMethodsWhenClosed - PreparedStatement variant.
          */
         @Test
         @DisplayName("testStmtMethodsWhenClosed: methods on closed PreparedStatement throw")
@@ -3933,7 +4230,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testStmtMethodsWhenClosed - CallableStatement variant.
+         * testStmtMethodsWhenClosed - CallableStatement variant.
          */
         @Test
         @DisplayName("testStmtMethodsWhenClosed: methods on closed CallableStatement throw")
@@ -3966,7 +4263,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testStmtMethodsWhenClosed - closing connection then calling stmt methods.
+         * testStmtMethodsWhenClosed - closing connection then calling stmt methods.
          */
         @Test
         @DisplayName("testStmtMethodsWhenClosed: methods after connection close")
@@ -3984,8 +4281,8 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testStmtMethodsWhenClosed - verify all getter/setter methods on closed
-         * statement using reflection (as FX does).
+         * testStmtMethodsWhenClosed - verify all getter/setter methods on closed
+         * statement using reflection.
          */
         @Test
         @DisplayName("testStmtMethodsWhenClosed: reflection-based check of all methods on closed Statement")
@@ -4048,15 +4345,14 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    // ==================== Fatal Error Handling ====================
 
     @Nested
     @Tag(Constants.legacyFx)
-    @DisplayName("FX TCStatementRegressionCases: Fatal Error Handling")
+    @DisplayName("Fatal Error Handling")
     class FatalErrorTests {
 
         /**
-         * FX: testFatalError - RAISERROR with severity 15 should throw
+         * testFatalError - RAISERROR with severity 15 should throw
          * without hanging. Can re-execute after error.
          */
         @Test
@@ -4078,7 +4374,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * FX: testReExecuteAfterQueryTimeout - verify re-execute works after
+         * testReExecuteAfterQueryTimeout - verify re-execute works after
          * a query timeout occurs.
          */
         @Test
