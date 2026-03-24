@@ -130,56 +130,53 @@ public class StatementExecutionStateTest extends AbstractTest {
 
     /** Execute SELECT — sets HAS_RESULT_SET=true. */
     private static class ExecuteSelectAction extends Action {
-        private final StateMachineTest sm;
-        ExecuteSelectAction(StateMachineTest sm) { super("execute(SELECT)", 10); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        ExecuteSelectAction() { super("execute(SELECT)", 10); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            Statement stmt = (Statement) getState(STMT);
+            String tableName = (String) getState(SM_TABLE_NAME);
             boolean hasResultSet = stmt.execute("SELECT * FROM " + tableName);
-            sm.setState(EXECUTED, true);
-            sm.setState(HAS_RESULT_SET, hasResultSet);
-            sm.setState(LAST_EXECUTE_WAS_BATCH, false);
-            sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
-            sm.setState(QUERY_INDEX, 0);
+            setState(EXECUTED, true);
+            setState(HAS_RESULT_SET, hasResultSet);
+            setState(LAST_EXECUTE_WAS_BATCH, false);
+            setState(LAST_EXECUTE_WAS_UPDATE, false);
+            setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            setState(QUERY_INDEX, 0);
             if (!hasResultSet) throw new AssertionError("execute(SELECT) should return true");
         }
     }
 
     /** Execute DML (UPDATE). */
     private static class ExecuteDMLAction extends Action {
-        private final StateMachineTest sm;
-        ExecuteDMLAction(StateMachineTest sm) { super("execute(UPDATE)", 10); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        ExecuteDMLAction() { super("execute(UPDATE)", 10); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
-            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
-            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId);
-            sm.setState(EXECUTED, true);
-            sm.setState(HAS_RESULT_SET, hasResultSet);
-            sm.setState(LAST_EXECUTE_WAS_BATCH, false);
-            sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
-            sm.setState(QUERY_INDEX, 0);
+            Statement stmt = (Statement) getState(STMT);
+            String tableName = (String) getState(SM_TABLE_NAME);
+            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId);
+            setState(EXECUTED, true);
+            setState(HAS_RESULT_SET, hasResultSet);
+            setState(LAST_EXECUTE_WAS_BATCH, false);
+            setState(LAST_EXECUTE_WAS_UPDATE, false);
+            setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            setState(QUERY_INDEX, 0);
             if (hasResultSet) throw new AssertionError("execute(UPDATE) should return false");
         }
     }
 
     /** executeQuery(SELECT) — consumes result inline. */
     private static class ExecuteQueryAction extends Action {
-        private final StateMachineTest sm;
-        ExecuteQueryAction(StateMachineTest sm) { super("executeQuery", 10); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        ExecuteQueryAction() { super("executeQuery", 10); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
+            Statement stmt = (Statement) getState(STMT);
+            String tableName = (String) getState(SM_TABLE_NAME);
             try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
-                sm.setState(LAST_EXECUTE_WAS_BATCH, false);
-                sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
-                sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
-                sm.setState(QUERY_INDEX, 0);
+                setState(LAST_EXECUTE_WAS_BATCH, false);
+                setState(LAST_EXECUTE_WAS_UPDATE, false);
+                setState(LAST_EXECUTE_GENERATED_KEYS, false);
+                setState(QUERY_INDEX, 0);
                 while (rs.next()) {}
             }
         }
@@ -187,287 +184,267 @@ public class StatementExecutionStateTest extends AbstractTest {
 
     /** executeUpdate(DML). */
     private static class ExecuteUpdateAction extends Action {
-        private final StateMachineTest sm;
-        ExecuteUpdateAction(StateMachineTest sm) { super("executeUpdate", 10); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        ExecuteUpdateAction() { super("executeUpdate", 10); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
-            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
-            int updateCount = stmt.executeUpdate("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId);
-            sm.setState(EXECUTED, true);
-            sm.setState(HAS_RESULT_SET, false);
-            sm.setState(LAST_EXECUTE_WAS_BATCH, false);
-            sm.setState(LAST_EXECUTE_WAS_UPDATE, true);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
-            sm.setState(QUERY_INDEX, 0);
+            Statement stmt = (Statement) getState(STMT);
+            String tableName = (String) getState(SM_TABLE_NAME);
+            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+            int updateCount = stmt.executeUpdate("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId);
+            setState(EXECUTED, true);
+            setState(HAS_RESULT_SET, false);
+            setState(LAST_EXECUTE_WAS_BATCH, false);
+            setState(LAST_EXECUTE_WAS_UPDATE, true);
+            setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            setState(QUERY_INDEX, 0);
             if (updateCount != 1) throw new AssertionError("executeUpdate should affect 1 row, got " + updateCount);
         }
     }
 
     /** execute(sql, autokeys) — conditionally requests generated keys. */
     private static class ExecuteWithGeneratedKeysAction extends Action {
-        private final StateMachineTest sm;
-        ExecuteWithGeneratedKeysAction(StateMachineTest sm) { super("execute(genKeys)", 5); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        ExecuteWithGeneratedKeysAction() { super("execute(genKeys)", 5); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
-            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
-            int autoKeyFlag = sm.getRandom().nextBoolean() ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS;
-            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, autoKeyFlag);
-            sm.setState(EXECUTED, true);
-            sm.setState(HAS_RESULT_SET, hasResultSet);
-            sm.setState(LAST_EXECUTE_WAS_BATCH, false);
-            sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS,
+            Statement stmt = (Statement) getState(STMT);
+            String tableName = (String) getState(SM_TABLE_NAME);
+            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+            int autoKeyFlag = getRandom().nextBoolean() ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS;
+            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId, autoKeyFlag);
+            setState(EXECUTED, true);
+            setState(HAS_RESULT_SET, hasResultSet);
+            setState(LAST_EXECUTE_WAS_BATCH, false);
+            setState(LAST_EXECUTE_WAS_UPDATE, false);
+            setState(LAST_EXECUTE_GENERATED_KEYS,
                     autoKeyFlag == Statement.RETURN_GENERATED_KEYS);
-            sm.setState(QUERY_INDEX, 0);
+            setState(QUERY_INDEX, 0);
         }
     }
 
     /** executeUpdate(sql, autokeys) — conditionally requests generated keys. */
     private static class ExecuteUpdateWithGeneratedKeysAction extends Action {
-        private final StateMachineTest sm;
-        ExecuteUpdateWithGeneratedKeysAction(StateMachineTest sm) { super("executeUpdate(genKeys)", 5); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        ExecuteUpdateWithGeneratedKeysAction() { super("executeUpdate(genKeys)", 5); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
-            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
-            int autoKeyFlag = sm.getRandom().nextBoolean() ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS;
-            stmt.executeUpdate("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, autoKeyFlag);
-            sm.setState(EXECUTED, true);
-            sm.setState(HAS_RESULT_SET, false);
-            sm.setState(LAST_EXECUTE_WAS_BATCH, false);
-            sm.setState(LAST_EXECUTE_WAS_UPDATE, true);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS,
+            Statement stmt = (Statement) getState(STMT);
+            String tableName = (String) getState(SM_TABLE_NAME);
+            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+            int autoKeyFlag = getRandom().nextBoolean() ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS;
+            stmt.executeUpdate("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId, autoKeyFlag);
+            setState(EXECUTED, true);
+            setState(HAS_RESULT_SET, false);
+            setState(LAST_EXECUTE_WAS_BATCH, false);
+            setState(LAST_EXECUTE_WAS_UPDATE, true);
+            setState(LAST_EXECUTE_GENERATED_KEYS,
                     autoKeyFlag == Statement.RETURN_GENERATED_KEYS);
-            sm.setState(QUERY_INDEX, 0);
+            setState(QUERY_INDEX, 0);
         }
     }
 
     /** execute(sql, int[] columnIndexes) — requests generated keys. */
     private static class ExecuteWithColumnIndexesAction extends Action {
-        private final StateMachineTest sm;
-        ExecuteWithColumnIndexesAction(StateMachineTest sm) { super("execute(colIndexes)", 3); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        ExecuteWithColumnIndexesAction() { super("execute(colIndexes)", 3); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
-            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
-            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{1});
-            sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, hasResultSet);
-            sm.setState(LAST_EXECUTE_WAS_BATCH, false); sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, true); sm.setState(QUERY_INDEX, 0);
+            Statement stmt = (Statement) getState(STMT);
+            String tableName = (String) getState(SM_TABLE_NAME);
+            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{1});
+            setState(EXECUTED, true); setState(HAS_RESULT_SET, hasResultSet);
+            setState(LAST_EXECUTE_WAS_BATCH, false); setState(LAST_EXECUTE_WAS_UPDATE, false);
+            setState(LAST_EXECUTE_GENERATED_KEYS, true); setState(QUERY_INDEX, 0);
         }
     }
 
     /** execute(sql, String[] columnNames) — requests generated keys. */
     private static class ExecuteWithColumnNamesAction extends Action {
-        private final StateMachineTest sm;
-        ExecuteWithColumnNamesAction(StateMachineTest sm) { super("execute(colNames)", 3); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        ExecuteWithColumnNamesAction() { super("execute(colNames)", 3); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
-            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
-            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, new String[]{"id"});
-            sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, hasResultSet);
-            sm.setState(LAST_EXECUTE_WAS_BATCH, false); sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, true); sm.setState(QUERY_INDEX, 0);
+            Statement stmt = (Statement) getState(STMT);
+            String tableName = (String) getState(SM_TABLE_NAME);
+            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId, new String[]{"id"});
+            setState(EXECUTED, true); setState(HAS_RESULT_SET, hasResultSet);
+            setState(LAST_EXECUTE_WAS_BATCH, false); setState(LAST_EXECUTE_WAS_UPDATE, false);
+            setState(LAST_EXECUTE_GENERATED_KEYS, true); setState(QUERY_INDEX, 0);
         }
     }
 
     /** executeUpdate(sql, int[] columnIndexes) — requests generated keys. */
     private static class ExecuteUpdateWithColumnIndexesAction extends Action {
-        private final StateMachineTest sm;
-        ExecuteUpdateWithColumnIndexesAction(StateMachineTest sm) { super("executeUpdate(colIdx)", 3); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        ExecuteUpdateWithColumnIndexesAction() { super("executeUpdate(colIdx)", 3); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
-            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
-            stmt.executeUpdate("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{1});
-            sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, false);
-            sm.setState(LAST_EXECUTE_WAS_BATCH, false); sm.setState(LAST_EXECUTE_WAS_UPDATE, true);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, true); sm.setState(QUERY_INDEX, 0);
+            Statement stmt = (Statement) getState(STMT);
+            String tableName = (String) getState(SM_TABLE_NAME);
+            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+            stmt.executeUpdate("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{1});
+            setState(EXECUTED, true); setState(HAS_RESULT_SET, false);
+            setState(LAST_EXECUTE_WAS_BATCH, false); setState(LAST_EXECUTE_WAS_UPDATE, true);
+            setState(LAST_EXECUTE_GENERATED_KEYS, true); setState(QUERY_INDEX, 0);
         }
     }
 
     /** executeUpdate(sql, String[] columnNames) — requests generated keys. */
     private static class ExecuteUpdateWithColumnNamesAction extends Action {
-        private final StateMachineTest sm;
-        ExecuteUpdateWithColumnNamesAction(StateMachineTest sm) { super("executeUpdate(colNames)", 3); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        ExecuteUpdateWithColumnNamesAction() { super("executeUpdate(colNames)", 3); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
-            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
-            stmt.executeUpdate("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, new String[]{"id"});
-            sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, false);
-            sm.setState(LAST_EXECUTE_WAS_BATCH, false); sm.setState(LAST_EXECUTE_WAS_UPDATE, true);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, true); sm.setState(QUERY_INDEX, 0);
+            Statement stmt = (Statement) getState(STMT);
+            String tableName = (String) getState(SM_TABLE_NAME);
+            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+            stmt.executeUpdate("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId, new String[]{"id"});
+            setState(EXECUTED, true); setState(HAS_RESULT_SET, false);
+            setState(LAST_EXECUTE_WAS_BATCH, false); setState(LAST_EXECUTE_WAS_UPDATE, true);
+            setState(LAST_EXECUTE_GENERATED_KEYS, true); setState(QUERY_INDEX, 0);
         }
     }
 
     /** addBatch(DML). */
     private static class AddBatchAction extends Action {
-        private final StateMachineTest sm;
-        AddBatchAction(StateMachineTest sm) { super("addBatch", 10); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        AddBatchAction() { super("addBatch", 10); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            String tableName = (String) sm.getStateValue(SM_TABLE_NAME);
-            int rowId = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT)) + 1;
-            stmt.addBatch("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId);
+            Statement stmt = (Statement) getState(STMT);
+            String tableName = (String) getState(SM_TABLE_NAME);
+            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+            stmt.addBatch("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId);
         }
     }
 
     /** executeBatch(). */
     private static class ExecuteBatchAction extends Action {
-        private final StateMachineTest sm;
-        ExecuteBatchAction(StateMachineTest sm) { super("executeBatch", 8); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        ExecuteBatchAction() { super("executeBatch", 8); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
+            Statement stmt = (Statement) getState(STMT);
             stmt.executeBatch();
-            sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, false);
-            sm.setState(LAST_EXECUTE_WAS_BATCH, true); sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false); sm.setState(QUERY_INDEX, 0);
+            setState(EXECUTED, true); setState(HAS_RESULT_SET, false);
+            setState(LAST_EXECUTE_WAS_BATCH, true); setState(LAST_EXECUTE_WAS_UPDATE, false);
+            setState(LAST_EXECUTE_GENERATED_KEYS, false); setState(QUERY_INDEX, 0);
         }
     }
 
     /** clearBatch(). */
     private static class ClearBatchAction extends Action {
-        private final StateMachineTest sm;
-        ClearBatchAction(StateMachineTest sm) { super("clearBatch", 5); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
-        @Override public void run() throws SQLException { ((Statement) sm.getStateValue(STMT)).clearBatch(); }
+        ClearBatchAction() { super("clearBatch", 5); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
+        @Override public void run() throws SQLException { ((Statement) getState(STMT)).clearBatch(); }
     }
 
     /** getMoreResults(). */
     private static class GetMoreResultsAction extends Action {
-        private final StateMachineTest sm;
-        GetMoreResultsAction(StateMachineTest sm) { super("getMoreResults", 10); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED) && sm.isState(EXECUTED); }
+        GetMoreResultsAction() { super("getMoreResults", 10); }
+        @Override public boolean canRun() { return !isState(CLOSED) && isState(EXECUTED); }
         @Override public void run() throws SQLException {
-            boolean hasMore = ((Statement) sm.getStateValue(STMT)).getMoreResults();
-            sm.setState(HAS_RESULT_SET, hasMore);
-            sm.setState(QUERY_INDEX, sm.getStateInt(QUERY_INDEX) + 1);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            boolean hasMore = ((Statement) getState(STMT)).getMoreResults();
+            setState(HAS_RESULT_SET, hasMore);
+            setState(QUERY_INDEX, getStateInt(QUERY_INDEX) + 1);
+            setState(LAST_EXECUTE_GENERATED_KEYS, false);
         }
     }
 
     /** getMoreResults(int flag). */
     private static class GetMoreResultsWithFlagAction extends Action {
-        private final StateMachineTest sm;
-        GetMoreResultsWithFlagAction(StateMachineTest sm) { super("getMoreResults(flag)", 5); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED) && sm.isState(EXECUTED); }
+        GetMoreResultsWithFlagAction() { super("getMoreResults(flag)", 5); }
+        @Override public boolean canRun() { return !isState(CLOSED) && isState(EXECUTED); }
         @Override public void run() throws SQLException {
-            int flag = sm.getRandom().nextBoolean() ? Statement.CLOSE_CURRENT_RESULT : Statement.CLOSE_ALL_RESULTS;
-            boolean hasMore = ((Statement) sm.getStateValue(STMT)).getMoreResults(flag);
-            sm.setState(HAS_RESULT_SET, hasMore);
-            sm.setState(QUERY_INDEX, sm.getStateInt(QUERY_INDEX) + 1);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            int flag = getRandom().nextBoolean() ? Statement.CLOSE_CURRENT_RESULT : Statement.CLOSE_ALL_RESULTS;
+            boolean hasMore = ((Statement) getState(STMT)).getMoreResults(flag);
+            setState(HAS_RESULT_SET, hasMore);
+            setState(QUERY_INDEX, getStateInt(QUERY_INDEX) + 1);
+            setState(LAST_EXECUTE_GENERATED_KEYS, false);
         }
     }
 
     /** getResultSet() — only when HAS_RESULT_SET=true. */
     private static class GetResultSetAction extends Action {
-        private final StateMachineTest sm;
-        GetResultSetAction(StateMachineTest sm) { super("getResultSet", 10); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED) && sm.isState(EXECUTED) && sm.isState(HAS_RESULT_SET); }
+        GetResultSetAction() { super("getResultSet", 10); }
+        @Override public boolean canRun() { return !isState(CLOSED) && isState(EXECUTED) && isState(HAS_RESULT_SET); }
         @Override public void run() throws SQLException {
-            ResultSet rs = ((Statement) sm.getStateValue(STMT)).getResultSet();
+            ResultSet rs = ((Statement) getState(STMT)).getResultSet();
             if (rs != null) { while (rs.next()) {} rs.close(); }
-            sm.setState(HAS_RESULT_SET, false);
+            setState(HAS_RESULT_SET, false);
         }
     }
 
     /** getUpdateCount() — skipped after executeBatch (VSTS #79390). */
     private static class GetUpdateCountAction extends Action {
-        private final StateMachineTest sm;
-        GetUpdateCountAction(StateMachineTest sm) { super("getUpdateCount", 10); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED) && sm.isState(EXECUTED) && !sm.isState(LAST_EXECUTE_WAS_BATCH); }
-        @Override public void run() throws SQLException { ((Statement) sm.getStateValue(STMT)).getUpdateCount(); }
+        GetUpdateCountAction() { super("getUpdateCount", 10); }
+        @Override public boolean canRun() { return !isState(CLOSED) && isState(EXECUTED) && !isState(LAST_EXECUTE_WAS_BATCH); }
+        @Override public void run() throws SQLException { ((Statement) getState(STMT)).getUpdateCount(); }
     }
 
     /** getGeneratedKeys() — only when keys were requested. */
     private static class GetGeneratedKeysAction extends Action {
-        private final StateMachineTest sm;
-        GetGeneratedKeysAction(StateMachineTest sm) { super("getGeneratedKeys", 5); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED) && sm.isState(EXECUTED) && sm.isState(LAST_EXECUTE_GENERATED_KEYS); }
+        GetGeneratedKeysAction() { super("getGeneratedKeys", 5); }
+        @Override public boolean canRun() { return !isState(CLOSED) && isState(EXECUTED) && isState(LAST_EXECUTE_GENERATED_KEYS); }
         @Override public void run() throws SQLException {
-            try (ResultSet keys = ((Statement) sm.getStateValue(STMT)).getGeneratedKeys()) { while (keys.next()) {} }
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            try (ResultSet keys = ((Statement) getState(STMT)).getGeneratedKeys()) { while (keys.next()) {} }
+            setState(LAST_EXECUTE_GENERATED_KEYS, false);
         }
     }
 
     /** setMaxRows / getMaxRows. */
     private static class SetMaxRowsAction extends Action {
-        private final StateMachineTest sm;
-        SetMaxRowsAction(StateMachineTest sm) { super("setMaxRows", 5); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        SetMaxRowsAction() { super("setMaxRows", 5); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            int maxRows = sm.getRandom().nextInt(sm.getStateInt(ROW_COUNT) * 2);
+            Statement stmt = (Statement) getState(STMT);
+            int maxRows = getRandom().nextInt(getStateInt(ROW_COUNT) * 2);
             stmt.setMaxRows(maxRows);
             if (stmt.getMaxRows() != maxRows) throw new AssertionError("setMaxRows/getMaxRows mismatch");
-            sm.setState(MAX_ROWS, maxRows);
+            setState(MAX_ROWS, maxRows);
         }
     }
 
     /** setMaxFieldSize / getMaxFieldSize. */
     private static class SetMaxFieldSizeAction extends Action {
-        private final StateMachineTest sm;
-        SetMaxFieldSizeAction(StateMachineTest sm) { super("setMaxFieldSize", 3); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        SetMaxFieldSizeAction() { super("setMaxFieldSize", 3); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            int size = sm.getRandom().nextInt(8000);
+            Statement stmt = (Statement) getState(STMT);
+            int size = getRandom().nextInt(8000);
             stmt.setMaxFieldSize(size);
             if (stmt.getMaxFieldSize() != size) throw new AssertionError("setMaxFieldSize mismatch");
-            sm.setState(MAX_FIELD_SIZE, size);
+            setState(MAX_FIELD_SIZE, size);
         }
     }
 
     /** setFetchSize / getFetchSize. */
     private static class SetFetchSizeAction extends Action {
-        private final StateMachineTest sm;
-        SetFetchSizeAction(StateMachineTest sm) { super("setFetchSize", 5); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        SetFetchSizeAction() { super("setFetchSize", 5); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            int fetchSize = sm.getRandom().nextInt(200) + 1;
+            Statement stmt = (Statement) getState(STMT);
+            int fetchSize = getRandom().nextInt(200) + 1;
             stmt.setFetchSize(fetchSize);
             if (stmt.getFetchSize() != fetchSize) throw new AssertionError("setFetchSize mismatch");
-            sm.setState(FETCH_SIZE, fetchSize);
+            setState(FETCH_SIZE, fetchSize);
         }
     }
 
     /** setFetchDirection / getFetchDirection. */
     private static class SetFetchDirectionAction extends Action {
-        private final StateMachineTest sm;
-        SetFetchDirectionAction(StateMachineTest sm) { super("setFetchDirection", 3); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        SetFetchDirectionAction() { super("setFetchDirection", 3); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            int cursorType = sm.getStateInt(CURSOR_TYPE);
+            Statement stmt = (Statement) getState(STMT);
+            int cursorType = getStateInt(CURSOR_TYPE);
             int direction = (cursorType == ResultSet.TYPE_FORWARD_ONLY) ? ResultSet.FETCH_FORWARD
-                    : new int[]{ResultSet.FETCH_FORWARD, ResultSet.FETCH_REVERSE, ResultSet.FETCH_UNKNOWN}[sm.getRandom().nextInt(3)];
+                    : new int[]{ResultSet.FETCH_FORWARD, ResultSet.FETCH_REVERSE, ResultSet.FETCH_UNKNOWN}[getRandom().nextInt(3)];
             stmt.setFetchDirection(direction);
         }
     }
 
     /** setQueryTimeout / getQueryTimeout. */
     private static class SetQueryTimeoutAction extends Action {
-        private final StateMachineTest sm;
-        SetQueryTimeoutAction(StateMachineTest sm) { super("setQueryTimeout", 3); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        SetQueryTimeoutAction() { super("setQueryTimeout", 3); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            int timeout = sm.getRandom().nextInt(30);
+            Statement stmt = (Statement) getState(STMT);
+            int timeout = getRandom().nextInt(30);
             stmt.setQueryTimeout(timeout);
             if (stmt.getQueryTimeout() != timeout) throw new AssertionError("setQueryTimeout mismatch");
             stmt.setQueryTimeout(0);
@@ -476,72 +453,65 @@ public class StatementExecutionStateTest extends AbstractTest {
 
     /** setEscapeProcessing. */
     private static class SetEscapeProcessingAction extends Action {
-        private final StateMachineTest sm;
-        SetEscapeProcessingAction(StateMachineTest sm) { super("setEscapeProcessing", 2); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
-        @Override public void run() throws SQLException { ((Statement) sm.getStateValue(STMT)).setEscapeProcessing(sm.getRandom().nextBoolean()); }
+        SetEscapeProcessingAction() { super("setEscapeProcessing", 2); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
+        @Override public void run() throws SQLException { ((Statement) getState(STMT)).setEscapeProcessing(getRandom().nextBoolean()); }
     }
 
     /** getResultSetType — validates against CURSOR_TYPE state. */
     private static class GetResultSetTypeAction extends Action {
-        private final StateMachineTest sm;
-        GetResultSetTypeAction(StateMachineTest sm) { super("getResultSetType", 5); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        GetResultSetTypeAction() { super("getResultSetType", 5); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            int type = ((Statement) sm.getStateValue(STMT)).getResultSetType();
-            if (type != sm.getStateInt(CURSOR_TYPE)) throw new AssertionError("getResultSetType mismatch");
+            int type = ((Statement) getState(STMT)).getResultSetType();
+            if (type != getStateInt(CURSOR_TYPE)) throw new AssertionError("getResultSetType mismatch");
         }
     }
 
     /** getResultSetConcurrency — validates against CONCURRENCY state. */
     private static class GetResultSetConcurrencyAction extends Action {
-        private final StateMachineTest sm;
-        GetResultSetConcurrencyAction(StateMachineTest sm) { super("getResultSetConcurrency", 5); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        GetResultSetConcurrencyAction() { super("getResultSetConcurrency", 5); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            int c = ((Statement) sm.getStateValue(STMT)).getResultSetConcurrency();
-            if (c != sm.getStateInt(CONCURRENCY)) throw new AssertionError("getResultSetConcurrency mismatch");
+            int c = ((Statement) getState(STMT)).getResultSetConcurrency();
+            if (c != getStateInt(CONCURRENCY)) throw new AssertionError("getResultSetConcurrency mismatch");
         }
     }
 
     /** getResultSetHoldability. */
     private static class GetResultSetHoldabilityAction extends Action {
-        private final StateMachineTest sm;
-        GetResultSetHoldabilityAction(StateMachineTest sm) { super("getResultSetHoldability", 3); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
-        @Override public void run() throws SQLException { ((Statement) sm.getStateValue(STMT)).getResultSetHoldability(); }
+        GetResultSetHoldabilityAction() { super("getResultSetHoldability", 3); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
+        @Override public void run() throws SQLException { ((Statement) getState(STMT)).getResultSetHoldability(); }
     }
 
     /** getConnection — validates same instance. */
     private static class GetConnectionAction extends Action {
-        private final StateMachineTest sm;
-        GetConnectionAction(StateMachineTest sm) { super("getConnection", 5); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        GetConnectionAction() { super("getConnection", 5); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Connection conn = ((Statement) sm.getStateValue(STMT)).getConnection();
-            if (conn != sm.getStateValue(CONN)) throw new AssertionError("getConnection() returned different instance");
+            Connection conn = ((Statement) getState(STMT)).getConnection();
+            if (conn != getState(CONN)) throw new AssertionError("getConnection() returned different instance");
         }
     }
 
     /** getWarnings / clearWarnings. */
     private static class ClearWarningsAction extends Action {
-        private final StateMachineTest sm;
-        ClearWarningsAction(StateMachineTest sm) { super("clearWarnings", 5); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        ClearWarningsAction() { super("clearWarnings", 5); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            stmt.getWarnings(); stmt.clearWarnings(); sm.setState(HAS_WARNINGS, false);
+            Statement stmt = (Statement) getState(STMT);
+            stmt.getWarnings(); stmt.clearWarnings(); setState(HAS_WARNINGS, false);
         }
     }
 
     /** setPoolable / isPoolable. */
     private static class SetPoolableAction extends Action {
-        private final StateMachineTest sm;
-        SetPoolableAction(StateMachineTest sm) { super("setPoolable", 2); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        SetPoolableAction() { super("setPoolable", 2); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
-            boolean poolable = sm.getRandom().nextBoolean();
+            Statement stmt = (Statement) getState(STMT);
+            boolean poolable = getRandom().nextBoolean();
             stmt.setPoolable(poolable);
             if (stmt.isPoolable() != poolable) throw new AssertionError("setPoolable mismatch");
         }
@@ -549,33 +519,30 @@ public class StatementExecutionStateTest extends AbstractTest {
 
     /** cancel(). */
     private static class CancelAction extends Action {
-        private final StateMachineTest sm;
-        CancelAction(StateMachineTest sm) { super("cancel", 1); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
-        @Override public void run() throws SQLException { ((Statement) sm.getStateValue(STMT)).cancel(); }
+        CancelAction() { super("cancel", 1); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
+        @Override public void run() throws SQLException { ((Statement) getState(STMT)).cancel(); }
     }
 
     /** isClosed — validates against CLOSED state. */
     private static class IsClosedAction extends Action {
-        private final StateMachineTest sm;
-        IsClosedAction(StateMachineTest sm) { super("isClosed", 5); this.sm = sm; }
+        IsClosedAction() { super("isClosed", 5); }
         @Override public boolean canRun() { return true; }
         @Override public void run() throws SQLException {
-            boolean closed = ((Statement) sm.getStateValue(STMT)).isClosed();
-            if (closed != sm.isState(CLOSED)) throw new AssertionError("isClosed mismatch");
+            boolean closed = ((Statement) getState(STMT)).isClosed();
+            if (closed != isState(CLOSED)) throw new AssertionError("isClosed mismatch");
         }
     }
 
     /** setResponseBuffering / getResponseBuffering (SQLServerStatement). */
     private static class SetResponseBufferingAction extends Action {
-        private final StateMachineTest sm;
-        SetResponseBufferingAction(StateMachineTest sm) { super("setResponseBuffering", 3); this.sm = sm; }
-        @Override public boolean canRun() { return !sm.isState(CLOSED); }
+        SetResponseBufferingAction() { super("setResponseBuffering", 3); }
+        @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
-            Statement stmt = (Statement) sm.getStateValue(STMT);
+            Statement stmt = (Statement) getState(STMT);
             if (stmt instanceof SQLServerStatement) {
                 SQLServerStatement ssStmt = (SQLServerStatement) stmt;
-                String value = sm.getRandom().nextBoolean() ? "adaptive" : "full";
+                String value = getRandom().nextBoolean() ? "adaptive" : "full";
                 ssStmt.setResponseBuffering(value);
                 if (!ssStmt.getResponseBuffering().equalsIgnoreCase(value))
                     throw new AssertionError("setResponseBuffering mismatch");
@@ -593,58 +560,58 @@ public class StatementExecutionStateTest extends AbstractTest {
             createTestTable(conn);
             try (Statement stmt = conn.createStatement()) {
                 StateMachineTest sm = new StateMachineTest("StatementExecution");
-                sm.setState(CONN, conn);
-                sm.setState(STMT, stmt);
-                sm.setState(CLOSED, false);
-                sm.setState(EXECUTED, false);
-                sm.setState(HAS_RESULT_SET, false);
-                sm.setState(LAST_EXECUTE_WAS_BATCH, false);
-                sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
-                sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
-                sm.setState(MAX_ROWS, 0);
-                sm.setState(MAX_FIELD_SIZE, 0);
-                sm.setState(HAS_WARNINGS, false);
-                sm.setState(FETCH_SIZE, 0);
-                sm.setState(CURSOR_TYPE, ResultSet.TYPE_FORWARD_ONLY);
-                sm.setState(CONCURRENCY, ResultSet.CONCUR_READ_ONLY);
-                sm.setState(HOLDABILITY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
-                sm.setState(QUERY_INDEX, 0);
-                sm.setState(SM_TABLE_NAME, TABLE_NAME);
-                sm.setState(ROW_COUNT, ROW_COUNT_VAL);
+                sm.getDataCache().updateValue(0, CONN.key(), conn);
+                sm.getDataCache().updateValue(0, STMT.key(), stmt);
+                sm.getDataCache().updateValue(0, CLOSED.key(), false);
+                sm.getDataCache().updateValue(0, EXECUTED.key(), false);
+                sm.getDataCache().updateValue(0, HAS_RESULT_SET.key(), false);
+                sm.getDataCache().updateValue(0, LAST_EXECUTE_WAS_BATCH.key(), false);
+                sm.getDataCache().updateValue(0, LAST_EXECUTE_WAS_UPDATE.key(), false);
+                sm.getDataCache().updateValue(0, LAST_EXECUTE_GENERATED_KEYS.key(), false);
+                sm.getDataCache().updateValue(0, MAX_ROWS.key(), 0);
+                sm.getDataCache().updateValue(0, MAX_FIELD_SIZE.key(), 0);
+                sm.getDataCache().updateValue(0, HAS_WARNINGS.key(), false);
+                sm.getDataCache().updateValue(0, FETCH_SIZE.key(), 0);
+                sm.getDataCache().updateValue(0, CURSOR_TYPE.key(), ResultSet.TYPE_FORWARD_ONLY);
+                sm.getDataCache().updateValue(0, CONCURRENCY.key(), ResultSet.CONCUR_READ_ONLY);
+                sm.getDataCache().updateValue(0, HOLDABILITY.key(), ResultSet.HOLD_CURSORS_OVER_COMMIT);
+                sm.getDataCache().updateValue(0, QUERY_INDEX.key(), 0);
+                sm.getDataCache().updateValue(0, SM_TABLE_NAME.key(), TABLE_NAME);
+                sm.getDataCache().updateValue(0, ROW_COUNT.key(), ROW_COUNT_VAL);
 
-                sm.addAction(new ExecuteSelectAction(sm));
-                sm.addAction(new ExecuteDMLAction(sm));
-                sm.addAction(new ExecuteQueryAction(sm));
-                sm.addAction(new ExecuteUpdateAction(sm));
-                sm.addAction(new ExecuteWithGeneratedKeysAction(sm));
-                sm.addAction(new ExecuteUpdateWithGeneratedKeysAction(sm));
-                sm.addAction(new ExecuteWithColumnIndexesAction(sm));
-                sm.addAction(new ExecuteWithColumnNamesAction(sm));
-                sm.addAction(new ExecuteUpdateWithColumnIndexesAction(sm));
-                sm.addAction(new ExecuteUpdateWithColumnNamesAction(sm));
-                sm.addAction(new AddBatchAction(sm));
-                sm.addAction(new ExecuteBatchAction(sm));
-                sm.addAction(new ClearBatchAction(sm));
-                sm.addAction(new GetMoreResultsAction(sm));
-                sm.addAction(new GetMoreResultsWithFlagAction(sm));
-                sm.addAction(new GetResultSetAction(sm));
-                sm.addAction(new GetUpdateCountAction(sm));
-                sm.addAction(new GetGeneratedKeysAction(sm));
-                sm.addAction(new SetMaxRowsAction(sm));
-                sm.addAction(new SetMaxFieldSizeAction(sm));
-                sm.addAction(new SetFetchSizeAction(sm));
-                sm.addAction(new SetFetchDirectionAction(sm));
-                sm.addAction(new SetQueryTimeoutAction(sm));
-                sm.addAction(new SetEscapeProcessingAction(sm));
-                sm.addAction(new GetResultSetTypeAction(sm));
-                sm.addAction(new GetResultSetConcurrencyAction(sm));
-                sm.addAction(new GetResultSetHoldabilityAction(sm));
-                sm.addAction(new GetConnectionAction(sm));
-                sm.addAction(new ClearWarningsAction(sm));
-                sm.addAction(new SetPoolableAction(sm));
-                sm.addAction(new CancelAction(sm));
-                sm.addAction(new IsClosedAction(sm));
-                sm.addAction(new SetResponseBufferingAction(sm));
+                sm.addAction(new ExecuteSelectAction());
+                sm.addAction(new ExecuteDMLAction());
+                sm.addAction(new ExecuteQueryAction());
+                sm.addAction(new ExecuteUpdateAction());
+                sm.addAction(new ExecuteWithGeneratedKeysAction());
+                sm.addAction(new ExecuteUpdateWithGeneratedKeysAction());
+                sm.addAction(new ExecuteWithColumnIndexesAction());
+                sm.addAction(new ExecuteWithColumnNamesAction());
+                sm.addAction(new ExecuteUpdateWithColumnIndexesAction());
+                sm.addAction(new ExecuteUpdateWithColumnNamesAction());
+                sm.addAction(new AddBatchAction());
+                sm.addAction(new ExecuteBatchAction());
+                sm.addAction(new ClearBatchAction());
+                sm.addAction(new GetMoreResultsAction());
+                sm.addAction(new GetMoreResultsWithFlagAction());
+                sm.addAction(new GetResultSetAction());
+                sm.addAction(new GetUpdateCountAction());
+                sm.addAction(new GetGeneratedKeysAction());
+                sm.addAction(new SetMaxRowsAction());
+                sm.addAction(new SetMaxFieldSizeAction());
+                sm.addAction(new SetFetchSizeAction());
+                sm.addAction(new SetFetchDirectionAction());
+                sm.addAction(new SetQueryTimeoutAction());
+                sm.addAction(new SetEscapeProcessingAction());
+                sm.addAction(new GetResultSetTypeAction());
+                sm.addAction(new GetResultSetConcurrencyAction());
+                sm.addAction(new GetResultSetHoldabilityAction());
+                sm.addAction(new GetConnectionAction());
+                sm.addAction(new ClearWarningsAction());
+                sm.addAction(new SetPoolableAction());
+                sm.addAction(new CancelAction());
+                sm.addAction(new IsClosedAction());
+                sm.addAction(new SetResponseBufferingAction());
 
                 Result result = Engine.run(sm).withMaxActions(100).withTimeout(60).execute();
                 assertTrue(result.isSuccess(), "Model run failed: " + result);
