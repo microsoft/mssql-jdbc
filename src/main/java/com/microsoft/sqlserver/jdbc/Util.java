@@ -1006,7 +1006,11 @@ final class Util {
     @SuppressWarnings("unchecked")
     static <T> T newInstance(Class<?> returnType, String className, String constructorArg,
             Object[] msgArgs) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
-        Class<?> clazz = Class.forName(className);
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if (classLoader == null) {
+            classLoader = Util.class.getClassLoader();
+        }
+        Class<?> clazz = Class.forName(className, false, classLoader);
         if (!returnType.isAssignableFrom(clazz)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unassignableError"));
             throw new IllegalArgumentException(form.format(msgArgs));
