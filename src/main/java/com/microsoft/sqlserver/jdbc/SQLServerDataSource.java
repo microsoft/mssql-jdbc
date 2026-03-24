@@ -1860,18 +1860,13 @@ public class SQLServerDataSource
     }
 
     @Override
-    public void setTransactionIsolation(int level) {
-        connectionProps.setProperty(SQLServerDriverStringProperty.TRANSACTION_ISOLATION.toString(), Integer.toString(level));
+    public void setDefaultTransactionIsolation(String level) {
+        connectionProps.setProperty(SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString(), level);
     }
 
     @Override
-    public int getTransactionIsolation() {
-        int level = Connection.TRANSACTION_READ_COMMITTED;
-        String levelStr = connectionProps.getProperty(SQLServerDriverStringProperty.TRANSACTION_ISOLATION.toString());
-        if (null != levelStr) {
-            level = Integer.parseInt(levelStr);
-        }
-        return level;
+    public String getDefaultTransactionIsolation() {
+        return connectionProps.getProperty(SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString());
     }
 
     /**
