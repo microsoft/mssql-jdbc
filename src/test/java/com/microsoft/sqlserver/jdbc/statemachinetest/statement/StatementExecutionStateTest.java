@@ -205,7 +205,7 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    /** execute(sql, autokeys). */
+    /** execute(sql, autokeys) — conditionally requests generated keys. */
     private static class ExecuteWithGeneratedKeysAction extends Action {
         private final StateMachineTest sm;
         ExecuteWithGeneratedKeysAction(StateMachineTest sm) { super("execute(genKeys)", 5); this.sm = sm; }
@@ -220,12 +220,13 @@ public class StatementExecutionStateTest extends AbstractTest {
             sm.setState(HAS_RESULT_SET, hasResultSet);
             sm.setState(LAST_EXECUTE_WAS_BATCH, false);
             sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS,
+                    autoKeyFlag == Statement.RETURN_GENERATED_KEYS);
             sm.setState(QUERY_INDEX, 0);
         }
     }
 
-    /** executeUpdate(sql, autokeys). */
+    /** executeUpdate(sql, autokeys) — conditionally requests generated keys. */
     private static class ExecuteUpdateWithGeneratedKeysAction extends Action {
         private final StateMachineTest sm;
         ExecuteUpdateWithGeneratedKeysAction(StateMachineTest sm) { super("executeUpdate(genKeys)", 5); this.sm = sm; }
@@ -240,12 +241,13 @@ public class StatementExecutionStateTest extends AbstractTest {
             sm.setState(HAS_RESULT_SET, false);
             sm.setState(LAST_EXECUTE_WAS_BATCH, false);
             sm.setState(LAST_EXECUTE_WAS_UPDATE, true);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS,
+                    autoKeyFlag == Statement.RETURN_GENERATED_KEYS);
             sm.setState(QUERY_INDEX, 0);
         }
     }
 
-    /** execute(sql, int[] columnIndexes). */
+    /** execute(sql, int[] columnIndexes) — requests generated keys. */
     private static class ExecuteWithColumnIndexesAction extends Action {
         private final StateMachineTest sm;
         ExecuteWithColumnIndexesAction(StateMachineTest sm) { super("execute(colIndexes)", 3); this.sm = sm; }
@@ -257,11 +259,11 @@ public class StatementExecutionStateTest extends AbstractTest {
             boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{1});
             sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, hasResultSet);
             sm.setState(LAST_EXECUTE_WAS_BATCH, false); sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false); sm.setState(QUERY_INDEX, 0);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, true); sm.setState(QUERY_INDEX, 0);
         }
     }
 
-    /** execute(sql, String[] columnNames). */
+    /** execute(sql, String[] columnNames) — requests generated keys. */
     private static class ExecuteWithColumnNamesAction extends Action {
         private final StateMachineTest sm;
         ExecuteWithColumnNamesAction(StateMachineTest sm) { super("execute(colNames)", 3); this.sm = sm; }
@@ -273,11 +275,11 @@ public class StatementExecutionStateTest extends AbstractTest {
             boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, new String[]{"id"});
             sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, hasResultSet);
             sm.setState(LAST_EXECUTE_WAS_BATCH, false); sm.setState(LAST_EXECUTE_WAS_UPDATE, false);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false); sm.setState(QUERY_INDEX, 0);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, true); sm.setState(QUERY_INDEX, 0);
         }
     }
 
-    /** executeUpdate(sql, int[] columnIndexes). */
+    /** executeUpdate(sql, int[] columnIndexes) — requests generated keys. */
     private static class ExecuteUpdateWithColumnIndexesAction extends Action {
         private final StateMachineTest sm;
         ExecuteUpdateWithColumnIndexesAction(StateMachineTest sm) { super("executeUpdate(colIdx)", 3); this.sm = sm; }
@@ -289,11 +291,11 @@ public class StatementExecutionStateTest extends AbstractTest {
             stmt.executeUpdate("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{1});
             sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, false);
             sm.setState(LAST_EXECUTE_WAS_BATCH, false); sm.setState(LAST_EXECUTE_WAS_UPDATE, true);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false); sm.setState(QUERY_INDEX, 0);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, true); sm.setState(QUERY_INDEX, 0);
         }
     }
 
-    /** executeUpdate(sql, String[] columnNames). */
+    /** executeUpdate(sql, String[] columnNames) — requests generated keys. */
     private static class ExecuteUpdateWithColumnNamesAction extends Action {
         private final StateMachineTest sm;
         ExecuteUpdateWithColumnNamesAction(StateMachineTest sm) { super("executeUpdate(colNames)", 3); this.sm = sm; }
@@ -305,7 +307,7 @@ public class StatementExecutionStateTest extends AbstractTest {
             stmt.executeUpdate("UPDATE " + tableName + " SET value = " + sm.getRandom().nextInt(10000) + " WHERE id = " + rowId, new String[]{"id"});
             sm.setState(EXECUTED, true); sm.setState(HAS_RESULT_SET, false);
             sm.setState(LAST_EXECUTE_WAS_BATCH, false); sm.setState(LAST_EXECUTE_WAS_UPDATE, true);
-            sm.setState(LAST_EXECUTE_GENERATED_KEYS, false); sm.setState(QUERY_INDEX, 0);
+            sm.setState(LAST_EXECUTE_GENERATED_KEYS, true); sm.setState(QUERY_INDEX, 0);
         }
     }
 
@@ -1074,11 +1076,20 @@ public class StatementExecutionStateTest extends AbstractTest {
                 try (Statement stmt = conn.createStatement()) {
                     stmt.addBatch("INSERT INTO " + TABLE_NAME + " VALUES (100, 1000, 'NewRow100')");
                     stmt.addBatch("INSERT INTO " + TABLE_NAME + " VALUES (1, 9999, 'DuplicatePK')");
-                    try {
-                        stmt.executeBatch();
-                    } catch (BatchUpdateException bue) {
-                        int[] updateCounts = bue.getUpdateCounts();
-                        assertNotNull(updateCounts, "Update counts should not be null");
+                    BatchUpdateException bue = assertThrows(BatchUpdateException.class,
+                            () -> stmt.executeBatch(),
+                            "executeBatch should throw BatchUpdateException when batch contains a PK violation");
+                    int[] updateCounts = bue.getUpdateCounts();
+                    assertNotNull(updateCounts, "Update counts should not be null");
+                    assertTrue(updateCounts.length >= 1,
+                            "Update counts should contain at least one entry for the successful statement");
+                    // First statement (id = 100) should succeed.
+                    assertTrue(updateCounts[0] != Statement.EXECUTE_FAILED,
+                            "First batch statement should not be marked as failed");
+                    // Second statement (duplicate PK) is expected to fail.
+                    if (updateCounts.length > 1) {
+                        assertEquals(Statement.EXECUTE_FAILED, updateCounts[1],
+                                "Second batch statement (PK violation) should be marked as EXECUTE_FAILED");
                     }
                 }
             }
@@ -1285,23 +1296,24 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * Operations on statement
-         * after connection close.
+         * Operations on statement after connection close.
          */
         @Test
         @DisplayName("testClosedConnection: Statement after connection close")
         void testStatementAfterConnectionClose() throws SQLException {
             Assumptions.assumeTrue(connectionString != null);
-            Connection conn = PrepUtil.getConnection(connectionString);
-            createTestTable(conn);
-            Statement stmt = conn.createStatement();
-            stmt.executeQuery("SELECT * FROM " + TABLE_NAME);
+            try (Connection conn = PrepUtil.getConnection(connectionString);
+                    Statement stmt = conn.createStatement()) {
+                createTestTable(conn);
+                stmt.executeQuery("SELECT * FROM " + TABLE_NAME);
 
-            conn.close();
+                conn.close();
 
-            assertThrows(SQLException.class,
-                    () -> stmt.executeQuery("SELECT * FROM " + TABLE_NAME),
-                    "Execute after connection close should throw");
+                assertThrows(SQLException.class,
+                        () -> stmt.executeQuery("SELECT * FROM " + TABLE_NAME),
+                        "Execute after connection close should throw");
+                assertTrue(stmt.isClosed(), "Statement should be closed after connection close");
+            }
         }
     }
 
@@ -1328,8 +1340,8 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
 
         /**
-         * Cancel a long-running WAITFOR query
-         * from another thread.
+         * Cancel a long-running WAITFOR query from another thread.
+         * Asserts that cancel() was invoked and that WAITFOR threw a cancellation exception.
          */
         @Test
         @DisplayName("testCancelWaitfor: Cancel WAITFOR from another thread")
@@ -1338,6 +1350,7 @@ public class StatementExecutionStateTest extends AbstractTest {
             try (Connection conn = PrepUtil.getConnection(connectionString);
                     Statement stmt = conn.createStatement()) {
                 AtomicBoolean cancelled = new AtomicBoolean(false);
+                AtomicBoolean cancelException = new AtomicBoolean(false);
                 CountDownLatch latch = new CountDownLatch(1);
 
                 ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
@@ -1345,18 +1358,25 @@ public class StatementExecutionStateTest extends AbstractTest {
                     try {
                         stmt.cancel();
                         cancelled.set(true);
-                    } catch (SQLException e) { }
+                    } catch (SQLException e) {
+                        // Ignore cancellation failure; test will assert on flags below.
+                    }
                     latch.countDown();
                 }, 1, TimeUnit.SECONDS);
 
                 try {
                     stmt.execute("WAITFOR DELAY '00:00:30'");
                 } catch (SQLException e) {
-                    assertTrue(e.getMessage().contains("cancel") || e.getMessage().contains("Attention"),
-                            "Should get cancellation error, got: " + e.getMessage());
+                    String msg = e.getMessage();
+                    assertNotNull(msg, "Cancellation exception message should not be null");
+                    assertTrue(msg.contains("cancel") || msg.contains("Attention"),
+                            "Should get cancellation error, got: " + msg);
+                    cancelException.set(true);
                 } finally {
-                    latch.await(35, TimeUnit.SECONDS);
+                    assertTrue(latch.await(35, TimeUnit.SECONDS), "Cancel thread did not finish in time");
                     executor.shutdown();
+                    assertTrue(cancelled.get(), "Statement.cancel() was not successfully invoked");
+                    assertTrue(cancelException.get(), "WAITFOR did not throw a cancellation exception");
                 }
             }
         }
@@ -4269,15 +4289,16 @@ public class StatementExecutionStateTest extends AbstractTest {
         @DisplayName("testStmtMethodsWhenClosed: methods after connection close")
         void testStmtMethodsAfterConnectionClose() throws SQLException {
             Assumptions.assumeTrue(connectionString != null);
-            Connection conn = PrepUtil.getConnection(connectionString);
-            Statement stmt = conn.createStatement();
-            conn.close();
+            try (Connection conn = PrepUtil.getConnection(connectionString);
+                    Statement stmt = conn.createStatement()) {
+                conn.close();
 
-            assertThrows(SQLException.class, () -> stmt.executeQuery("SELECT 1"),
-                    "executeQuery after conn close should throw");
-            assertThrows(SQLException.class, () -> stmt.execute("SELECT 1"),
-                    "execute after conn close should throw");
-            assertTrue(stmt.isClosed(), "Statement should be closed after connection close");
+                assertThrows(SQLException.class, () -> stmt.executeQuery("SELECT 1"),
+                        "executeQuery after conn close should throw");
+                assertThrows(SQLException.class, () -> stmt.execute("SELECT 1"),
+                        "execute after conn close should throw");
+                assertTrue(stmt.isClosed(), "Statement should be closed after connection close");
+            }
         }
 
         /**
