@@ -149,7 +149,10 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         if parameterIndex is out of range; if a database access error occurs or this method is called on a closed
      *         <code>CallableStatement</code>
+     * @deprecated Use {@link #getOffsetDateTime(int)} instead. This method is being deprecated in favor of using the
+     *             standard Java time API (JSR-310) for handling SQL Server datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     microsoft.sql.DateTimeOffset getDateTimeOffset(int parameterIndex) throws SQLServerException;
 
     /**
@@ -161,8 +164,37 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
+     * @deprecated Use {@link #getOffsetDateTime(String)} instead. This method is being deprecated in favor of using the
+     *             standard Java time API (JSR-310) for handling SQL Server datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException;
+
+    /**
+     * Returns the OffsetDateTime value of parameter with index parameterIndex. This is the preferred method for
+     * retrieving SQL Server datetimeoffset values, using the standard Java time API (JSR-310).
+     * 
+     * @param parameterIndex
+     *        the first parameter is 1, the second is 2, and so on
+     * @return OffsetDateTime value if the value is SQL NULL, the value returned is null
+     * @throws SQLServerException
+     *         if parameterIndex is out of range; if a database access error occurs or this method is called on a closed
+     *         <code>CallableStatement</code>
+     */
+    java.time.OffsetDateTime getOffsetDateTime(int parameterIndex) throws SQLServerException;
+
+    /**
+     * Returns the OffsetDateTime value of parameter with name parameterName. This is the preferred method for
+     * retrieving SQL Server datetimeoffset values, using the standard Java time API (JSR-310).
+     * 
+     * @param parameterName
+     *        the name of the parameter
+     * @return OffsetDateTime value if the value is SQL NULL, the value returned is null
+     * @throws SQLServerException
+     *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
+     *         method is called on a closed <code>CallableStatement</code>
+     */
+    java.time.OffsetDateTime getOffsetDateTime(String parameterName) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
@@ -500,7 +532,11 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *        DateTimeOffset value
      * @throws SQLServerException
      *         if an error occurs
+     * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime)} instead. This method is being
+     *             deprecated in favor of using the standard Java time API (JSR-310) for handling SQL Server
+     *             datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value) throws SQLServerException;
 
     /**
@@ -514,7 +550,11 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *        the scale of the parameter
      * @throws SQLServerException
      *         if an error occurs
+     * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime, int)} instead. This method is being
+     *             deprecated in favor of using the standard Java time API (JSR-310) for handling SQL Server
+     *             datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value,
             int scale) throws SQLServerException;
 
@@ -533,8 +573,60 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *        forceEncrypt is set to false, the driver will not force encryption on parameters.
      * @throws SQLServerException
      *         if an error occurs
+     * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime, int, boolean)} instead. This method
+     *             is being deprecated in favor of using the standard Java time API (JSR-310) for handling SQL Server
+     *             datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value, int scale,
+            boolean forceEncrypt) throws SQLServerException;
+
+    /**
+     * Sets parameter parameterName to OffsetDateTime value. This is the preferred method for setting SQL Server
+     * datetimeoffset values, using the standard Java time API (JSR-310).
+     * 
+     * @param parameterName
+     *        the name of the parameter
+     * @param value
+     *        OffsetDateTime value
+     * @throws SQLServerException
+     *         if an error occurs
+     */
+    void setOffsetDateTime(String parameterName, java.time.OffsetDateTime value) throws SQLServerException;
+
+    /**
+     * Sets parameter parameterName to OffsetDateTime value. This is the preferred method for setting SQL Server
+     * datetimeoffset values, using the standard Java time API (JSR-310).
+     * 
+     * @param parameterName
+     *        the name of the parameter
+     * @param value
+     *        OffsetDateTime value
+     * @param scale
+     *        the scale of the parameter
+     * @throws SQLServerException
+     *         if an error occurs
+     */
+    void setOffsetDateTime(String parameterName, java.time.OffsetDateTime value, int scale) throws SQLServerException;
+
+    /**
+     * Sets parameter parameterName to OffsetDateTime value. This is the preferred method for setting SQL Server
+     * datetimeoffset values, using the standard Java time API (JSR-310).
+     * 
+     * @param parameterName
+     *        the name of the parameter
+     * @param value
+     *        OffsetDateTime value
+     * @param scale
+     *        the scale of the parameter
+     * @param forceEncrypt
+     *        If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column
+     *        is encrypted and Always Encrypted is enabled on the connection or on the statement. If the boolean
+     *        forceEncrypt is set to false, the driver will not force encryption on parameters.
+     * @throws SQLServerException
+     *         if an error occurs
+     */
+    void setOffsetDateTime(String parameterName, java.time.OffsetDateTime value, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**

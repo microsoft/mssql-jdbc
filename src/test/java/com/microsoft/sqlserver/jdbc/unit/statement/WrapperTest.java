@@ -88,7 +88,7 @@ public class WrapperTest extends AbstractTest {
                         stmt3.setResponseBuffering("adaptive");
 
                         if (isKatmaiServer())
-                            stmt3.setDateTimeOffset(1, null);
+                            stmt3.setDateTimeOffset(1, (microsoft.sql.DateTimeOffset) null);
 
                         // Try Unwrapping CallableStatement to a callableStatement
                         isWrapper = ((SQLServerCallableStatement) cs)

@@ -558,12 +558,12 @@ public class PrecisionScaleTest extends AESetup {
 
         // datetimeoffset scale
         for (int i = 7; i <= 9; i++) {
-            pstmt.setDateTimeOffset(i, null, scale);
+            pstmt.setDateTimeOffset(i, (microsoft.sql.DateTimeOffset) null, scale);
         }
 
         // datetimeoffset default
         for (int i = 10; i <= 12; i++) {
-            pstmt.setDateTimeOffset(i, null);
+            pstmt.setDateTimeOffset(i, (microsoft.sql.DateTimeOffset) null);
         }
 
         // time scale

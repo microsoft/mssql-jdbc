@@ -25,7 +25,11 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @throws SQLServerException
      *         if parameterIndex does not correspond to a parameter marker in the SQL statement; if a database access
      *         error occurs or this method is called on a closed <code>PreparedStatement</code>
+     * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime)} instead. This method is being
+     *             deprecated in favor of using the standard Java time API (JSR-310) for handling SQL Server
+     *             datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x) throws SQLServerException;
 
     /**
@@ -563,7 +567,11 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *        the scale of the column
      * @throws SQLServerException
      *         when an error occurs
+     * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime, int)} instead. This method is being
+     *             deprecated in favor of using the standard Java time API (JSR-310) for handling SQL Server
+     *             datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException;
 
     /**
@@ -581,8 +589,61 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *        forceEncrypt is set to false, the driver will not force encryption on parameters.
      * @throws SQLServerException
      *         when an error occurs
+     * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime, int, boolean)} instead. This method is
+     *             being deprecated in favor of using the standard Java time API (JSR-310) for handling SQL Server
+     *             datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x, int scale,
+            boolean forceEncrypt) throws SQLServerException;
+
+    /**
+     * Sets the designated parameter to the given <code>java.time.OffsetDateTime</code> value. This is the preferred
+     * method for setting SQL Server datetimeoffset values, using the standard Java time API (JSR-310).
+     * 
+     * @param parameterIndex
+     *        the first parameter is 1, the second is 2, ...
+     * @param x
+     *        the parameter value
+     * @throws SQLServerException
+     *         if parameterIndex does not correspond to a parameter marker in the SQL statement; if a database access
+     *         error occurs or this method is called on a closed <code>PreparedStatement</code>
+     */
+    void setOffsetDateTime(int parameterIndex, java.time.OffsetDateTime x) throws SQLServerException;
+
+    /**
+     * Sets the designated parameter to the given <code>java.time.OffsetDateTime</code> value. This is the preferred
+     * method for setting SQL Server datetimeoffset values, using the standard Java time API (JSR-310).
+     * 
+     * @param parameterIndex
+     *        the first parameter is 1, the second is 2, ...
+     * @param x
+     *        the parameter value
+     * @param scale
+     *        the scale of the column
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void setOffsetDateTime(int parameterIndex, java.time.OffsetDateTime x, int scale) throws SQLServerException;
+
+    /**
+     * Sets the designated parameter to the given <code>java.time.OffsetDateTime</code> value. This is the preferred
+     * method for setting SQL Server datetimeoffset values, using the standard Java time API (JSR-310).
+     * 
+     * @param parameterIndex
+     *        the first parameter is 1, the second is 2, ...
+     * @param x
+     *        the parameter value
+     * @param scale
+     *        the scale of the column
+     * @param forceEncrypt
+     *        If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column
+     *        is encrypted and Always Encrypted is enabled on the connection or on the statement. If the boolean
+     *        forceEncrypt is set to false, the driver will not force encryption on parameters.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void setOffsetDateTime(int parameterIndex, java.time.OffsetDateTime x, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**

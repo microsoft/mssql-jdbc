@@ -247,7 +247,10 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @return A DateTimeOffset Class object.
      * @throws SQLServerException
      *         when an error occurs
+     * @deprecated Use {@link #getOffsetDateTime(int)} instead. This method is being deprecated in favor of using the
+     *             standard Java time API (JSR-310) for handling SQL Server datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLServerException;
 
     /**
@@ -258,8 +261,36 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      * @return A DateTimeOffset Class object.
      * @throws SQLServerException
      *         when an error occurs
+     * @deprecated Use {@link #getOffsetDateTime(String)} instead. This method is being deprecated in favor of using the
+     *             standard Java time API (JSR-310) for handling SQL Server datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLServerException;
+
+    /**
+     * Returns the value of the designated column as a java.time.OffsetDateTime object, given a zero-based column
+     * ordinal. This is the preferred method for retrieving SQL Server datetimeoffset values, using the standard Java
+     * time API (JSR-310).
+     * 
+     * @param columnIndex
+     *        The zero-based ordinal of a column.
+     * @return An OffsetDateTime object.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    java.time.OffsetDateTime getOffsetDateTime(int columnIndex) throws SQLServerException;
+
+    /**
+     * Returns the value of the column specified as a java.time.OffsetDateTime object, given a column name. This is the
+     * preferred method for retrieving SQL Server datetimeoffset values, using the standard Java time API (JSR-310).
+     * 
+     * @param columnName
+     *        The name of a column.
+     * @return An OffsetDateTime object.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    java.time.OffsetDateTime getOffsetDateTime(String columnName) throws SQLServerException;
 
     /**
      * Returns the value of the column specified as a java.math.BigDecimal object.
@@ -314,7 +345,11 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *        A DateTimeOffset Class object.
      * @throws SQLServerException
      *         when an error occurs
+     * @deprecated Use {@link #updateOffsetDateTime(int, java.time.OffsetDateTime)} instead. This method is being
+     *             deprecated in favor of using the standard Java time API (JSR-310) for handling SQL Server
+     *             datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x) throws SQLServerException;
 
     /**
@@ -326,8 +361,39 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *        A DateTimeOffset Class object.
      * @throws SQLServerException
      *         when an error occurs
+     * @deprecated Use {@link #updateOffsetDateTime(String, java.time.OffsetDateTime)} instead. This method is being
+     *             deprecated in favor of using the standard Java time API (JSR-310) for handling SQL Server
+     *             datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x) throws SQLServerException;
+
+    /**
+     * Updates the value of the column specified to the OffsetDateTime value, given a zero-based column ordinal. This
+     * is the preferred method for updating SQL Server datetimeoffset values, using the standard Java time API
+     * (JSR-310).
+     * 
+     * @param index
+     *        The zero-based ordinal of a column.
+     * @param x
+     *        An OffsetDateTime object.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void updateOffsetDateTime(int index, java.time.OffsetDateTime x) throws SQLServerException;
+
+    /**
+     * Updates the value of the column specified to the OffsetDateTime value, given a column name. This is the
+     * preferred method for updating SQL Server datetimeoffset values, using the standard Java time API (JSR-310).
+     * 
+     * @param columnName
+     *        The name of a column.
+     * @param x
+     *        An OffsetDateTime object.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void updateOffsetDateTime(String columnName, java.time.OffsetDateTime x) throws SQLServerException;
 
     /**
      * Updates the designated column with an {@code Object} value.
@@ -981,7 +1047,11 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *        scale of the column
      * @throws SQLServerException
      *         when an error occurs
+     * @deprecated Use {@link #updateOffsetDateTime(int, java.time.OffsetDateTime, Integer)} instead. This method is
+     *             being deprecated in favor of using the standard Java time API (JSR-310) for handling SQL Server
+     *             datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x, Integer scale) throws SQLServerException;
 
     /**
@@ -999,8 +1069,49 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *        forceEncrypt is set to false, the driver will not force encryption on parameters.
      * @throws SQLServerException
      *         when an error occurs
+     * @deprecated Use {@link #updateOffsetDateTime(int, java.time.OffsetDateTime, Integer, boolean)} instead. This
+     *             method is being deprecated in favor of using the standard Java time API (JSR-310) for handling SQL
+     *             Server datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x, Integer scale,
+            boolean forceEncrypt) throws SQLServerException;
+
+    /**
+     * Updates the value of the column specified to the OffsetDateTime value, given a zero-based column ordinal. This
+     * is the preferred method for updating SQL Server datetimeoffset values, using the standard Java time API
+     * (JSR-310).
+     * 
+     * @param index
+     *        The zero-based ordinal of a column.
+     * @param x
+     *        An OffsetDateTime object.
+     * @param scale
+     *        scale of the column
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void updateOffsetDateTime(int index, java.time.OffsetDateTime x, Integer scale) throws SQLServerException;
+
+    /**
+     * Updates the value of the column specified to the OffsetDateTime value, given a zero-based column ordinal. This
+     * is the preferred method for updating SQL Server datetimeoffset values, using the standard Java time API
+     * (JSR-310).
+     * 
+     * @param index
+     *        The zero-based ordinal of a column.
+     * @param x
+     *        An OffsetDateTime object.
+     * @param scale
+     *        scale of the column
+     * @param forceEncrypt
+     *        If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column
+     *        is encrypted and Always Encrypted is enabled on the connection or on the statement. If the boolean
+     *        forceEncrypt is set to false, the driver will not force encryption on parameters.
+     * @throws SQLServerException
+     *         when an error occurs
+     */
+    void updateOffsetDateTime(int index, java.time.OffsetDateTime x, Integer scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
@@ -1489,7 +1600,11 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *        the scale of the column
      * @throws SQLServerException
      *         If any errors occur.
+     * @deprecated Use {@link #updateOffsetDateTime(String, java.time.OffsetDateTime, int)} instead. This method is
+     *             being deprecated in favor of using the standard Java time API (JSR-310) for handling SQL Server
+     *             datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException;
 
     /**
@@ -1507,8 +1622,47 @@ public interface ISQLServerResultSet extends java.sql.ResultSet {
      *        forceEncrypt is set to false, the driver will not force encryption on parameters.
      * @throws SQLServerException
      *         If any errors occur.
+     * @deprecated Use {@link #updateOffsetDateTime(String, java.time.OffsetDateTime, int, boolean)} instead. This
+     *             method is being deprecated in favor of using the standard Java time API (JSR-310) for handling SQL
+     *             Server datetimeoffset values.
      */
+    @Deprecated(since = "13.5.1")
     void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x, int scale,
+            boolean forceEncrypt) throws SQLServerException;
+
+    /**
+     * Updates the value of the column specified to the OffsetDateTime value, given a column name. This is the
+     * preferred method for updating SQL Server datetimeoffset values, using the standard Java time API (JSR-310).
+     * 
+     * @param columnName
+     *        The name of a column.
+     * @param x
+     *        An OffsetDateTime object.
+     * @param scale
+     *        the scale of the column
+     * @throws SQLServerException
+     *         If any errors occur.
+     */
+    void updateOffsetDateTime(String columnName, java.time.OffsetDateTime x, int scale) throws SQLServerException;
+
+    /**
+     * Updates the value of the column specified to the OffsetDateTime value, given a column name. This is the
+     * preferred method for updating SQL Server datetimeoffset values, using the standard Java time API (JSR-310).
+     * 
+     * @param columnName
+     *        The name of a column.
+     * @param x
+     *        An OffsetDateTime object.
+     * @param scale
+     *        the scale of the column
+     * @param forceEncrypt
+     *        If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column
+     *        is encrypted and Always Encrypted is enabled on the connection or on the statement. If the boolean
+     *        forceEncrypt is set to false, the driver will not force encryption on parameters.
+     * @throws SQLServerException
+     *         If any errors occur.
+     */
+    void updateOffsetDateTime(String columnName, java.time.OffsetDateTime x, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
