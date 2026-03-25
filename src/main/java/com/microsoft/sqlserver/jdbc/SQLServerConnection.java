@@ -2819,6 +2819,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         throw new SQLServerException(form.format(msgArgs), null);
                     }
                     transactionIsolationLevel = level;
+                    // Normalize the value to uppercase so that it holds the canonical form
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue.toUpperCase(java.util.Locale.US));
                 }
 
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
