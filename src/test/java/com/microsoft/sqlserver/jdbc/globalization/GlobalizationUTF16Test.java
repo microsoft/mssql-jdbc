@@ -46,6 +46,7 @@ import com.microsoft.sqlserver.jdbc.globalization.GlobalizationTestData.SendMeth
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
+@Tag(Constants.legacyFx)
 @DisplayName("Globalization UTF-16 Round-Trip Tests")
 public class GlobalizationUTF16Test extends AbstractTest {
 

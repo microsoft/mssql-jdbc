@@ -44,6 +44,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  */
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
+@Tag(Constants.legacyFx)
 @DisplayName("Globalization Locale, Query, CaseSensitivity & Calendar Tests")
 public class GlobalizationLocaleTest extends AbstractTest {
 
