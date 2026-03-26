@@ -13,16 +13,20 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.JDBCType;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -205,6 +209,97 @@ public class AESetup extends AbstractTest {
         AETestConnectionString += ";encrypt=false;trustServerCertificate=true;";
     }
 
+    private static final Logger aeSetupLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.AESetup");
+
+    /**
+     * Cleans up stale JDBC AE test objects (CEKs, CMKs, and tables referencing them) left behind by previous test runs.
+     * Over time, repeated creation and dropping of CEKs causes the internal identity column in
+     * sys.column_encryption_key_values to be exhausted, resulting in SQL Server error:
+     * "Create failed because all available identifiers have been exhausted."
+     *
+     * This method drops all JDBC_CEK_* and JDBC_CMK_* objects except those belonging to the current test run, and also
+     * drops any user tables that reference stale CEKs (which would block the CEK drop).
+     *
+     * @param connectionString the connection string to use
+     * @throws SQLException if a database access error occurs
+     */
+    protected static void cleanupStaleAEObjects(String connectionString) throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil
+                .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+
+            // Collect stale CEK names (JDBC_CEK_* but not the current run's CEKs)
+            List<String> staleCeks = new ArrayList<>();
+            try (ResultSet rs = stmt.executeQuery(
+                    "SELECT name FROM sys.column_encryption_keys WHERE name LIKE 'JDBC_CEK_%'")) {
+                while (rs.next()) {
+                    String name = rs.getString(1);
+                    if (!name.equals(cekJks) && !name.equals(cekAkv) && !name.equals(cekWin)) {
+                        staleCeks.add(name);
+                    }
+                }
+            }
+
+            if (!staleCeks.isEmpty()) {
+                aeSetupLogger.info("Found " + staleCeks.size() + " stale CEK(s) to clean up.");
+
+                // Drop tables referencing stale CEKs (tables with encrypted columns block CEK drops)
+                for (String staleCek : staleCeks) {
+                    List<String> tablesToDrop = new ArrayList<>();
+                    try (ResultSet rs = stmt.executeQuery(
+                            "SELECT DISTINCT OBJECT_NAME(c.object_id) FROM sys.columns c "
+                                    + "INNER JOIN sys.column_encryption_keys cek ON c.column_encryption_key_id = cek.column_encryption_key_id "
+                                    + "WHERE cek.name = '" + staleCek + "' "
+                                    + "AND OBJECTPROPERTY(c.object_id, 'IsUserTable') = 1")) {
+                        while (rs.next()) {
+                            tablesToDrop.add(rs.getString(1));
+                        }
+                    }
+                    for (String table : tablesToDrop) {
+                        try {
+                            stmt.execute("DROP TABLE IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(table));
+                            aeSetupLogger.info("Dropped stale table: " + table);
+                        } catch (SQLException e) {
+                            aeSetupLogger.warning("Failed to drop stale table " + table + ": " + e.getMessage());
+                        }
+                    }
+
+                    // Now drop the stale CEK
+                    try {
+                        dropCEK(staleCek, stmt);
+                        aeSetupLogger.info("Dropped stale CEK: " + staleCek);
+                    } catch (SQLException e) {
+                        aeSetupLogger.warning("Failed to drop stale CEK " + staleCek + ": " + e.getMessage());
+                    }
+                }
+            }
+
+            // Collect and drop stale CMK names (JDBC_CMK_* but not the current run's CMKs)
+            List<String> staleCmks = new ArrayList<>();
+            try (ResultSet rs = stmt.executeQuery(
+                    "SELECT name FROM sys.column_master_keys WHERE name LIKE 'JDBC_CMK_%'")) {
+                while (rs.next()) {
+                    String name = rs.getString(1);
+                    if (!name.equals(cmkJks) && !name.equals(cmkAkv) && !name.equals(cmkWin)) {
+                        staleCmks.add(name);
+                    }
+                }
+            }
+
+            if (!staleCmks.isEmpty()) {
+                aeSetupLogger.info("Found " + staleCmks.size() + " stale CMK(s) to clean up.");
+                for (String staleCmk : staleCmks) {
+                    try {
+                        dropCMK(staleCmk, stmt);
+                        aeSetupLogger.info("Dropped stale CMK: " + staleCmk);
+                    } catch (SQLException e) {
+                        aeSetupLogger.warning("Failed to drop stale CMK " + staleCmk + ": " + e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+
     @BeforeAll
     public static void setupAETest() throws Exception {
         setConnection();
@@ -233,6 +328,10 @@ public class AESetup extends AbstractTest {
             param[i][2] = protocol;
 
             setAEConnectionString(serverName, url, protocol);
+
+            // Clean up stale CEKs/CMKs from previous test runs to prevent
+            // "Create failed because all available identifiers have been exhausted" errors
+            cleanupStaleAEObjects(AETestConnectionString);
 
             createCMK(AETestConnectionString, cmkJks, Constants.JAVA_KEY_STORE_NAME, javaKeyAliases,
                     TestUtils.byteToHexDisplayString(jksProvider.signColumnMasterKeyMetadata(javaKeyAliases, true)));
@@ -582,6 +681,8 @@ public class AESetup extends AbstractTest {
         TestUtils.dropTableIfExists(CHAR_TABLE_AE, stmt);
         TestUtils.dropTableIfExists(BINARY_TABLE_AE, stmt);
         TestUtils.dropTableIfExists(DATE_TABLE_AE, stmt);
+        TestUtils.dropTableIfExists(SCALE_DATE_TABLE_AE, stmt);
+        TestUtils.dropTableIfExists(VARY_STRING_TABLE_AE, stmt);
     }
 
     /**
