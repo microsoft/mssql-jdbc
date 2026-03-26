@@ -145,7 +145,7 @@ public final class GlobalizationTestData {
 
     /**
      * JDBC methods for sending character data (FX TCDenaliUTF16 CSendXxx classes,
-     * 22 variants).
+     * 15 variants).
      */
     public enum SendMethod {
         LITERAL("Literal", false),
@@ -269,8 +269,9 @@ public final class GlobalizationTestData {
     }
 
     /**
-     * Provides pairwise (sendMethod, receiveMethod, charType, charPosition) for
-     * UTF-16 tests.
+     * Provides round-robin sampled (sendMethod, receiveMethod, charType, charPosition)
+     * combinations for UTF-16 tests. Cycles through all four dimensions modularly,
+     * then adds supplemental combos per CharacterType for broader coverage (~30 combos).
      */
     public static Stream<Arguments> utf16RoundTripProvider() {
         List<Arguments> args = new ArrayList<>();
@@ -279,7 +280,7 @@ public final class GlobalizationTestData {
         CharacterType[] charTypes = CharacterType.values();
         CharacterPosition[] charPositions = CharacterPosition.values();
 
-        // Pairwise coverage: cycle through all dimensions
+        // Round-robin: cycle through all dimensions up to the longest
         int maxLen = Math.max(sends.length, Math.max(receives.length,
                 Math.max(charTypes.length, charPositions.length)));
 
@@ -291,7 +292,7 @@ public final class GlobalizationTestData {
             args.add(Arguments.of(sm, rm, ct, cp));
         }
 
-        // Extra combinations for each CharacterType
+        // Supplemental combinations for each CharacterType
         for (CharacterType ct : charTypes) {
             for (int i = 0; i < 3; i++) {
                 SendMethod sm = sends[(ct.ordinal() * 3 + i) % sends.length];

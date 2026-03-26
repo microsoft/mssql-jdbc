@@ -39,9 +39,9 @@ import com.microsoft.sqlserver.jdbc.globalization.GlobalizationTestData.ReceiveM
 import com.microsoft.sqlserver.jdbc.globalization.GlobalizationTestData.SendMethod;
 
 /**
- * Covers FX TCDenaliUTF16 (VSTS #765740): UTF-16 round-trip with 18 send × 18
+ * Covers FX TCDenaliUTF16 (VSTS #765740): UTF-16 round-trip with 15 send × 18
  * receive
- * methods × 4 char types × 2 positions, using pairwise coverage (~27 combos).
+ * methods × 4 char types × 2 positions, using round-robin sampling (~30 combos).
  */
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
@@ -56,7 +56,7 @@ public class GlobalizationUTF16Test extends AbstractTest {
     }
 
     /**
-     * Tests UTF-16 round-trip with pairwise combos of 18 send × 18 receive methods
+     * Tests UTF-16 round-trip with sampled combos of 15 send × 18 receive methods
      * × 4 char types × 2 positions.
      * Covers FX TCDenaliUTF16 (VSTS #765740).
      */
@@ -100,10 +100,10 @@ public class GlobalizationUTF16Test extends AbstractTest {
             }
 
             // SEND
-            sendData(conn, stmt, tableName, procName, testData, sendMethod, colType);
+            sendData(conn, stmt, tableName, procName, testData, sendMethod);
 
             // RECEIVE
-            String receivedData = receiveData(conn, stmt, tableName, procName, testData, receiveMethod);
+            String receivedData = receiveData(conn, stmt, tableName, procName, receiveMethod);
 
             // VERIFY
             assertNotNull(receivedData,
@@ -131,10 +131,10 @@ public class GlobalizationUTF16Test extends AbstractTest {
 
     /**
      * Sends test data to the server using the specified JDBC send method.
-     * Covers FX CSendXxx classes (22 variants).
+     * Covers FX CSendXxx classes (15 variants).
      */
     private void sendData(Connection conn, Statement stmt, String tableName, String procName,
-            String testData, SendMethod method, String colType) throws Exception {
+            String testData, SendMethod method) throws Exception {
 
         switch (method) {
 
@@ -279,10 +279,10 @@ public class GlobalizationUTF16Test extends AbstractTest {
 
     /**
      * Receives data from the server using the specified JDBC receive method.
-     * Covers FX CReceiveXxx classes (19 variants).
+     * Covers FX CReceiveXxx classes (18 variants).
      */
     private String receiveData(Connection conn, Statement stmt, String tableName, String procName,
-            String sentData, ReceiveMethod method) throws Exception {
+            ReceiveMethod method) throws Exception {
 
         switch (method) {
             case RS_GET_STRING:
@@ -391,13 +391,14 @@ public class GlobalizationUTF16Test extends AbstractTest {
         if (reader == null) {
             return null;
         }
-        StringBuilder sb = new StringBuilder();
-        char[] buf = new char[1024];
-        int len;
-        while ((len = reader.read(buf)) != -1) {
-            sb.append(buf, 0, len);
+        try (reader) {
+            StringBuilder sb = new StringBuilder();
+            char[] buf = new char[1024];
+            int len;
+            while ((len = reader.read(buf)) != -1) {
+                sb.append(buf, 0, len);
+            }
+            return sb.toString();
         }
-        reader.close();
-        return sb.toString();
     }
 }

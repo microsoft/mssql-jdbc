@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc.globalization;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -44,6 +45,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  */
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
+@Tag(Constants.xAzureSQLDB)
 @Tag(Constants.legacyFx)
 @DisplayName("Globalization Collation Tests")
 public class GlobalizationCollationTest extends AbstractTest {
@@ -93,11 +95,9 @@ public class GlobalizationCollationTest extends AbstractTest {
             try {
                 stmt.executeUpdate("CREATE DATABASE [" + dbName + "] COLLATE " + collation);
             } catch (SQLException e) {
-                // Collation not supported on this server — skip
-                System.out.println("Skipping collation " + collation + " for " + language +
-                        " — not supported: " + e.getMessage());
                 createdDatabases.remove(dbName);
-                return;
+                assumeTrue(false, "Collation " + collation + " not supported for " + language +
+                        ": " + e.getMessage());
             }
         }
 
@@ -211,10 +211,9 @@ public class GlobalizationCollationTest extends AbstractTest {
                         "id INT IDENTITY(1,1) PRIMARY KEY, " +
                         "data NVARCHAR(200) COLLATE " + collationName + ")");
             } catch (SQLException e) {
-                // Collation not supported
                 if (e.getMessage().contains("not supported") || e.getMessage().contains("Cannot resolve")) {
-                    System.out.println("Skipping unsupported collation: " + collationName);
-                    return;
+                    assumeTrue(false, "Collation not supported: " + collationName +
+                            ": " + e.getMessage());
                 }
                 throw e;
             }
@@ -261,8 +260,7 @@ public class GlobalizationCollationTest extends AbstractTest {
                         "id INT PRIMARY KEY, " +
                         "data VARCHAR(1) COLLATE Turkish_CI_AS)");
             } catch (SQLException e) {
-                System.out.println("Skipping Turkish collation test — not supported: " + e.getMessage());
-                return;
+                assumeTrue(false, "Turkish collation not supported: " + e.getMessage());
             }
 
             // Insert via updatable ResultSet to use column's charset
@@ -312,7 +310,7 @@ public class GlobalizationCollationTest extends AbstractTest {
 
                 stmt.executeUpdate("CREATE TABLE " + tableName + " (" +
                         "id INT IDENTITY(1,1) PRIMARY KEY, " +
-                        "data NVARCHAR(" + size + "))");
+                        "data NVARCHAR(" + size + ") COLLATE " + collation + ")");
 
                 // Repeat sample data to fill the column (up to size limit, leaving margin)
                 String testData = sampleData;

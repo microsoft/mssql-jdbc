@@ -238,7 +238,7 @@ public class GlobalizationLocaleTest extends AbstractTest {
     }
 
     /**
-     * Tests getDate/getTime/getTimestamp with Calendar objects in various locales.
+     * Tests getTime/getTimestamp with Calendar objects in various locales.
      * Covers FX TCCalendar.test1.
      */
     @ParameterizedTest(name = "Calendar: locale={0} type={1}")
@@ -298,7 +298,7 @@ public class GlobalizationLocaleTest extends AbstractTest {
     }
 
     /**
-     * Tests stored proc temporal output params (DATE/TIME/DATETIME2) with Calendar
+     * Tests stored proc temporal output params (TIME/DATETIME2) with Calendar
      * locales. Covers FX TCCalendar.test2.
      */
     @ParameterizedTest(name = "CalendarOutParam: locale={0} type={1}")
