@@ -391,7 +391,7 @@ public class GlobalizationUTF16Test extends AbstractTest {
         if (reader == null) {
             return null;
         }
-        try (reader) {
+        try {
             StringBuilder sb = new StringBuilder();
             char[] buf = new char[1024];
             int len;
@@ -399,6 +399,8 @@ public class GlobalizationUTF16Test extends AbstractTest {
                 sb.append(buf, 0, len);
             }
             return sb.toString();
+        } finally {
+            reader.close();
         }
     }
 }
