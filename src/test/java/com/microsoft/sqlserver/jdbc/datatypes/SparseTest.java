@@ -3,6 +3,7 @@ package com.microsoft.sqlserver.jdbc.datatypes;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -613,11 +614,14 @@ public class SparseTest extends AbstractTest {
                 stmt.executeUpdate("INSERT INTO " + insertionTableName
                         + " (colSetCol) VALUES ('" + xmlSb.toString() + "')");
 
+                int step = NUM_SPARSE_COLS / POPULATED_COLS;
                 try (ResultSet rs = stmt.executeQuery(
-                        "SELECT col0, col" + (NUM_SPARSE_COLS / POPULATED_COLS) + ", col"
-                                + (2 * (NUM_SPARSE_COLS / POPULATED_COLS)) + " FROM " + insertionTableName)) {
+                        "SELECT col0, col" + step + ", col" + (2 * step) + " FROM " + insertionTableName)) {
                     assertTrue(rs.next(), "Expected one row");
-                    assertEquals(1, rs.getInt("col0"));
+                    assertEquals((0 % 255) + 1, rs.getInt("col0"));
+                    assertEquals((step % 255) + 1, rs.getInt("col" + step));
+                    assertEquals(((2 * step) % 255) + 1, rs.getInt("col" + (2 * step)));
+                    assertFalse(rs.next(), "Expected only one row");
                 }
             }
         }
@@ -974,26 +978,17 @@ public class SparseTest extends AbstractTest {
                     SQLServerResultSetMetaData ssrsmd = (SQLServerResultSetMetaData) rs.getMetaData();
                     int colCount = ssrsmd.getColumnCount();
 
-                    try {
-                        ssrsmd.isSparseColumnSet(colCount + 1);
-                        fail("Expected exception for index > column count");
-                    } catch (ArrayIndexOutOfBoundsException e) {
-                        // Expected
-                    }
+                    assertThrows(ArrayIndexOutOfBoundsException.class,
+                            () -> ssrsmd.isSparseColumnSet(colCount + 1),
+                            "Expected exception for index > column count");
 
-                    try {
-                        ssrsmd.isSparseColumnSet(0);
-                        fail("Expected exception for index 0");
-                    } catch (ArrayIndexOutOfBoundsException e) {
-                        // Expected
-                    }
+                    assertThrows(ArrayIndexOutOfBoundsException.class,
+                            () -> ssrsmd.isSparseColumnSet(0),
+                            "Expected exception for index 0");
 
-                    try {
-                        ssrsmd.isSparseColumnSet(-1);
-                        fail("Expected exception for negative index");
-                    } catch (ArrayIndexOutOfBoundsException e) {
-                        // Expected
-                    }
+                    assertThrows(ArrayIndexOutOfBoundsException.class,
+                            () -> ssrsmd.isSparseColumnSet(-1),
+                            "Expected exception for negative index");
                 }
             }
         }
