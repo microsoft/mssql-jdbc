@@ -13,15 +13,12 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.JDBCType;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
@@ -211,61 +208,38 @@ public class AESetup extends AbstractTest {
     /**
      * Drops stale JDBC_CEK_* / JDBC_CMK_* objects (and tables referencing them) left by previous test runs.
      * Prevents SQL Server error "all available identifiers have been exhausted" caused by identity column overflow
-     * in sys.column_encryption_key_values.
+     * in sys.column_encryption_key_values. Uses a single server-side batch to minimize round trips and lock time.
+     * Best-effort; failures do not abort test setup.
      */
-    protected static void cleanupStaleAEObjects(String connectionString) throws SQLException {
+    protected static void cleanupStaleAEObjects(String connectionString) {
+        // Build CSV of current-run CEK/CMK names to exclude from cleanup
+        String currentCeks = "'" + cekJks + "','" + cekAkv + "','" + cekWin + "'";
+        String currentCmks = "'" + cmkJks + "','" + cmkAkv + "','" + cmkWin + "'";
+
+        // Single dynamic SQL batch: drop referencing tables, then CEKs, then CMKs
+        String cleanupSql = "DECLARE @sql NVARCHAR(MAX) = ''; "
+                // 1) Drop all user tables that reference stale CEKs
+                + "SELECT @sql = @sql + 'DROP TABLE IF EXISTS ' + QUOTENAME(SCHEMA_NAME(t.schema_id)) + '.' + QUOTENAME(t.name) + '; ' "
+                + "FROM sys.tables t "
+                + "WHERE EXISTS ( "
+                + "  SELECT 1 FROM sys.columns c "
+                + "  INNER JOIN sys.column_encryption_keys cek ON c.column_encryption_key_id = cek.column_encryption_key_id "
+                + "  WHERE c.object_id = t.object_id AND cek.name LIKE 'JDBC_CEK_%' AND cek.name NOT IN (" + currentCeks + ") "
+                + "); "
+                // 2) Drop stale CEKs
+                + "SELECT @sql = @sql + 'DROP COLUMN ENCRYPTION KEY ' + QUOTENAME(name) + '; ' "
+                + "FROM sys.column_encryption_keys WHERE name LIKE 'JDBC_CEK_%' AND name NOT IN (" + currentCeks + "); "
+                // 3) Drop stale CMKs
+                + "SELECT @sql = @sql + 'DROP COLUMN MASTER KEY ' + QUOTENAME(name) + '; ' "
+                + "FROM sys.column_master_keys WHERE name LIKE 'JDBC_CMK_%' AND name NOT IN (" + currentCmks + "); "
+                + "EXEC sp_executesql @sql;";
+
         try (SQLServerConnection con = (SQLServerConnection) PrepUtil
                 .getConnection(connectionString + ";sendTimeAsDateTime=false", AEInfo);
                 SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
-
-            // Collect stale CEKs from previous runs
-            List<String> staleCeks = new ArrayList<>();
-            try (ResultSet rs = stmt.executeQuery(
-                    "SELECT name FROM sys.column_encryption_keys WHERE name LIKE 'JDBC_CEK_%'")) {
-                while (rs.next()) {
-                    String name = rs.getString(1);
-                    if (!name.equals(cekJks) && !name.equals(cekAkv) && !name.equals(cekWin)) {
-                        staleCeks.add(name);
-                    }
-                }
-            }
-
-            // Drop tables referencing stale CEKs first (encrypted columns block CEK drops)
-            for (String staleCek : staleCeks) {
-                List<String> tablesToDrop = new ArrayList<>();
-                try (ResultSet rs = stmt.executeQuery(
-                        "SELECT DISTINCT OBJECT_NAME(c.object_id) FROM sys.columns c "
-                                + "INNER JOIN sys.column_encryption_keys cek ON c.column_encryption_key_id = cek.column_encryption_key_id "
-                                + "WHERE cek.name = '" + staleCek + "' "
-                                + "AND OBJECTPROPERTY(c.object_id, 'IsUserTable') = 1")) {
-                    while (rs.next()) {
-                        tablesToDrop.add(rs.getString(1));
-                    }
-                }
-                for (String table : tablesToDrop) {
-                    try {
-                        stmt.execute("DROP TABLE IF EXISTS " + AbstractSQLGenerator.escapeIdentifier(table));
-                    } catch (SQLException e) {}
-                }
-
-                dropCEK(staleCek, stmt);
-            }
-
-            // Drop stale CMKs from previous runs
-            List<String> staleCmks = new ArrayList<>();
-            try (ResultSet rs = stmt.executeQuery(
-                    "SELECT name FROM sys.column_master_keys WHERE name LIKE 'JDBC_CMK_%'")) {
-                while (rs.next()) {
-                    String name = rs.getString(1);
-                    if (!name.equals(cmkJks) && !name.equals(cmkAkv) && !name.equals(cmkWin)) {
-                        staleCmks.add(name);
-                    }
-                }
-            }
-
-            for (String staleCmk : staleCmks) {
-                    dropCMK(staleCmk, stmt);
-            }
+            stmt.execute(cleanupSql);
+        } catch (Exception e) {
+            // best-effort — don't fail test setup
         }
     }
 
