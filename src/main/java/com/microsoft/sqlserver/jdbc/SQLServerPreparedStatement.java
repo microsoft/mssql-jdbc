@@ -2139,9 +2139,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * @deprecated Use {@link #setDateTimeOffset(int, java.time.OffsetDateTime)} instead.
+     * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime)} instead.
      */
-    @Deprecated(since = "13.4.1")
+    @Deprecated(since = "13.5.1")
     @Override
     public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2152,9 +2152,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * @deprecated Use {@link #setDateTimeOffset(int, java.time.OffsetDateTime, int)} instead.
+     * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime, int)} instead.
      */
-    @Deprecated(since = "13.4.1")
+    @Deprecated(since = "13.5.1")
     @Override
     public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -2165,9 +2165,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * @deprecated Use {@link #setDateTimeOffset(int, java.time.OffsetDateTime, int, boolean)} instead.
+     * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime, int, boolean)} instead.
      */
-    @Deprecated(since = "13.4.1")
+    @Deprecated(since = "13.5.1")
     @Override
     public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x, int scale,
             boolean forceEncrypt) throws SQLServerException {
