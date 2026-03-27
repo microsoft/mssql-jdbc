@@ -316,7 +316,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private static final Lock sLock = new ReentrantLock();
 
     static final String USER_AGENT_TEMPLATE = "%s|%s|%s|%s|%s|%s|%s";
-    static final String USER_AGENT_EXT_VERSION_AND_DRIVER_NAME = "1|MS-JDBC";
+    static final String USER_AGENT_EXT_VERSION_AND_DRIVER_NAME = "1|MS-JDBC|Unknown|Unknown|Unknown|Unknown|Unknown";
     static final String userAgentStr;
 
     static {
