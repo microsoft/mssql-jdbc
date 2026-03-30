@@ -79,9 +79,9 @@ public class SparseTest extends AbstractTest {
     @Nested
     @Tag(Constants.legacyFx)
     @Tag(Constants.xAzureSQLDW)
-    public class SparseCreationFxTests {
+    public class SparseCreationTests {
 
-        private final String creationTable = RandomUtil.getIdentifier("SparseCreationFxTest");
+        private final String creationTable = RandomUtil.getIdentifier("SparseCreationTest");
         private final String creationTableName = AbstractSQLGenerator.escapeIdentifier(creationTable);
 
         @AfterEach
@@ -91,9 +91,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
-        /**
-         * Creates a table with sparse and non-sparse columns (no column set) and validates metadata.
-         */
+        /** Creates a table with sparse and non-sparse columns (no column set) and validates metadata. */
         @Test
         public void testCreationNoColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -315,10 +313,10 @@ public class SparseTest extends AbstractTest {
     @Nested
     @Tag(Constants.legacyFx)
     @Tag(Constants.xAzureSQLDW)
-    public class SparseInsertionFxTests {
+    public class SparseInsertionTests {
 
         private final String insertionTableName = AbstractSQLGenerator
-                .escapeIdentifier(RandomUtil.getIdentifier("SparseInsertionFxTest"));
+                .escapeIdentifier(RandomUtil.getIdentifier("SparseInsertionTest"));
 
         @AfterEach
         public void cleanup() throws Exception {
@@ -327,6 +325,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Inserts by column name into a table with sparse and non-sparse columns, no column set. */
         @Test
         public void testNamedColumnInsertionNoColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -351,6 +350,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Inserts by column name into a table with sparse, non-sparse, and a column set. */
         @Test
         public void testNamedColumnInsertionWithColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -377,6 +377,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Inserts by column name into a sparse-only table without a column set. */
         @Test
         public void testNamedColumnInsertionSparseOnlyNoColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -399,6 +400,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Inserts by column name into a sparse-only table with a column set. */
         @Test
         public void testNamedColumnInsertionSparseOnlyWithColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -420,6 +422,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Inserts by column name into a wide table (>1024 sparse columns) with a non-sparse column. */
         @Test
         public void testNamedColumnInsertionWideTable() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -450,6 +453,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Inserts by column name into a wide sparse-only table (>1024 sparse columns, no non-sparse). */
         @Test
         public void testNamedColumnInsertionWideTableSparseOnly() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -505,6 +509,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Inserts sparse values via column set XML into a sparse-only table. */
         @Test
         public void testInsertWithColumnSetXmlSparseOnly() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -526,6 +531,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Inserts sparse values via column set XML into a wide table with a non-sparse column. */
         @Test
         public void testInsertWithColumnSetXmlWideTable() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -555,6 +561,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Inserts sparse values via column set XML into a wide sparse-only table. */
         @Test
         public void testInsertWithColumnSetXmlWideTableSparseOnly() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -582,11 +589,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
-        /**
-         * Inserts into a table with >1024 tinyint sparse columns via column set XML.
-         * Uses tinyint (smallest legal sparse type) and populates only a subset of columns
-         * to stay within the 8060-byte row size limit.
-         */
+        /** Inserts into a table with >1024 tinyint sparse columns via column set XML. */
         @Test
         public void testInsertMoreThan1024Columns() throws Exception {
             final int NUM_SPARSE_COLS = 1044;
@@ -651,10 +654,10 @@ public class SparseTest extends AbstractTest {
     @Nested
     @Tag(Constants.legacyFx)
     @Tag(Constants.xAzureSQLDW)
-    public class SparseSelectFxTests {
+    public class SparseSelectTests {
 
         private final String selectTableName = AbstractSQLGenerator
-                .escapeIdentifier(RandomUtil.getIdentifier("SparseSelectFxTest"));
+                .escapeIdentifier(RandomUtil.getIdentifier("SparseSelectTest"));
 
         @AfterEach
         public void cleanup() throws Exception {
@@ -663,6 +666,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Selects from an empty table with sparse and non-sparse columns (no column set). */
         @Test
         public void testSelectAfterCreationSparseAndNonSparse() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -717,6 +721,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Selects from an empty sparse-only table with a column set. */
         @Test
         public void testSelectAfterCreationSparseOnlyWithColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -744,6 +749,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Selects from an empty wide table (>1024 sparse columns) with a non-sparse column. */
         @Test
         public void testSelectAfterCreationWideTable() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -777,6 +783,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Selects data after insertion into a table with sparse and non-sparse columns, no column set. */
         @Test
         public void testSelectAfterInsertionNoColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -808,6 +815,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Selects data after insertion and validates column set XML content in SELECT *. */
         @Test
         public void testSelectAfterInsertionWithColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -847,6 +855,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Selects data after insertion into a sparse-only table with a column set. */
         @Test
         public void testSelectAfterInsertionSparseOnlyWithColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -882,6 +891,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Selects data after insertion into a wide table (>1024 sparse columns). */
         @Test
         public void testSelectAfterInsertionWideTable() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -1047,10 +1057,10 @@ public class SparseTest extends AbstractTest {
     @Nested
     @Tag(Constants.legacyFx)
     @Tag(Constants.xAzureSQLDW)
-    public class SparseMetaDataFxTests {
+    public class SparseMetaDataTests {
 
         private final String metadataTableName = AbstractSQLGenerator
-                .escapeIdentifier(RandomUtil.getIdentifier("SparseMetaDataFxTest"));
+                .escapeIdentifier(RandomUtil.getIdentifier("SparseMetaDataTest"));
 
         @AfterEach
         public void cleanup() throws Exception {
@@ -1090,6 +1100,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Verifies ParameterMetaData types for sparse columns with a column set. */
         @Test
         public void testParameterMetaDataWithColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -1156,10 +1167,10 @@ public class SparseTest extends AbstractTest {
     @Nested
     @Tag(Constants.legacyFx)
     @Tag(Constants.xAzureSQLDW)
-    public class SparseUpdateFxTests {
+    public class SparseUpdateTests {
 
         private final String updateTableName = AbstractSQLGenerator
-                .escapeIdentifier(RandomUtil.getIdentifier("SparseUpdateFxTest"));
+                .escapeIdentifier(RandomUtil.getIdentifier("SparseUpdateTest"));
 
         @AfterEach
         public void cleanup() throws Exception {
@@ -1168,6 +1179,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Updates sparse and non-sparse columns by name in a table without a column set. */
         @Test
         public void testNamedUpdateNoColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -1196,6 +1208,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Updates sparse and non-sparse columns by name in a table with a column set. */
         @Test
         public void testNamedUpdateWithColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -1225,6 +1238,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Updates columns by name in a sparse-only table without a column set. */
         @Test
         public void testNamedUpdateSparseOnlyNoColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -1248,6 +1262,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Updates columns by name in a sparse-only table with a column set. */
         @Test
         public void testNamedUpdateSparseOnlyWithColumnSet() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -1272,6 +1287,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Updates columns by name in a wide table (>1024 sparse columns) with a non-sparse column. */
         @Test
         public void testNamedUpdateWideTable() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -1304,6 +1320,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Updates columns by name in a wide sparse-only table (>1024 sparse columns, no non-sparse). */
         @Test
         public void testNamedUpdateWideTableSparseOnly() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -1365,6 +1382,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Updates sparse columns via column set XML in a sparse-only table. */
         @Test
         public void testUpdateWithColumnSetXmlSparseOnly() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -1389,6 +1407,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Updates sparse columns via column set XML in a wide table with a non-sparse column. */
         @Test
         public void testUpdateWithColumnSetXmlWideTable() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
@@ -1422,6 +1441,7 @@ public class SparseTest extends AbstractTest {
             }
         }
 
+        /** Updates sparse columns via column set XML in a wide sparse-only table. */
         @Test
         public void testUpdateWithColumnSetXmlWideTableSparseOnly() throws Exception {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
