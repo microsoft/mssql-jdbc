@@ -360,22 +360,20 @@ public class TimeoutTest extends AbstractTest {
     }
 
     /**
-     * When socketTimeout is not explicitly set (defaults to 0 = "wait forever"), the socket must still be bounded by
-     * loginTimeout during the login phase. Without the fix, Math.min(loginRemaining, 0) == 0 and setSoTimeout(0)
-     * leaves the socket with no timeout, causing a hang during federated authentication or other login operations.
-     * After a successful login, the socket timeout should remain 0 (unlimited) for post-login queries.
+     * Verifies that when socketTimeout is not explicitly set (defaults to 0 = unlimited), post-login queries are not
+     * bounded by loginTimeout. A query that exceeds loginTimeout must still complete successfully, confirming that the
+     * default unlimited socket timeout is preserved after the login phase.
      */
     @Test
     @Tag(Constants.xAzureSQLDW)
-    public void testDefaultSocketTimeoutBoundedByLoginTimeout() throws Exception {
-        // Connect without setting socketTimeout (defaults to 0). loginTimeout=10 should still bound
-        // the socket during login. After login, the socket timeout is 0 (unlimited), so a query
-        // longer than loginTimeout should succeed.
-        try (Connection con = PrepUtil.getConnection(connectionString + ";loginTimeout=10;");
+    public void testDefaultSocketTimeoutUnlimitedAfterLogin() throws Exception {
+        // Connect without setting socketTimeout (defaults to 0 = unlimited).
+        // After login completes, the socket timeout should remain 0 (unlimited), so a query
+        // that exceeds loginTimeout (1s) should still succeed.
+        try (Connection con = PrepUtil.getConnection(connectionString + ";loginTimeout=1;");
                 Statement stmt = con.createStatement()) {
-            // This query takes 15s, which exceeds loginTimeout (10s).
-            // It should succeed because socketTimeout defaults to 0 (unlimited) post-login.
-            stmt.execute("WAITFOR DELAY '00:00:15';");
+            // 3s exceeds loginTimeout (1s); succeeds only if post-login socketTimeout is still 0.
+            stmt.execute("WAITFOR DELAY '00:00:03';");
         }
     }
 
