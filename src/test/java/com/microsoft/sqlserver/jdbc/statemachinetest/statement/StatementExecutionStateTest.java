@@ -552,6 +552,7 @@ public class StatementExecutionStateTest extends AbstractTest {
 
 
     @Test
+    @Tag(Constants.legacyFx)
     @DisplayName("Randomized Statement Execution Exploration")
     void testRandomizedStatementExecution() throws SQLException {
         Assumptions.assumeTrue(connectionString != null, "No database connection configured");
