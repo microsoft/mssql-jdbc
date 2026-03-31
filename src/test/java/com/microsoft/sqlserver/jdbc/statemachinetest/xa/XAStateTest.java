@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerXADataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerXAResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.Action;
 import com.microsoft.sqlserver.jdbc.statemachinetest.core.DataCache;
@@ -95,11 +97,19 @@ public class XAStateTest extends AbstractTest {
             xaRes.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
             return true;
         } catch (Exception e) {
+            // Check both the message and the full exception string for XA-related errors
             String msg = e.getMessage();
-            if (msg != null && msg.contains("xp_sqljdbc_xa")) {
+            String fullMsg = e.toString();
+
+            // XA stored procedures not found indicates XA is not installed
+            if ((msg != null && msg.toLowerCase().contains("xp_sqljdbc_xa")) ||
+                    (fullMsg != null && fullMsg.toLowerCase().contains("xp_sqljdbc_xa"))) {
                 return false;
             }
-            // Other errors might be transient, assume XA is available
+
+            // Other errors might be transient (network, auth, etc.), assume XA is available
+            // and let the actual test provide better diagnostics if XA is truly unavailable
+            System.out.println("XA check encountered non-XA error (assuming available): " + e.getMessage());
             return true;
         } finally {
             if (xaConn != null) {
@@ -1606,6 +1616,669 @@ public class XAStateTest extends AbstractTest {
         }
         
         System.out.println("✓ TCMultithreaded: Concurrent XA transaction tests passed");
+    }
+
+    // ==================== ADDITIONAL DETERMINISTIC TEST CASES ====================
+
+    /**
+     * Test: TCCommit(testCommitEndException) + TCRollback(testRollbackEndException)
+     * Verifies that calling end() on an already-committed or already-rolled-back XA
+     * transaction
+     * returns XAER_NOTA. SQL Server allows commit/rollback from STARTED state
+     * (implicit end),
+     * so subsequent end() calls must fail.
+     */
+    @Test
+    public void testEndAfterCommitOrRollback() throws Exception {
+        assumeTrue(isXASupported(connectionString),
+                "Skipping: XA not supported or connection not configured");
+
+        SQLServerXADataSource xaDS = new SQLServerXADataSource();
+        xaDS.setURL(connectionString);
+
+        XAConnection xaConn = null;
+        try {
+            xaConn = xaDS.getXAConnection();
+            XAResource xaRes = xaConn.getXAResource();
+            Connection conn = xaConn.getConnection();
+
+            try (Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+                stmt.execute("CREATE TABLE " + TABLE_NAME + " (id INT PRIMARY KEY, value INT)");
+            }
+
+            // TCCommit.testCommitEndException:
+            // SQL Server XA allows commit(onePhase=true) from STARTED state (implicit end);
+            // subsequent end() calls on the completed XID must return XAER_NOTA.
+            Xid xid1 = createXid();
+            xaRes.start(xid1, XAResource.TMNOFLAGS);
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (1, 100)");
+            }
+            xaRes.commit(xid1, true); // commit from STARTED state (no explicit end)
+
+            try {
+                xaRes.end(xid1, XAResource.TMSUCCESS);
+                fail("Should throw XAException when calling end() after commit");
+            } catch (XAException e) {
+                assertEquals(XAException.XAER_NOTA, e.errorCode,
+                        "end() after commit should return XAER_NOTA");
+            }
+            try {
+                xaRes.end(xid1, XAResource.TMSUCCESS); // second end still fails
+                fail("Should throw XAException on repeated end() after commit");
+            } catch (XAException e) {
+                assertEquals(XAException.XAER_NOTA, e.errorCode,
+                        "Repeated end() after commit must still return XAER_NOTA");
+            }
+
+            // TCRollback.testRollbackEndException:
+            // rollback from STARTED state, subsequent end() must return XAER_NOTA.
+            Xid xid2 = createXid();
+            xaRes.start(xid2, XAResource.TMNOFLAGS);
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (2, 200)");
+            }
+            xaRes.rollback(xid2); // rollback from STARTED state (no explicit end)
+
+            try {
+                xaRes.end(xid2, XAResource.TMSUCCESS);
+                fail("Should throw XAException when calling end() after rollback");
+            } catch (XAException e) {
+                assertEquals(XAException.XAER_NOTA, e.errorCode,
+                        "end() after rollback should return XAER_NOTA");
+            }
+            try {
+                xaRes.end(xid2, XAResource.TMSUCCESS); // second end still fails
+                fail("Should throw XAException on repeated end() after rollback");
+            } catch (XAException e) {
+                assertEquals(XAException.XAER_NOTA, e.errorCode,
+                        "Repeated end() after rollback must still return XAER_NOTA");
+            }
+
+            System.out.println("\u2713 TCCommit/TCRollback: end() after commit/rollback correctly throws XAER_NOTA");
+        } finally {
+            if (xaConn != null) {
+                try {
+                    xaConn.close();
+                } catch (SQLException e) {
+                    /* ignore */ }
+            }
+        }
+    }
+
+    /**
+     * Test: TCSanity(testDefaultIsolation) + TCIsolationLevels server-side
+     * verification.
+     * Queries DBCC USEROPTIONS inside XA to verify the active isolation level on
+     * the server.
+     * Also covers TRANSACTION_NONE mapping to READ COMMITTED (gap in
+     * TCIsolationLevels).
+     */
+    @Test
+    public void testXAIsolationLevelServerVerification() throws Exception {
+        assumeTrue(isXASupported(connectionString),
+                "Skipping: XA not supported or connection not configured");
+
+        SQLServerXADataSource xaDS = new SQLServerXADataSource();
+        xaDS.setURL(connectionString);
+
+        XAConnection xaConn = null;
+        try {
+            xaConn = xaDS.getXAConnection();
+            XAResource xaRes = xaConn.getXAResource();
+            Connection conn = xaConn.getConnection();
+
+            // Test 1: Default isolation inside XA must be READ COMMITTED
+            // (TCSanity.testDefaultIsolation)
+            Xid xid1 = createXid();
+            xaRes.start(xid1, XAResource.TMNOFLAGS);
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("DBCC USEROPTIONS")) {
+                boolean found = false;
+                while (rs.next()) {
+                    if ("isolation level".equals(rs.getString(1))) {
+                        assertEquals("read committed", rs.getString(2).trim().toLowerCase(),
+                                "Default XA isolation level must be read committed");
+                        found = true;
+                    }
+                }
+                assertTrue(found, "DBCC USEROPTIONS must return an 'isolation level' row");
+            }
+            xaRes.end(xid1, XAResource.TMSUCCESS);
+            xaRes.rollback(xid1);
+
+            // Test 2: TRANSACTION_NONE maps to read committed (TCIsolationLevels gap)
+            conn.setTransactionIsolation(Connection.TRANSACTION_NONE);
+            Xid xid2 = createXid();
+            xaRes.start(xid2, XAResource.TMNOFLAGS);
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("DBCC USEROPTIONS")) {
+                while (rs.next()) {
+                    if ("isolation level".equals(rs.getString(1))) {
+                        assertEquals("read committed", rs.getString(2).trim().toLowerCase(),
+                                "TRANSACTION_NONE should map to read committed in XA");
+                    }
+                }
+            }
+            xaRes.end(xid2, XAResource.TMSUCCESS);
+            xaRes.rollback(xid2);
+
+            // Test 3: Each standard isolation level verified via DBCC USEROPTIONS
+            int[] levels = {
+                    Connection.TRANSACTION_READ_UNCOMMITTED,
+                    Connection.TRANSACTION_READ_COMMITTED,
+                    Connection.TRANSACTION_REPEATABLE_READ,
+                    Connection.TRANSACTION_SERIALIZABLE
+            };
+            String[] expected = {
+                    "read uncommitted",
+                    "read committed",
+                    "repeatable read",
+                    "serializable"
+            };
+            for (int i = 0; i < levels.length; i++) {
+                conn.setTransactionIsolation(levels[i]);
+                Xid xid = createXid();
+                xaRes.start(xid, XAResource.TMNOFLAGS);
+                try (Statement stmt = conn.createStatement();
+                        ResultSet rs = stmt.executeQuery("DBCC USEROPTIONS")) {
+                    while (rs.next()) {
+                        if ("isolation level".equals(rs.getString(1))) {
+                            assertEquals(expected[i], rs.getString(2).trim().toLowerCase(),
+                                    "Server isolation level mismatch for JDBC level " + levels[i]);
+                        }
+                    }
+                }
+                xaRes.end(xid, XAResource.TMSUCCESS);
+                xaRes.rollback(xid);
+            }
+
+            System.out.println("\u2713 TCSanity/TCIsolationLevels: Server-verified isolation levels passed");
+        } finally {
+            if (xaConn != null) {
+                try {
+                    xaConn.close();
+                } catch (SQLException e) {
+                    /* ignore */ }
+            }
+        }
+    }
+
+    /**
+     * Test: TCSanity(testCommit2Phase) - FormatId round-trip via recover().
+     * After prepare(), recover() must return the XID with the exact formatId that
+     * was sent.
+     * Verifies fix for VSTS #841313 ("Introduce support for formatId").
+     */
+    @Test
+    public void testFormatIdRoundTrip() throws Exception {
+        assumeTrue(isXASupported(connectionString),
+                "Skipping: XA not supported or connection not configured");
+
+        SQLServerXADataSource xaDS = new SQLServerXADataSource();
+        xaDS.setURL(connectionString);
+
+        int[] formatIds = { 1, 1234, 9999 };
+        for (int formatId : formatIds) {
+            XAConnection xaConn = xaDS.getXAConnection();
+            try {
+                XAResource xaRes = xaConn.getXAResource();
+                Connection conn = xaConn.getConnection();
+
+                try (Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+                    stmt.execute("CREATE TABLE " + TABLE_NAME + " (id INT PRIMARY KEY, value INT)");
+                }
+
+                byte[] gtrid = UUID.randomUUID().toString().substring(0, 8).getBytes();
+                byte[] bqual = UUID.randomUUID().toString().substring(0, 8).getBytes();
+                Xid xid = new XidImpl(formatId, gtrid, bqual);
+
+                xaRes.start(xid, XAResource.TMNOFLAGS);
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (1, 100)");
+                }
+                xaRes.end(xid, XAResource.TMSUCCESS);
+                int prepResult = xaRes.prepare(xid);
+                assertEquals(XAResource.XA_OK, prepResult,
+                        "Prepare must return XA_OK for formatId=" + formatId);
+
+                // recover() must return the XID with the same formatId sent (VSTS #841313)
+                Xid[] recovered = xaRes.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
+                assertNotNull(recovered, "Recover must not return null");
+
+                boolean found = false;
+                for (Xid r : recovered) {
+                    if (r.getFormatId() == formatId
+                            && Arrays.equals(r.getGlobalTransactionId(), gtrid)) {
+                        found = true;
+                        assertEquals(formatId, r.getFormatId(),
+                                "Recovered XID formatId must match sent formatId=" + formatId);
+                        break;
+                    }
+                }
+                assertTrue(found,
+                        "Prepared XID must be recoverable with matching formatId=" + formatId);
+
+                xaRes.commit(xid, false);
+                System.out.println("FormatId=" + formatId + ": round-trip via recover() OK");
+            } finally {
+                xaConn.close();
+            }
+        }
+        System.out.println("\u2713 FormatId round-trip: all formatId values verified through recover()");
+    }
+
+    /**
+     * Test: TCSanity - XA transaction timeout set/get behavior.
+     * Verifies setTransactionTimeout/getTransactionTimeout round-trip and that
+     * timeout=0 (infinite) allows normal transaction completion.
+     * Note: the actual auto-abort wait scenario (FX testSetTimeout, 40s wait) is
+     * intentionally excluded to keep test duration practical.
+     */
+    @Test
+    public void testXATransactionTimeout() throws Exception {
+        assumeTrue(isXASupported(connectionString),
+                "Skipping: XA not supported or connection not configured");
+
+        SQLServerXADataSource xaDS = new SQLServerXADataSource();
+        xaDS.setURL(connectionString);
+
+        XAConnection xaConn = null;
+        try {
+            xaConn = xaDS.getXAConnection();
+            XAResource xaRes = xaConn.getXAResource();
+
+            // Test 1: Default timeout (0) is infinite - start/end must not throw
+            xaRes.setTransactionTimeout(0);
+            Xid xid1 = createXid();
+            xaRes.start(xid1, XAResource.TMNOFLAGS);
+            xaRes.end(xid1, XAResource.TMSUCCESS);
+            xaRes.rollback(xid1);
+
+            // Test 2: setTransactionTimeout / getTransactionTimeout round-trip
+            assertTrue(xaRes.setTransactionTimeout(20), "setTransactionTimeout(20) must return true");
+            assertEquals(20, xaRes.getTransactionTimeout(),
+                    "getTransactionTimeout() must return 20 after setTransactionTimeout(20)");
+
+            assertTrue(xaRes.setTransactionTimeout(60), "setTransactionTimeout(60) must return true");
+            assertEquals(60, xaRes.getTransactionTimeout(),
+                    "getTransactionTimeout() must return 60 after setTransactionTimeout(60)");
+
+            // Test 3: Reset to default and verify transaction is still usable
+            assertTrue(xaRes.setTransactionTimeout(0), "setTransactionTimeout(0) must return true");
+            Xid xid2 = createXid();
+            xaRes.start(xid2, XAResource.TMNOFLAGS);
+            xaRes.end(xid2, XAResource.TMSUCCESS);
+            xaRes.rollback(xid2);
+
+            System.out.println("\u2713 TCSanity: XA transaction timeout behavior passed");
+        } finally {
+            if (xaConn != null) {
+                try {
+                    xaConn.getXAResource().setTransactionTimeout(0); // always reset to default
+                } catch (Exception e) {
+                    /* ignore */ }
+                try {
+                    xaConn.close();
+                } catch (SQLException e) {
+                    /* ignore */ }
+            }
+        }
+    }
+
+    /**
+     * Test: TCPoolingWithXATransactions - XA interaction with connection pooling.
+     * (1) testMultipleCommitsWithCnClose: XAConnection reused for new transactions
+     * after conn.close().
+     * (2) testResumeTxWithCnClose: suspend XA -> conn.close() -> reget conn ->
+     * resume -> commit.
+     */
+    @Test
+    public void testXAPoolingWithConnectionClose() throws Exception {
+        assumeTrue(isXASupported(connectionString),
+                "Skipping: XA not supported or connection not configured");
+
+        SQLServerXADataSource xaDS = new SQLServerXADataSource();
+        xaDS.setURL(connectionString);
+
+        XAConnection xaConn = xaDS.getXAConnection();
+        try {
+            // Initialize test table
+            try (Connection setupConn = xaConn.getConnection();
+                    Statement stmt = setupConn.createStatement()) {
+                TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+                stmt.execute("CREATE TABLE " + TABLE_NAME
+                        + " (id INT PRIMARY KEY, value INT, scenario INT)");
+            }
+
+            // testMultipleCommitsWithCnClose: commit, close conn, get new conn, commit
+            // again
+            for (int i = 0; i < 2; i++) {
+                Connection conn = xaConn.getConnection();
+                XAResource xaRes = xaConn.getXAResource();
+                Xid xid = createXid();
+                xaRes.start(xid, XAResource.TMNOFLAGS);
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.execute("INSERT INTO " + TABLE_NAME
+                            + " VALUES (" + (i + 1) + ", " + (i * 100 + 100) + ", 1)");
+                }
+                xaRes.end(xid, XAResource.TMSUCCESS);
+                xaRes.commit(xid, true);
+                conn.close(); // soft-close between transactions
+            }
+
+            try (Connection verifyConn = xaConn.getConnection();
+                    Statement stmt = verifyConn.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "SELECT COUNT(*) FROM " + TABLE_NAME + " WHERE scenario = 1")) {
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt(1),
+                        "Should have 2 rows after multiple commits with conn.close() between each");
+            }
+
+            // testResumeTxWithCnClose: suspend -> conn.close() -> reget conn -> resume ->
+            // commit
+            for (int i = 0; i < 2; i++) {
+                Connection conn = xaConn.getConnection();
+                XAResource xaRes = xaConn.getXAResource();
+                Xid xid = createXid();
+
+                xaRes.start(xid, XAResource.TMNOFLAGS);
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.execute("INSERT INTO " + TABLE_NAME
+                            + " VALUES (" + (i * 2 + 10) + ", 10, 2)");
+                }
+                xaRes.end(xid, XAResource.TMSUSPEND);
+                conn.close(); // soft-close while transaction is suspended
+
+                conn = xaConn.getConnection(); // re-get connection
+                xaRes.start(xid, XAResource.TMRESUME);
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.execute("INSERT INTO " + TABLE_NAME
+                            + " VALUES (" + (i * 2 + 11) + ", 20, 2)");
+                }
+                xaRes.end(xid, XAResource.TMSUCCESS);
+                xaRes.commit(xid, true);
+                conn.close();
+            }
+
+            try (Connection verifyConn = xaConn.getConnection();
+                    Statement stmt = verifyConn.createStatement();
+                    ResultSet rs = stmt.executeQuery(
+                            "SELECT COUNT(*) FROM " + TABLE_NAME + " WHERE scenario = 2")) {
+                assertTrue(rs.next());
+                assertEquals(4, rs.getInt(1),
+                        "Should have 4 rows (2 per iteration) after suspend/resume with conn.close()");
+            }
+
+            System.out.println("\u2713 TCPoolingWithXATransactions: Connection pooling with XA passed");
+        } finally {
+            xaConn.close();
+        }
+    }
+
+    /**
+     * Test: TCException(testMinorError + testMajorError) - RAISERROR severity in XA
+     * transactions.
+     * Minor errors (severity 1-9): informational only, do NOT abort XA; commit
+     * succeeds.
+     * Major errors (severity 11+): throw SQLException and invalidate the
+     * transaction branch.
+     */
+    @Test
+    public void testXASqlErrorSeverity() throws Exception {
+        assumeTrue(isXASupported(connectionString),
+                "Skipping: XA not supported or connection not configured");
+
+        SQLServerXADataSource xaDS = new SQLServerXADataSource();
+        xaDS.setURL(connectionString);
+
+        // Test 1: Minor errors (severity 1, 5, 9) - must NOT abort XA transaction
+        int[] minorSeverities = { 1, 5, 9 };
+        for (int severity : minorSeverities) {
+            XAConnection xaConn = xaDS.getXAConnection();
+            try {
+                XAResource xaRes = xaConn.getXAResource();
+                Connection conn = xaConn.getConnection();
+
+                try (Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+                    stmt.execute("CREATE TABLE " + TABLE_NAME + " (id INT PRIMARY KEY, value INT)");
+                }
+
+                Xid xid = createXid();
+                xaRes.start(xid, XAResource.TMNOFLAGS);
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (1, 100)");
+                    // Minor RAISERROR should NOT throw SQLException in JDBC
+                    stmt.execute("RAISERROR ('minor error level " + severity + "', " + severity + ", 1)");
+                }
+                xaRes.end(xid, XAResource.TMSUCCESS);
+                xaRes.commit(xid, true); // must succeed despite minor error
+
+                try (Statement stmt = conn.createStatement();
+                        ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TABLE_NAME)) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt(1),
+                            "Insert must be committed after minor RAISERROR (severity=" + severity + ")");
+                }
+                System.out.println("Minor severity=" + severity + ": committed OK");
+            } finally {
+                xaConn.close();
+            }
+        }
+
+        // Test 2: Major errors (severity 11, 16) - MUST throw SQLException and
+        // invalidate XA
+        int[] majorSeverities = { 11, 16 };
+        for (int severity : majorSeverities) {
+            XAConnection xaConn = xaDS.getXAConnection();
+            XAResource xaRes = xaConn.getXAResource();
+            Xid xid = createXid();
+            try {
+                Connection conn = xaConn.getConnection();
+                xaRes.start(xid, XAResource.TMNOFLAGS);
+
+                boolean exceptionThrown = false;
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.execute("RAISERROR ('major error level " + severity + "', " + severity + ", 1)");
+                } catch (SQLException e) {
+                    exceptionThrown = true;
+                }
+                assertTrue(exceptionThrown,
+                        "RAISERROR with severity=" + severity + " must throw SQLException");
+
+                // Transaction is now invalid; clean up via TMFAIL + rollback, or forget
+                try {
+                    xaRes.end(xid, XAResource.TMFAIL);
+                    xaRes.rollback(xid);
+                } catch (XAException e) {
+                    try {
+                        xaRes.forget(xid);
+                    } catch (XAException fe) {
+                        /* ignore */ }
+                }
+                System.out.println("Major severity=" + severity + ": transaction correctly invalidated");
+            } finally {
+                xaConn.close();
+            }
+        }
+
+        System.out.println("\u2713 TCException: SQL error severity handling in XA passed");
+    }
+
+    /**
+     * Test: TCTightlyCoupled - SQL Server tightly-coupled XA transactions
+     * (SSTRANSTIGHTLYCPLD).
+     * Multiple branches sharing the same gtrid are tightly coupled. The primary
+     * branch returns
+     * XA_OK from prepare; secondary branches return XA_RDONLY (their work is
+     * absorbed by primary).
+     * Committing the primary commits all; rolling back the primary rolls back all.
+     * Also covers the SSTRANSTIGHTLYCPLD constant verification (TCVerifyXAResource
+     * gap).
+     */
+    @Test
+    public void testTightlyCoupledXATransactions() throws Exception {
+        assumeTrue(isXASupported(connectionString),
+                "Skipping: XA not supported or connection not configured");
+
+        // Verify SSTRANSTIGHTLYCPLD constant is defined
+        // (TCVerifyXAResource.testDefinedConstants)
+        int tightlyCpldFlag = SQLServerXAResource.SSTRANSTIGHTLYCPLD;
+        assertTrue(tightlyCpldFlag != 0,
+                "SQLServerXAResource.SSTRANSTIGHTLYCPLD must be a non-zero flag value");
+
+        SQLServerXADataSource xaDS = new SQLServerXADataSource();
+        xaDS.setURL(connectionString);
+
+        XAConnection xaConn1 = null;
+        XAConnection xaConn2 = null;
+        try {
+            xaConn1 = xaDS.getXAConnection();
+            xaConn2 = xaDS.getXAConnection();
+            XAResource xaRes1 = xaConn1.getXAResource();
+            XAResource xaRes2 = xaConn2.getXAResource();
+            Connection conn1 = xaConn1.getConnection();
+            Connection conn2 = xaConn2.getConnection();
+
+            // Tightly-coupled branches must share formatId AND gtrid, differ only in bqual
+            final int sharedFormatId = 5678;
+
+            // --- Scenario 1: Two-phase commit with two tightly-coupled branches ---
+            try (Statement stmt = conn1.createStatement()) {
+                TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+                stmt.execute("CREATE TABLE " + TABLE_NAME + " (id INT PRIMARY KEY, value INT)");
+            }
+
+            byte[] gtrid1 = UUID.randomUUID().toString().substring(0, 8).getBytes();
+            Xid primary1 = new XidImpl(sharedFormatId, gtrid1, "b1-s1".getBytes());
+            Xid secondary1 = new XidImpl(sharedFormatId, gtrid1, "b2-s1".getBytes());
+
+            xaRes1.start(primary1, SQLServerXAResource.SSTRANSTIGHTLYCPLD);
+            try (Statement stmt = conn1.createStatement()) {
+                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (1, 100)");
+            }
+            xaRes2.start(secondary1, SQLServerXAResource.SSTRANSTIGHTLYCPLD);
+            try (Statement stmt = conn2.createStatement()) {
+                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (2, 200)");
+            }
+            xaRes1.end(primary1, XAResource.TMSUCCESS);
+            xaRes2.end(secondary1, XAResource.TMSUCCESS);
+
+            int prepPrimary1 = xaRes1.prepare(primary1);
+            assertEquals(XAResource.XA_OK, prepPrimary1,
+                    "Primary tightly-coupled branch must return XA_OK from prepare");
+
+            int prepSecondary1 = xaRes2.prepare(secondary1);
+            assertEquals(XAResource.XA_RDONLY, prepSecondary1,
+                    "Secondary tightly-coupled branch must return XA_RDONLY from prepare");
+
+            xaRes1.commit(primary1, false); // committing primary commits all branches
+
+            try (Statement stmt = conn1.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TABLE_NAME)) {
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt(1),
+                        "Both tightly-coupled branches should be committed after primary commit");
+            }
+
+            // --- Scenario 2: Rollback primary branch rolls back all ---
+            try (Statement stmt = conn1.createStatement()) {
+                TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+                stmt.execute("CREATE TABLE " + TABLE_NAME + " (id INT PRIMARY KEY, value INT)");
+            }
+
+            byte[] gtrid2 = UUID.randomUUID().toString().substring(0, 8).getBytes();
+            Xid primary2 = new XidImpl(sharedFormatId, gtrid2, "b1-s2".getBytes());
+            Xid secondary2 = new XidImpl(sharedFormatId, gtrid2, "b2-s2".getBytes());
+
+            xaRes1.start(primary2, SQLServerXAResource.SSTRANSTIGHTLYCPLD);
+            try (Statement stmt = conn1.createStatement()) {
+                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (3, 300)");
+            }
+            xaRes2.start(secondary2, SQLServerXAResource.SSTRANSTIGHTLYCPLD);
+            try (Statement stmt = conn2.createStatement()) {
+                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (4, 400)");
+            }
+            xaRes1.end(primary2, XAResource.TMSUCCESS);
+            xaRes2.end(secondary2, XAResource.TMSUCCESS);
+
+            int prepPrimary2 = xaRes1.prepare(primary2);
+            assertEquals(XAResource.XA_OK, prepPrimary2,
+                    "Primary must return XA_OK from prepare in rollback scenario");
+            int prepSecondary2 = xaRes2.prepare(secondary2);
+            assertEquals(XAResource.XA_RDONLY, prepSecondary2,
+                    "Secondary must return XA_RDONLY in rollback scenario");
+
+            xaRes1.rollback(primary2); // rolling back primary rolls back all
+
+            try (Statement stmt = conn1.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TABLE_NAME)) {
+                assertTrue(rs.next());
+                assertEquals(0, rs.getInt(1),
+                        "Rolling back the primary tightly-coupled branch must remove all branch work");
+            }
+
+            // --- Scenario 3: Suspend/Resume with SSTRANSTIGHTLYCPLD ---
+            try (Statement stmt = conn1.createStatement()) {
+                TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+                stmt.execute("CREATE TABLE " + TABLE_NAME + " (id INT PRIMARY KEY, value INT)");
+            }
+
+            byte[] gtrid3 = UUID.randomUUID().toString().substring(0, 8).getBytes();
+            Xid primary3 = new XidImpl(sharedFormatId, gtrid3, "b1-s3".getBytes());
+
+            xaRes1.start(primary3, SQLServerXAResource.SSTRANSTIGHTLYCPLD);
+            try (Statement stmt = conn1.createStatement()) {
+                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (5, 500)");
+            }
+            xaRes1.end(primary3, XAResource.TMSUSPEND | SQLServerXAResource.SSTRANSTIGHTLYCPLD);
+            xaRes1.start(primary3, XAResource.TMRESUME | SQLServerXAResource.SSTRANSTIGHTLYCPLD);
+            try (Statement stmt = conn1.createStatement()) {
+                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (6, 600)");
+            }
+            xaRes1.end(primary3, XAResource.TMSUCCESS);
+            xaRes1.prepare(primary3);
+            xaRes1.commit(primary3, false);
+
+            try (Statement stmt = conn1.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TABLE_NAME)) {
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt(1),
+                        "Suspend/resume within a tightly-coupled branch must preserve all work");
+            }
+
+            // --- Scenario 4: Invalid flag combination TMJOIN | SSTRANSTIGHTLYCPLD must
+            // fail ---
+            try {
+                Xid invalidXid = createXid();
+                xaRes1.start(invalidXid, XAResource.TMJOIN | SQLServerXAResource.SSTRANSTIGHTLYCPLD);
+                try {
+                    xaRes1.end(invalidXid, XAResource.TMFAIL);
+                    xaRes1.rollback(invalidXid);
+                } catch (XAException ignored) {
+                    /* ignore cleanup */ }
+                fail("TMJOIN | SSTRANSTIGHTLYCPLD is invalid and must throw XAException");
+            } catch (XAException e) {
+                System.out.println("Invalid flag (TMJOIN|SSTRANSTIGHTLYCPLD) correctly rejected");
+            }
+
+            System.out.println("\u2713 TCTightlyCoupled: All tightly-coupled XA transaction tests passed");
+        } finally {
+            if (xaConn1 != null)
+                try {
+                    xaConn1.close();
+                } catch (SQLException e) {
+                    /* ignore */ }
+            if (xaConn2 != null)
+                try {
+                    xaConn2.close();
+                } catch (SQLException e) {
+                    /* ignore */ }
+        }
     }
 
     /** Simple Xid implementation for XA transactions. */
