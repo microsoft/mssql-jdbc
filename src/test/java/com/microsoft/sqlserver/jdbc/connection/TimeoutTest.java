@@ -368,12 +368,13 @@ public class TimeoutTest extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     public void testDefaultSocketTimeoutUnlimitedAfterLogin() throws Exception {
         // Connect without setting socketTimeout (defaults to 0 = unlimited).
-        // After login completes, the socket timeout should remain 0 (unlimited), so a query
-        // that exceeds loginTimeout (1s) should still succeed.
-        try (Connection con = PrepUtil.getConnection(connectionString + ";loginTimeout=1;");
+        // loginTimeout=5 gives the login phase enough time to complete on any CI agent.
+        // After login, the socket timeout should remain 0 (unlimited), so a query that
+        // exceeds loginTimeout (5s) should still succeed.
+        try (Connection con = PrepUtil.getConnection(connectionString + ";loginTimeout=5;");
                 Statement stmt = con.createStatement()) {
-            // 3s exceeds loginTimeout (1s); succeeds only if post-login socketTimeout is still 0.
-            stmt.execute("WAITFOR DELAY '00:00:03';");
+            // 8s exceeds loginTimeout (5s); succeeds only if post-login socketTimeout is still 0.
+            stmt.execute("WAITFOR DELAY '00:00:08';");
         }
     }
 
