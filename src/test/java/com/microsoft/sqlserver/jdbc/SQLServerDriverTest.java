@@ -308,4 +308,22 @@ public class SQLServerDriverTest extends AbstractTest {
         assertTrue(userAgent.contains("Windows"), "User agent string must contain Windows");
 
     }
+
+    /**
+     * test user agent string fallback when an exception occurs during construction
+     */
+    @Test
+    public void testDriverUserAgentFallbackOnException() {
+        try (MockedStatic<SQLServerConnection> mockedStatic = mockStatic(SQLServerConnection.class)) {
+            // Call the real getUserAgent() implementation
+            mockedStatic.when(SQLServerConnection::getUserAgent).thenCallRealMethod();
+            // Make getJDBCVersion() throw to trigger the catch block in getUserAgent()
+            mockedStatic.when(SQLServerConnection::getJDBCVersion)
+                    .thenThrow(new RuntimeException("Simulated failure"));
+
+            String userAgent = SQLServerConnection.getUserAgent();
+            assertEquals(SQLServerConnection.USER_AGENT_EXT_VERSION_AND_DRIVER_NAME, userAgent,
+                    "User agent should fall back to default value on exception");
+        }
+    }
 }
