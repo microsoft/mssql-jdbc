@@ -1050,7 +1050,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /**
      * @deprecated Use {@link #getOffsetDateTime(int)} instead.
      */
-    @Deprecated(since = "13.4.1")
+    @Deprecated(since = "13.5.1")
     @Override
     public microsoft.sql.DateTimeOffset getDateTimeOffset(int index) throws SQLServerException {
         if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
@@ -1070,7 +1070,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /**
      * @deprecated Use {@link #getOffsetDateTime(String)} instead.
      */
-    @Deprecated(since = "13.4.1")
+    @Deprecated(since = "13.5.1")
     @Override
     public microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException {
         loggerExternal.entering(getClassNameLogging(), "getDateTimeOffset", parameterName);

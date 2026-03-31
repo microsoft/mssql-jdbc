@@ -240,8 +240,3 @@ pip-log.txt
 ## Additional for IntelliJ
 out/
 gen/
-
-# Gradle wrapper
-gradlew
-gradlew.bat
-gradle/
