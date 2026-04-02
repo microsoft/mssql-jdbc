@@ -462,17 +462,6 @@ public class StatementExecutionStateTest extends AbstractTest {
         @Override public void run() throws SQLException { ((Statement) getState(STMT)).getUpdateCount(); }
     }
 
-    /** getGeneratedKeys() — not registered; validated inline within execute-with-keys actions instead. */
-    @SuppressWarnings("unused")
-    private static class GetGeneratedKeysAction extends Action {
-        GetGeneratedKeysAction() { super("getGeneratedKeys", 5); }
-        @Override public boolean canRun() { return !isState(CLOSED) && isState(EXECUTED) && isState(LAST_EXECUTE_GENERATED_KEYS); }
-        @Override public void run() throws SQLException {
-            try (ResultSet keys = ((Statement) getState(STMT)).getGeneratedKeys()) { while (keys.next()) {} }
-            setState(LAST_EXECUTE_GENERATED_KEYS, false);
-        }
-    }
-
     /** setMaxRows / getMaxRows. */
     private static class SetMaxRowsAction extends Action {
         SetMaxRowsAction() { super("setMaxRows", 5); }
