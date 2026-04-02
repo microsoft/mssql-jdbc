@@ -149,7 +149,9 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         if parameterIndex is out of range; if a database access error occurs or this method is called on a closed
      *         <code>CallableStatement</code>
+     * @deprecated Use {@link #getOffsetDateTime(int)} instead.
      */
+    @Deprecated(since = "13.5.1")
     microsoft.sql.DateTimeOffset getDateTimeOffset(int parameterIndex) throws SQLServerException;
 
     /**
@@ -161,8 +163,38 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      * @throws SQLServerException
      *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
      *         method is called on a closed <code>CallableStatement</code>
+     * @deprecated Use {@link #getOffsetDateTime(String)} instead.
      */
+    @Deprecated(since = "13.5.1")
     microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException;
+
+    /**
+     * Returns the {@link java.time.OffsetDateTime} value of parameter with index parameterIndex. This is the
+     * preferred way to retrieve SQL Server {@code datetimeoffset} output parameters. The equivalent JDBC-standard
+     * approach is {@code callableStatement.getObject(parameterIndex, java.time.OffsetDateTime.class)}.
+     *
+     * @param parameterIndex
+     *        the first parameter is 1, the second is 2, and so on
+     * @return {@code java.time.OffsetDateTime} value; if the value is SQL NULL, the value returned is {@code null}
+     * @throws SQLServerException
+     *         if parameterIndex is out of range; if a database access error occurs or this method is called on a closed
+     *         <code>CallableStatement</code>
+     */
+    java.time.OffsetDateTime getOffsetDateTime(int parameterIndex) throws SQLServerException;
+
+    /**
+     * Returns the {@link java.time.OffsetDateTime} value of parameter with name parameterName. This is the preferred
+     * way to retrieve SQL Server {@code datetimeoffset} output parameters. The equivalent JDBC-standard approach is
+     * {@code callableStatement.getObject(parameterName, java.time.OffsetDateTime.class)}.
+     *
+     * @param parameterName
+     *        the name of the parameter
+     * @return {@code java.time.OffsetDateTime} value; if the value is SQL NULL, the value returned is {@code null}
+     * @throws SQLServerException
+     *         if parameterName does not correspond to a named parameter; if a database access error occurs or this
+     *         method is called on a closed <code>CallableStatement</code>
+     */
+    java.time.OffsetDateTime getOffsetDateTime(String parameterName) throws SQLServerException;
 
     /**
      * Returns the value of the designated column in the current row of this <code>ResultSet</code> object as a stream
@@ -500,7 +532,9 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *        DateTimeOffset value
      * @throws SQLServerException
      *         if an error occurs
+     * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime)} instead.
      */
+    @Deprecated(since = "13.5.1")
     void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value) throws SQLServerException;
 
     /**
@@ -514,7 +548,9 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *        the scale of the parameter
      * @throws SQLServerException
      *         if an error occurs
+     * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime, int)} instead.
      */
+    @Deprecated(since = "13.5.1")
     void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value,
             int scale) throws SQLServerException;
 
@@ -533,8 +569,57 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *        forceEncrypt is set to false, the driver will not force encryption on parameters.
      * @throws SQLServerException
      *         if an error occurs
+     * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime, int, boolean)} instead.
      */
+    @Deprecated(since = "13.5.1")
     void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value, int scale,
+            boolean forceEncrypt) throws SQLServerException;
+
+    /**
+     * Sets parameter parameterName to the given {@link java.time.OffsetDateTime} value. This is the preferred way
+     * to set SQL Server {@code datetimeoffset} parameters using the standard Java time API. The equivalent
+     * JDBC-standard approach is {@code callableStatement.setObject(parameterName, offsetDateTimeValue)}.
+     *
+     * @param parameterName
+     *        the name of the parameter
+     * @param value
+     *        {@code java.time.OffsetDateTime} value
+     * @throws SQLServerException
+     *         if an error occurs
+     */
+    void setOffsetDateTime(String parameterName, java.time.OffsetDateTime value) throws SQLServerException;
+
+    /**
+     * Sets parameter parameterName to the given {@link java.time.OffsetDateTime} value.
+     *
+     * @param parameterName
+     *        the name of the parameter
+     * @param value
+     *        {@code java.time.OffsetDateTime} value
+     * @param scale
+     *        the scale of the parameter
+     * @throws SQLServerException
+     *         if an error occurs
+     */
+    void setOffsetDateTime(String parameterName, java.time.OffsetDateTime value, int scale) throws SQLServerException;
+
+    /**
+     * Sets parameter parameterName to the given {@link java.time.OffsetDateTime} value.
+     *
+     * @param parameterName
+     *        the name of the parameter
+     * @param value
+     *        {@code java.time.OffsetDateTime} value
+     * @param scale
+     *        the scale of the parameter
+     * @param forceEncrypt
+     *        If the boolean forceEncrypt is set to true, the query parameter will only be set if the designation column
+     *        is encrypted and Always Encrypted is enabled on the connection or on the statement. If the boolean
+     *        forceEncrypt is set to false, the driver will not force encryption on parameters.
+     * @throws SQLServerException
+     *         if an error occurs
+     */
+    void setOffsetDateTime(String parameterName, java.time.OffsetDateTime value, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
     /**
