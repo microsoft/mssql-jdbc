@@ -226,7 +226,8 @@ public class StatementExecutionStateTest extends AbstractTest {
             setState(HAS_RESULT_SET, hasResultSet);
             setState(LAST_EXECUTE_WAS_BATCH, false);
             setState(LAST_EXECUTE_WAS_UPDATE, false);
-            setState(LAST_EXECUTE_GENERATED_KEYS, true);
+            setState(LAST_EXECUTE_GENERATED_KEYS,
+                    autoKeyFlag == Statement.RETURN_GENERATED_KEYS);
             setState(QUERY_INDEX, 0);
             if (isInsert && autoKeyFlag == Statement.RETURN_GENERATED_KEYS) {
                 try (ResultSet keys = stmt.getGeneratedKeys()) {
@@ -259,7 +260,8 @@ public class StatementExecutionStateTest extends AbstractTest {
             setState(HAS_RESULT_SET, false);
             setState(LAST_EXECUTE_WAS_BATCH, false);
             setState(LAST_EXECUTE_WAS_UPDATE, true);
-            setState(LAST_EXECUTE_GENERATED_KEYS, true);
+            setState(LAST_EXECUTE_GENERATED_KEYS,
+                    autoKeyFlag == Statement.RETURN_GENERATED_KEYS);
             setState(QUERY_INDEX, 0);
             if (isInsert && autoKeyFlag == Statement.RETURN_GENERATED_KEYS) {
                 try (ResultSet keys = stmt.getGeneratedKeys()) {
@@ -282,11 +284,11 @@ public class StatementExecutionStateTest extends AbstractTest {
                 int newId = getStateInt(NEXT_INSERT_ID);
                 setState(NEXT_INSERT_ID, newId + 1);
                 hasResultSet = stmt.execute("INSERT INTO " + tableName + " (id, value, name) VALUES ("
-                        + newId + ", " + getRandom().nextInt(10000) + ", 'GenKey')", new int[]{1});
+                        + newId + ", " + getRandom().nextInt(10000) + ", 'GenKey')", new int[]{4});
             } else {
                 int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
                 hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = "
-                        + getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{1});
+                        + getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{4});
             }
             setState(EXECUTED, true); setState(HAS_RESULT_SET, hasResultSet);
             setState(LAST_EXECUTE_WAS_BATCH, false); setState(LAST_EXECUTE_WAS_UPDATE, false);
@@ -341,11 +343,11 @@ public class StatementExecutionStateTest extends AbstractTest {
                 int newId = getStateInt(NEXT_INSERT_ID);
                 setState(NEXT_INSERT_ID, newId + 1);
                 stmt.executeUpdate("INSERT INTO " + tableName + " (id, value, name) VALUES ("
-                        + newId + ", " + getRandom().nextInt(10000) + ", 'GenKey')", new int[]{1});
+                        + newId + ", " + getRandom().nextInt(10000) + ", 'GenKey')", new int[]{4});
             } else {
                 int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
                 stmt.executeUpdate("UPDATE " + tableName + " SET value = "
-                        + getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{1});
+                        + getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{4});
             }
             setState(EXECUTED, true); setState(HAS_RESULT_SET, false);
             setState(LAST_EXECUTE_WAS_BATCH, false); setState(LAST_EXECUTE_WAS_UPDATE, true);
@@ -1118,8 +1120,8 @@ public class StatementExecutionStateTest extends AbstractTest {
             try (Connection conn = PrepUtil.getConnection(connectionString)) {
                 createTestTable(conn);
                 try (Statement stmt = conn.createStatement()) {
-                    stmt.addBatch("INSERT INTO " + TABLE_NAME + " VALUES (100, 1000, 'NewRow100')");
-                    stmt.addBatch("INSERT INTO " + TABLE_NAME + " VALUES (1, 9999, 'DuplicatePK')");
+                    stmt.addBatch("INSERT INTO " + TABLE_NAME + " (id, value, name) VALUES (100, 1000, 'NewRow100')");
+                    stmt.addBatch("INSERT INTO " + TABLE_NAME + " (id, value, name) VALUES (1, 9999, 'DuplicatePK')");
                     BatchUpdateException bue = assertThrows(BatchUpdateException.class,
                             () -> stmt.executeBatch(),
                             "executeBatch should throw BatchUpdateException when batch contains a PK violation");
@@ -2545,7 +2547,7 @@ public class StatementExecutionStateTest extends AbstractTest {
                 try (Statement stmt = conn.createStatement()) {
                     assertThrows(SQLException.class,
                             () -> stmt.executeUpdate(
-                                    "INSERT INTO " + TABLE_NAME + " VALUES (1, 9999, 'Dup')"),
+                                    "INSERT INTO " + TABLE_NAME + " (id, value, name) VALUES (1, 9999, 'Dup')"),
                             "Duplicate PK insert should throw");
                 }
             }
