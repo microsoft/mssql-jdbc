@@ -76,6 +76,8 @@ import java.util.logging.Logger;
 import javax.net.SocketFactory;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
@@ -700,6 +702,18 @@ final class TDSChannel implements Serializable {
     // Socket for SSL-encrypted communications with SQL Server
     private transient SSLSocket sslSocket;
 
+    // NIO-compatible TLS engine (replaces SSLSocket for the data-transfer phase).
+    // When non-null, read()/write() bypass the InputStream/OutputStream and use
+    // sslEngineRead()/sslEngineWrite() so that SocketChannel.read() can populate
+    // DirectByteBuffers directly from the kernel without an intermediate heap copy.
+    private transient SSLEngine sslEngine;
+
+    // Persistent buffers for SSLEngine I/O. Allocated in enableSSL(), freed in
+    // disableSSL().
+    private transient ByteBuffer sslNetInBuf; // encrypted bytes read from SocketChannel
+    private transient ByteBuffer sslNetOutBuf; // encrypted bytes ready to write to SocketChannel
+    private transient ByteBuffer sslAppInBuf; // decrypted overflow from a single unwrap() call
+
     /*
      * Socket providing the communications interface to the driver. For SSL-encrypted connections, this is the SSLSocket
      * wrapped around the TCP socket. For unencrypted connections, it is just the TCP socket itself.
@@ -711,6 +725,12 @@ final class TDSChannel implements Serializable {
     // (using the TDSChannel itself) during SSL handshake to raw I/O over
     // the TCP/IP socket.
     private transient ProxySocket proxySocket = null;
+
+    // NIO channel for direct-buffer reads on non-SSL connections (non-null when
+    // socket
+    // was created via SocketChannel.open(), giving kernel→native I/O without temp
+    // arrays)
+    private transient SocketChannel tcpSocketChannel;
 
     // I/O streams for raw TCP/IP communications with SQL Server
     private transient ProxyInputStream tcpInputStream;
@@ -785,6 +805,13 @@ final class TDSChannel implements Serializable {
         SocketFinder socketFinder = new SocketFinder(traceID, con);
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
                 isTnirFirstAttempt, timeoutMillisForFullTimeout, iPAddressPreference);
+        // Capture backing SocketChannel when available (created via
+        // SocketChannel.open()).
+        // Non-null only for connections without a custom socket factory. Used in
+        // read(ByteBuffer)
+        // to bypass InputStream and read directly into DirectByteBuffers
+        // (kernel→native, no temp array).
+        tcpSocketChannel = tcpSocket.getChannel();
         try {
             // Set socket options
             tcpSocket.setTcpNoDelay(true);
@@ -841,18 +868,49 @@ final class TDSChannel implements Serializable {
         tdsChannelLock.lock();
         try {
             // Guard in case of disableSSL being called before enableSSL
-            if (proxySocket == null) {
+            if (proxySocket == null && sslEngine == null) {
                 if (logger.isLoggable(Level.INFO))
-                    logger.finer(toString() + " proxySocket is null, exit early");
+                    logger.finer(toString() + " SSL not active, exit early");
+                return;
+            }
+
+            if (sslEngine != null) {
+                // SSLEngine path: release the engine and its buffers.
+                // Send a TLS close_notify to the server (best-effort).
+                try {
+                    sslEngine.closeOutbound();
+                    sslNetOutBuf.clear();
+                    SSLEngineResult res = sslEngine.wrap(ByteBuffer.allocate(0), sslNetOutBuf);
+                    sslNetOutBuf.flip();
+                    if (sslNetOutBuf.hasRemaining() && tcpSocketChannel != null) {
+                        try {
+                            tcpSocketChannel.write(sslNetOutBuf);
+                        } catch (IOException ignored) {
+                            // Ignore I/O errors flushing close_notify
+                        }
+                    }
+                } catch (Exception ignored) {
+                    // Ignore any errors during engine shutdown
+                }
+                sslEngine = null;
+                sslNetInBuf = null;
+                sslNetOutBuf = null;
+                sslAppInBuf = null;
                 return;
             }
 
             /*
-             * The mission: To close the SSLSocket and release everything that it is holding onto other than the TCP/IP
-             * socket and streams. The challenge: Simply closing the SSLSocket tries to do additional, unnecessary shutdown
-             * I/O over the TCP/IP streams that are bound to the socket proxy, resulting in a not responding and confusing
-             * SQL Server. Solution: Rewire the ProxySocket's input and output streams (one more time) to closed streams.
-             * SSLSocket sees that the streams are already closed and does not attempt to do any further I/O on them before
+             * SSLSocket (legacy) path below:
+             * The mission: To close the SSLSocket and release everything that it is holding
+             * onto other than the TCP/IP
+             * socket and streams. The challenge: Simply closing the SSLSocket tries to do
+             * additional, unnecessary shutdown
+             * I/O over the TCP/IP streams that are bound to the socket proxy, resulting in
+             * a not responding and confusing
+             * SQL Server. Solution: Rewire the ProxySocket's input and output streams (one
+             * more time) to closed streams.
+             * SSLSocket sees that the streams are already closed and does not attempt to do
+             * any further I/O on them before
              * closing itself.
              */
 
@@ -1682,6 +1740,246 @@ final class TDSChannel implements Serializable {
         SSL_HANDHSAKE_COMPLETE
     }
 
+    // -------------------------------------------------------------------------
+    // SSLEngine helpers — low-level NIO TLS read / write / handshake
+    // -------------------------------------------------------------------------
+
+    /**
+     * Performs the TLS handshake for non-TDS8 connections.
+     *
+     * SSL handshake bytes are encapsulated inside TDS pre-login packets using the
+     * existing SSLHandshakeOutputStream / SSLHandshakeInputStream infrastructure
+     * (same mechanism as the legacy SSLSocket / ProxySocket path).
+     */
+    private void sslEngineHandshakeNonTDS8(SSLEngine engine,
+            SSLHandshakeOutputStream sslHsOut,
+            SSLHandshakeInputStream sslHsIn) throws IOException {
+        int packetBufSize = engine.getSession().getPacketBufferSize();
+        ByteBuffer netOut = ByteBuffer.allocate(packetBufSize);
+        ByteBuffer appEmpty = ByteBuffer.allocate(0);
+
+        engine.beginHandshake();
+        SSLEngineResult.HandshakeStatus hsStatus = engine.getHandshakeStatus();
+
+        while (hsStatus != SSLEngineResult.HandshakeStatus.FINISHED
+                && hsStatus != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
+            switch (hsStatus) {
+                case NEED_WRAP: {
+                    netOut.clear();
+                    SSLEngineResult res = engine.wrap(appEmpty, netOut);
+                    netOut.flip();
+                    if (netOut.hasRemaining()) {
+                        byte[] outBytes = new byte[netOut.remaining()];
+                        netOut.get(outBytes);
+                        // Write SSL bytes into TDS-framed pre-login packet
+                        sslHsOut.write(outBytes, 0, outBytes.length);
+                    }
+                    hsStatus = res.getHandshakeStatus();
+                    break;
+                }
+                case NEED_UNWRAP: {
+                    // Read exactly one TLS record from the TDS-framed stream.
+                    // SSLHandshakeInputStream.ensureSSLPayload() handles flushing any
+                    // pending TDS pre-login write (endMessage) before reading from the server.
+                    // Do NOT call endMessage() here manually — ensureSSLPayload() does it.
+                    // TLS record header: type(1) + version(2) + length(2, big-endian)
+                    byte[] tlsHeader = new byte[5];
+                    readFully(sslHsIn, tlsHeader, 0, 5);
+                    int recordLen = ((tlsHeader[3] & 0xFF) << 8) | (tlsHeader[4] & 0xFF);
+                    byte[] tlsRecord = new byte[5 + recordLen];
+                    System.arraycopy(tlsHeader, 0, tlsRecord, 0, 5);
+                    readFully(sslHsIn, tlsRecord, 5, recordLen);
+
+                    SSLEngineResult res = engine.unwrap(ByteBuffer.wrap(tlsRecord), appEmpty);
+                    hsStatus = res.getHandshakeStatus();
+                    if (res.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+                        throw new IOException(
+                                "SSLEngine BUFFER_UNDERFLOW reading handshake record of length " + recordLen);
+                    }
+                    break;
+                }
+                case NEED_TASK: {
+                    Runnable task;
+                    while ((task = engine.getDelegatedTask()) != null) {
+                        task.run();
+                    }
+                    hsStatus = engine.getHandshakeStatus();
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Performs the TLS handshake for TDS8 connections directly over the NIO
+     * SocketChannel.
+     * No TDS packet framing — SSL bytes travel over raw TCP.
+     *
+     * sslNetInBuf must already be allocated before calling this method; it is
+     * reused
+     * after the handshake for post-handshake application data reads.
+     */
+    private void sslEngineHandshakeTDS8(SSLEngine engine) throws IOException {
+        int packetBufSize = engine.getSession().getPacketBufferSize();
+        ByteBuffer netOut = ByteBuffer.allocateDirect(packetBufSize);
+        ByteBuffer appEmpty = ByteBuffer.allocate(0);
+
+        engine.beginHandshake();
+        SSLEngineResult.HandshakeStatus hsStatus = engine.getHandshakeStatus();
+
+        while (hsStatus != SSLEngineResult.HandshakeStatus.FINISHED
+                && hsStatus != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
+            switch (hsStatus) {
+                case NEED_WRAP: {
+                    netOut.clear();
+                    SSLEngineResult res = engine.wrap(appEmpty, netOut);
+                    netOut.flip();
+                    while (netOut.hasRemaining()) {
+                        tcpSocketChannel.write(netOut);
+                    }
+                    hsStatus = res.getHandshakeStatus();
+                    break;
+                }
+                case NEED_UNWRAP: {
+                    if (sslNetInBuf.position() == 0) {
+                        int n = tcpSocketChannel.read(sslNetInBuf);
+                        if (n < 0)
+                            throw new IOException("Unexpected end of stream during TDS8 SSL handshake");
+                    }
+                    sslNetInBuf.flip();
+                    SSLEngineResult res = engine.unwrap(sslNetInBuf, appEmpty);
+                    sslNetInBuf.compact();
+                    if (res.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+                        int n = tcpSocketChannel.read(sslNetInBuf);
+                        if (n < 0)
+                            throw new IOException(
+                                    "Unexpected end of stream during TDS8 SSL handshake (underflow)");
+                        sslNetInBuf.flip();
+                        res = engine.unwrap(sslNetInBuf, appEmpty);
+                        sslNetInBuf.compact();
+                    }
+                    hsStatus = res.getHandshakeStatus();
+                    break;
+                }
+                case NEED_TASK: {
+                    Runnable task;
+                    while ((task = engine.getDelegatedTask()) != null) {
+                        task.run();
+                    }
+                    hsStatus = engine.getHandshakeStatus();
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Reads decrypted application data into {@code dst} via SSLEngine + NIO
+     * SocketChannel.
+     *
+     * Leftover decrypted bytes from a previous unwrap() call (held in sslAppInBuf)
+     * are
+     * drained first. Then encrypted bytes are read from the SocketChannel,
+     * unwrapped, and
+     * the result is copied into {@code dst}.
+     *
+     * @return bytes placed into {@code dst}, or -1 on end-of-stream
+     */
+    private int sslEngineRead(ByteBuffer dst) throws IOException {
+        // Drain any decrypted bytes left over from the previous unwrap call
+        if (sslAppInBuf.position() > 0) {
+            return drainSslAppBuf(dst);
+        }
+
+        // Fill the net buffer if it is empty
+        if (sslNetInBuf.position() == 0) {
+            int n = tcpSocketChannel.read(sslNetInBuf);
+            if (n < 0)
+                return -1;
+        }
+
+        // Decrypt loop: keep unwrapping until we produce app-data bytes
+        while (true) {
+            sslNetInBuf.flip();
+            sslAppInBuf.clear();
+            SSLEngineResult res = sslEngine.unwrap(sslNetInBuf, sslAppInBuf);
+            sslNetInBuf.compact();
+
+            switch (res.getStatus()) {
+                case OK:
+                    if (sslAppInBuf.position() > 0) {
+                        return drainSslAppBuf(dst);
+                    }
+                    // 0 bytes produced (e.g., TLS key-update record) — read more
+                    break;
+                case BUFFER_UNDERFLOW:
+                    // Partial TLS record: need more encrypted bytes before unwrap can succeed
+                    int more = tcpSocketChannel.read(sslNetInBuf);
+                    if (more < 0)
+                        return -1;
+                    break;
+                case CLOSED:
+                    return -1;
+                default:
+                    throw new IOException("Unexpected SSLEngine status: " + res.getStatus());
+            }
+        }
+    }
+
+    /**
+     * Transfers bytes from sslAppInBuf (write-position = filled bytes) to dst,
+     * updating
+     * both buffers' positions. Unconsumed bytes remain in sslAppInBuf for the next
+     * call.
+     */
+    private int drainSslAppBuf(ByteBuffer dst) {
+        sslAppInBuf.flip();
+        int n = Math.min(sslAppInBuf.remaining(), dst.remaining());
+        int savedLimit = sslAppInBuf.limit();
+        sslAppInBuf.limit(sslAppInBuf.position() + n);
+        dst.put(sslAppInBuf);
+        sslAppInBuf.limit(savedLimit);
+        sslAppInBuf.compact();
+        return n;
+    }
+
+    /**
+     * Encrypts {@code data[offset..offset+length-1]} via SSLEngine and writes the
+     * ciphertext to the NIO SocketChannel.
+     */
+    private void sslEngineWrite(byte[] data, int offset, int length) throws IOException {
+        ByteBuffer src = ByteBuffer.wrap(data, offset, length);
+        while (src.hasRemaining()) {
+            sslNetOutBuf.clear();
+            SSLEngineResult res = sslEngine.wrap(src, sslNetOutBuf);
+            sslNetOutBuf.flip();
+            while (sslNetOutBuf.hasRemaining()) {
+                tcpSocketChannel.write(sslNetOutBuf);
+            }
+            if (res.getStatus() == SSLEngineResult.Status.CLOSED) {
+                throw new IOException("SSLEngine closed during write");
+            }
+        }
+    }
+
+    /**
+     * Reads exactly {@code len} bytes from {@code is} into {@code buf}, blocking as
+     * needed.
+     */
+    private static void readFully(InputStream is, byte[] buf, int offset, int len) throws IOException {
+        int remaining = len;
+        while (remaining > 0) {
+            int n = is.read(buf, offset + (len - remaining), remaining);
+            if (n < 0)
+                throw new IOException("Unexpected end of SSL handshake stream");
+            remaining -= n;
+        }
+    }
+
     /**
      * Enables SSL Handshake.
      * 
@@ -1893,75 +2191,83 @@ final class TDSChannel implements Serializable {
             // Permissive trust manager allows minimum encryption of credentials even when trusted certificates
             // aren't provisioned on the server.
 
-            // Got the SSL context. Now create an SSL socket over our own proxy socket
-            // which we can toggle between TDS-encapsulated and raw communications.
-            // Initially, the proxy is set to encapsulate the SSL handshake in TDS packets.
+            // Got the SSL context. Now create an SSLEngine and perform the TLS handshake.
+            // SSLEngine is NIO-native: reads/writes go through SocketChannel so that
+            // DirectByteBuffers never have to be bridged through a heap byte[] copy.
             if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Creating SSL socket");
+                logger.finest(toString() + " Creating SSLEngine");
 
-            proxySocket = new ProxySocket(this);
+            // Allocate persistent SSL buffers sized to the maximum TLS record limits.
+            // Sizing is based on the null-session defaults which represent the upper bounds
+            // for all TLS protocol versions.
+            //
+            // Use a local variable during setup so this.sslEngine stays null until the
+            // handshake is complete. TDSChannel.write() and read() check sslEngine != null
+            // to decide between sslEngineWrite/Read and the plain outputStream/inputStream.
+            // For the non-TDS8 path the handshake bytes travel through
+            // SSLHandshakeOutputStream
+            // → TDSWriter → tdsChannel.write() as plain-text TDS pre-login packets, so
+            // sslEngine must be null during that exchange to avoid double-wrapping.
+            SSLEngine engine = sslContext.createSSLEngine(host, port);
+            engine.setUseClientMode(true);
+            int packetBufSize = engine.getSession().getPacketBufferSize();
+            int appBufSize = engine.getSession().getApplicationBufferSize();
+            sslNetInBuf = ByteBuffer.allocateDirect(packetBufSize * 2); // extra room for partial records
+            sslNetOutBuf = ByteBuffer.allocateDirect(packetBufSize);
+            sslAppInBuf = ByteBuffer.allocateDirect(appBufSize * 2); // extra room for overflow
 
             if (isTDS8) {
-                sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(channelSocket, host, port, true);
-
-                // set ALPN values
-                SSLParameters sslParam = sslSocket.getSSLParameters();
+                // TDS 8.0: configure ALPN before handshake
+                SSLParameters sslParam = engine.getSSLParameters();
                 sslParam.setApplicationProtocols(new String[] {TDS.PROTOCOL_TDS80});
-                sslSocket.setSSLParameters(sslParam);
-            } else {
-                // don't close proxy when SSL socket is closed
-                sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
+                engine.setSSLParameters(sslParam);
             }
 
-            // At long last, start the SSL handshake ...
+            // Start the SSL handshake
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " Starting SSL handshake");
 
-            // TLS 1.2 intermittent exception may happen here.
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
-            sslSocket.startHandshake();
 
             if (isTDS8) {
-                String negotiatedProtocol = sslSocket.getApplicationProtocol();
+                // TDS8: the handshake writes go directly to tcpSocketChannel (not through
+                // TDSChannel.write), so it is safe to activate sslEngine before calling.
+                sslEngine = engine;
+                sslEngineHandshakeTDS8(sslEngine);
 
+                String negotiatedProtocol = sslEngine.getApplicationProtocol();
                 if (logger.isLoggable(Level.FINEST)) {
                     logger.finest(toString() + " Application Protocol negotiated: "
                             + ((negotiatedProtocol == null) ? "null" : negotiatedProtocol));
                 }
-
-                // check negotiated ALPN
                 if (null != negotiatedProtocol && !(negotiatedProtocol.isEmpty())
                         && negotiatedProtocol.compareToIgnoreCase(TDS.PROTOCOL_TDS80) != 0) {
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ALPNFailed"));
                     Object[] msgArgs = {TDS.PROTOCOL_TDS80, negotiatedProtocol};
                     con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs));
                 }
+            } else {
+                // Non-TDS8: SSL handshake bytes are encapsulated in TDS pre-login packets.
+                // sslEngine must remain null here so TDSChannel.write/read keep using the
+                // plain outputStream/inputStream path during the TDS-framed exchange.
+                // Activating sslEngine before this call would cause sslEngineWrite to
+                // double-wrap the raw TLS handshake bytes as application data.
+                SSLHandshakeOutputStream sslHsOut = new SSLHandshakeOutputStream(this);
+                SSLHandshakeInputStream sslHsIn = new SSLHandshakeInputStream(this, sslHsOut);
+                sslEngineHandshakeNonTDS8(engine, sslHsOut, sslHsIn);
+                // Handshake complete — activate SSLEngine for all subsequent I/O.
+                sslEngine = engine;
             }
 
             handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
 
-            // After SSL handshake is complete, re-wire proxy socket to use raw TCP/IP streams ...
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Rewiring proxy streams after handshake");
+            // SSLEngine is now active. read() / write() route through sslEngineRead() /
+            // sslEngineWrite(), which use SocketChannel directly — no InputStream bridge.
+            // inputStream / outputStream keep pointing at the raw TCP streams; they are
+            // no longer used while sslEngine != null.
 
-            proxySocket.setStreams(inputStream, outputStream);
-
-            // ... and re-wire TDSChannel to use SSL streams.
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Getting SSL InputStream");
-
-            inputStream = new ProxyInputStream(sslSocket.getInputStream());
-
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Getting SSL OutputStream");
-
-            outputStream = sslSocket.getOutputStream();
-
-            // SSL is now enabled; switch over the channel socket
-            channelSocket = sslSocket;
-
-            // Check the TLS version
-            String tlsProtocol = sslSocket.getSession().getProtocol();
+            // Check the TLS version negotiated
+            String tlsProtocol = sslEngine.getSession().getProtocol();
             if (SSLProtocol.TLS_V10.toString().equalsIgnoreCase(tlsProtocol)
                     || SSLProtocol.TLS_V11.toString().equalsIgnoreCase(tlsProtocol)) {
                 String warningMsg = tlsProtocol
@@ -2231,6 +2537,20 @@ final class TDSChannel implements Serializable {
             inputStreamLock.lock();
             try {
                 con.idleNetworkTracker.markNetworkActivity();
+
+                // SSLEngine path: decrypt via NIO channel — no InputStream involved
+                if (sslEngine != null && tcpSocketChannel != null) {
+                    ByteBuffer tmpBuf = ByteBuffer.wrap(data, offset, length);
+                    int total = 0;
+                    while (tmpBuf.hasRemaining()) {
+                        int n = sslEngineRead(tmpBuf);
+                        if (n < 0)
+                            break;
+                        total += n;
+                    }
+                    return total;
+                }
+
                 return inputStream.read(data, offset, length);
             } finally {
                 inputStreamLock.unlock();
@@ -2250,6 +2570,20 @@ final class TDSChannel implements Serializable {
     }
 
     /**
+     * Returns true when non-SSL NIO I/O is available for direct-buffer reads.
+     *
+     * True when the underlying TCP socket was created via SocketChannel.open() (no
+     * custom socket factory)
+     * and the connection is unencrypted. When true, TDSReader should allocate
+     * DirectByteBuffers so that
+     * SocketChannel.read() can transfer data kernel→native without a temp heap
+     * array.
+     */
+    boolean isNioReadAvailable() {
+        return tcpSocketChannel != null && sslSocket == null;
+    }
+
+    /**
      * Read data directly into ByteBuffer for zero-copy I/O
      */
     final int read(ByteBuffer buffer) throws SQLServerException {
@@ -2258,9 +2592,26 @@ final class TDSChannel implements Serializable {
             try {
                 con.idleNetworkTracker.markNetworkActivity();
 
-                // For direct/MemorySegment buffers, read efficiently
+                // SSLEngine path: always route through sslEngineRead regardless of buffer type.
+                // drainSslAppBuf uses ByteBuffer.put() which works for both heap and direct
+                // buffers.
+                // This MUST be checked before buffer.hasArray() — when SSL is active every read
+                // must go through the SSLEngine so that decrypted bytes buffered in sslAppInBuf
+                // are consumed rather than bypassed.
+                if (sslEngine != null && tcpSocketChannel != null) {
+                    return sslEngineRead(buffer);
+                }
+
+                // Non-SSL path: use SocketChannel for DirectByteBuffers (DIRECT_BUFFER mode)
+                // so that kernel→native transfers avoid a temporary heap copy.
+                // For heap-backed buffers (HEAP mode), fall through to the inputStream path
+                // for consistency with write (outputStream) and to avoid stream/channel mixing.
+                if (tcpSocketChannel != null && sslSocket == null && !buffer.hasArray()) {
+                    return tcpSocketChannel.read(buffer);
+                }
+
+                // Heap-backed buffer or no NIO channel: use inputStream.
                 if (buffer.hasArray()) {
-                    // Heap buffer - use array directly
                     int bytesRead = inputStream.read(buffer.array(),
                             buffer.arrayOffset() + buffer.position(),
                             buffer.remaining());
@@ -2269,9 +2620,9 @@ final class TDSChannel implements Serializable {
                     }
                     return bytesRead;
                 } else {
-                    // Direct buffer - use temporary array
+                    // No NIO channel and no heap array: bridge via temp array.
                     int remaining = buffer.remaining();
-                    byte[] temp = new byte[Math.min(remaining, 8192)]; // Read in 8KB chunks
+                    byte[] temp = new byte[Math.min(remaining, 8192)];
                     int bytesRead = inputStream.read(temp, 0, temp.length);
                     if (bytesRead > 0) {
                         buffer.put(temp, 0, bytesRead);
@@ -2300,7 +2651,12 @@ final class TDSChannel implements Serializable {
             outputStreamLock.lock();
             try {
                 con.idleNetworkTracker.markNetworkActivity();
-                outputStream.write(data, offset, length);
+                // SSLEngine path: encrypt and write via NIO SocketChannel
+                if (sslEngine != null && tcpSocketChannel != null) {
+                    sslEngineWrite(data, offset, length);
+                } else {
+                    outputStream.write(data, offset, length);
+                }
             } finally {
                 outputStreamLock.unlock();
             }
@@ -2325,7 +2681,7 @@ final class TDSChannel implements Serializable {
     }
 
     final void close() {
-        if (null != sslSocket)
+        if (null != sslSocket || null != sslEngine)
             disableSSL();
 
         if (null != inputStream) {
@@ -3018,9 +3374,18 @@ final class SocketFinder {
         assert timeoutInMilliSeconds != 0 : "timeout cannot be zero";
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();
-        selectedSocket = getSocketFactory().createSocket();
-        if (!selectedSocket.isConnected()) {
-            selectedSocket.connect(addr, timeoutInMilliSeconds);
+        if (conn.getSocketFactoryClass() == null) {
+            // No custom socket factory: create via SocketChannel so TDSChannel can use
+            // SocketChannel.read(DirectByteBuffer) for kernel→native I/O without a temp
+            // array.
+            SocketChannel channel = SocketChannel.open();
+            channel.socket().connect(addr, timeoutInMilliSeconds);
+            selectedSocket = channel.socket();
+        } else {
+            selectedSocket = getSocketFactory().createSocket();
+            if (!selectedSocket.isConnected()) {
+                selectedSocket.connect(addr, timeoutInMilliSeconds);
+            }
         }
         return selectedSocket;
     }
@@ -7216,11 +7581,24 @@ final class TDSReader implements Serializable {
             assert tdsChannel.numMsgsRcvd < tdsChannel.numMsgsSent : "numMsgsRcvd:" + tdsChannel.numMsgsRcvd
                     + " should be less than numMsgsSent:" + tdsChannel.numMsgsSent;
 
-            // Determine buffer mode for read packets based on SSL status
+            // Determine buffer mode for read packets.
+            // IMPORTANT: mixing inputStream.read() (header) with tcpSocketChannel.read()
+            // (payload)
+            // on the same socket causes hangs on JDK 15+ (tested on JDK 25). Only activate
+            // the
+            // DIRECT_BUFFER path when the user explicitly requested it via
+            // bufferMode=direct_buffer,
+            // which enables true kernel→native I/O (SocketChannel.read into off-heap
+            // memory).
+            // Always fall back to HEAP (inputStream path) for safety unless the user opts
+            // in.
             boolean sslActive = con.getNegotiatedEncryptionLevel() != TDS.ENCRYPT_OFF;
-            BufferMode readBufferMode = (BUFFER_MODE == BufferMode.MEMORY_SEGMENT && sslActive)
-                    ? BufferMode.DIRECT_BUFFER
-                    : BUFFER_MODE;
+            BufferMode readBufferMode;
+            if (BUFFER_MODE == BufferMode.MEMORY_SEGMENT && sslActive) {
+                readBufferMode = BufferMode.DIRECT_BUFFER; // MemorySegment incompatible with SSL
+            } else {
+                readBufferMode = BUFFER_MODE;
+            }
 
             TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize(), readBufferMode);
             if ((null != command) &&
@@ -7299,10 +7677,10 @@ final class TDSReader implements Serializable {
 
             for (int payloadBytesRead = 0; payloadBytesRead < newPacket.payloadLength;) {
                 int bytesRead = tdsChannel.read(newPacket.payload);
-                if (bytesRead < 0)
+                if (bytesRead < 0) {
                     con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
                             SQLServerException.getErrString("R_truncatedServerResponse"));
-
+                }
                 payloadBytesRead += bytesRead;
             }
 
