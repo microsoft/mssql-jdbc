@@ -128,6 +128,7 @@ final class Column {
         this.baseColumnName = columnName;
         this.tableName = tableName;
         this.cryptoMetadata = cryptoMeta;
+        this.getterDTV.setImpl(new ServerDTVImpl());
     }
 
     CryptoMetadata getCryptoMetadata() {
