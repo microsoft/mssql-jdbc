@@ -1861,12 +1861,12 @@ public class SQLServerDataSource
 
     @Override
     public void setDefaultTransactionIsolation(String level) {
-        connectionProps.setProperty(SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString(), level);
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString(), level);
     }
 
     @Override
     public String getDefaultTransactionIsolation() {
-        return connectionProps.getProperty(SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString());
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString(), null);
     }
 
     /**
