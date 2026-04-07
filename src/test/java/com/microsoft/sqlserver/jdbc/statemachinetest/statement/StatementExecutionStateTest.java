@@ -83,6 +83,7 @@ public class StatementExecutionStateTest extends AbstractTest {
     private static final StateKey QUERY_INDEX = () -> "queryIndex";
     private static final StateKey SM_TABLE_NAME = () -> "tableName";
     private static final StateKey ROW_COUNT = () -> "rowCount";
+    private static final StateKey NEXT_INSERT_ID = () -> "nextInsertId";
 
     private static final String TABLE_NAME = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("SM_StmtExec_Test"));
@@ -113,15 +114,15 @@ public class StatementExecutionStateTest extends AbstractTest {
 
     /**
      * Creates a test table with sample data.
-     * Schema: id INT PRIMARY KEY, value INT, name VARCHAR(200)
+     * Includes an IDENTITY column for generated-keys testing.
      */
     private static void createTestTable(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(TABLE_NAME, stmt);
             stmt.execute("CREATE TABLE " + TABLE_NAME
-                    + " (id INT PRIMARY KEY, value INT, name VARCHAR(200))");
+                    + " (id INT PRIMARY KEY, value INT, name VARCHAR(200), id_col INT IDENTITY(1,1))");
             for (int i = 1; i <= ROW_COUNT_VAL; i++) {
-                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (" + i + ", " + (i * 10)
+                stmt.execute("INSERT INTO " + TABLE_NAME + " (id, value, name) VALUES (" + i + ", " + (i * 10)
                         + ", 'Row" + i + "')");
             }
         }
@@ -201,16 +202,26 @@ public class StatementExecutionStateTest extends AbstractTest {
         }
     }
 
-    /** execute(sql, autokeys) — conditionally requests generated keys. */
+    /** execute(sql, autokeys) — randomly INSERT or UPDATE; validates getGeneratedKeys() inline for INSERT. */
     private static class ExecuteWithGeneratedKeysAction extends Action {
         ExecuteWithGeneratedKeysAction() { super("execute(genKeys)", 5); }
         @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
             Statement stmt = (Statement) getState(STMT);
             String tableName = (String) getState(SM_TABLE_NAME);
-            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
             int autoKeyFlag = getRandom().nextBoolean() ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS;
-            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId, autoKeyFlag);
+            boolean isInsert = getRandom().nextBoolean();
+            boolean hasResultSet;
+            if (isInsert) {
+                int newId = getStateInt(NEXT_INSERT_ID);
+                setState(NEXT_INSERT_ID, newId + 1);
+                hasResultSet = stmt.execute("INSERT INTO " + tableName + " (id, value, name) VALUES ("
+                        + newId + ", " + getRandom().nextInt(10000) + ", 'GenKey')", autoKeyFlag);
+            } else {
+                int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+                hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = "
+                        + getRandom().nextInt(10000) + " WHERE id = " + rowId, autoKeyFlag);
+            }
             setState(EXECUTED, true);
             setState(HAS_RESULT_SET, hasResultSet);
             setState(LAST_EXECUTE_WAS_BATCH, false);
@@ -218,19 +229,33 @@ public class StatementExecutionStateTest extends AbstractTest {
             setState(LAST_EXECUTE_GENERATED_KEYS,
                     autoKeyFlag == Statement.RETURN_GENERATED_KEYS);
             setState(QUERY_INDEX, 0);
+            if (isInsert && autoKeyFlag == Statement.RETURN_GENERATED_KEYS) {
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    assertTrue(keys.next(), "getGeneratedKeys() should return a row for INSERT with identity");
+                }
+            }
         }
     }
 
-    /** executeUpdate(sql, autokeys) — conditionally requests generated keys. */
+    /** executeUpdate(sql, autokeys) — randomly INSERT or UPDATE; validates getGeneratedKeys() inline for INSERT. */
     private static class ExecuteUpdateWithGeneratedKeysAction extends Action {
         ExecuteUpdateWithGeneratedKeysAction() { super("executeUpdate(genKeys)", 5); }
         @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
             Statement stmt = (Statement) getState(STMT);
             String tableName = (String) getState(SM_TABLE_NAME);
-            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
             int autoKeyFlag = getRandom().nextBoolean() ? Statement.RETURN_GENERATED_KEYS : Statement.NO_GENERATED_KEYS;
-            stmt.executeUpdate("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId, autoKeyFlag);
+            boolean isInsert = getRandom().nextBoolean();
+            if (isInsert) {
+                int newId = getStateInt(NEXT_INSERT_ID);
+                setState(NEXT_INSERT_ID, newId + 1);
+                stmt.executeUpdate("INSERT INTO " + tableName + " (id, value, name) VALUES ("
+                        + newId + ", " + getRandom().nextInt(10000) + ", 'GenKey')", autoKeyFlag);
+            } else {
+                int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+                stmt.executeUpdate("UPDATE " + tableName + " SET value = "
+                        + getRandom().nextInt(10000) + " WHERE id = " + rowId, autoKeyFlag);
+            }
             setState(EXECUTED, true);
             setState(HAS_RESULT_SET, false);
             setState(LAST_EXECUTE_WAS_BATCH, false);
@@ -238,66 +263,129 @@ public class StatementExecutionStateTest extends AbstractTest {
             setState(LAST_EXECUTE_GENERATED_KEYS,
                     autoKeyFlag == Statement.RETURN_GENERATED_KEYS);
             setState(QUERY_INDEX, 0);
+            if (isInsert && autoKeyFlag == Statement.RETURN_GENERATED_KEYS) {
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    assertTrue(keys.next(), "getGeneratedKeys() should return a row for INSERT with identity");
+                }
+            }
         }
     }
 
-    /** execute(sql, int[] columnIndexes) — requests generated keys. */
+    /** execute(sql, int[] columnIndexes) — randomly INSERT or UPDATE; validates generated keys inline for INSERT. */
     private static class ExecuteWithColumnIndexesAction extends Action {
         ExecuteWithColumnIndexesAction() { super("execute(colIndexes)", 3); }
         @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
             Statement stmt = (Statement) getState(STMT);
             String tableName = (String) getState(SM_TABLE_NAME);
-            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
-            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{1});
+            boolean isInsert = getRandom().nextBoolean();
+            boolean hasResultSet;
+            if (isInsert) {
+                int newId = getStateInt(NEXT_INSERT_ID);
+                setState(NEXT_INSERT_ID, newId + 1);
+                hasResultSet = stmt.execute("INSERT INTO " + tableName + " (id, value, name) VALUES ("
+                        + newId + ", " + getRandom().nextInt(10000) + ", 'GenKey')", new int[]{4});
+            } else {
+                int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+                hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = "
+                        + getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{4});
+            }
             setState(EXECUTED, true); setState(HAS_RESULT_SET, hasResultSet);
             setState(LAST_EXECUTE_WAS_BATCH, false); setState(LAST_EXECUTE_WAS_UPDATE, false);
             setState(LAST_EXECUTE_GENERATED_KEYS, true); setState(QUERY_INDEX, 0);
+            if (isInsert) {
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    assertTrue(keys.next(), "getGeneratedKeys() should return a row for INSERT with identity");
+                }
+            }
         }
     }
 
-    /** execute(sql, String[] columnNames) — requests generated keys. */
+    /** execute(sql, String[] columnNames) — randomly INSERT or UPDATE; validates generated keys inline for INSERT. */
     private static class ExecuteWithColumnNamesAction extends Action {
         ExecuteWithColumnNamesAction() { super("execute(colNames)", 3); }
         @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
             Statement stmt = (Statement) getState(STMT);
             String tableName = (String) getState(SM_TABLE_NAME);
-            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
-            boolean hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId, new String[]{"id"});
+            boolean isInsert = getRandom().nextBoolean();
+            boolean hasResultSet;
+            if (isInsert) {
+                int newId = getStateInt(NEXT_INSERT_ID);
+                setState(NEXT_INSERT_ID, newId + 1);
+                hasResultSet = stmt.execute("INSERT INTO " + tableName + " (id, value, name) VALUES ("
+                        + newId + ", " + getRandom().nextInt(10000) + ", 'GenKey')", new String[]{"id_col"});
+            } else {
+                int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+                hasResultSet = stmt.execute("UPDATE " + tableName + " SET value = "
+                        + getRandom().nextInt(10000) + " WHERE id = " + rowId, new String[]{"id_col"});
+            }
             setState(EXECUTED, true); setState(HAS_RESULT_SET, hasResultSet);
             setState(LAST_EXECUTE_WAS_BATCH, false); setState(LAST_EXECUTE_WAS_UPDATE, false);
             setState(LAST_EXECUTE_GENERATED_KEYS, true); setState(QUERY_INDEX, 0);
+            if (isInsert) {
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    assertTrue(keys.next(), "getGeneratedKeys() should return a row for INSERT with identity");
+                }
+            }
         }
     }
 
-    /** executeUpdate(sql, int[] columnIndexes) — requests generated keys. */
+    /** executeUpdate(sql, int[] columnIndexes) — randomly INSERT or UPDATE; validates generated keys inline for INSERT. */
     private static class ExecuteUpdateWithColumnIndexesAction extends Action {
         ExecuteUpdateWithColumnIndexesAction() { super("executeUpdate(colIdx)", 3); }
         @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
             Statement stmt = (Statement) getState(STMT);
             String tableName = (String) getState(SM_TABLE_NAME);
-            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
-            stmt.executeUpdate("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{1});
+            boolean isInsert = getRandom().nextBoolean();
+            if (isInsert) {
+                int newId = getStateInt(NEXT_INSERT_ID);
+                setState(NEXT_INSERT_ID, newId + 1);
+                stmt.executeUpdate("INSERT INTO " + tableName + " (id, value, name) VALUES ("
+                        + newId + ", " + getRandom().nextInt(10000) + ", 'GenKey')", new int[]{4});
+            } else {
+                int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+                stmt.executeUpdate("UPDATE " + tableName + " SET value = "
+                        + getRandom().nextInt(10000) + " WHERE id = " + rowId, new int[]{4});
+            }
             setState(EXECUTED, true); setState(HAS_RESULT_SET, false);
             setState(LAST_EXECUTE_WAS_BATCH, false); setState(LAST_EXECUTE_WAS_UPDATE, true);
             setState(LAST_EXECUTE_GENERATED_KEYS, true); setState(QUERY_INDEX, 0);
+            if (isInsert) {
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    assertTrue(keys.next(), "getGeneratedKeys() should return a row for INSERT with identity");
+                }
+            }
         }
     }
 
-    /** executeUpdate(sql, String[] columnNames) — requests generated keys. */
+    /** executeUpdate(sql, String[] columnNames) — randomly INSERT or UPDATE; validates generated keys inline for INSERT. */
     private static class ExecuteUpdateWithColumnNamesAction extends Action {
         ExecuteUpdateWithColumnNamesAction() { super("executeUpdate(colNames)", 3); }
         @Override public boolean canRun() { return !isState(CLOSED); }
         @Override public void run() throws SQLException {
             Statement stmt = (Statement) getState(STMT);
             String tableName = (String) getState(SM_TABLE_NAME);
-            int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
-            stmt.executeUpdate("UPDATE " + tableName + " SET value = " + getRandom().nextInt(10000) + " WHERE id = " + rowId, new String[]{"id"});
+            boolean isInsert = getRandom().nextBoolean();
+            if (isInsert) {
+                int newId = getStateInt(NEXT_INSERT_ID);
+                setState(NEXT_INSERT_ID, newId + 1);
+                stmt.executeUpdate("INSERT INTO " + tableName + " (id, value, name) VALUES ("
+                        + newId + ", " + getRandom().nextInt(10000) + ", 'GenKey')", new String[]{"id_col"});
+            } else {
+                int rowId = getRandom().nextInt(getStateInt(ROW_COUNT)) + 1;
+                stmt.executeUpdate("UPDATE " + tableName + " SET value = "
+                        + getRandom().nextInt(10000) + " WHERE id = " + rowId, new String[]{"id_col"});
+            }
             setState(EXECUTED, true); setState(HAS_RESULT_SET, false);
             setState(LAST_EXECUTE_WAS_BATCH, false); setState(LAST_EXECUTE_WAS_UPDATE, true);
             setState(LAST_EXECUTE_GENERATED_KEYS, true); setState(QUERY_INDEX, 0);
+            if (isInsert) {
+                try (ResultSet keys = stmt.getGeneratedKeys()) {
+                    assertTrue(keys.next(), "getGeneratedKeys() should return a row for INSERT with identity");
+                }
+            }
         }
     }
 
@@ -374,16 +462,6 @@ public class StatementExecutionStateTest extends AbstractTest {
         GetUpdateCountAction() { super("getUpdateCount", 10); }
         @Override public boolean canRun() { return !isState(CLOSED) && isState(EXECUTED) && !isState(LAST_EXECUTE_WAS_BATCH); }
         @Override public void run() throws SQLException { ((Statement) getState(STMT)).getUpdateCount(); }
-    }
-
-    /** getGeneratedKeys() — only when keys were requested. */
-    private static class GetGeneratedKeysAction extends Action {
-        GetGeneratedKeysAction() { super("getGeneratedKeys", 5); }
-        @Override public boolean canRun() { return !isState(CLOSED) && isState(EXECUTED) && isState(LAST_EXECUTE_GENERATED_KEYS); }
-        @Override public void run() throws SQLException {
-            try (ResultSet keys = ((Statement) getState(STMT)).getGeneratedKeys()) { while (keys.next()) {} }
-            setState(LAST_EXECUTE_GENERATED_KEYS, false);
-        }
     }
 
     /** setMaxRows / getMaxRows. */
@@ -578,6 +656,7 @@ public class StatementExecutionStateTest extends AbstractTest {
                 sm.getDataCache().updateValue(0, QUERY_INDEX.key(), 0);
                 sm.getDataCache().updateValue(0, SM_TABLE_NAME.key(), TABLE_NAME);
                 sm.getDataCache().updateValue(0, ROW_COUNT.key(), ROW_COUNT_VAL);
+                sm.getDataCache().updateValue(0, NEXT_INSERT_ID.key(), ROW_COUNT_VAL + 1);
 
                 sm.addAction(new ExecuteSelectAction());
                 sm.addAction(new ExecuteDMLAction());
@@ -596,7 +675,7 @@ public class StatementExecutionStateTest extends AbstractTest {
                 sm.addAction(new GetMoreResultsWithFlagAction());
                 sm.addAction(new GetResultSetAction());
                 sm.addAction(new GetUpdateCountAction());
-                sm.addAction(new GetGeneratedKeysAction());
+                // getGeneratedKeys() is validated inline within the execute-with-keys actions.
                 sm.addAction(new SetMaxRowsAction());
                 sm.addAction(new SetMaxFieldSizeAction());
                 sm.addAction(new SetFetchSizeAction());
@@ -1041,8 +1120,8 @@ public class StatementExecutionStateTest extends AbstractTest {
             try (Connection conn = PrepUtil.getConnection(connectionString)) {
                 createTestTable(conn);
                 try (Statement stmt = conn.createStatement()) {
-                    stmt.addBatch("INSERT INTO " + TABLE_NAME + " VALUES (100, 1000, 'NewRow100')");
-                    stmt.addBatch("INSERT INTO " + TABLE_NAME + " VALUES (1, 9999, 'DuplicatePK')");
+                    stmt.addBatch("INSERT INTO " + TABLE_NAME + " (id, value, name) VALUES (100, 1000, 'NewRow100')");
+                    stmt.addBatch("INSERT INTO " + TABLE_NAME + " (id, value, name) VALUES (1, 9999, 'DuplicatePK')");
                     BatchUpdateException bue = assertThrows(BatchUpdateException.class,
                             () -> stmt.executeBatch(),
                             "executeBatch should throw BatchUpdateException when batch contains a PK violation");
@@ -2468,7 +2547,7 @@ public class StatementExecutionStateTest extends AbstractTest {
                 try (Statement stmt = conn.createStatement()) {
                     assertThrows(SQLException.class,
                             () -> stmt.executeUpdate(
-                                    "INSERT INTO " + TABLE_NAME + " VALUES (1, 9999, 'Dup')"),
+                                    "INSERT INTO " + TABLE_NAME + " (id, value, name) VALUES (1, 9999, 'Dup')"),
                             "Duplicate PK insert should throw");
                 }
             }
