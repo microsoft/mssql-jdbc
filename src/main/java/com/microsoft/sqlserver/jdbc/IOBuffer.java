@@ -750,9 +750,15 @@ final class TDSChannel implements Serializable {
 
             int socketTimeout = con.getSocketTimeoutMilliseconds();
 
-            // socket timeout should be bounded by loginTimeout before connected
+            // socket timeout should be bounded by loginTimeout before connected.
+            // When socketTimeout is 0 (not explicitly set, meaning "wait forever"), it must
+            // still be bounded by the remaining login timeout; otherwise Math.min(x, 0) == 0
+            // and setSoTimeout(0) leaves the socket with no timeout, causing hangs.
+            // Note: timerRemaining() always returns >= 1 ms (clamped from below), so
+            // loginRemaining can never be 0 and cannot re-introduce an unlimited read timeout.
             if (!con.isConnected()) {
-                socketTimeout = Math.min(con.timerRemaining(con.timerExpire), socketTimeout);
+                int loginRemaining = con.timerRemaining(con.timerExpire);
+                socketTimeout = (socketTimeout == 0) ? loginRemaining : Math.min(loginRemaining, socketTimeout);
             }
 
             tcpSocket.setSoTimeout(socketTimeout);
