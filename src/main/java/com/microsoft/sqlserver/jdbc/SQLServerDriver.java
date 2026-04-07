@@ -1125,10 +1125,10 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString(),
                     SQLServerDriverStringProperty.QUOTED_IDENTIFIER.getDefaultValue(), false,
-                    new String[] {OnOffOption.OFF.toString(), OnOffOption.OFF.toString()}),
+                    new String[] {OnOffOption.ON.toString(), OnOffOption.OFF.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString(),
                     SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.getDefaultValue(), false,
-                    new String[] {OnOffOption.OFF.toString(), OnOffOption.OFF.toString()}),
+                    new String[] {OnOffOption.ON.toString(), OnOffOption.OFF.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString(),
                     SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.getDefaultValue(), false,
                     new String[] {"READ_UNCOMMITTED", "READ_COMMITTED", "REPEATABLE_READ", "SERIALIZABLE", "SNAPSHOT"}),};
