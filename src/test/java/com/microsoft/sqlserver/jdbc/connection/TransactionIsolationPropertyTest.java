@@ -23,6 +23,7 @@ import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 @RunWith(JUnitPlatform.class)
@@ -111,9 +112,9 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
     @Test
     public void testDataSourceDefaultProperty() {
         com.microsoft.sqlserver.jdbc.SQLServerDataSource ds = new com.microsoft.sqlserver.jdbc.SQLServerDataSource();
-        // By default, the property is null because we don't set a default in the property definition,
-        // it just falls back to driver defaults during connection.
-        assertEquals(null, ds.getDefaultTransactionIsolation());
+        // By default, the property is null because no default value is defined in the property metadata.
+        // It falls back to driver defaults during connection establishment if not specified.
+        assertTrue(ds.getDefaultTransactionIsolation() == null);
     }
 
     @Test
@@ -152,7 +153,7 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         };
 
         for (int i = 0; i < levels.length; i++) {
-            String url = connectionString + ";defaultTransactionIsolation=" + levels[i];
+            String url = TestUtils.addOrOverrideProperty(connectionString, "defaultTransactionIsolation", levels[i]);
             try (Connection con = PrepUtil.getConnection(url)) {
                 assertEquals(expectedConstants[i], con.getTransactionIsolation(),
                         "Isolation level " + levels[i] + " was not applied correctly.");
