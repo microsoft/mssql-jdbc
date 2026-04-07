@@ -30,15 +30,14 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
-        // setConnection() is not called here to allow unit tests to run without a real database connection.
-        // Integration tests will check if connectionString is available before proceeding.
+        setConnection();
     }
 
     @Test
     public void testPropertyInfo() throws SQLException {
         SQLServerDriver driver = new SQLServerDriver();
         Properties info = new Properties();
-        String url = "jdbc:sqlserver://localhost;defaultTransactionIsolation=READ_COMMITTED";
+        String url = connectionString + ";defaultTransactionIsolation=READ_COMMITTED";
 
         DriverPropertyInfo[] propertyInfo = driver.getPropertyInfo(url, info);
         assertNotNull(propertyInfo);
@@ -56,11 +55,10 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
 
     @Test
     public void testInvalidProperty() {
-        Properties info = new Properties();
-        String url = "jdbc:sqlserver://localhost;defaultTransactionIsolation=invalid";
+        String url = connectionString + ";defaultTransactionIsolation=invalid";
 
         SQLException exception = assertThrows(SQLException.class, () -> {
-            new SQLServerDriver().connect(url, info);
+            PrepUtil.getConnection(url);
         });
 
         assertTrue(exception.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidConnectionSetting")), 
@@ -71,11 +69,10 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
 
     @Test
     public void testOutOfRangeProperty() {
-        Properties info = new Properties();
-        String url = "jdbc:sqlserver://localhost;defaultTransactionIsolation=NUMERIC_VALUE_UNSUPPORTED";
+        String url = connectionString + ";defaultTransactionIsolation=NUMERIC_VALUE_UNSUPPORTED";
 
         SQLException exception = assertThrows(SQLException.class, () -> {
-            new SQLServerDriver().connect(url, info);
+            PrepUtil.getConnection(url);
         });
 
         assertTrue(exception.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidConnectionSetting")),
@@ -85,14 +82,10 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
     }
 
     @Test
-    public void testUserSpecificUrl() throws SQLException {
+    public void testSnapshotPropertyInfo() throws SQLException {
         SQLServerDriver driver = new SQLServerDriver();
         Properties info = new Properties();
-
-        // Use a generic placeholder since this test only validates URL parsing via
-        // getPropertyInfo,
-        // which does not require a real server.
-        String url = "jdbc:sqlserver://generic-server;databaseName=testdb;defaultTransactionIsolation=SNAPSHOT;";
+        String url = connectionString + ";defaultTransactionIsolation=SNAPSHOT";
 
         DriverPropertyInfo[] propertyInfo = driver.getPropertyInfo(url, info);
         assertNotNull(propertyInfo);
@@ -105,7 +98,7 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
                 break;
             }
         }
-        assertTrue(found, "Property 'defaultTransactionIsolation' not found in DriverPropertyInfo for user URL");
+        assertTrue(found, "Property 'defaultTransactionIsolation' not found in DriverPropertyInfo");
     }
 
     @Test
@@ -127,8 +120,7 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
     public void testCaseInsensitiveProperty() throws SQLException {
         SQLServerDriver driver = new SQLServerDriver();
         Properties info = new Properties();
-        // Mixed-case input
-        String url = "jdbc:sqlserver://generic-server;defaultTransactionIsolation=read_Committed";
+        String url = connectionString + ";defaultTransactionIsolation=read_Committed";
 
         DriverPropertyInfo[] propertyInfo = driver.getPropertyInfo(url, info);
         assertNotNull(propertyInfo);
@@ -136,8 +128,6 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         boolean found = false;
         for (DriverPropertyInfo prop : propertyInfo) {
             if ("defaultTransactionIsolation".equalsIgnoreCase(prop.name)) {
-                // If the driver normalizes during parsing, it should be READ_COMMITTED.
-                // Based on standard driver implementation, it should at least match the choices exactly.
                 assertEquals("READ_COMMITTED", prop.value, "Transaction isolation should be normalized to READ_COMMITTED");
                 found = true;
                 break;
@@ -152,9 +142,6 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
      */
     @Test
     public void testTransactionIsolationApplied() throws Exception {
-        org.junit.jupiter.api.Assumptions.assumeTrue(connectionString != null && connectionString.startsWith("jdbc:sqlserver://"),
-                "Connection string is not set.");
-
         String[] levels = {"READ_UNCOMMITTED", "READ_COMMITTED", "REPEATABLE_READ", "SERIALIZABLE", "SNAPSHOT"};
         int[] expectedConstants = {
             Connection.TRANSACTION_READ_UNCOMMITTED,
@@ -178,9 +165,6 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
      */
     @Test
     public void testMixedCaseTransactionIsolationApplied() throws Exception {
-        org.junit.jupiter.api.Assumptions.assumeTrue(connectionString != null && connectionString.startsWith("jdbc:sqlserver://"),
-                "Connection string is not set.");
-
         String url = connectionString + ";defaultTransactionIsolation=reAd_comMitted";
         try (Connection con = PrepUtil.getConnection(url)) {
             assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation(),
