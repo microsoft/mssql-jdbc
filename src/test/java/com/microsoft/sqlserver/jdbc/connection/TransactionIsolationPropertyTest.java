@@ -13,7 +13,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -187,33 +189,80 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
     }
 
     /**
-     * Verifies that the runtime setTransactionIsolation() overrides the level set by the
-     * defaultTransactionIsolation connection property, and vice versa.
+     * Verifies that runtime setTransactionIsolation() overrides the connection property
+     * and has real semantic effect on query behavior.
      */
     @Test
     public void testRuntimeOverridesConnectionProperty() throws Exception {
-        // Connect with SERIALIZABLE, then override to READ_UNCOMMITTED at runtime.
-        String url = TestUtils.addOrOverrideProperty(connectionString,
+        // Scenario 1: SERIALIZABLE -> READ_UNCOMMITTED (dirty read allowed)
+        String serializableUrl = TestUtils.addOrOverrideProperty(connectionString,
                 "defaultTransactionIsolation", "SERIALIZABLE");
-        try (Connection con = PrepUtil.getConnection(url)) {
-            assertEquals(Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation(),
-                    "Connection should start with SERIALIZABLE from the connection property.");
+        String readUncommittedUrl = TestUtils.addOrOverrideProperty(connectionString,
+                "defaultTransactionIsolation", "READ_UNCOMMITTED");
 
-            con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
-            assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation(),
-                    "Runtime setTransactionIsolation should override the connection property level.");
+        try (Connection con1 = PrepUtil.getConnection(serializableUrl);
+             Connection con2 = PrepUtil.getConnection(serializableUrl)) {
+
+            try (Statement stmt1 = con1.createStatement()) {
+                stmt1.execute("CREATE TABLE ##txnIsoTest (id INT)");
+            }
+            con1.setAutoCommit(false);
+            try (Statement stmt1 = con1.createStatement()) {
+                stmt1.executeUpdate("INSERT INTO ##txnIsoTest VALUES (1)");
+            }
+
+            con2.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+            assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con2.getTransactionIsolation(),
+                    "Runtime override to READ_UNCOMMITTED should take effect.");
+
+            // Dirty read: con2 should see con1's uncommitted row.
+            try (Statement stmt2 = con2.createStatement();
+                 ResultSet rs = stmt2.executeQuery("SELECT COUNT(*) FROM ##txnIsoTest")) {
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1),
+                        "READ_UNCOMMITTED should see the uncommitted row (dirty read).");
+            }
+
+            con1.rollback();
+            con1.setAutoCommit(true);
+            try (Statement stmt1 = con1.createStatement()) {
+                stmt1.execute("DROP TABLE ##txnIsoTest");
+            }
         }
 
-        // Connect with READ_UNCOMMITTED, then override to SERIALIZABLE at runtime.
-        url = TestUtils.addOrOverrideProperty(connectionString,
-                "defaultTransactionIsolation", "READ_UNCOMMITTED");
-        try (Connection con = PrepUtil.getConnection(url)) {
-            assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation(),
-                    "Connection should start with READ_UNCOMMITTED from the connection property.");
+        // Scenario 2: READ_UNCOMMITTED -> SERIALIZABLE (lock contention)
+        try (Connection con1 = PrepUtil.getConnection(readUncommittedUrl);
+             Connection con2 = PrepUtil.getConnection(readUncommittedUrl)) {
 
-            con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-            assertEquals(Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation(),
-                    "Runtime setTransactionIsolation should override the connection property level.");
+            try (Statement stmt1 = con1.createStatement()) {
+                stmt1.execute("CREATE TABLE ##txnIsoTest2 (id INT)");
+                stmt1.executeUpdate("INSERT INTO ##txnIsoTest2 VALUES (1)");
+            }
+
+            con1.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+            con1.setAutoCommit(false);
+            try (Statement stmt1 = con1.createStatement();
+                 ResultSet rs = stmt1.executeQuery("SELECT * FROM ##txnIsoTest2")) {
+                while (rs.next()) {}
+            }
+
+            con2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+            assertEquals(Connection.TRANSACTION_SERIALIZABLE, con2.getTransactionIsolation(),
+                    "Runtime override to SERIALIZABLE should take effect.");
+
+            // con2's insert should be blocked by con1's range lock.
+            try (Statement stmt2 = con2.createStatement()) {
+                stmt2.execute("SET LOCK_TIMEOUT 2000");
+                assertThrows(SQLException.class, () -> {
+                    stmt2.executeUpdate("INSERT INTO ##txnIsoTest2 VALUES (2)");
+                }, "Insert should be blocked by SERIALIZABLE range lock.");
+            }
+
+            con1.rollback();
+            con1.setAutoCommit(true);
+            try (Statement stmt1 = con1.createStatement()) {
+                stmt1.execute("DROP TABLE ##txnIsoTest2");
+            }
         }
     }
 }
