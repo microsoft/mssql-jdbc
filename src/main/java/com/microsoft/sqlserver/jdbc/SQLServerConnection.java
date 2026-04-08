@@ -3937,6 +3937,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 while (true) {
                     clientConnectionId = null;
                     state = State.INITIALIZED;
+                    // Reset enhanced routing state for each connection attempt so a stale
+                    // ack from a prior failed attempt does not carry over to a different server.
+                    serverSupportsEnhancedRouting = false;
 
                     try {
                         if (isDBMirroring && useFailoverHost) {
@@ -6414,7 +6417,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (connectionlogger.isLoggable(Level.WARNING)) {
                         connectionlogger.warning(toString() + " Received enhanced routing ENVCHANGE but feature was not negotiated");
                     }
-                    throwInvalidTDS();
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_invalidEnhancedRoutingInfo"), null);
                 }
                 int routingDataValueLength, routingProtocol, routingPortNumber, routingServerNameLength, routingDatabaseNameLength = -1;
                 routingDataValueLength = routingProtocol = routingPortNumber = routingServerNameLength = -1;
@@ -6424,7 +6428,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 try {
                     routingDataValueLength = tdsReader.readUnsignedShort();
-                    int minDataLength = isEnhancedRouting ? 7 : 5; // Enhanced routing requires additional database name field
+                    int minDataLength = isEnhancedRouting ? 7 : 5; // Enhanced routing adds a database name field
                     if (routingDataValueLength <= minDataLength) {
                         throwInvalidTDS();
                     }
@@ -6451,7 +6455,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (isEnhancedRouting) {
                         routingDatabaseNameLength = tdsReader.readUnsignedShort();
                         if (routingDatabaseNameLength <= 0 || routingDatabaseNameLength > 128) {
-                            throwInvalidTDS();
+                            throw new SQLServerException(
+                                    SQLServerException.getErrString("R_invalidEnhancedRoutingInfo"), null);
                         }
 
                         routingDatabaseName = tdsReader.readUnicodeString(routingDatabaseNameLength);
@@ -7097,6 +7102,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private void onFeatureExtAck(byte featureId, byte[] data) throws SQLServerException {
+        // To be able to cache both control and tenant ring IPs, need to parse AZURESQLDNSCACHING.
         // During routing, only process DNS caching and enhanced routing acks;
         // enhanced routing must be ack'd before routing info is consumed.
         if (null != routingInfo && TDS.TDS_FEATURE_EXT_AZURESQLDNSCACHING != featureId
@@ -7299,6 +7305,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     throw new SQLServerException(SQLServerException.getErrString("R_InvalidJSONVersionNumber"), null);
                 }
                 serverSupportsJSON = true;
+                break;
+            }
+
+            case TDS.TDS_FEATURE_EXT_USERAGENT: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(
+                            toString() + " Received feature extension acknowledgement for User agent feature extension. Received byte: " + data[0]);
+                }
                 break;
             }
 
