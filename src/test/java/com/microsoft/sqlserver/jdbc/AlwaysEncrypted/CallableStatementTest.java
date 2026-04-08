@@ -160,6 +160,10 @@ public class CallableStatementTest extends AESetup {
 
     @AfterAll
     public static void dropAll() throws Exception {
+        // Skip cleanup if connection was never established (e.g., test was skipped)
+        if (null == connection) {
+            return;
+        }
         // Drop procedures before tables or table drop will fail
         dropProcedures();
         dropTables();

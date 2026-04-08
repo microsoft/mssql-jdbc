@@ -179,6 +179,12 @@ public class FedauthCommon extends AbstractTest {
 
     @BeforeAll
     public static void getConfigs() throws Exception {
+        // Skip fedauth tests if USE_ACCESS_TOKEN env var is set
+        // Fedauth tests require MSI-based authentication which is not available with AzureCLI token-based auth
+        String useAccessToken = System.getenv("USE_ACCESS_TOKEN");
+        org.junit.Assume.assumeTrue("Skipping fedauth tests: USE_ACCESS_TOKEN is set", 
+                !"true".equalsIgnoreCase(useAccessToken));
+
         azureServer = getConfiguredProperty("azureServer");
         azureDatabase = getConfiguredProperty("azureDatabase");
         azureUserName = getConfiguredProperty("azureUserName");
@@ -221,6 +227,9 @@ public class FedauthCommon extends AbstractTest {
     static void getFedauthInfo() {
         int retry = 0;
         long interval = THROTTLE_RETRY_INTERVAL;
+        
+        // Note: These tests are skipped when USE_ACCESS_TOKEN=true (see @BeforeAll)
+        // so ManagedIdentityCredential is always correct here
         ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
                 .clientId(akvProviderManagedClientId).build();
 

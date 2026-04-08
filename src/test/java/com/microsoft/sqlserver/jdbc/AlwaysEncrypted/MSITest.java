@@ -23,6 +23,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.azure.identity.CredentialUnavailableException;
+import com.azure.identity.DefaultAzureCredential;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.sqlserver.jdbc.SQLServerColumnEncryptionAzureKeyVaultProvider;
@@ -45,6 +47,12 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.MSI)
 public class MSITest extends AESetup {
+
+    @BeforeEach
+    public void skipIfAccessTokenCallbackConfigured() {
+        // Skip MSI tests if accessTokenCallbackClass is configured or USE_ACCESS_TOKEN env var is set
+        org.junit.Assume.assumeTrue(!TestUtils.useAccessTokenAuth(connectionString));
+    }
 
     /*
      * Test MSI auth
@@ -472,7 +480,15 @@ public class MSITest extends AESetup {
         SQLServerConnection.unregisterColumnEncryptionKeyStoreProviders();
 
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        if (null != akvProviderManagedClientId) {
+        
+        if (TestUtils.useAccessTokenAuth(connectionString)) {
+            // When using accessTokenCallbackClass, use DefaultAzureCredential for consistency
+            System.out.println("DefaultAzureCredential: registering akvProvider");
+            DefaultAzureCredential credential = new DefaultAzureCredentialBuilder().build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+            map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
+            System.out.println("DefaultAzureCredential: registered akvProvider");
+        } else if (null != akvProviderManagedClientId) {
             System.out.println("ManagedIdentityCredential: registering akvProvider");
 
             ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()

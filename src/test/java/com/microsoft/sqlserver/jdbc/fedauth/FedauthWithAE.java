@@ -23,6 +23,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.azure.identity.AzureCliCredential;
+import com.azure.identity.AzureCliCredentialBuilder;
+import com.azure.identity.ChainedTokenCredential;
+import com.azure.identity.ChainedTokenCredentialBuilder;
+import com.azure.identity.EnvironmentCredential;
+import com.azure.identity.EnvironmentCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
@@ -288,9 +294,22 @@ public class FedauthWithAE extends FedauthCommon {
 
     private SQLServerColumnEncryptionKeyStoreProvider registerAKVProvider() throws SQLServerException {
         Map<String, SQLServerColumnEncryptionKeyStoreProvider> map = new HashMap<String, SQLServerColumnEncryptionKeyStoreProvider>();
-        ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
-                .clientId(akvProviderManagedClientId).build();
-        akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+        
+        if (TestUtils.useAccessTokenAuth(connectionString)) {
+            // Use ChainedTokenCredential (Env + AzureCli) - excludes ManagedIdentityCredential
+            EnvironmentCredential envCredential = new EnvironmentCredentialBuilder().build();
+            AzureCliCredential cliCredential = new AzureCliCredentialBuilder().build();
+            ChainedTokenCredential credential = new ChainedTokenCredentialBuilder()
+                    .addFirst(envCredential)
+                    .addLast(cliCredential)
+                    .build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+        } else {
+            ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()
+                    .clientId(akvProviderManagedClientId).build();
+            akvProvider = new SQLServerColumnEncryptionAzureKeyVaultProvider(credential);
+        }
+        
         map.put(Constants.AZURE_KEY_VAULT_NAME, akvProvider);
         SQLServerConnection.registerColumnEncryptionKeyStoreProviders(map);
         return akvProvider;
