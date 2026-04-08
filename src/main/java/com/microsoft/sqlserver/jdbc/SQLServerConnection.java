@@ -3800,25 +3800,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             }
         }
 
-        // Apply the defaultTransactionIsolation connection property if set.
-        // This log block helps confirm from the logs what isolation level was requested during the handshake.
-        String defaultTxnIsolationProperty = SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString();
-        String defaultTxnIsolationValue = activeConnectionProperties.getProperty(defaultTxnIsolationProperty);
+        // Apply defaultTransactionIsolation if set, already validated in connectInternal().
+        String defaultTxnIsolationValue = activeConnectionProperties
+                .getProperty(SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString());
         if (null != defaultTxnIsolationValue && !defaultTxnIsolationValue.isEmpty()) {
-            int levelNum = mapTransactionIsolationName(defaultTxnIsolationValue);
-            if (levelNum == -1) {
-                // This shouldn't happen as it was validated in connectInternal,
-                // but we catch it for robustness.
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
-                Object[] msgArgs = {defaultTxnIsolationProperty, defaultTxnIsolationValue};
-                throw new SQLServerException(form.format(msgArgs), null);
-            }
             if (connectionlogger.isLoggable(Level.FINE)) {
                 connectionlogger.log(Level.FINE,
                         "{0} Setting transaction isolation level from connection property: {1} ({2})",
-                        new Object[] {toString(), defaultTxnIsolationValue, levelNum});
+                        new Object[] {toString(), defaultTxnIsolationValue, transactionIsolationLevel});
             }
-            setTransactionIsolation(levelNum);
+            setTransactionIsolation(transactionIsolationLevel);
         }
     }
 

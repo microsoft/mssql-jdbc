@@ -6,8 +6,10 @@ package com.microsoft.sqlserver.jdbc.connection;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
@@ -20,6 +22,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -34,6 +37,20 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         setConnection();
     }
 
+    /**
+     * Finds a {@link DriverPropertyInfo} by name (case-insensitive) from the given array.
+     * Fails the test if the property is not found.
+     */
+    private static DriverPropertyInfo findProperty(DriverPropertyInfo[] props, String name) {
+        for (DriverPropertyInfo prop : props) {
+            if (name.equalsIgnoreCase(prop.name)) {
+                return prop;
+            }
+        }
+        fail("Property '" + name + "' not found in DriverPropertyInfo");
+        return null;
+    }
+
     @Test
     public void testPropertyInfo() throws SQLException {
         SQLServerDriver driver = new SQLServerDriver();
@@ -43,15 +60,8 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         DriverPropertyInfo[] propertyInfo = driver.getPropertyInfo(url, info);
         assertNotNull(propertyInfo);
 
-        boolean found = false;
-        for (DriverPropertyInfo prop : propertyInfo) {
-            if ("defaultTransactionIsolation".equalsIgnoreCase(prop.name)) {
-                assertEquals("READ_COMMITTED", prop.value);
-                found = true;
-                break;
-            }
-        }
-        assertTrue(found, "Property 'defaultTransactionIsolation' not found in DriverPropertyInfo");
+        DriverPropertyInfo prop = findProperty(propertyInfo, "defaultTransactionIsolation");
+        assertEquals("READ_COMMITTED", prop.value);
     }
 
     @Test
@@ -91,30 +101,40 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         DriverPropertyInfo[] propertyInfo = driver.getPropertyInfo(url, info);
         assertNotNull(propertyInfo);
 
-        boolean found = false;
-        for (DriverPropertyInfo prop : propertyInfo) {
-            if ("defaultTransactionIsolation".equalsIgnoreCase(prop.name)) {
-                assertEquals("SNAPSHOT", prop.value, "Transaction isolation should be SNAPSHOT");
-                found = true;
-                break;
-            }
-        }
-        assertTrue(found, "Property 'defaultTransactionIsolation' not found in DriverPropertyInfo");
+        DriverPropertyInfo prop = findProperty(propertyInfo, "defaultTransactionIsolation");
+        assertEquals("SNAPSHOT", prop.value, "Transaction isolation should be SNAPSHOT");
     }
 
     @Test
     public void testDataSourceProperty() {
-        com.microsoft.sqlserver.jdbc.SQLServerDataSource ds = new com.microsoft.sqlserver.jdbc.SQLServerDataSource();
+        SQLServerDataSource ds = new SQLServerDataSource();
         ds.setDefaultTransactionIsolation("READ_UNCOMMITTED");
         assertEquals("READ_UNCOMMITTED", ds.getDefaultTransactionIsolation());
     }
 
     @Test
     public void testDataSourceDefaultProperty() {
-        com.microsoft.sqlserver.jdbc.SQLServerDataSource ds = new com.microsoft.sqlserver.jdbc.SQLServerDataSource();
+        SQLServerDataSource ds = new SQLServerDataSource();
         // By default, the property is null because no default value is defined in the property metadata.
         // It falls back to driver defaults during connection establishment if not specified.
-        assertTrue(ds.getDefaultTransactionIsolation() == null);
+        assertNull(ds.getDefaultTransactionIsolation());
+    }
+
+    @Test
+    public void testEdgeCasePropertyValues() throws Exception {
+        // Empty value — ignored, falls back to default.
+        String emptyUrl = connectionString + ";defaultTransactionIsolation=";
+        try (Connection con = PrepUtil.getConnection(emptyUrl)) {
+            assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation(),
+                    "Empty property value should fall back to default isolation level.");
+        }
+
+        // Whitespace — trimmed to empty, also falls back to default.
+        String whitespaceUrl = connectionString + ";defaultTransactionIsolation= ";
+        try (Connection con = PrepUtil.getConnection(whitespaceUrl)) {
+            assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation(),
+                    "Whitespace-only property value should fall back to default isolation level.");
+        }
     }
 
     @Test
@@ -126,15 +146,8 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         DriverPropertyInfo[] propertyInfo = driver.getPropertyInfo(url, info);
         assertNotNull(propertyInfo);
 
-        boolean found = false;
-        for (DriverPropertyInfo prop : propertyInfo) {
-            if ("defaultTransactionIsolation".equalsIgnoreCase(prop.name)) {
-                assertEquals("READ_COMMITTED", prop.value, "Transaction isolation should be normalized to READ_COMMITTED");
-                found = true;
-                break;
-            }
-        }
-        assertTrue(found, "Property 'defaultTransactionIsolation' not found");
+        DriverPropertyInfo prop = findProperty(propertyInfo, "defaultTransactionIsolation");
+        assertEquals("READ_COMMITTED", prop.value, "Transaction isolation should be normalized to READ_COMMITTED");
     }
 
     /**
