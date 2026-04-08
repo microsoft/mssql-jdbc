@@ -185,4 +185,35 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
                     "Mixed-case isolation level was not applied correctly.");
         }
     }
+
+    /**
+     * Verifies that the runtime setTransactionIsolation() overrides the level set by the
+     * defaultTransactionIsolation connection property, and vice versa.
+     */
+    @Test
+    public void testRuntimeOverridesConnectionProperty() throws Exception {
+        // Connect with SERIALIZABLE, then override to READ_UNCOMMITTED at runtime.
+        String url = TestUtils.addOrOverrideProperty(connectionString,
+                "defaultTransactionIsolation", "SERIALIZABLE");
+        try (Connection con = PrepUtil.getConnection(url)) {
+            assertEquals(Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation(),
+                    "Connection should start with SERIALIZABLE from the connection property.");
+
+            con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+            assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation(),
+                    "Runtime setTransactionIsolation should override the connection property level.");
+        }
+
+        // Connect with READ_UNCOMMITTED, then override to SERIALIZABLE at runtime.
+        url = TestUtils.addOrOverrideProperty(connectionString,
+                "defaultTransactionIsolation", "READ_UNCOMMITTED");
+        try (Connection con = PrepUtil.getConnection(url)) {
+            assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation(),
+                    "Connection should start with READ_UNCOMMITTED from the connection property.");
+
+            con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+            assertEquals(Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation(),
+                    "Runtime setTransactionIsolation should override the connection property level.");
+        }
+    }
 }
