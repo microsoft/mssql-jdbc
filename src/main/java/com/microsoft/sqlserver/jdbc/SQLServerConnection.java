@@ -3948,6 +3948,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             currentConnectPlaceHolder = currentFOPlaceHolder;
                         } else {
                             if (routingInfo != null) {
+                                // If we received enhanced routing info (with database name) but the server
+                                // did not acknowledge the enhanced routing feature, discard the routing info
+                                // and connect to the current server instead.
+                                if (routingInfo.getDatabaseName() != null && !serverSupportsEnhancedRouting) {
+                                    if (connectionlogger.isLoggable(Level.WARNING)) {
+                                        connectionlogger.warning(toString()
+                                                + " Ignoring enhanced routing info because the server did not acknowledge the feature.");
+                                    }
+                                    routingInfo = null;
+                                    break;
+                                }
+                                
                                 if (loggerRedirection.isLoggable(Level.FINE)) {
                                     loggerRedirection
                                             .fine(toString() + " Connection open - redirecting to server and instance: "
@@ -7085,8 +7097,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private void onFeatureExtAck(byte featureId, byte[] data) throws SQLServerException {
-        // To be able to cache both control and tenant ring IPs, need to parse AZURESQLDNSCACHING.
-        if (null != routingInfo && TDS.TDS_FEATURE_EXT_AZURESQLDNSCACHING != featureId)
+        // During routing, only process DNS caching and enhanced routing acks;
+        // enhanced routing must be ack'd before routing info is consumed.
+        if (null != routingInfo && TDS.TDS_FEATURE_EXT_AZURESQLDNSCACHING != featureId
+                && TDS.TDS_FEATURE_EXT_ENHANCEDROUTING != featureId)
             return;
 
         switch (featureId) {
@@ -7288,10 +7302,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             }
 
-            case TDS.TDS_FEATURE_EXT_USERAGENT: {
+            case TDS.TDS_FEATURE_EXT_ENHANCEDROUTING: {
                 if (connectionlogger.isLoggable(Level.FINER)) {
-                    connectionlogger.fine(
-                            toString() + " Received feature extension acknowledgement for User agent feature extension. Received byte: " + data[0]);
+                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for Enhanced Routing.");
+                }
+
+                // Enhanced Routing feature extension ack should contain exactly 1 byte:
+                // data[0] == 1 means the server supports enhanced routing
+                // data[0] == 0 means the server does not support enhanced routing
+                if (1 != data.length) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_enhancedRoutingFeatureAckContainsExtraData"), null);
+                }
+                serverSupportsEnhancedRouting = (data[0] == 1);
+
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.fine(toString() + " Enhanced Routing support enabled: " + serverSupportsEnhancedRouting);
                 }
                 break;
             }
