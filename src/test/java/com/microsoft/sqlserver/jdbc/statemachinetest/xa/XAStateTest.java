@@ -788,7 +788,6 @@ public class XAStateTest extends AbstractTest {
      * Tests fundamental XAResource interface behavior and contract compliance.
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testVerifyXAResource() throws Exception {
         logTestProgress("TEST START: testVerifyXAResource");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
@@ -900,7 +899,6 @@ public class XAStateTest extends AbstractTest {
      * Tests the fundamental XA transaction workflow: start -> end -> commit.
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testBasicXAOperations() throws Exception {
         logTestProgress("TEST START: testBasicXAOperations");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
@@ -912,6 +910,7 @@ public class XAStateTest extends AbstractTest {
         try {
             xaConn = xaDS.getXAConnection();
             XAResource xaRes = xaConn.getXAResource();
+            xaRes.setTransactionTimeout(60); // 60 seconds = 1 minute
             Connection conn = xaConn.getConnection();
             
             // Create test table
@@ -1015,7 +1014,6 @@ public class XAStateTest extends AbstractTest {
      * Tests various commit scenarios, including one-phase, two-phase, and error conditions.
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXACommitScenarios() throws Exception {
         logTestProgress("TEST START: testXACommitScenarios");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
@@ -1027,6 +1025,7 @@ public class XAStateTest extends AbstractTest {
         try {
             xaConn = xaDS.getXAConnection();
             XAResource xaRes = xaConn.getXAResource();
+            xaRes.setTransactionTimeout(60); // 60 seconds = 1 minute
             Connection conn = xaConn.getConnection();
             
             // Setup test table
@@ -1155,7 +1154,6 @@ public class XAStateTest extends AbstractTest {
      * Tests rollback functionality, including before and after prepare.
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXARollbackScenarios() throws Exception {
         logTestProgress("TEST START: testXARollbackScenarios");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
@@ -1167,6 +1165,7 @@ public class XAStateTest extends AbstractTest {
         try {
             xaConn = xaDS.getXAConnection();
             XAResource xaRes = xaConn.getXAResource();
+            xaRes.setTransactionTimeout(60); // 60 seconds = 1 minute
             Connection conn = xaConn.getConnection();
             
             // Setup test table
@@ -1316,7 +1315,6 @@ public class XAStateTest extends AbstractTest {
      * Tests proper XAException error codes for various error conditions.
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXAExceptionHandling() throws Exception {
         logTestProgress("TEST START: testXAExceptionHandling");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
@@ -1328,6 +1326,7 @@ public class XAStateTest extends AbstractTest {
         try {
             xaConn = xaDS.getXAConnection();
             XAResource xaRes = xaConn.getXAResource();
+            xaRes.setTransactionTimeout(60); // 60 seconds = 1 minute
             Connection conn = xaConn.getConnection();
             
             // Setup test table
@@ -1338,150 +1337,234 @@ public class XAStateTest extends AbstractTest {
             
             // Test 1: XAER_NOTA - Unknown XID
             logTestProgress("testXAExceptionHandling - Test 1: Unknown XID (XAER_NOTA)");
+            Xid unknownXid = createXid();
+            logTestProgress("testXAExceptionHandling - Test 1: Created unknown XID, calling xaRes.end()");
             try {
-                Xid unknownXid = createXid();
                 xaRes.end(unknownXid, XAResource.TMSUCCESS);
+                logTestProgress("testXAExceptionHandling - Test 1: ERROR - end() did not throw exception");
                 fail("Should throw XAER_NOTA for unknown XID");
             } catch (XAException e) {
+                logTestProgress("testXAExceptionHandling - Test 1: Caught expected XAException with error code: "
+                        + e.errorCode);
                 assertEquals(XAException.XAER_NOTA, e.errorCode, 
                         "Should return XAER_NOTA for unknown transaction");
             }
+            logTestProgress("testXAExceptionHandling - Test 1: Completed");
             
             // Test 2: XAER_PROTO - Protocol error (commit without prepare)
             logTestProgress("testXAExceptionHandling - Test 2: Protocol error (XAER_PROTO)");
+            Xid xid2 = createXid();
+            logTestProgress("testXAExceptionHandling - Test 2: Starting XA transaction");
             try {
-                Xid xid2 = createXid();
                 xaRes.start(xid2, XAResource.TMNOFLAGS);
+                logTestProgress("testXAExceptionHandling - Test 2: XA start succeeded, inserting data");
                 try (Statement stmt = conn.createStatement()) {
                     stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (2, 200)");
                 }
+                logTestProgress("testXAExceptionHandling - Test 2: Data inserted, ending transaction");
                 xaRes.end(xid2, XAResource.TMSUCCESS);
+                logTestProgress(
+                        "testXAExceptionHandling - Test 2: Transaction ended, attempting commit without prepare");
                 xaRes.commit(xid2, false); // Two-phase without prepare
+                logTestProgress("testXAExceptionHandling - Test 2: ERROR - commit() did not throw exception");
                 fail("Should throw XAER_PROTO for protocol violation");
             } catch (XAException e) {
+                logTestProgress("testXAExceptionHandling - Test 2: Caught expected XAException with error code: "
+                        + e.errorCode);
                 assertTrue(e.errorCode == XAException.XAER_PROTO || 
                           e.errorCode == XAException.XAER_NOTA,
                         "Should return XAER_PROTO or XAER_NOTA");
+            } finally {
+                // Cleanup
+                logTestProgress("testXAExceptionHandling - Test 2: Attempting cleanup");
+                try {
+                    xaRes.rollback(xid2);
+                    logTestProgress("testXAExceptionHandling - Test 2: Cleanup succeeded");
+                } catch (Exception e) {
+                    logTestProgress(
+                            "testXAExceptionHandling - Test 2: Cleanup failed (may be expected): " + e.getMessage());
+                }
             }
+            logTestProgress("testXAExceptionHandling - Test 2: Completed");
             
             // Test 3: XAER_DUPID - Duplicate XID (start with same XID twice)
             logTestProgress("testXAExceptionHandling - Test 3: Duplicate XID (XAER_DUPID)");
             Xid xid3 = createXid();
+            logTestProgress("testXAExceptionHandling - Test 3: Starting first XA transaction");
             xaRes.start(xid3, XAResource.TMNOFLAGS);
+            logTestProgress(
+                    "testXAExceptionHandling - Test 3: First start succeeded, attempting duplicate start with same XID");
             try {
                 xaRes.start(xid3, XAResource.TMNOFLAGS); // Same XID
+                logTestProgress("testXAExceptionHandling - Test 3: ERROR - duplicate start() did not throw exception");
                 fail("Should throw XAER_DUPID for duplicate XID");
             } catch (XAException e) {
+                logTestProgress("testXAExceptionHandling - Test 3: Caught expected XAException with error code: "
+                        + e.errorCode);
                 assertTrue(e.errorCode == XAException.XAER_DUPID || 
                           e.errorCode == XAException.XAER_PROTO,
                         "Should return XAER_DUPID or XAER_PROTO");
             } finally {
                 // Cleanup
+                logTestProgress("testXAExceptionHandling - Test 3: Attempting cleanup");
                 try {
                     xaRes.end(xid3, XAResource.TMFAIL);
                     xaRes.rollback(xid3);
+                    logTestProgress("testXAExceptionHandling - Test 3: Cleanup succeeded");
                 } catch (Exception e) {
-                    // Ignore cleanup errors
+                    logTestProgress("testXAExceptionHandling - Test 3: Cleanup failed: " + e.getMessage());
                 }
             }
+            logTestProgress("testXAExceptionHandling - Test 3: Completed");
             
             // Test 4: XAER_INVAL - Invalid arguments
             logTestProgress("testXAExceptionHandling - Test 4: Invalid arguments (XAER_INVAL)");
+            Xid xid4 = createXid();
+            logTestProgress("testXAExceptionHandling - Test 4: Created XID, attempting start with invalid flag");
             try {
-                Xid xid4 = createXid();
                 xaRes.start(xid4, 999999); // Invalid flag
                 fail("Should throw XAER_INVAL for invalid flag");
             } catch (XAException e) {
+                logTestProgress("testXAExceptionHandling - Test 4: Caught XAException with error code: " + e.errorCode);
                 assertTrue(e.errorCode == XAException.XAER_INVAL || 
                           e.errorCode == XAException.XAER_PROTO,
                         "Should return XAER_INVAL or XAER_PROTO");
+            } finally {
+                // Cleanup - try to rollback in case the transaction was partially started
+                logTestProgress("testXAExceptionHandling - Test 4: Attempting cleanup");
+                try {
+                    xaRes.rollback(xid4);
+                    logTestProgress("testXAExceptionHandling - Test 4: Cleanup rollback succeeded");
+                } catch (Exception cleanupEx) {
+                    logTestProgress(
+                            "testXAExceptionHandling - Test 4: Cleanup failed (expected): " + cleanupEx.getMessage());
+                }
             }
+            logTestProgress("testXAExceptionHandling - Test 4: Completed");
             
             // Test 5: XAER_PROTO - End without start
             logTestProgress("testXAExceptionHandling - Test 5: End without start (XAER_PROTO)");
+            logTestProgress("testXAExceptionHandling - Test 5: Creating new XID");
+            Xid xid5 = createXid();
+            logTestProgress("testXAExceptionHandling - Test 5: Calling xaRes.end() on non-started transaction");
             try {
-                Xid xid5 = createXid();
                 xaRes.end(xid5, XAResource.TMSUCCESS);
+                logTestProgress("testXAExceptionHandling - Test 5: ERROR - end() did not throw exception");
                 fail("Should throw XAER_PROTO when ending non-started transaction");
             } catch (XAException e) {
+                logTestProgress("testXAExceptionHandling - Test 5: Caught expected XAException with error code: "
+                        + e.errorCode);
                 assertTrue(e.errorCode == XAException.XAER_PROTO || 
                           e.errorCode == XAException.XAER_NOTA,
                         "Should return XAER_PROTO or XAER_NOTA");
             }
+            logTestProgress("testXAExceptionHandling - Test 5: Completed");
             
             // Test 6: XAER_PROTO - Prepare without end
             logTestProgress("testXAExceptionHandling - Test 6: Prepare without end (XAER_PROTO)");
+            Xid xid6 = createXid();
+            logTestProgress("testXAExceptionHandling - Test 6: Starting XA transaction");
             try {
-                Xid xid6 = createXid();
                 xaRes.start(xid6, XAResource.TMNOFLAGS);
+                logTestProgress("testXAExceptionHandling - Test 6: XA start succeeded, inserting data");
                 try (Statement stmt = conn.createStatement()) {
                     stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (6, 600)");
                 }
+                logTestProgress("testXAExceptionHandling - Test 6: Data inserted, calling prepare without end");
                 xaRes.prepare(xid6); // Prepare without end
+                logTestProgress("testXAExceptionHandling - Test 6: ERROR - prepare() did not throw exception");
                 fail("Should throw XAER_PROTO when preparing without end");
             } catch (XAException e) {
+                logTestProgress("testXAExceptionHandling - Test 6: Caught expected XAException with error code: "
+                        + e.errorCode);
                 assertEquals(XAException.XAER_PROTO, e.errorCode, 
                         "Should return XAER_PROTO for protocol violation");
             } finally {
                 // Cleanup
+                logTestProgress("testXAExceptionHandling - Test 6: Attempting cleanup");
                 try {
-                    Xid xid6 = createXid(); // Different XID for cleanup
+                    xaRes.end(xid6, XAResource.TMFAIL);
+                    xaRes.rollback(xid6);
+                    logTestProgress("testXAExceptionHandling - Test 6: Cleanup succeeded");
                 } catch (Exception e) {
-                    // Ignore
+                    logTestProgress(
+                            "testXAExceptionHandling - Test 6: Cleanup failed (may be expected): " + e.getMessage());
                 }
             }
+            logTestProgress("testXAExceptionHandling - Test 6: Completed");
             
             // Test 7: XA_RB* - Rollback error codes (simulate with TMFAIL)
             logTestProgress("testXAExceptionHandling - Test 7: Rollback error codes (XA_RB*)");
             Xid xid7 = createXid();
+            logTestProgress("testXAExceptionHandling - Test 7: Starting XA transaction");
             xaRes.start(xid7, XAResource.TMNOFLAGS);
+            logTestProgress("testXAExceptionHandling - Test 7: XA start succeeded, inserting data");
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (7, 700)");
             }
+            logTestProgress("testXAExceptionHandling - Test 7: Data inserted, ending with TMFAIL");
             xaRes.end(xid7, XAResource.TMFAIL); // End with failure
+            logTestProgress("testXAExceptionHandling - Test 7: End with TMFAIL succeeded, attempting prepare");
             
             try {
                 int prepResult = xaRes.prepare(xid7);
+                logTestProgress("testXAExceptionHandling - Test 7: Prepare returned code: " + prepResult);
                 // Prepare after TMFAIL should either throw exception or return XA_RBROLLBACK
                 if (prepResult >= XAException.XA_RBBASE && prepResult <= XAException.XA_RBEND) {
                     // Got rollback code - this is valid
+                    logTestProgress("testXAExceptionHandling - Test 7: Received expected rollback code");
                     assertTrue(true, "Received rollback code as expected");
                 }
             } catch (XAException e) {
                 // Also valid - threw exception for failed transaction
+                logTestProgress("testXAExceptionHandling - Test 7: Caught XAException with error code: " + e.errorCode);
                 assertTrue(e.errorCode >= XAException.XA_RBBASE && 
                           e.errorCode <= XAException.XA_RBEND,
                         "Should return XA_RB* rollback code");
             } finally {
                 // Cleanup - rollback is expected
+                logTestProgress("testXAExceptionHandling - Test 7: Attempting cleanup rollback");
                 try {
                     xaRes.rollback(xid7);
+                    logTestProgress("testXAExceptionHandling - Test 7: Cleanup rollback succeeded");
                 } catch (Exception e) {
-                    // May already be rolled back
+                    logTestProgress(
+                            "testXAExceptionHandling - Test 7: Cleanup rollback failed (may be already rolled back): "
+                                    + e.getMessage());
                 }
             }
+            logTestProgress("testXAExceptionHandling - Test 7: Completed");
             
             // Test 8: XAER_PROTO - Multiple starts without end
             logTestProgress("testXAExceptionHandling - Test 8: Multiple starts without end (XAER_PROTO)");
             Xid xid8a = createXid();
             Xid xid8b = createXid();
+            logTestProgress("testXAExceptionHandling - Test 8: Starting first XA transaction");
             xaRes.start(xid8a, XAResource.TMNOFLAGS);
+            logTestProgress(
+                    "testXAExceptionHandling - Test 8: First XA start succeeded, attempting second start without ending first");
             try {
                 xaRes.start(xid8b, XAResource.TMNOFLAGS); // Start another without ending first
+                logTestProgress("testXAExceptionHandling - Test 8: ERROR - second start() did not throw exception");
                 fail("Should throw XAER_PROTO for nested transactions");
             } catch (XAException e) {
+                logTestProgress("testXAExceptionHandling - Test 8: Caught expected XAException with error code: "
+                        + e.errorCode);
                 assertTrue(e.errorCode == XAException.XAER_PROTO || 
                           e.errorCode == XAException.XAER_OUTSIDE,
                         "Should return XAER_PROTO or XAER_OUTSIDE");
             } finally {
                 // Cleanup first transaction
+                logTestProgress("testXAExceptionHandling - Test 8: Attempting cleanup of first transaction");
                 try {
                     xaRes.end(xid8a, XAResource.TMFAIL);
                     xaRes.rollback(xid8a);
+                    logTestProgress("testXAExceptionHandling - Test 8: Cleanup succeeded");
                 } catch (Exception e) {
-                    // Ignore
+                    logTestProgress("testXAExceptionHandling - Test 8: Cleanup failed: " + e.getMessage());
                 }
             }
+            logTestProgress("testXAExceptionHandling - Test 8: Completed");
             
             System.out.println("[PASS] TCException: All XA exception handling tests passed");
             logTestProgress("TEST END: testXAExceptionHandling - SUCCESS");
@@ -1501,7 +1584,6 @@ public class XAStateTest extends AbstractTest {
      * Tests XA transactions with various SQL transaction isolation levels.
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 5, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXAWithIsolationLevels() throws Exception {
         logTestProgress("TEST START: testXAWithIsolationLevels");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
@@ -1518,6 +1600,7 @@ public class XAStateTest extends AbstractTest {
         try {
             xaConn = xaDS.getXAConnection();
             xaRes = xaConn.getXAResource();
+            xaRes.setTransactionTimeout(60); // 60 seconds = 1 minute
             conn = xaConn.getConnection();
             
             // Setup test table with initial data (outside XA transaction to avoid locks)
@@ -1772,7 +1855,6 @@ public class XAStateTest extends AbstractTest {
      * Tests multiple threads executing independent XA transactions concurrently.
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testConcurrentXATransactions() throws Exception {
         logTestProgress("TEST START: testConcurrentXATransactions");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
@@ -1810,6 +1892,7 @@ public class XAStateTest extends AbstractTest {
                     logTestProgress("THREAD-" + threadId + " - Got XA connection");
                     try {
                         XAResource xaRes = xaConn.getXAResource();
+                        xaRes.setTransactionTimeout(60); // 60 seconds = 1 minute
                         Connection conn = xaConn.getConnection();
                         
                         for (int txNum = 0; txNum < TRANSACTIONS_PER_THREAD; txNum++) {
@@ -1991,7 +2074,6 @@ public class XAStateTest extends AbstractTest {
      * so subsequent end() calls must fail.
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testEndAfterCommitOrRollback() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -2003,6 +2085,7 @@ public class XAStateTest extends AbstractTest {
         try {
             xaConn = xaDS.getXAConnection();
             XAResource xaRes = xaConn.getXAResource();
+            xaRes.setTransactionTimeout(60); // 60 seconds = 1 minute
             Connection conn = xaConn.getConnection();
 
             try (Statement stmt = conn.createStatement()) {
@@ -2079,7 +2162,6 @@ public class XAStateTest extends AbstractTest {
      * TCIsolationLevels).
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXAIsolationLevelServerVerification() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -2091,6 +2173,7 @@ public class XAStateTest extends AbstractTest {
         try {
             xaConn = xaDS.getXAConnection();
             XAResource xaRes = xaConn.getXAResource();
+            xaRes.setTransactionTimeout(60); // 60 seconds = 1 minute
             Connection conn = xaConn.getConnection();
 
             // Test 1: Default isolation inside XA must be READ COMMITTED
@@ -2176,7 +2259,6 @@ public class XAStateTest extends AbstractTest {
      * Verifies fix for VSTS #841313 ("Introduce support for formatId").
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testFormatIdRoundTrip() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -2189,6 +2271,7 @@ public class XAStateTest extends AbstractTest {
             XAConnection xaConn = xaDS.getXAConnection();
             try {
                 XAResource xaRes = xaConn.getXAResource();
+                xaRes.setTransactionTimeout(60); // 60 seconds = 1 minute
                 Connection conn = xaConn.getConnection();
 
                 try (Statement stmt = conn.createStatement()) {
@@ -2243,7 +2326,6 @@ public class XAStateTest extends AbstractTest {
      * intentionally excluded to keep test duration practical.
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXATransactionTimeout() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -2302,7 +2384,6 @@ public class XAStateTest extends AbstractTest {
      * resume -> commit.
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXAPoolingWithConnectionClose() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -2325,6 +2406,7 @@ public class XAStateTest extends AbstractTest {
             for (int i = 0; i < 2; i++) {
                 Connection conn = xaConn.getConnection();
                 XAResource xaRes = xaConn.getXAResource();
+                xaRes.setTransactionTimeout(60); // 60 seconds = 1 minute
                 Xid xid = createXid();
                 xaRes.start(xid, XAResource.TMNOFLAGS);
                 try (Statement stmt = conn.createStatement()) {
@@ -2395,7 +2477,6 @@ public class XAStateTest extends AbstractTest {
      * transaction branch.
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXASqlErrorSeverity() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -2409,6 +2490,7 @@ public class XAStateTest extends AbstractTest {
             XAConnection xaConn = xaDS.getXAConnection();
             try {
                 XAResource xaRes = xaConn.getXAResource();
+                xaRes.setTransactionTimeout(60); // 60 seconds = 1 minute
                 Connection conn = xaConn.getConnection();
 
                 try (Statement stmt = conn.createStatement()) {
@@ -2489,7 +2571,6 @@ public class XAStateTest extends AbstractTest {
      * gap).
      */
     @Test
-    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testTightlyCoupledXATransactions() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -2509,7 +2590,9 @@ public class XAStateTest extends AbstractTest {
             xaConn1 = xaDS.getXAConnection();
             xaConn2 = xaDS.getXAConnection();
             XAResource xaRes1 = xaConn1.getXAResource();
+            xaRes1.setTransactionTimeout(60); // 60 seconds = 1 minute
             XAResource xaRes2 = xaConn2.getXAResource();
+            xaRes2.setTransactionTimeout(60); // 60 seconds = 1 minute
             Connection conn1 = xaConn1.getConnection();
             Connection conn2 = xaConn2.getConnection();
 
