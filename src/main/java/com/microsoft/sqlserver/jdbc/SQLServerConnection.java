@@ -2806,6 +2806,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 calcBigDecimalPrecision = isBooleanPropertyOn(sPropKey, sPropValue);
 
+                // Validate that the defaultTransactionIsolation value is one of the levels
+                // supported by SQL Server before attempting to establish the physical connection.
+                sPropKey = SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue && !sPropValue.isEmpty()) {
+                    int level = mapTransactionIsolationName(sPropValue);
+                    if (level == -1) {
+                        MessageFormat form = new MessageFormat(
+                                SQLServerException.getErrString("R_InvalidConnectionSetting"));
+                        Object[] msgArgs = {sPropKey, sPropValue};
+                        throw new SQLServerException(form.format(msgArgs), null);
+                    }
+                    transactionIsolationLevel = level;
+                    // Normalize the value to uppercase so that it holds the canonical form
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue.toUpperCase(java.util.Locale.US));
+                }
+
                 sPropKey = SQLServerDriverStringProperty.APPLICATION_NAME.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue)
@@ -3781,6 +3798,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     connectionCommand("SET CONCAT_NULL_YIELDS_NULL OFF", "concatNullYields");
                     break;
             }
+        }
+
+        // Apply the defaultTransactionIsolation connection property if set.
+        // This log block helps confirm from the logs what isolation level was requested during the handshake.
+        String defaultTxnIsolationProperty = SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString();
+        String defaultTxnIsolationValue = activeConnectionProperties.getProperty(defaultTxnIsolationProperty);
+        if (null != defaultTxnIsolationValue && !defaultTxnIsolationValue.isEmpty()) {
+            int levelNum = mapTransactionIsolationName(defaultTxnIsolationValue);
+            if (levelNum == -1) {
+                // This shouldn't happen as it was validated in connectInternal,
+                // but we catch it for robustness.
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_InvalidConnectionSetting"));
+                Object[] msgArgs = {defaultTxnIsolationProperty, defaultTxnIsolationValue};
+                throw new SQLServerException(form.format(msgArgs), null);
+            }
+            if (connectionlogger.isLoggable(Level.FINE)) {
+                connectionlogger.log(Level.FINE,
+                        "{0} Setting transaction isolation level from connection property: {1} ({2})",
+                        new Object[] {toString(), defaultTxnIsolationValue, levelNum});
+            }
+            setTransactionIsolation(levelNum);
         }
     }
 
@@ -5526,6 +5564,33 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         checkClosed();
         loggerExternal.exiting(loggingClassName, "getCatalog", sCatalog);
         return sCatalog;
+    }
+
+    /**
+     * Maps a transaction isolation level name (case-insensitive) to its corresponding
+     * java.sql.Connection constant. Returns -1 if the name is not recognized.
+     *
+     * @param name the isolation level name (e.g. "READ_UNCOMMITTED", "SNAPSHOT")
+     * @return the JDBC transaction isolation level constant, or -1 if invalid
+     */
+    private static int mapTransactionIsolationName(String name) {
+        if (name == null) {
+            return -1;
+        }
+        switch (name.toUpperCase(Locale.US)) {
+            case "READ_UNCOMMITTED":
+                return Connection.TRANSACTION_READ_UNCOMMITTED;
+            case "READ_COMMITTED":
+                return Connection.TRANSACTION_READ_COMMITTED;
+            case "REPEATABLE_READ":
+                return Connection.TRANSACTION_REPEATABLE_READ;
+            case "SERIALIZABLE":
+                return Connection.TRANSACTION_SERIALIZABLE;
+            case "SNAPSHOT":
+                return ISQLServerConnection.TRANSACTION_SNAPSHOT;
+            default:
+                return -1;
+        }
     }
 
     @Override

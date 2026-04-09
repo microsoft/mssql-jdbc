@@ -53,6 +53,15 @@ final class SQLServerDriverPropertyInfo {
         if (null == propValue)
             propValue = defaultValue;
 
+        if (null != propValue && null != choices) {
+            for (String choice : choices) {
+                if (choice.equalsIgnoreCase(propValue)) {
+                    propValue = choice;
+                    break;
+                }
+            }
+        }
+
         DriverPropertyInfo info = new DriverPropertyInfo(name, propValue);
         info.description = description;
         info.required = required;
@@ -677,7 +686,8 @@ enum SQLServerDriverStringProperty {
     RETRY_CONN("retryConn", ""),
     QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.ON.toString()),
     CONCAT_NULL_YIELDS_NULL("concatNullYieldsNull", OnOffOption.ON.toString()),
-    VECTOR_TYPE_SUPPORT("vectorTypeSupport", VectorTypeSupport.V1.toString());
+    VECTOR_TYPE_SUPPORT("vectorTypeSupport", VectorTypeSupport.V1.toString()),
+    DEFAULT_TRANSACTION_ISOLATION("defaultTransactionIsolation", null);
 
     private final String name;
     private final String defaultValue;
@@ -1115,10 +1125,13 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString(),
                     SQLServerDriverStringProperty.QUOTED_IDENTIFIER.getDefaultValue(), false,
-                    new String[] {OnOffOption.OFF.toString(), OnOffOption.OFF.toString()}),
+                    new String[] {OnOffOption.ON.toString(), OnOffOption.OFF.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString(),
                     SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.getDefaultValue(), false,
-                    new String[] {OnOffOption.OFF.toString(), OnOffOption.OFF.toString()}),};
+                    new String[] {OnOffOption.ON.toString(), OnOffOption.OFF.toString()}),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString(),
+                    SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.getDefaultValue(), false,
+                    new String[] {"READ_UNCOMMITTED", "READ_COMMITTED", "REPEATABLE_READ", "SERIALIZABLE", "SNAPSHOT"}),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string
