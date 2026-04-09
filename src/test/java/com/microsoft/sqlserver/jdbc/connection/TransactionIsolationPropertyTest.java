@@ -24,9 +24,11 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.TestUtils;
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
@@ -39,10 +41,7 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         setConnection();
     }
 
-    /**
-     * Finds a {@link DriverPropertyInfo} by name (case-insensitive) from the given array.
-     * Fails the test if the property is not found.
-     */
+    /** Finds a DriverPropertyInfo by name (case-insensitive); fails if absent. */
     private static DriverPropertyInfo findProperty(DriverPropertyInfo[] props, String name) {
         for (DriverPropertyInfo prop : props) {
             if (name.equalsIgnoreCase(prop.name)) {
@@ -53,6 +52,7 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         return null;
     }
 
+    /** Verifies the property appears in DriverPropertyInfo with the correct value. */
     @Test
     public void testPropertyInfo() throws SQLException {
         SQLServerDriver driver = new SQLServerDriver();
@@ -66,6 +66,7 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         assertEquals("READ_COMMITTED", prop.value);
     }
 
+    /** Invalid value must throw R_InvalidConnectionSetting. */
     @Test
     public void testInvalidProperty() {
         String url = connectionString + ";defaultTransactionIsolation=invalid";
@@ -75,11 +76,12 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         });
 
         assertTrue(exception.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidConnectionSetting")), 
-                "Exception message should match R_InvalidConnectionSetting. Actual message: " + exception.getMessage());
-        assertTrue(exception.getMessage().contains("defaultTransactionIsolation"), "Message should contain property name 'defaultTransactionIsolation'");
-        assertTrue(exception.getMessage().contains("invalid"), "Message should contain the invalid value 'invalid'");
+                "Actual message: " + exception.getMessage());
+        assertTrue(exception.getMessage().contains("defaultTransactionIsolation"));
+        assertTrue(exception.getMessage().contains("invalid"));
     }
 
+    /** Unsupported value must throw R_InvalidConnectionSetting. */
     @Test
     public void testOutOfRangeProperty() {
         String url = connectionString + ";defaultTransactionIsolation=NUMERIC_VALUE_UNSUPPORTED";
@@ -89,11 +91,12 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         });
 
         assertTrue(exception.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidConnectionSetting")),
-                "Exception message should match R_InvalidConnectionSetting. Actual message: " + exception.getMessage());
-        assertTrue(exception.getMessage().contains("defaultTransactionIsolation"), "Message should contain property name 'defaultTransactionIsolation'");
-        assertTrue(exception.getMessage().contains("NUMERIC_VALUE_UNSUPPORTED"), "Message should contain the invalid value 'NUMERIC_VALUE_UNSUPPORTED'");
+                "Actual message: " + exception.getMessage());
+        assertTrue(exception.getMessage().contains("defaultTransactionIsolation"));
+        assertTrue(exception.getMessage().contains("NUMERIC_VALUE_UNSUPPORTED"));
     }
 
+    /** SNAPSHOT is a valid choice in DriverPropertyInfo. */
     @Test
     public void testSnapshotPropertyInfo() throws SQLException {
         SQLServerDriver driver = new SQLServerDriver();
@@ -104,9 +107,10 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         assertNotNull(propertyInfo);
 
         DriverPropertyInfo prop = findProperty(propertyInfo, "defaultTransactionIsolation");
-        assertEquals("SNAPSHOT", prop.value, "Transaction isolation should be SNAPSHOT");
+        assertEquals("SNAPSHOT", prop.value);
     }
 
+    /** DataSource getter/setter round-trips the value. */
     @Test
     public void testDataSourceProperty() {
         SQLServerDataSource ds = new SQLServerDataSource();
@@ -114,31 +118,30 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         assertEquals("READ_UNCOMMITTED", ds.getDefaultTransactionIsolation());
     }
 
+    /** DataSource returns null when the property is not set. */
     @Test
     public void testDataSourceDefaultProperty() {
         SQLServerDataSource ds = new SQLServerDataSource();
-        // By default, the property is null because no default value is defined in the property metadata.
-        // It falls back to driver defaults during connection establishment if not specified.
         assertNull(ds.getDefaultTransactionIsolation());
     }
 
+    /** Empty and whitespace-only values fall back to the default isolation level. */
     @Test
     public void testEdgeCasePropertyValues() throws Exception {
-        // Empty value — ignored, falls back to default.
+        // Empty value — falls back to default.
         String emptyUrl = connectionString + ";defaultTransactionIsolation=";
         try (Connection con = PrepUtil.getConnection(emptyUrl)) {
-            assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation(),
-                    "Empty property value should fall back to default isolation level.");
+            assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
         }
 
-        // Whitespace — trimmed to empty, also falls back to default.
+        // Whitespace — falls back to default.
         String whitespaceUrl = connectionString + ";defaultTransactionIsolation= ";
         try (Connection con = PrepUtil.getConnection(whitespaceUrl)) {
-            assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation(),
-                    "Whitespace-only property value should fall back to default isolation level.");
+            assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
         }
     }
 
+    /** Mixed-case input is normalized to uppercase in DriverPropertyInfo. */
     @Test
     public void testCaseInsensitiveProperty() throws SQLException {
         SQLServerDriver driver = new SQLServerDriver();
@@ -149,13 +152,10 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         assertNotNull(propertyInfo);
 
         DriverPropertyInfo prop = findProperty(propertyInfo, "defaultTransactionIsolation");
-        assertEquals("READ_COMMITTED", prop.value, "Transaction isolation should be normalized to READ_COMMITTED");
+        assertEquals("READ_COMMITTED", prop.value);
     }
 
-    /**
-     * Integration test to verify that the defaultTransactionIsolation property is correctly applied to a real connection.
-     * We iterate through all supported levels and verify con.getTransactionIsolation() matches.
-     */
+    /** All five supported levels are applied correctly to a live connection. */
     @Test
     public void testTransactionIsolationApplied() throws Exception {
         String[] levels = {"READ_UNCOMMITTED", "READ_COMMITTED", "REPEATABLE_READ", "SERIALIZABLE", "SNAPSHOT"};
@@ -176,25 +176,22 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         }
     }
 
-    /**
-     * Integration test to verify case-insensitivity when applying to a real connection.
-     */
+    /** Mixed-case value is applied correctly to a live connection. */
     @Test
     public void testMixedCaseTransactionIsolationApplied() throws Exception {
         String url = connectionString + ";defaultTransactionIsolation=reAd_comMitted";
         try (Connection con = PrepUtil.getConnection(url)) {
-            assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation(),
-                    "Mixed-case isolation level was not applied correctly.");
+            assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
         }
     }
 
-    /**
-     * Verifies that runtime setTransactionIsolation() overrides the connection property
-     * and has real semantic effect on query behavior.
-     */
+    /** Runtime setTransactionIsolation() overrides the connection property with real semantic effect. */
     @Test
     public void testRuntimeOverridesConnectionProperty() throws Exception {
-        // Scenario 1: SERIALIZABLE -> READ_UNCOMMITTED (dirty read allowed)
+        String tableName1 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("txnIsoOverride1"));
+        String tableName2 = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("txnIsoOverride2"));
+
+        // Scenario 1: Connect SERIALIZABLE, override to READ_UNCOMMITTED — dirty read allowed.
         String serializableUrl = TestUtils.addOrOverrideProperty(connectionString,
                 "defaultTransactionIsolation", "SERIALIZABLE");
         String readUncommittedUrl = TestUtils.addOrOverrideProperty(connectionString,
@@ -203,65 +200,236 @@ public class TransactionIsolationPropertyTest extends AbstractTest {
         try (Connection con1 = PrepUtil.getConnection(serializableUrl);
              Connection con2 = PrepUtil.getConnection(serializableUrl)) {
 
-            try (Statement stmt1 = con1.createStatement()) {
-                stmt1.execute("CREATE TABLE ##txnIsoTest (id INT)");
+            try (Statement s = con1.createStatement()) {
+                TestUtils.dropTableIfExists(tableName1, s);
+                s.execute("CREATE TABLE " + tableName1 + " (id INT)");
             }
             con1.setAutoCommit(false);
-            try (Statement stmt1 = con1.createStatement()) {
-                stmt1.executeUpdate("INSERT INTO ##txnIsoTest VALUES (1)");
+            try (Statement s = con1.createStatement()) {
+                s.executeUpdate("INSERT INTO " + tableName1 + " VALUES (1)");
             }
 
             con2.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
-            assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con2.getTransactionIsolation(),
-                    "Runtime override to READ_UNCOMMITTED should take effect.");
+            assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con2.getTransactionIsolation());
 
-            // Dirty read: con2 should see con1's uncommitted row.
-            try (Statement stmt2 = con2.createStatement();
-                 ResultSet rs = stmt2.executeQuery("SELECT COUNT(*) FROM ##txnIsoTest")) {
+            try (Statement s = con2.createStatement();
+                 ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM " + tableName1)) {
                 assertTrue(rs.next());
-                assertEquals(1, rs.getInt(1),
-                        "READ_UNCOMMITTED should see the uncommitted row (dirty read).");
+                assertEquals(1, rs.getInt(1), "Dirty read should see uncommitted row.");
             }
 
             con1.rollback();
             con1.setAutoCommit(true);
-            try (Statement stmt1 = con1.createStatement()) {
-                stmt1.execute("DROP TABLE ##txnIsoTest");
+            try (Statement s = con1.createStatement()) {
+                TestUtils.dropTableIfExists(tableName1, s);
             }
         }
 
-        // Scenario 2: READ_UNCOMMITTED -> SERIALIZABLE (lock contention)
+        // Scenario 2: Connect READ_UNCOMMITTED, override to SERIALIZABLE — lock contention.
         try (Connection con1 = PrepUtil.getConnection(readUncommittedUrl);
              Connection con2 = PrepUtil.getConnection(readUncommittedUrl)) {
 
-            try (Statement stmt1 = con1.createStatement()) {
-                stmt1.execute("CREATE TABLE ##txnIsoTest2 (id INT)");
-                stmt1.executeUpdate("INSERT INTO ##txnIsoTest2 VALUES (1)");
+            try (Statement s = con1.createStatement()) {
+                TestUtils.dropTableIfExists(tableName2, s);
+                s.execute("CREATE TABLE " + tableName2 + " (id INT)");
+                s.executeUpdate("INSERT INTO " + tableName2 + " VALUES (1)");
             }
 
             con1.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             con1.setAutoCommit(false);
-            try (Statement stmt1 = con1.createStatement();
-                 ResultSet rs = stmt1.executeQuery("SELECT * FROM ##txnIsoTest2")) {
+            try (Statement s = con1.createStatement();
+                 ResultSet rs = s.executeQuery("SELECT * FROM " + tableName2)) {
                 while (rs.next()) {}
             }
 
             con2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-            assertEquals(Connection.TRANSACTION_SERIALIZABLE, con2.getTransactionIsolation(),
-                    "Runtime override to SERIALIZABLE should take effect.");
+            assertEquals(Connection.TRANSACTION_SERIALIZABLE, con2.getTransactionIsolation());
 
-            // con2's insert should be blocked by con1's range lock.
-            try (Statement stmt2 = con2.createStatement()) {
-                stmt2.execute("SET LOCK_TIMEOUT 2000");
+            try (Statement s = con2.createStatement()) {
+                s.execute("SET LOCK_TIMEOUT 2000");
                 assertThrows(SQLException.class, () -> {
-                    stmt2.executeUpdate("INSERT INTO ##txnIsoTest2 VALUES (2)");
+                    s.executeUpdate("INSERT INTO " + tableName2 + " VALUES (2)");
                 }, "Insert should be blocked by SERIALIZABLE range lock.");
             }
 
             con1.rollback();
             con1.setAutoCommit(true);
-            try (Statement stmt1 = con1.createStatement()) {
-                stmt1.execute("DROP TABLE ##txnIsoTest2");
+            try (Statement s = con1.createStatement()) {
+                TestUtils.dropTableIfExists(tableName2, s);
+            }
+        }
+    }
+    /** READ_UNCOMMITTED via connection property allows dirty reads of uncommitted data. */
+    @Test
+    public void testReadUncommittedSemantics() throws Exception {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("txnIsoRU"));
+        String url = TestUtils.addOrOverrideProperty(connectionString,
+                "defaultTransactionIsolation", "READ_UNCOMMITTED");
+
+        try (Connection writer = PrepUtil.getConnection(connectionString);
+             Connection reader = PrepUtil.getConnection(url)) {
+
+            assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, reader.getTransactionIsolation());
+
+            try (Statement s = writer.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, s);
+                s.execute("CREATE TABLE " + tableName + " (id INT)");
+            }
+
+            writer.setAutoCommit(false);
+            try (Statement s = writer.createStatement()) {
+                s.executeUpdate("INSERT INTO " + tableName + " VALUES (1)");
+            }
+
+            // Dirty read: reader sees the uncommitted row.
+            try (Statement s = reader.createStatement();
+                 ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1), "Dirty read should see uncommitted row.");
+            }
+
+            writer.rollback();
+            writer.setAutoCommit(true);
+            try (Statement s = writer.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, s);
+            }
+        }
+    }
+
+    /**
+     * READ_COMMITTED via connection property blocks dirty reads.
+     * RCSI: reader sees old committed value. Non-RCSI: reader blocks until lock timeout.
+     */
+    @Test
+    public void testReadCommittedSemantics() throws Exception {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("txnIsoRC"));
+        String url = TestUtils.addOrOverrideProperty(connectionString,
+                "defaultTransactionIsolation", "READ_COMMITTED");
+
+        try (Connection writer = PrepUtil.getConnection(connectionString);
+             Connection reader = PrepUtil.getConnection(url)) {
+
+            assertEquals(Connection.TRANSACTION_READ_COMMITTED, reader.getTransactionIsolation());
+
+            try (Statement s = writer.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, s);
+                s.execute("CREATE TABLE " + tableName + " (id INT, val INT)");
+                s.executeUpdate("INSERT INTO " + tableName + " VALUES (1, 100)");
+            }
+
+            writer.setAutoCommit(false);
+            try (Statement s = writer.createStatement()) {
+                s.executeUpdate("UPDATE " + tableName + " SET val = 999 WHERE id = 1");
+            }
+
+            // Reader must NOT see the uncommitted value 999.
+            try (Statement s = reader.createStatement()) {
+                s.execute("SET LOCK_TIMEOUT 2000");
+                try (ResultSet rs = s.executeQuery("SELECT val FROM " + tableName + " WHERE id = 1")) {
+                    assertTrue(rs.next());
+                    assertEquals(100, rs.getInt(1),
+                            "READ_COMMITTED should not see the dirty update.");
+                }
+            } catch (SQLException e) {
+                // Non-RCSI: lock timeout confirms dirty read was blocked.
+                String msg = e.getMessage().toLowerCase();
+                assertTrue(msg.contains("lock") || msg.contains("timeout") || msg.contains("time out"),
+                        "Expected lock timeout but got: " + e.getMessage());
+            }
+
+            writer.rollback();
+            writer.setAutoCommit(true);
+            try (Statement s = writer.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, s);
+            }
+        }
+    }
+
+    /** SERIALIZABLE via connection property acquires range locks that block concurrent inserts. */
+    @Test
+    public void testSerializableSemantics() throws Exception {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("txnIsoSer"));
+        String url = TestUtils.addOrOverrideProperty(connectionString,
+                "defaultTransactionIsolation", "SERIALIZABLE");
+
+        try (Connection reader = PrepUtil.getConnection(url);
+             Connection writer = PrepUtil.getConnection(connectionString)) {
+
+            assertEquals(Connection.TRANSACTION_SERIALIZABLE, reader.getTransactionIsolation());
+
+            try (Statement s = writer.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, s);
+                s.execute("CREATE TABLE " + tableName + " (id INT)");
+                s.executeUpdate("INSERT INTO " + tableName + " VALUES (1)");
+            }
+
+            // Reader scans under SERIALIZABLE — acquires range locks.
+            reader.setAutoCommit(false);
+            try (Statement s = reader.createStatement();
+                 ResultSet rs = s.executeQuery("SELECT * FROM " + tableName)) {
+                while (rs.next()) {}
+            }
+
+            // Writer's insert must be blocked by the range lock.
+            try (Statement s = writer.createStatement()) {
+                s.execute("SET LOCK_TIMEOUT 2000");
+                assertThrows(SQLException.class, () -> {
+                    s.executeUpdate("INSERT INTO " + tableName + " VALUES (2)");
+                }, "SERIALIZABLE range lock should block the insert.");
+            }
+
+            reader.rollback();
+            reader.setAutoCommit(true);
+            try (Statement s = writer.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, s);
+            }
+        }
+    }
+
+    /** SNAPSHOT via connection property provides a point-in-time view unaffected by concurrent commits. */
+    @Test
+    public void testSnapshotSemantics() throws Exception {
+        String tableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("txnIsoSnap"));
+        String url = TestUtils.addOrOverrideProperty(connectionString,
+                "defaultTransactionIsolation", "SNAPSHOT");
+
+        try (Connection setup = PrepUtil.getConnection(connectionString)) {
+            try (Statement s = setup.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, s);
+                s.execute("CREATE TABLE " + tableName + " (id INT, val INT)");
+                s.executeUpdate("INSERT INTO " + tableName + " VALUES (1, 100)");
+            }
+        }
+
+        try (Connection reader = PrepUtil.getConnection(url);
+             Connection writer = PrepUtil.getConnection(connectionString)) {
+
+            assertEquals(ISQLServerConnection.TRANSACTION_SNAPSHOT, reader.getTransactionIsolation());
+
+            // Reader takes a snapshot.
+            reader.setAutoCommit(false);
+            try (Statement s = reader.createStatement();
+                 ResultSet rs = s.executeQuery("SELECT val FROM " + tableName + " WHERE id = 1")) {
+                assertTrue(rs.next());
+                assertEquals(100, rs.getInt(1));
+            }
+
+            // Writer commits a new value.
+            try (Statement s = writer.createStatement()) {
+                s.executeUpdate("UPDATE " + tableName + " SET val = 200 WHERE id = 1");
+            }
+
+            // Reader still sees the snapshot value, not the committed update.
+            try (Statement s = reader.createStatement();
+                 ResultSet rs = s.executeQuery("SELECT val FROM " + tableName + " WHERE id = 1")) {
+                assertTrue(rs.next());
+                assertEquals(100, rs.getInt(1),
+                        "SNAPSHOT should see point-in-time value, not the concurrent commit.");
+            }
+
+            reader.rollback();
+            try (Statement s = writer.createStatement()) {
+                TestUtils.dropTableIfExists(tableName, s);
             }
         }
     }
