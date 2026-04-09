@@ -748,6 +748,7 @@ public class XAStateTest extends AbstractTest {
      * Tests fundamental XAResource interface behavior and contract compliance.
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testVerifyXAResource() throws Exception {
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
@@ -849,6 +850,7 @@ public class XAStateTest extends AbstractTest {
      * Tests the fundamental XA transaction workflow: start -> end -> commit.
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testBasicXAOperations() throws Exception {
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
@@ -957,6 +959,7 @@ public class XAStateTest extends AbstractTest {
      * Tests various commit scenarios, including one-phase, two-phase, and error conditions.
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXACommitScenarios() throws Exception {
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
@@ -1088,6 +1091,7 @@ public class XAStateTest extends AbstractTest {
      * Tests rollback functionality, including before and after prepare.
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXARollbackScenarios() throws Exception {
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
@@ -1239,6 +1243,7 @@ public class XAStateTest extends AbstractTest {
      * Tests proper XAException error codes for various error conditions.
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXAExceptionHandling() throws Exception {
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
@@ -1825,6 +1830,7 @@ public class XAStateTest extends AbstractTest {
      * so subsequent end() calls must fail.
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testEndAfterCommitOrRollback() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -1912,6 +1918,7 @@ public class XAStateTest extends AbstractTest {
      * TCIsolationLevels).
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXAIsolationLevelServerVerification() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -2008,6 +2015,7 @@ public class XAStateTest extends AbstractTest {
      * Verifies fix for VSTS #841313 ("Introduce support for formatId").
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testFormatIdRoundTrip() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -2074,6 +2082,7 @@ public class XAStateTest extends AbstractTest {
      * intentionally excluded to keep test duration practical.
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXATransactionTimeout() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -2132,6 +2141,7 @@ public class XAStateTest extends AbstractTest {
      * resume -> commit.
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXAPoolingWithConnectionClose() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -2224,6 +2234,7 @@ public class XAStateTest extends AbstractTest {
      * transaction branch.
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXASqlErrorSeverity() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
@@ -2317,6 +2328,7 @@ public class XAStateTest extends AbstractTest {
      * gap).
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testTightlyCoupledXATransactions() throws Exception {
         assumeTrue(isXASupported(connectionString),
                 "Skipping: XA not supported or connection not configured");
