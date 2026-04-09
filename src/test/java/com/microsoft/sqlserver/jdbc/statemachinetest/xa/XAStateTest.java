@@ -76,10 +76,22 @@ public class XAStateTest extends AbstractTest {
 
     private static DataCache cache;
 
+    /**
+     * Helper method to log test progress with timestamp.
+     */
+    private static void logTestProgress(String message) {
+        long timestamp = System.currentTimeMillis();
+        String timeStr = String.format("[%tT.%tL]", timestamp, timestamp);
+        System.out.println(timeStr + " >> " + message);
+        System.out.flush();
+    }
+
     @BeforeAll
     static void setupTests() throws Exception {
+        logTestProgress("XAStateTest - Starting test suite setup");
         setConnection();
         createTestTable(connection);
+        logTestProgress("XAStateTest - Test suite setup complete");
     }
 
     /**
@@ -87,45 +99,62 @@ public class XAStateTest extends AbstractTest {
      * to get an XA connection and perform an XA operation.
      */
     private static boolean isXASupported(String connString) {
+        logTestProgress("isXASupported - Starting XA support check");
         XAConnection xaConn = null;
         try {
+            logTestProgress("isXASupported - Creating XADataSource");
             SQLServerXADataSource ds = new SQLServerXADataSource();
             ds.setURL(connString);
+            
+            logTestProgress("isXASupported - Getting XA connection");
             xaConn = ds.getXAConnection();
             XAResource xaRes = xaConn.getXAResource();
+            logTestProgress("isXASupported - XA connection and resource obtained successfully");
 
             // Try a simple XA operation - start with a test Xid
             // This will fail if XA DLL is not loaded or procedures not installed
             Xid testXid = createXid();
+            logTestProgress("isXASupported - Testing XA operations (start/end/rollback)");
 
             try {
                 xaRes.start(testXid, XAResource.TMNOFLAGS);
+                logTestProgress("isXASupported - XA start succeeded");
                 xaRes.end(testXid, XAResource.TMSUCCESS);
+                logTestProgress("isXASupported - XA end succeeded");
                 xaRes.rollback(testXid);
+                logTestProgress("isXASupported - XA rollback succeeded");
             } catch (XAException xe) {
+                logTestProgress("isXASupported - XA operation failed with error code: " + xe.errorCode);
                 // Check if this is an XA availability issue (not a state/usage error)
                 if (isXANotInstalledError(xe)) {
+                    logTestProgress("isXASupported - XA NOT SUPPORTED (installation issue detected)");
                     return false;
                 }
                 // If it's a different XA error (like state error), XA is available
+                logTestProgress("isXASupported - XA operation error but XA is available (not an installation issue)");
             }
 
+            logTestProgress("isXASupported - XA SUPPORTED");
             return true;
         } catch (Exception e) {
+            logTestProgress("isXASupported - Exception during check: " + e.getClass().getSimpleName() + ": " + e.getMessage());
             // Check the entire exception chain for XA-related errors
             if (isXANotInstalledError(e)) {
+                logTestProgress("isXASupported - XA NOT SUPPORTED (installation issue in exception chain)");
                 return false;
             }
 
             // Other errors might be transient (network, auth, etc.), assume XA is available
             // and let the actual test provide better diagnostics if XA is truly unavailable
+            logTestProgress("isXASupported - Assuming XA SUPPORTED (error may be transient)");
             return true;
         } finally {
             if (xaConn != null) {
                 try {
                     xaConn.close();
+                    logTestProgress("isXASupported - XA connection closed");
                 } catch (SQLException e) {
-                    // Ignore close errors
+                    logTestProgress("isXASupported - Error closing XA connection: " + e.getMessage());
                 }
             }
         }
@@ -198,9 +227,11 @@ public class XAStateTest extends AbstractTest {
 
     @AfterAll
     static void cleanupTests() throws SQLException {
+        logTestProgress("XAStateTest - Starting test suite cleanup");
         if (connection != null && !connection.isClosed()) {
             TestUtils.dropTableIfExists(TABLE_NAME, connection.createStatement());
         }
+        logTestProgress("XAStateTest - Test suite cleanup complete");
     }
 
     /**
@@ -211,18 +242,24 @@ public class XAStateTest extends AbstractTest {
     @Test
     @DisplayName("Randomized XA State Machine Validation")
     void testRandomizedXATransactions() throws Exception {
+        logTestProgress("TEST START: testRandomizedXATransactions");
         Assumptions.assumeTrue(connectionString != null, "No database connection configured");
         
         // Check if XA is supported on this SQL Server instance
+        logTestProgress("testRandomizedXATransactions - Checking XA support");
         boolean xaSupported = isXASupported(connectionString);
         Assumptions.assumeTrue(xaSupported, 
             "XA distributed transactions not supported - install xa_install.sql on SQL Server");
+        logTestProgress("testRandomizedXATransactions - XA support confirmed");
 
         SQLServerXADataSource ds = new SQLServerXADataSource();
         ds.setURL(connectionString);
+        logTestProgress("testRandomizedXATransactions - Created XADataSource");
 
+        logTestProgress("testRandomizedXATransactions - Getting XA connection");
         XAConnection xaConn = ds.getXAConnection();
         try {
+            logTestProgress("testRandomizedXATransactions - Initializing state machine");
             StateMachineTest sm = new StateMachineTest("XATransactions");
             cache = sm.getDataCache();
 
@@ -254,10 +291,12 @@ public class XAStateTest extends AbstractTest {
             sm.addAction(new XARecoverAction(50));           // Lower weight - only after some transactions
             sm.addAction(new XAForgetAction(100));           // Rare
 
+            logTestProgress("testRandomizedXATransactions - Starting engine execution (max 500 actions)");
             Result result = Engine.run(sm)
                     .withMaxActions(500)
                     .withSeed(System.currentTimeMillis())
                     .execute();
+            logTestProgress("testRandomizedXATransactions - Engine execution completed");
 
             // Cleanup any active transaction
             XAState finalState = (XAState) cache.getValue(0, XA_STATE.key());
@@ -287,6 +326,7 @@ public class XAStateTest extends AbstractTest {
             assertTrue(result.isSuccess(), "XA state machine test should complete successfully");
             assertTrue(commitCount != null && commitCount >= 2,
                     String.format("Expected at least 2 XA commits, got %d", commitCount));
+            logTestProgress("TEST END: testRandomizedXATransactions - SUCCESS");
         } finally {
             if (xaConn != null) {
                 xaConn.close();
@@ -750,6 +790,7 @@ public class XAStateTest extends AbstractTest {
     @Test
     @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testVerifyXAResource() throws Exception {
+        logTestProgress("TEST START: testVerifyXAResource");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
         // Setup
@@ -763,9 +804,11 @@ public class XAStateTest extends AbstractTest {
             Connection conn = xaConn.getConnection();
             
             // Test 1: Verify XAResource is not null
+            logTestProgress("testVerifyXAResource - Test 1: Checking XAResource not null");
             assertNotNull(xaRes, "XAResource should not be null");
             
             // Test 2: Verify isSameRM behavior
+            logTestProgress("testVerifyXAResource - Test 2: Checking isSameRM behavior");
             XAConnection xaConn2 = null;
             try {
                 xaConn2 = xaDS.getXAConnection();
@@ -784,20 +827,24 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 3: Verify getTransactionTimeout defaults
+            logTestProgress("testVerifyXAResource - Test 3: Checking transaction timeout defaults");
             int timeout = xaRes.getTransactionTimeout();
             assertTrue(timeout >= 0, "Transaction timeout should be non-negative");
             
             // Test 4: Verify setTransactionTimeout
+            logTestProgress("testVerifyXAResource - Test 4: Setting transaction timeout");
             boolean timeoutSet = xaRes.setTransactionTimeout(60);
             assertTrue(timeoutSet, "Should be able to set transaction timeout");
             int newTimeout = xaRes.getTransactionTimeout();
             assertEquals(60, newTimeout, "Transaction timeout should be updated");
             
             // Test 5: Verify recover returns empty array when no prepared transactions
+            logTestProgress("testVerifyXAResource - Test 5: Testing recovery");
             Xid[] xids = xaRes.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
             assertNotNull(xids, "Recover should return non-null array");
             
             // Test 6: Verify basic XA lifecycle
+            logTestProgress("testVerifyXAResource - Test 6: Testing basic XA lifecycle");
             Xid xid = createXid();
             xaRes.start(xid, XAResource.TMNOFLAGS);
             
@@ -817,6 +864,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 7: Verify error conditions - starting with invalid flags
+            logTestProgress("testVerifyXAResource - Test 7: Testing invalid flags");
             try {
                 xaRes.start(createXid(), 999999); // Invalid flag
                 fail("Should throw XAException for invalid flags");
@@ -825,6 +873,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 8: Verify error - ending transaction without starting
+            logTestProgress("testVerifyXAResource - Test 8: Testing ending without starting");
             try {
                 xaRes.end(createXid(), XAResource.TMSUCCESS);
                 fail("Should throw XAException when ending non-started transaction");
@@ -833,7 +882,8 @@ public class XAStateTest extends AbstractTest {
                         "Should return XAER_NOTA for unknown transaction");
             }
             
-            System.out.println("✓ TCVerifyXAResource: All XAResource compliance tests passed");
+            System.out.println("[PASS] TCVerifyXAResource: All XAResource compliance tests passed");
+            logTestProgress("TEST END: testVerifyXAResource - SUCCESS");
         } finally {
             if (xaConn != null) {
                 try {
@@ -852,6 +902,7 @@ public class XAStateTest extends AbstractTest {
     @Test
     @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testBasicXAOperations() throws Exception {
+        logTestProgress("TEST START: testBasicXAOperations");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
         SQLServerXADataSource xaDS = new SQLServerXADataSource();
@@ -870,6 +921,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 1: One-phase commit (start -> end -> commit with onePhase=true)
+            logTestProgress("testBasicXAOperations - Test 1: One-phase commit");
             Xid xid1 = createXid();
             xaRes.start(xid1, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -886,6 +938,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 2: Two-phase commit (start -> end -> prepare -> commit)
+            logTestProgress("testBasicXAOperations - Test 2: Two-phase commit");
             Xid xid2 = createXid();
             xaRes.start(xid2, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -904,6 +957,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 3: Read-only transaction (no modifications)
+            logTestProgress("testBasicXAOperations - Test 3: Read-only transaction");
             Xid xid3 = createXid();
             xaRes.start(xid3, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement();
@@ -919,6 +973,7 @@ public class XAStateTest extends AbstractTest {
             // No commit needed for read-only
             
             // Test 4: Multiple operations within single transaction
+            logTestProgress("testBasicXAOperations - Test 4: Multiple operations in single transaction");
             Xid xid4 = createXid();
             xaRes.start(xid4, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -942,7 +997,8 @@ public class XAStateTest extends AbstractTest {
                 assertEquals(150, rs.getInt(1), "Value for id=1 should be updated to 150");
             }
             
-            System.out.println("✓ TCSanity: All basic XA operation tests passed");
+            System.out.println("[PASS] TCSanity: All basic XA operation tests passed");
+            logTestProgress("TEST END: testBasicXAOperations - SUCCESS");
         } finally {
             if (xaConn != null) {
                 try {
@@ -961,6 +1017,7 @@ public class XAStateTest extends AbstractTest {
     @Test
     @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXACommitScenarios() throws Exception {
+        logTestProgress("TEST START: testXACommitScenarios");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
         SQLServerXADataSource xaDS = new SQLServerXADataSource();
@@ -979,6 +1036,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 1: One-phase commit without prepare
+            logTestProgress("testXACommitScenarios - Test 1: One-phase commit without prepare");
             Xid xid1 = createXid();
             xaRes.start(xid1, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -988,6 +1046,7 @@ public class XAStateTest extends AbstractTest {
             xaRes.commit(xid1, true); // onePhase=true, no prepare needed
             
             // Test 2: Two-phase commit with explicit prepare
+            logTestProgress("testXACommitScenarios - Test 2: Two-phase commit with explicit prepare");
             Xid xid2 = createXid();
             xaRes.start(xid2, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -998,6 +1057,7 @@ public class XAStateTest extends AbstractTest {
             xaRes.commit(xid2, false); // onePhase=false after prepare
             
             // Test 3: Commit non-existent transaction should fail
+            logTestProgress("testXACommitScenarios - Test 3: Commit non-existent transaction");
             try {
                 Xid invalidXid = createXid();
                 xaRes.commit(invalidXid, false);
@@ -1008,6 +1068,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 4: Commit without prepare (when two-phase required) should fail
+            logTestProgress("testXACommitScenarios - Test 4: Commit without prepare");
             try {
                 Xid xid4 = createXid();
                 xaRes.start(xid4, XAResource.TMNOFLAGS);
@@ -1025,6 +1086,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 5: Double commit should fail
+            logTestProgress("testXACommitScenarios - Test 5: Double commit");
             Xid xid5 = createXid();
             xaRes.start(xid5, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -1042,6 +1104,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 6: Commit with wrong onePhase flag after prepare
+            logTestProgress("testXACommitScenarios - Test 6: Commit with wrong onePhase flag");
             Xid xid6 = createXid();
             xaRes.start(xid6, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -1074,7 +1137,8 @@ public class XAStateTest extends AbstractTest {
                 assertTrue(count >= 3, "Should have at least 3 committed rows");
             }
             
-            System.out.println("✓ TCCommit: All commit scenario tests passed");
+            System.out.println("[PASS] TCCommit: All commit scenario tests passed");
+            logTestProgress("TEST END: testXACommitScenarios - SUCCESS");
         } finally {
             if (xaConn != null) {
                 try {
@@ -1093,6 +1157,7 @@ public class XAStateTest extends AbstractTest {
     @Test
     @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXARollbackScenarios() throws Exception {
+        logTestProgress("TEST START: testXARollbackScenarios");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
         SQLServerXADataSource xaDS = new SQLServerXADataSource();
@@ -1112,6 +1177,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 1: Rollback before prepare
+            logTestProgress("testXARollbackScenarios - Test 1: Rollback before prepare");
             Xid xid1 = createXid();
             xaRes.start(xid1, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -1128,6 +1194,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 2: Rollback after prepare
+            logTestProgress("testXARollbackScenarios - Test 2: Rollback after prepare");
             Xid xid2 = createXid();
             xaRes.start(xid2, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -1145,6 +1212,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 3: Rollback with TMFAIL flag during end
+            logTestProgress("testXARollbackScenarios - Test 3: Rollback with TMFAIL flag");
             Xid xid3 = createXid();
             xaRes.start(xid3, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -1154,6 +1222,7 @@ public class XAStateTest extends AbstractTest {
             xaRes.rollback(xid3); // Rollback is expected after TMFAIL
             
             // Test 4: Rollback non-existent transaction should fail
+            logTestProgress("testXARollbackScenarios - Test 4: Rollback non-existent transaction");
             try {
                 Xid invalidXid = createXid();
                 xaRes.rollback(invalidXid);
@@ -1164,6 +1233,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 5: Double rollback should fail
+            logTestProgress("testXARollbackScenarios - Test 5: Double rollback");
             Xid xid5 = createXid();
             xaRes.start(xid5, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -1181,6 +1251,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 6: Mixed commit and rollback - verify isolation
+            logTestProgress("testXARollbackScenarios - Test 6: Mixed commit and rollback");
             Xid xid6commit = createXid();
             xaRes.start(xid6commit, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -1205,6 +1276,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 7: Rollback after exception in transaction
+            logTestProgress("testXARollbackScenarios - Test 7: Rollback after exception");
             Xid xid8 = createXid();
             xaRes.start(xid8, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -1226,7 +1298,8 @@ public class XAStateTest extends AbstractTest {
                 assertEquals(0, rs.getInt(1), "Rolled-back row should not exist");
             }
             
-            System.out.println("✓ TCRollback: All rollback scenario tests passed");
+            System.out.println("[PASS] TCRollback: All rollback scenario tests passed");
+            logTestProgress("TEST END: testXARollbackScenarios - SUCCESS");
         } finally {
             if (xaConn != null) {
                 try {
@@ -1245,6 +1318,7 @@ public class XAStateTest extends AbstractTest {
     @Test
     @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXAExceptionHandling() throws Exception {
+        logTestProgress("TEST START: testXAExceptionHandling");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
         SQLServerXADataSource xaDS = new SQLServerXADataSource();
@@ -1263,6 +1337,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 1: XAER_NOTA - Unknown XID
+            logTestProgress("testXAExceptionHandling - Test 1: Unknown XID (XAER_NOTA)");
             try {
                 Xid unknownXid = createXid();
                 xaRes.end(unknownXid, XAResource.TMSUCCESS);
@@ -1273,6 +1348,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 2: XAER_PROTO - Protocol error (commit without prepare)
+            logTestProgress("testXAExceptionHandling - Test 2: Protocol error (XAER_PROTO)");
             try {
                 Xid xid2 = createXid();
                 xaRes.start(xid2, XAResource.TMNOFLAGS);
@@ -1289,6 +1365,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 3: XAER_DUPID - Duplicate XID (start with same XID twice)
+            logTestProgress("testXAExceptionHandling - Test 3: Duplicate XID (XAER_DUPID)");
             Xid xid3 = createXid();
             xaRes.start(xid3, XAResource.TMNOFLAGS);
             try {
@@ -1309,6 +1386,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 4: XAER_INVAL - Invalid arguments
+            logTestProgress("testXAExceptionHandling - Test 4: Invalid arguments (XAER_INVAL)");
             try {
                 Xid xid4 = createXid();
                 xaRes.start(xid4, 999999); // Invalid flag
@@ -1320,6 +1398,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 5: XAER_PROTO - End without start
+            logTestProgress("testXAExceptionHandling - Test 5: End without start (XAER_PROTO)");
             try {
                 Xid xid5 = createXid();
                 xaRes.end(xid5, XAResource.TMSUCCESS);
@@ -1331,6 +1410,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 6: XAER_PROTO - Prepare without end
+            logTestProgress("testXAExceptionHandling - Test 6: Prepare without end (XAER_PROTO)");
             try {
                 Xid xid6 = createXid();
                 xaRes.start(xid6, XAResource.TMNOFLAGS);
@@ -1352,6 +1432,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 7: XA_RB* - Rollback error codes (simulate with TMFAIL)
+            logTestProgress("testXAExceptionHandling - Test 7: Rollback error codes (XA_RB*)");
             Xid xid7 = createXid();
             xaRes.start(xid7, XAResource.TMNOFLAGS);
             try (Statement stmt = conn.createStatement()) {
@@ -1381,6 +1462,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 8: XAER_PROTO - Multiple starts without end
+            logTestProgress("testXAExceptionHandling - Test 8: Multiple starts without end (XAER_PROTO)");
             Xid xid8a = createXid();
             Xid xid8b = createXid();
             xaRes.start(xid8a, XAResource.TMNOFLAGS);
@@ -1401,7 +1483,8 @@ public class XAStateTest extends AbstractTest {
                 }
             }
             
-            System.out.println("✓ TCException: All XA exception handling tests passed");
+            System.out.println("[PASS] TCException: All XA exception handling tests passed");
+            logTestProgress("TEST END: testXAExceptionHandling - SUCCESS");
         } finally {
             if (xaConn != null) {
                 try {
@@ -1420,6 +1503,7 @@ public class XAStateTest extends AbstractTest {
     @Test
     @org.junit.jupiter.api.Timeout(value = 5, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXAWithIsolationLevels() throws Exception {
+        logTestProgress("TEST START: testXAWithIsolationLevels");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
         System.out.println("Starting TCIsolationLevels tests...");
@@ -1447,7 +1531,7 @@ public class XAStateTest extends AbstractTest {
             System.out.println("Test table setup complete");
             
             // Test 1: READ UNCOMMITTED - Should see uncommitted changes (but in XA, still isolated)
-            System.out.println("Starting Test 1: READ_UNCOMMITTED...");
+            logTestProgress("testXAWithIsolationLevels - Test 1: READ_UNCOMMITTED");
             int originalIsolation = conn.getTransactionIsolation();
             conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
             
@@ -1484,7 +1568,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 2: READ COMMITTED (default) - Should only see committed data
-            System.out.println("Starting Test 2: READ_COMMITTED...");
+            logTestProgress("testXAWithIsolationLevels - Test 2: READ_COMMITTED");
             conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
             
             Xid xid2 = createXid();
@@ -1525,7 +1609,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 3: REPEATABLE READ - Prevent non-repeatable reads
-            System.out.println("Starting Test 3: REPEATABLE_READ...");
+            logTestProgress("testXAWithIsolationLevels - Test 3: REPEATABLE_READ");
             conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
             
             Xid xid3 = createXid();
@@ -1574,7 +1658,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 4: SERIALIZABLE - Highest isolation level
-            System.out.println("Starting Test 4: SERIALIZABLE...");
+            logTestProgress("testXAWithIsolationLevels - Test 4: SERIALIZABLE");
             conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             
             Xid xid4 = createXid();
@@ -1612,7 +1696,7 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 5: Mix isolation levels across transactions
-            System.out.println("Starting Test 5: Mixed isolation levels...");
+            logTestProgress("testXAWithIsolationLevels - Test 5: Mixed isolation levels");
             conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
             Xid xid5 = createXid();
             pendingXids.add(xid5);
@@ -1652,7 +1736,7 @@ public class XAStateTest extends AbstractTest {
             // Restore original isolation level
             conn.setTransactionIsolation(originalIsolation);
             
-            System.out.println("✓ TCIsolationLevels: All isolation level tests passed");
+            System.out.println("[PASS] TCIsolationLevels: All isolation level tests passed");
         } catch (Exception e) {
             System.err.println("TCIsolationLevels test failed with exception: " + e.getMessage());
             e.printStackTrace();
@@ -1690,100 +1774,170 @@ public class XAStateTest extends AbstractTest {
     @Test
     @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testConcurrentXATransactions() throws Exception {
+        logTestProgress("TEST START: testConcurrentXATransactions");
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
         SQLServerXADataSource xaDS = new SQLServerXADataSource();
         xaDS.setURL(connectionString);
         
         // Setup test table
+        logTestProgress("testConcurrentXATransactions - Setting up test table");
         try (Connection setupConn = xaDS.getXAConnection().getConnection();
              Statement stmt = setupConn.createStatement()) {
             TestUtils.dropTableIfExists(TABLE_NAME, stmt);
             stmt.execute("CREATE TABLE " + TABLE_NAME + " (id INT PRIMARY KEY, value INT, thread_id INT)");
         }
+        logTestProgress("testConcurrentXATransactions - Test table setup complete");
         
         final int THREAD_COUNT = 5;
         final int TRANSACTIONS_PER_THREAD = 3;
         final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(THREAD_COUNT);
         final java.util.concurrent.atomic.AtomicInteger successCount = new java.util.concurrent.atomic.AtomicInteger(0);
         final java.util.concurrent.atomic.AtomicInteger failureCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        final java.util.concurrent.ConcurrentHashMap<Integer, Boolean> threadCompletionStatus = new java.util.concurrent.ConcurrentHashMap<>();
         
         java.util.List<Thread> threads = new java.util.ArrayList<>();
         
         // Create threads for concurrent XA transactions
+        logTestProgress("testConcurrentXATransactions - Creating " + THREAD_COUNT + " worker threads");
         for (int threadNum = 0; threadNum < THREAD_COUNT; threadNum++) {
             final int threadId = threadNum;
+            threadCompletionStatus.put(threadId, false);
             Thread thread = new Thread(() -> {
+                logTestProgress("THREAD-" + threadId + " - Started");
                 try {
                     XAConnection xaConn = xaDS.getXAConnection();
+                    logTestProgress("THREAD-" + threadId + " - Got XA connection");
                     try {
                         XAResource xaRes = xaConn.getXAResource();
                         Connection conn = xaConn.getConnection();
                         
                         for (int txNum = 0; txNum < TRANSACTIONS_PER_THREAD; txNum++) {
+                            logTestProgress("THREAD-" + threadId + " - Starting transaction " + (txNum + 1) + "/"
+                                    + TRANSACTIONS_PER_THREAD);
                             Xid xid = createXid();
                             int recordId = threadId * 100 + txNum;
                             
                             try {
                                 // Start XA transaction
                                 xaRes.start(xid, XAResource.TMNOFLAGS);
+                                logTestProgress("THREAD-" + threadId + " TX-" + txNum + " - XA started");
                                 
                                 // Insert data
                                 try (Statement stmt = conn.createStatement()) {
+                                    stmt.setQueryTimeout(10); // 10 second timeout per statement
                                     stmt.execute(String.format(
                                         "INSERT INTO %s VALUES (%d, %d, %d)",
                                         TABLE_NAME, recordId, recordId * 10, threadId));
                                 }
+                                logTestProgress("THREAD-" + threadId + " TX-" + txNum + " - Data inserted");
                                 
                                 // End transaction
                                 xaRes.end(xid, XAResource.TMSUCCESS);
+                                logTestProgress("THREAD-" + threadId + " TX-" + txNum + " - XA ended");
                                 
                                 // Commit (alternate between one-phase and two-phase)
                                 if (txNum % 2 == 0) {
                                     // Two-phase commit
                                     xaRes.prepare(xid);
+                                    logTestProgress("THREAD-" + threadId + " TX-" + txNum + " - XA prepared");
                                     xaRes.commit(xid, false);
+                                    logTestProgress("THREAD-" + threadId + " TX-" + txNum + " - XA committed (2PC)");
                                 } else {
                                     // One-phase commit
                                     xaRes.commit(xid, true);
+                                    logTestProgress("THREAD-" + threadId + " TX-" + txNum + " - XA committed (1PC)");
                                 }
                                 
                                 successCount.incrementAndGet();
                             } catch (XAException | SQLException e) {
                                 failureCount.incrementAndGet();
-                                System.err.println("Thread " + threadId + " TX " + txNum + " failed: " + e.getMessage());
+                                System.err
+                                        .println("THREAD-" + threadId + " TX-" + txNum + " FAILED: " + e.getMessage());
+                                logTestProgress("THREAD-" + threadId + " TX-" + txNum + " - Failed: "
+                                        + e.getClass().getSimpleName());
                                 
                                 // Try to rollback on error
                                 try {
                                     xaRes.rollback(xid);
+                                    logTestProgress(
+                                            "THREAD-" + threadId + " TX-" + txNum + " - Rolled back after error");
                                 } catch (XAException rollbackEx) {
-                                    // Ignore rollback errors
+                                    System.err.println("THREAD-" + threadId + " TX-" + txNum
+                                            + " - Rollback also failed: " + rollbackEx.getMessage());
                                 }
                             }
                             
                             // Small delay between transactions
                             Thread.sleep(10);
                         }
+                        logTestProgress("THREAD-" + threadId + " - All transactions completed");
                     } finally {
                         xaConn.close();
+                        logTestProgress("THREAD-" + threadId + " - XA connection closed");
                     }
+                    threadCompletionStatus.put(threadId, true);
+                    logTestProgress("THREAD-" + threadId + " - Finished successfully");
                 } catch (Exception e) {
                     e.printStackTrace();
+                    logTestProgress("THREAD-" + threadId + " - Finished with fatal error");
                 } finally {
                     latch.countDown();
+                    logTestProgress("THREAD-" + threadId + " - Countdown latch decremented (remaining: "
+                            + latch.getCount() + ")");
                 }
-            });
+            }, "XATestThread-" + threadId); // Give thread a meaningful name
             
             threads.add(thread);
             thread.start();
+            logTestProgress("THREAD-" + threadId + " - Thread object created and started");
         }
         
         // Wait for all threads to complete (max 30 seconds)
+        logTestProgress("testConcurrentXATransactions - Main thread waiting for " + THREAD_COUNT
+                + " worker threads to complete (max 30s timeout)");
+        long waitStartTime = System.currentTimeMillis();
         boolean completed = latch.await(30, java.util.concurrent.TimeUnit.SECONDS);
+        long waitDuration = System.currentTimeMillis() - waitStartTime;
+
+        if (completed) {
+            logTestProgress(
+                    "testConcurrentXATransactions - All threads completed successfully in " + waitDuration + "ms");
+        } else {
+            logTestProgress(
+                    "testConcurrentXATransactions - TIMEOUT after " + waitDuration + "ms - not all threads completed!");
+
+            // Log which threads completed and which didn't
+            StringBuilder status = new StringBuilder("Thread completion status: ");
+            for (int i = 0; i < THREAD_COUNT; i++) {
+                Boolean completed_status = threadCompletionStatus.get(i);
+                status.append("T").append(i).append("=")
+                        .append(completed_status != null && completed_status ? "DONE" : "STUCK")
+                        .append(" ");
+            }
+            logTestProgress(status.toString());
+
+            // Check which threads are still alive
+            for (int i = 0; i < threads.size(); i++) {
+                Thread t = threads.get(i);
+                if (t.isAlive()) {
+                    logTestProgress("THREAD-" + i + " is still ALIVE - State: " + t.getState());
+                    // Print stack trace of stuck thread
+                    StackTraceElement[] stackTrace = t.getStackTrace();
+                    if (stackTrace.length > 0) {
+                        logTestProgress("THREAD-" + i + " stack trace top: " + stackTrace[0]);
+                    }
+                }
+            }
+        }
+
         assertTrue(completed, "All threads should complete within timeout");
         
         // Verify results
         int expectedSuccesses = THREAD_COUNT * TRANSACTIONS_PER_THREAD;
+        logTestProgress(
+                String.format("testConcurrentXATransactions - Results: %d successes, %d failures out of %d total",
+                        successCount.get(), failureCount.get(), expectedSuccesses));
         System.out.println(String.format("Concurrent XA: %d successes, %d failures out of %d total",
                 successCount.get(), failureCount.get(), expectedSuccesses));
         
@@ -1793,16 +1947,20 @@ public class XAStateTest extends AbstractTest {
                         (int)(expectedSuccesses * 0.8), successCount.get()));
         
         // Verify data in database
+        logTestProgress("testConcurrentXATransactions - Verifying data in database");
         try (Connection verifyConn = xaDS.getXAConnection().getConnection();
              Statement stmt = verifyConn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TABLE_NAME)) {
             assertTrue(rs.next());
             int rowCount = rs.getInt(1);
+            logTestProgress("testConcurrentXATransactions - Database has " + rowCount + " rows, expected "
+                    + successCount.get());
             assertEquals(successCount.get(), rowCount,
                     "Database row count should match successful commits");
         }
         
         // Verify each thread's data is isolated
+        logTestProgress("testConcurrentXATransactions - Verifying thread isolation");
         try (Connection verifyConn = xaDS.getXAConnection().getConnection();
              Statement stmt = verifyConn.createStatement()) {
             for (int threadId = 0; threadId < THREAD_COUNT; threadId++) {
@@ -1810,13 +1968,16 @@ public class XAStateTest extends AbstractTest {
                         "SELECT COUNT(*) FROM " + TABLE_NAME + " WHERE thread_id = " + threadId)) {
                     assertTrue(rs.next());
                     int threadRows = rs.getInt(1);
+                    logTestProgress(
+                            "testConcurrentXATransactions - Thread " + threadId + " has " + threadRows + " rows");
                     assertTrue(threadRows <= TRANSACTIONS_PER_THREAD,
                             "Thread " + threadId + " should have at most " + TRANSACTIONS_PER_THREAD + " rows");
                 }
             }
         }
         
-        System.out.println("✓ TCMultithreaded: Concurrent XA transaction tests passed");
+        System.out.println("[PASS] TCMultithreaded: Concurrent XA transaction tests passed");
+        logTestProgress("TEST END: testConcurrentXATransactions - SUCCESS");
     }
 
     // ==================== ADDITIONAL DETERMINISTIC TEST CASES ====================
