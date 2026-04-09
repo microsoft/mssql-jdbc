@@ -84,7 +84,7 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * Checks if XA support is installed on SQL Server by attempting
-     * to get an XA connection and call recover.
+     * to get an XA connection and perform an XA operation.
      */
     private static boolean isXASupported(String connString) {
         XAConnection xaConn = null;
@@ -93,23 +93,32 @@ public class XAStateTest extends AbstractTest {
             ds.setURL(connString);
             xaConn = ds.getXAConnection();
             XAResource xaRes = xaConn.getXAResource();
-            // Try to call recover - this will fail if XA is not installed
-            xaRes.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
+
+            // Try a simple XA operation - start with a test Xid
+            // This will fail if XA DLL is not loaded or procedures not installed
+            Xid testXid = createXid();
+
+            try {
+                xaRes.start(testXid, XAResource.TMNOFLAGS);
+                xaRes.end(testXid, XAResource.TMSUCCESS);
+                xaRes.rollback(testXid);
+            } catch (XAException xe) {
+                // Check if this is an XA availability issue (not a state/usage error)
+                if (isXANotInstalledError(xe)) {
+                    return false;
+                }
+                // If it's a different XA error (like state error), XA is available
+            }
+
             return true;
         } catch (Exception e) {
-            // Check both the message and the full exception string for XA-related errors
-            String msg = e.getMessage();
-            String fullMsg = e.toString();
-
-            // XA stored procedures not found indicates XA is not installed
-            if ((msg != null && msg.toLowerCase().contains("xp_sqljdbc_xa")) ||
-                    (fullMsg != null && fullMsg.toLowerCase().contains("xp_sqljdbc_xa"))) {
+            // Check the entire exception chain for XA-related errors
+            if (isXANotInstalledError(e)) {
                 return false;
             }
 
             // Other errors might be transient (network, auth, etc.), assume XA is available
             // and let the actual test provide better diagnostics if XA is truly unavailable
-            System.out.println("XA check encountered non-XA error (assuming available): " + e.getMessage());
             return true;
         } finally {
             if (xaConn != null) {
@@ -120,6 +129,71 @@ public class XAStateTest extends AbstractTest {
                 }
             }
         }
+    }
+
+    /**
+     * Checks if an exception indicates XA is not installed/available.
+     */
+    private static boolean isXANotInstalledError(Throwable e) {
+        // Check if it's an XAException with specific error codes
+        if (e instanceof XAException) {
+            XAException xe = (XAException) e;
+            String msg = xe.getMessage();
+
+            // Error code -3: DTC initialization failure (XA not enabled in MSDTC)
+            if (xe.errorCode == -3) {
+                System.out.println("XA not supported: MSDTC is not configured for XA transactions");
+                System.out.println("  Error: " + (msg != null ? msg : "DTC_ERROR StatusCode:-3"));
+                System.out.println(
+                        "  Solution: Enable XA in MSDTC using Set-DtcNetworkSetting -XATransactionsEnabled $true");
+                return true;
+            }
+
+            // Error code -7: MSDTC service not available
+            if (xe.errorCode == -7) {
+                System.out.println("XA not supported: MSDTC service is not running");
+                System.out.println("  Solution: Start MSDTC service with 'net start msdtc'");
+                return true;
+            }
+        }
+
+        Throwable current = e;
+        while (current != null) {
+            String msg = current.getMessage();
+            String fullMsg = current.toString();
+
+            // XA stored procedures not found indicates XA is not installed
+            if ((msg != null && msg.toLowerCase().contains("xp_sqljdbc_xa")) ||
+                    (fullMsg != null && fullMsg.toLowerCase().contains("xp_sqljdbc_xa"))) {
+                System.out.println("XA not supported: XA stored procedures not found");
+                System.out.println("  Solution: Run xa_install.sql script on SQL Server");
+                return true;
+            }
+
+            // DLL load errors also indicate XA is not properly installed
+            if ((msg != null && (msg.toLowerCase().contains("sqljdbc_xa.dll") ||
+                    msg.toLowerCase().contains("xa control connection") ||
+                    msg.toLowerCase().contains("could not load the dll"))) ||
+                    (fullMsg != null && (fullMsg.toLowerCase().contains("sqljdbc_xa.dll") ||
+                            fullMsg.toLowerCase().contains("xa control connection") ||
+                            fullMsg.toLowerCase().contains("could not load the dll")))) {
+                System.out.println("XA not supported: " + msg);
+                System.out.println("  Solution: Install sqljdbc_xa.dll in SQL Server Binn directory and unblock it");
+                return true;
+            }
+
+            // DTC_ERROR in message indicates MSDTC configuration issue
+            if ((msg != null && msg.toLowerCase().contains("dtc_error")) ||
+                    (fullMsg != null && fullMsg.toLowerCase().contains("dtc_error"))) {
+                System.out.println("XA not supported: MSDTC configuration error");
+                System.out.println("  Error: " + msg);
+                System.out.println("  Solution: Enable XA transactions in MSDTC settings");
+                return true;
+            }
+
+            current = current.getCause();
+        }
+        return false;
     }
 
     @AfterAll
@@ -1339,36 +1413,63 @@ public class XAStateTest extends AbstractTest {
      * Tests XA transactions with various SQL transaction isolation levels.
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 5, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testXAWithIsolationLevels() throws Exception {
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
+        System.out.println("Starting TCIsolationLevels tests...");
         SQLServerXADataSource xaDS = new SQLServerXADataSource();
         xaDS.setURL(connectionString);
         
         XAConnection xaConn = null;
+        XAResource xaRes = null;
+        Connection conn = null;
+        List<Xid> pendingXids = new ArrayList<>();
+
         try {
             xaConn = xaDS.getXAConnection();
-            XAResource xaRes = xaConn.getXAResource();
-            Connection conn = xaConn.getConnection();
+            xaRes = xaConn.getXAResource();
+            conn = xaConn.getConnection();
             
-            // Setup test table with initial data
+            // Setup test table with initial data (outside XA transaction to avoid locks)
+            System.out.println("Setting up test table...");
             try (Statement stmt = conn.createStatement()) {
+                stmt.setQueryTimeout(30); // 30 second timeout for DDL
                 TestUtils.dropTableIfExists(TABLE_NAME, stmt);
                 stmt.execute("CREATE TABLE " + TABLE_NAME + " (id INT PRIMARY KEY, value INT)");
                 stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (1, 100)");
             }
+            System.out.println("Test table setup complete");
             
             // Test 1: READ UNCOMMITTED - Should see uncommitted changes (but in XA, still isolated)
+            System.out.println("Starting Test 1: READ_UNCOMMITTED...");
             int originalIsolation = conn.getTransactionIsolation();
             conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
             
             Xid xid1 = createXid();
-            xaRes.start(xid1, XAResource.TMNOFLAGS);
-            try (Statement stmt = conn.createStatement()) {
-                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (2, 200)");
+            pendingXids.add(xid1);
+            try {
+                xaRes.start(xid1, XAResource.TMNOFLAGS);
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.setQueryTimeout(30);
+                    stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (2, 200)");
+                }
+                xaRes.end(xid1, XAResource.TMSUCCESS);
+                xaRes.commit(xid1, true);
+                pendingXids.remove(xid1);
+            } catch (Exception e) {
+                System.err.println("Test 1 failed: " + e.getMessage());
+                try {
+                    xaRes.end(xid1, XAResource.TMFAIL);
+                } catch (Exception ignored) {
+                }
+                try {
+                    xaRes.rollback(xid1);
+                    pendingXids.remove(xid1);
+                } catch (Exception ignored) {
+                }
+                throw e;
             }
-            xaRes.end(xid1, XAResource.TMSUCCESS);
-            xaRes.commit(xid1, true);
             
             // Verify committed
             try (Statement stmt = conn.createStatement();
@@ -1378,20 +1479,38 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 2: READ COMMITTED (default) - Should only see committed data
+            System.out.println("Starting Test 2: READ_COMMITTED...");
             conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
             
             Xid xid2 = createXid();
-            xaRes.start(xid2, XAResource.TMNOFLAGS);
-            try (Statement stmt = conn.createStatement()) {
-                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (3, 300)");
-                // Within the transaction, we should see our own changes
-                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TABLE_NAME)) {
-                    assertTrue(rs.next());
-                    assertEquals(3, rs.getInt(1), "Should see own changes within transaction");
+            pendingXids.add(xid2);
+            try {
+                xaRes.start(xid2, XAResource.TMNOFLAGS);
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.setQueryTimeout(30);
+                    stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (3, 300)");
+                    // Within the transaction, we should see our own changes
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TABLE_NAME)) {
+                        assertTrue(rs.next());
+                        assertEquals(3, rs.getInt(1), "Should see own changes within transaction");
+                    }
                 }
+                xaRes.end(xid2, XAResource.TMSUCCESS);
+                xaRes.rollback(xid2); // Rollback this one
+                pendingXids.remove(xid2);
+            } catch (Exception e) {
+                System.err.println("Test 2 failed: " + e.getMessage());
+                try {
+                    xaRes.end(xid2, XAResource.TMFAIL);
+                } catch (Exception ignored) {
+                }
+                try {
+                    xaRes.rollback(xid2);
+                    pendingXids.remove(xid2);
+                } catch (Exception ignored) {
+                }
+                throw e;
             }
-            xaRes.end(xid2, XAResource.TMSUCCESS);
-            xaRes.rollback(xid2); // Rollback this one
             
             // Should not see rolled back row
             try (Statement stmt = conn.createStatement();
@@ -1401,28 +1520,46 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 3: REPEATABLE READ - Prevent non-repeatable reads
+            System.out.println("Starting Test 3: REPEATABLE_READ...");
             conn.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
             
             Xid xid3 = createXid();
-            xaRes.start(xid3, XAResource.TMNOFLAGS);
-            try (Statement stmt = conn.createStatement()) {
-                // Read current value
-                try (ResultSet rs = stmt.executeQuery("SELECT value FROM " + TABLE_NAME + " WHERE id = 1")) {
-                    assertTrue(rs.next());
-                    assertEquals(100, rs.getInt(1), "Initial value should be 100");
+            pendingXids.add(xid3);
+            try {
+                xaRes.start(xid3, XAResource.TMNOFLAGS);
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.setQueryTimeout(30);
+                    // Read current value
+                    try (ResultSet rs = stmt.executeQuery("SELECT value FROM " + TABLE_NAME + " WHERE id = 1")) {
+                        assertTrue(rs.next());
+                        assertEquals(100, rs.getInt(1), "Initial value should be 100");
+                    }
+
+                    // Update within transaction
+                    stmt.execute("UPDATE " + TABLE_NAME + " SET value = 101 WHERE id = 1");
+
+                    // Re-read should show updated value
+                    try (ResultSet rs = stmt.executeQuery("SELECT value FROM " + TABLE_NAME + " WHERE id = 1")) {
+                        assertTrue(rs.next());
+                        assertEquals(101, rs.getInt(1), "Should see updated value");
+                    }
                 }
-                
-                // Update within transaction
-                stmt.execute("UPDATE " + TABLE_NAME + " SET value = 101 WHERE id = 1");
-                
-                // Re-read should show updated value
-                try (ResultSet rs = stmt.executeQuery("SELECT value FROM " + TABLE_NAME + " WHERE id = 1")) {
-                    assertTrue(rs.next());
-                    assertEquals(101, rs.getInt(1), "Should see updated value");
+                xaRes.end(xid3, XAResource.TMSUCCESS);
+                xaRes.commit(xid3, true);
+                pendingXids.remove(xid3);
+            } catch (Exception e) {
+                System.err.println("Test 3 failed: " + e.getMessage());
+                try {
+                    xaRes.end(xid3, XAResource.TMFAIL);
+                } catch (Exception ignored) {
                 }
+                try {
+                    xaRes.rollback(xid3);
+                    pendingXids.remove(xid3);
+                } catch (Exception ignored) {
+                }
+                throw e;
             }
-            xaRes.end(xid3, XAResource.TMSUCCESS);
-            xaRes.commit(xid3, true);
             
             // Verify update committed
             try (Statement stmt = conn.createStatement();
@@ -1432,17 +1569,35 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 4: SERIALIZABLE - Highest isolation level
+            System.out.println("Starting Test 4: SERIALIZABLE...");
             conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             
             Xid xid4 = createXid();
-            xaRes.start(xid4, XAResource.TMNOFLAGS);
-            try (Statement stmt = conn.createStatement()) {
-                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (4, 400)");
-                stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (5, 500)");
+            pendingXids.add(xid4);
+            try {
+                xaRes.start(xid4, XAResource.TMNOFLAGS);
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.setQueryTimeout(30);
+                    stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (4, 400)");
+                    stmt.execute("INSERT INTO " + TABLE_NAME + " VALUES (5, 500)");
+                }
+                xaRes.end(xid4, XAResource.TMSUCCESS);
+                xaRes.prepare(xid4);
+                xaRes.commit(xid4, false);
+                pendingXids.remove(xid4);
+            } catch (Exception e) {
+                System.err.println("Test 4 failed: " + e.getMessage());
+                try {
+                    xaRes.end(xid4, XAResource.TMFAIL);
+                } catch (Exception ignored) {
+                }
+                try {
+                    xaRes.rollback(xid4);
+                    pendingXids.remove(xid4);
+                } catch (Exception ignored) {
+                }
+                throw e;
             }
-            xaRes.end(xid4, XAResource.TMSUCCESS);
-            xaRes.prepare(xid4);
-            xaRes.commit(xid4, false);
             
             // Verify both inserts
             try (Statement stmt = conn.createStatement();
@@ -1452,32 +1607,72 @@ public class XAStateTest extends AbstractTest {
             }
             
             // Test 5: Mix isolation levels across transactions
+            System.out.println("Starting Test 5: Mixed isolation levels...");
             conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
             Xid xid5 = createXid();
-            xaRes.start(xid5, XAResource.TMNOFLAGS);
-            try (Statement stmt = conn.createStatement()) {
-                stmt.execute("DELETE FROM " + TABLE_NAME + " WHERE id = 5");
+            pendingXids.add(xid5);
+            try {
+                xaRes.start(xid5, XAResource.TMNOFLAGS);
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.setQueryTimeout(30);
+                    stmt.execute("DELETE FROM " + TABLE_NAME + " WHERE id = 5");
+                }
+                xaRes.end(xid5, XAResource.TMSUCCESS);
+                xaRes.commit(xid5, true);
+                pendingXids.remove(xid5);
+            } catch (Exception e) {
+                System.err.println("Test 5 failed: " + e.getMessage());
+                try {
+                    xaRes.end(xid5, XAResource.TMFAIL);
+                } catch (Exception ignored) {
+                }
+                try {
+                    xaRes.rollback(xid5);
+                    pendingXids.remove(xid5);
+                } catch (Exception ignored) {
+                }
+                throw e;
             }
-            xaRes.end(xid5, XAResource.TMSUCCESS);
-            xaRes.commit(xid5, true);
             
             // Final verification
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TABLE_NAME)) {
-                assertTrue(rs.next());
-                assertEquals(3, rs.getInt(1), "Should have 3 rows after deletion");
+            System.out.println("Final verification...");
+            try (Statement stmt = conn.createStatement()) {
+                stmt.setQueryTimeout(30);
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + TABLE_NAME)) {
+                    assertTrue(rs.next());
+                    assertEquals(3, rs.getInt(1), "Should have 3 rows after deletion");
+                }
             }
             
             // Restore original isolation level
             conn.setTransactionIsolation(originalIsolation);
             
             System.out.println("✓ TCIsolationLevels: All isolation level tests passed");
+        } catch (Exception e) {
+            System.err.println("TCIsolationLevels test failed with exception: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         } finally {
+            // Clean up any pending XA transactions
+            if (xaRes != null && !pendingXids.isEmpty()) {
+                System.out.println("Cleaning up " + pendingXids.size() + " pending XA transactions...");
+                for (Xid xid : pendingXids) {
+                    try {
+                        xaRes.rollback(xid);
+                        System.out.println("Rolled back pending XID: " + xid);
+                    } catch (Exception e) {
+                        System.err.println("Failed to rollback XID " + xid + ": " + e.getMessage());
+                    }
+                }
+            }
+
+            // Close connection
             if (xaConn != null) {
                 try {
                     xaConn.close();
+                    System.out.println("XA connection closed successfully");
                 } catch (SQLException e) {
-                    // Ignore
+                    System.err.println("Error closing XA connection: " + e.getMessage());
                 }
             }
         }
@@ -1488,6 +1683,7 @@ public class XAStateTest extends AbstractTest {
      * Tests multiple threads executing independent XA transactions concurrently.
      */
     @Test
+    @org.junit.jupiter.api.Timeout(value = 3, unit = java.util.concurrent.TimeUnit.MINUTES)
     public void testConcurrentXATransactions() throws Exception {
         assumeTrue(isXASupported(connectionString), "Skipping: XA not supported or connection not configured");
         
