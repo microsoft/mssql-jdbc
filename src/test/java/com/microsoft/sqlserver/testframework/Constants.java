@@ -37,6 +37,7 @@ public final class Constants {
      * vectorFloat16Test - For tests requiring vector(float16) setup
      * alwaysEncrypted  - - For tests in the AlwaysEncrypted package
      * bulkCopy - - - - - - For tests in the bulkCopy package
+     * enhancedRouting  - For tests requiring Hyperscale database with HA read replicas
      * </pre>
      */
     public static final String xJDBC42 = "xJDBC42";
@@ -66,6 +67,7 @@ public final class Constants {
     public static final String legacyFxXa = "legacyFx_Xa";
     public static final String PrepareMethodUseTempTableScopeTest = "PrepareMethodUseTempTableScopeTest";
     public static final String vectorFloat16Test = "vectorFloat16Test";
+    public static final String enhancedRouting = "enhancedRouting";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");
