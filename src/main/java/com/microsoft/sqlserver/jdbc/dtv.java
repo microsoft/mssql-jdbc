@@ -133,6 +133,9 @@ final class DTV {
     /** The source (app or server) providing the data for this value. */
     private DTVImpl impl;
 
+    /** Cached ServerDTVImpl to avoid per-column allocation on every row */
+    private ServerDTVImpl cachedServerImpl;
+
     CryptoMetadata cryptoMeta = null;
     JDBCType jdbcTypeSetByUser = null;
     int valueLength = 0;
@@ -158,19 +161,32 @@ final class DTV {
     }
 
     final void clear() {
+        if (impl instanceof ServerDTVImpl) {
+            cachedServerImpl = (ServerDTVImpl) impl;
+        }
         impl = null;
+    }
+
+    private ServerDTVImpl getOrCreateServerDTVImpl() {
+        if (null != cachedServerImpl) {
+            ServerDTVImpl reused = cachedServerImpl;
+            cachedServerImpl = null;
+            reused.reinit();
+            return reused;
+        }
+        return new ServerDTVImpl();
     }
 
     final void skipValue(TypeInfo type, TDSReader tdsReader, boolean isDiscard) throws SQLServerException {
         if (null == impl)
-            impl = new ServerDTVImpl();
+            impl = getOrCreateServerDTVImpl();
 
         impl.skipValue(type, tdsReader, isDiscard);
     }
 
     final void initFromCompressedNull() {
         if (null == impl)
-            impl = new ServerDTVImpl();
+            impl = getOrCreateServerDTVImpl();
 
         impl.initFromCompressedNull();
     }
@@ -250,7 +266,7 @@ final class DTV {
             TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader,
             SQLServerStatement statement) throws SQLServerException {
         if (null == impl) {
-            impl = new ServerDTVImpl();
+            impl = getOrCreateServerDTVImpl();
         } else if (impl.isNull()) {
             return null;
         }
@@ -3317,8 +3333,23 @@ final class TypeInfo implements Serializable {
 final class ServerDTVImpl extends DTVImpl {
     private int valueLength;
     private TDSReaderMark valueMark;
+    private boolean hasValueMark;
     private boolean isNull;
     private SqlVariant internalVariant;
+
+    ServerDTVImpl() {
+        this.valueMark = new TDSReaderMark();
+    }
+
+    /**
+     * Resets this instance for reuse on a new column/row, avoiding reallocation.
+     */
+    final void reinit() {
+        valueLength = 0;
+        hasValueMark = false;
+        isNull = false;
+        internalVariant = null;
+    }
 
     /**
      * Sets the value of the DTV to an app-specified Java type.
@@ -3411,18 +3442,18 @@ final class ServerDTVImpl extends DTVImpl {
     // for the DTV when a null value is
     // received from NBCROW for a particular column
     final void initFromCompressedNull() {
-        assert valueMark == null;
+        assert !hasValueMark;
         isNull = true;
     }
 
     final void skipValue(TypeInfo type, TDSReader tdsReader, boolean isDiscard) throws SQLServerException {
         // indicates that this value was obtained from NBCROW
         // So, there is nothing else to read from the wire
-        if (null == valueMark && isNull) {
+        if (!hasValueMark && isNull) {
             return;
         }
 
-        if (null == valueMark)
+        if (!hasValueMark)
             getValuePrep(type, tdsReader);
         tdsReader.reset(valueMark);
         // value length zero means that the stream has been already skipped to the end - adaptive case
@@ -3451,7 +3482,7 @@ final class ServerDTVImpl extends DTVImpl {
 
     private void getValuePrep(TypeInfo typeInfo, TDSReader tdsReader) throws SQLServerException {
         // If we've already seen this value before, then we shouldn't be here.
-        assert null == valueMark;
+        assert !hasValueMark;
 
         // Otherwise, mark the value's location, figure out its length, and determine whether it was NULL.
         switch (typeInfo.getSSLenType()) {
@@ -3501,7 +3532,8 @@ final class ServerDTVImpl extends DTVImpl {
         if (valueLength > typeInfo.getMaxLength())
             tdsReader.throwInvalidTDS();
 
-        valueMark = tdsReader.mark();
+        tdsReader.markInto(valueMark);
+        hasValueMark = true;
     }
 
     Object denormalizedValue(byte[] decryptedValue, JDBCType jdbcType, TypeInfo baseTypeInfo, SQLServerConnection con,
@@ -3745,15 +3777,15 @@ final class ServerDTVImpl extends DTVImpl {
 
         // Note that the value should be prepped
         // only for columns whose values can be read of the wire.
-        // If valueMark == null and isNull, it implies that
+        // If hasValueMark is false and isNull, it implies that
         // the column is null according to NBCROW and that
         // there is nothing to be read from the wire.
-        if (null == valueMark && (!isNull))
+        if (!hasValueMark && (!isNull))
             getValuePrep(typeInfo, tdsReader);
 
         // either there should be a valueMark
-        // or valueMark should be null and isNull should be set to true(NBCROW case)
-        assert ((valueMark != null) || (valueMark == null && isNull));
+        // or hasValueMark should be false and isNull should be set to true(NBCROW case)
+        assert (hasValueMark || (!hasValueMark && isNull));
 
         if (null != streamGetterArgs) {
             if (!streamGetterArgs.streamType.convertsFrom(typeInfo))
@@ -3833,9 +3865,25 @@ final class ServerDTVImpl extends DTVImpl {
                 // (CHAR/VARCHAR/TEXT/NCHAR/NVARCHAR/NTEXT/BINARY/VARBINARY/IMAGE) -> ANY jdbcType.
                 case CHAR:
                 case VARCHAR:
-                case TEXT:
                 case NCHAR:
                 case NVARCHAR:
+                {
+                    // Fast path: for small non-streaming string values read directly
+                    // from TDSReader and convert to String without creating SimpleInputStream.
+                    // Only when the requested JDBC type is a character type (getString path).
+                    if (valueLength > 0 && valueLength <= 4000
+                            && streamGetterArgs.streamType == StreamType.NONE
+                            && !streamGetterArgs.isAdaptive
+                            && jdbcType.isTextual()) {
+                        byte[] bytes = new byte[valueLength];
+                        tdsReader.readBytes(bytes, 0, valueLength);
+                        convertedValue = new String(bytes, typeInfo.getCharset());
+                        break;
+                    }
+                    // Fall through to stream-based path for large values, streaming,
+                    // or non-textual target types
+                }
+                case TEXT:
                 case NTEXT:
                 case IMAGE:
                 case BINARY:

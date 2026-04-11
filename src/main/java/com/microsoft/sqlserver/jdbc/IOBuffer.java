@@ -6787,10 +6787,20 @@ final class TDSPacket {
  * destroyed.
  */
 final class TDSReaderMark {
-    final TDSPacket packet;
-    final int payloadOffset;
+    TDSPacket packet;
+    int payloadOffset;
 
     TDSReaderMark(TDSPacket packet, int payloadOffset) {
+        this.packet = packet;
+        this.payloadOffset = payloadOffset;
+    }
+
+    TDSReaderMark() {
+        this.packet = null;
+        this.payloadOffset = 0;
+    }
+
+    void set(TDSPacket packet, int payloadOffset) {
         this.packet = packet;
         this.payloadOffset = payloadOffset;
     }
@@ -7093,6 +7103,11 @@ final class TDSReader implements Serializable {
         return mark;
     }
 
+    final void markInto(TDSReaderMark mark) {
+        mark.set(currentPacket, payloadOffset);
+        isStreaming = false;
+    }
+
     final void reset(TDSReaderMark mark) {
         if (logger.isLoggable(Level.FINEST))
             logger.finest(this.toString() + ": Resetting to: " + mark.toString());
@@ -7152,7 +7167,11 @@ final class TDSReader implements Serializable {
     }
 
     final int readUnsignedByte() throws SQLServerException {
-        // Ensure that we have a packet to read from.
+        // Fast path: if there's data left in the current packet, read directly
+        if (payloadOffset < currentPacket.payloadLength) {
+            return currentPacket.payload[payloadOffset++] & 0xFF;
+        }
+        // Slow path: need to advance to next packet
         if (!ensurePayload())
             throwInvalidTDS();
 
