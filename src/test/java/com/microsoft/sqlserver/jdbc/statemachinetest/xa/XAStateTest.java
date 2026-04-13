@@ -266,6 +266,13 @@ public class XAStateTest extends AbstractTest {
             // Initialize state
             XAResource xaRes = xaConn.getXAResource();
             Connection conn = xaConn.getConnection();
+            
+            // Clear the table to ensure clean start for randomized test
+            logTestProgress("testRandomizedXATransactions - Clearing test table");
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("DELETE FROM " + TABLE_NAME);
+            }
+            
             cache.updateValue(0, XA_CONN.key(), xaConn);
             cache.updateValue(0, XA_RES.key(), xaRes);
             cache.updateValue(0, CONN.key(), conn);
