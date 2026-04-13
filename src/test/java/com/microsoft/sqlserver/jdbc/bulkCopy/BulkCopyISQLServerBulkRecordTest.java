@@ -58,6 +58,7 @@ import microsoft.sql.Vector.VectorDimensionType;
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test ISQLServerBulkRecord")
 @Tag(Constants.xAzureSQLDW)
+@Tag(Constants.bulkCopy)
 public class BulkCopyISQLServerBulkRecordTest extends AbstractTest {
 
     @BeforeAll

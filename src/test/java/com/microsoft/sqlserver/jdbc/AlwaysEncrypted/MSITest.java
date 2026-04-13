@@ -44,6 +44,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  */
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.MSI)
+@Tag(Constants.alwaysEncrypted)
 public class MSITest extends AESetup {
 
     /*

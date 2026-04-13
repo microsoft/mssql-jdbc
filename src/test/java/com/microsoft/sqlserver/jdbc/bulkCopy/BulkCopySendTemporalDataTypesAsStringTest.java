@@ -54,6 +54,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * 
  */
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.bulkCopy)
 public class BulkCopySendTemporalDataTypesAsStringTest extends AbstractTest {
     static String inputFile = "BulkCopyCSVSendTemporalDataTypesAsStringForBulkCopy.csv";
     static String inputFile2 = "BulkCopyCSVSendTemporalDataTypesAsStringForBulkCopy2.csv";

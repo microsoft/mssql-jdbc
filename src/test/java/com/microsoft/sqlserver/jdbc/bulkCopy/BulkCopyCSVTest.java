@@ -67,6 +67,7 @@ import microsoft.sql.Vector;
 @RunWith(JUnitPlatform.class)
 @DisplayName("Test bulkCopy with CSV")
 @Tag(Constants.xAzureSQLDW)
+@Tag(Constants.bulkCopy)
 public class BulkCopyCSVTest extends AbstractTest {
 
     static String inputFile = "BulkCopyCSVTestInput.csv";

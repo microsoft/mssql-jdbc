@@ -34,6 +34,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("BulkCopy Connection Test")
+@Tag(Constants.bulkCopy)
 public class BulkCopyConnectionTest extends BulkCopyTestSetUp {
 
     /**
