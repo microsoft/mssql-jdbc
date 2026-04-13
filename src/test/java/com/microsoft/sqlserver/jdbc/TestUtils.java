@@ -1056,7 +1056,13 @@ public final class TestUtils {
      * @return The updated connection string
      */
     public static String addOrOverrideProperty(String connectionString, String property, String value) {
-        return connectionString + ";" + property + "=" + value + ";";
+        // Remove the property first if it already exists, then append — prevents duplicate
+        // properties and the double-semicolons they produce when the base connection string
+        // already contains the property being "overridden".
+        String cleaned = removeProperty(connectionString, property);
+        // Strip any trailing semicolons left by removeProperty before re-appending
+        cleaned = cleaned.replaceAll(";+$", "");
+        return cleaned + ";" + property + "=" + value + ";";
     }
 
     /**
