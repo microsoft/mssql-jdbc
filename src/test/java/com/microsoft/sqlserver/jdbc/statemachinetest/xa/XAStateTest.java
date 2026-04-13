@@ -236,8 +236,29 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * XA distributed transaction simulation with weighted random actions.
-     * Tests the full XA state machine including two-phase commit (prepare/commit),
-     * suspend/resume, and recovery scenarios.
+     * 
+     * <p>
+     * This test executes a randomized state machine that validates the complete XA
+     * transaction
+     * lifecycle including:
+     * <ul>
+     * <li>One-phase commit (start -> end -> commit)</li>
+     * <li>Two-phase commit (start -> end -> prepare -> commit)</li>
+     * <li>Rollback scenarios (before and after prepare)</li>
+     * <li>Suspend and resume operations</li>
+     * <li>Recovery operations</li>
+     * <li>Data operations within XA transactions</li>
+     * </ul>
+     * 
+     * <p>
+     * The test runs up to 500 weighted random actions and validates that:
+     * <ul>
+     * <li>State transitions are valid according to XA specification</li>
+     * <li>At least one successful commit occurs</li>
+     * <li>Data integrity is maintained across transaction boundaries</li>
+     * </ul>
+     * 
+     * @throws Exception if XA operations fail unexpectedly
      */
     @Test
     @DisplayName("Randomized XA State Machine Validation")
@@ -793,7 +814,25 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * Test #1: TCVerifyXAResource - XAResource Compliance Testing
-     * Tests fundamental XAResource interface behavior and contract compliance.
+     * 
+     * <p>
+     * Tests fundamental XAResource interface behavior and contract compliance
+     * including:
+     * <ul>
+     * <li>XAResource object creation and initialization</li>
+     * <li>isSameRM() behavior between different XA connections</li>
+     * <li>Transaction timeout get/set operations</li>
+     * <li>Recovery operations on a fresh XAResource</li>
+     * <li>Basic XA lifecycle (start -> end -> prepare -> commit)</li>
+     * <li>Error handling for invalid flags and illegal state transitions</li>
+     * <li>Proper exception codes for invalid operations</li>
+     * </ul>
+     * 
+     * <p>
+     * This test validates that the driver's XAResource implementation conforms to
+     * the JTA specification requirements.
+     * 
+     * @throws Exception if XA resource operations fail
      */
     @Test
     public void testVerifyXAResource() throws Exception {
@@ -904,7 +943,25 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * Test #2: TCSanity - Basic XA Operations
-     * Tests the fundamental XA transaction workflow: start -> end -> commit.
+     * 
+     * <p>
+     * Tests the fundamental XA transaction workflows:
+     * <ul>
+     * <li>One-phase commit: start -> end -> commit(onePhase=true)</li>
+     * <li>Two-phase commit: start -> end -> prepare -> commit(onePhase=false)</li>
+     * <li>Read-only transactions with proper XA_RDONLY or XA_OK handling</li>
+     * <li>Multiple SQL operations within a single XA transaction</li>
+     * </ul>
+     * 
+     * <p>
+     * Validates that:
+     * <ul>
+     * <li>SQL operations execute correctly within XA transaction boundaries</li>
+     * <li>Data commits are durable and visible after transaction completion</li>
+     * <li>Both one-phase and two-phase commit protocols work correctly</li>
+     * </ul>
+     * 
+     * @throws Exception if XA operations fail
      */
     @Test
     public void testBasicXAOperations() throws Exception {
@@ -1039,7 +1096,30 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * Test #3: TCCommit - XA Commit Scenarios
-     * Tests various commit scenarios, including one-phase, two-phase, and error conditions.
+     * 
+     * <p>
+     * Comprehensive testing of XA commit operations including:
+     * <ul>
+     * <li>One-phase commit without prepare (onePhase=true)</li>
+     * <li>Two-phase commit with explicit prepare (onePhase=false)</li>
+     * <li>Error handling: commit of non-existent transaction (expects
+     * XAER_NOTA)</li>
+     * <li>Error handling: two-phase commit without prepare (expects
+     * XAER_PROTO)</li>
+     * <li>Error handling: double commit (expects XAER_NOTA)</li>
+     * <li>Error handling: commit with incorrect onePhase flag after prepare</li>
+     * </ul>
+     * 
+     * <p>
+     * Validates that:
+     * <ul>
+     * <li>Valid commit operations complete successfully</li>
+     * <li>Invalid commit attempts fail with appropriate XAException error
+     * codes</li>
+     * <li>Committed data is persistent and queryable</li>
+     * </ul>
+     * 
+     * @throws Exception if XA operations fail unexpectedly
      */
     @Test
     public void testXACommitScenarios() throws Exception {
@@ -1179,7 +1259,30 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * Test #4: TCRollback - XA Rollback Scenarios
-     * Tests rollback functionality, including before and after prepare.
+     * 
+     * <p>
+     * Comprehensive testing of XA rollback operations including:
+     * <ul>
+     * <li>Rollback before prepare (transaction in ENDED state)</li>
+     * <li>Rollback after prepare (transaction in PREPARED state)</li>
+     * <li>Rollback with TMFAIL flag during end operation</li>
+     * <li>Error handling: rollback of non-existent transaction (expects
+     * XAER_NOTA)</li>
+     * <li>Error handling: double rollback (expects XAER_NOTA)</li>
+     * <li>Mixed commit and rollback isolation verification</li>
+     * <li>Rollback after SQL exception within transaction</li>
+     * </ul>
+     * 
+     * <p>
+     * Validates that:
+     * <ul>
+     * <li>Rolled back changes do not persist in the database</li>
+     * <li>Transaction isolation is maintained between different branches</li>
+     * <li>Invalid rollback attempts fail with appropriate error codes</li>
+     * <li>Rollback properly cleans up transaction state</li>
+     * </ul>
+     * 
+     * @throws Exception if XA operations fail unexpectedly
      */
     @Test
     public void testXARollbackScenarios() throws Exception {
@@ -1340,7 +1443,23 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * Test #5: TCException - XA Exception Handling
-     * Tests proper XAException error codes for various error conditions.
+     * 
+     * <p>
+     * Tests proper XAException error codes for various error conditions including:
+     * <ul>
+     * <li>XAER_NOTA: Operations on unknown/non-existent XID</li>
+     * <li>XAER_PROTO: Protocol errors (e.g., invalid state transitions)</li>
+     * <li>XAER_INVAL: Invalid arguments (e.g., duplicate start on same XID)</li>
+     * <li>XAER_DUPID: Duplicate XID detection</li>
+     * </ul>
+     * 
+     * <p>
+     * Validates that the driver returns appropriate XA error codes conforming to
+     * the XA specification, enabling proper error handling and recovery in
+     * transaction
+     * manager implementations.
+     * 
+     * @throws Exception if XA operations fail unexpectedly
      */
     @Test
     public void testXAExceptionHandling() throws Exception {
@@ -1641,7 +1760,28 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * Test #6: TCIsolationLevels - XA with Different Isolation Levels
-     * Tests XA transactions with various SQL transaction isolation levels.
+     * 
+     * <p>
+     * Tests XA transactions with various SQL transaction isolation levels:
+     * <ul>
+     * <li>TRANSACTION_READ_UNCOMMITTED</li>
+     * <li>TRANSACTION_READ_COMMITTED</li>
+     * <li>TRANSACTION_REPEATABLE_READ</li>
+     * <li>TRANSACTION_SERIALIZABLE</li>
+     * <li>TRANSACTION_SNAPSHOT (SQL Server specific)</li>
+     * </ul>
+     * 
+     * <p>
+     * Validates that:
+     * <ul>
+     * <li>Isolation levels can be set before starting XA transactions</li>
+     * <li>XA operations complete successfully at each isolation level</li>
+     * <li>Data modifications are handled correctly under different isolation
+     * semantics</li>
+     * <li>Committed data is visible after transaction completion</li>
+     * </ul>
+     * 
+     * @throws Exception if XA operations fail
      */
     @Test
     public void testXAWithIsolationLevels() throws Exception {
@@ -1912,7 +2052,28 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * Test #7: TCMultithreaded - Concurrent Independent XA Transactions
-     * Tests multiple threads executing independent XA transactions concurrently.
+     * 
+     * <p>
+     * Tests thread-safety and concurrency control by executing multiple independent
+     * XA transactions across concurrent threads. Each thread:
+     * <ul>
+     * <li>Creates its own XA connection and resource</li>
+     * <li>Executes multiple XA transactions (start -> insert -> end -> commit)</li>
+     * <li>Inserts thread-specific data to verify isolation</li>
+     * </ul>
+     * 
+     * <p>
+     * Validates that:
+     * <ul>
+     * <li>Multiple threads can execute XA transactions concurrently without
+     * conflicts</li>
+     * <li>At least 80% of transactions succeed (allowing for some contention)</li>
+     * <li>Each thread's data is properly isolated from other threads</li>
+     * <li>All committed data is visible and queryable after completion</li>
+     * <li>No deadlocks or race conditions occur during concurrent execution</li>
+     * </ul>
+     * 
+     * @throws Exception if XA operations fail
      */
     @Test
     public void testConcurrentXATransactions() throws Exception {
@@ -2127,11 +2288,28 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * Test: TCCommit(testCommitEndException) + TCRollback(testRollbackEndException)
+     * 
+     * <p>
      * Verifies that calling end() on an already-committed or already-rolled-back XA
-     * transaction
-     * returns XAER_NOTA. SQL Server allows commit/rollback from STARTED state
-     * (implicit end),
-     * so subsequent end() calls must fail.
+     * transaction returns XAER_NOTA. SQL Server allows commit/rollback from STARTED
+     * state
+     * (implicit end), so subsequent end() calls must fail.
+     * 
+     * <p>
+     * Test scenarios:
+     * <ul>
+     * <li>Start XA transaction -> one-phase commit -> attempt end() (expects
+     * XAER_NOTA)</li>
+     * <li>Start XA transaction -> rollback -> attempt end() (expects
+     * XAER_NOTA)</li>
+     * </ul>
+     * 
+     * <p>
+     * Validates that the driver properly handles and rejects operations on
+     * completed
+     * transaction branches.
+     * 
+     * @throws Exception if XA operations fail unexpectedly
      */
     @Test
     public void testEndAfterCommitOrRollback() throws Exception {
@@ -2227,11 +2405,30 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * Test: TCSanity(testDefaultIsolation) + TCIsolationLevels server-side
-     * verification.
-     * Queries DBCC USEROPTIONS inside XA to verify the active isolation level on
-     * the server.
-     * Also covers TRANSACTION_NONE mapping to READ COMMITTED (gap in
-     * TCIsolationLevels).
+     * verification
+     * 
+     * <p>
+     * Queries DBCC USEROPTIONS inside XA transactions to verify the active
+     * isolation
+     * level on the server matches what was set on the connection.
+     * 
+     * <p>
+     * Test scenarios:
+     * <ul>
+     * <li>Default isolation (TRANSACTION_NONE) maps to READ COMMITTED</li>
+     * <li>TRANSACTION_READ_COMMITTED verification via DBCC USEROPTIONS</li>
+     * <li>TRANSACTION_SERIALIZABLE verification via DBCC USEROPTIONS</li>
+     * </ul>
+     * 
+     * <p>
+     * Validates that:
+     * <ul>
+     * <li>Isolation level settings are properly applied server-side</li>
+     * <li>Default isolation behavior is correct</li>
+     * <li>Server reports the correct isolation level within XA transactions</li>
+     * </ul>
+     * 
+     * @throws Exception if XA operations or isolation verification fails
      */
     @Test
     public void testXAIsolationLevelServerVerification() throws Exception {
@@ -2325,10 +2522,27 @@ public class XAStateTest extends AbstractTest {
     }
 
     /**
-     * Test: TCSanity(testCommit2Phase) - FormatId round-trip via recover().
+     * Test: TCSanity(testCommit2Phase) - FormatId round-trip via recover()
+     * 
+     * <p>
      * After prepare(), recover() must return the XID with the exact formatId that
-     * was sent.
-     * Verifies fix for VSTS #841313 ("Introduce support for formatId").
+     * was sent. Verifies fix for VSTS #841313 ("Introduce support for formatId").
+     * 
+     * <p>
+     * Test process:
+     * <ul>
+     * <li>Creates XIDs with various formatId values (1, 1234, 9999)</li>
+     * <li>Starts XA transaction, performs prepare()</li>
+     * <li>Calls recover() to retrieve prepared XIDs</li>
+     * <li>Verifies the recovered XID has the exact formatId used</li>
+     * <li>Rolls back to clean up</li>
+     * </ul>
+     * 
+     * <p>
+     * Validates that formatId is preserved correctly through the XA protocol,
+     * which is critical for transaction manager recovery operations.
+     * 
+     * @throws Exception if XA operations or formatId verification fails
      */
     @Test
     public void testFormatIdRoundTrip() throws Exception {
@@ -2391,11 +2605,35 @@ public class XAStateTest extends AbstractTest {
     }
 
     /**
-     * Test: TCSanity - XA transaction timeout set/get behavior.
+     * Test: TCSanity - XA transaction timeout set/get behavior
+     * 
+     * <p>
      * Verifies setTransactionTimeout/getTransactionTimeout round-trip and that
      * timeout=0 (infinite) allows normal transaction completion.
-     * Note: the actual auto-abort wait scenario (FX testSetTimeout, 40s wait) is
-     * intentionally excluded to keep test duration practical.
+     * 
+     * <p>
+     * Test scenarios:
+     * <ul>
+     * <li>Set timeout to 60 seconds and verify it's retrievable</li>
+     * <li>Set timeout to 0 (infinite) and verify transactions complete
+     * normally</li>
+     * <li>Execute XA transaction with infinite timeout and verify success</li>
+     * </ul>
+     * 
+     * <p>
+     * Note: The actual auto-abort wait scenario (e.g., waiting 40+ seconds for
+     * timeout)
+     * is intentionally excluded to keep test duration practical.
+     * 
+     * <p>
+     * Validates that:
+     * <ul>
+     * <li>Timeout values can be set and retrieved correctly</li>
+     * <li>Infinite timeout (0) is properly supported</li>
+     * <li>Transactions complete successfully with configured timeouts</li>
+     * </ul>
+     * 
+     * @throws Exception if XA operations fail
      */
     @Test
     public void testXATransactionTimeout() throws Exception {
@@ -2449,11 +2687,34 @@ public class XAStateTest extends AbstractTest {
     }
 
     /**
-     * Test: TCPoolingWithXATransactions - XA interaction with connection pooling.
-     * (1) testMultipleCommitsWithCnClose: XAConnection reused for new transactions
-     * after conn.close().
-     * (2) testResumeTxWithCnClose: suspend XA -> conn.close() -> reget conn ->
-     * resume -> commit.
+     * Test: TCPoolingWithXATransactions - XA interaction with connection pooling
+     * 
+     * <p>
+     * Tests XA connection reuse and pooling scenarios:
+     * <ul>
+     * <li>Scenario 1 (testMultipleCommitsWithCnClose): XAConnection reused for new
+     * transactions after conn.close()</li>
+     * <li>Scenario 2 (testResumeTxWithCnClose): suspend XA -> conn.close() ->
+     * reacquire
+     * conn -> resume -> commit</li>
+     * </ul>
+     * 
+     * <p>
+     * Validates that:
+     * <ul>
+     * <li>XAConnection can be reused for multiple sequential transactions</li>
+     * <li>Closing the logical connection doesn't invalidate the XAConnection</li>
+     * <li>Suspended XA transactions can be resumed after connection recycling</li>
+     * <li>All data from committed transactions persists correctly</li>
+     * </ul>
+     * 
+     * <p>
+     * This is critical for connection pooling scenarios where logical connections
+     * are frequently closed and reopened while XA transactions span multiple
+     * connection
+     * acquisitions.
+     * 
+     * @throws Exception if XA operations fail
      */
     @Test
     public void testXAPoolingWithConnectionClose() throws Exception {
@@ -2542,11 +2803,35 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * Test: TCException(testMinorError + testMajorError) - RAISERROR severity in XA
-     * transactions.
-     * Minor errors (severity 1-9): informational only, do NOT abort XA; commit
-     * succeeds.
-     * Major errors (severity 11+): throw SQLException and invalidate the
-     * transaction branch.
+     * transactions
+     * 
+     * <p>
+     * Tests SQL error severity handling within XA transactions:
+     * <ul>
+     * <li>Minor errors (severity 1-9): informational only, do NOT abort XA; commit
+     * succeeds</li>
+     * <li>Major errors (severity 11+): throw SQLException and invalidate the
+     * transaction branch</li>
+     * </ul>
+     * 
+     * <p>
+     * Test scenarios:
+     * <ul>
+     * <li>Execute RAISERROR with severities 1, 5, 9 within XA - transaction should
+     * remain valid</li>
+     * <li>Execute RAISERROR with severities 11, 16 within XA - transaction should
+     * be aborted</li>
+     * </ul>
+     * 
+     * <p>
+     * Validates that:
+     * <ul>
+     * <li>Informational errors don't interfere with XA transaction completion</li>
+     * <li>Serious errors properly invalidate the transaction branch</li>
+     * <li>Error handling follows SQL Server severity semantics</li>
+     * </ul>
+     * 
+     * @throws Exception if XA operations fail unexpectedly
      */
     @Test
     public void testXASqlErrorSeverity() throws Exception {
@@ -2633,14 +2918,39 @@ public class XAStateTest extends AbstractTest {
 
     /**
      * Test: TCTightlyCoupled - SQL Server tightly-coupled XA transactions
-     * (SSTRANSTIGHTLYCPLD).
-     * Multiple branches sharing the same gtrid are tightly coupled. The primary
-     * branch returns
-     * XA_OK from prepare; secondary branches return XA_RDONLY (their work is
-     * absorbed by primary).
-     * Committing the primary commits all; rolling back the primary rolls back all.
-     * Also covers the SSTRANSTIGHTLYCPLD constant verification (TCVerifyXAResource
-     * gap).
+     * (SSTRANSTIGHTLYCPLD)
+     * 
+     * <p>
+     * Tests SQL Server's tightly-coupled XA transaction feature where multiple
+     * branches
+     * share the same global transaction ID (gtrid) but have different branch
+     * qualifiers (bqual).
+     * 
+     * <p>
+     * Key behaviors:
+     * <ul>
+     * <li>Multiple branches sharing the same gtrid are tightly coupled</li>
+     * <li>Primary branch returns XA_OK from prepare</li>
+     * <li>Secondary branches return XA_RDONLY (work absorbed by primary)</li>
+     * <li>Committing the primary commits all branches</li>
+     * <li>Rolling back the primary rolls back all branches</li>
+     * </ul>
+     * 
+     * <p>
+     * Test scenarios:
+     * <ul>
+     * <li>Verify SSTRANSTIGHTLYCPLD constant is defined</li>
+     * <li>Two branches (same gtrid, different bqual) both insert data</li>
+     * <li>Primary prepare returns XA_OK, secondary returns XA_RDONLY</li>
+     * <li>Commit primary and verify both branches' data is committed</li>
+     * <li>Test rollback of primary rolls back all coupled branches</li>
+     * </ul>
+     * 
+     * <p>
+     * Also covers the SSTRANSTIGHTLYCPLD constant verification gap from
+     * TCVerifyXAResource.
+     * 
+     * @throws Exception if XA operations fail
      */
     @Test
     public void testTightlyCoupledXATransactions() throws Exception {
