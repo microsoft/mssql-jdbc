@@ -54,7 +54,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  * Tests XA state machine transitions: start, end, prepare, commit, rollback,
  * suspend/resume, recover, forget with weighted random action selection.
  */
-@Tag(Constants.legacyFx)
+@Tag(Constants.legacyFxXa)
 public class XAStateTest extends AbstractTest {
 
     private static final String TABLE_NAME = AbstractSQLGenerator
