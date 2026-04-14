@@ -1076,6 +1076,9 @@ public final class TestUtils {
      */
     public static String removeProperty(String connectionString, String property) {
         int start = connectionString.toLowerCase().indexOf(property.toLowerCase());
+        if (start == -1) {
+            return connectionString;
+        }
         int end = connectionString.indexOf(";", start);
         String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
         return connectionString.replace(propertyStr, "");
