@@ -1056,11 +1056,9 @@ public final class TestUtils {
      * @return The updated connection string
      */
     public static String addOrOverrideProperty(String connectionString, String property, String value) {
-        // Remove the property first if it already exists, then append — prevents duplicate
-        // properties and the double-semicolons they produce when the base connection string
-        // already contains the property being "overridden".
+        // Remove existing occurrence first to avoid duplicate properties, then append.
         String cleaned = removeProperty(connectionString, property);
-        // Strip any trailing semicolons left by removeProperty before re-appending
+        // Ensure there is exactly one trailing semicolon before appending.
         cleaned = cleaned.replaceAll(";+$", "");
         return cleaned + ";" + property + "=" + value + ";";
     }
@@ -1075,13 +1073,23 @@ public final class TestUtils {
      * @return The updated connection string
      */
     public static String removeProperty(String connectionString, String property) {
-        int start = connectionString.toLowerCase().indexOf(property.toLowerCase());
+        // Search for ';property=' (with the leading semicolon) so we only match actual
+        // key=value pairs in the properties section and never accidentally match the same
+        // word appearing as a substring inside the server hostname (e.g. 'database' in
+        // 'msjdbctest.database.windows.net').
+        String searchKey = ";" + property.toLowerCase() + "=";
+        int start = connectionString.toLowerCase().indexOf(searchKey);
         if (start == -1) {
             return connectionString;
         }
-        int end = connectionString.indexOf(";", start);
-        String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
-        return connectionString.replace(propertyStr, "");
+        // Find the ';' that ends this property's value.
+        int end = connectionString.indexOf(";", start + 1);
+        if (end == -1) {
+            // Property is the last one — remove from the leading ';' to end of string.
+            return connectionString.substring(0, start);
+        }
+        // Remove ';property=value' keeping the semicolon that follows (owned by next property).
+        return connectionString.substring(0, start) + connectionString.substring(end);
     }
 
     /**
