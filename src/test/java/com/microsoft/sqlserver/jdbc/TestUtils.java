@@ -1056,7 +1056,11 @@ public final class TestUtils {
      * @return The updated connection string
      */
     public static String addOrOverrideProperty(String connectionString, String property, String value) {
-        return connectionString + ";" + property + "=" + value + ";";
+        // Remove existing occurrence first to avoid duplicate properties and double-semicolons
+        String cleaned = removeProperty(connectionString, property);
+        // Strip trailing semicolons left after removal, then re-append cleanly
+        cleaned = cleaned.replaceAll(";+$", "");
+        return cleaned + ";" + property + "=" + value + ";";
     }
 
     /**
@@ -1070,6 +1074,9 @@ public final class TestUtils {
      */
     public static String removeProperty(String connectionString, String property) {
         int start = connectionString.toLowerCase().indexOf(property.toLowerCase());
+        if (start == -1) {
+            return connectionString;
+        }
         int end = connectionString.indexOf(";", start);
         String propertyStr = connectionString.substring(start, -1 != end ? end + 1 : connectionString.length());
         return connectionString.replace(propertyStr, "");

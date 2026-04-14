@@ -1134,9 +1134,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public boolean wasNull() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "wasNull");
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "wasNull");
         checkClosed();
-        loggerExternal.exiting(getClassNameLogging(), "wasNull", lastValueWasNull);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "wasNull", lastValueWasNull);
         return lastValueWasNull;
     }
 
@@ -1756,8 +1758,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         deletedCurrentRow = false;
         if (lastColumnIndex >= 1) {
             initializeNullCompressedColumns();
-            // Discard columns up to, but not including, the last indexed column
-            for (int columnIndex = 1; columnIndex < lastColumnIndex; ++columnIndex)
+
+            // Clear all columns that have been accessed (i.e., initialized).
+            // For forward-only result sets, this resets DTV state to allow reuse.
+            int clearUpTo = Math.min(lastColumnIndex, columns.length + 1);
+            for (int columnIndex = 1; columnIndex < clearUpTo; ++columnIndex)
                 getColumn(columnIndex).clear();
 
             // Skip and discard the remainder of the last indexed column
@@ -2309,19 +2314,23 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public double getDouble(int columnIndex) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getDouble", columnIndex);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getDouble", columnIndex);
         checkClosed();
         Double value = (Double) getValue(columnIndex, JDBCType.DOUBLE);
-        loggerExternal.exiting(getClassNameLogging(), "getDouble", value);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "getDouble", value);
         return null != value ? value : 0;
     }
 
     @Override
     public double getDouble(String columnName) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getDouble", columnName);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getDouble", columnName);
         checkClosed();
         Double value = (Double) getValue(findColumn(columnName), JDBCType.DOUBLE);
-        loggerExternal.exiting(getClassNameLogging(), "getDouble", value);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "getDouble", value);
         return null != value ? value : 0;
     }
 
@@ -2381,37 +2390,45 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public int getInt(int columnIndex) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getInt", columnIndex);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getInt", columnIndex);
         checkClosed();
         Integer value = (Integer) getValue(columnIndex, JDBCType.INTEGER);
-        loggerExternal.exiting(getClassNameLogging(), "getInt", value);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "getInt", value);
         return null != value ? value : 0;
     }
 
     @Override
     public int getInt(String columnName) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getInt", columnName);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getInt", columnName);
         checkClosed();
         Integer value = (Integer) getValue(findColumn(columnName), JDBCType.INTEGER);
-        loggerExternal.exiting(getClassNameLogging(), "getInt", value);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "getInt", value);
         return null != value ? value : 0;
     }
 
     @Override
     public long getLong(int columnIndex) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getLong", columnIndex);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getLong", columnIndex);
         checkClosed();
         Long value = (Long) getValue(columnIndex, JDBCType.BIGINT);
-        loggerExternal.exiting(getClassNameLogging(), "getLong", value);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "getLong", value);
         return null != value ? value : 0;
     }
 
     @Override
     public long getLong(String columnName) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getLong", columnName);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getLong", columnName);
         checkClosed();
         Long value = (Long) getValue(findColumn(columnName), JDBCType.BIGINT);
-        loggerExternal.exiting(getClassNameLogging(), "getLong", value);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "getLong", value);
         return null != value ? value : 0;
     }
 
@@ -2568,7 +2585,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public String getString(int columnIndex) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getString", columnIndex);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getString", columnIndex);
         checkClosed();
 
         String value = null;
@@ -2576,13 +2594,15 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         if (null != objectValue) {
             value = objectValue.toString();
         }
-        loggerExternal.exiting(getClassNameLogging(), "getString", value);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "getString", value);
         return value;
     }
 
     @Override
     public String getString(String columnName) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getString", columnName);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getString", columnName);
         checkClosed();
 
         String value = null;
@@ -2590,7 +2610,8 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         if (null != objectValue) {
             value = objectValue.toString();
         }
-        loggerExternal.exiting(getClassNameLogging(), "getString", value);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "getString", value);
         return value;
     }
 
@@ -2670,19 +2691,23 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public java.sql.Timestamp getTimestamp(int columnIndex) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getTimestamp", columnIndex);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getTimestamp", columnIndex);
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(columnIndex, JDBCType.TIMESTAMP);
-        loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
         return value;
     }
 
     @Override
     public java.sql.Timestamp getTimestamp(String columnName) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getTimestamp", columnName);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getTimestamp", columnName);
         checkClosed();
         java.sql.Timestamp value = (java.sql.Timestamp) getValue(findColumn(columnName), JDBCType.TIMESTAMP);
-        loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "getTimestamp", value);
         return value;
     }
 
@@ -3032,19 +3057,23 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
     @Override
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "getBigDecimal", columnIndex);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getBigDecimal", columnIndex);
         checkClosed();
         BigDecimal value = (BigDecimal) getValue(columnIndex, JDBCType.DECIMAL);
-        loggerExternal.exiting(getClassNameLogging(), "getBigDecimal", value);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "getBigDecimal", value);
         return value;
     }
 
     @Override
     public BigDecimal getBigDecimal(String columnName) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "getBigDecimal", columnName);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "getBigDecimal", columnName);
         checkClosed();
         BigDecimal value = (BigDecimal) getValue(findColumn(columnName), JDBCType.DECIMAL);
-        loggerExternal.exiting(getClassNameLogging(), "getBigDecimal", value);
+        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+            loggerExternal.exiting(getClassNameLogging(), "getBigDecimal", value);
         return value;
     }
 
