@@ -63,6 +63,7 @@ public final class Constants {
     public static final String legacyFx = "legacyFx";
     public static final String alwaysEncrypted = "alwaysEncrypted";
     public static final String bulkCopy = "bulkCopy";
+    public static final String legacyFxXa = "legacyFx_Xa";
     public static final String PrepareMethodUseTempTableScopeTest = "PrepareMethodUseTempTableScopeTest";
     public static final String vectorFloat16Test = "vectorFloat16Test";
 
