@@ -57,6 +57,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.bulkCopy)
 public class BulkCopyAllTypesTest extends AbstractTest {
 
     private static DBTable tableSrc = null;

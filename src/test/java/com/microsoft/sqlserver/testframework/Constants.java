@@ -35,6 +35,8 @@ public final class Constants {
      * CodeCov - - - - - - For tests tracked in coverage-only runs
      * legacyFx  - - - - - For tests validating legacy FX regressions
      * vectorFloat16Test - For tests requiring vector(float16) setup
+     * alwaysEncrypted  - - For tests in the AlwaysEncrypted package
+     * bulkCopy - - - - - - For tests in the bulkCopy package
      * </pre>
      */
     public static final String xJDBC42 = "xJDBC42";
@@ -59,6 +61,8 @@ public final class Constants {
     public static final String JSONTest = "JSONTest";
     public static final String CodeCov = "CodeCov";
     public static final String legacyFx = "legacyFx";
+    public static final String alwaysEncrypted = "alwaysEncrypted";
+    public static final String bulkCopy = "bulkCopy";
     public static final String legacyFxXa = "legacyFx_Xa";
     public static final String PrepareMethodUseTempTableScopeTest = "PrepareMethodUseTempTableScopeTest";
     public static final String vectorFloat16Test = "vectorFloat16Test";

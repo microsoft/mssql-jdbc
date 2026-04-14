@@ -42,6 +42,7 @@ import com.microsoft.sqlserver.testframework.sqlType.SqlType;
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("BulkCopy Column Mapping Test")
+@Tag(Constants.bulkCopy)
 public class BulkCopyColumnMappingTest extends BulkCopyTestSetUp {
     private String prcdb = RandomUtil.getIdentifier("BulkCopy_PRC_DB");
 
