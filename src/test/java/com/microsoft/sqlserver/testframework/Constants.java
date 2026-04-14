@@ -59,6 +59,7 @@ public final class Constants {
     public static final String JSONTest = "JSONTest";
     public static final String CodeCov = "CodeCov";
     public static final String legacyFx = "legacyFx";
+    public static final String legacyFxXa = "legacyFx_Xa";
     public static final String PrepareMethodUseTempTableScopeTest = "PrepareMethodUseTempTableScopeTest";
     public static final String vectorFloat16Test = "vectorFloat16Test";
 
