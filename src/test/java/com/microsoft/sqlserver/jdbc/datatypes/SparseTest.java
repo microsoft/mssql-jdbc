@@ -78,6 +78,7 @@ public class SparseTest extends AbstractTest {
 
     @Nested
     @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
     @Tag(Constants.xAzureSQLDW)
     public class SparseCreationTests {
 
@@ -312,6 +313,7 @@ public class SparseTest extends AbstractTest {
 
     @Nested
     @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
     @Tag(Constants.xAzureSQLDW)
     public class SparseInsertionTests {
 
@@ -653,6 +655,7 @@ public class SparseTest extends AbstractTest {
 
     @Nested
     @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
     @Tag(Constants.xAzureSQLDW)
     public class SparseSelectTests {
 
@@ -1056,6 +1059,7 @@ public class SparseTest extends AbstractTest {
 
     @Nested
     @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
     @Tag(Constants.xAzureSQLDW)
     public class SparseMetaDataTests {
 
@@ -1166,6 +1170,7 @@ public class SparseTest extends AbstractTest {
 
     @Nested
     @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
     @Tag(Constants.xAzureSQLDW)
     public class SparseUpdateTests {
 

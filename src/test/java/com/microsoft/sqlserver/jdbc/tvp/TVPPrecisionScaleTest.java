@@ -44,6 +44,7 @@ import microsoft.sql.DateTimeOffset;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.legacyFx)
+@Tag(Constants.legacyFxTVP)
 public class TVPPrecisionScaleTest extends AbstractTest {
 
     private static String tvpName;

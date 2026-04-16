@@ -3815,6 +3815,7 @@ public class StatementTest extends AbstractTest {
      */
     @Nested
     @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxStatement)
     @Tag(Constants.xAzureSQLDW)
     public class BugRegressionTests {
 

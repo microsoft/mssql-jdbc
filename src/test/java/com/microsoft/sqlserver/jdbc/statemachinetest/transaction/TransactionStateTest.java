@@ -43,6 +43,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * INSERT/UPDATE/DELETE.
  */
 @Tag(Constants.legacyFx)
+@Tag(Constants.legacyFxStateMachine)
 public class TransactionStateTest extends AbstractTest {
 
     private static final String TABLE_NAME_CONST = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SM_Transaction_Test"));
