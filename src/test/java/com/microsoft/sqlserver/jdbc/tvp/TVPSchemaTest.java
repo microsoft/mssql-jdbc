@@ -142,6 +142,7 @@ public class TVPSchemaTest extends AbstractTest {
      */
     @Test
     @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxTVP)
     @DisplayName("TVPSchemaPreparedStatementSetObject()")
     public void testTVPSchemaPreparedStatementSetObject() throws SQLException {
 
@@ -168,6 +169,7 @@ public class TVPSchemaTest extends AbstractTest {
      */
     @Test
     @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxTVP)
     @DisplayName("TVPSchemaCallableStatementSetObject()")
     public void testTVPSchemaCallableStatementSetObject() throws SQLException {
 
@@ -194,6 +196,7 @@ public class TVPSchemaTest extends AbstractTest {
      */
     @Test
     @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxTVP)
     @DisplayName("TVPSchemaStoredProcedureWithReturnSetStructured()")
     public void testTVPSchemaStoredProcedureWithReturnSetStructured() throws SQLException {
 
@@ -227,6 +230,7 @@ public class TVPSchemaTest extends AbstractTest {
      */
     @Test
     @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxTVP)
     @DisplayName("TVPSchemaStoredProcedureWithReturnSetObject()")
     public void testTVPSchemaStoredProcedureWithReturnSetObject() throws SQLException {
 

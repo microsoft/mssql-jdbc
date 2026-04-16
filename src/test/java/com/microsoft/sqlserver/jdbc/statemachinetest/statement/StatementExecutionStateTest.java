@@ -63,6 +63,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * cancellation, warnings, cursor properties, generated keys, concurrency, and error handling.
  */
 @Tag(Constants.legacyFx)
+@Tag(Constants.legacyFxStateMachine)
 public class StatementExecutionStateTest extends AbstractTest {
 
     private static final StateKey CONN = () -> "conn";

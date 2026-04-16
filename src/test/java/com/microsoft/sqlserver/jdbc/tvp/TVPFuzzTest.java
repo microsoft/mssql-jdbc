@@ -46,6 +46,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.legacyFx)
+@Tag(Constants.legacyFxTVP)
 public class TVPFuzzTest extends AbstractTest {
 
     private static String tvpName;
