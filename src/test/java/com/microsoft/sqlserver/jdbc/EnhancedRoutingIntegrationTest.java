@@ -20,7 +20,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -54,16 +53,12 @@ public class EnhancedRoutingIntegrationTest {
     @DisplayName("Live Server Integration Tests")
     class LiveServerTests extends AbstractTest {
 
-        private static final String DBNAME_QUERY = "SELECT DB_NAME() AS [db]";
+        private final String DBNAME_QUERY = "SELECT DB_NAME() AS [db]";
         private String hyperscaleDatabase;
 
-        @BeforeAll
-        static void setupHyperscale() throws Exception {
-            setConnection();
-        }
-
         @BeforeEach
-        void checkPreconditions() {
+        void setUp() throws Exception {
+            setConnection();
             hyperscaleDatabase = getConfiguredProperty("hyperscaleDatabase", null);
             assumeTrue(hyperscaleDatabase != null && !hyperscaleDatabase.isEmpty(),
                     "Skipping: 'hyperscaleDatabase' not configured.");
