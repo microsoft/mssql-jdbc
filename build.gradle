@@ -55,6 +55,26 @@ if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile
 }
 }
 
+if (hasProperty('buildProfile') && buildProfile == "jre26") {
+
+	jreVersion = "jre26"
+	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
+	jar {
+		manifest {
+			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
+		}
+	}
+	java {
+		sourceCompatibility = JavaVersion.VERSION_26
+		targetCompatibility = JavaVersion.VERSION_26
+	}
+	test {
+    useJUnitPlatform {
+        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test','legacyFx','legacyFxXa')
+    }
+}
+}
+
 if (hasProperty('buildProfile') && buildProfile == "jre21") {
 
 	jreVersion = "jre21"
@@ -215,8 +235,14 @@ dependencies {
 				'org.mockito:mockito-inline:5.20.0',
 				'net.bytebuddy:byte-buddy:1.18.2',
 				'net.bytebuddy:byte-buddy-agent:1.18.2'
+	} else if (hasProperty('buildProfile') && buildProfile == "jre26") {
+		// JRE 26 profile
+		testImplementation 'org.mockito:mockito-core:5.23.0',
+				'org.mockito:mockito-inline:5.23.0',
+				'net.bytebuddy:byte-buddy:1.18.8',
+				'net.bytebuddy:byte-buddy-agent:1.18.8'
 	} else {
-		// JRE 11, 17, 21, 25 profiles (all use same versions)
+		// JRE 11, 17, 21 profiles (all use same versions)
 		testImplementation 'org.mockito:mockito-core:5.14.2',
 				'net.bytebuddy:byte-buddy:1.17.5',
 				'net.bytebuddy:byte-buddy-agent:1.17.5'

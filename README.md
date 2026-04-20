@@ -46,6 +46,7 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\target` directory. 
+        * Run `mvn install -Pjre26`. This creates JRE 26 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 26).
         * Run `mvn install -Pjre25`. This creates JRE 25 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 25).
         * Run `mvn install -Pjre21`. This creates JRE 21 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 21+).
         * Run `mvn install -Pjre17`. This creates JRE 17 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 17+).
@@ -55,6 +56,7 @@ To build the jar files, you must use minimum version of Java 11 with Maven. You 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\build\libs` directory. 
+        * Run `gradle build -PbuildProfile=jre26`. This creates JRE 26 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 26).
         * Run `gradle build -PbuildProfile=jre25`. This creates JRE 25 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 25).
         * Run `gradle build -PbuildProfile=jre21`. This creates JRE 21 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 21+).
         * Run `gradle build -PbuildProfile=jre17`. This creates JRE 17 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 17+).
