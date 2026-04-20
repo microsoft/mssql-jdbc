@@ -237,10 +237,10 @@ dependencies {
 				'net.bytebuddy:byte-buddy-agent:1.18.2'
 	} else if (hasProperty('buildProfile') && buildProfile == "jre26") {
 		// JRE 26 profile
-		testImplementation 'org.mockito:mockito-core:5.23.0',
-				'org.mockito:mockito-inline:5.23.0',
-				'net.bytebuddy:byte-buddy:1.18.8',
-				'net.bytebuddy:byte-buddy-agent:1.18.8'
+		testImplementation 'org.mockito:mockito-core:5.20.0',
+				'org.mockito:mockito-inline:5.20.0',
+				'net.bytebuddy:byte-buddy:1.18.2',
+				'net.bytebuddy:byte-buddy-agent:1.18.2'
 	} else {
 		// JRE 11, 17, 21 profiles (all use same versions)
 		testImplementation 'org.mockito:mockito-core:5.14.2',
