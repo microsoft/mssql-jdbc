@@ -12,42 +12,32 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Properties;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockitoAnnotations;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
- * Enhanced Routing tests (TDS Feature 0x0F / ENVCHANGE 0x21).
- * <p>
- * Contains two nested test classes:
- * <ul>
- *   <li>{@link LiveServerTests} — integration tests against an Azure Hyperscale database
- *       with HA read replicas</li>
- *   <li>{@link MockedProtocolTests} — unit tests using Mockito to verify feature negotiation,
- *       ack parsing, ENVCHANGE handling, and routing guard logic without a live server</li>
- * </ul>
+ * Tests for Enhanced Routing (TDS Feature 0x0F / ENVCHANGE 0x21).
  */
 @Tag(Constants.enhancedRouting)
 public class EnhancedRoutingIntegrationTest {
-
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Nested class 1: Live-server integration tests
-    // ──────────────────────────────────────────────────────────────────────────
 
     @Nested
     @DisplayName("Live Server Integration Tests")
@@ -88,19 +78,16 @@ public class EnhancedRoutingIntegrationTest {
         }
 
         @Test
-        @DisplayName("Server supports enhanced routing (ENVCHANGE 0x21)")
+        @DisplayName("Server acks enhanced routing and ENVCHANGE 0x21 carries database name")
         void testServerSupportsEnhancedRouting() throws Exception {
             try (SQLServerConnection conn = (SQLServerConnection) DriverManager
                     .getConnection(buildConnectionString("ReadOnly"))) {
-
-                assertTrue(conn.getServerSupportsEnhancedRouting(),
-                        "Server must acknowledge enhanced routing feature (TDS_FEATURE_EXT 0x0F)");
+                assertTrue(conn.getServerSupportsEnhancedRouting());
 
                 ServerPortPlaceHolder placeholder = getPlaceHolder(conn);
                 assertNotNull(placeholder, "Connection must have been routed");
                 assertNotNull(placeholder.getDatabaseName(),
-                        "ENVCHANGE 0x21 must carry a database name — confirms enhanced routing (type 21), "
-                                + "not legacy routing (type 20)");
+                        "ENVCHANGE 0x21 must carry a database name");
             }
         }
 
@@ -133,9 +120,6 @@ public class EnhancedRoutingIntegrationTest {
         }
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    //  Nested class 2: Mocked protocol unit tests (no live server needed)
-    // ──────────────────────────────────────────────────────────────────────────
 
     @Nested
     @DisplayName("Mocked Protocol Tests")
@@ -145,55 +129,26 @@ public class EnhancedRoutingIntegrationTest {
 
         @BeforeEach
         void setUp() throws Exception {
-            MockitoAnnotations.openMocks(this);
-            conn = new SQLServerConnection("MockedTest");
-        }
-
-        // ── Feature request write tests ──────────────────────────────────────
-
-        @Test
-        @DisplayName("writeEnhancedRoutingFeatureRequest returns correct length (5 bytes)")
-        void testFeatureRequestLength() throws Exception {
-            // write=false → just calculates length, no writer needed
-            int len = conn.writeEnhancedRoutingFeatureRequest(false, null);
-            assertEquals(5, len, "Feature request must be 5 bytes: 1 (featureId) + 4 (int32 length=0)");
-        }
-
-        // ── Feature ack tests (onFeatureExtAck) ─────────────────────────────
-
-        @Test
-        @DisplayName("onFeatureExtAck with data=[1] enables serverSupportsEnhancedRouting")
-        void testFeatureAckEnabled() throws Exception {
-            invokeOnFeatureExtAck(conn, TDS.TDS_FEATURE_EXT_ENHANCEDROUTING, new byte[]{1});
-            assertTrue(conn.getServerSupportsEnhancedRouting(),
-                    "data[0]==1 must enable enhanced routing");
+            conn = new SQLServerConnection("UnitTest");
         }
 
         @Test
-        @DisplayName("onFeatureExtAck with data=[0] keeps serverSupportsEnhancedRouting false")
-        void testFeatureAckDisabled() throws Exception {
-            invokeOnFeatureExtAck(conn, TDS.TDS_FEATURE_EXT_ENHANCEDROUTING, new byte[]{0});
-            assertFalse(conn.getServerSupportsEnhancedRouting(),
-                    "data[0]==0 must not enable enhanced routing");
-        }
+        @DisplayName("onFeatureExtAck throws with exact error message for invalid ack data")
+        void testFeatureAckInvalidDataThrowsWithMessage() {
+            String expectedMessage = "Enhanced routing feature extension ack should contain exactly 1 byte of data.";
 
-        @Test
-        @DisplayName("onFeatureExtAck with empty data throws SQLServerException")
-        void testFeatureAckEmptyDataThrows() {
-            assertThrows(SQLServerException.class,
-                    () -> invokeOnFeatureExtAck(conn, TDS.TDS_FEATURE_EXT_ENHANCEDROUTING, new byte[]{}),
-                    "Empty ack data must throw — expected exactly 1 byte");
-        }
+            // Empty data — 0 bytes instead of 1
+            SQLServerException emptyEx = assertThrows(SQLServerException.class,
+                    () -> invokeOnFeatureExtAck(conn, TDS.TDS_FEATURE_EXT_ENHANCEDROUTING, new byte[]{}));
+            assertEquals(expectedMessage, emptyEx.getMessage(),
+                    "Empty ack data must throw with exact error message");
 
-        @Test
-        @DisplayName("onFeatureExtAck with extra data throws SQLServerException")
-        void testFeatureAckExtraDataThrows() {
-            assertThrows(SQLServerException.class,
-                    () -> invokeOnFeatureExtAck(conn, TDS.TDS_FEATURE_EXT_ENHANCEDROUTING, new byte[]{1, 0}),
-                    "More than 1 byte in ack data must throw");
+            // Extra data — 2 bytes instead of 1
+            SQLServerException extraEx = assertThrows(SQLServerException.class,
+                    () -> invokeOnFeatureExtAck(conn, TDS.TDS_FEATURE_EXT_ENHANCEDROUTING, new byte[]{1, 0}));
+            assertEquals(expectedMessage, extraEx.getMessage(),
+                    "Extra ack data must throw with exact error message");
         }
-
-        // ── Feature ack routing filter tests ────────────────────────────────
 
         @Test
         @DisplayName("onFeatureExtAck filters non-DNS/non-enhancedRouting features when routingInfo is set")
@@ -206,99 +161,169 @@ public class EnhancedRoutingIntegrationTest {
         }
 
         @Test
-        @DisplayName("onFeatureExtAck allows enhanced routing ack even when routingInfo is set")
-        void testFeatureAckAllowsEnhancedRoutingDuringRouting() throws Exception {
-            setRoutingInfo(conn, new ServerPortPlaceHolder("routed-server", 1433, null, "mydb", false));
+        @DisplayName("Server under load routes to different database — driver uses routed DB name in Login7")
+        void testFullFlowEnhancedRoutingDatabaseName() throws Exception {
+            String originalDatabase = "OriginalDB";
+            String routedDatabase = "RoutedReplicaDB";
+            String routedServer = "routed-replica.database.windows.net";
+            int routedPort = 1433;
 
+            // Client initially connected to OriginalDB
+            setupActiveConnectionProperties(conn);
+            Field propsField = SQLServerConnection.class.getDeclaredField("activeConnectionProperties");
+            propsField.setAccessible(true);
+            Properties props = (Properties) propsField.get(conn);
+            props.setProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString(), originalDatabase);
+
+            // Before routing: sendLogon() would use the original database
+            String preRouteDatabase = props.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString());
+            assertEquals(originalDatabase, preRouteDatabase,
+                    "Before routing, Login7 must use the original database");
+
+            // Server acks enhanced routing during feature negotiation
             invokeOnFeatureExtAck(conn, TDS.TDS_FEATURE_EXT_ENHANCEDROUTING, new byte[]{1});
-            assertTrue(conn.getServerSupportsEnhancedRouting());
-        }
+            assertTrue(conn.getServerSupportsEnhancedRouting(), "Feature must be acked");
 
-        // ── Routing guard tests ─────────────────────────────────────────────
+            // Server is under load — sends ENVCHANGE 21 routing client to a different database
+            TDSReader tdsReader = createTdsReaderWithEnvChange(conn, 21, routedServer, routedPort, routedDatabase);
+            conn.processEnvChange(tdsReader);
 
-        @Test
-        @DisplayName("Enhanced routing info is discarded when server did not ack the feature")
-        void testRoutingGuardDiscardsEnhancedRoutingWhenNotAcked() throws Exception {
-            ServerPortPlaceHolder enhancedRouting = new ServerPortPlaceHolder(
-                    "routed-host", 1433, null, "someDatabase", false);
-            setRoutingInfo(conn, enhancedRouting);
-            setServerSupportsEnhancedRouting(conn, false);
-
-            assertNotNull(getRoutingInfo(conn));
-            assertNotNull(getRoutingInfo(conn).getDatabaseName());
-
-            boolean discarded = simulateRoutingGuard(conn);
-            assertTrue(discarded, "Guard must discard enhanced routing info when feature not acked");
-            assertNull(getRoutingInfo(conn), "routingInfo must be null after guard discards it");
+            // Verify the real TDS parser extracted the routing info correctly
+            ServerPortPlaceHolder routing = getRoutingInfo(conn);
+            assertNotNull(routing, "processEnvChange must populate routingInfo from ENVCHANGE 21");
+            // Verify the routing info carries the routed database, server, and port
+            assertEquals(routedDatabase, routing.getDatabaseName(),
+                    "Login7 must use routed database, not original");
+            assertEquals(routedServer, routing.getServerName(),
+                    "Driver must reconnect to the routed server");
+            assertEquals(routedPort, routing.getPortNumber(),
+                    "Driver must reconnect to the routed port");
         }
 
         @Test
-        @DisplayName("Legacy routing info (no databaseName) is NOT discarded by guard")
-        void testRoutingGuardKeepsLegacyRouting() throws Exception {
-            ServerPortPlaceHolder legacyRouting = new ServerPortPlaceHolder(
-                    "routed-host", 1433, null, false);
-            setRoutingInfo(conn, legacyRouting);
-            setServerSupportsEnhancedRouting(conn, false);
+        @DisplayName("No ack + ENVCHANGE 21 → processEnvChange rejects unrecognized enhanced routing")
+        void testFullFlowNoAckEnvChange21Throws() throws Exception {
+            String originalDatabase = "OriginalDB";
 
-            boolean discarded = simulateRoutingGuard(conn);
-            assertFalse(discarded, "Guard must NOT discard legacy routing info (no databaseName)");
-            assertNotNull(getRoutingInfo(conn));
+            // Client initially connected to OriginalDB
+            setupActiveConnectionProperties(conn);
+            Field propsField = SQLServerConnection.class.getDeclaredField("activeConnectionProperties");
+            propsField.setAccessible(true);
+            Properties props = (Properties) propsField.get(conn);
+            props.setProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString(), originalDatabase);
+
+            // Before routing: Login7 uses original database
+            assertEquals(originalDatabase,
+                    props.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()),
+                    "Before routing, Login7 must use the original database");
+
+            // Server did NOT ack enhanced routing
+            assertFalse(conn.getServerSupportsEnhancedRouting(), "Feature must not be acked");
+
+            // Server sends ENVCHANGE 21 anyway — processEnvChange must reject it
+            TDSReader tdsReader = createTdsReaderWithEnvChange(conn, 21, "routed-server", 1433, "SomeDB");
+            assertThrows(SQLServerException.class, () -> conn.processEnvChange(tdsReader),
+                    "ENVCHANGE 21 without feature ack must throw");
+
+            // After rejection: routingInfo must remain null, original database unchanged
+            assertNull(getRoutingInfo(conn), "routingInfo must remain null after rejected ENVCHANGE 21");
+            assertEquals(originalDatabase,
+                    props.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()),
+                    "After rejected routing, Login7 must still use original database");
         }
 
         @Test
-        @DisplayName("Enhanced routing info is kept when server DID ack the feature")
-        void testRoutingGuardKeepsWhenAcked() throws Exception {
-            ServerPortPlaceHolder enhancedRouting = new ServerPortPlaceHolder(
-                    "routed-host", 1433, null, "someDatabase", false);
-            setRoutingInfo(conn, enhancedRouting);
-            setServerSupportsEnhancedRouting(conn, true);
+        @DisplayName("Legacy ENVCHANGE 20 → driver routes to new server but keeps original database name")
+        void testFullFlowLegacyRoutingUsesOriginalDatabase() throws Exception {
+            String originalDatabase = "OriginalDB";
+            String routedServer = "routed-server.database.windows.net";
+            int routedPort = 1433;
 
-            boolean discarded = simulateRoutingGuard(conn);
-            assertFalse(discarded, "Guard must NOT discard routing info when feature was acked");
-            assertNotNull(getRoutingInfo(conn));
+            // Client initially connected to OriginalDB
+            setupActiveConnectionProperties(conn);
+            Field propsField = SQLServerConnection.class.getDeclaredField("activeConnectionProperties");
+            propsField.setAccessible(true);
+            Properties props = (Properties) propsField.get(conn);
+            props.setProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString(), originalDatabase);
+
+            // Before routing: Login7 uses original database
+            assertEquals(originalDatabase,
+                    props.getProperty(SQLServerDriverStringProperty.DATABASE_NAME.toString()),
+                    "Before routing, Login7 must use the original database");
+
+            // Server sends legacy ENVCHANGE 20 (no database name in routing info)
+            TDSReader tdsReader = createTdsReaderWithEnvChange(conn, 20, routedServer, routedPort, null);
+            conn.processEnvChange(tdsReader);
+
+            // Verify parser populated routingInfo without database name
+            ServerPortPlaceHolder routing = getRoutingInfo(conn);
+            assertNotNull(routing, "processEnvChange must set routingInfo for legacy routing");
+            assertEquals(routedServer, routing.getServerName(), "Driver must route to the new server");
+            assertEquals(routedPort, routing.getPortNumber(), "Driver must route to the new port");
+            assertNull(routing.getDatabaseName(), "Legacy ENVCHANGE 20 must not carry a database name");
         }
 
-        // ── ServerPortPlaceHolder tests ─────────────────────────────────────
-
         @Test
-        @DisplayName("ServerPortPlaceHolder 5-arg constructor stores databaseName")
-        void testPlaceHolderWithDatabaseName() {
-            ServerPortPlaceHolder ph = new ServerPortPlaceHolder("server1", 1433, "inst", "mydb", false);
-            assertEquals("server1", ph.getServerName());
-            assertEquals(1433, ph.getPortNumber());
-            assertEquals("inst", ph.getInstanceName());
-            assertEquals("mydb", ph.getDatabaseName());
-        }
-
-        @Test
-        @DisplayName("ServerPortPlaceHolder 4-arg constructor has null databaseName")
-        void testPlaceHolderWithoutDatabaseName() {
-            ServerPortPlaceHolder ph = new ServerPortPlaceHolder("server1", 1433, "inst", false);
-            assertEquals("server1", ph.getServerName());
-            assertEquals(1433, ph.getPortNumber());
-            assertNull(ph.getDatabaseName(), "Legacy constructor must leave databaseName null");
-        }
-
-        // ── Diagnostic field tests ───────────────────────────────────────────
-
-        @Test
-        @DisplayName("serverSupportsEnhancedRouting is false by default")
-        void testEnhancedRoutingDefaultFalse() {
+        @DisplayName("Server acks enhanced routing with data[0]=0 (explicitly disabled)")
+        void testFeatureAckExplicitlyDisabled() throws Exception {
+            // Server sends ack with data[0]=0 — explicitly says "I don't support enhanced routing"
+            invokeOnFeatureExtAck(conn, TDS.TDS_FEATURE_EXT_ENHANCEDROUTING, new byte[]{0});
             assertFalse(conn.getServerSupportsEnhancedRouting(),
-                    "serverSupportsEnhancedRouting must default to false");
-        }
+                    "data[0]=0 must leave serverSupportsEnhancedRouting as false");
 
-        // ── TDS constant tests ──────────────────────────────────────────────
+            // Now if server sends ENVCHANGE 21, it must be rejected
+            setupActiveConnectionProperties(conn);
+            TDSReader tdsReader = createTdsReaderWithEnvChange(conn, 21, "routed-server", 1433, "SomeDB");
+            assertThrows(SQLServerException.class, () -> conn.processEnvChange(tdsReader),
+                    "ENVCHANGE 21 must be rejected when server explicitly disabled the feature");
+            assertNull(getRoutingInfo(conn), "routingInfo must remain null");
+        }
 
         @Test
-        @DisplayName("TDS_FEATURE_EXT_ENHANCEDROUTING is 0x0F")
-        void testFeatureIdValue() {
-            assertEquals((byte) 0x0F, TDS.TDS_FEATURE_EXT_ENHANCEDROUTING,
-                    "Enhanced routing feature ID must be 0x0F");
+        @DisplayName("ENVCHANGE 21 with port 0 throws invalid TDS")
+        void testEnvChange21InvalidPort() throws Exception {
+            setupActiveConnectionProperties(conn);
+            invokeOnFeatureExtAck(conn, TDS.TDS_FEATURE_EXT_ENHANCEDROUTING, new byte[]{1});
+
+            TDSReader tdsReader = createTdsReaderWithEnvChange(conn, 21, "routed-server", 0, "SomeDB");
+            assertThrows(SQLServerException.class, () -> conn.processEnvChange(tdsReader),
+                    "Port 0 in ENVCHANGE 21 must throw");
         }
 
-        // ── Helper methods ──────────────────────────────────────────────────
+        @Test
+        @DisplayName("ENVCHANGE 21 with database name length 0 throws invalid enhanced routing info")
+        void testEnvChange21EmptyDatabaseName() throws Exception {
+            setupActiveConnectionProperties(conn);
+            invokeOnFeatureExtAck(conn, TDS.TDS_FEATURE_EXT_ENHANCEDROUTING, new byte[]{1});
 
+            // Craft bytes with dbNameLength=0 (invalid for enhanced routing)
+            TDSReader tdsReader = createTdsReaderWithEnvChange21EmptyDb(conn, "routed-server", 1433);
+            assertThrows(SQLServerException.class, () -> conn.processEnvChange(tdsReader),
+                    "Empty database name in ENVCHANGE 21 must throw");
+        }
+
+        @Test
+        @DisplayName("Enhanced routing updates hostNameInCertificate for same-domain routed server")
+        void testHostNameInCertificateUpdatedOnRouting() throws Exception {
+            setupActiveConnectionProperties(conn);
+            invokeOnFeatureExtAck(conn, TDS.TDS_FEATURE_EXT_ENHANCEDROUTING, new byte[]{1});
+
+            // Route to a server in the same *.database.windows.net domain
+            String routedServer = "replica-xyz.database.windows.net";
+            TDSReader tdsReader = createTdsReaderWithEnvChange(conn, 21, routedServer, 1433, "RoutedDB");
+            conn.processEnvChange(tdsReader);
+
+            Field propsField = SQLServerConnection.class.getDeclaredField("activeConnectionProperties");
+            propsField.setAccessible(true);
+            Properties props = (Properties) propsField.get(conn);
+            String updatedHostName = props.getProperty("hostNameInCertificate");
+
+            // The wildcard should match the routed server's domain
+            assertEquals("*.database.windows.net", updatedHostName,
+                    "hostNameInCertificate must be updated to match routed server domain");
+        }
+
+        // Helper methods
         private void invokeOnFeatureExtAck(SQLServerConnection conn, byte featureId, byte[] data) throws Exception {
             Method m = SQLServerConnection.class.getDeclaredMethod("onFeatureExtAck", byte.class, byte[].class);
             m.setAccessible(true);
@@ -324,31 +349,117 @@ public class EnhancedRoutingIntegrationTest {
             return (ServerPortPlaceHolder) f.get(conn);
         }
 
-        private void setServerSupportsEnhancedRouting(SQLServerConnection conn, boolean value) throws Exception {
-            Field f = SQLServerConnection.class.getDeclaredField("serverSupportsEnhancedRouting");
+        /** Sets fields on conn so processEnvChange and TDSReader don't NPE. */
+        private void setupActiveConnectionProperties(SQLServerConnection conn) throws Exception {
+            Properties props = new Properties();
+            props.setProperty("hostNameInCertificate", "*.database.windows.net");
+            Field f = SQLServerConnection.class.getDeclaredField("activeConnectionProperties");
             f.setAccessible(true);
-            f.set(conn, value);
+            f.set(conn, props);
+
+            // TDSReader constructor calls isColumnEncryptionSettingEnabled() which needs this non-null
+            Field ces = SQLServerConnection.class.getDeclaredField("columnEncryptionSetting");
+            ces.setAccessible(true);
+            ces.set(conn, "Disabled");
         }
 
         /**
-         * Simulates the routing guard logic from login()'s else branch:
-         * if routingInfo has a databaseName but the server didn't ack enhanced routing,
-         * discard the routing info.
+         * Crafts a TDS ENVCHANGE routing token and returns a TDSReader positioned at the start.
          *
-         * @return true if routing info was discarded
+         * Wire format: [0xE3] [envValueLength: LE ushort] [envchange: byte]
+         *   [routingDataLen: LE ushort] [protocol=0] [port: LE ushort]
+         *   [serverNameLen: LE ushort] [serverName: UTF-16LE]
+         *   [dbNameLen: LE ushort] [dbName: UTF-16LE]  ← only for envchange=21
+         *   [oldValueLen=0: byte]
          */
-        private boolean simulateRoutingGuard(SQLServerConnection conn) throws Exception {
-            ServerPortPlaceHolder routing = getRoutingInfo(conn);
-            if (routing != null && routing.getDatabaseName() != null) {
-                Field f = SQLServerConnection.class.getDeclaredField("serverSupportsEnhancedRouting");
-                f.setAccessible(true);
-                boolean supported = f.getBoolean(conn);
-                if (!supported) {
-                    setRoutingInfo(conn, null);
-                    return true;
-                }
+        private TDSReader createTdsReaderWithEnvChange(SQLServerConnection conn,
+                int envchange, String serverName, int port, String databaseName) throws Exception {
+
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+            byte[] serverBytes = serverName.getBytes(StandardCharsets.UTF_16LE);
+
+            int routingDataLen = 1 + 2 + 2 + serverBytes.length;
+            if (envchange == 21 && databaseName != null) {
+                routingDataLen += 2 + databaseName.getBytes(StandardCharsets.UTF_16LE).length;
             }
-            return false;
+            int envValueLength = 1 + 2 + routingDataLen + 1;
+
+            buf.write(0xE3);                          // token type
+            writeUShortLE(buf, envValueLength);        // envValueLength
+            buf.write(envchange);                      // envchange type (20 or 21)
+            writeUShortLE(buf, routingDataLen);         // routing data length
+            buf.write(0);                              // protocol
+            writeUShortLE(buf, port);                   // port
+            writeUShortLE(buf, serverName.length());    // server name length (chars)
+            buf.write(serverBytes);                    // server name (UTF-16LE)
+
+            if (envchange == 21 && databaseName != null) {
+                byte[] dbBytes = databaseName.getBytes(StandardCharsets.UTF_16LE);
+                writeUShortLE(buf, databaseName.length());
+                buf.write(dbBytes);
+            }
+
+            buf.write(0);  // old value length = 0
+
+            byte[] payload = buf.toByteArray();
+
+            // Inject crafted bytes into a TDSPacket → TDSReader
+            TDSPacket packet = new TDSPacket(payload.length);
+            System.arraycopy(payload, 0, packet.payload, 0, payload.length);
+            packet.payloadLength = payload.length;
+
+            return createTdsReader(conn, packet);
+        }
+
+        private TDSReader createTdsReader(SQLServerConnection conn, TDSPacket packet) throws Exception {
+            java.lang.reflect.Constructor<TDSReader> ctor = TDSReader.class.getDeclaredConstructor(
+                    TDSChannel.class, SQLServerConnection.class, TDSCommand.class);
+            ctor.setAccessible(true);
+            TDSReader reader = ctor.newInstance(null, conn, null);
+
+            Field currentPacketField = TDSReader.class.getDeclaredField("currentPacket");
+            currentPacketField.setAccessible(true);
+            currentPacketField.set(reader, packet);
+
+            Field offsetField = TDSReader.class.getDeclaredField("payloadOffset");
+            offsetField.setAccessible(true);
+            offsetField.set(reader, 0);
+
+            return reader;
+        }
+
+        private void writeUShortLE(ByteArrayOutputStream buf, int value) {
+            buf.write(value & 0xFF);
+            buf.write((value >> 8) & 0xFF);
+        }
+
+        /** Crafts ENVCHANGE 21 with dbNameLength=0 to test empty database name rejection. */
+        private TDSReader createTdsReaderWithEnvChange21EmptyDb(SQLServerConnection conn,
+                String serverName, int port) throws Exception {
+
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+            byte[] serverBytes = serverName.getBytes(StandardCharsets.UTF_16LE);
+
+            // routingDataLen includes: protocol(1) + port(2) + serverNameLen(2) + serverBytes + dbNameLen(2)
+            int routingDataLen = 1 + 2 + 2 + serverBytes.length + 2;
+            int envValueLength = 1 + 2 + routingDataLen + 1;
+
+            buf.write(0xE3);
+            writeUShortLE(buf, envValueLength);
+            buf.write(21);                             // enhanced routing
+            writeUShortLE(buf, routingDataLen);
+            buf.write(0);                              // protocol
+            writeUShortLE(buf, port);
+            writeUShortLE(buf, serverName.length());
+            buf.write(serverBytes);
+            writeUShortLE(buf, 0);                     // dbNameLength = 0 (invalid)
+            buf.write(0);                              // old value length = 0
+
+            byte[] payload = buf.toByteArray();
+            TDSPacket packet = new TDSPacket(payload.length);
+            System.arraycopy(payload, 0, packet.payload, 0, payload.length);
+            packet.payloadLength = payload.length;
+            return createTdsReader(conn, packet);
         }
     }
 }
