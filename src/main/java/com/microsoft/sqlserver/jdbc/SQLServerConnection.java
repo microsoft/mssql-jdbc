@@ -6408,14 +6408,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             case ENVCHANGE_ROUTING:
             case ENVCHANGE_ENHANCED_ROUTING:
-                // Enhanced routing should only be processed if the feature was successfully negotiated
                 boolean isEnhancedRouting = (envchange == ENVCHANGE_ENHANCED_ROUTING);
                 if (isEnhancedRouting && !serverSupportsEnhancedRouting) {
                     if (connectionlogger.isLoggable(Level.WARNING)) {
-                        connectionlogger.warning(toString() + " Received enhanced routing ENVCHANGE but feature was not negotiated");
+                        connectionlogger.warning(toString() + " Received enhanced routing ENVCHANGE (type 21) but feature was not negotiated. "
+                                + "Database name from routing info will be ignored.");
                     }
-                    throw new SQLServerException(
-                            SQLServerException.getErrString("R_invalidEnhancedRoutingInfo"), null);
                 }
                 int routingDataValueLength, routingProtocol, routingPortNumber, routingServerNameLength, routingDatabaseNameLength = -1;
                 routingDataValueLength = routingProtocol = routingPortNumber = routingServerNameLength = -1;
