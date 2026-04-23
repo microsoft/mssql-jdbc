@@ -3950,23 +3950,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             if (routingInfo != null) {
                                 // If we received enhanced routing info (with database name) but the server
                                 // did not acknowledge the enhanced routing feature, discard the routing info
-                                // and connect to the current server instead.
+                                // and fall through to connect to the current server instead.
                                 if (routingInfo.getDatabaseName() != null && !serverSupportsEnhancedRouting) {
                                     if (connectionlogger.isLoggable(Level.WARNING)) {
                                         connectionlogger.warning(toString()
                                                 + " Ignoring enhanced routing info because the server did not acknowledge the feature.");
                                     }
                                     routingInfo = null;
-                                    break;
+                                } else {
+                                    if (loggerRedirection.isLoggable(Level.FINE)) {
+                                        loggerRedirection
+                                                .fine(toString() + " Connection open - redirecting to server and instance: "
+                                                        + routingInfo.getFullServerName());
+                                    }
+                                    currentPrimaryPlaceHolder = routingInfo;
+                                    routingInfo = null;
                                 }
-                                
-                                if (loggerRedirection.isLoggable(Level.FINE)) {
-                                    loggerRedirection
-                                            .fine(toString() + " Connection open - redirecting to server and instance: "
-                                                    + routingInfo.getFullServerName());
-                                }
-                                currentPrimaryPlaceHolder = routingInfo;
-                                routingInfo = null;
                             } else if (null == currentPrimaryPlaceHolder) {
                                 currentPrimaryPlaceHolder = primaryPermissionCheck(primary, primaryInstanceName,
                                         primaryPortNumber);
@@ -6412,7 +6411,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (isEnhancedRouting && !serverSupportsEnhancedRouting) {
                     if (connectionlogger.isLoggable(Level.WARNING)) {
                         connectionlogger.warning(toString() + " Received enhanced routing ENVCHANGE (type 21) but feature was not negotiated. "
-                                + "Database name from routing info will be ignored.");
+                                + "Routing info will be parsed but discarded by the login guard.");
                     }
                 }
                 int routingDataValueLength, routingProtocol, routingPortNumber, routingServerNameLength, routingDatabaseNameLength = -1;
