@@ -35,104 +35,40 @@ test {
     }
 }
 
-if (!hasProperty('buildProfile') || (hasProperty('buildProfile') && buildProfile == "jre25")) {
+// Common configuration for all JDBC 4.3 profiles (JRE 11+)
+def jdbc43Profiles = ['jre11', 'jre17', 'jre21', 'jre25', 'jre26']
+def currentProfile = hasProperty('buildProfile') ? buildProfile : 'jre26' // Default to latest JRE profile if not specified
 
-	jreVersion = "jre25"
-	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
-	jar {
-		manifest {
-			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
-		}
-	}
-	java {
-		sourceCompatibility = JavaVersion.VERSION_25
-		targetCompatibility = JavaVersion.VERSION_25
-	}
-	test {
-    useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test','legacyFx','legacyFx_Xa')
+// Apply common configuration for JDBC 4.3 profiles
+if (jdbc43Profiles.contains(currentProfile)) {
+    jreVersion = currentProfile
+    excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
+
+    jar {
+        manifest {
+            attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
+        }
     }
-}
-}
 
-if (hasProperty('buildProfile') && buildProfile == "jre26") {
+    // Set Java version based on profile
+    def versionMap = [
+        'jre11': JavaVersion.VERSION_11,
+        'jre17': JavaVersion.VERSION_17,
+        'jre21': JavaVersion.VERSION_21,
+        'jre25': JavaVersion.VERSION_25,
+        'jre26': JavaVersion.VERSION_26
+    ]
 
-	jreVersion = "jre26"
-	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
-	jar {
-		manifest {
-			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
-		}
-	}
-	java {
-		sourceCompatibility = JavaVersion.VERSION_26
-		targetCompatibility = JavaVersion.VERSION_26
-	}
-	test {
-    useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test','legacyFx','legacyFxXa')
+    java {
+        sourceCompatibility = versionMap[currentProfile]
+        targetCompatibility = versionMap[currentProfile]
     }
-}
-}
 
-if (hasProperty('buildProfile') && buildProfile == "jre21") {
-
-	jreVersion = "jre21"
-	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
-	jar {
-		manifest {
-			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
-		}
-	}
-	java {
-		sourceCompatibility = JavaVersion.VERSION_21
-		targetCompatibility = JavaVersion.VERSION_21
-	}
-	test {
-    useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test','legacyFx','legacyFx_Xa')
+    test {
+        useJUnitPlatform {
+            excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test', 'legacyFx','legacyFx_Xa')
+        }
     }
-}
-}
-
-if (hasProperty('buildProfile') && buildProfile == "jre17") {
-	
-	jreVersion = "jre17"
-	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
-	jar {
-		manifest {
-			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
-		}
-	}
-	java {
-		sourceCompatibility = JavaVersion.VERSION_17
-		targetCompatibility = JavaVersion.VERSION_17
-	}
-	test {
-    useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test','legacyFx','legacyFx_Xa')
-    }
-}
-}
-
-if (hasProperty('buildProfile') && buildProfile == "jre11") {
-	
-	jreVersion = "jre11"
-	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java'
-	jar {
-		manifest {
-			attributes 'Automatic-Module-Name': 'com.microsoft.sqlserver.jdbc'
-		}
-	}
-	java {
-		sourceCompatibility = JavaVersion.VERSION_11
-		targetCompatibility = JavaVersion.VERSION_11
-	}
-	test {
-    useJUnitPlatform {
-        excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test','legacyFx','legacyFx_Xa')
-    }
-}
 }
 
 if(hasProperty('buildProfile') && buildProfile == "jre8") {
@@ -229,14 +165,8 @@ dependencies {
 				'org.mockito:mockito-inline:4.11.0',
 				'net.bytebuddy:byte-buddy:1.15.11',
 				'net.bytebuddy:byte-buddy-agent:1.15.11'
-	} else if (hasProperty('buildProfile') && buildProfile == "jre25") {
-		// JRE 25 profile
-		testImplementation 'org.mockito:mockito-core:5.20.0',
-				'org.mockito:mockito-inline:5.20.0',
-				'net.bytebuddy:byte-buddy:1.18.2',
-				'net.bytebuddy:byte-buddy-agent:1.18.2'
-	} else if (hasProperty('buildProfile') && buildProfile == "jre26") {
-		// JRE 26 profile
+	} else if (hasProperty('buildProfile') && (buildProfile == "jre25" || buildProfile == "jre26")) {
+		// JRE 25, 26 profile
 		testImplementation 'org.mockito:mockito-core:5.20.0',
 				'org.mockito:mockito-inline:5.20.0',
 				'net.bytebuddy:byte-buddy:1.18.2',
