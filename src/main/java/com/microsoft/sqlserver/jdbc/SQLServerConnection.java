@@ -6407,7 +6407,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             case ENVCHANGE_ROUTING:
             case ENVCHANGE_ENHANCED_ROUTING:
-                boolean isEnhancedRouting = (envchange == ENVCHANGE_ENHANCED_ROUTING);
+                boolean isEnhancedRouting = (envchange == ENVCHANGE_ENHANCED_ROUTING); // Enhanced Routing includes database name in addition to server/port
                 if (isEnhancedRouting && !serverSupportsEnhancedRouting) {
                     if (connectionlogger.isLoggable(Level.WARNING)) {
                         connectionlogger.warning(toString() + " Received enhanced routing ENVCHANGE (type 21) but feature was not negotiated. "
@@ -7312,7 +7312,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
             case TDS.TDS_FEATURE_EXT_ENHANCEDROUTING: {
                 if (connectionlogger.isLoggable(Level.FINER)) {
-                    connectionlogger.fine(toString() + " Received feature extension acknowledgement for Enhanced Routing.");
+                    connectionlogger.finer(toString() + " Received feature extension acknowledgement for Enhanced Routing.");
                 }
 
                 // Enhanced Routing feature extension ack should contain exactly 1 byte:
@@ -7324,7 +7324,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 serverSupportsEnhancedRouting = (data[0] == 1);
 
                 if (connectionlogger.isLoggable(Level.FINER)) {
-                    connectionlogger.fine(toString() + " Enhanced Routing support enabled: " + serverSupportsEnhancedRouting);
+                    connectionlogger.finer(toString() + " Enhanced Routing support enabled: " + serverSupportsEnhancedRouting);
                 }
                 break;
             }
