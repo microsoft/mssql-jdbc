@@ -3937,6 +3937,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 while (true) {
                     clientConnectionId = null;
                     state = State.INITIALIZED;
+                    // Reset enhanced routing state for each connection attempt so a stale
+                    // ack from a prior failed attempt does not carry over to a different server.
+                    serverSupportsEnhancedRouting = false;
 
                     try {
                         if (isDBMirroring && useFailoverHost) {
@@ -4060,8 +4063,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             } else {
                                 // set isRoutedInCurrentAttempt to false for the next attempt
                                 isRoutedInCurrentAttempt = false;
-                                // Reset so the routed server must re-negotiate enhanced routing
-                                serverSupportsEnhancedRouting = false;
 
                                 continue;
                             }
