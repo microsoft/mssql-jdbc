@@ -170,6 +170,9 @@ final class TDS {
     static final byte TDS_FEATURE_EXT_AZURESQLDNSCACHING = 0x0B;
     static final byte TDS_FEATURE_EXT_SESSIONRECOVERY = 0x01;
 
+    // Enhanced Routing support
+    static final byte TDS_FEATURE_EXT_ENHANCEDROUTING = 0x0F;
+
     // Vector support
     static final byte TDS_FEATURE_EXT_VECTORSUPPORT = 0x0E;
     static final byte VECTORSUPPORT_NOT_SUPPORTED = 0x00; // vector not supported; will return json formatted string
@@ -258,7 +261,9 @@ final class TDS {
                 return "TDS_FEATURE_EXT_JSONSUPPORT (0x0D)";
             case TDS_FEATURE_EXT_USERAGENT:
                 return "TDS_FEATURE_EXT_USERAGENT (0x10)";
-                
+            case TDS_FEATURE_EXT_ENHANCEDROUTING:
+                return "TDS_FEATURE_EXT_ENHANCEDROUTING (0x0F)";
+
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
