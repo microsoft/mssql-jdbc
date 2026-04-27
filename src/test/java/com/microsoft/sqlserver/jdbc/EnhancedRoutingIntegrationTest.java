@@ -89,6 +89,13 @@ public class EnhancedRoutingIntegrationTest {
             invokeOnFeatureExtAck(conn, TDS.TDS_FEATURE_EXT_FEDAUTH, new byte[]{});
         }
 
+        @Test
+        @DisplayName("getTokenName returns correct string for TDS_FEATURE_EXT_ENHANCEDROUTING")
+        void testGetTokenName() {
+            assertEquals("TDS_FEATURE_EXT_ENHANCEDROUTING (0x0F)",
+                    TDS.getTokenName(TDS.TDS_FEATURE_EXT_ENHANCEDROUTING));
+        }
+
         /**
          * Ack enhanced routing, inject ENVCHANGE 21, call login() via reflection.
          * Verifies login() guard accepts routing and sets currentConnectPlaceHolder.

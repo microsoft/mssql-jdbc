@@ -4060,6 +4060,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             } else {
                                 // set isRoutedInCurrentAttempt to false for the next attempt
                                 isRoutedInCurrentAttempt = false;
+                                // Reset so the routed server must re-negotiate enhanced routing
+                                serverSupportsEnhancedRouting = false;
 
                                 continue;
                             }
