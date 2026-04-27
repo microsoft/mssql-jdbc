@@ -5,6 +5,9 @@
  * For building particular version of the driver, use commands:
  * jreXX - - PS> gradle build -PbuildProfile=jreXX
  *
+ * Default profile (no -PbuildProfile specified): jre26
+ * Requires JDK 26+ installed to build without specifying a profile.
+ *
  * For Excluding Groups in command line:
  * PS> gradle build -PbuildProfile=jre11 "-PexcludedGroups=['xSQLv15','xGradle']"
  ****************************************************************/
@@ -71,7 +74,7 @@ if (jdbc43Profiles.contains(currentProfile)) {
     }
 }
 
-if(hasProperty('buildProfile') && buildProfile == "jre8") {
+if (currentProfile == "jre8") {
 	
 	jreVersion = "jre8"
 	excludedFile = 'com/microsoft/sqlserver/jdbc/SQLServerJdbc43.java'
@@ -168,7 +171,6 @@ dependencies {
 	} else if (hasProperty('buildProfile') && (buildProfile == "jre25" || buildProfile == "jre26")) {
 		// JRE 25 and 26 profile (uses same versions)
 		testImplementation 'org.mockito:mockito-core:5.20.0',
-				'org.mockito:mockito-inline:5.20.0',
 				'net.bytebuddy:byte-buddy:1.18.2',
 				'net.bytebuddy:byte-buddy-agent:1.18.2'
 	} else {
