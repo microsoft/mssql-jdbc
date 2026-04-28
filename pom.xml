@@ -506,9 +506,6 @@
 			<properties>
 				<bundle.version.suffix>${version}.jre25${releaseExt}</bundle.version.suffix>
 			</properties>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
 			<dependencies>
 				<!-- JDK 25 compatible Mockito -->
 				<dependency>
@@ -543,6 +540,66 @@
 							</excludes>
 							<source>25</source>
 							<target>25</target>
+						</configuration>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-jar-plugin</artifactId>
+						<version>3.1.1</version>
+						<configuration>
+							<archive>
+								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+								<manifestEntries>
+									<Automatic-Module-Name>com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
+								</manifestEntries>
+							</archive>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>jre26</id>
+			<properties>
+				<bundle.version.suffix>${version}.jre26${releaseExt}</bundle.version.suffix>
+			</properties>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<dependencies>
+				<!-- JDK 26 compatible Mockito -->
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>5.20.0</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy</artifactId>
+					<version>1.18.2</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy-agent</artifactId>
+					<version>1.18.2</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
+			<build>
+				<finalName>${project.artifactId}-${project.version}.jre26${releaseExt}</finalName>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.8.0</version>
+						<configuration>
+							<excludes>
+								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
+							</excludes>
+							<source>26</source>
+							<target>26</target>
 						</configuration>
 					</plugin>
 					<plugin>
