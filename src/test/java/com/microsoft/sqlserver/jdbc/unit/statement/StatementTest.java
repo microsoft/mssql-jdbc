@@ -3463,6 +3463,73 @@ public class StatementTest extends AbstractTest {
         }
 
         /**
+         * Regression test for GitHub #2940: compound SQL via PreparedStatement with lastUpdateCount=false
+         * must return all update counts and the trailing SELECT ResultSet.
+         * Uses a separate table without triggers to validate pure compound SQL behavior.
+         * 
+         * SQL: "DELETE; INSERT; INSERT; UPDATE; INSERT; SELECT"
+         * Expected results: updateCount=0(DELETE), 1(INSERT), 1(INSERT), 2(UPDATE), 1(INSERT), ResultSet(3 rows)
+         */
+        @Test
+        public void testCompoundPreparedStatementWithLastUpdateCountFalse() throws SQLException {
+            String compoundTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CompoundStmtTest"));
+
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(compoundTable, stmt);
+                stmt.executeUpdate("CREATE TABLE " + compoundTable + " (ID int IDENTITY(1,1), NAME varchar(32))");
+
+                String sql = "DELETE FROM " + compoundTable
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?)"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?)"
+                        + " UPDATE " + compoundTable + " SET NAME = 'updated'"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?)"
+                        + " SELECT * FROM " + compoundTable;
+
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "a");
+                    ps.setString(2, "b");
+                    ps.setString(3, "c");
+
+                    boolean hasResults = ps.execute();
+                    List<Integer> updateCounts = new ArrayList<>();
+                    int resultSetCount = 0;
+
+                    while (true) {
+                        if (hasResults) {
+                            try (ResultSet rs = ps.getResultSet()) {
+                                int rowCount = 0;
+                                while (rs.next()) {
+                                    rowCount++;
+                                }
+                                assertEquals(3, rowCount, "SELECT should return 3 rows");
+                            }
+                            resultSetCount++;
+                        } else {
+                            int uc = ps.getUpdateCount();
+                            if (uc == -1) break;
+                            updateCounts.add(uc);
+                        }
+                        hasResults = ps.getMoreResults();
+                    }
+
+                    // Validate: DELETE=0, INSERT=1, INSERT=1, UPDATE=2, INSERT=1
+                    assertEquals(5, updateCounts.size(),
+                            "Should have 5 update counts, got: " + updateCounts);
+                    assertEquals(0, updateCounts.get(0), "DELETE should affect 0 rows");
+                    assertEquals(1, updateCounts.get(1), "First INSERT should affect 1 row");
+                    assertEquals(1, updateCounts.get(2), "Second INSERT should affect 1 row");
+                    assertEquals(2, updateCounts.get(3), "UPDATE should affect 2 rows");
+                    assertEquals(1, updateCounts.get(4), "Third INSERT should affect 1 row");
+                    assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
+                }
+
+                TestUtils.dropTableIfExists(compoundTable, stmt);
+            }
+        }
+
+        /**
          * Tests execute a mixed SQL batch (INSERT → INSERT error → INSERT → SELECT) using
          * {@link Statement#execute(String)} and verifies correct result traversal after
          * a primary key violation.

@@ -820,6 +820,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
+     * Determines whether to consume (discard) INSERT DONEINPROC tokens during result processing.
+     *
+     * When generated keys are requested, always consumes to reach the appended SCOPE_IDENTITY() result.
+     * Otherwise, defers to the lastUpdateCount connection property:
+     *   true (default) - consumes intermediate INSERT counts (hides trigger noise)
+     *   false          - retains all counts, enabling full compound SQL navigation via getMoreResults()
+     */
+    @Override
+    protected boolean shouldConsumeInsertDoneToken() {
+        if (bRequestedGeneratedKeys) {
+            return true;
+        }
+        return connection.useLastUpdateCount();
+    }
+
+    /**
      * Consumes the OUT parameter for the statement object itself.
      *
      * When a prepared statement handle is expected as the first OUT parameter from PreparedStatement or

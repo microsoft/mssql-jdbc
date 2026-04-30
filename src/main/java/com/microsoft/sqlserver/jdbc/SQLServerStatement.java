@@ -1740,9 +1740,13 @@ public class SQLServerStatement implements ISQLServerStatement {
                         if (null != procedureName)
                             return false;
 
-                        // For Insert operations, check if additional TDS_DONE token processing is required.
+                        // Consume intermediate INSERT DONEINPROC tokens so the driver
+                        // surfaces only the final DONEPROC update count. PreparedStatement overrides
+                        // this to preserve counts for compound SQL when lastUpdateCount=false, or to
+                        // unconditionally consume them when generated keys are requested.
                         if ((StreamDone.CMD_INSERT == doneToken.getCurCmd()) && (-1 != doneToken.getUpdateCount())
-                                && EXECUTE == executeMethod) {
+                                && EXECUTE == executeMethod
+                                && shouldConsumeInsertDoneToken()) {
                             return true;
                         }
 
@@ -1982,6 +1986,21 @@ public class SQLServerStatement implements ISQLServerStatement {
         }
 
         return false;
+    }
+
+    /**
+     * Determines whether to consume (discard) INSERT DONEINPROC tokens during execute() result
+     * processing. Consuming hides intermediate trigger-generated INSERT counts, allowing the
+     * driver to surface only the final aggregate update count from the DONEPROC token.
+     *
+     * Base implementation always consumes (returns true), appropriate for plain Statement.
+     * SQLServerPreparedStatement overrides to conditionally retain counts based on
+     * lastUpdateCount and generated keys settings.
+     *
+     * @return true to consume INSERT DONEINPROC tokens silently, false to return them as results
+     */
+    protected boolean shouldConsumeInsertDoneToken() {
+        return true;
     }
 
     // --------------------------JDBC 2.0-----------------------------
