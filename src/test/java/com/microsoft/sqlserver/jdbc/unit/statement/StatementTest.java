@@ -3480,12 +3480,12 @@ public class StatementTest extends AbstractTest {
                 TestUtils.dropTableIfExists(compoundTable, stmt);
                 stmt.executeUpdate("CREATE TABLE " + compoundTable + " (ID int IDENTITY(1,1), NAME varchar(32))");
 
-                String sql = "DELETE FROM " + compoundTable
-                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?)"
-                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?)"
-                        + " UPDATE " + compoundTable + " SET NAME = 'updated'"
-                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?)"
-                        + " SELECT * FROM " + compoundTable;
+                String sql = "DELETE FROM " + compoundTable + ";"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " UPDATE " + compoundTable + " SET NAME = 'updated';"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " SELECT * FROM " + compoundTable + ";";
 
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, "a");
@@ -3523,6 +3523,80 @@ public class StatementTest extends AbstractTest {
                     assertEquals(2, updateCounts.get(3), "UPDATE should affect 2 rows");
                     assertEquals(1, updateCounts.get(4), "Third INSERT should affect 1 row");
                     assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
+                    assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1 after all results exhausted");
+                }
+
+                TestUtils.dropTableIfExists(compoundTable, stmt);
+            }
+        }
+
+        /**
+         * Regression test for GitHub #2940: compound SQL via PreparedStatement.executeUpdate()
+         * with lastUpdateCount=false should return the first update count (DELETE=0).
+         * Validates that executeUpdate() does not throw or lose results for compound batches.
+         * 
+         * SQL: "DELETE; INSERT; INSERT; UPDATE; INSERT; SELECT"
+         * Expected: executeUpdate() returns 0 (the DELETE count), remaining results accessible via getMoreResults().
+         */
+        @Test
+        public void testCompoundPreparedStatementExecuteUpdateWithLastUpdateCountFalse() throws SQLException {
+            String compoundTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CompoundStmtExecUpd"));
+
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(compoundTable, stmt);
+                stmt.executeUpdate("CREATE TABLE " + compoundTable + " (ID int IDENTITY(1,1), NAME varchar(32))");
+
+                String sql = "DELETE FROM " + compoundTable + ";"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " UPDATE " + compoundTable + " SET NAME = 'updated';"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " SELECT * FROM " + compoundTable + ";";
+
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "a");
+                    ps.setString(2, "b");
+                    ps.setString(3, "c");
+
+                    int firstUpdateCount = ps.executeUpdate();
+                    assertEquals(0, firstUpdateCount, "executeUpdate() should return 0 for DELETE on empty table");
+
+                    // Traverse remaining results via getMoreResults()
+                    List<Integer> updateCounts = new ArrayList<>();
+                    updateCounts.add(firstUpdateCount);
+                    int resultSetCount = 0;
+                    boolean hasResults = ps.getMoreResults();
+
+                    while (true) {
+                        if (hasResults) {
+                            try (ResultSet rs = ps.getResultSet()) {
+                                int rowCount = 0;
+                                while (rs.next()) {
+                                    rowCount++;
+                                }
+                                assertEquals(3, rowCount, "SELECT should return 3 rows");
+                            }
+                            resultSetCount++;
+                        } else {
+                            int uc = ps.getUpdateCount();
+                            if (uc == -1) break;
+                            updateCounts.add(uc);
+                        }
+                        hasResults = ps.getMoreResults();
+                    }
+
+                    // Validate: DELETE=0, INSERT=1, INSERT=1, UPDATE=2, INSERT=1
+                    assertEquals(5, updateCounts.size(),
+                            "Should have 5 update counts, got: " + updateCounts);
+                    assertEquals(0, updateCounts.get(0), "DELETE should affect 0 rows");
+                    assertEquals(1, updateCounts.get(1), "First INSERT should affect 1 row");
+                    assertEquals(1, updateCounts.get(2), "Second INSERT should affect 1 row");
+                    assertEquals(2, updateCounts.get(3), "UPDATE should affect 2 rows");
+                    assertEquals(1, updateCounts.get(4), "Third INSERT should affect 1 row");
+                    assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
+                    assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1 after all results exhausted");
                 }
 
                 TestUtils.dropTableIfExists(compoundTable, stmt);
