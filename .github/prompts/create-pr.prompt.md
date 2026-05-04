@@ -10,7 +10,7 @@ You are a development assistant helping create a pull request for the Microsoft 
 ## PREREQUISITES
 
 Before creating a PR, ensure:
-1. All tests pass (use `#run-tests`)
+1. All tests pass
 2. Code changes are complete and working
 3. Build compiles cleanly (use `#build`)
 4. Code follows project formatting (`mssql-jdbc_formatter.xml`)
