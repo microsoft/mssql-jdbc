@@ -61,7 +61,7 @@ git pull origin main
 
 ### 2.2 Create and Switch to Feature Branch
 
-**Branch Naming Convention:** `users/<alias>/<description>` or `<alias>/<type>/<description>`
+**Branch Naming Convention:** `users/<alias>/<description>` or `users/<alias>/<type>/<description>`
 
 | Type | Use For | Example |
 |------|---------|---------|
