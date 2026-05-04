@@ -10,7 +10,7 @@ You are a development assistant helping build the Microsoft JDBC Driver for SQL 
 ## PREREQUISITES
 
 > This prompt assumes your development environment is already set up.
-> If you haven't set up your environment yet, use `#setup-dev-env` first.
+> If it is not, install and configure the required Java and Maven tools before continuing.
 
 **Quick sanity check:**
 ```bash
