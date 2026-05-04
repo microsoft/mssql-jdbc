@@ -247,7 +247,7 @@ mvn clean package -DskipTests -Pjre11
 mvn clean install -DskipTests -Pjre11
 
 # Full build with tests (requires DB connection)
-mvn clean verify -Pjre11 -DmssqlJDBC_URL="jdbc:sqlserver://localhost:1433;..."
+mssql_jdbc_test_connection_properties="jdbc:sqlserver://localhost:1433;..." mvn clean verify -Pjre11
 ```
 
 ---
