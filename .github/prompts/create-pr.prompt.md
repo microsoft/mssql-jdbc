@@ -258,7 +258,7 @@ gh pr create \
 
 ## Issues
 
-Closes #<issue-number>
+<link related GitHub issue and/or ADO work item if applicable>
 
 ## Testing
 
