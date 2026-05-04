@@ -119,4 +119,3 @@ Provide a review summary with:
 - **Issues Found**: Categorized as Critical / Major / Minor / Nit
 - **Suggestions**: Optional improvements or alternative approaches
 - **Questions**: Any clarifications needed from the author
-- **Questions**: Any clarifications needed from the author
