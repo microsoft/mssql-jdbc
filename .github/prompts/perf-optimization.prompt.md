@@ -28,7 +28,7 @@ Performance is critical for a database driver — every allocation, copy, and sy
   | Anti-pattern | Better Alternative |
   |---|---|
   | `new byte[]` on hot paths | Reuse preallocated buffers or use pooling |
-  | Excessive `String` concatenation | Use `StringBuilder` or `String.format` |
+  | Excessive `String` concatenation | Use `StringBuilder` for repeated concatenation, or simple `+` for straightforward cases |
   | Repeated object creation in loops | Cache as `static final` or instance field |
   | Stream API (`.stream().filter().map()`) on hot paths | Manual `for` loops |
   | Autoboxing of primitives | Use primitive types directly |
