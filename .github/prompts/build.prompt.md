@@ -169,13 +169,16 @@ mvn clean compile -Pjre11
 # Check your JDK version
 java -version
 
-# Use a profile matching your JDK:
-# JDK 8  -> -Pjre8
-# JDK 11 -> -Pjre11
-# JDK 17 -> -Pjre17
-# JDK 21 -> -Pjre21
-# JDK 25 -> -Pjre25
-# JDK 26 -> -Pjre26 (default - no flag needed)
+# Use JDK 11 or newer for all builds.
+# The jre8 artifact is still built with JDK 11+, so do not switch to JDK 8.
+
+# Choose the profile for the artifact you want to build:
+# JDK 11+ -> -Pjre8
+# JDK 11  -> -Pjre11
+# JDK 17  -> -Pjre17
+# JDK 21  -> -Pjre21
+# JDK 25  -> -Pjre25
+# JDK 26  -> -Pjre26 (default - no flag needed)
 ```
 
 ### Dependency resolution fails
