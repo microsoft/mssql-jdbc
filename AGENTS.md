@@ -36,6 +36,8 @@ This repository provides reusable prompts in `.github/prompts/` for common maint
 | Prompt | Purpose |
 |--------|---------|
 | [build.prompt.md](.github/prompts/build.prompt.md) | Build the driver with Maven across JRE profiles |
+| [run-tests.prompt.md](.github/prompts/run-tests.prompt.md) | Run tests with Maven across JRE profiles |
+| [setup-dev.prompt.md](.github/prompts/setup-dev.prompt.md) | Set up the development environment |
 | [fix-bug.prompt.md](.github/prompts/fix-bug.prompt.md) | Diagnose and fix a bug with tests and documentation |
 | [implement-feature.prompt.md](.github/prompts/implement-feature.prompt.md) | Plan and implement a new feature end-to-end |
 | [code-review.prompt.md](.github/prompts/code-review.prompt.md) | AI-assisted code review for a pull request |

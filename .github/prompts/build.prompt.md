@@ -60,6 +60,7 @@ Ask the developer what they need:
 > 3. **Full build** - Compile + test + package
 > 4. **Install locally** - Build + install to local Maven repo
 > 5. **Specific profile** - Build for a specific JRE version
+> 6. **Run tests only** - Run tests without packaging (requires DB connection)
 
 ---
 
@@ -106,6 +107,14 @@ mvn clean install -DskipTests -Pjre11
 ```
 
 This installs the JAR to `~/.m2/repository/com/microsoft/sqlserver/mssql-jdbc/` for use as a dependency in other projects.
+
+### Option F: Run Tests Only
+
+```bash
+mvn clean test -Pjre11
+```
+
+> Requires the `mssql_jdbc_test_connection_properties` environment variable set to a valid connection string. See `#run-tests` for details.
 
 ---
 
@@ -169,16 +178,17 @@ mvn clean compile -Pjre11
 # Check your JDK version
 java -version
 
-# Use JDK 11 or newer for all builds.
-# The jre8 artifact is still built with JDK 11+, so do not switch to JDK 8.
+# Use JDK 11 or newer for ALL builds, including the jre8 profile.
+# The jre8 profile cross-compiles to Java 8 bytecode using JDK 11+.
+# Do NOT install or switch to JDK 8.
 
-# Choose the profile for the artifact you want to build:
-# JDK 11+ -> -Pjre8
-# JDK 11  -> -Pjre11
-# JDK 17  -> -Pjre17
-# JDK 21  -> -Pjre21
-# JDK 25  -> -Pjre25
-# JDK 26  -> -Pjre26 (default - no flag needed)
+# Minimum JDK required -> Maven profile (target artifact):
+# JDK 11+  -> -Pjre8   (cross-compiles to Java 8 bytecode)
+# JDK 11+  -> -Pjre11
+# JDK 17+  -> -Pjre17
+# JDK 21+  -> -Pjre21
+# JDK 25+  -> -Pjre25
+# JDK 26+  -> -Pjre26  (default - no flag needed)
 ```
 
 ### Dependency resolution fails
@@ -246,7 +256,10 @@ mvn clean package -DskipTests -Pjre11
 # Install locally for JRE 11
 mvn clean install -DskipTests -Pjre11
 
-# Full build with tests (requires DB connection)
+# Full build with tests (requires DB connection).
+# Set the connection string as an environment variable beforehand:
+#   export mssql_jdbc_test_connection_properties="jdbc:sqlserver://localhost:1433;..."
+# Or pass it inline:
 mssql_jdbc_test_connection_properties="jdbc:sqlserver://localhost:1433;..." mvn clean verify -Pjre11
 ```
 
