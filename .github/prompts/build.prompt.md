@@ -87,9 +87,12 @@ mvn clean compile -Pjre26
 ### Option C: Package JAR (Skip Tests)
 
 ```bash
-mvn clean package -DskipTests
-# Or with specific profile:
+# Choose one:
 mvn clean package -DskipTests -Pjre11
+mvn clean package -DskipTests -Pjre17
+mvn clean package -DskipTests -Pjre21
+mvn clean package -DskipTests -Pjre25
+mvn clean package -DskipTests -Pjre26
 ```
 
 ### Option D: Full Build with Tests
