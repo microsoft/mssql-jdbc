@@ -269,7 +269,7 @@ gh pr create \
 - [Contributing](/CONTRIBUTING.md)
 - [Code of Conduct](/CODE_OF_CONDUCT.md)
 - [Best Practices](/coding-best-practices.md)
-- [Coding Guidelines](/coding-guidelines.md)
+- [Coding Guidelines](/Coding_Guidelines.md)
 - [Review Process](/review-process.md)" \
   --base main
 ```
