@@ -147,8 +147,8 @@ The following tags are **excluded by default** (see `pom.xml`):
 
 ```bash
 # Run only tests tagged with a specific group
-mvn clean test -Pjre11 -DincludedGroups="reqExternalSetup"
-mvn clean test -Pjre11 -DincludedGroups="fedAuth"
+mvn clean test -Pjre11 -Dgroups="reqExternalSetup"
+mvn clean test -Pjre11 -Dgroups="fedAuth"
 ```
 
 ### Overriding Exclusions
