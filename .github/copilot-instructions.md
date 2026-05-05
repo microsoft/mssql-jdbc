@@ -54,7 +54,7 @@ The project includes:
 
 ## Constraints
 
-- Do not modify `CODEOWNERS` without team discussion.
+- Do not change repository ownership or review-routing conventions without team discussion.
 - Do not close issues without a fix or without providing a clear reason.
 - All changed code must be formatted with Eclipse formatter `mssql-jdbc_formatter.xml`.
 
