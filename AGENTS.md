@@ -43,6 +43,9 @@ This repository provides reusable prompts in `.github/prompts/` for common maint
 | [code-review.prompt.md](.github/prompts/code-review.prompt.md) | AI-assisted code review for a pull request |
 | [perf-optimization.prompt.md](.github/prompts/perf-optimization.prompt.md) | Investigate and implement performance improvements |
 | [create-pr.prompt.md](.github/prompts/create-pr.prompt.md) | Create well-structured pull requests |
+| [generate-doc-comments.prompt.md](.github/prompts/generate-doc-comments.prompt.md) | Generate Javadoc comments following project conventions |
+| [generate-prompt.prompt.md](.github/prompts/generate-prompt.prompt.md) | Generate new Copilot prompt files for the project |
+| [generate-skill.prompt.md](.github/prompts/generate-skill.prompt.md) | Generate Copilot Agent Skills (SKILL.md) |
 
 ## Core Principles
 
