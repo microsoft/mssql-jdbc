@@ -293,7 +293,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "CASE WHEN i.is_unique = 1 THEN 0 ELSE 1 END AS NON_UNIQUE, " +
     "t.name COLLATE DATABASE_DEFAULT AS INDEX_QUALIFIER, " +
     "i.name COLLATE DATABASE_DEFAULT AS INDEX_NAME, " +
-    "i.type AS TYPE, ic.index_column_id AS ORDINAL_POSITION, " +
+    "i.type AS TYPE, CAST(ic.index_column_id AS SMALLINT) AS ORDINAL_POSITION, " +
     "c.name COLLATE DATABASE_DEFAULT AS COLUMN_NAME, " +
     "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
     "CASE WHEN i.index_id <= 1 THEN ps.row_count ELSE NULL END AS CARDINALITY, " +
@@ -315,7 +315,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "t.name AS INDEX_QUALIFIER, " +
     "i.name AS INDEX_NAME, " +
     "i.type AS TYPE, " +
-    "ic.index_column_id AS ORDINAL_POSITION, " +
+    "CAST(ic.index_column_id AS SMALLINT) AS ORDINAL_POSITION, " +
     "c.name AS COLUMN_NAME, " +
     "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
     "NULL AS CARDINALITY, " +
@@ -1550,7 +1550,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     "t.name AS INDEX_QUALIFIER, " +
                     "i.name AS INDEX_NAME, " +
                     "i.type AS TYPE, " +
-                    "ic.index_column_id AS ORDINAL_POSITION, " +
+                    "CAST(ic.index_column_id AS SMALLINT) AS ORDINAL_POSITION, " +
                     "c.name AS COLUMN_NAME, " +
                     "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
                     "NULL AS CARDINALITY, " +
