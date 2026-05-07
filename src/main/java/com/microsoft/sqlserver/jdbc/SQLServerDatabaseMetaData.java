@@ -315,7 +315,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "t.name AS INDEX_QUALIFIER, " +
     "i.name AS INDEX_NAME, " +
     "i.type AS TYPE, " +
-    "CAST(ic.index_column_id AS SMALLINT) AS ORDINAL_POSITION, " +
+    // Use index_column_id for columnstore (type 5, 6) where key_ordinal is always 0, and key_ordinal for rowstore B-tree indexes (matches sp_statistics behavior).
+    "CAST(CASE WHEN i.type IN (5, 6) THEN ic.index_column_id ELSE ic.key_ordinal END AS SMALLINT) AS ORDINAL_POSITION, " +
     "c.name AS COLUMN_NAME, " +
     "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
     "NULL AS CARDINALITY, " +
@@ -328,7 +329,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
     "WHERE t.name = ? " +
     "AND sch.name = ? " +
-    "AND i.type IN (5, 6) " +
+    // Keep rowstore key columns (key_ordinal <> 0) and all columnstore columns (type 5, 6,
+    // where key_ordinal is always 0). Drops INCLUDE columns to honor the JDBC contract that
+    // ORDINAL_POSITION starts at 1.
+    "AND (ic.key_ordinal <> 0 OR i.type IN (5, 6)) " +
     "ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION";
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
