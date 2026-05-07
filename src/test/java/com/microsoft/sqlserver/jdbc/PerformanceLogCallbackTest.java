@@ -603,6 +603,97 @@ class PerformanceLogCallbackTest extends AbstractTest {
     }
 
     /**
+     * Test to validate that when useNanoseconds() returns true,
+     * the duration field in publish() contains nanosecond values.
+     */
+    @Test
+    void testPublishWithNanosecondGranularity() throws Exception {
+        List<Long> connectionDurations = new ArrayList<>();
+        List<Long> statementDurations = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public boolean useNanoseconds() {
+                return true;
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long duration,
+                    Exception exception) {
+                connectionDurations.add(duration);
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long duration, Exception exception) {
+                statementDurations.add(duration);
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        try (Connection con = getConnection()) {
+            try (Statement stmt = con.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            }
+        }
+
+        // Durations should be in nanoseconds (much larger than millisecond values)
+        assertTrue(connectionDurations.size() > 0, "publish should have been called for connection-level activities");
+        for (long duration : connectionDurations) {
+            assertTrue(duration > 1_000, "Duration in nanoseconds should be larger than 1000 (i.e. > 1 microsecond)");
+        }
+
+        assertTrue(statementDurations.size() > 0, "publish should have been called for statement-level activities");
+        for (long duration : statementDurations) {
+            assertTrue(duration >= 0, "Duration should be non-negative");
+        }
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test to validate backward compatibility: when registered without useNanoseconds
+     * (default), the duration field contains millisecond values.
+     */
+    @Test
+    void testPublishDefaultDelegatesToMsOverload() throws Exception {
+        List<Long> connectionMs = new ArrayList<>();
+        List<Long> statementMs = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long duration,
+                    Exception exception) {
+                connectionMs.add(duration);
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long duration, Exception exception) {
+                statementMs.add(duration);
+            }
+        };
+
+        // Register without useNanoseconds (default = milliseconds)
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        try (Connection con = getConnection()) {
+            try (Statement stmt = con.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            }
+        }
+
+        // Durations should be in milliseconds
+        assertTrue(connectionMs.size() > 0,
+                "publish should have been called for connection-level activities");
+        assertTrue(statementMs.size() > 0,
+                "publish should have been called for statement-level activities");
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
      * Helper method to execute Statement and PreparedStatement queries in a loop.
      * Uses a provided connection. Returns the duration in nanoseconds.
      */
