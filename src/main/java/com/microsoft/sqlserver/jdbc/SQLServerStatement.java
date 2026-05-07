@@ -1675,33 +1675,24 @@ public class SQLServerStatement implements ISQLServerStatement {
             @Override
             boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
                 /*
-                 * If we have an update count from a previous command that we haven't acknowledged because we didn't
-                 * know at the time whether it was the undesired result from a trigger, and if we did not encounter an
-                 * ERROR token before hitting this COLMETADATA token, with any intervening DONE token (does not indicate
-                 * an error result), then go ahead.
+                 * Drop a stale INSERT DONE token so the trailing SELECT is surfaced as a ResultSet.
                  *
-                 * Problem:
-                 * In onDone(), stmtDoneToken is assigned before checking whether the DONE/DONEINPROC
-                 * token (e.g., from an INSERT) should be consumed. If such a token is later consumed
-                 * (i.e., not exposed to the caller), stmtDoneToken may still reference it.
+                 * onDone() assigns stmtDoneToken before deciding to consume; a consumed INSERT
+                 * DONEINPROC therefore leaves stmtDoneToken pointing at a token we discarded.
+                 * If COLMETADATA follows, isUpdateCount() would shadow isResultSet() and the
+                 * SELECT would never become a ResultSet.
                  *
-                 * When a COLMETADATA token follows (for a subsequent SELECT), this stale reference
-                 * can cause the driver to misinterpret the state and skip creating the expected
-                 * ResultSet.
-                 *
-                 * Fix:
-                 * If stmtDoneToken refers to an INSERT DONE/DONEINPROC token that has been consumed
-                 * (per shouldConsumeInsertDoneToken()), clear it so that subsequent COLMETADATA is
-                 * correctly recognized as a ResultSet.
-                 *
-                 * The guard "!bRequestedGeneratedKeys" ensures we do not clear stmtDoneToken when
-                 * COLMETADATA corresponds to the internal SCOPE_IDENTITY() result used for generated
-                 * keys, where the INSERT update count must remain available for getUpdateCount().
+                 * Guards:
+                 *   shouldConsumeInsertDoneToken() - consumption was actually applied
+                 *   !bRequestedGeneratedKeys      - keep INSERT count for SCOPE_IDENTITY path
+                 *   EXECUTE != executeMethod      - preserve phantom-INSERT-before-SELECT for
+                 *                                   plain execute() only clear for executeUpdate/Query/Batch.
                  */
                 if (null != stmtDoneToken && null == getDatabaseError()
                         && StreamDone.CMD_INSERT == stmtDoneToken.getCurCmd()
                         && shouldConsumeInsertDoneToken()
-                        && !bRequestedGeneratedKeys) {
+                        && !bRequestedGeneratedKeys
+                        && EXECUTE != executeMethod) {
                     stmtDoneToken = null;
                 }
                 if (null == stmtDoneToken && null == getDatabaseError()) {
