@@ -1565,7 +1565,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
                     "INNER JOIN sys.tables t ON i.object_id = t.object_id " +
                     "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
-                    "WHERE t.name = '" + table + "' AND sch.name = '" + schema + "' AND i.type IN (5, 6)"
+                    "WHERE t.name = ? AND sch.name = ? AND i.type IN (5, 6)"
                 );
 
                 if (0 == azureDwSelectBuilder.length()) {
@@ -1576,6 +1576,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
                 resultPstmt = (SQLServerPreparedStatement) this.connection
                         .prepareStatement(azureDwSelectBuilder.toString());
+                resultPstmt.setString(1, table);
+                resultPstmt.setString(2, schema);
                 userRs = (SQLServerResultSet) resultPstmt.executeQuery();
                 resultPstmt.closeOnCompletion();
             } catch (SQLException e) {
