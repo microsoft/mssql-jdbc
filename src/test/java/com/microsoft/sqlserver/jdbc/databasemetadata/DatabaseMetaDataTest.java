@@ -2341,6 +2341,107 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 }
             }
         }
+
+        /**
+         * Test for ORDINAL_POSITION = 0 regression with INCLUDE (non-key) columns.
+         * 
+         * Validates that getIndexInfo() does NOT return rows for INCLUDE columns of 
+         * nonclustered indexes, and that no ORDINAL_POSITION value of 0 appears in 
+         * the result set. This was a regression introduced in PR #2598 where the 
+         * supplemental sys.index_columns query used "ic.key_ordinal = 0" as the filter,
+         * which inadvertently matched INCLUDE columns (not just columnstore columns).
+         * 
+         * Reproduces the exact scenario from customer escalation Case #2604210040006680:
+         * CREATE INDEX ... INCLUDE (...) causes ORDINAL_POSITION = 0 which breaks 
+         * downstream consumers that compute (ordinal - 1) for array indexing.
+         */
+        @Test
+        public void testGetIndexInfoDoesNotReturnIncludeColumnsWithOrdinalZero() throws SQLException {
+            String includeTestTable = AbstractSQLGenerator.escapeIdentifier("IndexInfoIncludeColTest");
+            
+            try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+                // Setup: Create table with an index that has INCLUDE columns
+                TestUtils.dropTableIfExists("IndexInfoIncludeColTest", stmt);
+                
+                stmt.executeUpdate(
+                    "CREATE TABLE " + includeTestTable + " (" +
+                    "ID INT NOT NULL, " +
+                    "KeyCol1 INT NOT NULL, " +
+                    "KeyCol2 INT NOT NULL, " +
+                    "IncludedCol1 NVARCHAR(100), " +
+                    "IncludedCol2 NVARCHAR(200)" +
+                    ")"
+                );
+                
+                // Create a nonclustered index with INCLUDE columns — the exact pattern
+                // that caused ORDINAL_POSITION = 0 in driver 13.x
+                stmt.executeUpdate(
+                    "CREATE NONCLUSTERED INDEX IX_WithInclude ON " + includeTestTable + 
+                    " (KeyCol1, KeyCol2) INCLUDE (IncludedCol1, IncludedCol2)"
+                );
+                
+                // Also create a columnstore index to ensure it still gets returned
+                stmt.executeUpdate(
+                    "CREATE NONCLUSTERED COLUMNSTORE INDEX IX_Columnstore ON " + includeTestTable + 
+                    " (IncludedCol1, IncludedCol2)"
+                );
+                
+                String catalog = connection.getCatalog();
+                DatabaseMetaData dbMetadata = connection.getMetaData();
+                
+                try (ResultSet rs = dbMetadata.getIndexInfo(catalog, "dbo", "IndexInfoIncludeColTest", false, false)) {
+                    boolean foundColumnstoreIndex = false;
+                    boolean foundKeyCol1 = false;
+                    boolean foundKeyCol2 = false;
+                    
+                    while (rs.next()) {
+                        short ordinalPosition = rs.getShort("ORDINAL_POSITION");
+                        String columnName = rs.getString("COLUMN_NAME");
+                        String indexName = rs.getString("INDEX_NAME");
+                        
+                        // CRITICAL ASSERTION: No ORDINAL_POSITION should ever be 0
+                        // This is the exact regression that broke TDV (Case #2604210040006680)
+                        assertTrue(ordinalPosition > 0 || rs.wasNull(),
+                            "ORDINAL_POSITION must be > 0 (JDBC spec requires positions starting at 1). " +
+                            "Found ORDINAL_POSITION = " + ordinalPosition + " for column '" + columnName + 
+                            "' in index '" + indexName + "'. This indicates INCLUDE columns are being " +
+                            "returned with key_ordinal = 0, which is the regression from PR #2598.");
+                        
+                        // Verify INCLUDE columns are NOT returned as separate rows
+                        // (they should not appear at all — sp_statistics never returned them)
+                        if ("IX_WithInclude".equals(indexName)) {
+                            assertFalse("IncludedCol1".equals(columnName),
+                                "INCLUDE column 'IncludedCol1' should NOT appear in getIndexInfo() result set. " +
+                                "Only key columns should be returned for B-tree indexes.");
+                            assertFalse("IncludedCol2".equals(columnName),
+                                "INCLUDE column 'IncludedCol2' should NOT appear in getIndexInfo() result set. " +
+                                "Only key columns should be returned for B-tree indexes.");
+                            
+                            if ("KeyCol1".equals(columnName)) foundKeyCol1 = true;
+                            if ("KeyCol2".equals(columnName)) foundKeyCol2 = true;
+                        }
+                        
+                        // Verify columnstore indexes ARE still returned (the original fix goal)
+                        if (indexName != null && indexName.equals("IX_Columnstore")) {
+                            foundColumnstoreIndex = true;
+                        }
+                    }
+                    
+                    // Key columns of the nonclustered index should still be returned
+                    assertTrue(foundKeyCol1, "Key column 'KeyCol1' should be present in getIndexInfo() results");
+                    assertTrue(foundKeyCol2, "Key column 'KeyCol2' should be present in getIndexInfo() results");
+                    
+                    // Columnstore index should still be returned (PR #2598's original goal)
+                    assertTrue(foundColumnstoreIndex, 
+                        "Columnstore index 'IX_Columnstore' should still be returned by getIndexInfo(). " +
+                        "The fix for INCLUDE columns must not remove columnstore index support.");
+                }
+            } finally {
+                try (Connection connection = getConnection(); Statement stmt = connection.createStatement()) {
+                    TestUtils.dropTableIfExists("IndexInfoIncludeColTest", stmt);
+                }
+            }
+        }
     }
 
     private void setupProcedures(String schemaName, String proc1, String proc1Body,

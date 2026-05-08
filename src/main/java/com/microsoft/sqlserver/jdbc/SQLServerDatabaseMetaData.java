@@ -293,7 +293,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "CASE WHEN i.is_unique = 1 THEN 0 ELSE 1 END AS NON_UNIQUE, " +
     "t.name COLLATE DATABASE_DEFAULT AS INDEX_QUALIFIER, " +
     "i.name COLLATE DATABASE_DEFAULT AS INDEX_NAME, " +
-    "i.type AS TYPE, ic.key_ordinal AS ORDINAL_POSITION, " +
+    "i.type AS TYPE, CAST(ic.index_column_id AS SMALLINT) AS ORDINAL_POSITION, " +
     "c.name COLLATE DATABASE_DEFAULT AS COLUMN_NAME, " +
     "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
     "CASE WHEN i.index_id <= 1 THEN ps.row_count ELSE NULL END AS CARDINALITY, " +
@@ -305,7 +305,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "INNER JOIN sys.tables t ON i.object_id = t.object_id " +
     "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
     "LEFT JOIN sys.dm_db_partition_stats ps ON ps.object_id = i.object_id AND ps.index_id = i.index_id AND ps.index_id IN (0,1) " +
-    "WHERE t.name = ? AND sch.name = ? AND ic.key_ordinal = 0 " +
+    "WHERE t.name = ? AND sch.name = ? AND i.type IN (5, 6) " +
     "ORDER BY NON_UNIQUE, TYPE, INDEX_NAME COLLATE DATABASE_DEFAULT, ORDINAL_POSITION";
 
     private static final String INDEX_INFO_QUERY_DW = "SELECT db_name() AS TABLE_CAT, " +
@@ -315,7 +315,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "t.name AS INDEX_QUALIFIER, " +
     "i.name AS INDEX_NAME, " +
     "i.type AS TYPE, " +
-    "ic.key_ordinal AS ORDINAL_POSITION, " +
+    // Use index_column_id for columnstore (type 5, 6) where key_ordinal is always 0, and key_ordinal for rowstore B-tree indexes (matches sp_statistics behavior).
+    "CAST(CASE WHEN i.type IN (5, 6) THEN ic.index_column_id ELSE ic.key_ordinal END AS SMALLINT) AS ORDINAL_POSITION, " +
     "c.name AS COLUMN_NAME, " +
     "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
     "NULL AS CARDINALITY, " +
@@ -328,6 +329,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
     "WHERE t.name = ? " +
     "AND sch.name = ? " +
+    // Keep rowstore key columns (key_ordinal <> 0) and all columnstore columns (type 5, 6,
+    // where key_ordinal is always 0). Drops INCLUDE columns to honor the JDBC contract that
+    // ORDINAL_POSITION starts at 1.
+    "AND (ic.key_ordinal <> 0 OR i.type IN (5, 6)) " +
     "ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION";
 
     // Use LinkedHashMap to force retrieve elements in order they were inserted
@@ -1549,7 +1554,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     "t.name AS INDEX_QUALIFIER, " +
                     "i.name AS INDEX_NAME, " +
                     "i.type AS TYPE, " +
-                    "ic.key_ordinal AS ORDINAL_POSITION, " +
+                    "CAST(ic.index_column_id AS SMALLINT) AS ORDINAL_POSITION, " +
                     "c.name AS COLUMN_NAME, " +
                     "CASE WHEN ic.is_descending_key = 1 THEN 'D' ELSE 'A' END AS ASC_OR_DESC, " +
                     "NULL AS CARDINALITY, " +
@@ -1560,7 +1565,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     "INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id " +
                     "INNER JOIN sys.tables t ON i.object_id = t.object_id " +
                     "INNER JOIN sys.schemas sch ON t.schema_id = sch.schema_id " +
-                    "WHERE t.name = '" + table + "' AND sch.name = '" + schema + "' AND ic.key_ordinal = 0"
+                    "WHERE t.name = ? AND sch.name = ? AND i.type IN (5, 6)"
                 );
 
                 if (0 == azureDwSelectBuilder.length()) {
@@ -1571,6 +1576,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
                 resultPstmt = (SQLServerPreparedStatement) this.connection
                         .prepareStatement(azureDwSelectBuilder.toString());
+                resultPstmt.setString(1, table);
+                resultPstmt.setString(2, schema);
                 userRs = (SQLServerResultSet) resultPstmt.executeQuery();
                 resultPstmt.closeOnCompletion();
             } catch (SQLException e) {
