@@ -3176,14 +3176,28 @@ public class StatementTest extends AbstractTest {
                         hasResults = ps.getMoreResults();
                     }
 
-                    // With lastUpdateCount=true and triggers, all INSERT DONEINPROC tokens are consumed.
-                    // Only DELETE and UPDATE counts remain visible.
-                    assertEquals(2, updateCounts.size(),
-                            "With lastUpdateCount=true, only DELETE and UPDATE should be visible, got: " + updateCounts);
-                    assertEquals(3, updateCounts.get(0), "DELETE should affect 3 rows (initial setup rows)");
-                    assertEquals(2, updateCounts.get(1), "UPDATE should affect 2 rows (first 2 inserts before UPDATE)");
-                    assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
-                    assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1");
+            // With execute() and getMoreResults(), all update counts are returned regardless of lastUpdateCount property.
+            // Expected: DELETE=3, then for each of 4 INSERTs: trigger=1 + main=1, UPDATE=2, then 2 more INSERTs: trigger=1 + main=1
+            // Total: 1(DELETE) + 4*2(INSERT trigger+main) + 1(UPDATE) = 10 update counts
+            assertEquals(10, updateCounts.size(),
+                "Should have 10 update counts (DELETE, all INSERT triggers/mains, UPDATE), got: " + updateCounts);
+            assertEquals(3, updateCounts.get(0), "DELETE should affect 3 rows");
+            // First INSERT: trigger then main
+            assertEquals(1, updateCounts.get(1), "First INSERT trigger count should be 1");
+            assertEquals(1, updateCounts.get(2), "First INSERT main count should be 1");
+            // Second INSERT: trigger then main
+            assertEquals(1, updateCounts.get(3), "Second INSERT trigger count should be 1");
+            assertEquals(1, updateCounts.get(4), "Second INSERT main count should be 1");
+            // UPDATE
+            assertEquals(2, updateCounts.get(5), "UPDATE should affect 2 rows");
+            // Third INSERT: trigger then main
+            assertEquals(1, updateCounts.get(6), "Third INSERT trigger count should be 1");
+            assertEquals(1, updateCounts.get(7), "Third INSERT main count should be 1");
+            // Fourth INSERT: trigger then main
+            assertEquals(1, updateCounts.get(8), "Fourth INSERT trigger count should be 1");
+            assertEquals(1, updateCounts.get(9), "Fourth INSERT main count should be 1");
+            assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
+            assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1");
                 }
             }
         }
@@ -3785,8 +3799,9 @@ public class StatementTest extends AbstractTest {
                     List<Integer> updateCounts = new ArrayList<>();
                     int resultSetCount = 0;
 
-                    // With lastUpdateCount=true, shouldConsumeInsertDoneToken() returns true,
-                    // so INSERT DONEINPROC tokens are consumed. Loop through remaining results.
+                    // Per documented contract, lastUpdateCount only affects executeUpdate().
+                    // execute() always surfaces ALL update counts (including INSERTs), regardless
+                    // of the lastUpdateCount setting. Loop through every result.
                     while (true) {
                         if (hasResults) {
                             try (ResultSet rs = ps.getResultSet()) {
@@ -3805,11 +3820,15 @@ public class StatementTest extends AbstractTest {
                         hasResults = ps.getMoreResults();
                     }
 
-                    // INSERT tokens should be consumed; only non-INSERT counts remain
-                    // The exact visible counts depend on TDS token ordering, but INSERTs should be filtered
-                    assertTrue(updateCounts.size() < 5,
-                            "With lastUpdateCount=true, INSERT counts should be consumed, got: " + updateCounts);
-                    assertFalse(updateCounts.contains(null), "No null update counts expected");
+                    // Validate: DELETE=0, INSERT=1, INSERT=1, UPDATE=2, INSERT=1 — all visible.
+                    // execute() does NOT honor lastUpdateCount per the documented contract.
+                    assertEquals(5, updateCounts.size(),
+                            "execute() should surface all 5 update counts, got: " + updateCounts);
+                    assertEquals(0, updateCounts.get(0), "DELETE should affect 0 rows");
+                    assertEquals(1, updateCounts.get(1), "First INSERT should affect 1 row");
+                    assertEquals(1, updateCounts.get(2), "Second INSERT should affect 1 row");
+                    assertEquals(2, updateCounts.get(3), "UPDATE should affect 2 rows");
+                    assertEquals(1, updateCounts.get(4), "Third INSERT should affect 1 row");
                     assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
                     assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1");
                 }
@@ -4086,18 +4105,19 @@ public class StatementTest extends AbstractTest {
 
         /**
          * Tests that executeUpdate() on compound SQL with INSERT + trailing SELECT
-         * correctly throws "result set generated for update" when lastUpdateCount=true.
-         * The fix makes the SELECT visible (where previously it was swallowed), so
-         * executeUpdate() must reject it per JDBC spec.
+         * returns the INSERT update count without throwing. The driver processes TDS
+         * tokens sequentially and stops at the first update count result — it does NOT
+         * pre-scan the stream for ResultSets. The trailing SELECT is only reachable
+         * via getMoreResults() after executeUpdate() returns.
          *
          * SQL: "INSERT; SELECT" via executeUpdate()
-         * Expected: SQLServerException "result set generated for update"
+         * Expected: returns 1 (INSERT count), trailing SELECT accessible via getMoreResults()
          */
         @Test
-        public void testExecuteUpdateWithTrailingSelectThrows() throws SQLException {
+        public void testExecuteUpdateWithTrailingSelect() throws SQLException {
             String tbl = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ExecUpdSelect"));
 
-            try (Connection conn = getConnection();
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
                  Statement stmt = conn.createStatement()) {
 
                 TestUtils.dropTableIfExists(tbl, stmt);
@@ -4107,12 +4127,16 @@ public class StatementTest extends AbstractTest {
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, "test");
 
-                    try {
-                        ps.executeUpdate();
-                        fail("executeUpdate() should throw when a ResultSet is generated");
-                    } catch (SQLException e) {
-                        assertTrue(e.getMessage().contains("result set"),
-                                "Expected 'result set generated for update' error, got: " + e.getMessage());
+                    // executeUpdate() returns the first update count; it does not traverse
+                    // further to discover the trailing SELECT ResultSet.
+                    int updateCount = ps.executeUpdate();
+                    assertEquals(1, updateCount, "executeUpdate() should return 1 for the INSERT");
+
+                    // The trailing SELECT is still accessible via getMoreResults()
+                    assertTrue(ps.getMoreResults(), "Trailing SELECT should be reachable via getMoreResults()");
+                    try (ResultSet rs = ps.getResultSet()) {
+                        assertTrue(rs.next(), "SELECT should return the inserted row");
+                        assertEquals("test", rs.getString("NAME"));
                     }
                 }
 

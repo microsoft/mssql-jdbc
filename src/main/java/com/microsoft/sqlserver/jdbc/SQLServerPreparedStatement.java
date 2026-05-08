@@ -829,10 +829,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     @Override
     protected boolean shouldConsumeInsertDoneToken() {
-        if (bRequestedGeneratedKeys) {
-            return true;
-        }
-        return connection.useLastUpdateCount();
+        return bRequestedGeneratedKeys;
     }
 
     /**

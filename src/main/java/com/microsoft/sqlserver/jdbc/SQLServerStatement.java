@@ -1675,26 +1675,11 @@ public class SQLServerStatement implements ISQLServerStatement {
             @Override
             boolean onColMetaData(TDSReader tdsReader) throws SQLServerException {
                 /*
-                 * Drop a stale INSERT DONE token so the trailing SELECT is surfaced as a ResultSet.
-                 *
-                 * onDone() assigns stmtDoneToken before deciding to consume; a consumed INSERT
-                 * DONEINPROC therefore leaves stmtDoneToken pointing at a token we discarded.
-                 * If COLMETADATA follows, isUpdateCount() would shadow isResultSet() and the
-                 * SELECT would never become a ResultSet.
-                 *
-                 * Guards:
-                 *   shouldConsumeInsertDoneToken() - consumption was actually applied
-                 *   !bRequestedGeneratedKeys      - keep INSERT count for SCOPE_IDENTITY path
-                 *   EXECUTE != executeMethod      - preserve phantom-INSERT-before-SELECT for
-                 *                                   plain execute() only clear for executeUpdate/Query/Batch.
+                 * If we have an update count from a previous command that we haven't acknowledged because we didn't
+                 * know at the time whether it was the undesired result from a trigger, and if we did not encounter an
+                 * ERROR token before hitting this COLMETADATA token, with any intervening DONE token (does not indicate
+                 * an error result), then go ahead.
                  */
-                if (null != stmtDoneToken && null == getDatabaseError()
-                        && StreamDone.CMD_INSERT == stmtDoneToken.getCurCmd()
-                        && shouldConsumeInsertDoneToken()
-                        && !bRequestedGeneratedKeys
-                        && EXECUTE != executeMethod) {
-                    stmtDoneToken = null;
-                }
                 if (null == stmtDoneToken && null == getDatabaseError()) {
                     // If both conditions are true, column metadata indicates the start of a ResultSet
                     isResultSet = true;
