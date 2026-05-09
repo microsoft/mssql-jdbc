@@ -6766,16 +6766,23 @@ final class TDSPacket {
     final byte[] payload;
     int payloadLength;
     volatile TDSPacket next;
+    private final ByteBufferManager byteBufferManager;
 
     final public String toString() {
         return "TDSPacket(SPID:" + Util.readUnsignedShortBigEndian(header, TDS.PACKET_HEADER_SPID) + " Seq:"
                 + header[TDS.PACKET_HEADER_SEQUENCE_NUM] + ")";
     }
 
-    TDSPacket(int size) {
-        payload = new byte[size];
+    TDSPacket(int size, ByteBufferManager byteBufferManager) {
+        this.byteBufferManager = byteBufferManager;
+        // payload = new byte[size];
+        payload = byteBufferManager.rentBytes(size);
         payloadLength = 0;
         next = null;
+    }
+
+    void releasePayload() {
+        byteBufferManager.release(payload);
     }
 
     final boolean isEOM() {
@@ -6836,7 +6843,8 @@ final class TDSReader implements Serializable {
         return con;
     }
 
-    private transient TDSPacket currentPacket = new TDSPacket(0);
+    private transient ByteBufferManager byteBufferManager = new ByteBufferManager();
+    private transient TDSPacket currentPacket = new TDSPacket(0, byteBufferManager);
     private transient TDSPacket lastPacket = currentPacket;
     private int payloadOffset = 0;
     private int packetNum = 0;
@@ -6952,6 +6960,7 @@ final class TDSReader implements Serializable {
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(toString() + " Moving to next packet -- unlinking consumed packet");
 
+            consumedPacket.releasePayload();
             consumedPacket.next = null;
         }
         currentPacket = nextPacket;
@@ -6977,7 +6986,7 @@ final class TDSReader implements Serializable {
             assert tdsChannel.numMsgsRcvd < tdsChannel.numMsgsSent : "numMsgsRcvd:" + tdsChannel.numMsgsRcvd
                     + " should be less than numMsgsSent:" + tdsChannel.numMsgsSent;
 
-            TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
+            TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize(), byteBufferManager);
             if ((null != command) &&
             // if cancelQueryTimeout is set, we should wait for the total amount of
             // queryTimeout + cancelQueryTimeout to
