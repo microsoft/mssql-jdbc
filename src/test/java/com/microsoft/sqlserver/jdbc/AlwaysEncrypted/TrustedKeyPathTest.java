@@ -4,11 +4,10 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,7 +23,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
-import com.microsoft.sqlserver.testframework.PrepUtil;
 
 /**
  * Trusted CMK path tests: trusted key path validation, untrusted path rejection,
@@ -92,7 +90,7 @@ public class TrustedKeyPathTest extends AbstractTest {
         Map<String, List<String>> retrievedPaths = SQLServerConnection
                 .getColumnEncryptionTrustedMasterKeyPaths();
         assertTrue(retrievedPaths.containsKey("server2"));
-        // server1 should no longer be present (full overwrite)
+        assertFalse(retrievedPaths.containsKey("server1"), "server1 should no longer be present after full overwrite");
 
         // Cleanup
         SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(new HashMap<>());

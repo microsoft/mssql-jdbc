@@ -47,7 +47,7 @@ public class ReadonlyRoutingTest extends AbstractTest {
         String url = connectionString + ";applicationIntent=ReadOnly";
         try (Connection conn = PrepUtil.getConnection(url)) {
             assertNotNull(conn);
-            assertTrue(conn.isReadOnly() || !conn.isClosed());
+            assertTrue(conn.isReadOnly());
             try (Statement stmt = conn.createStatement();
                     ResultSet rs = stmt.executeQuery("SELECT 1")) {
                 assertTrue(rs.next());

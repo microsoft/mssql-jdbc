@@ -6,6 +6,7 @@ package com.microsoft.sqlserver.jdbc.preparedStatement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -22,11 +23,11 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
-import com.microsoft.sqlserver.testframework.PrepUtil;
 
 /**
  * Cursor/concurrency matrix tests: all combinations of cursor type and concurrency
@@ -101,15 +102,17 @@ public class CursorConcurrencyMatrixTest extends AbstractTest {
         }
     }
 
-    // Scroll-Insensitive + Updatable
+    // Scroll-Insensitive + Updatable (not supported by SQL Server — verify graceful error)
     @Test
     public void testScrollInsensitiveUpdatable() throws SQLException {
-        try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-                        ResultSet.CONCUR_UPDATABLE);
-                ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
-            assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
-            assertTrue(rs.next());
+        try (Connection conn = getConnection()) {
+            SQLServerException ex = assertThrows(SQLServerException.class, () -> {
+                try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                        ResultSet.CONCUR_UPDATABLE)) {
+                    stmt.executeQuery("SELECT * FROM " + tableName);
+                }
+            });
+            assertTrue(ex.getMessage().contains("not supported"));
         }
     }
 
@@ -161,15 +164,17 @@ public class CursorConcurrencyMatrixTest extends AbstractTest {
         }
     }
 
-    // PreparedStatement: Scroll-Insensitive + Updatable
+    // PreparedStatement: Scroll-Insensitive + Updatable (not supported by SQL Server — verify graceful error)
     @Test
     public void testPreparedScrollInsensitiveUpdatable() throws SQLException {
-        try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement("SELECT * FROM " + tableName,
-                        ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-                ResultSet rs = ps.executeQuery()) {
-            assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
-            assertTrue(rs.next());
+        try (Connection conn = getConnection()) {
+            SQLServerException ex = assertThrows(SQLServerException.class, () -> {
+                try (PreparedStatement ps = conn.prepareStatement("SELECT * FROM " + tableName,
+                        ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+                    ps.executeQuery();
+                }
+            });
+            assertTrue(ex.getMessage().contains("not supported"));
         }
     }
 

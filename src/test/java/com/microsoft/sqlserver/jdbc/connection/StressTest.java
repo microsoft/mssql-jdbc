@@ -4,10 +4,9 @@
  */
 package com.microsoft.sqlserver.jdbc.connection;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -277,7 +276,5 @@ public class StressTest extends AbstractTest {
         assertTrue(successCount.get() > 0);
     }
 
-    private static void assertEquals(int expected, int actual) {
-        assertTrue(expected == actual, "Expected " + expected + " but got " + actual);
-    }
+
 }
