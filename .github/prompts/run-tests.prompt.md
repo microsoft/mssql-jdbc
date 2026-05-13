@@ -250,7 +250,8 @@ All test source is under `src/test/java/com/microsoft/sqlserver/jdbc/`.
 ## Quick Reference
 
 ```bash
-# Unit tests (no DB)
+# Unit package tests (many still require DB)
+# Ensure `mssql_jdbc_test_connection_properties` is set before running this suite.
 mvn clean test -Pjre11 -Dtest="com.microsoft.sqlserver.jdbc.unit.**"
 
 # Single test class
