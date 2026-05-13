@@ -11,8 +11,8 @@ The project includes:
 - **Driver source**: All source code in `src/main/java/com/microsoft/sqlserver/jdbc/`.
 - **Error resources**: Localized error messages in `SQLServerResource.java`.
 - **Tests**: Located in `src/test/java/com/microsoft/sqlserver/jdbc/`.
-  - **Unit Tests**: In `src/test/java/com/microsoft/sqlserver/jdbc/unit/` — isolated tests, no SQL Server needed.
-  - **Integration Tests**: In feature-specific packages (`connection/`, `datatypes/`, `bulkCopy/`, `AlwaysEncrypted/`, etc.) — require a SQL Server instance.
+  - **Unit Tests**: Many tests in `src/test/java/com/microsoft/sqlserver/jdbc/unit/` are isolated, but this tree is not guaranteed to be SQL-Server-free; tests that extend `AbstractTest` or call `setConnection()` / `getConnection()` require test database configuration.
+  - **Integration Tests**: In feature-specific packages (`connection/`, `datatypes/`, `bulkCopy/`, `AlwaysEncrypted/`, etc.) — generally require a SQL Server instance.
   - **BVT Tests**: In `src/test/java/com/microsoft/sqlserver/jdbc/bvt/` — build verification / smoke tests.
   - **State Machine Tests**: In `src/test/java/com/microsoft/sqlserver/jdbc/statemachinetest/` — model-based testing for complex state interactions.
 
