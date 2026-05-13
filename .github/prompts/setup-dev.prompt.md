@@ -95,16 +95,16 @@ cd mssql-jdbc
 Run a quick compile to confirm everything works:
 
 ```bash
-mvn clean compile -Pjre11
+mvn clean compile -Pjre11   # Use a profile matching your JDK version
 ```
 
 If this succeeds, the environment is correctly set up.
 
 ---
 
-## STEP 5: Configure Test Database (Optional)
+## STEP 5: Configure Test Database
 
-Integration tests require a SQL Server instance. Set the connection string as an environment variable:
+Most tests — including many under `unit/` — require a SQL Server instance. Set the connection string as an environment variable:
 
 ```bash
 # macOS/Linux
@@ -119,7 +119,7 @@ $env:mssql_jdbc_test_connection_properties = "jdbc:sqlserver://localhost:1433;da
 > docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=YourStrong!Passw0rd" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest
 > ```
 
-Unit tests in `src/test/java/com/microsoft/sqlserver/jdbc/unit/` do **not** require a database.
+> **Note**: Most tests — including many under `src/test/java/com/microsoft/sqlserver/jdbc/unit/` — extend `AbstractTest` and require a configured database connection. Only a small subset of unit tests can run without a database.
 
 ---
 
@@ -146,7 +146,17 @@ The project includes `mssql-jdbc-checkstyle.xml` for static analysis. Configure 
 
 ## STEP 7: Verify Full Setup
 
-Run this checklist:
+Ask the developer which JRE profile to verify against:
+
+> "Which JRE profile should be used for verification?"
+> - `jre8` (requires JDK 11+, cross-compiles to Java 8 bytecode)
+> - `jre11` (requires JDK 11+)
+> - `jre17` (requires JDK 17+)
+> - `jre21` (requires JDK 21+)
+> - `jre25` (requires JDK 25+)
+> - `jre26` (requires JDK 26+, default)
+
+Substitute `<profile>` below with the selected profile.
 
 ```bash
 # 1. Java
@@ -156,13 +166,16 @@ java -version          # Should be 11+
 mvn --version          # Should be 3.5.0+
 
 # 3. Compile
-mvn clean compile -Pjre11
+mvn clean compile -P<profile>
 
-# 4. Unit tests (no DB needed)
-mvn clean test -Pjre11 -Dtest="com.microsoft.sqlserver.jdbc.unit.**"
+# 4. Package without tests (no DB needed)
+mvn clean package -P<profile> -DskipTests
 
-# 5. (Optional) Integration tests (requires DB)
-mvn clean test -Pjre11
+# 5. Unit tests (requires configured test DB — many unit tests inherit DB setup via AbstractTest)
+mvn clean test -P<profile> -Dtest="com.microsoft.sqlserver.jdbc.unit.**"
+
+# 6. Full test suite (requires DB)
+mvn clean test -P<profile>
 ```
 
 ---

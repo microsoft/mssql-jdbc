@@ -91,6 +91,9 @@ Before writing code, produce a brief implementation plan covering:
   ```bash
   mvn clean compile -Pjre8
   mvn clean compile -Pjre11
+  mvn clean compile -Pjre17
+  mvn clean compile -Pjre21
+  mvn clean compile -Pjre25
   mvn clean compile -Pjre26
   ```
 - Run relevant tests:

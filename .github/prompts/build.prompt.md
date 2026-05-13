@@ -50,7 +50,23 @@ The driver supports multiple JRE profiles. Each profile compiles against a diffe
 
 ---
 
-## STEP 1: Choose Build Type
+## STEP 1: Choose JRE Profile
+
+Ask the developer which JRE profile to build against:
+
+> "Which JRE profile should be used for this build?"
+> - `jre8` (requires JDK 11+, cross-compiles to Java 8 bytecode)
+> - `jre11` (requires JDK 11+)
+> - `jre17` (requires JDK 17+)
+> - `jre21` (requires JDK 21+)
+> - `jre25` (requires JDK 25+)
+> - `jre26` (requires JDK 26+, default)
+
+Use the selected profile (referred to as `<profile>` below) in all `mvn` commands.
+
+---
+
+## STEP 2: Choose Build Type
 
 Ask the developer what they need:
 
@@ -59,69 +75,53 @@ Ask the developer what they need:
 > 2. **Package JAR** - Compile + create JAR (skip tests)
 > 3. **Full build** - Compile + test + package
 > 4. **Install locally** - Build + install to local Maven repo
-> 5. **Specific profile** - Build for a specific JRE version
-> 6. **Run tests only** - Run tests without packaging (requires DB connection)
+> 5. **Run tests only** - Run tests without packaging (requires DB connection)
 
 ---
 
-## STEP 2: Build the Driver
+## STEP 3: Build the Driver
 
-### Option A: Quick Compile (Default Profile)
+Substitute `<profile>` with the profile selected in Step 1 (e.g., `-Pjre11`).
+
+### Option 1: Quick Compile
 
 ```bash
-mvn clean compile
+mvn clean compile -P<profile>
 ```
 
-### Option B: Quick Compile with Specific Profile
+### Option 2: Package JAR (Skip Tests)
 
 ```bash
-# Choose one:
-mvn clean compile -Pjre8
-mvn clean compile -Pjre11
-mvn clean compile -Pjre17
-mvn clean compile -Pjre21
-mvn clean compile -Pjre25
-mvn clean compile -Pjre26
+mvn clean package -DskipTests -P<profile>
 ```
 
-### Option C: Package JAR (Skip Tests)
+### Option 3: Full Build with Tests
 
 ```bash
-# Choose one:
-mvn clean package -DskipTests -Pjre11
-mvn clean package -DskipTests -Pjre17
-mvn clean package -DskipTests -Pjre21
-mvn clean package -DskipTests -Pjre25
-mvn clean package -DskipTests -Pjre26
-```
-
-### Option D: Full Build with Tests
-
-```bash
-mvn clean verify -Pjre11
+mvn clean verify -P<profile>
 ```
 
 > Requires SQL Server connection string. See `#run-tests` for details.
 
-### Option E: Install to Local Maven Repository
+### Option 4: Install to Local Maven Repository
 
 ```bash
-mvn clean install -DskipTests -Pjre11
+mvn clean install -DskipTests -P<profile>
 ```
 
 This installs the JAR to `~/.m2/repository/com/microsoft/sqlserver/mssql-jdbc/` for use as a dependency in other projects.
 
-### Option F: Run Tests Only
+### Option 5: Run Tests Only
 
 ```bash
-mvn clean test -Pjre11
+mvn clean test -P<profile>
 ```
 
 > Requires the `mssql_jdbc_test_connection_properties` environment variable set to a valid connection string. See `#run-tests` for details.
 
 ---
 
-## STEP 3: Verify the Build
+## STEP 4: Verify the Build
 
 ### 3.1 Check Output
 
@@ -146,17 +146,17 @@ Build artifacts are in the `target/` directory:
 
 ---
 
-## STEP 4: Generate Javadoc (Optional)
+## STEP 5: Generate Javadoc (Optional)
 
 ```bash
-mvn javadoc:javadoc -Pjre11
+mvn javadoc:javadoc -P<profile>
 ```
 
 Output is in `target/apidocs/`.
 
 ---
 
-## STEP 5: Clean Build (If Needed)
+## STEP 6: Clean Build (If Needed)
 
 If you need a completely fresh build:
 
@@ -165,7 +165,7 @@ If you need a completely fresh build:
 mvn clean
 
 # Then rebuild
-mvn clean compile -Pjre11
+mvn clean compile -P<profile>
 ```
 
 ---
@@ -213,10 +213,10 @@ mvn clean compile -U
 **Fix:**
 ```bash
 # Clean and rebuild
-mvn clean compile -Pjre11
+mvn clean compile -P<profile>
 
 # Check for dependency issues
-mvn dependency:tree -Pjre11
+mvn dependency:tree -P<profile>
 ```
 
 ### Build succeeds but JAR is missing
@@ -226,7 +226,7 @@ mvn dependency:tree -Pjre11
 **Fix:**
 ```bash
 # Use package goal to create JAR
-mvn clean package -DskipTests -Pjre11
+mvn clean package -DskipTests -P<profile>
 ```
 
 ### Out of memory during build
@@ -240,30 +240,32 @@ $env:MAVEN_OPTS = "-Xmx1024m"
 # macOS/Linux
 export MAVEN_OPTS="-Xmx1024m"
 
-mvn clean compile -Pjre11
+mvn clean compile -P<profile>
 ```
 
 ---
 
 ## Quick Reference
 
+Substitute `<profile>` with the selected JRE profile (e.g., `jre11`).
+
 ### One-Liner Build Commands
 
 ```bash
-# Fast compile check (default profile)
-mvn clean compile
+# Fast compile check
+mvn clean compile -P<profile>
 
-# Package JAR for JRE 11
-mvn clean package -DskipTests -Pjre11
+# Package JAR
+mvn clean package -DskipTests -P<profile>
 
-# Install locally for JRE 11
-mvn clean install -DskipTests -Pjre11
+# Install locally
+mvn clean install -DskipTests -P<profile>
 
 # Full build with tests (requires DB connection).
 # Set the connection string as an environment variable beforehand:
 #   export mssql_jdbc_test_connection_properties="jdbc:sqlserver://localhost:1433;..."
 # Or pass it inline:
-mssql_jdbc_test_connection_properties="jdbc:sqlserver://localhost:1433;..." mvn clean verify -Pjre11
+mssql_jdbc_test_connection_properties="jdbc:sqlserver://localhost:1433;..." mvn clean verify -P<profile>
 ```
 
 ---

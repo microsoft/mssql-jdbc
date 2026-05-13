@@ -36,8 +36,8 @@ Follow this workflow step-by-step:
 
 - Create a test that reproduces the bug BEFORE implementing the fix.
 - Choose the correct test package under `src/test/java/com/microsoft/sqlserver/jdbc/`:
-  - `unit/` — for isolated logic tests (no SQL Server needed)
-  - Feature-specific packages (`connection/`, `datatypes/`, `bulkCopy/`, etc.) — for integration tests
+  - `unit/` — use only when it matches existing test patterns in that area; do not assume tests there are database-free, as many extend `AbstractTest` and require SQL Server
+  - Feature-specific packages (`connection/`, `datatypes/`, `bulkCopy/`, etc.) — typically for integration tests and other area-specific coverage
 - Follow existing test patterns:
   - Extend `AbstractTest` for tests needing a SQL Server connection.
   - Use JUnit 5 (`@Test`, `@Tag`, `@BeforeAll`, `@AfterAll`).

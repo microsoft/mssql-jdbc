@@ -69,9 +69,9 @@ Check against `Coding_Guidelines.md` and `coding-best-practices.md`:
 - [ ] Bug fixes have a test that would have caught the bug
 - [ ] New features have unit tests and integration tests as appropriate
 - [ ] Tests are in the correct package under `src/test/java/com/microsoft/sqlserver/jdbc/`
-  - `unit/` — isolated tests, no SQL Server needed
-  - Feature-specific packages (`connection/`, `datatypes/`, `bulkCopy/`, etc.) — integration tests
-- [ ] Tests do NOT use hardcoded connection strings (use `AbstractTest` base class and test config)
+  - `unit/` — verify whether the test is truly isolated or whether it still relies on `AbstractTest` connection setup and `mssql_jdbc_test_connection_properties`
+  - Feature-specific packages (`connection/`, `datatypes/`, `bulkCopy/`, etc.) — typically integration tests
+- [ ] Tests do NOT use hardcoded connection strings (use `AbstractTest` base class and test config when SQL Server access is required)
 - [ ] Tests that require SQL Server are tagged with appropriate JUnit groups
 - [ ] Tests excluded from default runs use correct group annotations (`xSQLv12`, `xSQLv15`, `reqExternalSetup`, `fedAuth`, `kerberos`, etc.)
 - [ ] No flaky patterns (timing-dependent, order-dependent, resource-dependent)

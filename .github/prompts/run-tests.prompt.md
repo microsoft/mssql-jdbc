@@ -24,7 +24,7 @@ export mssql_jdbc_test_connection_properties="jdbc:sqlserver://localhost:1433;da
 $env:mssql_jdbc_test_connection_properties = "jdbc:sqlserver://localhost:1433;databaseName=testDb;user=sa;password=yourPassword;encrypt=true;trustServerCertificate=true;"
 ```
 
-> **Unit tests** in `src/test/java/com/microsoft/sqlserver/jdbc/unit/` do **not** require a database connection.
+> **Note**: Most tests — including many under `src/test/java/com/microsoft/sqlserver/jdbc/unit/` — extend `AbstractTest` and require a configured database connection. Only a small subset of unit tests can run without a database.
 
 ---
 
@@ -40,7 +40,7 @@ Ask the developer which JRE profile to test against:
 > - `jre25` (requires JDK 25+)
 > - `jre26` (requires JDK 26+, default)
 
-Use the selected profile in all `mvn` commands below (e.g., `-Pjre11`).
+Use the selected profile (referred to as `<profile>` below) in all `mvn` commands. Substitute `<profile>` with the user's choice (e.g., `-Pjre11`).
 
 ---
 
@@ -49,7 +49,7 @@ Use the selected profile in all `mvn` commands below (e.g., `-Pjre11`).
 Ask the developer what they need:
 
 > "What tests would you like to run?"
-> 1. **Unit tests only** — No database needed
+> 1. **Unit tests** — Tests under `unit/` (most still require a configured test DB)
 > 2. **Single test class** — Run one specific test
 > 3. **Single test method** — Run one specific method
 > 4. **Feature suite** — Run tests for a specific feature (e.g., bulkCopy, connection)
@@ -61,60 +61,62 @@ Ask the developer what they need:
 
 ## STEP 3: Run Tests
 
-### Option A: Unit Tests Only
+Substitute `<profile>` below with the profile selected in Step 1 (e.g., `-Pjre11`).
+
+### Option 1: Unit Tests
 
 ```bash
-mvn clean test -Pjre11 -pl . -Dtest="com.microsoft.sqlserver.jdbc.unit.**"
+mvn clean test -P<profile> -pl . -Dtest="com.microsoft.sqlserver.jdbc.unit.**"
 ```
 
-### Option B: Single Test Class
+### Option 2: Single Test Class
 
 ```bash
-mvn clean test -Pjre11 -Dtest=MyTestClassName
+mvn clean test -P<profile> -Dtest=MyTestClassName
 ```
 
-### Option C: Single Test Method
+### Option 3: Single Test Method
 
 ```bash
-mvn clean test -Pjre11 -Dtest="MyTestClassName#myTestMethod"
+mvn clean test -P<profile> -Dtest="MyTestClassName#myTestMethod"
 ```
 
-### Option D: Feature Suite
+### Option 4: Feature Suite
 
 ```bash
 # Examples — replace the package with the target feature:
-mvn clean test -Pjre11 -Dtest="com.microsoft.sqlserver.jdbc.connection.**"
-mvn clean test -Pjre11 -Dtest="com.microsoft.sqlserver.jdbc.bulkCopy.**"
-mvn clean test -Pjre11 -Dtest="com.microsoft.sqlserver.jdbc.datatypes.**"
-mvn clean test -Pjre11 -Dtest="com.microsoft.sqlserver.jdbc.preparedStatement.**"
-mvn clean test -Pjre11 -Dtest="com.microsoft.sqlserver.jdbc.resultset.**"
-mvn clean test -Pjre11 -Dtest="com.microsoft.sqlserver.jdbc.AlwaysEncrypted.**"
+mvn clean test -P<profile> -Dtest="com.microsoft.sqlserver.jdbc.connection.**"
+mvn clean test -P<profile> -Dtest="com.microsoft.sqlserver.jdbc.bulkCopy.**"
+mvn clean test -P<profile> -Dtest="com.microsoft.sqlserver.jdbc.datatypes.**"
+mvn clean test -P<profile> -Dtest="com.microsoft.sqlserver.jdbc.preparedStatement.**"
+mvn clean test -P<profile> -Dtest="com.microsoft.sqlserver.jdbc.resultset.**"
+mvn clean test -P<profile> -Dtest="com.microsoft.sqlserver.jdbc.AlwaysEncrypted.**"
 ```
 
-### Option E: All Default Tests
+### Option 5: All Default Tests
 
 ```bash
-mvn clean test -Pjre11
+mvn clean test -P<profile>
 ```
 
 This runs all tests except those tagged with excluded groups (see **Test Tags** below).
 
-### Option F: BVT / Smoke Tests
+### Option 6: BVT / Smoke Tests
 
 ```bash
-mvn clean test -Pjre11 -Dtest="com.microsoft.sqlserver.jdbc.bvt.**"
+mvn clean test -P<profile> -Dtest="com.microsoft.sqlserver.jdbc.bvt.**"
 ```
 
-### Option G: State Machine Tests
+### Option 7: State Machine Tests
 
 ```bash
-mvn clean test -Pjre11 -Dtest="com.microsoft.sqlserver.jdbc.statemachinetest.**"
+mvn clean test -P<profile> -Dtest="com.microsoft.sqlserver.jdbc.statemachinetest.**"
 ```
 
 State machine tests use seed-based reproducibility. To replay a failure, find the seed in the test output and pass it back:
 
 ```bash
-mvn clean test -Pjre11 -Dtest="TestClassName#testMethod" -DsmtSeed=<seed>
+mvn clean test -P<profile> -Dtest="TestClassName#testMethod" -DsmtSeed=<seed>
 ```
 
 See `.github/instructions/state-machine-testing.instructions.md` for details.
@@ -123,7 +125,7 @@ See `.github/instructions/state-machine-testing.instructions.md` for details.
 
 ## STEP 4: Filter by Test Tags
 
-The driver uses JUnit 5 `@Tag` annotations to categorize tests. Maven Surefire filters them via `-DincludedGroups` and `-DexcludedGroups`.
+The driver uses JUnit 5 `@Tag` annotations to categorize tests. Maven Surefire filters them via `-Dgroups` (include) and `-DexcludedGroups` (exclude).
 
 ### Default Excluded Tags
 
@@ -147,18 +149,18 @@ The following tags are **excluded by default** (see `pom.xml`):
 
 ```bash
 # Run only tests tagged with a specific group
-mvn clean test -Pjre11 -Dgroups="reqExternalSetup"
-mvn clean test -Pjre11 -Dgroups="fedAuth"
+mvn clean test -P<profile> -Dgroups="reqExternalSetup"
+mvn clean test -P<profile> -Dgroups="fedAuth"
 ```
 
 ### Overriding Exclusions
 
 ```bash
 # Remove all default exclusions (run everything)
-mvn clean test -Pjre11 -DexcludedGroups=""
+mvn clean test -P<profile> -DexcludedGroups=""
 
 # Exclude only specific tags
-mvn clean test -Pjre11 -DexcludedGroups="NTLM,kerberos"
+mvn clean test -P<profile> -DexcludedGroups="NTLM,kerberos"
 ```
 
 ### SQL Server Version Tags
@@ -228,7 +230,7 @@ mvn clean test -Pjre26
 
 | Directory | Type | DB Required? |
 |-----------|------|-------------|
-| `unit/` | Unit tests | No |
+| `unit/` | Unit tests | Most require DB (many extend `AbstractTest`) |
 | `bvt/` | Smoke tests | Yes |
 | `connection/` | Connection tests | Yes |
 | `datatypes/` | Data type tests | Yes |
@@ -249,26 +251,27 @@ All test source is under `src/test/java/com/microsoft/sqlserver/jdbc/`.
 
 ## Quick Reference
 
+Substitute `<profile>` with the selected JRE profile (e.g., `jre11`).
+
 ```bash
-# Unit package tests (many still require DB)
-# Ensure `mssql_jdbc_test_connection_properties` is set before running this suite.
-mvn clean test -Pjre11 -Dtest="com.microsoft.sqlserver.jdbc.unit.**"
+# Unit tests (most require configured test DB)
+mvn clean test -P<profile> -Dtest="com.microsoft.sqlserver.jdbc.unit.**"
 
 # Single test class
-mvn clean test -Pjre11 -Dtest=ConnectionTest
+mvn clean test -P<profile> -Dtest=ConnectionTest
 
 # Single method
-mvn clean test -Pjre11 -Dtest="ConnectionTest#testOpenConnection"
+mvn clean test -P<profile> -Dtest="ConnectionTest#testOpenConnection"
 
 # BVT smoke tests
-mvn clean test -Pjre11 -Dtest="com.microsoft.sqlserver.jdbc.bvt.**"
+mvn clean test -P<profile> -Dtest="com.microsoft.sqlserver.jdbc.bvt.**"
 
 # All default tests
-mvn clean test -Pjre11
+mvn clean test -P<profile>
 
 # Include external-setup tests
-mvn clean test -Pjre11 -DincludedGroups="reqExternalSetup"
+mvn clean test -P<profile> -Dgroups="reqExternalSetup"
 
 # Full verify (compile + test + package)
-mvn clean verify -Pjre11
+mvn clean verify -P<profile>
 ```

@@ -293,7 +293,7 @@ Before submitting, verify:
 - [ ] PR description has a clear summary of changes
 - [ ] PR links to a GitHub issue or ADO work item
 - [ ] Branch is based on latest `main`
-- [ ] Build compiles cleanly (`mvn clean compile`)
+- [ ] Build compiles cleanly (`mvn clean compile -Pjre11`)
 - [ ] All tests pass locally
 - [ ] Code follows project formatting (`mssql-jdbc_formatter.xml`)
 - [ ] No sensitive data (passwords, keys, connection strings) in code
