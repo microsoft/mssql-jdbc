@@ -39,6 +39,7 @@ The project includes:
 
 ### ⚙️ Automating Workflows
 
+- Use the `getting-started` prompt (`#getting-started`) for an interactive guide to all available Copilot prompts.
 - Auto-label PRs based on folder paths (e.g., changes in `src/main/java/` → `area-driver`, changes in `src/test/java/` → `area-testing`).
 - Suggest CHANGELOG entries for fixes in `CHANGELOG.md`.
 - Tag reviewers based on area of change.

@@ -35,6 +35,7 @@ This repository provides reusable prompts in `.github/prompts/` for common maint
 
 | Prompt | Purpose |
 |--------|---------|
+| [getting-started.prompt.md](.github/prompts/getting-started.prompt.md) | Interactive guide to all available mssql-jdbc Copilot prompts |
 | [build.prompt.md](.github/prompts/build.prompt.md) | Build the driver with Maven across JRE profiles |
 | [run-tests.prompt.md](.github/prompts/run-tests.prompt.md) | Run tests with Maven across JRE profiles |
 | [setup-dev.prompt.md](.github/prompts/setup-dev.prompt.md) | Set up the development environment |
