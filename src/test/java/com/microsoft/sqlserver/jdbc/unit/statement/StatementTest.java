@@ -2437,7 +2437,8 @@ public class StatementTest extends AbstractTest {
     public class TCUpdateCountAfterRaiseError {
         private final String tableName = AbstractSQLGenerator
                 .escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountAfterRaiseError"));
-        private final String triggerName = AbstractSQLGenerator.escapeIdentifier("Trigger");
+        private final String triggerName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCUpdateCountTrigger"));
         private final int NUM_ROWS = 3;
         private final String errorMessage50001InSqlAzure = "Error 50001, severity 17, state 1 was raised, but no message with that error number was found in sys.messages. If error is larger than 50000, make sure the user-defined message is added using sp_addmessage.";
 
@@ -2710,7 +2711,8 @@ public class StatementTest extends AbstractTest {
         private final String idTableName = AbstractSQLGenerator
                 .escapeIdentifier(RandomUtil.getIdentifier("TCInsertWithGenKeysIDs"));
 
-        private final String triggerName = AbstractSQLGenerator.escapeIdentifier("Trigger");
+        private final String triggerName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("TCGenKeysTrigger"));
         private final int NUM_ROWS = 3;
 
         @BeforeEach
