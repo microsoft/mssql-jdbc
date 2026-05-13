@@ -100,14 +100,14 @@ public class DTCTimeoutTest extends AbstractTest {
         XAConnection xaConn = xaDs.getXAConnection();
         try {
             XAResource xar = xaConn.getXAResource();
-            Connection conn = xaConn.getConnection();
-
-            xar.start(xid, XAResource.TMNOFLAGS);
-            try (Statement stmt = conn.createStatement()) {
-                stmt.executeQuery("SELECT 1");
+            try (Connection conn = xaConn.getConnection()) {
+                xar.start(xid, XAResource.TMNOFLAGS);
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeQuery("SELECT 1");
+                }
+                xar.end(xid, XAResource.TMSUCCESS);
+                xar.rollback(xid);
             }
-            xar.end(xid, XAResource.TMSUCCESS);
-            xar.rollback(xid);
         } finally {
             xaConn.close();
         }
@@ -119,14 +119,14 @@ public class DTCTimeoutTest extends AbstractTest {
         XAConnection xaConn = xaDs.getXAConnection();
         try {
             XAResource xar = xaConn.getXAResource();
-            Connection conn = xaConn.getConnection();
-
-            xar.start(xid, XAResource.TMNOFLAGS);
-            try (Statement stmt = conn.createStatement()) {
-                stmt.executeQuery("SELECT 1");
+            try (Connection conn = xaConn.getConnection()) {
+                xar.start(xid, XAResource.TMNOFLAGS);
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.executeQuery("SELECT 1");
+                }
+                xar.end(xid, XAResource.TMSUCCESS);
+                xar.commit(xid, true); // one-phase commit
             }
-            xar.end(xid, XAResource.TMSUCCESS);
-            xar.commit(xid, true); // one-phase commit
         } finally {
             xaConn.close();
         }

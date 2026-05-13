@@ -344,7 +344,7 @@ public class ResultSetGetterUpdaterTest extends AbstractTest {
     @Test
     public void testUpdateString() throws SQLException {
         try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
                         ResultSet.CONCUR_UPDATABLE);
                 ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
             assertTrue(rs.next());
@@ -360,7 +360,7 @@ public class ResultSetGetterUpdaterTest extends AbstractTest {
     @Test
     public void testUpdateInt() throws SQLException {
         try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
                         ResultSet.CONCUR_UPDATABLE);
                 ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
             assertTrue(rs.next());
@@ -376,7 +376,7 @@ public class ResultSetGetterUpdaterTest extends AbstractTest {
     @Test
     public void testInsertRow() throws SQLException {
         try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
                         ResultSet.CONCUR_UPDATABLE);
                 ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
             rs.moveToInsertRow();
@@ -404,7 +404,7 @@ public class ResultSetGetterUpdaterTest extends AbstractTest {
         }
         // Delete it via cursor
         try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
                         ResultSet.CONCUR_UPDATABLE);
                 ResultSet rs = stmt.executeQuery(
                         "SELECT * FROM " + tableName + " WHERE INT_COL = 9999")) {

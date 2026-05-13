@@ -91,10 +91,11 @@ public class StatementCancelTest extends AbstractTest {
                 fail("Expected timeout exception");
             } catch (SQLException e) {
                 // Expected: query timeout or cancellation
+                String message = String.valueOf(e.getMessage());
                 assertTrue(e instanceof SQLTimeoutException
-                        || e.getMessage().contains("cancel")
-                        || e.getMessage().contains("timeout")
-                        || e.getMessage().contains("timed out"));
+                        || message.contains("cancel")
+                        || message.contains("timeout")
+                        || message.contains("timed out"));
             }
         }
     }
@@ -131,8 +132,9 @@ public class StatementCancelTest extends AbstractTest {
                     stmt.execute("WAITFOR DELAY '00:00:10'");
                 } catch (SQLException e) {
                     // Expected: cancellation
-                    assertTrue(e.getMessage().contains("cancel")
-                            || e.getMessage().contains("attention"));
+                    String message = String.valueOf(e.getMessage());
+                    assertTrue(message.contains("cancel")
+                            || message.contains("attention"));
                 }
                 cancelFuture.get(5, TimeUnit.SECONDS);
             } finally {
@@ -151,10 +153,11 @@ public class StatementCancelTest extends AbstractTest {
                 ps.execute();
                 fail("Expected timeout");
             } catch (SQLException e) {
+                String message = String.valueOf(e.getMessage());
                 assertTrue(e instanceof SQLTimeoutException
-                        || e.getMessage().contains("cancel")
-                        || e.getMessage().contains("timeout")
-                        || e.getMessage().contains("timed out"));
+                        || message.contains("cancel")
+                        || message.contains("timeout")
+                        || message.contains("timed out"));
             } finally {
                 ps.close();
             }
@@ -195,7 +198,7 @@ public class StatementCancelTest extends AbstractTest {
     }
 
     @Test
-    public void testMultipeSequentialCancels() throws SQLException {
+    public void testMultipleSequentialCancels() throws SQLException {
         try (Connection conn = getConnection();
                 Statement stmt = conn.createStatement()) {
             // Multiple cancels should not cause issues

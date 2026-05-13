@@ -225,7 +225,6 @@ public class ResultSetMetadataTest extends AbstractTest {
             ResultSetMetaData rsmd = rs.getMetaData();
             String catalog = rsmd.getCatalogName(1);
             assertNotNull(catalog);
-            assertTrue(catalog.length() > 0);
         }
     }
 

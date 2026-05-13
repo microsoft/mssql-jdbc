@@ -205,12 +205,13 @@ public class CallableStatementCTSTest extends AbstractTest {
     public void testGetIntOutput() throws SQLException {
         try (Connection conn = getConnection();
                 CallableStatement cs = conn.prepareCall("{call " + numericProc + "(?,?,?)}")) {
-            cs.registerOutParameter(1, Types.INTEGER);
+            // Only register MIN_VAL param as INTEGER (MAX_VAL exceeds int range)
+            cs.registerOutParameter(1, Types.NUMERIC);
             cs.registerOutParameter(2, Types.INTEGER);
             cs.registerOutParameter(3, Types.INTEGER);
             cs.execute();
-            int maxVal = cs.getInt(1);
-            assertTrue(maxVal > 0);
+            int minVal = cs.getInt(2);
+            assertTrue(minVal == 0); // 0.000001 truncates to 0
         }
     }
 
@@ -239,11 +240,12 @@ public class CallableStatementCTSTest extends AbstractTest {
     public void testGetShortOutput() throws SQLException {
         try (Connection conn = getConnection();
                 CallableStatement cs = conn.prepareCall("{call " + numericProc + "(?,?,?)}")) {
-            cs.registerOutParameter(1, Types.SMALLINT);
+            // Only register MIN_VAL param as SMALLINT (MAX_VAL exceeds smallint range)
+            cs.registerOutParameter(1, Types.NUMERIC);
             cs.registerOutParameter(2, Types.SMALLINT);
             cs.registerOutParameter(3, Types.SMALLINT);
             cs.execute();
-            // Value gets truncated due to SMALLINT range but should not throw
+            // MIN_VAL (0.000001) truncates to 0 for SMALLINT
             cs.getShort(2);
         }
     }
@@ -256,11 +258,12 @@ public class CallableStatementCTSTest extends AbstractTest {
     public void testGetByteOutput() throws SQLException {
         try (Connection conn = getConnection();
                 CallableStatement cs = conn.prepareCall("{call " + numericProc + "(?,?,?)}")) {
-            cs.registerOutParameter(1, Types.TINYINT);
+            // Only register MIN_VAL param as TINYINT (MAX_VAL exceeds tinyint range)
+            cs.registerOutParameter(1, Types.NUMERIC);
             cs.registerOutParameter(2, Types.TINYINT);
             cs.registerOutParameter(3, Types.TINYINT);
             cs.execute();
-            // Min value should be retrievable as byte
+            // MIN_VAL (0.000001) truncates to 0 for TINYINT
             cs.getByte(2);
         }
     }

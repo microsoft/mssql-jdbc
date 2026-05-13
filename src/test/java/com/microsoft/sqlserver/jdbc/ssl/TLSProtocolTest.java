@@ -47,10 +47,11 @@ public class TLSProtocolTest extends AbstractTest {
             assertNotNull(dbmd);
         } catch (SQLServerException e) {
             // TLS 1.2 may not be enabled on the server
-            assertTrue(e.getMessage().contains("protocol")
-                    || e.getMessage().contains("SSL")
-                    || e.getMessage().contains("TLS")
-                    || e.getMessage().contains("connection"));
+            String message = String.valueOf(e.getMessage());
+            assertTrue(message.contains("protocol")
+                    || message.contains("SSL")
+                    || message.contains("TLS")
+                    || message.contains("connection"));
         }
     }
 

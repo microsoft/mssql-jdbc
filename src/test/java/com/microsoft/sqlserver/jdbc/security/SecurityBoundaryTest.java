@@ -34,6 +34,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -206,8 +207,10 @@ public class SecurityBoundaryTest extends AbstractTest {
         String maxString = generateString(8000);
         String call = "{call " + escapedProcName + "(?, ?)}";
 
-        try (Connection conn = getConnection();
-                CallableStatement cstmt = conn.prepareCall(call)) {
+        String connStr = TestUtils.addOrOverrideProperty(connectionString,
+                "sendStringParametersAsUnicode", "false");
+        try (Connection conn = DriverManager.getConnection(connStr);
+                SQLServerCallableStatement cstmt = (SQLServerCallableStatement) conn.prepareCall(call)) {
             cstmt.setString(1, maxString);
             cstmt.registerOutParameter(2, java.sql.Types.VARCHAR);
             cstmt.execute();
