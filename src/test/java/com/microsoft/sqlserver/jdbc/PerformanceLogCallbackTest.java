@@ -152,7 +152,8 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
     /**
      * Performance overhead test for connection and statement operations.
-     * Compares execution time with callback/logging disabled vs enabled.
+     * Compares execution time with callback/logging disabled vs enabled (milliseconds)
+     * vs enabled (nanoseconds).
      * For testing purpose - iterations set to 1
      */
     @Test
@@ -170,7 +171,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
             long disabledDuration = executeStatementsWithNewConnectionsPerIteration(count);
 
-            // Test with callback/logging ENABLED
+            // Test with callback/logging ENABLED (milliseconds - default)
             PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
                 @Override
                 public void publish(PerformanceActivity activity, int connectionId, long durationMs, 
@@ -190,8 +191,35 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
             long enabledDuration = executeStatementsWithNewConnectionsPerIteration(count);
 
-            // Uncomment below line to print performance comparison for connection overhead test
-            // printPerformanceComparison(disabledDuration, enabledDuration, count, "new connection per iteration");
+            // Test with callback/logging ENABLED (nanoseconds)
+            SQLServerDriver.unregisterPerformanceLogCallback();
+            PerformanceLogCallback nanosCallbackInstance = new PerformanceLogCallback() {
+                @Override
+                public boolean useNanoseconds() {
+                    return true;
+                }
+
+                @Override
+                public void publish(PerformanceActivity activity, int connectionId, long durationNs, 
+                        Exception exception) {
+                    // No-op callback to measure overhead with nanosecond granularity
+                }
+
+                @Override
+                public void publish(PerformanceActivity activity, int connectionId, int statementId, 
+                        long durationNs, Exception exception) {
+                    // No-op callback to measure overhead with nanosecond granularity
+                }
+            };
+            SQLServerDriver.registerPerformanceLogCallback(nanosCallbackInstance);
+            perfLoggerConnection.setLevel(Level.FINE);
+            perfLoggerStatement.setLevel(Level.FINE);
+
+            long enabledNanosDuration = executeStatementsWithNewConnectionsPerIteration(count);
+
+            // Uncomment below lines to print performance comparison for connection overhead test
+            // printPerformanceComparison(disabledDuration, enabledDuration, count, "new connection per iteration (ms mode)");
+            // printPerformanceComparison(disabledDuration, enabledNanosDuration, count, "new connection per iteration (nanos mode)");
 
             // Cleanup for next iteration
             SQLServerDriver.unregisterPerformanceLogCallback();
@@ -200,52 +228,87 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
     /**
      * High-volume statement execution performance test.
-     * Reuses a single connection to test 10000 statement executions efficiently.
-     * Compares performance with logging disabled vs enabled.
+     * Reuses a single connection to test statement executions efficiently.
+     * Compares performance with logging disabled vs enabled (milliseconds)
+     * vs enabled (nanoseconds).
      */
     @Test
     void testHighVolumeStatementPerformance() throws Exception {
-        int iterations = 10; // Set to 10000 for actual high-volume test
+        int[] iterations = {10};
+        // Uncomment below line to run with higher iterations
+        // int[] iterations = {1000, 10000};
 
-        // Test with callback/logging DISABLED
-        SQLServerDriver.unregisterPerformanceLogCallback();
-        perfLoggerConnection.setLevel(Level.OFF);
-        perfLoggerStatement.setLevel(Level.OFF);
+        for (int count : iterations) {
 
-        long disabledDuration;
-        try (Connection con = getConnection()) {
-            disabledDuration = executeStatementsWithTiming(con, iterations);
-        }
+            // Test with callback/logging DISABLED
+            SQLServerDriver.unregisterPerformanceLogCallback();
+            perfLoggerConnection.setLevel(Level.OFF);
+            perfLoggerStatement.setLevel(Level.OFF);
 
-        // Test with callback/logging ENABLED
-        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
-            @Override
-            public void publish(PerformanceActivity activity, int connectionId, long durationMs, 
-                    Exception exception) {
-                // No-op callback
+            long disabledDuration;
+            try (Connection con = getConnection()) {
+                disabledDuration = executeStatementsWithTiming(con, count);
             }
 
-            @Override
-            public void publish(PerformanceActivity activity, int connectionId, int statementId, 
-                    long durationMs, Exception exception) {
-                // No-op callback
+            // Test with callback/logging ENABLED (milliseconds - default)
+            PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+                @Override
+                public void publish(PerformanceActivity activity, int connectionId, long durationMs, 
+                        Exception exception) {
+                    // No-op callback
+                }
+
+                @Override
+                public void publish(PerformanceActivity activity, int connectionId, int statementId, 
+                        long durationMs, Exception exception) {
+                    // No-op callback
+                }
+            };
+            SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+            perfLoggerConnection.setLevel(Level.FINE);
+            perfLoggerStatement.setLevel(Level.FINE);
+
+            long enabledDuration;
+            try (Connection con = getConnection()) {
+                enabledDuration = executeStatementsWithTiming(con, count);
             }
-        };
-        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
-        perfLoggerConnection.setLevel(Level.FINE);
-        perfLoggerStatement.setLevel(Level.FINE);
 
-        long enabledDuration;
-        try (Connection con = getConnection()) {
-            enabledDuration = executeStatementsWithTiming(con, iterations);
+            // Test with callback/logging ENABLED (nanoseconds)
+            SQLServerDriver.unregisterPerformanceLogCallback();
+            PerformanceLogCallback nanosCallbackInstance = new PerformanceLogCallback() {
+                @Override
+                public boolean useNanoseconds() {
+                    return true;
+                }
+
+                @Override
+                public void publish(PerformanceActivity activity, int connectionId, long durationNs, 
+                        Exception exception) {
+                    // No-op callback to measure overhead with nanosecond granularity
+                }
+
+                @Override
+                public void publish(PerformanceActivity activity, int connectionId, int statementId, 
+                        long durationNs, Exception exception) {
+                    // No-op callback to measure overhead with nanosecond granularity
+                }
+            };
+            SQLServerDriver.registerPerformanceLogCallback(nanosCallbackInstance);
+            perfLoggerConnection.setLevel(Level.FINE);
+            perfLoggerStatement.setLevel(Level.FINE);
+
+            long enabledNanosDuration;
+            try (Connection con = getConnection()) {
+                enabledNanosDuration = executeStatementsWithTiming(con, count);
+            }
+
+            // Uncomment below lines to print performance comparison for high-volume test
+            // printPerformanceComparison(disabledDuration, enabledDuration, count, "single connection (ms mode)");
+            // printPerformanceComparison(disabledDuration, enabledNanosDuration, count, "single connection (nanos mode)");
+
+            // Cleanup for next iteration
+            SQLServerDriver.unregisterPerformanceLogCallback();
         }
-
-        // Uncomment below line to print performance comparison for high-volume test
-        // printPerformanceComparison(disabledDuration, enabledDuration, iterations, "single connection");
-
-        // Cleanup
-        SQLServerDriver.unregisterPerformanceLogCallback();
-
     }
 
     /**
