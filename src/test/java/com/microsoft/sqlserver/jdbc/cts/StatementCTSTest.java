@@ -25,6 +25,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -222,10 +223,14 @@ public class StatementCTSTest extends AbstractTest {
      */
     @Test
     public void testGetResultSetConcurrencyUpdatable() throws SQLException {
-        try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        try (Connection conn = getConnection()) {
+            SQLServerException ex = assertThrows(SQLServerException.class, () -> {
+                try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
                         ResultSet.CONCUR_UPDATABLE)) {
-            assertEquals(ResultSet.CONCUR_UPDATABLE, stmt.getResultSetConcurrency());
+                    stmt.getResultSetConcurrency();
+                }
+            });
+            assertTrue(ex.getMessage().contains("not supported"));
         }
     }
 
@@ -479,11 +484,15 @@ public class StatementCTSTest extends AbstractTest {
      */
     @Test
     public void testScrollInsensitiveUpdatable() throws SQLException {
-        try (Connection conn = getConnection();
-                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        try (Connection conn = getConnection()) {
+            SQLServerException ex = assertThrows(SQLServerException.class, () -> {
+                try (Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
                         ResultSet.CONCUR_UPDATABLE);
-                ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
-            assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
+                        ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
+                    rs.getConcurrency();
+                }
+            });
+            assertTrue(ex.getMessage().contains("not supported"));
         }
     }
 
