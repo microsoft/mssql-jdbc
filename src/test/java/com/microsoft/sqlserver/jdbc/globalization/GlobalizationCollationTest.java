@@ -47,6 +47,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.legacyFx)
+@Tag(Constants.legacyFxGlobalization)
 @DisplayName("Globalization Collation Tests")
 public class GlobalizationCollationTest extends AbstractTest {
 
