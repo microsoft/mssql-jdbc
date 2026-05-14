@@ -498,9 +498,11 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
         long totalTime;
         long timerStart = System.currentTimeMillis();
 
-        // No retries since CRL rules override, expected time ~1 second
+        // No retries since CRL rules override, expected time ~1 second.
+        // loginTimeout=30 ensures the server's TDS 4060 "cannot open database" round-trip
+        // always completes before the JDBC socket read deadline, even on slow CI agents.
         try {
-            testConnectionRetry("blah", "retryConn={9999};");
+            testConnectionRetry("blah", "loginTimeout=30;retryConn={9999};");
         } catch (Exception e) {
             assertTrue(
                     (e.getMessage().toLowerCase()
@@ -517,7 +519,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
         // (0s attempt + 0s attempt + 10s wait + 0s attempt) = expected 10s execution time
         try {
-            testConnectionRetry("blah", "retryConn={4060,4070};connectRetryCount=2;connectRetryInterval=10");
+            testConnectionRetry("blah",
+                    "loginTimeout=30;retryConn={4060,4070};connectRetryCount=2;connectRetryInterval=10");
         } catch (Exception e) {
             assertTrue(
                     (e.getMessage().toLowerCase()
@@ -540,7 +543,8 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
 
         // Append should work the same way
         try {
-            testConnectionRetry("blah", "retryConn={+4060,4070};connectRetryCount=2;connectRetryInterval=10");
+            testConnectionRetry("blah",
+                    "loginTimeout=30;retryConn={+4060,4070};connectRetryCount=2;connectRetryInterval=10");
         } catch (Exception e) {
             assertTrue(
                     (e.getMessage().toLowerCase()
