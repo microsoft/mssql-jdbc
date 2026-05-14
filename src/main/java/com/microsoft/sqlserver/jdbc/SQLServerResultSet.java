@@ -3119,7 +3119,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /**
      * @deprecated Use {@link #getOffsetDateTime(int)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public microsoft.sql.DateTimeOffset getDateTimeOffset(int columnIndex) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
@@ -3143,7 +3143,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /**
      * @deprecated Use {@link #getOffsetDateTime(String)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public microsoft.sql.DateTimeOffset getDateTimeOffset(String columnName) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
@@ -4314,7 +4314,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /**
      * @deprecated Use {@link #updateOffsetDateTime(int, java.time.OffsetDateTime)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
@@ -4331,7 +4331,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /**
      * @deprecated Use {@link #updateOffsetDateTime(int, java.time.OffsetDateTime, Integer)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x,
             Integer scale) throws SQLServerException {
@@ -4349,7 +4349,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /**
      * @deprecated Use {@link #updateOffsetDateTime(int, java.time.OffsetDateTime, Integer, boolean)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public void updateDateTimeOffset(int index, microsoft.sql.DateTimeOffset x, Integer scale,
             boolean forceEncrypt) throws SQLServerException {
@@ -5345,7 +5345,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /**
      * @deprecated Use {@link #updateOffsetDateTime(String, java.time.OffsetDateTime)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
@@ -5362,7 +5362,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /**
      * @deprecated Use {@link #updateOffsetDateTime(String, java.time.OffsetDateTime, int)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x,
             int scale) throws SQLServerException {
@@ -5380,7 +5380,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     /**
      * @deprecated Use {@link #updateOffsetDateTime(String, java.time.OffsetDateTime, int, boolean)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public void updateDateTimeOffset(String columnName, microsoft.sql.DateTimeOffset x, int scale,
             boolean forceEncrypt) throws SQLServerException {

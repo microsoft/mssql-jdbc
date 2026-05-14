@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.Serializable;
 
 
+import java.util.logging.Level;
 /**
  * ScrollWindow provides an efficient way to scroll around within a limited number of rows, typically the ResultSet
  * fetch size, by saving and restoring row state, such as starting point in the response and updated/deleted status, on
@@ -97,7 +98,7 @@ final class ScrollWindow implements Serializable {
     }
 
     final boolean next(SQLServerResultSet rs) throws SQLServerException {
-        if (SQLServerResultSet.logger.isLoggable(java.util.logging.Level.FINER))
+        if (SQLServerResultSet.logger.isLoggable(Level.FINER))
             SQLServerResultSet.logger.finer(rs.toString() + logCursorState());
 
         // Precondition:
@@ -169,7 +170,7 @@ final class ScrollWindow implements Serializable {
     }
 
     final void previous(SQLServerResultSet rs) throws SQLServerException {
-        if (SQLServerResultSet.logger.isLoggable(java.util.logging.Level.FINER))
+        if (SQLServerResultSet.logger.isLoggable(Level.FINER))
             SQLServerResultSet.logger.finer(rs.toString() + logCursorState());
 
         // Precondition:

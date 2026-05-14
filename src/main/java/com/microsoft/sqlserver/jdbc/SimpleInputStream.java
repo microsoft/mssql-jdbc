@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
+import java.util.logging.Level;
 /**
  * SimpleInputStream is an InputStream implementation that reads from TDS.
  * 
@@ -45,7 +46,7 @@ abstract class BaseInputStream extends InputStream {
     }
 
     final void setLoggingInfo(String info) {
-        if (logger.isLoggable(java.util.logging.Level.FINER))
+        if (logger.isLoggable(Level.FINER))
             logger.finer(toString());
     }
 
@@ -78,7 +79,7 @@ abstract class BaseInputStream extends InputStream {
 
     void closeHelper() {
         if (isAdaptive && null != dtv) {
-            if (logger.isLoggable(java.util.logging.Level.FINER))
+            if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " closing the adaptive stream.");
             dtv.setPositionAfterStreamed(tdsReader);
         }
@@ -151,7 +152,7 @@ final class SimpleInputStream extends BaseInputStream {
     public void close() throws IOException {
         if (null == tdsReader)
             return;
-        if (logger.isLoggable(java.util.logging.Level.FINER))
+        if (logger.isLoggable(Level.FINER))
             logger.finer(toString() + "Enter Closing SimpleInputStream.");
 
         // Discard the remainder of the stream, positioning the TDSReader
@@ -160,7 +161,7 @@ final class SimpleInputStream extends BaseInputStream {
         skip((long) payloadLength - (long) streamPos);
 
         closeHelper();
-        if (logger.isLoggable(java.util.logging.Level.FINER))
+        if (logger.isLoggable(Level.FINER))
             logger.finer(toString() + "Exit Closing SimpleInputStream.");
     }
 
@@ -189,7 +190,7 @@ final class SimpleInputStream extends BaseInputStream {
     @Override
     public long skip(long n) throws IOException {
         checkClosed();
-        if (logger.isLoggable(java.util.logging.Level.FINER))
+        if (logger.isLoggable(Level.FINER))
             logger.finer(toString() + " Skipping :" + n);
         if (n < 0)
             return 0L;
@@ -284,7 +285,7 @@ final class SimpleInputStream extends BaseInputStream {
     @Override
     public int read(byte[] b, int offset, int maxBytes) throws IOException {
         checkClosed();
-        if (logger.isLoggable(java.util.logging.Level.FINER))
+        if (logger.isLoggable(Level.FINER))
             logger.finer(toString() + " Reading " + maxBytes + " from stream offset " + streamPos + " payload length "
                     + payloadLength);
 

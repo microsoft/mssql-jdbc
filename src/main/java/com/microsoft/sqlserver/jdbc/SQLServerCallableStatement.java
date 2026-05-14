@@ -1217,7 +1217,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /**
      * @deprecated Use {@link #getOffsetDateTime(int)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public microsoft.sql.DateTimeOffset getDateTimeOffset(int index) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
@@ -1239,7 +1239,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /**
      * @deprecated Use {@link #getOffsetDateTime(String)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
@@ -2190,7 +2190,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /**
      * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
@@ -2205,7 +2205,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /**
      * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime, int)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value,
             int scale) throws SQLServerException {
@@ -2222,7 +2222,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /**
      * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime, int, boolean)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     @Override
     public void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value, int scale,
             boolean forceEncrypt) throws SQLServerException {
