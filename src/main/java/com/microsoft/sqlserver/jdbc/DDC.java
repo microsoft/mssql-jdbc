@@ -30,7 +30,6 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 
-import java.util.logging.Level;
 /**
  * Utility class for all Data Dependent Conversions (DDC).
  */
@@ -1474,7 +1473,7 @@ final class AsciiFilteredInputStream extends InputStream {
     }
 
     AsciiFilteredInputStream(BaseInputStream containedStream) {
-        if (BaseInputStream.logger.isLoggable(Level.FINER))
+        if (BaseInputStream.logger.isLoggable(java.util.logging.Level.FINER))
             BaseInputStream.logger.finer(containedStream.toString() + " wrapping in AsciiFilteredInputStream");
         this.containedStream = containedStream;
     }
@@ -1560,7 +1559,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
     private final Charset asciiCharSet;
 
     static AsciiFilteredUnicodeInputStream makeAsciiFilteredUnicodeInputStream(BaseInputStream strm, Reader rd) {
-        if (BaseInputStream.logger.isLoggable(Level.FINER))
+        if (BaseInputStream.logger.isLoggable(java.util.logging.Level.FINER))
             BaseInputStream.logger.finer(strm.toString() + " wrapping in AsciiFilteredInputStream");
         return new AsciiFilteredUnicodeInputStream(rd);
     }
