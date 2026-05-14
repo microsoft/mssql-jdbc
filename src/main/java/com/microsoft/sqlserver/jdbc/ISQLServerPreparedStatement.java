@@ -27,7 +27,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *         error occurs or this method is called on a closed <code>PreparedStatement</code>
      * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x) throws SQLServerException;
 
     /**
@@ -582,7 +582,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *         when an error occurs
      * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime, int)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException;
 
     /**
@@ -602,7 +602,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *         when an error occurs
      * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime, int, boolean)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     void setDateTimeOffset(int parameterIndex, microsoft.sql.DateTimeOffset x, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
