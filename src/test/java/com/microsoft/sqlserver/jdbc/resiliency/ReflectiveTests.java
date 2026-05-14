@@ -88,8 +88,10 @@ public class ReflectiveTests extends AbstractTest {
         // 5s is too tight for slow CI agents (MacOS); raise to 15s.
         m.put("loginTimeout", "15");
 
-        // Default retryCount=1 (non-Azure). Bound = (retryCount+1) * loginTimeout + slack.
-        timeoutVariations(m, 32000, Optional.empty());
+        // Default retryCount=1 (non-Azure) => exactly one login attempt.
+        // Bound = retryDelay*(retryCount-1) + loginTimeout*retryCount + slack
+        //       = 0 + 15s + 5s = 20s. Tight enough to catch an accidental extra retry.
+        timeoutVariations(m, 20000, Optional.empty());
     }
 
     /*
