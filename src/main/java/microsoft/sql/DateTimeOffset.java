@@ -22,7 +22,7 @@ import java.util.TimeZone;
  *             {@code microsoft.sql.DateTimeOffset} have been deprecated in favor of equivalents that use
  *             {@code java.time.OffsetDateTime}.
  */
-@Deprecated(since = "13.5.1")
+@Deprecated(since = "13.5.0")
 public final class DateTimeOffset implements java.io.Serializable, java.lang.Comparable<DateTimeOffset> {
     private static final long serialVersionUID = 541973748553014280L;
 

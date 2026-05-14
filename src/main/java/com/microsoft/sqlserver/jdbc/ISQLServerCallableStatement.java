@@ -151,7 +151,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         <code>CallableStatement</code>
      * @deprecated Use {@link #getOffsetDateTime(int)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     microsoft.sql.DateTimeOffset getDateTimeOffset(int parameterIndex) throws SQLServerException;
 
     /**
@@ -165,7 +165,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         method is called on a closed <code>CallableStatement</code>
      * @deprecated Use {@link #getOffsetDateTime(String)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     microsoft.sql.DateTimeOffset getDateTimeOffset(String parameterName) throws SQLServerException;
 
     /**
@@ -534,7 +534,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if an error occurs
      * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value) throws SQLServerException;
 
     /**
@@ -550,7 +550,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if an error occurs
      * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime, int)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value,
             int scale) throws SQLServerException;
 
@@ -571,7 +571,7 @@ public interface ISQLServerCallableStatement extends java.sql.CallableStatement,
      *         if an error occurs
      * @deprecated Use {@link #setOffsetDateTime(String, java.time.OffsetDateTime, int, boolean)} instead.
      */
-    @Deprecated(since = "13.5.1")
+    @Deprecated(since = "13.5.0")
     void setDateTimeOffset(String parameterName, microsoft.sql.DateTimeOffset value, int scale,
             boolean forceEncrypt) throws SQLServerException;
 
