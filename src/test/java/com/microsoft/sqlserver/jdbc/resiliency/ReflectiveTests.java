@@ -84,20 +84,11 @@ public class ReflectiveTests extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     public void testDefaultRetry() throws SQLException {
         Map<String, String> m = new HashMap<>();
-        // loginTimeout=15 (was 5): the same property bounds BOTH the initial connect AND
-        // each retry attempt. On slow CI agents (notably MacOS hosted runners) the initial
-        // prelogin + TLS + LOGIN7 round-trip cannot reliably complete in 5s, causing the
-        // outer try-with-resources getConnection(cs) to throw a SocketTimeoutException that
-        // escapes the inner catch block entirely. 15s gives ample headroom for any agent.
+        // loginTimeout bounds both the initial connect and each retry attempt.
+        // 5s is too tight for slow CI agents (MacOS); raise to 15s.
         m.put("loginTimeout", "15");
 
-        // Ensure count is not set to something else as this test assumes exactly just 1 retry.
-        // This is only true for non-Azure as retry counts gets auto changed for Azure servers.
-        //
-        // Worst-case upper bound for the blocked-query retry path:
-        //   (retryCount + 1) attempts * loginTimeout = 2 * 15s = 30s
-        // plus small overhead for kill/block + socket-read timeout granularity.
-        // 32s bound still fails fast if retry behavior regresses (would take >>32s).
+        // Default retryCount=1 (non-Azure). Bound = (retryCount+1) * loginTimeout + slack.
         timeoutVariations(m, 32000, Optional.empty());
     }
 
