@@ -16,7 +16,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-import java.util.logging.Level;
 /**
  * Provides a wrapper around SQLServerConnection object. When returning a connection object from
  * PooledConnection.getConnection we return this proxy per SPEC.
@@ -159,7 +158,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
         } else {
             executor.execute(new Runnable() {
                 public void run() {
-                    if (wrappedConnection.getConnectionLogger().isLoggable(Level.FINER))
+                    if (wrappedConnection.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
                         wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy aborted ");
                     try {
                         wrappedConnection.poolCloseEventNotify();
@@ -175,7 +174,7 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
     @Override
     public void close() throws SQLServerException {
         if (bIsOpen && (null != wrappedConnection)) {
-            if (wrappedConnection.getConnectionLogger().isLoggable(Level.FINER))
+            if (wrappedConnection.getConnectionLogger().isLoggable(java.util.logging.Level.FINER))
                 wrappedConnection.getConnectionLogger().finer(toString() + " Connection proxy closed ");
 
             wrappedConnection.poolCloseEventNotify();
