@@ -1437,7 +1437,9 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     @Override
     public java.sql.Connection connect(String url, Properties suppliedProperties) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
+        }
         SQLServerConnection result = null;
 
         if (loggerExternal.isLoggable(Level.FINE)) {
@@ -1465,7 +1467,9 @@ public final class SQLServerDriver implements java.sql.Driver {
             // }   
             result.connect(connectProperties, null);
         }
-        loggerExternal.exiting(getClassNameLogging(), "connect", result);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "connect", result);
+        }
         return result;
     }
 
@@ -1496,7 +1500,9 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     @Override
     public boolean acceptsURL(String url) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "acceptsURL", "Arguments not traced.");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "acceptsURL", "Arguments not traced.");
+        }
 
         if (null == url) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_nullConnection"), null, 0, false);
@@ -1509,20 +1515,26 @@ public final class SQLServerDriver implements java.sql.Driver {
             // ignore the exception from the parse URL failure, if we cant parse the URL we do not accept em
             result = false;
         }
-        loggerExternal.exiting(getClassNameLogging(), "acceptsURL", result);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "acceptsURL", result);
+        }
         return result;
     }
 
     @Override
     public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getPropertyInfo", "Arguments not traced.");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "getPropertyInfo", "Arguments not traced.");
+        }
 
         Properties connProperties = parseAndMergeProperties(url, info);
         // This means we are not the right driver throw an exception.
         if (null == connProperties)
             throw new SQLServerException(null, SQLServerException.getErrString("R_invalidConnection"), null, 0, false);
         DriverPropertyInfo[] properties = getPropertyInfoFromProperties(connProperties);
-        loggerExternal.exiting(getClassNameLogging(), "getPropertyInfo");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getPropertyInfo");
+        }
 
         return properties;
     }
@@ -1537,15 +1549,23 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     @Override
     public int getMajorVersion() {
-        loggerExternal.entering(getClassNameLogging(), "getMajorVersion");
-        loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", SQLJdbcVersion.MAJOR);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "getMajorVersion");
+        }
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", SQLJdbcVersion.MAJOR);
+        }
         return SQLJdbcVersion.MAJOR;
     }
 
     @Override
     public int getMinorVersion() {
-        loggerExternal.entering(getClassNameLogging(), "getMinorVersion");
-        loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", SQLJdbcVersion.MINOR);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "getMinorVersion");
+        }
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", SQLJdbcVersion.MINOR);
+        }
         return SQLJdbcVersion.MINOR;
     }
 
@@ -1556,8 +1576,12 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     @Override
     public boolean jdbcCompliant() {
-        loggerExternal.entering(getClassNameLogging(), "jdbcCompliant");
-        loggerExternal.exiting(getClassNameLogging(), "jdbcCompliant", Boolean.TRUE);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "jdbcCompliant");
+        }
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "jdbcCompliant", Boolean.TRUE);
+        }
         return true;
     }
 }
