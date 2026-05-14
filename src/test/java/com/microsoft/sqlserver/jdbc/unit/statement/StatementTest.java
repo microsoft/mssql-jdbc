@@ -3125,37 +3125,39 @@ public class StatementTest extends AbstractTest {
 
         /**
          * Tests multi-statement PreparedStatement with loop to process all results
+         * using lastUpdateCount=true (default). The table has an INSERT trigger, so
+         * INSERT DONEINPROC tokens (both trigger and main) are consumed.
+         *
+         * SQL: "DELETE; INSERT; INSERT; UPDATE; INSERT; INSERT; SELECT"
+         * Table starts with 3 rows from @BeforeEach setup.
+         * Expected visible results with lastUpdateCount=true:
+         *   DELETE=3, UPDATE=2, SELECT(4 rows)
+         *   (all INSERT DONEINPROC tokens consumed: trigger + main)
          *
          * @throws SQLException
          */
         @Test
         public void testMultiStatementPreparedStatementLoopResults() throws SQLException {
             try (Connection con = getConnection()) {
-                try (PreparedStatement ps = con.prepareStatement("DELETE FROM " + tableName + " " +
+                String sql = "DELETE FROM " + tableName + " " +
                         "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
                         "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
                         "UPDATE " + tableName + " SET NAME = 'updated' " +
                         "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
                         "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
-                        "SELECT * FROM " + tableName)) {
-                    
+                        "SELECT * FROM " + tableName;
+                try (PreparedStatement ps = con.prepareStatement(sql)) {
                     ps.setString(1, "test1");
                     ps.setString(2, "test2");
                     ps.setString(3, "test3");
                     ps.setString(4, "test4");
 
-                    boolean retval = ps.execute();
-                    do {
-                        if (!retval) {
-                            int count = ps.getUpdateCount();
-                            if (count == -1) {
-                                // no more results
-                                break;
-                            } else {
-                                assertTrue(count >= 0, "update count should be non-negative: " + count);
-                            }
-                        } else {
-                            // process ResultSet
+                    boolean hasResults = ps.execute();
+                    List<Integer> updateCounts = new ArrayList<>();
+                    int resultSetCount = 0;
+
+                    while (true) {
+                        if (hasResults) {
                             try (ResultSet rs = ps.getResultSet()) {
                                 int rowCount = 0;
                                 while (rs.next()) {
@@ -3165,9 +3167,118 @@ public class StatementTest extends AbstractTest {
                                 }
                                 assertEquals(4, rowCount, "Expected 4 rows in result set");
                             }
+                            resultSetCount++;
+                        } else {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) break;
+                            updateCounts.add(count);
                         }
-                        retval = ps.getMoreResults();
-                    } while (true);
+                        hasResults = ps.getMoreResults();
+                    }
+
+            // With execute() and getMoreResults(), all update counts are returned regardless of lastUpdateCount property.
+            // Expected: DELETE=3, then for each of 4 INSERTs: trigger=1 + main=1, UPDATE=2, then 2 more INSERTs: trigger=1 + main=1
+            // Total: 1(DELETE) + 4*2(INSERT trigger+main) + 1(UPDATE) = 10 update counts
+            assertEquals(10, updateCounts.size(),
+                "Should have 10 update counts (DELETE, all INSERT triggers/mains, UPDATE), got: " + updateCounts);
+            assertEquals(3, updateCounts.get(0), "DELETE should affect 3 rows");
+            // First INSERT: trigger then main
+            assertEquals(1, updateCounts.get(1), "First INSERT trigger count should be 1");
+            assertEquals(1, updateCounts.get(2), "First INSERT main count should be 1");
+            // Second INSERT: trigger then main
+            assertEquals(1, updateCounts.get(3), "Second INSERT trigger count should be 1");
+            assertEquals(1, updateCounts.get(4), "Second INSERT main count should be 1");
+            // UPDATE
+            assertEquals(2, updateCounts.get(5), "UPDATE should affect 2 rows");
+            // Third INSERT: trigger then main
+            assertEquals(1, updateCounts.get(6), "Third INSERT trigger count should be 1");
+            assertEquals(1, updateCounts.get(7), "Third INSERT main count should be 1");
+            // Fourth INSERT: trigger then main
+            assertEquals(1, updateCounts.get(8), "Fourth INSERT trigger count should be 1");
+            assertEquals(1, updateCounts.get(9), "Fourth INSERT main count should be 1");
+            assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
+            assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1");
+                }
+            }
+        }
+
+        /**
+         * Tests multi-statement PreparedStatement with loop to process all results
+         * using lastUpdateCount=false. The table has an INSERT trigger, so ALL
+         * DONEINPROC tokens (trigger + main) are visible.
+         *
+         * SQL: "DELETE; INSERT; INSERT; UPDATE; INSERT; INSERT; SELECT"
+         * Table starts with 3 rows from @BeforeEach setup.
+         * Expected visible results with lastUpdateCount=false:
+         *   DELETE=3, triggerINSERT=1, mainINSERT=1, triggerINSERT=1, mainINSERT=1,
+         *   UPDATE=2, triggerINSERT=1, mainINSERT=1, triggerINSERT=1, mainINSERT=1,
+         *   SELECT(4 rows)
+         *   Total: 10 update counts + 1 ResultSet
+         *
+         * @throws SQLException
+         */
+        @Test
+        public void testMultiStatementPreparedStatementLoopResultsLastUpdateCountFalse() throws SQLException {
+            try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false")) {
+                String sql = "DELETE FROM " + tableName + " " +
+                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
+                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
+                        "UPDATE " + tableName + " SET NAME = 'updated' " +
+                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
+                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
+                        "SELECT * FROM " + tableName;
+                try (PreparedStatement ps = con.prepareStatement(sql)) {
+                    ps.setString(1, "test1");
+                    ps.setString(2, "test2");
+                    ps.setString(3, "test3");
+                    ps.setString(4, "test4");
+
+                    boolean hasResults = ps.execute();
+                    List<Integer> updateCounts = new ArrayList<>();
+                    int resultSetCount = 0;
+
+                    while (true) {
+                        if (hasResults) {
+                            try (ResultSet rs = ps.getResultSet()) {
+                                int rowCount = 0;
+                                while (rs.next()) {
+                                    String name = rs.getString("NAME");
+                                    assertTrue(name != null, "name should not be null");
+                                    rowCount++;
+                                }
+                                assertEquals(4, rowCount, "Expected 4 rows in result set");
+                            }
+                            resultSetCount++;
+                        } else {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) break;
+                            updateCounts.add(count);
+                        }
+                        hasResults = ps.getMoreResults();
+                    }
+
+                    // With lastUpdateCount=false and triggers, ALL tokens are visible:
+                    // DELETE=3, then for each of 4 INSERTs: trigger=1 + main=1, plus UPDATE=2
+                    // Total: 1(DELETE) + 4*2(INSERT trigger+main) + 1(UPDATE) = 10 update counts
+                    assertEquals(10, updateCounts.size(),
+                            "With lastUpdateCount=false, all update counts including trigger should be visible, got: " + updateCounts);
+                    assertEquals(3, updateCounts.get(0), "DELETE should affect 3 rows");
+                    // First INSERT: trigger then main
+                    assertEquals(1, updateCounts.get(1), "First INSERT trigger count should be 1");
+                    assertEquals(1, updateCounts.get(2), "First INSERT main count should be 1");
+                    // Second INSERT: trigger then main
+                    assertEquals(1, updateCounts.get(3), "Second INSERT trigger count should be 1");
+                    assertEquals(1, updateCounts.get(4), "Second INSERT main count should be 1");
+                    // UPDATE
+                    assertEquals(2, updateCounts.get(5), "UPDATE should affect 2 rows");
+                    // Third INSERT: trigger then main
+                    assertEquals(1, updateCounts.get(6), "Third INSERT trigger count should be 1");
+                    assertEquals(1, updateCounts.get(7), "Third INSERT main count should be 1");
+                    // Fourth INSERT: trigger then main
+                    assertEquals(1, updateCounts.get(8), "Fourth INSERT trigger count should be 1");
+                    assertEquals(1, updateCounts.get(9), "Fourth INSERT main count should be 1");
+                    assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
+                    assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1");
                 }
             }
         }
@@ -3459,6 +3570,707 @@ public class StatementTest extends AbstractTest {
                 TestUtils.dropTriggerIfExists(testTrigger, stmt);
                 TestUtils.dropTableIfExists(testTableB, stmt);
                 TestUtils.dropTableIfExists(testTableA, stmt);
+            }
+        }
+
+        /**
+         * Regression test for GitHub #2722: simplest compound PreparedStatement repro.
+         * The original reporter's pattern: "DELETE; INSERT; SELECT" via PreparedStatement.
+         * With the regression, execute() would return false and getMoreResults() would skip
+         * directly to -1, losing the SELECT ResultSet entirely.
+         */
+        @Test
+        public void testSimpleDeleteInsertSelectPreparedStatement() throws SQLException {
+            String simpleTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SimpleCompound"));
+
+            try (Connection conn = getConnection();
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(simpleTable, stmt);
+                stmt.executeUpdate("CREATE TABLE " + simpleTable + " (c1 int, c2 smallint)");
+
+                String sql = "DELETE FROM " + simpleTable + ";"
+                        + " INSERT INTO " + simpleTable + " (c1, c2) VALUES (?, ?);"
+                        + " SELECT * FROM " + simpleTable + ";";
+
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, 42);
+                    ps.setShort(2, (short) 7);
+
+                    boolean hasResults = ps.execute();
+                    boolean foundResultSet = false;
+
+                    // Loop through all results to find the trailing SELECT
+                    while (true) {
+                        if (hasResults) {
+                            try (ResultSet rs = ps.getResultSet()) {
+                                assertTrue(rs.next(), "SELECT ResultSet should have at least one row");
+                                assertEquals(42, rs.getInt("c1"));
+                                assertEquals(7, rs.getShort("c2"));
+                                foundResultSet = true;
+                            }
+                        } else {
+                            if (ps.getUpdateCount() == -1) break;
+                        }
+                        hasResults = ps.getMoreResults();
+                    }
+
+                    assertTrue(foundResultSet, "Trailing SELECT ResultSet should be reachable");
+                }
+
+                TestUtils.dropTableIfExists(simpleTable, stmt);
+            }
+        }
+
+        /**
+         * Regression test for GitHub #2940: compound SQL via PreparedStatement with lastUpdateCount=false
+         * must return all update counts and the trailing SELECT ResultSet.
+         * Uses a separate table without triggers to validate pure compound SQL behavior.
+         * 
+         * SQL: "DELETE; INSERT; INSERT; UPDATE; INSERT; SELECT"
+         * Expected results: updateCount=0(DELETE), 1(INSERT), 1(INSERT), 2(UPDATE), 1(INSERT), ResultSet(3 rows)
+         */
+        @Test
+        public void testCompoundPreparedStatementWithLastUpdateCountFalse() throws SQLException {
+            String compoundTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CompoundStmtTest"));
+
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(compoundTable, stmt);
+                stmt.executeUpdate("CREATE TABLE " + compoundTable + " (ID int IDENTITY(1,1), NAME varchar(32))");
+
+                String sql = "DELETE FROM " + compoundTable + ";"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " UPDATE " + compoundTable + " SET NAME = 'updated';"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " SELECT * FROM " + compoundTable + ";";
+
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "a");
+                    ps.setString(2, "b");
+                    ps.setString(3, "c");
+
+                    boolean hasResults = ps.execute();
+                    List<Integer> updateCounts = new ArrayList<>();
+                    int resultSetCount = 0;
+
+                    while (true) {
+                        if (hasResults) {
+                            try (ResultSet rs = ps.getResultSet()) {
+                                int rowCount = 0;
+                                while (rs.next()) {
+                                    rowCount++;
+                                }
+                                assertEquals(3, rowCount, "SELECT should return 3 rows");
+                            }
+                            resultSetCount++;
+                        } else {
+                            int uc = ps.getUpdateCount();
+                            if (uc == -1) break;
+                            updateCounts.add(uc);
+                        }
+                        hasResults = ps.getMoreResults();
+                    }
+
+                    // Validate: DELETE=0, INSERT=1, INSERT=1, UPDATE=2, INSERT=1
+                    assertEquals(5, updateCounts.size(),
+                            "Should have 5 update counts, got: " + updateCounts);
+                    assertEquals(0, updateCounts.get(0), "DELETE should affect 0 rows");
+                    assertEquals(1, updateCounts.get(1), "First INSERT should affect 1 row");
+                    assertEquals(1, updateCounts.get(2), "Second INSERT should affect 1 row");
+                    assertEquals(2, updateCounts.get(3), "UPDATE should affect 2 rows");
+                    assertEquals(1, updateCounts.get(4), "Third INSERT should affect 1 row");
+                    assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
+                    assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1 after all results exhausted");
+                }
+
+                TestUtils.dropTableIfExists(compoundTable, stmt);
+            }
+        }
+
+        /**
+         * Regression test for GitHub #2940: compound SQL via PreparedStatement.executeUpdate()
+         * with lastUpdateCount=false should return the first update count (DELETE=0).
+         * Validates that executeUpdate() does not throw or lose results for compound batches.
+         * 
+         * SQL: "DELETE; INSERT; INSERT; UPDATE; INSERT; SELECT"
+         * Expected: executeUpdate() returns 0 (the DELETE count), remaining results accessible via getMoreResults().
+         */
+        @Test
+        public void testCompoundPreparedStatementExecuteUpdateWithLastUpdateCountFalse() throws SQLException {
+            String compoundTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CompoundStmtExecUpd"));
+
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(compoundTable, stmt);
+                stmt.executeUpdate("CREATE TABLE " + compoundTable + " (ID int IDENTITY(1,1), NAME varchar(32))");
+
+                String sql = "DELETE FROM " + compoundTable + ";"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " UPDATE " + compoundTable + " SET NAME = 'updated';"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " SELECT * FROM " + compoundTable + ";";
+
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "a");
+                    ps.setString(2, "b");
+                    ps.setString(3, "c");
+
+                    int firstUpdateCount = ps.executeUpdate();
+                    assertEquals(0, firstUpdateCount, "executeUpdate() should return 0 for DELETE on empty table");
+
+                    // Traverse remaining results via getMoreResults()
+                    List<Integer> updateCounts = new ArrayList<>();
+                    updateCounts.add(firstUpdateCount);
+                    int resultSetCount = 0;
+                    boolean hasResults = ps.getMoreResults();
+
+                    while (true) {
+                        if (hasResults) {
+                            try (ResultSet rs = ps.getResultSet()) {
+                                int rowCount = 0;
+                                while (rs.next()) {
+                                    rowCount++;
+                                }
+                                assertEquals(3, rowCount, "SELECT should return 3 rows");
+                            }
+                            resultSetCount++;
+                        } else {
+                            int uc = ps.getUpdateCount();
+                            if (uc == -1) break;
+                            updateCounts.add(uc);
+                        }
+                        hasResults = ps.getMoreResults();
+                    }
+
+                    // Validate: DELETE=0, INSERT=1, INSERT=1, UPDATE=2, INSERT=1
+                    assertEquals(5, updateCounts.size(),
+                            "Should have 5 update counts, got: " + updateCounts);
+                    assertEquals(0, updateCounts.get(0), "DELETE should affect 0 rows");
+                    assertEquals(1, updateCounts.get(1), "First INSERT should affect 1 row");
+                    assertEquals(1, updateCounts.get(2), "Second INSERT should affect 1 row");
+                    assertEquals(2, updateCounts.get(3), "UPDATE should affect 2 rows");
+                    assertEquals(1, updateCounts.get(4), "Third INSERT should affect 1 row");
+                    assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
+                    assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1 after all results exhausted");
+                }
+
+                TestUtils.dropTableIfExists(compoundTable, stmt);
+            }
+        }
+
+        /**
+         * Regression test: compound SQL via PreparedStatement with lastUpdateCount=true (default).
+         * With lastUpdateCount=true, shouldConsumeInsertDoneToken() returns true, meaning
+         * INSERT DONEINPROC tokens are consumed (filtered as trigger noise). Non-INSERT
+         * DML results (DELETE, UPDATE) and ResultSets remain visible.
+         * 
+         * SQL: "DELETE; INSERT; INSERT; UPDATE; INSERT; SELECT"
+         * Expected visible results: DELETE=0, UPDATE=2, SELECT(3 rows)
+         * (all INSERT tokens consumed)
+         */
+        @Test
+        public void testCompoundPreparedStatementWithLastUpdateCountTrue() throws SQLException {
+            String compoundTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CompoundStmtLUCTrue"));
+
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=true");
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(compoundTable, stmt);
+                stmt.executeUpdate("CREATE TABLE " + compoundTable + " (ID int IDENTITY(1,1), NAME varchar(32))");
+
+                String sql = "DELETE FROM " + compoundTable + ";"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " UPDATE " + compoundTable + " SET NAME = 'updated';"
+                        + " INSERT INTO " + compoundTable + " (NAME) VALUES (?);"
+                        + " SELECT * FROM " + compoundTable + ";";
+
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "a");
+                    ps.setString(2, "b");
+                    ps.setString(3, "c");
+
+                    boolean hasResults = ps.execute();
+                    List<Integer> updateCounts = new ArrayList<>();
+                    int resultSetCount = 0;
+
+                    // Per documented contract, lastUpdateCount only affects executeUpdate().
+                    // execute() always surfaces ALL update counts (including INSERTs), regardless
+                    // of the lastUpdateCount setting. Loop through every result.
+                    while (true) {
+                        if (hasResults) {
+                            try (ResultSet rs = ps.getResultSet()) {
+                                int rowCount = 0;
+                                while (rs.next()) {
+                                    rowCount++;
+                                }
+                                assertEquals(3, rowCount, "SELECT should return 3 rows");
+                            }
+                            resultSetCount++;
+                        } else {
+                            int uc = ps.getUpdateCount();
+                            if (uc == -1) break;
+                            updateCounts.add(uc);
+                        }
+                        hasResults = ps.getMoreResults();
+                    }
+
+                    // Validate: DELETE=0, INSERT=1, INSERT=1, UPDATE=2, INSERT=1 — all visible.
+                    // execute() does NOT honor lastUpdateCount per the documented contract.
+                    assertEquals(5, updateCounts.size(),
+                            "execute() should surface all 5 update counts, got: " + updateCounts);
+                    assertEquals(0, updateCounts.get(0), "DELETE should affect 0 rows");
+                    assertEquals(1, updateCounts.get(1), "First INSERT should affect 1 row");
+                    assertEquals(1, updateCounts.get(2), "Second INSERT should affect 1 row");
+                    assertEquals(2, updateCounts.get(3), "UPDATE should affect 2 rows");
+                    assertEquals(1, updateCounts.get(4), "Third INSERT should affect 1 row");
+                    assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
+                    assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1");
+                }
+
+                TestUtils.dropTableIfExists(compoundTable, stmt);
+            }
+        }
+
+        /**
+         * Regression test: compound SQL via PreparedStatement WITH TRIGGERS and lastUpdateCount=false.
+         * This is the most complex scenario combining triggers (which generate extra DONEINPROC tokens)
+         * with compound SQL (multiple statements in one PreparedStatement).
+         * 
+         * Validates that trigger-generated tokens don't interfere with update count reporting
+         * when lastUpdateCount=false.
+         * 
+         * SQL: "INSERT; INSERT; SELECT" on a table with an INSERT trigger
+         * Expected: updateCount=1(INSERT), 1(INSERT), ResultSet
+         */
+        @Test
+        public void testCompoundPreparedStatementWithTriggersAndLastUpdateCountFalse() throws SQLException {
+            String triggerTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CompoundTrigTbl"));
+            String triggerAudit = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CompoundTrigAudit"));
+            String triggerName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CompoundTrig"));
+
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTriggerIfExists(triggerName, stmt);
+                TestUtils.dropTableIfExists(triggerAudit, stmt);
+                TestUtils.dropTableIfExists(triggerTable, stmt);
+
+                stmt.executeUpdate("CREATE TABLE " + triggerTable + " (ID int IDENTITY(1,1), NAME varchar(32))");
+                stmt.executeUpdate("CREATE TABLE " + triggerAudit + " (ID int IDENTITY(1,1))");
+                stmt.executeUpdate("CREATE TRIGGER " + triggerName + " ON " + triggerTable
+                        + " FOR INSERT AS INSERT INTO " + triggerAudit + " DEFAULT VALUES");
+
+                String sql = "INSERT INTO " + triggerTable + " (NAME) VALUES (?);"
+                        + " INSERT INTO " + triggerTable + " (NAME) VALUES (?);"
+                        + " SELECT * FROM " + triggerTable + ";";
+
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "a");
+                    ps.setString(2, "b");
+
+                    boolean hasResults = ps.execute();
+                    List<Integer> updateCounts = new ArrayList<>();
+                    int resultSetCount = 0;
+
+                    while (true) {
+                        if (hasResults) {
+                            try (ResultSet rs = ps.getResultSet()) {
+                                int rowCount = 0;
+                                while (rs.next()) {
+                                    rowCount++;
+                                }
+                                assertEquals(2, rowCount, "SELECT should return 2 rows");
+                            }
+                            resultSetCount++;
+                        } else {
+                            int uc = ps.getUpdateCount();
+                            if (uc == -1) break;
+                            updateCounts.add(uc);
+                        }
+                        hasResults = ps.getMoreResults();
+                    }
+
+                    // With triggers + lastUpdateCount=false, we expect ALL update counts including
+                    // trigger-generated ones. Each INSERT fires a trigger (another INSERT), so:
+                    // INSERT1 trigger=1, INSERT1 main=1, INSERT2 trigger=1, INSERT2 main=1
+                    assertEquals(4, updateCounts.size(),
+                            "Should have 4 update counts (trigger + main for each INSERT), got: " + updateCounts);
+                    for (int uc : updateCounts) {
+                        assertEquals(1, uc, "Each update count should be 1");
+                    }
+                    assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
+                }
+
+                TestUtils.dropTriggerIfExists(triggerName, stmt);
+                TestUtils.dropTableIfExists(triggerAudit, stmt);
+                TestUtils.dropTableIfExists(triggerTable, stmt);
+            }
+        }
+
+        /**
+         * Regression test: compound SQL via PreparedStatement with RETURN_GENERATED_KEYS.
+         * When generated keys are requested, shouldConsumeInsertDoneToken() returns true
+         * (consuming trigger noise), so getGeneratedKeys() should work correctly even
+         * in a compound statement.
+         * 
+         * SQL: "INSERT; INSERT; SELECT" with RETURN_GENERATED_KEYS
+         * Expected: execute() returns false (update count=1), getGeneratedKeys() returns the key.
+         */
+        @Test
+        public void testCompoundPreparedStatementWithGeneratedKeys() throws SQLException {
+            String genKeyTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CompoundGenKey"));
+            String genKeyAudit = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CompoundGenKeyAudit"));
+            String genKeyTrigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CompoundGenKeyTrig"));
+
+            try (Connection conn = getConnection();
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTriggerIfExists(genKeyTrigger, stmt);
+                TestUtils.dropTableIfExists(genKeyAudit, stmt);
+                TestUtils.dropTableIfExists(genKeyTable, stmt);
+
+                stmt.executeUpdate("CREATE TABLE " + genKeyTable + " (ID int IDENTITY(1,1) PRIMARY KEY, NAME varchar(32))");
+                stmt.executeUpdate("CREATE TABLE " + genKeyAudit + " (ID int IDENTITY(1,1) PRIMARY KEY)");
+                stmt.executeUpdate("CREATE TRIGGER " + genKeyTrigger + " ON " + genKeyTable
+                        + " FOR INSERT AS INSERT INTO " + genKeyAudit + " DEFAULT VALUES");
+
+                // Compound SQL with RETURN_GENERATED_KEYS - the driver should consume trigger noise
+                String sql = "INSERT INTO " + genKeyTable + " (NAME) VALUES (?); SELECT * FROM " + genKeyTable;
+                try (PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                    ps.setString(1, "test");
+                    ps.execute();
+
+                    int updateCount = ps.getUpdateCount();
+                    assertEquals(1, updateCount, "INSERT should affect 1 row");
+
+                    try (ResultSet keys = ps.getGeneratedKeys()) {
+                        assertTrue(keys.next(), "Generated keys should have at least one row");
+                        int generatedKey = keys.getInt(1);
+                        assertTrue(generatedKey > 0, "Generated key should be positive, got: " + generatedKey);
+                    }
+                }
+
+                TestUtils.dropTriggerIfExists(genKeyTrigger, stmt);
+                TestUtils.dropTableIfExists(genKeyAudit, stmt);
+                TestUtils.dropTableIfExists(genKeyTable, stmt);
+            }
+        }
+
+        /**
+         * Regression test: single INSERT via PreparedStatement with trigger and lastUpdateCount=false.
+         * With lastUpdateCount=false, the trigger's INSERT count should be visible as a separate result.
+         * The main INSERT should report updateCount=1, and the trigger's INSERT should also appear.
+         */
+        @Test
+        public void testSingleInsertWithTriggerAndLastUpdateCountFalse() throws SQLException {
+            String trigTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SingleInsTrig"));
+            String trigAudit = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SingleInsTrigAudit"));
+            String trigName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SingleInsTrigger"));
+
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTriggerIfExists(trigName, stmt);
+                TestUtils.dropTableIfExists(trigAudit, stmt);
+                TestUtils.dropTableIfExists(trigTable, stmt);
+
+                stmt.executeUpdate("CREATE TABLE " + trigTable + " (ID int IDENTITY(1,1), NAME varchar(32))");
+                stmt.executeUpdate("CREATE TABLE " + trigAudit + " (ID int IDENTITY(1,1))");
+                stmt.executeUpdate("CREATE TRIGGER " + trigName + " ON " + trigTable
+                        + " FOR INSERT AS INSERT INTO " + trigAudit + " DEFAULT VALUES");
+
+                String sql = "INSERT INTO " + trigTable + " (NAME) VALUES (?)";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "test");
+
+                    boolean hasResults = ps.execute();
+                    // With lastUpdateCount=false and trigger, we should see the trigger's count + main count
+                    assertFalse(hasResults, "execute() should return false (update count)");
+                    int firstCount = ps.getUpdateCount();
+                    assertEquals(1, firstCount, "First update count should be 1 (trigger INSERT or main INSERT)");
+                }
+
+                TestUtils.dropTriggerIfExists(trigName, stmt);
+                TestUtils.dropTableIfExists(trigAudit, stmt);
+                TestUtils.dropTableIfExists(trigTable, stmt);
+            }
+        }
+
+        /**
+         * Regression test: SET NOCOUNT ON with compound PreparedStatement.
+         * Validates that SET NOCOUNT ON suppresses update counts but the SELECT ResultSet
+         * is still accessible via getMoreResults().
+         * 
+         * SQL: "SET NOCOUNT ON; INSERT; INSERT; SELECT"
+         * Expected: execute() returns true (ResultSet from SELECT) since NOCOUNT suppresses DML counts.
+         */
+        @Test
+        public void testSetNoCountOnWithCompoundPreparedStatement() throws SQLException {
+            String noCountTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("NoCountCompound"));
+
+            try (Connection conn = getConnection();
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(noCountTable, stmt);
+                stmt.executeUpdate("CREATE TABLE " + noCountTable + " (ID int IDENTITY(1,1), NAME varchar(32))");
+
+                String sql = "SET NOCOUNT ON;"
+                        + " INSERT INTO " + noCountTable + " (NAME) VALUES (?);"
+                        + " INSERT INTO " + noCountTable + " (NAME) VALUES (?);"
+                        + " SELECT * FROM " + noCountTable + ";";
+
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "a");
+                    ps.setString(2, "b");
+
+                    boolean hasResults = ps.execute();
+                    // With SET NOCOUNT ON, DML counts are suppressed - first result should be the SELECT
+                    assertTrue(hasResults, "With SET NOCOUNT ON, execute() should return true for SELECT ResultSet");
+
+                    try (ResultSet rs = ps.getResultSet()) {
+                        int rowCount = 0;
+                        while (rs.next()) {
+                            rowCount++;
+                        }
+                        assertEquals(2, rowCount, "SELECT should return 2 rows");
+                    }
+
+                    assertFalse(ps.getMoreResults(), "No more results expected after SELECT");
+                    assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1");
+                }
+
+                TestUtils.dropTableIfExists(noCountTable, stmt);
+            }
+        }
+
+        /**
+         * Tests interleaved INSERT; SELECT; INSERT; SELECT pattern via PreparedStatement
+         * with lastUpdateCount=true. Each INSERT is consumed, and each subsequent SELECT
+         * must be properly recognized as a ResultSet (exercises the onColMetaData fix
+         * clearing stmtDoneToken multiple times in a single execution).
+         *
+         * SQL: "INSERT; SELECT 1; INSERT; SELECT 2"
+         * Expected: RS1(1 row), RS2(2 rows) — both INSERTs consumed, both SELECTs visible.
+         */
+        @Test
+        public void testInterleavedInsertSelectPreparedStatement() throws SQLException {
+            String tbl = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("InterleavedIS"));
+
+            try (Connection conn = getConnection();
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(tbl, stmt);
+                stmt.executeUpdate("CREATE TABLE " + tbl + " (ID int IDENTITY(1,1), NAME varchar(32))");
+
+                String sql = "INSERT INTO " + tbl + " (NAME) VALUES (?);"
+                        + " SELECT * FROM " + tbl + ";"
+                        + " INSERT INTO " + tbl + " (NAME) VALUES (?);"
+                        + " SELECT * FROM " + tbl + ";";
+
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "first");
+                    ps.setString(2, "second");
+
+                    boolean hasResults = ps.execute();
+                    List<Integer> rsRowCounts = new ArrayList<>();
+
+                    while (true) {
+                        if (hasResults) {
+                            try (ResultSet rs = ps.getResultSet()) {
+                                int rowCount = 0;
+                                while (rs.next()) rowCount++;
+                                rsRowCounts.add(rowCount);
+                            }
+                        } else {
+                            if (ps.getUpdateCount() == -1) break;
+                        }
+                        hasResults = ps.getMoreResults();
+                    }
+
+                    // Both INSERTs consumed, both SELECTs visible
+                    assertEquals(2, rsRowCounts.size(), "Should have 2 ResultSets, got: " + rsRowCounts);
+                    assertEquals(1, rsRowCounts.get(0), "First SELECT should return 1 row (after first INSERT)");
+                    assertEquals(2, rsRowCounts.get(1), "Second SELECT should return 2 rows (after second INSERT)");
+                }
+
+                TestUtils.dropTableIfExists(tbl, stmt);
+            }
+        }
+
+        /**
+         * Tests that executeUpdate() on compound SQL with INSERT + trailing SELECT
+         * returns the INSERT update count without throwing. The driver processes TDS
+         * tokens sequentially and stops at the first update count result — it does NOT
+         * pre-scan the stream for ResultSets. The trailing SELECT is only reachable
+         * via getMoreResults() after executeUpdate() returns.
+         *
+         * SQL: "INSERT; SELECT" via executeUpdate()
+         * Expected: returns 1 (INSERT count), trailing SELECT accessible via getMoreResults()
+         */
+        @Test
+        public void testExecuteUpdateWithTrailingSelect() throws SQLException {
+            String tbl = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ExecUpdSelect"));
+
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(tbl, stmt);
+                stmt.executeUpdate("CREATE TABLE " + tbl + " (ID int IDENTITY(1,1), NAME varchar(32))");
+
+                String sql = "INSERT INTO " + tbl + " (NAME) VALUES (?); SELECT * FROM " + tbl;
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "test");
+
+                    // executeUpdate() returns the first update count; it does not traverse
+                    // further to discover the trailing SELECT ResultSet.
+                    int updateCount = ps.executeUpdate();
+                    assertEquals(1, updateCount, "executeUpdate() should return 1 for the INSERT");
+
+                    // The trailing SELECT is still accessible via getMoreResults()
+                    assertTrue(ps.getMoreResults(), "Trailing SELECT should be reachable via getMoreResults()");
+                    try (ResultSet rs = ps.getResultSet()) {
+                        assertTrue(rs.next(), "SELECT should return the inserted row");
+                        assertEquals("test", rs.getString("NAME"));
+                    }
+                }
+
+                TestUtils.dropTableIfExists(tbl, stmt);
+            }
+        }
+
+        /**
+         * Tests executeQuery() on compound SQL with INSERT before SELECT via PreparedStatement.
+         * The INSERT DONE token should be skipped (EXECUTE_QUERY skips all DML counts),
+         * and executeQuery() should return the SELECT ResultSet.
+         *
+         * SQL: "INSERT; SELECT" via executeQuery()
+         * Expected: Returns ResultSet from the SELECT with 1 row.
+         */
+        @Test
+        public void testExecuteQueryWithLeadingInsert() throws SQLException {
+            String tbl = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ExecQueryIns"));
+
+            try (Connection conn = getConnection();
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(tbl, stmt);
+                stmt.executeUpdate("CREATE TABLE " + tbl + " (ID int IDENTITY(1,1), NAME varchar(32))");
+
+                String sql = "INSERT INTO " + tbl + " (NAME) VALUES (?); SELECT * FROM " + tbl;
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "test");
+
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next(), "executeQuery() should return a ResultSet with data");
+                        assertEquals("test", rs.getString("NAME"));
+                        assertFalse(rs.next(), "Should be only 1 row");
+                    }
+                }
+
+                TestUtils.dropTableIfExists(tbl, stmt);
+            }
+        }
+
+        /**
+         * Tests SET NOCOUNT ON + INSERT + genkeys with trigger on the table.
+         * Combined scenario from issues #2587 and #2740: NOCOUNT suppresses
+         * the INSERT done count, trigger adds noise, but genkeys must still work.
+         *
+         * SQL: "SET NOCOUNT ON; INSERT INTO t VALUES(?)" with RETURN_GENERATED_KEYS + trigger
+         * Expected: getGeneratedKeys() returns the key successfully.
+         */
+        @Test
+        public void testSetNoCountOnWithTriggerAndGeneratedKeys() throws SQLException {
+            String tbl = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("NoCountTrigGK"));
+            String audit = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("NoCountTrigGKAudit"));
+            String trig = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("NoCountTrigGKTrig"));
+
+            try (Connection conn = getConnection();
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTriggerIfExists(trig, stmt);
+                TestUtils.dropTableIfExists(audit, stmt);
+                TestUtils.dropTableIfExists(tbl, stmt);
+
+                stmt.executeUpdate("CREATE TABLE " + tbl + " (ID int IDENTITY(1,1) PRIMARY KEY, NAME varchar(32))");
+                stmt.executeUpdate("CREATE TABLE " + audit + " (ID int IDENTITY(1,1))");
+                stmt.executeUpdate("CREATE TRIGGER " + trig + " ON " + tbl
+                        + " FOR INSERT AS INSERT INTO " + audit + " DEFAULT VALUES");
+
+                String sql = "SET NOCOUNT ON; INSERT INTO " + tbl + " (NAME) VALUES (?)";
+                try (PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                    ps.setString(1, "test");
+                    ps.execute();
+
+                    try (ResultSet keys = ps.getGeneratedKeys()) {
+                        assertTrue(keys.next(), "Generated keys should be available with SET NOCOUNT ON + trigger");
+                        int key = keys.getInt(1);
+                        assertTrue(key > 0, "Generated key should be positive, got: " + key);
+                    }
+                }
+
+                TestUtils.dropTriggerIfExists(trig, stmt);
+                TestUtils.dropTableIfExists(audit, stmt);
+                TestUtils.dropTableIfExists(tbl, stmt);
+            }
+        }
+
+        /**
+         * Tests compound INSERT; SELECT via PreparedStatement with prepareMethod=none.
+         * With prepareMethod=none, the driver uses PKT_QUERY (direct SQL) which produces
+         * TDS_DONE tokens (not DONEINPROC). The INSERT consumption logic only targets
+         * DONEINPROC, so INSERT's TDS_DONE is returned as a normal update count.
+         *
+         * SQL: "INSERT; SELECT" with prepareMethod=none
+         * Expected: updateCount=1(INSERT), ResultSet(1 row)
+         */
+        @Test
+        public void testCompoundInsertSelectWithPrepareMethodNone() throws SQLException {
+            String tbl = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PrepNoneCompound"));
+
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+                 Statement stmt = conn.createStatement()) {
+
+                TestUtils.dropTableIfExists(tbl, stmt);
+                stmt.executeUpdate("CREATE TABLE " + tbl + " (ID int IDENTITY(1,1), NAME varchar(32))");
+
+                String sql = "INSERT INTO " + tbl + " (NAME) VALUES (?); SELECT * FROM " + tbl;
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, "test");
+
+                    boolean hasResults = ps.execute();
+                    List<Integer> updateCounts = new ArrayList<>();
+                    int resultSetCount = 0;
+
+                    while (true) {
+                        if (hasResults) {
+                            try (ResultSet rs = ps.getResultSet()) {
+                                int rowCount = 0;
+                                while (rs.next()) rowCount++;
+                                assertEquals(1, rowCount, "SELECT should return 1 row");
+                            }
+                            resultSetCount++;
+                        } else {
+                            int uc = ps.getUpdateCount();
+                            if (uc == -1) break;
+                            updateCounts.add(uc);
+                        }
+                        hasResults = ps.getMoreResults();
+                    }
+
+                    // With prepareMethod=none (PKT_QUERY), INSERT produces TDS_DONE (not consumed)
+                    assertEquals(1, updateCounts.size(), "Should have 1 update count (INSERT), got: " + updateCounts);
+                    assertEquals(1, updateCounts.get(0), "INSERT should affect 1 row");
+                    assertEquals(1, resultSetCount, "Should have 1 ResultSet");
+                }
+
+                TestUtils.dropTableIfExists(tbl, stmt);
             }
         }
 
