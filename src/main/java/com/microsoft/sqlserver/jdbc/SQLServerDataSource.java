@@ -95,9 +95,13 @@ public class SQLServerDataSource
 
     @Override
     public Connection getConnection() throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getConnection");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "getConnection");
+        }
         Connection con = getConnectionInternal(null, null, null);
-        loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
+        }
         return con;
     }
 
@@ -107,7 +111,9 @@ public class SQLServerDataSource
             loggerExternal.entering(getClassNameLogging(), "getConnection",
                     new Object[] {username, "Password not traced"});
         Connection con = getConnectionInternal(username, password, null);
-        loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getConnection", con);
+        }
         return con;
     }
 
@@ -137,9 +143,13 @@ public class SQLServerDataSource
 
     @Override
     public void setLogWriter(PrintWriter out) {
-        loggerExternal.entering(getClassNameLogging(), "setLogWriter", out);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "setLogWriter", out);
+        }
         logWriter = out;
-        loggerExternal.exiting(getClassNameLogging(), "setLogWriter");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "setLogWriter");
+        }
     }
 
     /**
@@ -147,8 +157,12 @@ public class SQLServerDataSource
      */
     @Override
     public PrintWriter getLogWriter() {
-        loggerExternal.entering(getClassNameLogging(), "getLogWriter");
-        loggerExternal.exiting(getClassNameLogging(), "getLogWriter", logWriter);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "getLogWriter");
+        }
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getLogWriter", logWriter);
+        }
         return logWriter;
     }
 
@@ -737,7 +751,7 @@ public class SQLServerDataSource
 
     @Override
     public String getWorkstationID() {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+        if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "getWorkstationID");
         String getWSID = connectionProps.getProperty(SQLServerDriverStringProperty.WORKSTATION_ID.toString());
         // Per spec, return what the logon will send here if workstationID
@@ -745,7 +759,9 @@ public class SQLServerDataSource
         if (null == getWSID) {
             getWSID = Util.lookupHostName();
         }
-        loggerExternal.exiting(getClassNameLogging(), "getWorkstationID", getWSID);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getWorkstationID", getWSID);
+        }
         return getWSID;
     }
 
@@ -852,20 +868,28 @@ public class SQLServerDataSource
      */
     @Override
     public void setURL(String url) {
-        loggerExternal.entering(getClassNameLogging(), "setURL", url);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "setURL", url);
+        }
         // URL is not stored in a property set, it is maintained separately.
         dataSourceURL = url;
-        loggerExternal.exiting(getClassNameLogging(), "setURL");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "setURL");
+        }
     }
 
     @Override
     public String getURL() {
         String url = dataSourceURL;
-        loggerExternal.entering(getClassNameLogging(), "getURL");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "getURL");
+        }
 
         if (null == dataSourceURL)
             url = "jdbc:sqlserver://";
-        loggerExternal.exiting(getClassNameLogging(), "getURL", url);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getURL", url);
+        }
         return url;
     }
 
@@ -875,9 +899,13 @@ public class SQLServerDataSource
      */
     @Override
     public void setDescription(String description) {
-        loggerExternal.entering(getClassNameLogging(), "setDescription", description);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "setDescription", description);
+        }
         dataSourceDescription = description;
-        loggerExternal.exiting(getClassNameLogging(), "setDescription");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "setDescription");
+        }
     }
 
     /**
@@ -885,8 +913,12 @@ public class SQLServerDataSource
      */
     @Override
     public String getDescription() {
-        loggerExternal.entering(getClassNameLogging(), "getDescription");
-        loggerExternal.exiting(getClassNameLogging(), "getDescription", dataSourceDescription);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "getDescription");
+        }
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getDescription", dataSourceDescription);
+        }
         return dataSourceDescription;
     }
 
@@ -1559,14 +1591,18 @@ public class SQLServerDataSource
      *        no property value is set.
      */
     private void setStringProperty(Properties props, String propKey, String propValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER) && !propKey.contains("password")
-                && !propKey.contains("Password")) {
-            loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
-        } else
-            loggerExternal.entering(getClassNameLogging(), "set" + propKey);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            if (!propKey.contains("password") && !propKey.contains("Password")) {
+                loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
+            } else {
+                loggerExternal.entering(getClassNameLogging(), "set" + propKey);
+            }
+        }
         if (null != propValue)
             props.setProperty(propKey, propValue);
-        loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
+        }
     }
 
     /**
@@ -1579,14 +1615,15 @@ public class SQLServerDataSource
      *         not set.
      */
     private String getStringProperty(Properties props, String propKey, String defaultValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+        if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         String propValue = props.getProperty(propKey);
         if (null == propValue)
             propValue = defaultValue;
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER) && !propKey.contains("password")
-                && !propKey.contains("Password"))
+        if (loggerExternal.isLoggable(Level.FINER) && !propKey.contains("password")
+                && !propKey.contains("Password")) {
             loggerExternal.exiting(getClassNameLogging(), "get" + propKey, propValue);
+        }
         return propValue;
     }
 
@@ -1599,10 +1636,12 @@ public class SQLServerDataSource
      *        Caller will always supply a non-null props and propKey.
      */
     private void setIntProperty(Properties props, String propKey, int propValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+        if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
         props.setProperty(propKey, Integer.toString(propValue));
-        loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
+        }
     }
 
     /**
@@ -1610,7 +1649,7 @@ public class SQLServerDataSource
      * defaultValue if the specific property value is not set.
      */
     private int getIntProperty(Properties props, String propKey, int defaultValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+        if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         String propValue = props.getProperty(propKey);
         int value = defaultValue;
@@ -1623,7 +1662,7 @@ public class SQLServerDataSource
                 assert false : "Bad portNumber:-" + propValue;
             }
         }
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+        if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.exiting(getClassNameLogging(), "get" + propKey, value);
         return value;
     }
@@ -1632,10 +1671,12 @@ public class SQLServerDataSource
      * Set a boolean property value. Caller will always supply a non-null props and propKey.
      */
     private void setBooleanProperty(Properties props, String propKey, boolean propValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+        if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
         props.setProperty(propKey, (propValue) ? "true" : "false");
-        loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
+        }
     }
 
     /**
@@ -1643,7 +1684,7 @@ public class SQLServerDataSource
      * defaultValue if the specific property value is not set.
      */
     private boolean getBooleanProperty(Properties props, String propKey, boolean defaultValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+        if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         String propValue = props.getProperty(propKey);
         boolean value;
@@ -1654,27 +1695,33 @@ public class SQLServerDataSource
             // "true" or "false", we can do this.
             value = Boolean.valueOf(propValue);
         }
-        loggerExternal.exiting(getClassNameLogging(), "get" + propKey, value);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "get" + propKey, value);
+        }
         return value;
     }
 
     private void setObjectProperty(Properties props, String propKey, Object propValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "set" + propKey);
         }
         if (null != propValue) {
             props.put(propKey, propValue);
         }
-        loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "set" + propKey);
+        }
     }
 
     private Object getObjectProperty(Properties props, String propKey, Object defaultValue) {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER))
+        if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "get" + propKey);
         Object propValue = props.get(propKey);
         if (null == propValue)
             propValue = defaultValue;
-        loggerExternal.exiting(getClassNameLogging(), "get" + propKey);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "get" + propKey);
+        }
         return propValue;
     }
 
@@ -1742,9 +1789,13 @@ public class SQLServerDataSource
 
     @Override
     public Reference getReference() {
-        loggerExternal.entering(getClassNameLogging(), "getReference");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "getReference");
+        }
         Reference ref = getReferenceInternal("com.microsoft.sqlserver.jdbc.SQLServerDataSource");
-        loggerExternal.exiting(getClassNameLogging(), "getReference", ref);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getReference", ref);
+        }
         return ref;
     }
 
@@ -1824,22 +1875,30 @@ public class SQLServerDataSource
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "isWrapperFor", iface);
+        }
         boolean f = iface.isInstance(this);
-        loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", f);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "isWrapperFor", f);
+        }
         return f;
     }
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "unwrap", iface);
+        }
         T t;
         try {
             t = iface.cast(this);
         } catch (ClassCastException e) {
             throw new SQLServerException(e.getMessage(), e);
         }
-        loggerExternal.exiting(getClassNameLogging(), "unwrap", t);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "unwrap", t);
+        }
         return t;
     }
 
