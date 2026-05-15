@@ -50,6 +50,7 @@ class PerformanceLog {
         private PerformanceActivity activity;
         private long startTime;
         private final boolean enabled;
+        private final boolean nanos;
 
         private Exception exception;
 
@@ -60,16 +61,23 @@ class PerformanceLog {
 
         // Constructor for statement-level activities
         public Scope(Logger logger, int connectionId, int statementId, PerformanceActivity activity) {
-
-            // Check if logging is enabled
             this.enabled = logger.isLoggable(Level.FINE) || (callback != null);
+            boolean useNanos = false;
+            if (callback != null) {
+                try {
+                    useNanos = callback.useNanoseconds();
+                } catch (Exception e) {
+                    logger.fine(String.format("Failed to call useNanoseconds(), defaulting to milliseconds: %s", e.getMessage()));
+                }
+            }
+            this.nanos = useNanos;
 
             if (enabled) {
                 this.logger = logger;
                 this.connectionId = connectionId;
                 this.statementId = statementId;
                 this.activity = activity;
-                this.startTime = System.currentTimeMillis();
+                this.startTime = nanos ? System.nanoTime() : System.currentTimeMillis();
             }
         }
 
@@ -91,33 +99,28 @@ class PerformanceLog {
                 return;
             }
 
-            long endTime = System.currentTimeMillis();
-            long duration = endTime - startTime;
+            long duration = nanos ? (System.nanoTime() - startTime) : (System.currentTimeMillis() - startTime);
 
             if (callback != null) {
                 try {
-                    
                     if (statementId == 0) {
-                        // Connection-level activity
                         callback.publish(activity, connectionId, duration, exception);
                     } else {
-                        // Statement-level activity
                         callback.publish(activity, connectionId, statementId, duration, exception);
                     }
-
                 } catch (Exception e) {
                     logger.fine(String.format("Failed to publish performance log: %s", e.getMessage()));
                 }
             }
 
             if (logger != null && logger.isLoggable(Level.FINE)) {
+                String unit = nanos ? "ns" : "ms";
                 if (exception != null) {
-                    logger.fine(String.format("%s %s, duration: %dms, exception: %s", getTraceId(), activity, duration, exception.getMessage()));
+                    logger.fine(String.format("%s %s, duration: %d%s, exception: %s", getTraceId(), activity, duration, unit, exception.getMessage()));
                 } else {
-                    logger.fine(String.format("%s %s, duration: %dms", getTraceId(), activity, duration));
+                    logger.fine(String.format("%s %s, duration: %d%s", getTraceId(), activity, duration, unit));
                 }
             }
-
         }
     }
 
