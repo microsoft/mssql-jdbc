@@ -505,7 +505,9 @@ class SQLServerMSAL4JUtils {
                 InteractiveRequestParameters parameters = InteractiveRequestParameters.builder(new URI(REDIRECTURI))
                         .systemBrowserOptions(SystemBrowserOptions.builder()
                                 .htmlMessageSuccess(SQLServerResource.getResource("R_MSALAuthComplete")).build())
-                        .loginHint(user).scopes(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT)).build();
+                    .loginHint(user)
+                    .extraQueryParameters(Collections.singletonMap("response_mode", "form_post"))
+                    .scopes(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT)).build();
 
                 future = pca.acquireToken(parameters);
                 authenticationResult = future.get(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
