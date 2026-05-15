@@ -14,17 +14,11 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import java.lang.reflect.Method;
-
-import java.time.Duration;
-
 import java.text.MessageFormat;
 
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.Locale;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -443,12 +437,6 @@ class SQLServerMSAL4JUtils {
             logger.finer(LOGCONTEXT + authenticationString + ": get FedAuth token interactive for user: " + user);
         }
 
-        // Broker flow is best-effort and intentionally non-breaking; fallback remains the existing loopback flow.
-        SqlAuthenticationToken brokerToken = tryBrokerInteractiveToken(fedAuthInfo, user, millisecondsRemaining);
-        if (null != brokerToken) {
-            return brokerToken;
-        }
-
         boolean isSemAcquired = false;
         try {
             //
@@ -559,126 +547,6 @@ class SQLServerMSAL4JUtils {
                 }
             }
         }
-        return null;
-    }
-
-    private static SqlAuthenticationToken tryBrokerInteractiveToken(SqlFedAuthInfo fedAuthInfo, String user,
-            int millisecondsRemaining) {
-        if (!isWindows()) {
-            return null;
-        }
-
-        try {
-            Class<?> builderClass = Class.forName("com.azure.identity.broker.InteractiveBrowserBrokerCredentialBuilder");
-            Class<?> tokenRequestContextClass = Class.forName("com.azure.core.credential.TokenRequestContext");
-
-            Object builder = builderClass.getDeclaredConstructor().newInstance();
-
-            Method clientIdMethod = builderClass.getMethod("clientId", String.class);
-            clientIdMethod.invoke(builder, ActiveDirectoryAuthentication.JDBC_FEDAUTH_CLIENT_ID);
-
-            String tenantId = getTenantIdFromAuthority(fedAuthInfo.stsurl);
-            if (null != tenantId && !tenantId.isEmpty()) {
-                Method tenantIdMethod = builderClass.getMethod("tenantId", String.class);
-                tenantIdMethod.invoke(builder, tenantId);
-            }
-
-            if (null != user && !user.isEmpty()) {
-                Method loginHintMethod = builderClass.getMethod("loginHint", String.class);
-                loginHintMethod.invoke(builder, user);
-            }
-
-            Method setWindowHandleMethod = builderClass.getMethod("setWindowHandle", long.class);
-            setWindowHandleMethod.invoke(builder, 0L);
-
-            Method buildMethod = builderClass.getMethod("build");
-            Object credential = buildMethod.invoke(builder);
-
-            Object tokenRequestContext = tokenRequestContextClass.getDeclaredConstructor().newInstance();
-            Method setScopesMethod = tokenRequestContextClass.getMethod("setScopes", java.util.List.class);
-
-            String scope = fedAuthInfo.spn.endsWith(SLASH_DEFAULT) ? fedAuthInfo.spn : fedAuthInfo.spn + SLASH_DEFAULT;
-            setScopesMethod.invoke(tokenRequestContext, Collections.singletonList(scope));
-
-            Method getTokenMethod = credential.getClass().getMethod("getToken", tokenRequestContextClass);
-            Object mono = getTokenMethod.invoke(credential, tokenRequestContext);
-
-            Method timeoutMethod = mono.getClass().getMethod("timeout", Duration.class);
-            Object timedMono = timeoutMethod.invoke(mono,
-                    Duration.ofMillis(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS)));
-
-            Method blockOptionalMethod = timedMono.getClass().getMethod("blockOptional");
-            Object optionalResult = blockOptionalMethod.invoke(timedMono);
-            if (!(optionalResult instanceof Optional)) {
-                return null;
-            }
-
-            Optional<?> optionalToken = (Optional<?>) optionalResult;
-            if (!optionalToken.isPresent()) {
-                return null;
-            }
-
-            Object accessToken = optionalToken.get();
-            Method tokenValueMethod = accessToken.getClass().getMethod("getToken");
-            Method expiresAtMethod = accessToken.getClass().getMethod("getExpiresAt");
-
-            String tokenValue = (String) tokenValueMethod.invoke(accessToken);
-            Object expiresAt = expiresAtMethod.invoke(accessToken);
-            Method toInstantMethod = expiresAt.getClass().getMethod("toInstant");
-            Object instant = toInstantMethod.invoke(expiresAt);
-            Method toEpochMilliMethod = instant.getClass().getMethod("toEpochMilli");
-            long expiresEpochMillis = (long) toEpochMilliMethod.invoke(instant);
-
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer(LOGCONTEXT + "Broker interactive authentication succeeded");
-            }
-
-            return new SqlAuthenticationToken(tokenValue, expiresEpochMillis);
-        } catch (ClassNotFoundException e) {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(LOGCONTEXT
-                        + "Broker library not available, falling back to loopback interactive flow: "
-                        + e.getMessage());
-            }
-            return null;
-        } catch (Exception e) {
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer(LOGCONTEXT + "Broker interactive authentication unavailable, falling back: "
-                        + e.getMessage());
-            }
-            return null;
-        }
-    }
-
-    private static boolean isWindows() {
-        String osName = System.getProperty("os.name");
-        return null != osName && osName.toLowerCase(Locale.ENGLISH).contains("windows");
-    }
-
-    private static String getTenantIdFromAuthority(String authority) {
-        if (null == authority || authority.isEmpty()) {
-            return null;
-        }
-
-        try {
-            URI authorityUri = new URI(authority);
-            String path = authorityUri.getPath();
-            if (null == path || path.isEmpty()) {
-                return null;
-            }
-
-            String[] segments = path.split("/");
-            for (String segment : segments) {
-                if (null != segment && !segment.isEmpty()) {
-                    return segment;
-                }
-            }
-        } catch (URISyntaxException e) {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest(LOGCONTEXT + "Unable to parse tenant id from authority: " + e.getMessage());
-            }
-        }
-
         return null;
     }
 
