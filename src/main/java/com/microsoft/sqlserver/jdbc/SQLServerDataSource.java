@@ -1591,15 +1591,13 @@ public class SQLServerDataSource
      *        no property value is set.
      */
     private void setStringProperty(Properties props, String propKey, String propValue) {
-        if (loggerExternal.isLoggable(Level.FINER) && !propKey.contains("password")
-                && !propKey.contains("Password")) {
-            if (loggerExternal.isLoggable(Level.FINER)) {
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            if (!propKey.contains("password") && !propKey.contains("Password")) {
                 loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
-            }
-        } else
-            if (loggerExternal.isLoggable(Level.FINER)) {
+            } else {
                 loggerExternal.entering(getClassNameLogging(), "set" + propKey);
             }
+        }
         if (null != propValue)
             props.setProperty(propKey, propValue);
         if (loggerExternal.isLoggable(Level.FINER)) {
@@ -1623,10 +1621,9 @@ public class SQLServerDataSource
         if (null == propValue)
             propValue = defaultValue;
         if (loggerExternal.isLoggable(Level.FINER) && !propKey.contains("password")
-                && !propKey.contains("Password"))
-            if (loggerExternal.isLoggable(Level.FINER)) {
-                loggerExternal.exiting(getClassNameLogging(), "get" + propKey, propValue);
-            }
+                && !propKey.contains("Password")) {
+            loggerExternal.exiting(getClassNameLogging(), "get" + propKey, propValue);
+        }
         return propValue;
     }
 

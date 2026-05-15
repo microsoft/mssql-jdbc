@@ -8118,7 +8118,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public CallableStatement prepareCall(String sql, int nType, int nConcur,
             int resultSetHoldability) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.entering(loggingClassName, "prepareStatement",
+            loggerExternal.entering(loggingClassName, "prepareCall",
                     new Object[] {nType, nConcur, resultSetHoldability});
         }
         CallableStatement st = prepareCall(sql, nType, nConcur, resultSetHoldability,
@@ -8133,7 +8133,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     public CallableStatement prepareCall(String sql, int nType, int nConcur, int resultSetHoldability,
             SQLServerStatementColumnEncryptionSetting stmtColEncSetiing) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.entering(loggingClassName, "prepareStatement",
+            loggerExternal.entering(loggingClassName, "prepareCall",
                     new Object[] {nType, nConcur, resultSetHoldability, stmtColEncSetiing});
         }
         checkClosed();

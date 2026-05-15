@@ -1608,11 +1608,11 @@ public class SQLServerStatement implements ISQLServerStatement {
     public final long getLargeUpdateCount() throws SQLServerException {
 
         if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.entering(getClassNameLogging(), "getUpdateCount");
+            loggerExternal.entering(getClassNameLogging(), "getLargeUpdateCount");
         }
         checkClosed();
         if (loggerExternal.isLoggable(Level.FINER)) {
-            loggerExternal.exiting(getClassNameLogging(), "getUpdateCount", updateCount);
+            loggerExternal.exiting(getClassNameLogging(), "getLargeUpdateCount", updateCount);
         }
         return updateCount;
     }

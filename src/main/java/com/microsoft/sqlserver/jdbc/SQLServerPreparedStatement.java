@@ -1657,7 +1657,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER))
-            loggerExternal.entering(getClassNameLogging(), "setBinaryStreaml", new Object[] {parameterIndex, x});
+            loggerExternal.entering(getClassNameLogging(), "setBinaryStream", new Object[] {parameterIndex, x});
         checkClosed();
         setStream(parameterIndex, StreamType.BINARY, x, JavaType.INPUTSTREAM, DataTypes.UNKNOWN_STREAM_LENGTH);
         if (loggerExternal.isLoggable(Level.FINER)) {
