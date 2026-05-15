@@ -62,7 +62,15 @@ class PerformanceLog {
         // Constructor for statement-level activities
         public Scope(Logger logger, int connectionId, int statementId, PerformanceActivity activity) {
             this.enabled = logger.isLoggable(Level.FINE) || (callback != null);
-            this.nanos = (callback != null && callback.useNanoseconds());
+            boolean useNanos = false;
+            if (callback != null) {
+                try {
+                    useNanos = callback.useNanoseconds();
+                } catch (Exception e) {
+                    logger.fine(String.format("Failed to call useNanoseconds(), defaulting to milliseconds: %s", e.getMessage()));
+                }
+            }
+            this.nanos = useNanos;
 
             if (enabled) {
                 this.logger = logger;

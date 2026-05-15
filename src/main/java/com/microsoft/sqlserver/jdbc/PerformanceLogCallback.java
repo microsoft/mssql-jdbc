@@ -8,9 +8,10 @@ package com.microsoft.sqlserver.jdbc;
 /**
  * Callback interface for publishing performance logs.
  *
- * <p>The {@code duration} parameter in {@link #publish} contains the operation duration
+ * The {@code duration} parameter in {@link #publish(PerformanceActivity, int, long, Exception)}
+ * and {@link #publish(PerformanceActivity, int, int, long, Exception)} contains the operation duration
  * in milliseconds by default. To receive nanosecond granularity instead, override
- * {@link #useNanoseconds()} to return {@code true}.</p>
+ * {@link #useNanoseconds()} to return {@code true}.
  */
 public interface PerformanceLogCallback {
 
@@ -38,7 +39,8 @@ public interface PerformanceLogCallback {
     /**
      * Indicates whether the callback wants duration values in nanoseconds.
      * Override this method to return {@code true} to receive nanosecond granularity
-     * in the {@code duration} parameter of {@link #publish}.
+     * in the {@code duration} parameter of {@link #publish(PerformanceActivity, int, long, Exception)}
+     * and {@link #publish(PerformanceActivity, int, int, long, Exception)}.
      * The default is {@code false} (milliseconds).
      *
      * @return true if duration should be reported in nanoseconds, false for milliseconds.
