@@ -1551,6 +1551,8 @@ public final class SQLServerDriver implements java.sql.Driver {
     public int getMajorVersion() {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "getMajorVersion");
+        }
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", SQLJdbcVersion.MAJOR);
         }
         return SQLJdbcVersion.MAJOR;
@@ -1560,6 +1562,8 @@ public final class SQLServerDriver implements java.sql.Driver {
     public int getMinorVersion() {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "getMinorVersion");
+        }
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", SQLJdbcVersion.MINOR);
         }
         return SQLJdbcVersion.MINOR;
@@ -1574,6 +1578,8 @@ public final class SQLServerDriver implements java.sql.Driver {
     public boolean jdbcCompliant() {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "jdbcCompliant");
+        }
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "jdbcCompliant", Boolean.TRUE);
         }
         return true;

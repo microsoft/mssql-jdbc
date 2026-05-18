@@ -10,9 +10,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
-
-
 import java.util.logging.Level;
+
 /**
  * Abstract class that implements ISQLServerBulkRecord
  *

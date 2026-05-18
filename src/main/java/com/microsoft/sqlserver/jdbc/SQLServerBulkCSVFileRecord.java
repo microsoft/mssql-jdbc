@@ -22,12 +22,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import microsoft.sql.Vector;
-
-
-import java.util.logging.Level;
 /**
  * Provides a simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java
  * data types from a delimited file where each line represents a row of data.

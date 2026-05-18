@@ -32,11 +32,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 import microsoft.sql.Vector;
 import microsoft.sql.Vector.VectorDimensionType;
 
-import java.util.logging.Level;
 /**
  * Provides implementation of JDBC callable statements. CallableStatement allows the caller to specify the procedure
  * name to call along with input parameter value and output parameter types. Callable statement also allows the return
