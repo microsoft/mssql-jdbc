@@ -3946,8 +3946,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (sqlSrc.length() == srcEnd)
                 break;
 
-            dstBegin += SQLServerConnection.makeParamName(nParam++, sqlDst, dstBegin, true);
-            srcBegin = srcEnd + 1 <= sqlSrc.length() - 1 && sqlSrc.charAt(srcEnd + 1) == ' ' ? srcEnd + 2 : srcEnd + 1;
+            // Issue #2946: only insert whitespace around @P<n> when the surrounding source SQL
+            // does not already provide a separator. Preserves PR #2192's fix for cases like
+            // "=?" while avoiding extra spaces that break exact-text matching (plan guides).
+            if (dstBegin > 0 && !Character.isWhitespace(sqlDst[dstBegin - 1])) {
+                sqlDst[dstBegin++] = ' ';
+            }
+            dstBegin += SQLServerConnection.makeParamName(nParam++, sqlDst, dstBegin, false);
+            srcBegin = srcEnd + 1;
+            if (srcBegin < sqlSrc.length() && !Character.isWhitespace(sqlSrc.charAt(srcBegin))) {
+                sqlDst[dstBegin++] = ' ';
+            }
 
             if (params[paramIndex++].isOutput() && (!isReturnValueSyntax || paramIndex > 1)) {
                 System.arraycopy(OUT, 0, sqlDst, dstBegin, OUT.length);
