@@ -411,8 +411,8 @@ public class PreparedStatementTest extends AbstractTest {
             // Case 6: parenthesised list of markers -- punctuation surrounds the '?',
             // so no separators should be inserted at all.
             assertRewrittenSQL(con,
-                    "SELECT 1 WHERE c IN (?,?,?)",
-                    "SELECT 1 WHERE c IN (@P0,@P1,@P2)",
+                    "SELECT 1 WHERE 1 IN (?,?,?)",
+                    "SELECT 1 WHERE 1 IN (@P0,@P1,@P2)",
                     new String[] {"1", "2", "3"});
         }
     }
