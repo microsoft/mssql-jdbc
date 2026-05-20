@@ -347,7 +347,7 @@ class AASAttestationResponse extends BaseAttestationResponse {
                         CertificateFactory cf = CertificateFactory.getInstance("X.509");
                         X509Certificate cert = (X509Certificate) cf.generateCertificate(
                                 new ByteArrayInputStream(java.util.Base64.getDecoder().decode(jsonCert.getAsString())));
-                        Signature sig = Signature.getInstance("SHA256withRSA");
+                        Signature sig = Signature.getInstance("SHA256withRSA"); // CodeQL [SM05136] Required for an external standard: Azure Attestation Service signs JWT attestation tokens using RS256 (SHA256withRSA) per RFC 7515 JWS; the driver must verify with the algorithm declared by the issuer (https://learn.microsoft.com/azure/attestation/overview)
                         sig.initVerify(cert.getPublicKey());
                         sig.update(signatureBytes);
                         if (sig.verify(stmtSig)) {

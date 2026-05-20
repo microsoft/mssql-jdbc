@@ -352,14 +352,14 @@ class VSMAttestationResponse extends BaseAttestationResponse {
 
         Signature sig = null;
         try {
-            sig = Signature.getInstance("RSASSA-PSS");
+            sig = Signature.getInstance("RSASSA-PSS"); // CodeQL [SM05136] Required for an external standard: Always Encrypted with VBS secure enclaves attestation reports are signed with RSASSA-PSS using SHA-256/MGF1-SHA256 per the Windows VBS health attestation format (https://learn.microsoft.com/sql/relational-databases/security/encryption/always-encrypted-enclaves)
         } catch (NoSuchAlgorithmException e) {
             /*
              * RSASSA-PSS was added in JDK 11, the user might be using an older version of Java. Use BC as backup.
              * Remove this logic if JDK 8 stops being supported or backports RSASSA-PSS
              */
             SQLServerBouncyCastleLoader.loadBouncyCastle();
-            sig = Signature.getInstance("RSASSA-PSS");
+            sig = Signature.getInstance("RSASSA-PSS"); // CodeQL [SM05136] Required for an external standard: Always Encrypted with VBS secure enclaves attestation reports are signed with RSASSA-PSS using SHA-256/MGF1-SHA256 per the Windows VBS health attestation format (https://learn.microsoft.com/sql/relational-databases/security/encryption/always-encrypted-enclaves)
         }
         PSSParameterSpec pss = new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1);
         sig.setParameter(pss);
