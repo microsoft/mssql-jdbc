@@ -502,12 +502,8 @@ class SQLServerMSAL4JUtils {
                 if (logger.isLoggable(Level.FINEST)) {
                     logger.finest(LOGCONTEXT + "Interactive authentication");
                 }
-                InteractiveRequestParameters parameters = InteractiveRequestParameters.builder(new URI(REDIRECTURI))
-                        .systemBrowserOptions(SystemBrowserOptions.builder()
-                                .htmlMessageSuccess(SQLServerResource.getResource("R_MSALAuthComplete")).build())
-                    .loginHint(user)
-                    .extraQueryParameters(Collections.singletonMap("response_mode", "form_post"))
-                    .scopes(Collections.singleton(fedAuthInfo.spn + SLASH_DEFAULT)).build();
+                InteractiveRequestParameters parameters = buildInteractiveRequestParameters(
+                        new URI(REDIRECTURI), user, fedAuthInfo.spn);
 
                 future = pca.acquireToken(parameters);
                 authenticationResult = future.get(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
@@ -547,6 +543,23 @@ class SQLServerMSAL4JUtils {
             }
         }
         return null;
+    }
+
+    /**
+     * Builds the MSAL4J InteractiveRequestParameters used by the ActiveDirectoryInteractive
+     * authentication flow. Extracted from {@link #getSqlFedAuthTokenInteractive} so the
+     * configuration (notably {@code response_mode=form_post}, which keeps the AAD
+     * authorization response out of the redirect URL) can be unit-tested without driving
+     * a real interactive sign-in.
+     */
+    static InteractiveRequestParameters buildInteractiveRequestParameters(URI redirectUri, String user, String spn) {
+        return InteractiveRequestParameters.builder(redirectUri)
+                .systemBrowserOptions(SystemBrowserOptions.builder()
+                        .htmlMessageSuccess(SQLServerResource.getResource("R_MSALAuthComplete")).build())
+                .loginHint(user)
+                .extraQueryParameters(Collections.singletonMap("response_mode", "form_post"))
+                .scopes(Collections.singleton(spn + SLASH_DEFAULT))
+                .build();
     }
 
     private static SQLServerException getCorrectedException(Exception e, String user, String authenticationString) {
