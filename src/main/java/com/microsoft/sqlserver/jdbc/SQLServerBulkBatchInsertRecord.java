@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
-
+import java.util.logging.Level;
 
 /**
  * Provides a simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java
@@ -47,7 +47,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
     SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam, ArrayList<String> columnList,
             ArrayList<String> valueList, String encoding, boolean columnNameCaseSensitive) throws SQLServerException {
         initLoggerResources();
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(loggerPackageName, loggerClassName, new Object[] {batchParam, encoding});
         }
 
@@ -65,7 +65,9 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
         this.columnNameCaseSensitive = columnNameCaseSensitive;
         columnMetadata = new HashMap<>();
 
-        loggerExternal.exiting(loggerPackageName, loggerClassName);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerPackageName, loggerClassName);
+        }
     }
 
     private void initLoggerResources() {
@@ -299,7 +301,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
     @Override
     void addColumnMetadataInternal(int positionInSource, String name, int jdbcType, int precision, int scale,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(loggerPackageName, "addColumnMetadata",
                     new Object[] {positionInSource, name, jdbcType, precision, scale});
         }
@@ -367,7 +369,9 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
                         new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));
         }
 
-        loggerExternal.exiting(loggerPackageName, "addColumnMetadata");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerPackageName, "addColumnMetadata");
+        }
     }
 
     @Override

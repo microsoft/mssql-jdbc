@@ -22,11 +22,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import microsoft.sql.Vector;
-
-
 /**
  * Provides a simple implementation of the ISQLServerBulkRecord interface that can be used to read in the basic Java
  * data types from a delimited file where each line represents a row of data.
@@ -91,7 +90,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
     public SQLServerBulkCSVFileRecord(String fileToParse, String encoding, String delimiter,
             boolean firstLineIsColumnNames) throws SQLServerException {
         initLoggerResources();
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(loggerPackageName, loggerClassName,
                     new Object[] {fileToParse, encoding, delimiter, firstLineIsColumnNames});
         }
@@ -120,7 +119,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         }
         columnMetadata = new HashMap<>();
 
-        loggerExternal.exiting(loggerPackageName, loggerClassName);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerPackageName, loggerClassName);
+        }
     }
 
     /**
@@ -140,7 +141,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
     public SQLServerBulkCSVFileRecord(InputStream fileToParse, String encoding, String delimiter,
             boolean firstLineIsColumnNames) throws SQLServerException {
         initLoggerResources();
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(loggerPackageName, loggerClassName,
                     new Object[] {fileToParse, encoding, delimiter, firstLineIsColumnNames});
         }
@@ -167,7 +168,7 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
         }
         columnMetadata = new HashMap<>();
 
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(loggerPackageName, loggerClassName);
         }
     }
@@ -269,7 +270,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      *         when an error occurs
      */
     public void close() throws SQLServerException {
-        loggerExternal.entering(loggerPackageName, "close");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(loggerPackageName, "close");
+        }
 
         // Ignore errors since we are only cleaning up here
         if (fileReader != null)
@@ -285,7 +288,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                 fis.close();
             } catch (Exception e) {}
 
-        loggerExternal.exiting(loggerPackageName, "close");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerPackageName, "close");
+        }
     }
 
     @Override
@@ -541,8 +546,10 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
     @Override
     void addColumnMetadataInternal(int positionInSource, String name, int jdbcType, int precision, int scale,
             DateTimeFormatter dateTimeFormatter) throws SQLServerException {
-        loggerExternal.entering(loggerPackageName, "addColumnMetadata",
-                new Object[] {positionInSource, name, jdbcType, precision, scale});
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(loggerPackageName, "addColumnMetadata",
+                    new Object[] {positionInSource, name, jdbcType, precision, scale});
+        }
 
         String colName = "";
 
@@ -613,7 +620,9 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                         new ColumnMetadata(colName, jdbcType, precision, scale, dateTimeFormatter));
         }
 
-        loggerExternal.exiting(loggerPackageName, "addColumnMetadata");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerPackageName, "addColumnMetadata");
+        }
     }
 
     @Override

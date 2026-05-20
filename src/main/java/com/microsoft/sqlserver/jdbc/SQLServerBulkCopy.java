@@ -309,7 +309,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If the supplied type is not a connection from the Microsoft JDBC driver for SQL Server.
      */
     public SQLServerBulkCopy(Connection connection) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "SQLServerBulkCopy", connection);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "SQLServerBulkCopy", connection);
+        }
 
         if (null == connection || !(connection instanceof ISQLServerConnection)) {
             SQLServerException.makeFromDriverError(null, null,
@@ -332,7 +334,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         initializeDefaults();
 
-        loggerExternal.exiting(loggerClassName, "SQLServerBulkCopy");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "SQLServerBulkCopy");
+        }
     }
 
     /**
@@ -344,7 +348,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If a connection cannot be established.
      */
     public SQLServerBulkCopy(String connectionUrl) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "SQLServerBulkCopy", "connectionUrl not traced.");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "SQLServerBulkCopy", "connectionUrl not traced.");
+        }
         if ((connectionUrl == null) || "".equals(connectionUrl.trim())) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_nullConnection"), null, 0, false);
         }
@@ -360,7 +366,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         initializeDefaults();
 
-        loggerExternal.exiting(loggerClassName, "SQLServerBulkCopy");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "SQLServerBulkCopy");
+        }
     }
 
     /**
@@ -374,7 +382,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If the column mapping is invalid
      */
     public void addColumnMapping(int sourceColumn, int destinationColumn) throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(loggerClassName, "addColumnMapping",
                     new Object[] {sourceColumn, destinationColumn});
         }
@@ -386,7 +394,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
         columnMappings.add(new ColumnMapping(sourceColumn, destinationColumn));
 
-        loggerExternal.exiting(loggerClassName, "addColumnMapping");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "addColumnMapping");
+        }
     }
 
     /**
@@ -400,7 +410,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If the column mapping is invalid
      */
     public void addColumnMapping(int sourceColumn, String destinationColumn) throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(loggerClassName, "addColumnMapping",
                     new Object[] {sourceColumn, destinationColumn});
         }
@@ -412,7 +422,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
         columnMappings.add(new ColumnMapping(sourceColumn, destinationColumn));
 
-        loggerExternal.exiting(loggerClassName, "addColumnMapping");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "addColumnMapping");
+        }
     }
 
     /**
@@ -427,7 +439,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If the column mapping is invalid
      */
     public void addColumnMapping(String sourceColumn, int destinationColumn) throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(loggerClassName, "addColumnMapping",
                     new Object[] {sourceColumn, destinationColumn});
         }
@@ -439,7 +451,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
         columnMappings.add(new ColumnMapping(sourceColumn, destinationColumn));
 
-        loggerExternal.exiting(loggerClassName, "addColumnMapping");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "addColumnMapping");
+        }
     }
 
     /**
@@ -453,7 +467,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If the column mapping is invalid
      */
     public void addColumnMapping(String sourceColumn, String destinationColumn) throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(loggerClassName, "addColumnMapping",
                     new Object[] {sourceColumn, destinationColumn});
         }
@@ -465,18 +479,24 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
         columnMappings.add(new ColumnMapping(sourceColumn, destinationColumn));
 
-        loggerExternal.exiting(loggerClassName, "addColumnMapping");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "addColumnMapping");
+        }
     }
 
     /**
      * Clears the contents of the column mappings
      */
     public void clearColumnMappings() {
-        loggerExternal.entering(loggerClassName, "clearColumnMappings");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "clearColumnMappings");
+        }
 
         columnMappings.clear();
 
-        loggerExternal.exiting(loggerClassName, "clearColumnMappings");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "clearColumnMappings");
+        }
     }
 
      /**
@@ -490,7 +510,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If the column order hint is invalid
      */
     public void addColumnOrderHint(String columnName, SQLServerSortOrder sortOrder) throws SQLServerException {
-        if (loggerExternal.isLoggable(java.util.logging.Level.FINER)) {
+        if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(loggerClassName, "addColumnOrderHint",
                     new Object[] {columnName, sortOrder});
         }
@@ -502,25 +522,33 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
         columnOrderHints.add(new ColumnOrderHint(columnName, sortOrder));
 
-        loggerExternal.exiting(loggerClassName, "addColumnOrderHint");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "addColumnOrderHint");
+        }
     }
 
      /**
      * Clears the contents of the column order hints
      */
     public void clearColumnOrderHints() {
-        loggerExternal.entering(loggerClassName, "clearColumnOrderHints");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "clearColumnOrderHints");
+        }
 
         columnOrderHints.clear();
 
-        loggerExternal.exiting(loggerClassName, "clearColumnOrderHints");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "clearColumnOrderHints");
+        }
     }
 
     /**
      * Closes the SQLServerBulkCopy instance
      */
     public void close() {
-        loggerExternal.entering(loggerClassName, "close");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "close");
+        }
 
         if (ownsConnection) {
             try {
@@ -530,7 +558,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             }
         }
 
-        loggerExternal.exiting(loggerClassName, "close");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "close");
+        }
     }
 
     /**
@@ -551,7 +581,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If the table name is null
      */
     public void setDestinationTableName(String tableName) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "setDestinationTableName", tableName);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "setDestinationTableName", tableName);
+        }
 
         if (null == tableName || 0 == tableName.trim().length()) {
             throwInvalidArgument("tableName");
@@ -559,7 +591,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         destinationTableName = tableName.trim();
 
-        loggerExternal.exiting(loggerClassName, "setDestinationTableName");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "setDestinationTableName");
+        }
     }
 
     /**
@@ -582,7 +616,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         UseInternalTransaction option is specified.
      */
     public void setBulkCopyOptions(SQLServerBulkCopyOptions copyOptions) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "updateBulkCopyOptions", copyOptions);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "updateBulkCopyOptions", copyOptions);
+        }
 
         if (null != copyOptions) {
             // Verify that copyOptions does not have useInternalTransaction set.
@@ -596,7 +632,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             this.copyOptions = copyOptions;
         }
-        loggerExternal.exiting(loggerClassName, "updateBulkCopyOptions");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "updateBulkCopyOptions");
+        }
     }
 
     /**
@@ -636,7 +674,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If there are any issues encountered when performing the bulk copy operation
      */
     private void writeResultSet(ResultSet sourceData, boolean isRowSet) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "writeToServer");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "writeToServer");
+        }
 
         if (null == sourceData) {
             throwInvalidArgument("sourceData");
@@ -673,7 +713,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         writeToServer();
 
-        loggerExternal.exiting(loggerClassName, "writeToServer");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "writeToServer");
+        }
     }
 
     /**
@@ -686,7 +728,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      *         If there are any issues encountered when performing the bulk copy operation
      */
     public void writeToServer(ISQLServerBulkData sourceData) throws SQLServerException {
-        loggerExternal.entering(loggerClassName, "writeToServer");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(loggerClassName, "writeToServer");
+        }
 
         if (null == sourceData) {
             throwInvalidArgument("sourceData");
@@ -697,7 +741,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         writeToServer();
 
-        loggerExternal.exiting(loggerClassName, "writeToServer");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(loggerClassName, "writeToServer");
+        }
     }
 
     /**
