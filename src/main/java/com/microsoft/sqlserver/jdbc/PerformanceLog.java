@@ -18,9 +18,13 @@ class PerformanceLog {
 
     private static PerformanceLogCallback callback;
     private static boolean callbackInitialized = false;
+    private static boolean cachedUseNanos = false;
 
     /**
      * Register a callback for performance log events.
+     * The value of {@link PerformanceLogCallback#useNanoSeconds()} is captured at registration
+     * time and remains fixed for the lifetime of this callback. To change the duration unit,
+     * unregister and re-register with the new setting.
      *
      * @param cb The callback to register.
      */
@@ -29,6 +33,7 @@ class PerformanceLog {
             throw new IllegalStateException("Callback has already been set");
         }
         callback = cb;
+        cachedUseNanos = cb.useNanoSeconds();
         callbackInitialized = true;
     }
 
@@ -37,6 +42,7 @@ class PerformanceLog {
      */
     public static synchronized void unregisterCallback() {
         callback = null;
+        cachedUseNanos = false;
         callbackInitialized = false;
     }
 
@@ -50,7 +56,7 @@ class PerformanceLog {
         private PerformanceActivity activity;
         private long startTime;
         private final boolean enabled;
-        private final boolean nanos;
+        private final boolean useNanos;
 
         private Exception exception;
 
@@ -62,22 +68,14 @@ class PerformanceLog {
         // Constructor for statement-level activities
         public Scope(Logger logger, int connectionId, int statementId, PerformanceActivity activity) {
             this.enabled = logger.isLoggable(Level.FINE) || (callback != null);
-            boolean useNanos = false;
-            if (callback != null) {
-                try {
-                    useNanos = callback.useNanoseconds();
-                } catch (Exception e) {
-                    logger.fine(String.format("Failed to call useNanoseconds(), defaulting to milliseconds: %s", e.getMessage()));
-                }
-            }
-            this.nanos = useNanos;
+            this.useNanos = cachedUseNanos;
 
             if (enabled) {
                 this.logger = logger;
                 this.connectionId = connectionId;
                 this.statementId = statementId;
                 this.activity = activity;
-                this.startTime = nanos ? System.nanoTime() : System.currentTimeMillis();
+                this.startTime = useNanos ? System.nanoTime() : System.currentTimeMillis();
             }
         }
 
@@ -99,7 +97,7 @@ class PerformanceLog {
                 return;
             }
 
-            long duration = nanos ? (System.nanoTime() - startTime) : (System.currentTimeMillis() - startTime);
+            long duration = useNanos ? (System.nanoTime() - startTime) : (System.currentTimeMillis() - startTime);
 
             if (callback != null) {
                 try {
@@ -114,7 +112,7 @@ class PerformanceLog {
             }
 
             if (logger != null && logger.isLoggable(Level.FINE)) {
-                String unit = nanos ? "ns" : "ms";
+                String unit = useNanos ? "ns" : "ms";
                 if (exception != null) {
                     logger.fine(String.format("%s %s, duration: %d%s, exception: %s", getTraceId(), activity, duration, unit, exception.getMessage()));
                 } else {

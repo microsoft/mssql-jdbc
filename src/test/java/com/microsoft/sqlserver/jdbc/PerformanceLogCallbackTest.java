@@ -195,7 +195,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
             SQLServerDriver.unregisterPerformanceLogCallback();
             PerformanceLogCallback nanosCallbackInstance = new PerformanceLogCallback() {
                 @Override
-                public boolean useNanoseconds() {
+                public boolean useNanoSeconds() {
                     return true;
                 }
 
@@ -277,7 +277,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
             SQLServerDriver.unregisterPerformanceLogCallback();
             PerformanceLogCallback nanosCallbackInstance = new PerformanceLogCallback() {
                 @Override
-                public boolean useNanoseconds() {
+                public boolean useNanoSeconds() {
                     return true;
                 }
 
@@ -676,7 +676,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
         PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
             @Override
-            public boolean useNanoseconds() {
+            public boolean useNanoSeconds() {
                 return true;
             }
 
@@ -752,6 +752,61 @@ class PerformanceLogCallbackTest extends AbstractTest {
                 "publish should have been called for connection-level activities");
         assertTrue(statementMs.size() > 0,
                 "publish should have been called for statement-level activities");
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test to validate that useNanoseconds() is cached at registration time.
+     * Mutating the callback's return value after registration should have no effect.
+     */
+    @Test
+    void testUseNanosecondsCachedAtRegistration() throws Exception {
+        List<Long> durations = new ArrayList<>();
+
+        // Mutable callback whose useNanoseconds() can be flipped at runtime
+        class MutableCallback implements PerformanceLogCallback {
+            volatile boolean nanos = false;
+
+            @Override
+            public boolean useNanoSeconds() {
+                return nanos;
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long duration,
+                    Exception exception) {
+                durations.add(duration);
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long duration, Exception exception) {
+                durations.add(duration);
+            }
+        }
+
+        MutableCallback cb = new MutableCallback();
+        cb.nanos = false; // register with milliseconds
+        SQLServerDriver.registerPerformanceLogCallback(cb);
+
+        // Mutate after registration — should have no effect
+        cb.nanos = true;
+
+        try (Connection con = getConnection()) {
+            try (Statement stmt = con.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            }
+        }
+
+        // Durations should still be in milliseconds (small values), not nanoseconds
+        assertTrue(durations.size() > 0, "publish should have been called");
+        for (long duration : durations) {
+            // A millisecond duration for a simple query should be well under 1,000,000
+            // (which would be 1 second). Nanosecond values would typically be > 1,000,000.
+            assertTrue(duration < 1_000_000,
+                    "Duration should be in milliseconds (cached at registration), got: " + duration);
+        }
 
         SQLServerDriver.unregisterPerformanceLogCallback();
     }
