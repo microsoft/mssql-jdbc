@@ -3946,21 +3946,26 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (sqlSrc.length() == srcEnd)
                 break;
 
-            // Issue #2946: only insert whitespace around @P<n> when the surrounding source SQL
-            // does not already provide a separator. Preserves PR #2192's fix for cases like
-            // "=?" while avoiding extra spaces that break exact-text matching (plan guides).
-            if (dstBegin > 0 && !Character.isWhitespace(sqlDst[dstBegin - 1])) {
-                sqlDst[dstBegin++] = ' ';
-            }
+            // Issue #2946: avoid injecting extra whitespace around the substituted @P<n>
+            // marker, which broke exact-text matching used by SQL Server plan guides,
+            // Query Store forced plans, sql_text-based auditing, etc.  PR #2192 added
+            // unconditional padding to fix queries like "c1=?and c2=?" where the lack of
+            // a separator caused "@P<n>and" to be parsed as a single identifier.  We
+            // preserve that safety property by inserting a single space only when the
+            // *next* source character would extend the @P<n> (or @P<n> OUT) token into a
+            // longer identifier -- i.e. when it is a letter, digit, or underscore.  A
+            // leading separator is never required because '@' cannot continue a
+            // preceding token.
             dstBegin += SQLServerConnection.makeParamName(nParam++, sqlDst, dstBegin, false);
             srcBegin = srcEnd + 1;
-            if (srcBegin < sqlSrc.length() && !Character.isWhitespace(sqlSrc.charAt(srcBegin))) {
-                sqlDst[dstBegin++] = ' ';
-            }
 
             if (params[paramIndex++].isOutput() && (!isReturnValueSyntax || paramIndex > 1)) {
                 System.arraycopy(OUT, 0, sqlDst, dstBegin, OUT.length);
                 dstBegin += OUT.length;
+            }
+
+            if (srcBegin < sqlSrc.length() && Character.isJavaIdentifierPart(sqlSrc.charAt(srcBegin))) {
+                sqlDst[dstBegin++] = ' ';
             }
         }
 

@@ -367,10 +367,11 @@ public class PreparedStatementTest extends AbstractTest {
 
     /**
      * Regression test for issue #2946: replaceParameterMarkers must not inject extra
-     * whitespace around the substituted @P&lt;n&gt; marker when the source SQL already
-     * provides a separator. This was breaking exact-text matching used by SQL Server
-     * plan guides, query-text auditing, etc. The fix preserves PR #2192's behavior of
-     * inserting a separator only when one is missing (e.g. "=?" -> "= @P0").
+     * whitespace around the substituted @P&lt;n&gt; marker. This was breaking exact-text
+     * matching used by SQL Server plan guides, Query Store, sql_text-based auditing, etc.
+     * The fix preserves PR #2192's safety property (a separator is still inserted when
+     * the next source character would extend @P&lt;n&gt; into a longer identifier, e.g.
+     * "?and" -&gt; "@P0 and") while leaving all other whitespace untouched.
      */
     @Test
     public void testPreparedStatementParamNameSpacingNoExtraWhitespace() throws SQLException {
@@ -387,16 +388,18 @@ public class PreparedStatementTest extends AbstractTest {
                     "SELECT 1 WHERE 1 = @P0 AND 2 = 2",
                     new String[] {"1"});
 
-            // Case 3: no spaces around '?' (PR #2192 case) -- separator must still be inserted.
+            // Case 3: PR #2192 safety case -- "?and" would otherwise be parsed as a
+            // single identifier "@P0and"; a separator must still be inserted.
             assertRewrittenSQL(con,
-                    "SELECT 1 WHERE 1=?AND 2=2",
-                    "SELECT 1 WHERE 1= @P0 AND 2=2",
+                    "SELECT 1 WHERE 1=?and 2=2",
+                    "SELECT 1 WHERE 1=@P0 and 2=2",
                     new String[] {"1"});
 
-            // Case 4: multiple parameters with various spacing.
+            // Case 4: multiple parameters, mixed spacing. Operators '=' and ',' do not
+            // need separators; the identifier 'and' after '?' does.
             assertRewrittenSQL(con,
-                    "SELECT 1 WHERE 1 = ? AND 2=? AND 3 =?",
-                    "SELECT 1 WHERE 1 = @P0 AND 2= @P1 AND 3 = @P2",
+                    "SELECT 1 WHERE 1 = ? AND 2=? AND 3 =?and 4=4",
+                    "SELECT 1 WHERE 1 = @P0 AND 2=@P1 AND 3 =@P2 and 4=4",
                     new String[] {"1", "2", "3"});
 
             // Case 5: '?' at end of statement -- no trailing space.
@@ -404,6 +407,13 @@ public class PreparedStatementTest extends AbstractTest {
                     "SELECT ?",
                     "SELECT @P0",
                     new String[] {"1"});
+
+            // Case 6: parenthesised list of markers -- punctuation surrounds the '?',
+            // so no separators should be inserted at all.
+            assertRewrittenSQL(con,
+                    "SELECT 1 WHERE c IN (?,?,?)",
+                    "SELECT 1 WHERE c IN (@P0,@P1,@P2)",
+                    new String[] {"1", "2", "3"});
         }
     }
 
