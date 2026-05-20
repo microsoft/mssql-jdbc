@@ -370,7 +370,7 @@ public class PreparedStatementTest extends AbstractTest {
      * whitespace around the substituted @P&lt;n&gt; marker when the source SQL already
      * provides a separator. This was breaking exact-text matching used by SQL Server
      * plan guides, query-text auditing, etc. The fix preserves PR #2192's behavior of
-     * inserting a separator only when one is missing (e.g. "=?" -> "= @P1").
+     * inserting a separator only when one is missing (e.g. "=?" -> "= @P0").
      */
     @Test
     public void testPreparedStatementParamNameSpacingNoExtraWhitespace() throws SQLException {
@@ -378,31 +378,31 @@ public class PreparedStatementTest extends AbstractTest {
             // Case 1: already-spaced operator, trailing '?'. No double space, no trailing space.
             assertRewrittenSQL(con,
                     "SELECT 1 WHERE 1 = ?",
-                    "SELECT 1 WHERE 1 = @P1",
+                    "SELECT 1 WHERE 1 = @P0",
                     new String[] {"1"});
 
             // Case 2: already-spaced operator, '?' not at end. No double space.
             assertRewrittenSQL(con,
                     "SELECT 1 WHERE 1 = ? AND 2 = 2",
-                    "SELECT 1 WHERE 1 = @P1 AND 2 = 2",
+                    "SELECT 1 WHERE 1 = @P0 AND 2 = 2",
                     new String[] {"1"});
 
             // Case 3: no spaces around '?' (PR #2192 case) -- separator must still be inserted.
             assertRewrittenSQL(con,
                     "SELECT 1 WHERE 1=?AND 2=2",
-                    "SELECT 1 WHERE 1= @P1 AND 2=2",
+                    "SELECT 1 WHERE 1= @P0 AND 2=2",
                     new String[] {"1"});
 
             // Case 4: multiple parameters with various spacing.
             assertRewrittenSQL(con,
                     "SELECT 1 WHERE 1 = ? AND 2=? AND 3 =?",
-                    "SELECT 1 WHERE 1 = @P1 AND 2= @P2 AND 3 = @P3",
+                    "SELECT 1 WHERE 1 = @P0 AND 2= @P1 AND 3 = @P2",
                     new String[] {"1", "2", "3"});
 
             // Case 5: '?' at end of statement -- no trailing space.
             assertRewrittenSQL(con,
                     "SELECT ?",
-                    "SELECT @P1",
+                    "SELECT @P0",
                     new String[] {"1"});
         }
     }
