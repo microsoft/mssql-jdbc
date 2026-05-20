@@ -22,7 +22,7 @@ class PerformanceLog {
 
     /**
      * Register a callback for performance log events.
-     * The value of {@link PerformanceLogCallback#useNanoSeconds()} is captured at registration
+     * The value of {@link PerformanceLogCallback#useNanoseconds()} is captured at registration
      * time and remains fixed for the lifetime of this callback. To change the duration unit,
      * unregister and re-register with the new setting.
      *
@@ -33,7 +33,7 @@ class PerformanceLog {
             throw new IllegalStateException("Callback has already been set");
         }
         callback = cb;
-        cachedUseNanos = cb.useNanoSeconds();
+        cachedUseNanos = cb.useNanoseconds();
         callbackInitialized = true;
     }
 

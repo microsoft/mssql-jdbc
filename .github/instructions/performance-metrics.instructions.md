@@ -37,12 +37,12 @@ SQLServerDriver.registerPerformanceLogCallback(new PerformanceLogCallback() {
 #### Nanosecond Granularity
 
 By default, the `duration` parameter is reported in **milliseconds**. To receive
-**nanosecond** granularity instead, override `useNanoSeconds()` to return `true`:
+**nanosecond** granularity instead, override `useNanoseconds()` to return `true`:
 
 ```java
 SQLServerDriver.registerPerformanceLogCallback(new PerformanceLogCallback() {
     @Override
-    public boolean useNanoSeconds() {
+    public boolean useNanoseconds() {
         return true; // duration values will be in nanoseconds
     }
 
@@ -62,11 +62,11 @@ SQLServerDriver.registerPerformanceLogCallback(new PerformanceLogCallback() {
 });
 ```
 
-The value of `useNanoSeconds()` is captured once at registration time and remains fixed
+The value of `useNanoseconds()` is captured once at registration time and remains fixed
 for the lifetime of the callback. To change the duration unit, unregister and re-register
 with the new setting.
 
-When `useNanoSeconds()` returns `true`:
+When `useNanoseconds()` returns `true`:
 - Timing uses `System.nanoTime()` instead of `System.currentTimeMillis()`
 - Log output uses `ns` as the unit suffix instead of `ms`
 - All publish calls (connection-level and statement-level) use nanosecond values
@@ -279,4 +279,4 @@ try {
 - `SQLServerPreparedStatement.java` - Prepared statement activities
 - `PerformanceActivity.java` - Activity enum definitions
 - `PerformanceLog.java` - Logging infrastructure
-- `PerformanceLogCallback.java` - Callback interface (includes `useNanoSeconds()` for nanosecond granularity)
+- `PerformanceLogCallback.java` - Callback interface (includes `useNanoseconds()` for nanosecond granularity)

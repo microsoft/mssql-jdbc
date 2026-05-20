@@ -195,7 +195,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
             SQLServerDriver.unregisterPerformanceLogCallback();
             PerformanceLogCallback nanosCallbackInstance = new PerformanceLogCallback() {
                 @Override
-                public boolean useNanoSeconds() {
+                public boolean useNanoseconds() {
                     return true;
                 }
 
@@ -277,7 +277,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
             SQLServerDriver.unregisterPerformanceLogCallback();
             PerformanceLogCallback nanosCallbackInstance = new PerformanceLogCallback() {
                 @Override
-                public boolean useNanoSeconds() {
+                public boolean useNanoseconds() {
                     return true;
                 }
 
@@ -676,7 +676,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
         PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
             @Override
-            public boolean useNanoSeconds() {
+            public boolean useNanoseconds() {
                 return true;
             }
 
@@ -769,7 +769,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
             volatile boolean nanos = false;
 
             @Override
-            public boolean useNanoSeconds() {
+            public boolean useNanoseconds() {
                 return nanos;
             }
 

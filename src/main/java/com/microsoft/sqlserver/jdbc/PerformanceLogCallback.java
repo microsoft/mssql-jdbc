@@ -11,7 +11,7 @@ package com.microsoft.sqlserver.jdbc;
  * The {@code duration} parameter in {@link #publish(PerformanceActivity, int, long, Exception)}
  * and {@link #publish(PerformanceActivity, int, int, long, Exception)} contains the operation duration
  * in milliseconds by default. To receive nanosecond granularity instead, override
- * {@link #useNanoSeconds()} to return {@code true}.
+ * {@link #useNanoseconds()} to return {@code true}.
  */
 public interface PerformanceLogCallback {
 
@@ -20,7 +20,7 @@ public interface PerformanceLogCallback {
      * @param activity        The type of activity being logged.
      * @param connectionId    The ID of the connection.
      * @param duration        The duration of the operation (milliseconds by default, nanoseconds if
-     *                        {@link #useNanoSeconds()} returns true).
+     *                        {@link #useNanoseconds()} returns true).
      * @param exception       An exception, if an error occurred.
      */
     void publish(PerformanceActivity activity, int connectionId, long duration, Exception exception) throws Exception;
@@ -31,7 +31,7 @@ public interface PerformanceLogCallback {
      * @param connectionId    The ID of the connection.
      * @param statementId     The ID of the statement (if applicable).
      * @param duration        The duration of the operation (milliseconds by default, nanoseconds if
-     *                        {@link #useNanoSeconds()} returns true).
+     *                        {@link #useNanoseconds()} returns true).
      * @param exception       An exception, if an error occurred.
      */
     void publish(PerformanceActivity activity, int connectionId, int statementId, long duration, Exception exception) throws Exception;
@@ -45,7 +45,7 @@ public interface PerformanceLogCallback {
      *
      * @return true if duration should be reported in nanoseconds, false for milliseconds.
      */
-    default boolean useNanoSeconds() {
+    default boolean useNanoseconds() {
         return false;
     }
 
