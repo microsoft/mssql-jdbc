@@ -97,6 +97,14 @@ final class SQLServerSymmetricKeyCache {
                  * When provider decrypt Column Encryption Key, it can cache the decrypted key if cacheTTL > 0.
                  * To prevent conflicts between CEK caches, system providers and global providers should not use their own CEK caches.
                  */
+                System.out.println("[ENCLAVE-CEK][BUG-SITE-2] SQLServerSymmetricKeyCache.getKey CACHE MISS"
+                        + " -> provider.setColumnEncryptionCacheTtl(Duration.ZERO) then provider.decryptColumnEncryptionKey"
+                        + " | keyPath='" + keyInfo.keyPath + "'"
+                        + " | provider='" + keyInfo.keyStoreName + "'"
+                        + " | algo='" + keyInfo.algorithmName + "'"
+                        + " | serverName='" + serverName + "'"
+                        + " | <-- this RE-disables the provider cache and is the only legitimate cache layer "
+                        + "(the enclave path skips this).");
                 provider.setColumnEncryptionCacheTtl(Duration.ZERO);
                 plaintextKey = provider.decryptColumnEncryptionKey(keyInfo.keyPath, keyInfo.algorithmName,
                         keyInfo.encryptedKey);

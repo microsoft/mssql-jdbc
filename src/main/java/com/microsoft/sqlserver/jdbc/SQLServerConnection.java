@@ -1517,6 +1517,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 // Global providers should not use their own CEK caches.
+                // NOTE: this disables the provider's internal SimpleTtlCache. The driver-level
+                // SQLServerSymmetricKeyCache is supposed to be the single cache layer. However, the enclave path
+                // in ISQLServerEnclaveProvider#processSDPEv1 (the AE_V2 branch) currently calls
+                // provider.decryptColumnEncryptionKey(...) directly, BYPASSING the driver-level cache. With the
+                // provider cache disabled here AND the driver cache skipped there, enclave queries hit Key Vault
+                // on every iteration.
+                System.out.println("[ENCLAVE-CEK][BUG-SITE-1] SQLServerConnection.registerColumnEncryptionKeyStoreProviders"
+                        + " -> provider.setColumnEncryptionCacheTtl(Duration.ZERO)"
+                        + " | providerName='" + providerName + "'"
+                        + " | providerClass=" + provider.getClass().getName()
+                        + " | <-- this disables the provider's internal SimpleTtlCache (TTL 2h -> 0)");
                 provider.setColumnEncryptionCacheTtl(Duration.ZERO);
                 globalCustomColumnEncryptionKeyStoreProviders.put(providerName, provider);
             }

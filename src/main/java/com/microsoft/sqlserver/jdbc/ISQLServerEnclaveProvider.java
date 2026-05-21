@@ -226,6 +226,18 @@ interface ISQLServerEnclaveProvider {
 
                 SQLServerColumnEncryptionKeyStoreProvider provider = SQLServerSecurityUtility
                         .getColumnEncryptionKeyStoreProvider(keyStoreName, connection, statement);
+                // ENCLAVE-CEK: This call BYPASSES SQLServerSymmetricKeyCache. The non-enclave path
+                // (decryptSymmetricKey -> SQLServerSymmetricKeyCache.getKey) caches the plaintext CEK; this enclave
+                // path does not. Combined with the registration-time and per-query setColumnEncryptionCacheTtl(0)
+                // calls (SQLServerConnection.java and SQLServerSymmetricKeyCache.java), enclave queries pay a full
+                // Key Vault round-trip for the enclave-required CEK on EVERY invocation.
+                System.out.println("[ENCLAVE-CEK][BUG-SITE-3] ISQLServerEnclaveProvider.processSDPEv1 (AE_V2)"
+                        + " -> provider.decryptColumnEncryptionKey DIRECTLY (no driver cache, no provider cache)"
+                        + " | keyPath='" + keyPath + "'"
+                        + " | provider='" + keyStoreName + "'"
+                        + " | algo='" + algo + "'"
+                        + " | dbID=" + dbID + " keyID=" + keyID
+                        + " | <-- THIS is the smoking gun: one HTTPS round-trip to Key Vault per enclave query.");
                 aev2CekEntry.put(provider.decryptColumnEncryptionKey(keyPath, algo, encryptedKey));
                 enclaveRequestedCEKs.add(aev2CekEntry.array());
             }
