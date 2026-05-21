@@ -4,14 +4,9 @@
  */
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -23,7 +18,6 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
-import com.microsoft.sqlserver.testframework.PrepUtil;
 
 /**
  * CEK cache TTL tests: cache TTL configuration, cache eviction verification,
@@ -35,6 +29,16 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.legacyFxAE)
 @Tag(Constants.reqExternalSetup)
 public class CEKCacheTTLTest extends AbstractTest {
+
+    // Default CEK cache TTL applied by SQLServerConnection (2 hours).
+    // Centralized here so all tests restore to the same value; update in one place
+    // if the driver-side default ever changes.
+    private static final int DEFAULT_CEK_CACHE_TTL_VALUE = 2;
+    private static final TimeUnit DEFAULT_CEK_CACHE_TTL_UNIT = TimeUnit.HOURS;
+
+    private static void resetCekCacheTtlToDefault() throws SQLException {
+        SQLServerConnection.setColumnEncryptionKeyCacheTtl(DEFAULT_CEK_CACHE_TTL_VALUE, DEFAULT_CEK_CACHE_TTL_UNIT);
+    }
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -51,7 +55,7 @@ public class CEKCacheTTLTest extends AbstractTest {
             assertNotNull(sconn);
         } finally {
             // Reset to default
-            SQLServerConnection.setColumnEncryptionKeyCacheTtl(2, TimeUnit.HOURS);
+            resetCekCacheTtlToDefault();
         }
     }
 
@@ -62,7 +66,7 @@ public class CEKCacheTTLTest extends AbstractTest {
             SQLServerConnection.setColumnEncryptionKeyCacheTtl(4, TimeUnit.SECONDS);
             assertNotNull(sconn);
         } finally {
-            SQLServerConnection.setColumnEncryptionKeyCacheTtl(2, TimeUnit.HOURS);
+            resetCekCacheTtlToDefault();
         }
     }
 
@@ -82,7 +86,7 @@ public class CEKCacheTTLTest extends AbstractTest {
             SQLServerConnection.setColumnEncryptionKeyCacheTtl(30, TimeUnit.MINUTES);
             assertNotNull(sconn);
         } finally {
-            SQLServerConnection.setColumnEncryptionKeyCacheTtl(2, TimeUnit.HOURS);
+            resetCekCacheTtlToDefault();
         }
     }
 
@@ -96,7 +100,7 @@ public class CEKCacheTTLTest extends AbstractTest {
             SQLServerConnection.setColumnEncryptionKeyCacheTtl(0, TimeUnit.SECONDS);
             assertNotNull(conn);
         } finally {
-            SQLServerConnection.setColumnEncryptionKeyCacheTtl(2, TimeUnit.HOURS);
+            resetCekCacheTtlToDefault();
         }
     }
 }

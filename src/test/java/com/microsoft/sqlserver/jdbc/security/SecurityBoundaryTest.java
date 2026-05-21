@@ -378,10 +378,17 @@ public class SecurityBoundaryTest extends AbstractTest {
         }
 
         boolean completed = latch.await(60, TimeUnit.SECONDS);
-        executor.shutdownNow();
+        executor.shutdown();
+        if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+            executor.shutdownNow();
+        }
 
-        assertTrue(completed, "All threads should complete within 60 seconds (no deadlock)");
-        assertTrue(successCount.get() > 0, "At least some concurrent operations should succeed");
+        assertTrue(completed,
+                "All threads should complete within 60 seconds (no deadlock). successCount="
+                        + successCount.get() + ", errorCount=" + errorCount.get());
+        assertTrue(successCount.get() > 0,
+                "At least some concurrent operations should succeed. successCount="
+                        + successCount.get() + ", errorCount=" + errorCount.get());
 
         // Verify driver is still functional after concurrent stress
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
