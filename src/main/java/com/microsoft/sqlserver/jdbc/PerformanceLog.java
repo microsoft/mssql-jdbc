@@ -18,9 +18,13 @@ class PerformanceLog {
 
     private static PerformanceLogCallback callback;
     private static boolean callbackInitialized = false;
+    private static boolean cachedUseNanos = false;
 
     /**
      * Register a callback for performance log events.
+     * The value of {@link PerformanceLogCallback#useNanoseconds()} is captured at registration
+     * time and remains fixed for the lifetime of this callback. To change the duration unit,
+     * unregister and re-register with the new setting.
      *
      * @param cb The callback to register.
      */
@@ -29,6 +33,7 @@ class PerformanceLog {
             throw new IllegalStateException("Callback has already been set");
         }
         callback = cb;
+        cachedUseNanos = cb.useNanoseconds();
         callbackInitialized = true;
     }
 
@@ -37,6 +42,7 @@ class PerformanceLog {
      */
     public static synchronized void unregisterCallback() {
         callback = null;
+        cachedUseNanos = false;
         callbackInitialized = false;
     }
 
@@ -50,6 +56,7 @@ class PerformanceLog {
         private PerformanceActivity activity;
         private long startTime;
         private final boolean enabled;
+        private final boolean useNanos;
 
         private Exception exception;
 
@@ -60,16 +67,15 @@ class PerformanceLog {
 
         // Constructor for statement-level activities
         public Scope(Logger logger, int connectionId, int statementId, PerformanceActivity activity) {
-
-            // Check if logging is enabled
             this.enabled = logger.isLoggable(Level.FINE) || (callback != null);
+            this.useNanos = cachedUseNanos;
 
             if (enabled) {
                 this.logger = logger;
                 this.connectionId = connectionId;
                 this.statementId = statementId;
                 this.activity = activity;
-                this.startTime = System.currentTimeMillis();
+                this.startTime = useNanos ? System.nanoTime() : System.currentTimeMillis();
             }
         }
 
@@ -91,33 +97,28 @@ class PerformanceLog {
                 return;
             }
 
-            long endTime = System.currentTimeMillis();
-            long duration = endTime - startTime;
+            long duration = useNanos ? (System.nanoTime() - startTime) : (System.currentTimeMillis() - startTime);
 
             if (callback != null) {
                 try {
-                    
                     if (statementId == 0) {
-                        // Connection-level activity
                         callback.publish(activity, connectionId, duration, exception);
                     } else {
-                        // Statement-level activity
                         callback.publish(activity, connectionId, statementId, duration, exception);
                     }
-
                 } catch (Exception e) {
                     logger.fine(String.format("Failed to publish performance log: %s", e.getMessage()));
                 }
             }
 
             if (logger != null && logger.isLoggable(Level.FINE)) {
+                String unit = useNanos ? "ns" : "ms";
                 if (exception != null) {
-                    logger.fine(String.format("%s %s, duration: %dms, exception: %s", getTraceId(), activity, duration, exception.getMessage()));
+                    logger.fine(String.format("%s %s, duration: %d%s, exception: %s", getTraceId(), activity, duration, unit, exception.getMessage()));
                 } else {
-                    logger.fine(String.format("%s %s, duration: %dms", getTraceId(), activity, duration));
+                    logger.fine(String.format("%s %s, duration: %d%s", getTraceId(), activity, duration, unit));
                 }
             }
-
         }
     }
 
