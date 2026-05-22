@@ -111,6 +111,37 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     int getPreparedStatementHandle() throws SQLServerException;
 
     /**
+     * Specifies the SQL type and maximum character or byte length for a parameter, allowing the driver to use a
+     * tighter type declaration than the default (e.g. {@code varchar(50)} instead of {@code varchar(8000)}). This
+     * enables SQL Server to compute a more accurate memory grant for query execution plans, which is especially
+     * beneficial for large batch operations.
+     *
+     * <p>The hint persists across all {@code setXxx} / {@code addBatch} calls on this prepared statement — it should
+     * be called once before the batch loop, analogous to Oracle's
+     * {@code OraclePreparedStatement.defineParameterType()}.</p>
+     *
+     * <p>The actual value length is always respected: if a value longer than {@code maxLength} is set, the declared
+     * type width is silently expanded to fit the value, preventing SQL Server from truncating data.</p>
+     *
+     * <p>Supported {@code sqlType} values: {@link java.sql.Types#VARCHAR}, {@link java.sql.Types#CHAR},
+     * {@link java.sql.Types#NVARCHAR}, {@link java.sql.Types#NCHAR}, {@link java.sql.Types#VARBINARY},
+     * {@link java.sql.Types#BINARY}.</p>
+     *
+     * @param parameterIndex
+     *        the first parameter is 1, the second is 2, ...
+     * @param sqlType
+     *        the SQL type ({@code java.sql.Types} constant) for the parameter; must be one of the supported
+     *        variable-length types listed above
+     * @param maxLength
+     *        the expected maximum length in characters (for VARCHAR/CHAR/NVARCHAR/NCHAR) or bytes (for
+     *        VARBINARY/BINARY); must be &gt;= 0
+     * @throws SQLServerException
+     *         if {@code parameterIndex} is out of range, {@code maxLength} is negative, {@code sqlType} is not a
+     *         supported type, or this method is called on a closed statement
+     */
+    void defineParameterType(int parameterIndex, int sqlType, int maxLength) throws SQLServerException;
+
+    /**
      * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to
      * an SQL <code>NUMERIC</code> value when it sends it to the database.
      *

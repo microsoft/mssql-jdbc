@@ -219,6 +219,35 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return prepStmtHandle;
     }
 
+    @Override
+    public void defineParameterType(int parameterIndex, int sqlType, int maxLength) throws SQLServerException {
+        checkClosed();
+        if (maxLength < 0) {
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_invalidParameterLength"),
+                    null, false);
+        }
+        // Validate that sqlType is one of the supported bounded variable-length types.
+        // The value is not stored — setTypeDefinition() routes via dtv.getJdbcType(), which
+        // reflects what setString/setNString/setBytes etc. actually set on the parameter.
+        switch (sqlType) {
+            case java.sql.Types.VARCHAR:
+            case java.sql.Types.CHAR:
+            case java.sql.Types.NVARCHAR:
+            case java.sql.Types.NCHAR:
+            case java.sql.Types.VARBINARY:
+            case java.sql.Types.BINARY:
+                break;
+            default:
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedTypeForDefineParamType"));
+                throw new SQLServerException(form.format(new Object[] {sqlType}), null, 0, null);
+        }
+        Parameter param = setterGetParam(parameterIndex);
+        param.setDefineParameterTypeCalled(true);
+        param.setValueLength(maxLength); // also sets userProvidesPrecision = true
+    }
+
     /**
      * Returns true if this statement has a server handle.
      * 
