@@ -10,7 +10,7 @@
 6. [Types Explicitly Excluded](#6-types-explicitly-excluded)
 7. [Implementation Details](#7-implementation-details)
 8. [Interaction with Bulk Copy API](#8-interaction-with-bulk-copy-api)
-9. [Test Scenarios](#9-test-scenarios)
+9. [Test Coverage](#9-test-coverage)
 
 ---
 
@@ -107,27 +107,48 @@ varchar(max) : [0xA5 BIGVARCHAR] [maxLen=0xFFFF MAX marker] [collation: 5B]
                └─ PLP streaming: no upfront fixed allocation
 ```
 
-### SQL Server enforces the declared TypeInfo length
+### SQL Server enforces the declared TypeInfo length — data is truncated
 
-This is a key difference from Oracle: SQL Server treats the declared TypeInfo width as
-the actual type constraint, not just a memory hint. However, **the driver does not
-compute actual value lengths** — that would add per-row overhead and defeat the purpose
-of the feature.
+SQL Server treats the declared TypeInfo width as the actual type constraint, not just
+a memory hint. When a value exceeds the declared width, **the data is truncated to
+the hint length** — the driver sends only `maxLength` characters or bytes on the wire.
+The server never sees the excess data.
 
-Instead, the hint is declared on the wire as-is:
-
-- If a value fits within the hint, it is sent normally.
-- If a value is larger than the hint, **SQL Server returns a truncation error** — the
-  same contract as Oracle's `defineParameterType`. The user is responsible for providing
-  an accurate hint.
+This applies uniformly to all supported types:
+- **String types** (VARCHAR, CHAR, NVARCHAR, NCHAR): truncated to `maxLength` characters
+- **Binary types** (VARBINARY, BINARY): truncated to `maxLength` bytes
 
 This is intentional. The hint is called once before a batch loop; the caller is asserting
-that their data will never exceed `maxLength`. If that assertion is wrong, the server
-errors — which is the correct behaviour (fail-fast on bad data).
+that their data will never exceed `maxLength`. If a value is longer, it is silently
+truncated — the same semantics as Oracle's `defineParameterType`.
 
 One protocol-level minimum is enforced by the driver: `varchar(0)` is an invalid TDS type
 token, so a hint of `0` is promoted to `varchar(1)` via `Math.max(hint, 1)`. This is a
 protocol guard, not a data-correctness guard.
+
+### Interaction with `sendStringParametersAsUnicode`
+
+The connection property `sendStringParametersAsUnicode` (SSPAU, default `true`) controls
+whether `setString()` sends data as NVARCHAR or VARCHAR on the TDS wire. This property
+is **not overridden** by `defineParameterType`:
+
+| SSPAU | Setter | `defineParameterType` sqlType | Wire type |
+|-------|--------|-------------------------------|-----------|
+| `true` (default) | `setString("hi")` | `VARCHAR` or `CHAR` | `nvarchar(N)` |
+| `true` (default) | `setNString("hi")` | `NVARCHAR` or `NCHAR` | `nvarchar(N)` |
+| `false` | `setString("hi")` | `VARCHAR` or `CHAR` | `varchar(N)` |
+| `false` | `setNString("hi")` | `NVARCHAR` or `NCHAR` | `nvarchar(N)` |
+
+Key insight: when SSPAU=true, calling `defineParameterType(1, Types.VARCHAR, 50)` followed
+by `setString("hi")` produces `nvarchar(50)` on the wire — not `varchar(50)`. The hint
+length is preserved, but the type is promoted to the Unicode variant by SSPAU. The
+`setNString()` method always uses NVARCHAR regardless of SSPAU.
+
+The boundary thresholds also shift with SSPAU:
+- SSPAU=true: VARCHAR/CHAR hints > 4000 → `nvarchar(max)` (hint passes through NVARCHAR path with 4000-char limit)
+- SSPAU=false: VARCHAR/CHAR hints > 8000 → `varchar(max)`
+- NVARCHAR/NCHAR hints > 4000 → `nvarchar(max)` (regardless of SSPAU)
+- VARBINARY/BINARY hints > 8000 → `varbinary(max)` (SSPAU has no effect on binary)
 
 ---
 
@@ -145,8 +166,8 @@ Add a single new driver-extension method to `ISQLServerPreparedStatement` and
  * query execution plans.
  *
  * <p>The hint persists across all {@code setXxx} / {@code addBatch} calls on
- * this prepared statement. It is a hint only — the actual value length is always
- * respected to prevent SQL Server from truncating data.</p>
+ * this prepared statement. If a value exceeds the declared length, data is
+ * silently truncated to {@code maxLength} characters or bytes on the wire.</p>
  *
  * <p>Supported target types: {@link java.sql.Types#VARCHAR},
  * {@link java.sql.Types#CHAR}, {@link java.sql.Types#NVARCHAR},
@@ -154,9 +175,11 @@ Add a single new driver-extension method to `ISQLServerPreparedStatement` and
  * {@link java.sql.Types#BINARY}.</p>
  *
  * @param parameterIndex 1-based parameter index
- * @param sqlType        {@code java.sql.Types} constant for the target SQL type
+ * @param sqlType        {@code java.sql.Types} constant; used only for validation (must be
+ *                       VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, or BINARY). The actual
+ *                       wire type is determined by the setter method, not by this value.
  * @param maxLength      maximum expected length in characters (VARCHAR/NVARCHAR/CHAR/NCHAR)
- *                       or bytes (VARBINARY/BINARY); must be &gt; 0
+ *                       or bytes (VARBINARY/BINARY); must be >= 0
  * @throws SQLServerException if the parameter index is out of range, maxLength is
  *                            negative, or the sqlType is not a supported variable-length type
  */
@@ -256,8 +279,7 @@ A single new boolean field is added to `Parameter`:
 // When true, valueLength holds the caller-supplied max-length hint and the type
 // definition (e.g. varchar(N)) is built from that hint rather than the conservative
 // driver default (e.g. varchar(8000) / nvarchar(4000) / varbinary(8000)).
-// The hint is declared on the wire as-is; if a value larger than the hint is bound,
-// SQL Server will return a truncation error.
+// Data exceeding the hint is silently truncated on the wire to maxLength chars/bytes.
 private boolean defineParameterTypeCalled = false;
 ```
 
@@ -279,7 +301,7 @@ if (param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser)
     // AE path — exact length from value; untouched
 } else if (param.defineParameterTypeCalled) {
     // defineParameterType hint: declare the user-specified length directly.
-    // If a value larger than maxLength is bound, SQL Server will return a truncation error.
+    // Data exceeding maxLength is truncated on the wire — the server never sees the excess.
     int hint = param.valueLength;
     if (hint >= DataTypes.SHORT_VARTYPE_MAX_BYTES) {
         param.typeDefinition = VARCHAR_MAX;
@@ -303,21 +325,24 @@ public void defineParameterType(int parameterIndex, int sqlType, int maxLength)
         throws SQLServerException {
     checkClosed();
     if (maxLength < 0) {
+        MessageFormat form = new MessageFormat(
+                SQLServerException.getErrString("R_invalidParameterLength"));
         SQLServerException.makeFromDriverError(connection, this,
-                SQLServerException.getErrString("R_invalidParameterLength"), null, false);
+                form.format(new Object[] {maxLength}), null, false);
     }
-    // Validate that sqlType is one of the supported bounded variable-length types.
-    // The value is not stored — setTypeDefinition() routes via dtv.getJdbcType().
+    // Validate that sqlType is one of the supported character or binary types.
+    // The sqlType value itself is not stored on the parameter — the wire type is
+    // determined by what setString/setNString/setBytes sets on the DTV at execution time.
     switch (sqlType) {
         case Types.VARCHAR: case Types.CHAR:
         case Types.NVARCHAR: case Types.NCHAR:
         case Types.VARBINARY: case Types.BINARY:
             break;
         default:
-            throw new SQLServerException(
-                    new MessageFormat(SQLServerException.getErrString(
-                            "R_unsupportedTypeForDefineParamType"))
-                            .format(new Object[]{sqlType}), null, 0, null);
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_unsupportedTypeForDefineParamType"));
+            SQLServerException.makeFromDriverError(connection, this,
+                    form.format(new Object[] {sqlType}), null, false);
     }
     Parameter param = setterGetParam(parameterIndex);
     param.setDefineParameterTypeCalled(true);
@@ -403,77 +428,105 @@ server schema — which are already optimal.
 
 ---
 
-## 9. Test Scenarios
+## 9. Test Coverage
 
-The following scenarios must be covered. No test code is written yet — this table
-defines what must be validated.
+All tests are in `DefineParameterTypeTest.java` (`src/test/java/com/microsoft/sqlserver/jdbc/preparedStatement/`).
+The test class creates a table with `VARCHAR(200)`, `NVARCHAR(200)`, and `VARBINARY(200)` columns,
+then verifies the TDS type definition on the wire using reflection to invoke `Parameter.getTypeDefinition()`.
 
-### 9.1 Basic correctness
+---
 
-| # | Scenario | Input | Expected TypeInfo on wire | Pass condition |
-|---|---|---|---|---|
-| T01 | VARCHAR hint, value shorter than hint | `defineParameterType(1, VARCHAR, 50)` + `setString("hi")` | `varchar(50)` | TypeInfo = `varchar(50)`, value not truncated |
-| T02 | VARCHAR hint, value exactly at hint | `defineParameterType(1, VARCHAR, 5)` + `setString("hello")` | `varchar(5)` | TypeInfo = `varchar(5)`, value intact |
-| T03 | VARCHAR hint, value longer than hint | `defineParameterType(1, VARCHAR, 3)` + `setString("Muskan")` | SQL Server truncation error | User is responsible for accurate hint; driver does not expand the declared type |
-| T04 | NVARCHAR hint | `defineParameterType(1, NVARCHAR, 20)` + `setNString("テスト")` | `nvarchar(20)` | TypeInfo = `nvarchar(20)` |
-| T05 | VARBINARY hint | `defineParameterType(1, VARBINARY, 64)` + `setBytes(new byte[10])` | `varbinary(64)` | TypeInfo = `varbinary(64)` |
-| T06 | CHAR hint (maps to varchar) | `defineParameterType(1, CHAR, 10)` + `setString("x")` | `varchar(10)` | TypeInfo = `varchar(10)` |
-| T07 | NCHAR hint (maps to nvarchar) | `defineParameterType(1, NCHAR, 10)` + `setNString("x")` | `nvarchar(10)` | TypeInfo = `nvarchar(10)` |
-| T08 | BINARY hint (maps to varbinary) | `defineParameterType(1, BINARY, 10)` + `setBytes(new byte[5])` | `varbinary(10)` | TypeInfo = `varbinary(10)` |
+### 9.1 `StringTypeDefinitionTests` — Wire type definitions for string types
 
-### 9.2 Null and empty values
+Parameterized tests verifying the correct TDS TypeInfo is declared for all string type/hint combinations.
 
-| # | Scenario | Input | Expected TypeInfo | Pass condition |
-|---|---|---|---|---|
-| T09 | NULL value with hint | `defineParameterType(1, VARCHAR, 50)` + `setNull(1, VARCHAR)` | `varchar(50)` | TypeInfo = `varchar(50)`, NULL sent |
-| T10 | Empty string with hint | `defineParameterType(1, VARCHAR, 50)` + `setString("")` | `varchar(50)` | TypeInfo = `varchar(50)`, 0-length value |
-| T11 | No hint, null value | No `defineParameterType` + `setNull(1, VARCHAR)` | `varchar(8000)` | Default behaviour unchanged |
+| Test method | Cases | What it verifies |
+|---|---|---|
+| `testVarcharTypeDefinition` | 12 cases (VARCHAR × 6, CHAR × 6) | With SSPAU=true (default), VARCHAR/CHAR hints produce `nvarchar(N)` on wire. Covers: hint=value length, hint>value, hint=1, hint=0→1, hint=8000→max, hint>8000→max |
+| `testNvarcharTypeDefinition` | 12 cases (NVARCHAR × 6, NCHAR × 6) | NVARCHAR/NCHAR hints produce `nvarchar(N)`. Boundary at 4000→max. Same 6 scenarios per type |
+| `testVarcharTypeDefinitionNoUnicode` | 12 cases (VARCHAR × 6, CHAR × 6) | With SSPAU=false, VARCHAR/CHAR hints produce `varchar(N)` (not nvarchar). Boundary at 8000→max |
+| `testNvarcharTypeDefinitionNoUnicode` | 12 cases (NVARCHAR × 6, NCHAR × 6) | With SSPAU=false, `setNString()` still produces `nvarchar(N)` since NVARCHAR is explicit. Boundary at 4000→max |
 
-### 9.3 Boundary values
+**Total: 48 parameterized cases** covering all SSPAU × type × boundary combinations.
 
-| # | Scenario | Input | Expected TypeInfo | Pass condition |
-|---|---|---|---|---|
-| T12 | Hint exactly at VARCHAR max (8000) | `defineParameterType(1, VARCHAR, 8000)` | `varchar(8000)` | TypeInfo = `varchar(8000)` |
-| T13 | Hint above VARCHAR max (8001) | `defineParameterType(1, VARCHAR, 8001)` | `varchar(max)` | Automatically promotes to `varchar(max)` |
-| T14 | Hint exactly at NVARCHAR max (4000) | `defineParameterType(1, NVARCHAR, 4000)` | `nvarchar(4000)` | TypeInfo = `nvarchar(4000)` |
-| T15 | Hint above NVARCHAR max (4001) | `defineParameterType(1, NVARCHAR, 4001)` | `nvarchar(max)` | Automatically promotes to `nvarchar(max)` |
-| T16 | Hint = 1 | `defineParameterType(1, VARCHAR, 1)` + `setString("A")` | `varchar(1)` | TypeInfo = `varchar(1)` |
-| T17 | Value exceeds 8000 chars (no hint) | `setString(9000-char string)` | `varchar(max)` | Existing behaviour — value length auto-promotes to MAX |
-| T18 | Hint=3, value is 9000 chars | `defineParameterType(1, VARCHAR, 3)` + `setString(9000-char string)` | SQL Server truncation error | Driver declares `varchar(3)`; server errors on overflow — user must set an accurate hint |
+---
 
-### 9.4 Error cases
+### 9.2 `BinaryTypeDefinitionTests` — Wire type definitions for binary types
 
-| # | Scenario | Expected exception | Pass condition |
-|---|---|---|---|
-| T19 | Negative maxLength | `defineParameterType(1, VARCHAR, -1)` | `SQLServerException` with `R_invalidParameterLength` | Exception thrown, message contains length |
-| T20 | Unsupported sqlType | `defineParameterType(1, Types.INTEGER, 10)` | `SQLServerException` with `R_unsupportedTypeForDefineParamType` | Exception thrown |
-| T21 | Unsupported sqlType CLOB | `defineParameterType(1, Types.CLOB, 100)` | `SQLServerException` | Exception thrown |
-| T22 | Parameter index out of range | `defineParameterType(99, VARCHAR, 50)` on 1-param statement | `SQLServerException` | Exception thrown |
-| T23 | Called after connection closed | Call `defineParameterType` after `connection.close()` | `SQLServerException` | Exception thrown |
+| Test method | Cases | What it verifies |
+|---|---|---|
+| `testBinaryTypeDefinition` | 12 cases (VARBINARY × 6, BINARY × 6) | VARBINARY/BINARY hints produce `varbinary(N)`. Covers: hint=value length, hint>value, hint=1, hint=0→1, hint=8000→max, hint>8000→max |
 
-### 9.5 Batch behaviour
+**Total: 12 parameterized cases.**
 
-| # | Scenario | Input | Expected behaviour | Pass condition |
-|---|---|---|---|---|
-| T24 | Hint persists across batch iterations | `defineParameterType` once + loop 1000× `setString` + `addBatch` | Same TypeInfo for all rows | TypeInfo = `varchar(N)` for all 1000 rows |
-| T25 | Hint persists, values vary in length | Hint=50, values from 1–50 chars | `varchar(50)` throughout | No re-prepare triggered, TypeInfo stable |
-| T26 | Hint too small for one row in batch | Hint=5, row 500 has 20-char value | SQL Server truncation error on that row | Driver declares `varchar(5)` throughout — user must set hint to the true maximum |
-| T27 | No hint, batch baseline | No `defineParameterType` + batch | `varchar(8000)` | Default unchanged |
+---
 
-### 9.6 Interaction with existing features
+### 9.3 `NullAndEmptyValueTests` — NULL and empty value handling
 
-| # | Scenario | Input | Expected behaviour | Pass condition |
-|---|---|---|---|---|
-| T28 | `sendStringParametersAsUnicode=true` | `defineParameterType(1, VARCHAR, 50)` + `setString("hi")` with SSPAУ=true | `nvarchar(50)` (type promoted to N-type) | Hint is preserved after Unicode promotion |
-| T29 | AE enabled, encrypted column | `defineParameterType` on an AE-encrypted VARCHAR param | AE path is used, hint ignored | AE behaviour unchanged — no regression |
-| T30 | AE enabled, non-encrypted column | `defineParameterType(1, VARCHAR, 50)` on a non-encrypted param in AE-enabled connection | `varchar(50)` | Hint applies for non-encrypted params |
-| T31 | Re-prepare after `clearParameters()` | `defineParameterType`, execute, `clearParameters()`, execute again | Hint preserved after `clearParameters()` | Hint survives parameter value clear |
-| T32 | Re-prepare after `close()` + new PS | `defineParameterType` on PS1, close PS1, create PS2, no `defineParameterType` | PS2 uses default `varchar(8000)` | State is not shared between statement objects |
-| T33 | Multiple parameters, partial hint | `defineParameterType` on param 1 only; param 2 uses `setString` without hint | Param 1 = `varchar(N)`, Param 2 = `varchar(8000)` | Hints are per-parameter |
+| Test method | Cases | What it verifies |
+|---|---|---|
+| `testNullValueWithHint` | 6 cases (all 6 types) | `setNull()` with a hint still declares the hinted length. NULL is stored correctly |
+| `testNullValueWithoutHint` | 6 cases (all 6 types) | Without `defineParameterType`, NULL uses defaults (`nvarchar(4000)` / `varbinary(8000)`) — no regression |
+| `testEmptyValueWithHint` | 6 cases (all 6 types) | Empty string or empty byte array with a hint declares the hinted length. Empty value stored correctly |
 
-### 9.7 `useBulkCopyForBatchInsert` non-interaction
+**Total: 18 parameterized cases.**
 
-| # | Scenario | Expected behaviour | Pass condition |
-|---|---|---|---|
-| T34 | `useBulkCopyForBatchInsert=true` + `defineParameterType` called | Bulk Copy path uses server table TypeInfo, hint has no effect | No error, data inserted correctly, Bulk Copy path still used |
-| T35 | `useBulkCopyForBatchInsert=true`, no `defineParameterType` | Existing Bulk Copy behaviour unchanged | No regression |
+---
+
+### 9.4 `ErrorHandlingTests` — Validation and truncation
+
+#### Input validation
+
+| Test method | Cases | What it verifies |
+|---|---|---|
+| `testNegativeMaxLengthRejected` | 6 cases (all 6 types) | `maxLength=-1` throws `SQLServerException` with `R_invalidParameterLength` |
+| `testUnsupportedTypeRejected` | 2 cases (INTEGER, CLOB) | Unsupported `sqlType` throws `SQLServerException` with `R_unsupportedTypeForDefineParamType` |
+| `testOutOfRangeParameterIndex` | 1 case | `parameterIndex=99` on a 1-param statement throws `R_indexOutOfRange` |
+| `testClosedStatementRejected` | 1 case | Calling `defineParameterType` on a closed statement throws `R_statementIsClosed` |
+
+#### Data truncation (single execute)
+
+| Test method | Cases | What it verifies |
+|---|---|---|
+| `testHintSmallerThanValueCausesTruncation` | 8 cases (VARCHAR×2, CHAR×2, NVARCHAR×2, NCHAR×2) | When hint < value length, data is truncated to the hint. Verifies type definition AND stored value matches expected truncation |
+| `testBinaryHintSmallerThanValueCausesTruncation` | 4 cases (VARBINARY×2, BINARY×2) | Same as above for binary types. Data truncated to hint bytes |
+
+**Total: 22 cases** (10 validation + 12 truncation).
+
+---
+
+### 9.5 `BatchTests` — Batch execution with hints
+
+| Test method | Cases | What it verifies |
+|---|---|---|
+| `testHintPersistsAcross100BatchRows` | 6 cases (all 6 types) | Hint set once, 100 rows added via `addBatch()`. Verifies: type definition persists before `executeBatch()`, all 100 rows inserted, correct row count |
+| `testBatchHintTooSmallTruncatesData` | 6 cases (all 6 types) | Batch with 2 rows: one short value (fits in hint=5) and one long value (exceeds hint=5). Verifies: type definition before execute, short value stored intact, long value truncated to 5 chars/bytes |
+
+**Total: 12 parameterized cases.**
+
+---
+
+### 9.6 `LifecycleTests` — Statement lifecycle and isolation
+
+| Test method | What it verifies |
+|---|---|
+| `testClearParametersPreservesHint` | `clearParameters()` clears values but hint persists. Second execute after `clearParameters()` still uses `nvarchar(50)` |
+| `testNewStatementDoesNotInheritHint` | Hint on PS1 does not leak to PS2. PS1 uses `nvarchar(20)`, PS2 uses default `nvarchar(4000)` |
+| `testPerParameterHints` | Different hints on different parameters: param1=VARCHAR(30), param2=NVARCHAR(60). Each parameter gets its own type definition independently |
+
+**Total: 3 tests.**
+
+---
+
+### 9.7 Test summary
+
+| Category | Test count | Types covered |
+|---|---|---|
+| String type definitions (SSPAU=true) | 24 | VARCHAR, CHAR, NVARCHAR, NCHAR |
+| String type definitions (SSPAU=false) | 24 | VARCHAR, CHAR, NVARCHAR, NCHAR |
+| Binary type definitions | 12 | VARBINARY, BINARY |
+| NULL/empty values | 18 | All 6 types |
+| Error handling + truncation | 22 | All 6 types |
+| Batch execution | 12 | All 6 types |
+| Lifecycle/isolation | 3 | VARCHAR, NVARCHAR |
+| **Total** | **115** | |

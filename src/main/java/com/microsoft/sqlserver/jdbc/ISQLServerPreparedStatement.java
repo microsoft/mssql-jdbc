@@ -116,25 +116,35 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * enables SQL Server to compute a more accurate memory grant for query execution plans, which is especially
      * beneficial for large batch operations.
      *
-     * <p>The hint persists across all {@code setXxx} / {@code addBatch} calls on this prepared statement — it should
-     * be called once before the batch loop, analogous to Oracle's
-     * {@code OraclePreparedStatement.defineParameterType()}.</p>
+     * <p><strong>Important:</strong> The {@code sqlType} argument is used only for validation (to ensure the
+     * type is one of the supported character or binary families). It is <em>not</em> persisted or enforced at
+     * execution time. The actual wire type is determined by the setter method invoked on the parameter
+     * (e.g. {@code setString} → NVARCHAR when {@code sendStringParametersAsUnicode=true},
+     * {@code setNString} → NVARCHAR, {@code setBytes} → VARBINARY). Only the {@code maxLength} value is
+     * retained and applied to the type definition sent to the server.
      *
-     * <p>The actual value length is always respected: if a value longer than {@code maxLength} is set, the declared
-     * type width is silently expanded to fit the value, preventing SQL Server from truncating data.</p>
+     * The hint persists across {@code addBatch} calls on this prepared statement for the specified parameter —
+     * call it once before the batch loop. Only character types (VARCHAR, CHAR, NVARCHAR, NCHAR) and binary types
+     * (VARBINARY, BINARY) are supported.
      *
-     * <p>Supported {@code sqlType} values: {@link java.sql.Types#VARCHAR}, {@link java.sql.Types#CHAR},
-     * {@link java.sql.Types#NVARCHAR}, {@link java.sql.Types#NCHAR}, {@link java.sql.Types#VARBINARY},
-     * {@link java.sql.Types#BINARY}.</p>
+     * If a value longer than {@code maxLength} is set, the data is silently truncated to {@code maxLength}
+     * characters or bytes on the wire. The caller is responsible for setting a hint that accommodates their
+     * largest expected value.
+     *
+     * When {@code sendStringParametersAsUnicode} is {@code true} (the default), VARCHAR/CHAR hints produce
+     * {@code nvarchar(N)} on the wire because {@code setString()} promotes the parameter to NVARCHAR.
+     * When {@code sendStringParametersAsUnicode} is {@code false}, VARCHAR/CHAR hints produce {@code varchar(N)}.
+     * {@code setNString()} always produces {@code nvarchar(N)} regardless of the connection property.
      *
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
      * @param sqlType
-     *        the SQL type ({@code java.sql.Types} constant) for the parameter; must be one of the supported
-     *        variable-length types listed above
+     *        a {@code java.sql.Types} constant indicating the intended type family; used only for validation
+     *        (must be VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, or BINARY). The actual wire type is determined
+     *        by the setter method called on the parameter, not by this value.
      * @param maxLength
      *        the expected maximum length in characters (for VARCHAR/CHAR/NVARCHAR/NCHAR) or bytes (for
-     *        VARBINARY/BINARY); must be &gt;= 0
+     *        VARBINARY/BINARY); must be >= 0
      * @throws SQLServerException
      *         if {@code parameterIndex} is out of range, {@code maxLength} is negative, {@code sqlType} is not a
      *         supported type, or this method is called on a closed statement
