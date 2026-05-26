@@ -223,13 +223,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public void defineParameterType(int parameterIndex, int sqlType, int maxLength) throws SQLServerException {
         checkClosed();
         if (maxLength < 0) {
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_invalidParameterLength"));
             SQLServerException.makeFromDriverError(connection, this,
-                    SQLServerException.getErrString("R_invalidParameterLength"),
-                    null, false);
+                    form.format(new Object[] {maxLength}), null, false);
         }
-        // Validate that sqlType is one of the supported bounded variable-length types.
-        // The value is not stored — setTypeDefinition() routes via dtv.getJdbcType(), which
-        // reflects what setString/setNString/setBytes etc. actually set on the parameter.
+        // Validate that sqlType is one of the supported character or binary types.
+        // The sqlType value itself is not stored on the parameter — the wire type is
+        // determined by what setString/setNString/setBytes sets on the DTV at execution time.
         switch (sqlType) {
             case java.sql.Types.VARCHAR:
             case java.sql.Types.CHAR:
@@ -241,7 +242,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             default:
                 MessageFormat form = new MessageFormat(
                         SQLServerException.getErrString("R_unsupportedTypeForDefineParamType"));
-                throw new SQLServerException(form.format(new Object[] {sqlType}), null, 0, null);
+                SQLServerException.makeFromDriverError(connection, this,
+                        form.format(new Object[] {sqlType}), null, false);
         }
         Parameter param = setterGetParam(parameterIndex);
         param.setDefineParameterTypeCalled(true);
