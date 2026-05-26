@@ -13,6 +13,7 @@ import java.text.MessageFormat;
 import java.util.logging.Level;
 
 import javax.security.auth.Subject;
+import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
@@ -107,11 +108,14 @@ final class KerbAuthentication extends SSPIAuthentication {
                     }
 
                     if (null == currentSubject) {
-                        if (useDefaultJaas) {
-                            lc = new LoginContext(configName, null, callback, new JaasConfiguration(null));
-                        } else {
-                            lc = new LoginContext(configName, callback);
-                        }
+                        // SECURITY FIX: Always use JaasConfiguration with null delegate
+                        // This prevents loading remote JAAS configs from system property
+                        JaasConfiguration secureConfig = new JaasConfiguration(null);
+
+                        // SECURITY FIX: Validate no JndiLoginModule present
+                        validateNoJndiLoginModule(secureConfig, configName);
+
+                        lc = new LoginContext(configName, null, callback, secureConfig);
                         lc.login();
                         // per documentation LoginContext will instantiate a new subject.
                         currentSubject = lc.getSubject();
@@ -175,6 +179,46 @@ final class KerbAuthentication extends SSPIAuthentication {
             }
             con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                     SQLServerException.getErrString("R_integratedAuthenticationFailed"), ex);
+        }
+    }
+
+    /**
+     * Validates that the JAAS configuration does not contain JndiLoginModule.
+     * JndiLoginModule has known deserialization vulnerabilities and is not needed
+     * for legitimate Kerberos authentication (use Krb5LoginModule instead).
+     * 
+     * @param config
+     *                   The JAAS Configuration to validate
+     * @param configName
+     *                   The configuration entry name to check
+     * @throws SQLServerException
+     *                            if JndiLoginModule is detected
+     */
+    private void validateNoJndiLoginModule(Configuration config, String configName) throws SQLServerException {
+        try {
+            AppConfigurationEntry[] entries = config.getAppConfigurationEntry(configName);
+            if (entries != null) {
+                for (AppConfigurationEntry entry : entries) {
+                    String moduleName = entry.getLoginModuleName();
+                    if ("com.sun.security.auth.module.JndiLoginModule".equals(moduleName)) {
+                        String errorMessage = "JndiLoginModule is not supported due to known security vulnerabilities. "
+                                + "Please use Krb5LoginModule for Kerberos authentication. "
+                                + "See documentation for migration guidance.";
+                        if (authLogger.isLoggable(Level.SEVERE)) {
+                            authLogger.severe(toString() + " " + errorMessage);
+                        }
+                        throw new SQLServerException(errorMessage, null, 0, null);
+                    }
+                }
+            }
+        } catch (SQLServerException e) {
+            // Re-throw SQLServerException as-is
+            throw e;
+        } catch (Exception e) {
+            // Log but don't fail on unexpected errors during validation
+            if (authLogger.isLoggable(Level.WARNING)) {
+                authLogger.warning(toString() + " Failed to validate JAAS configuration: " + e.getMessage());
+            }
         }
     }
 
