@@ -67,7 +67,8 @@ final class Parameter {
     // When true, valueLength holds the caller-supplied max-length hint and the type
     // definition (e.g. varchar(N)) is built from that hint rather than the conservative
     // driver default (e.g. varchar(8000) / nvarchar(4000) / varbinary(8000)).
-    // Data exceeding the hint is silently truncated to maxLength chars/bytes on the wire.
+    // This code path does not truncate the client-side value before writing it to TDS;
+    // SQL Server enforces the declared parameter type/length represented by that hint.
     private boolean defineParameterTypeCalled = false;
 
     void setDefineParameterTypeCalled(boolean value) {

@@ -127,15 +127,18 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * call it once before the batch loop. Only character types (VARCHAR, CHAR, NVARCHAR, NCHAR) and binary types
      * (VARBINARY, BINARY) are supported.
      *
-     * If a value longer than {@code maxLength} is set, the data is silently truncated to {@code maxLength}
-     * characters or bytes on the wire. The caller is responsible for setting a hint that accommodates their
+     * If a value longer than {@code maxLength} is set, this hint does not cause the driver to truncate the
+     * outbound characters or bytes before sending them. Instead, the declared parameter type sent to SQL Server
+     * uses {@code maxLength}, and SQL Server may truncate or otherwise enforce that declared length when
+     * processing the parameter value. The caller is responsible for setting a hint that accommodates their
      * largest expected value.
      *
-     * When {@code sendStringParametersAsUnicode} is {@code true} (the default), VARCHAR/CHAR hints produce
-     * {@code nvarchar(N)} on the wire because {@code setString()} promotes the parameter to NVARCHAR.
-     * When {@code sendStringParametersAsUnicode} is {@code false}, VARCHAR/CHAR hints produce {@code varchar(N)}.
-     * {@code setNString()} always produces {@code nvarchar(N)} regardless of the connection property.
-     *
+     * When {@code sendStringParametersAsUnicode} is {@code true} (the default), VARCHAR/CHAR hints produce a
+     * declared parameter type of {@code nvarchar(N)} because {@code setString()} promotes the parameter to
+     * NVARCHAR. When {@code sendStringParametersAsUnicode} is {@code false}, VARCHAR/CHAR hints produce
+     * {@code varchar(N)}. {@code setNString()} always produces {@code nvarchar(N)} regardless of the connection
+     * property.
+     * 
      * @param parameterIndex
      *        the first parameter is 1, the second is 2, ...
      * @param sqlType

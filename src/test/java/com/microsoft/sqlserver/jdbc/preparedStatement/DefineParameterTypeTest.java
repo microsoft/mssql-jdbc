@@ -781,11 +781,15 @@ public class DefineParameterTypeTest extends AbstractTest {
     // =========================================================================
 
     // Retrieves the computed TDS type definition string for a parameter via reflection.
+    // Uses the connection from the PreparedStatement itself so that connection-level settings
+    // (e.g. sendStringParametersAsUnicode) are correctly reflected in the type computation.
     private static String getTypeDefinition(PreparedStatement pstmt, int paramIndex) throws Exception {
         Field inOutParamField = SQLServerStatement.class.getDeclaredField("inOutParam");
         inOutParamField.setAccessible(true);
         Object[] inOutParam = (Object[]) inOutParamField.get(pstmt);
         Object param = inOutParam[paramIndex - 1];
+
+        SQLServerConnection stmtConnection = (SQLServerConnection) pstmt.getConnection();
 
         // Call Parameter.getTypeDefinition(SQLServerConnection, TDSReader) via reflection
         // to trigger the lazy computation of typeDefinition
@@ -793,7 +797,7 @@ public class DefineParameterTypeTest extends AbstractTest {
         java.lang.reflect.Method getTypeDefMethod = param.getClass().getDeclaredMethod(
                 "getTypeDefinition", SQLServerConnection.class, tdsReaderClass);
         getTypeDefMethod.setAccessible(true);
-        return (String) getTypeDefMethod.invoke(param, connection, null);
+        return (String) getTypeDefMethod.invoke(param, stmtConnection, null);
     }
 
     // Returns the current maximum id in the test table, or 0 if empty.
