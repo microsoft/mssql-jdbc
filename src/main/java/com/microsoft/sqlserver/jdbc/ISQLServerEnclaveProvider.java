@@ -456,7 +456,7 @@ abstract class BaseAttestationResponse {
         RSAPublicKeySpec spec = new RSAPublicKeySpec(new BigInteger(1, modulus), new BigInteger(1, exponent));
         KeyFactory factory = KeyFactory.getInstance("RSA");
         PublicKey pub = factory.generatePublic(spec);
-        Signature sig = Signature.getInstance("SHA256withRSA");
+        Signature sig = Signature.getInstance("SHA256withRSA"); // CodeQL [SM05136] Required for an external standard: Always Encrypted with secure enclaves attestation protocol signs the enclave Diffie-Hellman public key with SHA256withRSA (https://learn.microsoft.com/sql/relational-databases/security/encryption/always-encrypted-enclaves)
         sig.initVerify(pub);
         sig.update(dhPublicKey);
         if (!sig.verify(publicKeySig)) {
