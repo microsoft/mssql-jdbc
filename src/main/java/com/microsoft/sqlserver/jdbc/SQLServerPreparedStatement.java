@@ -240,10 +240,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             case java.sql.Types.BINARY:
                 break;
             default:
+                String typeName;
+                try {
+                    typeName = java.sql.JDBCType.valueOf(sqlType).getName() + " (" + sqlType + ")";
+                } catch (IllegalArgumentException e) {
+                    typeName = String.valueOf(sqlType);
+                }
                 MessageFormat form = new MessageFormat(
                         SQLServerException.getErrString("R_unsupportedTypeForDefineParamType"));
                 SQLServerException.makeFromDriverError(connection, this,
-                        form.format(new Object[] {sqlType}), null, false);
+                        form.format(new Object[] {typeName}), null, false);
         }
         Parameter param = setterGetParam(parameterIndex);
         param.setDefineParameterTypeCalled(true);

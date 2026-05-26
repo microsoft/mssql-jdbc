@@ -107,20 +107,26 @@ varchar(max) : [0xA5 BIGVARCHAR] [maxLen=0xFFFF MAX marker] [collation: 5B]
                └─ PLP streaming: no upfront fixed allocation
 ```
 
-### SQL Server enforces the declared TypeInfo length — data is truncated
+### SQL Server enforces the declared TypeInfo length
 
 SQL Server treats the declared TypeInfo width as the actual type constraint, not just
-a memory hint. When a value exceeds the declared width, **the data is truncated to
-the hint length** — the driver sends only `maxLength` characters or bytes on the wire.
-The server never sees the excess data.
+a memory hint. In the current implementation, `defineParameterType` narrows the
+parameter type definition used for preparation, but the value-writing path still sends
+the full value length on the wire. SQL Server then applies the semantics of the
+declared parameter type, which can include truncation or conversion when the value
+exceeds the declared width.
 
-This applies uniformly to all supported types:
-- **String types** (VARCHAR, CHAR, NVARCHAR, NCHAR): truncated to `maxLength` characters
-- **Binary types** (VARBINARY, BINARY): truncated to `maxLength` bytes
+In practice, this means:
+- **String types** (VARCHAR, CHAR, NVARCHAR, NCHAR): SQL Server may truncate or otherwise
+  convert the value according to the declared type and length
+- **Binary types** (VARBINARY, BINARY): SQL Server may truncate the value according to
+  the declared type and length
 
 This is intentional. The hint is called once before a batch loop; the caller is asserting
-that their data will never exceed `maxLength`. If a value is longer, it is silently
-truncated — the same semantics as Oracle's `defineParameterType`.
+that their data will fit within `maxLength` for the declared type. If a value is longer,
+the outcome is determined by SQL Server based on that declared type definition rather
+than by client-side pre-truncation. This differs from Oracle-style `defineParameterType`
+semantics where the client can avoid sending excess data.
 
 One protocol-level minimum is enforced by the driver: `varchar(0)` is an invalid TDS type
 token, so a hint of `0` is promoted to `varchar(1)` via `Math.max(hint, 1)`. This is a
