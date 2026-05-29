@@ -516,6 +516,8 @@ final class Parameter {
             if (n <= 0 || n > threshold || valueLen > n) {
                 return maxConstant;
             }
+            // Concatenation (not String.format) so the digits are always ASCII regardless of JVM default locale -
+            // this string is sent to the server and folded into the plan-cache key, matching the sibling arm below.
             return ssType.toString() + "(" + n + ")";
         }
 

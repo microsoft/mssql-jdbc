@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerConnection;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -54,6 +55,10 @@ public class ColumnTypeSizingTest extends AbstractTest {
     static String varbinaryTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ctsVarbinary"));
     static String lobTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ctsLob"));
     static String insertTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ctsInsert"));
+    static String partTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ctsPart"));
+    static String partFunc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ctsPF"));
+    static String partScheme = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("ctsPS"));
+    static boolean partitioningAvailable = false;
 
     private static final String SIZING_VARCHAR = ";useColumnTypeSizing=true;sendStringParametersAsUnicode=false";
     private static final String SIZING_DEFAULTUNICODE = ";useColumnTypeSizing=true";
@@ -77,6 +82,27 @@ public class ColumnTypeSizingTest extends AbstractTest {
             stmt.execute("INSERT INTO " + nvarcharTable + "(c) VALUES (N'alpha')");
             stmt.execute("INSERT INTO " + varbinaryTable + "(c) VALUES (0x0102030405)");
             stmt.execute("INSERT INTO " + lobTable + "(c) VALUES ('alpha')");
+
+            // Table partitioned ON a varchar(8) column, used to prove that partition elimination needs the
+            // column-sized length (a wider varchar(8000) parameter seeks but still probes every partition).
+            // Partitioning may be unavailable on some targets; if so, the related test self-skips.
+            try {
+                stmt.execute("CREATE PARTITION FUNCTION " + partFunc
+                        + " (varchar(8)) AS RANGE RIGHT FOR VALUES ('D','H','M','R','V')");
+                stmt.execute("CREATE PARTITION SCHEME " + partScheme + " AS PARTITION " + partFunc
+                        + " ALL TO ([PRIMARY])");
+                stmt.execute("CREATE TABLE " + partTable
+                        + " (id int IDENTITY(1,1) NOT NULL, region_code varchar(8) NOT NULL, amount int NOT NULL)");
+                stmt.execute("CREATE CLUSTERED INDEX cix_" + System.identityHashCode(partTable) + " ON " + partTable
+                        + " (region_code, id) ON " + partScheme + "(region_code)");
+                stmt.execute("INSERT INTO " + partTable + "(region_code, amount) "
+                        + "SELECT CHAR(65 + (v.number % 26)), v.number FROM master.dbo.spt_values v "
+                        + "WHERE v.type = 'P' AND v.number BETWEEN 1 AND 8000");
+                stmt.execute("UPDATE STATISTICS " + partTable + " WITH FULLSCAN");
+                partitioningAvailable = true;
+            } catch (java.sql.SQLException e) {
+                partitioningAvailable = false;
+            }
         }
     }
 
@@ -89,8 +115,17 @@ public class ColumnTypeSizingTest extends AbstractTest {
 
     private static void dropAll(Statement stmt) throws Exception {
         for (String t : new String[] {varcharTable, charTable, ncharTable, nvarcharTable, varbinaryTable, lobTable,
-                insertTable}) {
+                insertTable, partTable}) {
             TestUtils.dropTableIfExists(t, stmt);
+        }
+        // Partition scheme/function must be dropped after the table that uses them; ignore if absent.
+        try {
+            stmt.execute("IF EXISTS (SELECT 1 FROM sys.partition_schemes WHERE name = '"
+                    + partScheme.replace("[", "").replace("]", "") + "') DROP PARTITION SCHEME " + partScheme);
+            stmt.execute("IF EXISTS (SELECT 1 FROM sys.partition_functions WHERE name = '"
+                    + partFunc.replace("[", "").replace("]", "") + "') DROP PARTITION FUNCTION " + partFunc);
+        } catch (java.sql.SQLException e) {
+            // best-effort cleanup
         }
     }
 
@@ -267,6 +302,13 @@ public class ColumnTypeSizingTest extends AbstractTest {
             }
             int[] counts = pstmt.executeBatch();
             assertEquals(3, counts.length);
+            // The batch path sizes via a separate parameter array (batchParamValues), so assert on the type
+            // definition string actually sent for the batch - not inOutParam, which the batch flow does not size.
+            String batchTypeDefs = preparedTypeDefinitions(pstmt);
+            assertTrue(batchTypeDefs != null && batchTypeDefs.contains("varchar(20)"),
+                    "batch INSERT should size the parameter to varchar(20); sent: " + batchTypeDefs);
+            assertTrue(batchTypeDefs != null && !batchTypeDefs.contains("(8000)"),
+                    "batch INSERT must not fall back to the legacy varchar(8000); sent: " + batchTypeDefs);
         }
         // verify all three rows landed (no truncation/misalignment)
         try (Connection con = PrepUtil.getConnection(connStr);
@@ -275,6 +317,64 @@ public class ColumnTypeSizingTest extends AbstractTest {
                 ResultSet rs = pstmt.executeQuery()) {
             rs.next();
             assertEquals(3, rs.getInt(1));
+        }
+    }
+
+    // ---- partition elimination (the length, not just the type, matters) ------
+
+    @Test
+    public void testPartitionEliminationRequiresColumnSizedLength() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(partitioningAvailable,
+                "partitioning not available on this target");
+        String sql = "SELECT COUNT(amount) FROM " + partTable + " WHERE region_code = ?";
+        // Baseline (default: nvarchar(4000)) cannot eliminate -> probes more than one partition.
+        int basePartitions = partitionsAccessed(connectionString, sql, "M");
+        // Column-sized varchar(8) matches the partition function type -> eliminates to a single partition.
+        int fixPartitions = partitionsAccessed(connectionString + SIZING_VARCHAR, sql, "M");
+        assertTrue(basePartitions > 1,
+                "baseline should probe multiple partitions (no elimination); was " + basePartitions);
+        assertEquals(1, fixPartitions,
+                "column-sized varchar(8) parameter should eliminate to a single partition; was " + fixPartitions);
+        // Confirm the declared type is the column-matched varchar(8) under the fix.
+        assertEquals("varchar(8)", declaredTypeAfterQuery(connectionString + SIZING_VARCHAR, sql, "M"));
+    }
+
+    /**
+     * Executes the query with one string parameter under SET STATISTICS XML ON and returns the number of partitions
+     * the actual plan accessed (RunTimePartitionSummary/@PartitionCount), or -1 if no PartitionCount is present in the
+     * plan. Returning -1 (rather than a plausible 1) on a parse miss ensures the elimination assertion cannot pass by
+     * accident when the plan shape is not what the test expects.
+     */
+    private static int partitionsAccessed(String connStr, String sql, String value) throws Exception {
+        try (Connection con = PrepUtil.getConnection(connStr)) {
+            try (Statement s = con.createStatement()) {
+                s.execute("SET STATISTICS XML ON");
+            }
+            String planXml = null;
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, value);
+                boolean hasRs = ps.execute();
+                while (true) {
+                    if (hasRs) {
+                        try (ResultSet rs = ps.getResultSet()) {
+                            while (rs.next()) {
+                                String v = rs.getString(1);
+                                if (v != null && v.contains("ShowPlanXML")) {
+                                    planXml = v;
+                                }
+                            }
+                        }
+                    }
+                    hasRs = ps.getMoreResults();
+                    if (!hasRs && ps.getUpdateCount() == -1) {
+                        break;
+                    }
+                }
+            }
+            assertTrue(planXml != null, "expected a Showplan XML result");
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("PartitionCount=\"([0-9]+)\"")
+                    .matcher(planXml);
+            return m.find() ? Integer.parseInt(m.group(1)) : -1;
         }
     }
 
@@ -388,9 +488,51 @@ public class ColumnTypeSizingTest extends AbstractTest {
             try (ResultSet rs = pstmt.executeQuery()) {
                 rs.next();
             }
-            // NULL fits any size; declaration is a sound varchar form, never an error.
-            String d = actualTypeDefinition(pstmt, 1);
-            assertTrue(d != null && d.startsWith("varchar"), "Unexpected declaration for NULL: " + d);
+            // NULL has length 0, so it fits the column: the declaration is the column-sized varchar(20) (not the
+            // snap-to-(max) form) and never an error.
+            assertEquals("varchar(20)", actualTypeDefinition(pstmt, 1));
+        }
+    }
+
+    @Test
+    public void testReexecuteLongerValueSnapsToMax() throws Exception {
+        // Same PreparedStatement, two executions: a value that fits the varchar(20) column declares varchar(20);
+        // a value longer than the column snaps to varchar(max) so the operand is never truncated. Proves the
+        // per-execution clamp and that the declaration stays one of only two bounded forms across re-execution.
+        String connStr = connectionString + SIZING_VARCHAR;
+        String sql = "SELECT COUNT(*) FROM " + varcharTable + " WHERE c = ?";
+        try (Connection con = PrepUtil.getConnection(connStr);
+                PreparedStatement pstmt = con.prepareStatement(sql)) {
+            pstmt.setString(1, "fits");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                rs.next();
+            }
+            assertEquals("varchar(20)", actualTypeDefinition(pstmt, 1));
+
+            pstmt.setString(1, "this-value-is-far-longer-than-twenty-characters");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                rs.next();
+            }
+            assertEquals("varchar(max)", actualTypeDefinition(pstmt, 1));
+        }
+    }
+
+    @Test
+    public void testMultipleParametersAlignToTheirOwnColumns() throws Exception {
+        // Two parameters compared to columns of different widths must each size to their own column, in order -
+        // catches any ordinal off-by-one between the describe metadata and the parameter array.
+        String connStr = connectionString + SIZING_VARCHAR;
+        String sql = "SELECT (SELECT COUNT(*) FROM " + varcharTable + " WHERE c = ?)" + " + (SELECT COUNT(*) FROM "
+                + charTable + " WHERE c = ?)";
+        try (Connection con = PrepUtil.getConnection(connStr);
+                PreparedStatement pstmt = con.prepareStatement(sql)) {
+            pstmt.setString(1, "alpha");
+            pstmt.setString(2, "0000000001");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                rs.next();
+            }
+            assertEquals("varchar(20)", actualTypeDefinition(pstmt, 1)); // varcharTable.c is varchar(20)
+            assertEquals("varchar(10)", actualTypeDefinition(pstmt, 2)); // charTable.c is char(10) -> varchar(10)
         }
     }
 
@@ -441,5 +583,16 @@ public class ColumnTypeSizingTest extends AbstractTest {
         Field typeDefField = param.getClass().getDeclaredField("typeDefinition");
         typeDefField.setAccessible(true);
         return (String) typeDefField.get(param);
+    }
+
+    /**
+     * Reads the {@code preparedTypeDefinitions} string the driver last built and sent for this statement (via
+     * reflection). Unlike {@link #actualTypeDefinition}, which reads inOutParam, this reflects the type-definition
+     * string produced by the batch path, whose parameter array (batchParamValues) is released after execution.
+     */
+    private static String preparedTypeDefinitions(PreparedStatement pstmt) throws Exception {
+        Field f = SQLServerPreparedStatement.class.getDeclaredField("preparedTypeDefinitions");
+        f.setAccessible(true);
+        return (String) f.get(pstmt);
     }
 }

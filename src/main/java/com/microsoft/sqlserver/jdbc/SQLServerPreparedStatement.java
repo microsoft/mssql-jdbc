@@ -721,7 +721,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private void inferColumnTypeSizes(Parameter[] params) {
         if (!connection.getUseColumnTypeSizing() || isInternalQuery || connection.isColumnEncryptionSettingEnabled()
-                || useFmtOnly || connection.getServerMajorVersion() < SQL_SERVER_2012_MAJOR_VERSION) {
+                || Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection) || useFmtOnly
+                || connection.getServerMajorVersion() < SQL_SERVER_2012_MAJOR_VERSION) {
             return;
         }
 
@@ -760,8 +761,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
             }
             return lengths;
-        } catch (SQLException e) {
-            // Inference is best-effort: on any failure fall back to the legacy default parameter sizing.
+        } catch (SQLException | RuntimeException e) {
+            // Inference is best-effort: on any failure (checked or unchecked) fall back to the legacy default
+            // parameter sizing. The describe round-trip must never surface a new failure mode to the caller.
             if (loggerExternal.isLoggable(java.util.logging.Level.FINE)) {
                 loggerExternal.fine(toString()
                         + " useColumnTypeSizing: could not infer parameter column metadata; using default sizing. "

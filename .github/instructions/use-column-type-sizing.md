@@ -19,15 +19,33 @@ This causes two independent production problems:
   width (~half per row). An 8000-wide declaration reserves memory as if every row were ~4 KB. Reproduced:
   a sorted `notes + @p` expression went from **1,108,256 KB** desired grant with `varchar(8000)` to
   **70,296 KB** with `varchar(8)` (~15.8×).
-- **Symptom B — lost index seek / partition elimination.** Under the default `sendStringParametersAsUnicode=true`
-  a parameter is declared `nvarchar`. Comparing `nvarchar` against a `varchar`/`char` column converts the
-  *column* (type precedence), making the predicate non-SARGable. Reproduced on a `varchar(8)`-partitioned table:
-  `nvarchar(4000)` → Clustered Index **Scan**, 13 partitions, 715 reads; `varchar(8)` → **Seek**, 1 partition,
-  29 reads. **Tightening only the length does not fix this** (`nvarchar(8)` still scans) — the *type* must be
-  `varchar`, which the application selects with `sendStringParametersAsUnicode=false`.
+- **Symptom B — lost index seek.** Under the default `sendStringParametersAsUnicode=true` a parameter is declared
+  `nvarchar`. Comparing `nvarchar` against a `varchar`/`char` column converts the *column* (type precedence),
+  making the predicate non-SARGable → Scan instead of Seek. The *type* must be `varchar` to fix this, which the
+  application selects with `sendStringParametersAsUnicode=false` (tightening only the length, e.g. `nvarchar(8)`,
+  does NOT help — it still scans). On a non-partitioned `varchar(17)` index: `nvarchar(4000)` → Scan, 1548 reads;
+  `varchar(8000)` and `varchar(17)` → Seek, 3 reads. So for a plain index, `sendStringParametersAsUnicode=false`
+  alone restores the seek and the column-sizing length only affects the memory grant.
 
-`varchar`/`char` columns suffer **both** symptoms; `nvarchar`/`nchar` columns suffer **only** Symptom A
-(an `nvarchar` parameter already matches a unicode column, so the seek is not lost).
+- **Symptom B' — lost partition elimination (length-driven, the key reason for this feature).** On a table
+  partitioned on a `varchar(8)` column, even a correct `varchar` parameter does not get partition elimination if it
+  is declared too wide. Measured on a `varchar(8)`-partitioned table, `WHERE region_code = @p`:
+
+  | declared `@p` | operator | partitions accessed | reads |
+  |---|---|---|---|
+  | `nvarchar(4000)` | Clustered Index **Scan** | 13 (all) | 715 |
+  | `varchar(8000)` (what `sendStringParametersAsUnicode=false` gives **without** this feature) | Clustered Index **Seek** | **13 (all!)** | — |
+  | `varchar(8)` (this feature) | Clustered Index **Seek** | **1** | 29 |
+
+  Partition elimination requires applying the partition function (defined on `varchar(8)`) to the parameter value.
+  A `varchar(8000)` parameter forces a *narrowing* conversion to `varchar(8)` that the optimizer cannot resolve to a
+  single partition statically, so it probes **every** partition (a seek within each). Declaring the parameter at the
+  column's actual width lets the optimizer eliminate to the one matching partition. **This is achievable only by
+  sizing the parameter to the column — `sendStringParametersAsUnicode=false` alone is not sufficient.**
+
+`varchar`/`char` columns suffer Symptom B (seek) and, when partitioned, Symptom B' (elimination); all suffer
+Symptom A (memory). `nvarchar`/`nchar` columns suffer only Symptom A (an `nvarchar` parameter already matches a
+unicode column, so the seek is not lost).
 
 ## Behavior
 
@@ -42,7 +60,8 @@ Opt-in boolean connection property `useColumnTypeSizing` (default `false`).
   - **N' is the inferred column length**, clamped: if the bound value (measured in the declared unit — bytes
     for `varchar`/`varbinary`, UTF-16 units for `nvarchar`) is longer than the column, the declaration **snaps
     to `(max)`** so the operand is never truncated;
-  - `Math.max(N,1)` is enforced (no `varchar(0)`); LOB/`(max)` columns yield the `(max)` variant.
+  - a non-positive or out-of-range inferred length (anomalous or absent metadata) and LOB/`(max)` columns both
+    yield the `(max)` variant — the driver never emits `T(0)` (no snap to a 1-wide minimum is attempted).
 
 Because the declaration is one of at most two value-independent strings (`T(N)` or `T(max)`), the prepared-
 statement / plan-cache key `CityHash128Key(preparedSQL, preparedTypeDefinitions)` stays bounded — no
@@ -86,5 +105,8 @@ per-value fragmentation.
 varchar/char/nchar/nvarchar/varbinary/LOB columns; SSPAU true vs false; the snap-to-max clamp and exact-length
 boundary; range predicates (no truncation); non-string-column fallback; SELECT, explicit-column INSERT, batch
 INSERT persistence, UPDATE (SET assignment + WHERE predicate params), and DELETE (incl. an over-length DELETE
-predicate that snaps to (max) so no wrong row is deleted); declaration stability across values; NULL values; and
-the Connection/DataSource property accessors.
+predicate that snaps to (max) so no wrong row is deleted); partition elimination requires the column-sized length
+(a `varchar(8000)` parameter seeks but probes every partition; `varchar(8)` eliminates to one) — the primary-motivation
+scenario; declaration stability across values; re-execution of one statement with a fitting then an over-length value
+(varchar(N) → varchar(max)); multi-parameter ordinal alignment (each parameter sizes to its own column); NULL values;
+and the Connection/DataSource property accessors.
