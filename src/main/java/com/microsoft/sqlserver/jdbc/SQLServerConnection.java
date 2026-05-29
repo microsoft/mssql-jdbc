@@ -822,6 +822,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return sendStringParametersAsUnicode;
     }
 
+    /**
+     * When true, unsized variable-length string/binary parameters are declared to the server sized to the target
+     * column's length (discovered via sp_describe_undeclared_parameters) instead of the fixed
+     * varchar(8000)/nvarchar(4000)/varbinary(8000) defaults. Default is false (legacy behavior).
+     */
+    private boolean useColumnTypeSizing = SQLServerDriverBooleanProperty.USE_COLUMN_TYPE_SIZING.getDefaultValue();
+
+    @Override
+    public boolean getUseColumnTypeSizing() {
+        return useColumnTypeSizing;
+    }
+
+    @Override
+    public void setUseColumnTypeSizing(boolean useColumnTypeSizing) {
+        this.useColumnTypeSizing = useColumnTypeSizing;
+    }
+
     /** last update count flag */
     private boolean lastUpdateCount;
 
@@ -2840,6 +2857,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 }
 
                 calcBigDecimalPrecision = isBooleanPropertyOn(sPropKey, sPropValue);
+
+                sPropKey = SQLServerDriverBooleanProperty.USE_COLUMN_TYPE_SIZING.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = Boolean
+                            .toString(SQLServerDriverBooleanProperty.USE_COLUMN_TYPE_SIZING.getDefaultValue());
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                useColumnTypeSizing = isBooleanPropertyOn(sPropKey, sPropValue);
 
                 // Validate that the defaultTransactionIsolation value is one of the levels
                 // supported by SQL Server before attempting to establish the physical connection.

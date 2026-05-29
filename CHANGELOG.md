@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Added
 
+- **Add useColumnTypeSizing Connection Property (size string/binary parameters to the target column)** [#2913](https://github.com/microsoft/mssql-jdbc/issues/2913)
+**What was added**: A new opt-in boolean connection property `useColumnTypeSizing` (default `false`). When enabled, unsized variable-length string/binary parameters (`setString`/`setNString`/`setBytes`) are declared to the server sized to the target column's actual length - discovered once per statement via `sp_describe_undeclared_parameters` and cached - instead of the fixed `varchar(8000)`/`nvarchar(4000)`/`varbinary(8000)` defaults. The declared SQL type keyword is unchanged (so the wire encoding is identical); only the declared length is tightened. If a bound value is longer than the column the declaration snaps to the `(max)` variant so the operand is never truncated and the plan cache stays bounded.
+**Who benefits**: Applications that bind short strings to normal indexed/partitioned columns and suffer over-sized memory grants (RESOURCE_SEMAPHORE waits, tempdb spills). Combined with `sendStringParametersAsUnicode=false` it also restores index seeks and partition elimination for `varchar`/`char` columns.
+**Impact**: Opt-in and backward compatible - default behavior is byte-for-byte unchanged. Falls back cleanly to the legacy default for range/expression/ambiguous parameters, Always Encrypted connections, the FMTONLY path, and pre-2012 servers. Relates to [#2960](https://github.com/microsoft/mssql-jdbc/pull/2960).
+
 - **Add Enhanced Routing Support for Hyperscale Reader Endpoints** [#2935](https://github.com/microsoft/mssql-jdbc/pull/2935)
 **What was added**: Implemented TDS FEATUREEXT 0x0F negotiation and ENVCHANGE 0x21 parsing to support Hyperscale reader endpoints that load balance connections across named replicas, including routed database name propagation in Login7.
 **Who benefits**: Applications connecting to Azure SQL Hyperscale databases using reader endpoints for read scale-out.

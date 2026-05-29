@@ -1517,6 +1517,30 @@ public class SQLServerDataSource
     }
 
     /**
+     * Sets whether the driver sizes unsized variable-length string/binary parameters to the target column's length.
+     *
+     * @param useColumnTypeSizing
+     *        if true, declare such parameters sized to the inferred column length instead of the fixed
+     *        varchar(8000)/nvarchar(4000)/varbinary(8000) defaults
+     */
+    @Override
+    public void setUseColumnTypeSizing(boolean useColumnTypeSizing) {
+        setBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_COLUMN_TYPE_SIZING.toString(),
+                useColumnTypeSizing);
+    }
+
+    /**
+     * Returns whether the driver sizes unsized variable-length string/binary parameters to the target column's length.
+     *
+     * @return true if column-type sizing is enabled
+     */
+    @Override
+    public boolean getUseColumnTypeSizing() {
+        return getBooleanProperty(connectionProps, SQLServerDriverBooleanProperty.USE_COLUMN_TYPE_SIZING.toString(),
+                SQLServerDriverBooleanProperty.USE_COLUMN_TYPE_SIZING.getDefaultValue());
+    }
+
+    /**
      * Sets the 'retryExec' setting.
      *
      * @param retryExec

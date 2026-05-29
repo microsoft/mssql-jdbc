@@ -369,6 +369,8 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
 
                     try (SQLServerCallableStatement cstmt = (SQLServerCallableStatement) con
                             .prepareCall("exec sp_describe_undeclared_parameters ?")) {
+                        // Mark as internal so it does not itself trigger column-type-sizing inference (recursion guard).
+                        cstmt.isInternalQuery = true;
                         cstmt.setNString(1, preparedSQL);
                         parseQueryMeta(cstmt.executeQueryInternal());
                     }

@@ -782,7 +782,8 @@ enum SQLServerDriverBooleanProperty {
     IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION("ignoreOffsetOnDateTimeOffsetConversion", false),
     USE_DEFAULT_JAAS_CONFIG("useDefaultJaasConfig", false),
     USE_DEFAULT_GSS_CREDENTIAL("useDefaultGSSCredential", false),
-    CALC_BIG_DECIMAL_PRECISION("calcBigDecimalPrecision", false);
+    CALC_BIG_DECIMAL_PRECISION("calcBigDecimalPrecision", false),
+    USE_COLUMN_TYPE_SIZING("useColumnTypeSizing", false);
 
     private final String name;
     private final boolean defaultValue;
@@ -1061,6 +1062,9 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.getDefaultValue()),
                     false, TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_COLUMN_TYPE_SIZING.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.USE_COLUMN_TYPE_SIZING.getDefaultValue()), false,
+                    TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.SSL_PROTOCOL.toString(),
                     SQLServerDriverStringProperty.SSL_PROTOCOL.getDefaultValue(), false,
                     new String[] {SSLProtocol.TLS.toString(), SSLProtocol.TLS_V10.toString(),

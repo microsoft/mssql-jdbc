@@ -1529,6 +1529,13 @@ public class SQLServerStatement implements ISQLServerStatement {
     /** Flag to indicate that it is an internal query to retrieve encryption metadata. */
     boolean isInternalEncryptionQuery;
 
+    /**
+     * Flag to indicate this is a driver-internal query (e.g. sp_describe_undeclared_parameters used to discover
+     * parameter column types). Such statements must not themselves trigger column-type-sizing inference, to avoid
+     * recursion and redundant metadata round-trips.
+     */
+    boolean isInternalQuery;
+
     @Override
     public final SQLWarning getWarnings() throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER)) {

@@ -519,6 +519,25 @@ public interface ISQLServerConnection extends java.sql.Connection {
     void setCalcBigDecimalPrecision(boolean calcBigDecimalPrecision);
 
     /**
+     * Returns whether the driver sizes unsized variable-length string/binary parameters to the target column's
+     * declared length (discovered via sp_describe_undeclared_parameters) instead of the fixed
+     * varchar(8000)/nvarchar(4000)/varbinary(8000) defaults.
+     *
+     * @return useColumnTypeSizing
+     *         whether column-type sizing is enabled.
+     */
+    boolean getUseColumnTypeSizing();
+
+    /**
+     * Specifies whether the driver sizes unsized variable-length string/binary parameters to the target column's
+     * declared length instead of the fixed varchar(8000)/nvarchar(4000)/varbinary(8000) defaults.
+     *
+     * @param useColumnTypeSizing
+     *        true to enable column-type sizing; default is false.
+     */
+    void setUseColumnTypeSizing(boolean useColumnTypeSizing);
+
+    /**
      * Specifies the flag for using Bulk Copy API for batch insert operations.
      * 
      * @param useBulkCopyForBatchInsert

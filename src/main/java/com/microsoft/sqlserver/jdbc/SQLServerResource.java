@@ -540,6 +540,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidCSVQuotes", "Failed to parse the CSV file, verify that the fields are correctly enclosed in double quotes."},
         {"R_TokenRequireUrl", "Token credentials require a URL using the HTTPS protocol scheme."},
         {"R_calcBigDecimalPrecisionPropertyDescription", "Indicates whether the driver should calculate precision for big decimal values."},
+        {"R_useColumnTypeSizingPropertyDescription", "Determines whether the driver sizes unsized variable-length string/binary parameters to the target column's declared length (discovered via sp_describe_undeclared_parameters) instead of the fixed varchar(8000)/nvarchar(4000)/varbinary(8000) defaults."},
         {"R_retryExecPropertyDescription", "List of statement retry rules to follow for configurable retry logic."},
         {"R_retryConnPropertyDescription", "List of connection retry rules to follow for configurable retry logic."},
         {"R_maxResultBufferPropertyDescription", "Determines maximum amount of bytes that can be read during retrieval of result set"},

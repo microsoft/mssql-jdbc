@@ -63,6 +63,35 @@ final class Parameter {
 
     private boolean forceEncryption = false;
 
+    /*
+     * Target column length inferred via sp_describe_undeclared_parameters when the useColumnTypeSizing connection
+     * property is enabled, expressed in the inferred column type's own unit (characters for (n)char/(n)varchar, bytes
+     * for (var)binary). A value of NO_INFERRED_COLUMN_LENGTH (-1) means no inference applies and the legacy default
+     * width is used. This MUST NOT reuse valueLength / userProvidesPrecision, which are owned by the Always Encrypted
+     * and defineParameterType paths.
+     */
+    static final int NO_INFERRED_COLUMN_LENGTH = -1;
+    private int inferredColumnLength = NO_INFERRED_COLUMN_LENGTH;
+
+    /*
+     * The bound string/binary value captured at set time, used to clamp column-inferred sizing so an under-declared
+     * length can never truncate the operand. Captured at bind time (not at type-definition build time) so it is
+     * unaffected by intervening metadata round-trips. Only populated when useColumnTypeSizing is enabled.
+     */
+    private Object inferenceValue = null;
+    private boolean inferenceValueCaptured = false;
+
+    /**
+     * Records the target column length inferred for this parameter (see {@link #inferredColumnLength}). Does not touch
+     * userProvidesPrecision.
+     *
+     * @param length
+     *        inferred column length in the column type's unit, or NO_INFERRED_COLUMN_LENGTH to disable inference
+     */
+    void setInferredColumnLength(int length) {
+        this.inferredColumnLength = length;
+    }
+
     Parameter(boolean honorAE) {
         shouldHonorAEForParameter = honorAE;
     }
@@ -202,6 +231,9 @@ final class Parameter {
         clonedParam.valueLength = valueLength;
         clonedParam.userProvidesPrecision = userProvidesPrecision;
         clonedParam.userProvidesScale = userProvidesScale;
+        clonedParam.inferredColumnLength = inferredColumnLength;
+        clonedParam.inferenceValue = inferenceValue;
+        clonedParam.inferenceValueCaptured = inferenceValueCaptured;
         return clonedParam;
     }
 
@@ -381,6 +413,16 @@ final class Parameter {
             newDTV.sendStringParametersAsUnicode = false;
         }
 
+        // useColumnTypeSizing: capture the bound string/binary value now so the declared length can be clamped to it
+        // at build time (the value is not reliably available later). Only the value reference is held (no copy).
+        if (con.getUseColumnTypeSizing() && (JavaType.STRING == javaType || JavaType.BYTEARRAY == javaType)) {
+            inferenceValue = value;
+            inferenceValueCaptured = true;
+        } else {
+            inferenceValue = null;
+            inferenceValueCaptured = false;
+        }
+
         inputDTV = setterDTV = newDTV;
     }
 
@@ -439,6 +481,76 @@ final class Parameter {
         GetTypeDefinitionOp(Parameter param, SQLServerConnection con) {
             this.param = param;
             this.con = con;
+        }
+
+        /**
+         * Returns true when the useColumnTypeSizing feature should size this parameter to its inferred target column.
+         */
+        private boolean useInferredColumnSize() {
+            return con.getUseColumnTypeSizing() && Parameter.NO_INFERRED_COLUMN_LENGTH != param.inferredColumnLength
+                    && !param.isOutput() && param.inferenceValueCaptured;
+        }
+
+        /**
+         * Builds the declared type for a variable-length string/binary parameter sized to the inferred target column
+         * length. The SQL type keyword is the runtime arm's native type (ssType) so the TDS value encoding is
+         * unchanged - only the declared length differs from the legacy fixed default. If the bound value is longer
+         * than the inferred column length (measured in the declared type's unit), or the inferred column is a
+         * LOB/(max) type, the (max) variant is emitted so the operand is never truncated and the declaration stays one
+         * of at most two value-independent strings (bounded plan cache).
+         *
+         * @param ssType
+         *        the runtime arm's native type (VARCHAR, NVARCHAR or VARBINARY)
+         * @param maxConstant
+         *        the matching (max) type string
+         * @param unicodeUnit
+         *        true if the declared length unit is characters (n-types), false if bytes
+         * @param binary
+         *        true for the varbinary arm (value measured from the byte[]), false for char/nchar arms
+         */
+        private String buildColumnSizedTypeDefinition(SSType ssType, String maxConstant, boolean unicodeUnit,
+                boolean binary) {
+            int n = param.inferredColumnLength;
+            int threshold = unicodeUnit ? DataTypes.SHORT_VARTYPE_MAX_CHARS : DataTypes.SHORT_VARTYPE_MAX_BYTES;
+            int valueLen = inferenceValueLength(unicodeUnit, binary);
+            if (n <= 0 || n > threshold || valueLen > n) {
+                return maxConstant;
+            }
+            return ssType.toString() + "(" + n + ")";
+        }
+
+        /**
+         * Computes the bound value length in the declared type's unit (characters for n-types, bytes otherwise).
+         * Returns Integer.MAX_VALUE if the length cannot be determined, which forces the (max) variant (never
+         * truncates). A null value (e.g. setString(i, null)) is length 0 and fits any declared size.
+         */
+        private int inferenceValueLength(boolean unicodeUnit, boolean binary) {
+            Object value = param.inferenceValue;
+            try {
+                if (binary) {
+                    return (value instanceof byte[]) ? ((byte[]) value).length : 0;
+                }
+                if (!(value instanceof String)) {
+                    // null (e.g. setString(i, null)) or non-string value: length 0 fits any declared size.
+                    return 0;
+                }
+                String s = (String) value;
+                if (unicodeUnit) {
+                    // nvarchar length is counted in UTF-16 code units, which is exactly String.length().
+                    return s.length();
+                }
+                // varchar length is counted in bytes of the database collation code page. If the collation is not
+                // available (e.g. it was reset on the connection), fall back to (max) so the operand is never
+                // truncated.
+                SQLCollation collation = con.getDatabaseCollation();
+                if (null == collation) {
+                    return Integer.MAX_VALUE;
+                }
+                return s.getBytes(collation.getCharset()).length;
+            } catch (SQLServerException | RuntimeException e) {
+                // Best-effort: any failure to measure the value forces the (max) variant rather than truncating.
+                return Integer.MAX_VALUE;
+            }
         }
 
         private void setTypeDefinition(DTV dtv) {
@@ -621,6 +733,9 @@ final class Parameter {
                         if (JDBCType.LONGVARBINARY == jdbcTypeSetByUser) {
                             param.typeDefinition = VARBINARY_MAX;
                         }
+                    } else if (useInferredColumnSize()) {
+                        param.typeDefinition = buildColumnSizedTypeDefinition(SSType.VARBINARY, VARBINARY_MAX, false,
+                                true);
                     } else
                         param.typeDefinition = VARBINARY_8K;
                     break;
@@ -775,6 +890,8 @@ final class Parameter {
                                 param.typeDefinition = VARCHAR_MAX;
                             }
                         }
+                    } else if (useInferredColumnSize()) {
+                        param.typeDefinition = buildColumnSizedTypeDefinition(SSType.VARCHAR, VARCHAR_MAX, false, false);
                     } else
                         param.typeDefinition = VARCHAR_8K;
                     break;
@@ -907,6 +1024,8 @@ final class Parameter {
                             }
                         }
                         break;
+                    } else if (useInferredColumnSize()) {
+                        param.typeDefinition = buildColumnSizedTypeDefinition(SSType.NVARCHAR, NVARCHAR_MAX, true, false);
                     } else
                         param.typeDefinition = NVARCHAR_4K;
                     break;
