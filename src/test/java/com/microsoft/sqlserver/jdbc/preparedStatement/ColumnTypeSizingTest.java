@@ -278,6 +278,77 @@ public class ColumnTypeSizingTest extends AbstractTest {
         }
     }
 
+    // ---- UPDATE / DELETE (same describe flow as SELECT/INSERT) ---------------
+
+    @Test
+    public void testUpdateSetAndWhereParametersSized() throws Exception {
+        // UPDATE t SET c = ? WHERE c = ?  -> both the assignment param and the predicate param size to varchar(20).
+        String connStr = connectionString + SIZING_VARCHAR;
+        try (Connection con = PrepUtil.getConnection(connStr)) {
+            try (PreparedStatement ins = con.prepareStatement("INSERT INTO " + insertTable + " (c) VALUES (?)")) {
+                ins.setString(1, "upd-seed");
+                ins.executeUpdate();
+            }
+            try (PreparedStatement up = con
+                    .prepareStatement("UPDATE " + insertTable + " SET c = ? WHERE c = ?")) {
+                up.setString(1, "upd-done");
+                up.setString(2, "upd-seed");
+                int n = up.executeUpdate();
+                assertEquals("varchar(20)", actualTypeDefinition(up, 1)); // SET assignment param
+                assertEquals("varchar(20)", actualTypeDefinition(up, 2)); // WHERE predicate param
+                assertEquals(1, n);
+            }
+            // confirm the row was actually updated (no truncation/misalignment)
+            try (PreparedStatement chk = con
+                    .prepareStatement("SELECT COUNT(*) FROM " + insertTable + " WHERE c = 'upd-done'");
+                    ResultSet rs = chk.executeQuery()) {
+                rs.next();
+                assertEquals(1, rs.getInt(1));
+            }
+        }
+    }
+
+    @Test
+    public void testDeleteWhereParameterSized() throws Exception {
+        // DELETE FROM t WHERE c = ?  -> the predicate param sizes to varchar(20) and the row is removed.
+        String connStr = connectionString + SIZING_VARCHAR;
+        try (Connection con = PrepUtil.getConnection(connStr)) {
+            try (PreparedStatement ins = con.prepareStatement("INSERT INTO " + insertTable + " (c) VALUES (?)")) {
+                ins.setString(1, "del-seed");
+                ins.executeUpdate();
+            }
+            try (PreparedStatement del = con.prepareStatement("DELETE FROM " + insertTable + " WHERE c = ?")) {
+                del.setString(1, "del-seed");
+                int n = del.executeUpdate();
+                assertEquals("varchar(20)", actualTypeDefinition(del, 1));
+                assertEquals(1, n);
+            }
+        }
+    }
+
+    @Test
+    public void testDeleteOverLengthValueSnapsToMaxNoFalseDelete() throws Exception {
+        // An over-length value in a DELETE predicate must snap to (max) so it cannot truncate and delete a wrong row.
+        String connStr = connectionString + SIZING_VARCHAR;
+        try (Connection con = PrepUtil.getConnection(connStr)) {
+            try (PreparedStatement ins = con.prepareStatement("INSERT INTO " + insertTable + " (c) VALUES (?)")) {
+                ins.setString(1, "12345678901234567890"); // exactly 20 chars, exists
+                ins.executeUpdate();
+            }
+            try (PreparedStatement del = con.prepareStatement("DELETE FROM " + insertTable + " WHERE c = ?")) {
+                del.setString(1, "12345678901234567890EXTRA"); // 25 chars > column 20
+                int n = del.executeUpdate();
+                assertEquals("varchar(max)", actualTypeDefinition(del, 1));
+                assertEquals(0, n, "Over-length value must not truncate and delete the 20-char row");
+            }
+            // cleanup the seeded row
+            try (PreparedStatement c2 = con
+                    .prepareStatement("DELETE FROM " + insertTable + " WHERE c = '12345678901234567890'")) {
+                c2.executeUpdate();
+            }
+        }
+    }
+
     // ---- plan-cache stability ----------------------------------------------
 
     @Test

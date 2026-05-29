@@ -84,5 +84,7 @@ per-value fragmentation.
 
 `com.microsoft.sqlserver.jdbc.preparedStatement.ColumnTypeSizingTest` covers: no-regression (off);
 varchar/char/nchar/nvarchar/varbinary/LOB columns; SSPAU true vs false; the snap-to-max clamp and exact-length
-boundary; range predicates (no truncation); non-string-column fallback; explicit-column INSERT; batch INSERT
-persistence; declaration stability across values; and NULL values.
+boundary; range predicates (no truncation); non-string-column fallback; SELECT, explicit-column INSERT, batch
+INSERT persistence, UPDATE (SET assignment + WHERE predicate params), and DELETE (incl. an over-length DELETE
+predicate that snaps to (max) so no wrong row is deleted); declaration stability across values; NULL values; and
+the Connection/DataSource property accessors.
