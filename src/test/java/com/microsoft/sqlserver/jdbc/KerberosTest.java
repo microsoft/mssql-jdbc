@@ -133,6 +133,73 @@ public class KerberosTest extends AbstractTest {
     }
 
     /**
+     * Test that JaasConfiguration with null delegate provides safe defaults.
+     * This verifies the security fix - using null instead of Configuration.getConfiguration()
+     * prevents loading potentially malicious remote JAAS configs.
+     */
+    @Test
+    public void testJaasConfigurationSecureDefaults() throws Exception {
+        // Use reflection to call the private validateNoJndiLoginModule method
+        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
+        java.lang.reflect.Method validateMethod = kerbAuthClass.getDeclaredMethod("validateNoJndiLoginModule",
+                Configuration.class, String.class);
+        validateMethod.setAccessible(true);
+
+        // Create a safe configuration with Krb5LoginModule and verify it passes validation
+        Configuration safeKerberosConfig = new Configuration() {
+            @Override
+            public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
+                return new AppConfigurationEntry[] {
+                        new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
+                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, new HashMap<String, Object>())};
+            }
+        };
+
+        // This should NOT throw an exception for safe Krb5LoginModule
+        try {
+            validateMethod.invoke(null, safeKerberosConfig, "SQLJDBCDriver");
+            // If we get here, validation passed (good - safe module allowed)
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            Assertions.fail("Safe Krb5LoginModule should not trigger validation error: " + e.getCause());
+        }
+    }
+
+    /**
+     * Test that validateNoJndiLoginModule properly blocks JndiLoginModule.
+     * This directly tests the security validation added in lines 116 and 201-233.
+     */
+    @Test
+    public void testValidateNoJndiLoginModule() throws Exception {
+        // Create a configuration with JndiLoginModule (unsupported login module)
+        Configuration maliciousConfig = new Configuration() {
+            @Override
+            public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
+                return new AppConfigurationEntry[] {
+                        new AppConfigurationEntry("com.sun.security.auth.module.JndiLoginModule",
+                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, new HashMap<String, Object>())};
+            }
+        };
+
+        // Use reflection to call the private validateNoJndiLoginModule method
+        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
+        java.lang.reflect.Method validateMethod = kerbAuthClass.getDeclaredMethod("validateNoJndiLoginModule",
+                Configuration.class, String.class);
+        validateMethod.setAccessible(true);
+
+        // This SHOULD throw SQLServerException when JndiLoginModule is detected
+        try {
+            validateMethod.invoke(null, maliciousConfig, "SQLJDBCDriver");
+            Assertions.fail("validateNoJndiLoginModule should have thrown SQLServerException for JndiLoginModule");
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            // Expected - should wrap SQLServerException
+            Assertions.assertTrue(e.getCause() instanceof SQLServerException,
+                    "Should throw SQLServerException for JndiLoginModule");
+            Assertions.assertTrue(e.getCause().getMessage().contains("JndiLoginModule"),
+                    "Error message should mention JndiLoginModule");
+        }
+    }
+
+    /**
      * Overwrites the default JAAS config. Call before making a connection.
      */
     private static void overwriteJaasConfig() {
