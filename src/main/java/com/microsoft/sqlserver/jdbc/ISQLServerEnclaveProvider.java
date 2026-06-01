@@ -224,9 +224,18 @@ interface ISQLServerEnclaveProvider {
                 aev2CekEntry.put(mdVer);
                 aev2CekEntry.putShort((short) keyID);
 
-                SQLServerColumnEncryptionKeyStoreProvider provider = SQLServerSecurityUtility
-                        .getColumnEncryptionKeyStoreProvider(keyStoreName, connection, statement);
-                aev2CekEntry.put(provider.decryptColumnEncryptionKey(keyPath, algo, encryptedKey));
+                // Issue #2957: route the enclave CEK lookup through SQLServerSymmetricKeyCache
+                // (or the local-provider flow for per-connection/per-statement providers) so that
+                // enclave queries don't hit the CMK key store on every call. Mirrors the lookup
+                // SQLServerSecurityUtility.decryptSymmetricKey performs for non-enclave params.
+                EncryptionKeyInfo keyInfo = new EncryptionKeyInfo(encryptedKey, dbID, keyID,
+                        rs.getInt(DescribeParameterEncryptionResultSet1.KEYVERSION.value()), mdVer, keyPath,
+                        keyStoreName, algo);
+                SQLServerSymmetricKey symKey = SQLServerSecurityUtility
+                        .shouldUseInstanceLevelProviderFlow(keyStoreName, connection, statement)
+                                ? SQLServerSecurityUtility.getKeyFromLocalProviders(keyInfo, connection, statement)
+                                : SQLServerSymmetricKeyCache.getInstance().getKey(keyInfo, connection);
+                aev2CekEntry.put(symKey.getRootKey());
                 enclaveRequestedCEKs.add(aev2CekEntry.array());
             }
         }
