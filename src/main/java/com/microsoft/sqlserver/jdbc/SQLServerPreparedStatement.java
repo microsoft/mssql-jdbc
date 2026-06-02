@@ -4176,12 +4176,26 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             if (sqlSrc.length() == srcEnd)
                 break;
 
-            dstBegin += SQLServerConnection.makeParamName(nParam++, sqlDst, dstBegin, true);
-            srcBegin = srcEnd + 1 <= sqlSrc.length() - 1 && sqlSrc.charAt(srcEnd + 1) == ' ' ? srcEnd + 2 : srcEnd + 1;
+            // Issue #2946: avoid injecting extra whitespace around the substituted @P<n>
+            // marker, which broke exact-text matching used by SQL Server plan guides,
+            // Query Store forced plans, sql_text-based auditing, etc.  PR #2192 added
+            // unconditional padding to fix queries like "c1=?and c2=?" where the lack of
+            // a separator caused "@P<n>and" to be parsed as a single identifier.  We
+            // preserve that safety property by inserting a single space only when the
+            // *next* source character would extend the @P<n> (or @P<n> OUT) token into a
+            // longer identifier -- i.e. when it is a letter, digit, or underscore.  A
+            // leading separator is never required because '@' cannot continue a
+            // preceding token.
+            dstBegin += SQLServerConnection.makeParamName(nParam++, sqlDst, dstBegin, false);
+            srcBegin = srcEnd + 1;
 
             if (params[paramIndex++].isOutput() && (!isReturnValueSyntax || paramIndex > 1)) {
                 System.arraycopy(OUT, 0, sqlDst, dstBegin, OUT.length);
                 dstBegin += OUT.length;
+            }
+
+            if (srcBegin < sqlSrc.length() && Character.isJavaIdentifierPart(sqlSrc.charAt(srcBegin))) {
+                sqlDst[dstBegin++] = ' ';
             }
         }
 
