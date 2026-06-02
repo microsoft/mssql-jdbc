@@ -216,8 +216,30 @@ final class KerbAuthentication extends SSPIAuthentication {
         try {
             scheme = new java.net.URI(effectiveValue).getScheme();
         } catch (java.net.URISyntaxException e) {
-            // Not a parseable URI (e.g. Windows path "C:\foo" with backslashes,
-            // or a relative path with illegal chars) => treat as a local path.
+            // URI parsing failed. As defense-in-depth, try java.net.URL — the same parser that
+            // JAAS ConfigFile uses internally to open remote configs. If URL can parse it with
+            // a non-file protocol, JAAS could also fetch it remotely, so we must block it.
+            try {
+                @SuppressWarnings("deprecation") // URL(String) deprecated since JDK 20 but matches JAAS behavior
+                java.net.URL url = new java.net.URL(effectiveValue);
+                String protocol = url.getProtocol();
+                if (protocol != null && protocol.length() > 1 && !"file".equalsIgnoreCase(protocol)) {
+                    if (authLogger.isLoggable(Level.SEVERE)) {
+                        authLogger
+                                .severe("Refusing Kerberos login: java.security.auth.login.config has remote protocol '"
+                                        + protocol + "' (detected via URL fallback). Blocking as a precaution.");
+                    }
+                    throw new SQLServerException(SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"),
+                            null, 0, null);
+                }
+            } catch (java.net.MalformedURLException mue) {
+                // URL also can't parse it — JAAS ConfigFile uses the same URL() constructor,
+                // so it cannot fetch this remotely either. Safe to allow.
+                if (authLogger.isLoggable(Level.FINE)) {
+                    authLogger.fine("java.security.auth.login.config value is not a valid URI or URL; "
+                            + "treating as local path: " + mue.getMessage());
+                }
+            }
             return;
         }
 

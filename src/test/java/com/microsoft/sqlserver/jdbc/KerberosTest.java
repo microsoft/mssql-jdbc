@@ -284,6 +284,46 @@ public class KerberosTest extends AbstractTest {
     }
 
     /**
+     * Defense-in-depth test: malformed URIs that would throw URISyntaxException
+     * but still start with a remote scheme prefix must be blocked.
+     * Java's JAAS ConfigFile internally uses java.net.URL which is more lenient
+     * than java.net.URI, so a value like "http://evil.com/path with spaces"
+     * would fail URI parsing but could still be fetched by URL.
+     */
+    @Test
+    public void testAssertSafeJaasLoginConfigProperty_rejectsMalformedRemoteUrls() throws Exception {
+        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
+        java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
+        assertMethod.setAccessible(true);
+
+        // These are invalid URIs (would throw URISyntaxException) but start with remote schemes
+        String[] malformedRemote = {"http://remote.example.com/path with spaces/evil.jaas",
+                "https://remote.example.com/jaas config.conf", "ldap://remote.example.com/cn=foo bar",
+                "rmi://remote.example.com/ex[ploit", "ftp://remote.example.com/file name.conf",
+                "ldaps://remote.example.com/cn={bad}"};
+
+        String original = System.getProperty("java.security.auth.login.config");
+        try {
+            for (String payload : malformedRemote) {
+                System.setProperty("java.security.auth.login.config", payload);
+                try {
+                    assertMethod.invoke(null);
+                    Assertions.fail("Should have blocked malformed remote URL: " + payload);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    Assertions.assertTrue(e.getCause() instanceof SQLServerException,
+                            "Should throw SQLServerException for malformed remote URL: " + payload);
+                }
+            }
+        } finally {
+            if (original != null) {
+                System.setProperty("java.security.auth.login.config", original);
+            } else {
+                System.clearProperty("java.security.auth.login.config");
+            }
+        }
+    }
+
+    /**
      * Overwrites the default JAAS config. Call before making a connection.
      */
     private static void overwriteJaasConfig() {
