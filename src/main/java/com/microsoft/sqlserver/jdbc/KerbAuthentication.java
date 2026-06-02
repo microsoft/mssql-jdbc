@@ -204,9 +204,17 @@ final class KerbAuthentication extends SSPIAuthentication {
             return;
         }
 
+        // The '=' prefix is special syntax for java.security.auth.login.config:
+        // it forces the JVM to use ONLY that URL (stripping the '=') as the config source.
+        // Strip it before validation so the underlying URL is properly checked.
+        String effectiveValue = value.startsWith("=") ? value.substring(1) : value;
+        if (effectiveValue.isEmpty()) {
+            return;
+        }
+
         String scheme;
         try {
-            scheme = new java.net.URI(value).getScheme();
+            scheme = new java.net.URI(effectiveValue).getScheme();
         } catch (java.net.URISyntaxException e) {
             // Not a parseable URI (e.g. Windows path "C:\foo" with backslashes,
             // or a relative path with illegal chars) => treat as a local path.

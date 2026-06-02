@@ -252,10 +252,11 @@ public class KerberosTest extends AbstractTest {
 
         // Exact payloads from the MSRC-117029 PoC reproduction scripts
         String[] pocPayloads = {
-                "http://127.0.0.1:18888/evil.jaas",           // direct HTTP URL
-                "https://127.0.0.1:18888/evil.jaas",          // HTTPS variant
-                "ldap://127.0.0.1:50388/cn=Evil",             // direct LDAP
-                "rmi://127.0.0.1:50388/Exploit",              // RMI variant
+                "http://remote.example.com/evil.jaas",
+                "=http://remote.example.com/evil.jaas",
+                "https://remote.example.com/evil.jaas",
+                "ldap://remote.example.com/cn=Evil",
+                "rmi://remote.example.com/Exploit"
         };
 
         String original = System.getProperty("java.security.auth.login.config");
