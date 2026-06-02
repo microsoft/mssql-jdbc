@@ -43,7 +43,7 @@ asserted — not method names.
 
 ### `LegacyFX_ResultSet` — ResultSet navigation, getters, updaters
 
-- **Test classes:** `ResultSetNavigationTest`, `ResultSetGettersTest`, `ResultSetUpdaterTest`, `ResultSetRowOpsTest`.
+- **Test classes:** `ResultSetNavigationTest`, `ResultSetRowOpsTest`.
 - **Scenarios:**
   - Forward + scroll navigation: `next`/`previous`/`first`/`last`/`absolute`/`relative` (incl. negative, zero, `MIN_VALUE`, out-of-range); `isBeforeFirst`/`isAfterLast`/`isFirst`/`isLast` transitions; `getRow()` ordinal correctness.
   - Every primitive getter by ordinal and by column name; conversions (BigDecimal→String, INT→String, BIT→Boolean, SMALLINT→Short); `wasNull()` after NULL.
@@ -54,7 +54,7 @@ asserted — not method names.
 
 ### `LegacyFX_Statement` — Statement / PreparedStatement / CallableStatement
 
-- **Test classes:** `StatementCTSTest`, `PreparedStatementCTSTest`, `CallableStatementCTSTest`, `StatementPropertiesTest`, `RaiserrorTest`.
+- **Test classes:** `StatementCTSTest`, `StatementPropertiesTest`, `RaiserrorTest`.
 - **Scenarios:**
   - All execution forms (`executeQuery`/`executeUpdate`/`execute` + `getResultSet`/`getUpdateCount`) on all three statement kinds.
   - DDL returns count 0; DML returns affected rows; `SELECT INTO` correctly does not return a ResultSet.
@@ -69,7 +69,7 @@ asserted — not method names.
 
 ### `LegacyFX_CTS` — JDBC CTS conformance
 
-- **Test classes:** `ConnectionCTSTest`, `MetadataCTSTest`, plus the CTS-style sections of the Statement classes above.
+- **Test classes:** `ConnectionCTSTest`, `MetadataCTSTest`, `ResultSetCTSTest`, plus the CTS-style sections of the Statement classes above.
 - **Scenarios:**
   - Connection lifecycle: `isValid(5)` true on open, false after `close()`; subsequent ops throw cleanly. Default `autoCommit` true; all four isolation levels toggle and persist. `getCatalog`/`getSchema` non-null. `nativeSQL` non-empty for SELECT and `{fn ...}`. `getNetworkTimeout` non-negative. `setReadOnly` is a deliberate no-op (`isReadOnly()` always false).
   - DatabaseMetaData: product/driver name + versions, JDBC spec major/minor, URL, user. Every JDBC capability flag asserted (procedures, batch, savepoints, named params, multiple open results, generated keys, holdability, GROUP BY, ORDER BY unrelated, UNION/UNION ALL, outer/full outer joins, subqueries in IN/EXISTS/comparisons, all four isolation levels, all three ResultSet types, SQL grammar tiers).
