@@ -167,10 +167,10 @@ public class KerberosTest extends AbstractTest {
         assertMethod.setAccessible(true);
 
         String[] remoteUrls = {
-                "http://attacker.com/evil.conf",
-                "https://attacker.com/evil.conf",
-                "ldap://attacker.com/Evil",
-                "ftp://attacker.com/jaas.conf"
+                "http://remote.example.com/jaas.conf",
+                "https://remote.example.com/jaas.conf",
+                "ldap://remote.example.com/cn=config",
+                "ftp://remote.example.com/jaas.conf"
         };
 
         String original = System.getProperty("java.security.auth.login.config");
@@ -221,6 +221,56 @@ public class KerberosTest extends AbstractTest {
                     // Good - local path accepted
                 } catch (java.lang.reflect.InvocationTargetException e) {
                     Assertions.fail("Should NOT have thrown for local path: " + path + " - " + e.getCause());
+                }
+            }
+        } finally {
+            if (original != null) {
+                System.setProperty("java.security.auth.login.config", original);
+            } else {
+                System.clearProperty("java.security.auth.login.config");
+            }
+        }
+    }
+
+    /**
+     * Regression test for MSRC-117029: proves the exact PoC payloads used in the
+     * vulnerability report are now blocked by assertSafeJaasLoginConfigProperty.
+     *
+     * The original PoC sets java.security.auth.login.config to a remote HTTP URL
+     * (with or without the '=' prefix that forces Java to reload the config).
+     * The remote jaas.conf then declares JndiLoginModule with an LDAP/RMI URL,
+     * triggering RCE via JNDI deserialization during lc.login().
+     *
+     * This test verifies the fix rejects such payloads at the property-validation
+     * step, before any network or JNDI activity occurs.
+     */
+    @Test
+    public void testMSRC117029_pocPayloadsBlocked() throws Exception {
+        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
+        java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
+        assertMethod.setAccessible(true);
+
+        // Exact payloads from the MSRC-117029 PoC reproduction scripts
+        String[] pocPayloads = {
+                "http://127.0.0.1:18888/evil.jaas",           // direct HTTP URL
+                "https://127.0.0.1:18888/evil.jaas",          // HTTPS variant
+                "ldap://127.0.0.1:50388/cn=Evil",             // direct LDAP
+                "rmi://127.0.0.1:50388/Exploit",              // RMI variant
+        };
+
+        String original = System.getProperty("java.security.auth.login.config");
+        try {
+            for (String payload : pocPayloads) {
+                System.setProperty("java.security.auth.login.config", payload);
+                try {
+                    assertMethod.invoke(null);
+                    Assertions.fail("MSRC-117029 PoC NOT blocked for payload: " + payload);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    Assertions.assertTrue(e.getCause() instanceof SQLServerException,
+                            "Should throw SQLServerException for PoC payload: " + payload);
+                    Assertions.assertTrue(
+                            e.getCause().getMessage().contains("non-local"),
+                            "Error message should indicate non-local location for: " + payload);
                 }
             }
         } finally {

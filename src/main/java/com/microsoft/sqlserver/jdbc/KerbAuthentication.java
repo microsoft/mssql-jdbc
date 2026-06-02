@@ -186,7 +186,7 @@ final class KerbAuthentication extends SSPIAuthentication {
 
     /**
      * Rejects remote values of the {@code java.security.auth.login.config} system property to prevent
-     * RCE via attacker-controlled JAAS configuration (e.g. a remote jaas.conf declaring JndiLoginModule).
+     * RCE via externally-controlled JAAS configuration (e.g. a remote jaas.conf declaring JndiLoginModule).
      * Only unset values, plain filesystem paths, and {@code file:} URIs are accepted. Any URI with a
      * scheme other than {@code file} (e.g. http, https, ftp, jar, ldap) is refused.
      */
