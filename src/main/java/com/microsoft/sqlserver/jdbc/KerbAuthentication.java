@@ -13,8 +13,6 @@ import java.text.MessageFormat;
 import java.util.logging.Level;
 
 import javax.security.auth.Subject;
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
@@ -105,17 +103,21 @@ final class KerbAuthentication extends SSPIAuthentication {
                         Method current = Subject.class.getDeclaredMethod("current");
                         current.setAccessible(true);
                         currentSubject = (Subject) current.invoke(null);
+                        
                     }
-
                     if (null == currentSubject) {
-                        // SECURITY FIX: Always use JaasConfiguration with null delegate
-                        // This prevents loading remote JAAS configs from system property
-                        JaasConfiguration secureConfig = new JaasConfiguration(null);
-
-                        // SECURITY FIX: Validate no JndiLoginModule present
-                        validateNoJndiLoginModule(secureConfig, configName);
-
-                        lc = new LoginContext(configName, null, callback, secureConfig);
+                        if (useDefaultJaas) {
+                            lc = new LoginContext(configName, null, callback, new JaasConfiguration(null));
+                        } else {
+                            // CVE mitigation: refuse to consult the JVM-wide JAAS Configuration when
+                            // java.security.auth.login.config points at a non-local (remote) source.
+                            // A remote jaas.conf can declare arbitrary LoginModules (e.g. JndiLoginModule)
+                            // and trigger JNDI/LDAP lookups during lc.login(), leading to RCE.
+                            // Local file paths / file: URIs continue to work; useDefaultJaasConfig=false
+                            // semantics are otherwise preserved.
+                            assertSafeJaasLoginConfigProperty();
+                            lc = new LoginContext(configName, callback);
+                        }
                         lc.login();
                         // per documentation LoginContext will instantiate a new subject.
                         currentSubject = lc.getSubject();
@@ -183,43 +185,49 @@ final class KerbAuthentication extends SSPIAuthentication {
     }
 
     /**
-     * Validates that the JAAS configuration does not contain JndiLoginModule.
-     * JndiLoginModule has known deserialization vulnerabilities and is not needed
-     * for legitimate Kerberos authentication (use Krb5LoginModule instead).
-     * 
-     * @param config
-     *                   The JAAS Configuration to validate
-     * @param configName
-     *                   The configuration entry name to check
-     * @throws SQLServerException
-     *                            if JndiLoginModule is detected
+     * Rejects remote values of the {@code java.security.auth.login.config} system property to prevent
+     * RCE via attacker-controlled JAAS configuration (e.g. a remote jaas.conf declaring JndiLoginModule).
+     * Only unset values, plain filesystem paths, and {@code file:} URIs are accepted. Any URI with a
+     * scheme other than {@code file} (e.g. http, https, ftp, jar, ldap) is refused.
      */
-    private void validateNoJndiLoginModule(Configuration config, String configName) throws SQLServerException {
+    private static void assertSafeJaasLoginConfigProperty() throws SQLServerException {
+        String value;
         try {
-            AppConfigurationEntry[] entries = config.getAppConfigurationEntry(configName);
-            if (entries != null) {
-                for (AppConfigurationEntry entry : entries) {
-                    String moduleName = entry.getLoginModuleName();
-                    if ("com.sun.security.auth.module.JndiLoginModule".equals(moduleName)) {
-                        String errorMessage = "JndiLoginModule is not supported due to known security vulnerabilities. "
-                                + "Please use Krb5LoginModule for Kerberos authentication. "
-                                + "See documentation for migration guidance.";
-                        if (authLogger.isLoggable(Level.SEVERE)) {
-                            authLogger.severe(toString() + " " + errorMessage);
-                        }
-                        throw new SQLServerException(errorMessage, null, 0, null);
-                    }
-                }
-            }
-        } catch (SQLServerException e) {
-            // Re-throw SQLServerException as-is
-            throw e;
-        } catch (Exception e) {
-            // Log but don't fail on unexpected errors during validation
-            if (authLogger.isLoggable(Level.WARNING)) {
-                authLogger.warning(toString() + " Failed to validate JAAS configuration: " + e.getMessage());
-            }
+            value = System.getProperty("java.security.auth.login.config");
+        } catch (SecurityException se) {
+            // SecurityManager denies reading the property; the JVM will still resolve it for JAAS,
+            // but we cannot vet it here. Fail closed.
+            throw new SQLServerException(
+                    SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null, 0, se);
         }
+        if (null == value || value.isEmpty()) {
+            return;
+        }
+
+        String scheme;
+        try {
+            scheme = new java.net.URI(value).getScheme();
+        } catch (java.net.URISyntaxException e) {
+            // Not a parseable URI (e.g. Windows path "C:\foo" with backslashes,
+            // or a relative path with illegal chars) => treat as a local path.
+            return;
+        }
+
+        // No scheme => plain local path. Single-letter scheme => Windows drive letter (e.g. "C:/foo").
+        if (null == scheme || scheme.length() == 1) {
+            return;
+        }
+        if ("file".equalsIgnoreCase(scheme)) {
+            return;
+        }
+
+        if (authLogger.isLoggable(Level.SEVERE)) {
+            authLogger.severe(
+                    "Refusing Kerberos login: java.security.auth.login.config has unsafe scheme '"
+                            + scheme + "'. Only local file paths or file: URIs are permitted.");
+        }
+        throw new SQLServerException(
+                SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null, 0, null);
     }
 
     // We have to do a privileged action to create the credential of the user in the current context

@@ -139,63 +139,96 @@ public class KerberosTest extends AbstractTest {
      */
     @Test
     public void testJaasConfigurationSecureDefaults() throws Exception {
-        // Use reflection to call the private validateNoJndiLoginModule method
-        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
-        java.lang.reflect.Method validateMethod = kerbAuthClass.getDeclaredMethod("validateNoJndiLoginModule",
-                Configuration.class, String.class);
-        validateMethod.setAccessible(true);
-
-        // Create a safe configuration with Krb5LoginModule and verify it passes validation
-        Configuration safeKerberosConfig = new Configuration() {
-            @Override
-            public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
-                return new AppConfigurationEntry[] {
-                        new AppConfigurationEntry("com.sun.security.auth.module.Krb5LoginModule",
-                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, new HashMap<String, Object>())};
-            }
-        };
-
-        // This should NOT throw an exception for safe Krb5LoginModule
+        // assertSafeJaasLoginConfigProperty should allow null/empty property
+        String original = System.getProperty("java.security.auth.login.config");
         try {
-            validateMethod.invoke(null, safeKerberosConfig, "SQLJDBCDriver");
-            // If we get here, validation passed (good - safe module allowed)
-        } catch (java.lang.reflect.InvocationTargetException e) {
-            Assertions.fail("Safe Krb5LoginModule should not trigger validation error: " + e.getCause());
+            System.clearProperty("java.security.auth.login.config");
+
+            Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
+            java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
+            assertMethod.setAccessible(true);
+
+            // Null property => should pass
+            assertMethod.invoke(null);
+        } finally {
+            if (original != null) {
+                System.setProperty("java.security.auth.login.config", original);
+            }
         }
     }
 
     /**
-     * Test that validateNoJndiLoginModule properly blocks JndiLoginModule.
-     * This directly tests the security validation added in lines 116 and 201-233.
+     * Test that assertSafeJaasLoginConfigProperty blocks remote URLs (http, https, ldap).
      */
     @Test
-    public void testValidateNoJndiLoginModule() throws Exception {
-        // Create a configuration with JndiLoginModule (unsupported login module)
-        Configuration maliciousConfig = new Configuration() {
-            @Override
-            public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
-                return new AppConfigurationEntry[] {
-                        new AppConfigurationEntry("com.sun.security.auth.module.JndiLoginModule",
-                                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, new HashMap<String, Object>())};
-            }
+    public void testAssertSafeJaasLoginConfigProperty_rejectsRemoteUrls() throws Exception {
+        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
+        java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
+        assertMethod.setAccessible(true);
+
+        String[] remoteUrls = {
+                "http://attacker.com/evil.conf",
+                "https://attacker.com/evil.conf",
+                "ldap://attacker.com/Evil",
+                "ftp://attacker.com/jaas.conf"
         };
 
-        // Use reflection to call the private validateNoJndiLoginModule method
-        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
-        java.lang.reflect.Method validateMethod = kerbAuthClass.getDeclaredMethod("validateNoJndiLoginModule",
-                Configuration.class, String.class);
-        validateMethod.setAccessible(true);
-
-        // This SHOULD throw SQLServerException when JndiLoginModule is detected
+        String original = System.getProperty("java.security.auth.login.config");
         try {
-            validateMethod.invoke(null, maliciousConfig, "SQLJDBCDriver");
-            Assertions.fail("validateNoJndiLoginModule should have thrown SQLServerException for JndiLoginModule");
-        } catch (java.lang.reflect.InvocationTargetException e) {
-            // Expected - should wrap SQLServerException
-            Assertions.assertTrue(e.getCause() instanceof SQLServerException,
-                    "Should throw SQLServerException for JndiLoginModule");
-            Assertions.assertTrue(e.getCause().getMessage().contains("JndiLoginModule"),
-                    "Error message should mention JndiLoginModule");
+            for (String url : remoteUrls) {
+                System.setProperty("java.security.auth.login.config", url);
+                try {
+                    assertMethod.invoke(null);
+                    Assertions.fail("Should have thrown for remote URL: " + url);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    Assertions.assertTrue(e.getCause() instanceof SQLServerException,
+                            "Should throw SQLServerException for: " + url);
+                }
+            }
+        } finally {
+            if (original != null) {
+                System.setProperty("java.security.auth.login.config", original);
+            } else {
+                System.clearProperty("java.security.auth.login.config");
+            }
+        }
+    }
+
+    /**
+     * Test that assertSafeJaasLoginConfigProperty allows local file paths and file: URIs.
+     */
+    @Test
+    public void testAssertSafeJaasLoginConfigProperty_allowsLocalPaths() throws Exception {
+        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
+        java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
+        assertMethod.setAccessible(true);
+
+        String[] localPaths = {
+                "/etc/jaas.conf",
+                "jaas.conf",
+                "C:\\Users\\me\\jaas.conf",
+                "C:/Users/me/jaas.conf",
+                "file:///etc/jaas.conf",
+                "file:///C:/Users/me/jaas.conf"
+        };
+
+        String original = System.getProperty("java.security.auth.login.config");
+        try {
+            for (String path : localPaths) {
+                System.setProperty("java.security.auth.login.config", path);
+                try {
+                    assertMethod.invoke(null);
+                    // Good - local path accepted
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    Assertions.fail("Should NOT have thrown for local path: " + path + " - " + e.getCause());
+                }
+            }
+        } finally {
+            if (original != null) {
+                System.setProperty("java.security.auth.login.config", original);
+            } else {
+                System.clearProperty("java.security.auth.login.config");
+            }
         }
     }
 
