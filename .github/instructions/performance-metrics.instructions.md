@@ -71,6 +71,49 @@ When `useNanoseconds()` returns `true`:
 - Log output uses `ns` as the unit suffix instead of `ms`
 - All publish calls (connection-level and statement-level) use nanosecond values
 
+#### Accessing SQL Text and Statement Type
+
+Inside a `publish()` callback, you can retrieve the SQL text and statement type for the
+current performance event using the default methods `getCurrentUserSql()` and
+`getCurrentStatementType()`:
+
+```java
+SQLServerDriver.registerPerformanceLogCallback(new PerformanceLogCallback() {
+    @Override
+    public void publish(PerformanceActivity activity, int connectionId, long durationMs, 
+            Exception exception) {
+        // Connection-level: getCurrentUserSql() returns null here
+    }
+
+    @Override
+    public void publish(PerformanceActivity activity, int connectionId, int statementId, 
+            long durationMs, Exception exception) {
+        // Statement-level: SQL and type available for EXECUTE/PREPEXEC/PREPARE activities
+        String sql = getCurrentUserSql();
+        String type = getCurrentStatementType();
+        System.out.printf("[%s] %s | %s | %d ms%n", type, activity, sql, durationMs);
+    }
+});
+```
+
+**`getCurrentUserSql()`** returns the SQL text submitted by the application:
+- For `Statement`: the SQL string passed to `executeQuery(sql)`, `execute(sql)`, etc.
+- For `PreparedStatement`/`CallableStatement`: the SQL passed to `prepareStatement(sql)` or `prepareCall(sql)`
+- Returns `null` for connection-level activities and sub-activities (REQUEST_BUILD, FIRST_SERVER_RESPONSE)
+
+**`getCurrentStatementType()`** returns one of:
+- `"Statement"` — plain `java.sql.Statement`
+- `"PreparedStatement"` — `java.sql.PreparedStatement`
+- `"CallableStatement"` — `java.sql.CallableStatement`
+- `null` — for connection-level activities and sub-activities
+
+These methods are only valid **inside** a `publish()` invocation. Calling them outside
+`publish()` (e.g., from another thread or after `publish()` returns) will return `null`.
+
+> **Note**: Sub-activities like `STATEMENT_REQUEST_BUILD` and `STATEMENT_FIRST_SERVER_RESPONSE`
+> do not provide SQL or statement type information. Only the top-level execution activities
+> (`STATEMENT_EXECUTE`, `STATEMENT_PREPEXEC`, `STATEMENT_PREPARE`) populate these values.
+
 ### 2. Java Logging Configuration
 
 Configure `java.util.logging` for the performance metrics loggers at `FINE` level:
@@ -278,5 +321,5 @@ try {
 - `SQLServerStatement.java` - Base statement activities and tracking helper methods
 - `SQLServerPreparedStatement.java` - Prepared statement activities
 - `PerformanceActivity.java` - Activity enum definitions
-- `PerformanceLog.java` - Logging infrastructure
-- `PerformanceLogCallback.java` - Callback interface (includes `useNanoseconds()` for nanosecond granularity)
+- `PerformanceLog.java` - Logging infrastructure (ThreadLocal context for userSql/statementType)
+- `PerformanceLogCallback.java` - Callback interface (includes `useNanoseconds()`, `getCurrentUserSql()`, `getCurrentStatementType()`)

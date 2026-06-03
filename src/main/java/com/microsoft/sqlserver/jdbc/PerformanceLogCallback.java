@@ -49,4 +49,27 @@ public interface PerformanceLogCallback {
         return false;
     }
 
+    /**
+     * Returns the SQL text for the current performance event.
+     * Only valid inside a {@link #publish} callback invocation.
+     * Returns {@code null} for connection-level activities or when called outside {@code publish()}.
+     *
+     * @return the user SQL text, or null if not available.
+     */
+    default String getCurrentUserSql() {
+        return PerformanceLog.currentUserSql.get();
+    }
+
+    /**
+     * Returns the statement type for the current performance event.
+     * Possible values: {@code "Statement"}, {@code "PreparedStatement"}, {@code "CallableStatement"}.
+     * Only valid inside a {@link #publish} callback invocation.
+     * Returns {@code null} for connection-level activities or when called outside {@code publish()}.
+     *
+     * @return the statement type string, or null if not applicable.
+     */
+    default String getCurrentStatementType() {
+        return PerformanceLog.currentStatementType.get();
+    }
+
 }
