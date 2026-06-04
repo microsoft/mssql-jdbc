@@ -216,28 +216,24 @@ final class KerbAuthentication extends SSPIAuthentication {
         try {
             scheme = new java.net.URI(effectiveValue).getScheme();
         } catch (java.net.URISyntaxException e) {
-            // URI parsing failed. As defense-in-depth, try java.net.URL — the same parser that
-            // JAAS ConfigFile uses internally to open remote configs. If URL can parse it with
-            // a non-file protocol, JAAS could also fetch it remotely, so we must block it.
-            try {
-                @SuppressWarnings("deprecation") // URL(String) deprecated since JDK 20 but matches JAAS behavior
-                java.net.URL url = new java.net.URL(effectiveValue);
-                String protocol = url.getProtocol();
-                if (protocol != null && protocol.length() > 1 && !"file".equalsIgnoreCase(protocol)) {
+            // URI parsing failed. As defense-in-depth, check whether the value looks like it has
+            // a remote scheme (e.g. "http://...", "ldap://..."). Even though URI couldn't parse it,
+            // JAAS ConfigFile may still attempt to open it via java.net.URL internally.
+            // Block anything that matches "scheme://" with a valid RFC 3986 scheme identifier
+            // unless the scheme is "file".
+            int schemeEnd = effectiveValue.indexOf("://");
+            if (schemeEnd > 0) {
+                String protocol = effectiveValue.substring(0, schemeEnd);
+                // Valid URI scheme per RFC 3986: ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+                if (protocol.matches("[a-zA-Z][a-zA-Z0-9+\\-.]*")
+                        && !"file".equalsIgnoreCase(protocol)) {
                     if (authLogger.isLoggable(Level.SEVERE)) {
-                        authLogger
-                                .severe("Refusing Kerberos login: java.security.auth.login.config has remote protocol '"
-                                        + protocol + "' (detected via URL fallback). Blocking as a precaution.");
+                        authLogger.severe(
+                                "Refusing Kerberos login: java.security.auth.login.config has scheme '"
+                                        + protocol + "' that is not parseable as a URI but looks remote. Blocking.");
                     }
-                    throw new SQLServerException(SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"),
-                            null, 0, null);
-                }
-            } catch (java.net.MalformedURLException mue) {
-                // URL also can't parse it — JAAS ConfigFile uses the same URL() constructor,
-                // so it cannot fetch this remotely either. Safe to allow.
-                if (authLogger.isLoggable(Level.FINE)) {
-                    authLogger.fine("java.security.auth.login.config value is not a valid URI or URL; "
-                            + "treating as local path: " + mue.getMessage());
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null, 0, null);
                 }
             }
             return;
