@@ -133,12 +133,11 @@ public class KerberosTest extends AbstractTest {
     }
 
     /**
-     * Test that JaasConfiguration with null delegate provides safe defaults.
-     * This verifies the security fix - using null instead of Configuration.getConfiguration()
-     * prevents loading potentially malicious remote JAAS configs.
+     * Test that assertSafeJaasLoginConfigProperty allows null/empty system property values.
+     * When java.security.auth.login.config is unset, the method should pass without error.
      */
     @Test
-    public void testJaasConfigurationSecureDefaults() throws Exception {
+    public void testAssertSafeJaasLoginConfigProperty_allowsNullProperty() throws Exception {
         // assertSafeJaasLoginConfigProperty should allow null/empty property
         String original = System.getProperty("java.security.auth.login.config");
         try {

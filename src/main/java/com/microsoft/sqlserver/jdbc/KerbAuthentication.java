@@ -232,8 +232,10 @@ final class KerbAuthentication extends SSPIAuthentication {
                                 "Refusing Kerberos login: java.security.auth.login.config has scheme '"
                                         + protocol + "' that is not parseable as a URI but looks remote. Blocking.");
                     }
-                    throw new SQLServerException(
+                    SQLServerException ex = new SQLServerException(
                             SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null, 0, null);
+                    ex.setDriverErrorCode(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG);
+                    throw ex;
                 }
             }
             return;
@@ -252,8 +254,10 @@ final class KerbAuthentication extends SSPIAuthentication {
                     "Refusing Kerberos login: java.security.auth.login.config has unsafe scheme '"
                             + scheme + "'. Only local file paths or file: URIs are permitted.");
         }
-        throw new SQLServerException(
+        SQLServerException ex = new SQLServerException(
                 SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null, 0, null);
+        ex.setDriverErrorCode(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG);
+        throw ex;
     }
 
     // We have to do a privileged action to create the credential of the user in the current context
