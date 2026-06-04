@@ -269,8 +269,8 @@ public class KerberosTest extends AbstractTest {
                     Assertions.assertTrue(e.getCause() instanceof SQLServerException,
                             "Should throw SQLServerException for PoC payload: " + payload);
                     Assertions.assertTrue(
-                            e.getCause().getMessage().contains("non-local"),
-                            "Error message should indicate non-local location for: " + payload);
+                            e.getCause().getMessage().contains("must be a local file path"),
+                            "Error message should indicate local file requirement for: " + payload);
                 }
             }
         } finally {

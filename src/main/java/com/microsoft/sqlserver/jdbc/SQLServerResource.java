@@ -262,9 +262,10 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_valueOutOfRangeSQLType", "One or more values is out of range of values for the {0} SQL type."},
         {"R_integratedAuthenticationFailed", "Integrated authentication failed."},
         {"R_unsafeJaasLoginConfigProperty",
-                "The system property \"java.security.auth.login.config\" refers to a non-local location. "
-                        + "Only local file paths or file: URIs are permitted for Kerberos authentication. "
-                        + "Set useDefaultJaasConfig=true to bypass the JVM-wide JAAS configuration."},
+                "The system property \"java.security.auth.login.config\" must be a local file path "
+                        + "or file: URI for Kerberos authentication. Non-local URLs (e.g. http, https, "
+                        + "ldap, jar, rmi) are not permitted. Set useDefaultJaasConfig=true to bypass "
+                        + "the JVM-wide JAAS configuration."},
         {"R_permissionDenied", "Security violation. Permission to target \"{0}\" denied."},
         {"R_getSchemaError", "Error getting default schema name."},
         {"R_setSchemaWarning", "Warning: setSchema is a no-op in this driver version."},

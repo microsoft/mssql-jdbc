@@ -110,11 +110,12 @@ final class KerbAuthentication extends SSPIAuthentication {
                             lc = new LoginContext(configName, null, callback, new JaasConfiguration(null));
                         } else {
                             // CVE mitigation: refuse to consult the JVM-wide JAAS Configuration when
-                            // java.security.auth.login.config points at a non-local (remote) source.
-                            // A remote jaas.conf can declare arbitrary LoginModules (e.g. JndiLoginModule)
-                            // and trigger JNDI/LDAP lookups during lc.login(), leading to RCE.
-                            // Local file paths / file: URIs continue to work; useDefaultJaasConfig=false
-                            // semantics are otherwise preserved.
+                            // java.security.auth.login.config points at anything that is not a local file.
+                            // A remote jaas.conf (http/https/ldap/jar/rmi/...) can declare arbitrary
+                            // LoginModules (e.g. JndiLoginModule) and trigger JNDI/LDAP lookups during
+                            // lc.login(), leading to RCE. Local filesystem paths and file: URIs
+                            // (including NFS/SMB mounts and UNC paths) continue to work; the
+                            // useDefaultJaasConfig=false semantics are otherwise preserved.
                             assertSafeJaasLoginConfigProperty();
                             lc = new LoginContext(configName, callback);
                         }
@@ -185,10 +186,14 @@ final class KerbAuthentication extends SSPIAuthentication {
     }
 
     /**
-     * Rejects remote values of the {@code java.security.auth.login.config} system property to prevent
-     * RCE via externally-controlled JAAS configuration (e.g. a remote jaas.conf declaring JndiLoginModule).
-     * Only unset values, plain filesystem paths, and {@code file:} URIs are accepted. Any URI with a
-     * scheme other than {@code file} (e.g. http, https, ftp, jar, ldap) is refused.
+     * Rejects values of the {@code java.security.auth.login.config} system property that do not
+     * resolve to a local filesystem file. Prevents RCE via attacker-controlled JAAS configuration
+     * (e.g. a remote jaas.conf declaring JndiLoginModule, fetched through http/https/ldap/jar/rmi
+     * or any custom URLStreamHandler).
+     *
+     * <p>Allow-list: unset/empty values, anything parseable as a local {@link java.nio.file.Path}
+     * (including Windows drive-letter paths and UNC paths), and {@code file:} URIs that resolve
+     * to a {@code Path}. Everything else is rejected.
      */
     private static void assertSafeJaasLoginConfigProperty() throws SQLServerException {
         String value;
@@ -204,60 +209,53 @@ final class KerbAuthentication extends SSPIAuthentication {
             return;
         }
 
-        // The '=' prefix is special syntax for java.security.auth.login.config:
-        // it forces the JVM to use ONLY that URL (stripping the '=') as the config source.
-        // Strip it before validation so the underlying URL is properly checked.
-        String effectiveValue = value.startsWith("=") ? value.substring(1) : value;
-        if (effectiveValue.isEmpty()) {
-            return;
-        }
-
-        String scheme;
-        try {
-            scheme = new java.net.URI(effectiveValue).getScheme();
-        } catch (java.net.URISyntaxException e) {
-            // URI parsing failed. As defense-in-depth, check whether the value looks like it has
-            // a remote scheme (e.g. "http://...", "ldap://..."). Even though URI couldn't parse it,
-            // JAAS ConfigFile may still attempt to open it via java.net.URL internally.
-            // Block anything that matches "scheme://" with a valid RFC 3986 scheme identifier
-            // unless the scheme is "file".
-            int schemeEnd = effectiveValue.indexOf("://");
-            if (schemeEnd > 0) {
-                String protocol = effectiveValue.substring(0, schemeEnd);
-                // Valid URI scheme per RFC 3986: ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
-                if (protocol.matches("[a-zA-Z][a-zA-Z0-9+\\-.]*")
-                        && !"file".equalsIgnoreCase(protocol)) {
-                    if (authLogger.isLoggable(Level.SEVERE)) {
-                        authLogger.severe(
-                                "Refusing Kerberos login: java.security.auth.login.config has scheme '"
-                                        + protocol + "' that is not parseable as a URI but looks remote. Blocking.");
-                    }
-                    SQLServerException ex = new SQLServerException(
-                            SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null, 0, null);
-                    ex.setDriverErrorCode(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG);
-                    throw ex;
-                }
+        // The '=' prefix is special JAAS syntax: it forces the JVM to use ONLY this URL
+        // as the config source. Strip it before validation so the underlying value is checked.
+        if (value.startsWith("=")) {
+            value = value.substring(1);
+            if (value.isEmpty()) {
+                return;
             }
-            return;
         }
 
-        // No scheme => plain local path. Single-letter scheme => Windows drive letter (e.g. "C:/foo").
-        if (null == scheme || scheme.length() == 1) {
-            return;
-        }
-        if ("file".equalsIgnoreCase(scheme)) {
-            return;
+        // If the value parses as a URI with a scheme of more than one character, the only
+        // scheme we accept is file:. Single-letter schemes (e.g. URI parses "C:/foo" with
+        // scheme "C") are Windows drive letters and fall through to the Path check below.
+        try {
+            java.net.URI uri = new java.net.URI(value);
+            String scheme = uri.getScheme();
+            if (null != scheme && scheme.length() > 1) {
+                if (!"file".equalsIgnoreCase(scheme)) {
+                    failUnsafeJaasLoginConfig(scheme);
+                }
+                // file: URI — must resolve to a usable Path.
+                java.nio.file.Paths.get(uri);
+                return;
+            }
+        } catch (java.net.URISyntaxException e) {
+            // Not a URI (e.g. "C:\foo\jaas.conf" with backslashes). Fall through to Path check.
+        } catch (IllegalArgumentException e) {
+            // file: URI that Paths.get cannot resolve (e.g. opaque or unsupported authority).
+            // Also covers InvalidPathException which is a subclass of IllegalArgumentException.
+            failUnsafeJaasLoginConfig(value);
         }
 
+        // No URI scheme (or unparseable as URI) => must resolve as a local filesystem path.
+        try {
+            java.nio.file.Paths.get(value);
+        } catch (java.nio.file.InvalidPathException e) {
+            failUnsafeJaasLoginConfig(value);
+        }
+    }
+
+    private static void failUnsafeJaasLoginConfig(String detail) throws SQLServerException {
         if (authLogger.isLoggable(Level.SEVERE)) {
             authLogger.severe(
-                    "Refusing Kerberos login: java.security.auth.login.config has unsafe scheme '"
-                            + scheme + "'. Only local file paths or file: URIs are permitted.");
+                    "Refusing Kerberos login: java.security.auth.login.config must be a local file "
+                            + "path or file: URI. Rejected: '" + detail + "'.");
         }
-        SQLServerException ex = new SQLServerException(
+        throw new SQLServerException(
                 SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null, 0, null);
-        ex.setDriverErrorCode(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG);
-        throw ex;
     }
 
     // We have to do a privileged action to create the credential of the user in the current context
