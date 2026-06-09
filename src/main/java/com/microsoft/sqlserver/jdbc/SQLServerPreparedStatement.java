@@ -820,16 +820,26 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Determines whether to consume (discard) INSERT DONEINPROC tokens during result processing.
-     *
-     * When generated keys are requested, always consumes to reach the appended SCOPE_IDENTITY() result.
-     * Otherwise, defers to the lastUpdateCount connection property:
-     *   true (default) - consumes intermediate INSERT counts (hides trigger noise)
-     *   false          - retains all counts, enabling full compound SQL navigation via getMoreResults()
+     * Decides whether to consume INSERT DONEINPROC tokens on the {@code execute()} path
+     * (only reached when {@code onDone()} matches {@code EXECUTE == executeMethod}). Consume when
+     * generated keys are requested so the parser reaches the injected {@code SCOPE_IDENTITY()}
+     * ResultSet (PR #2554 / #2740 / #2742); otherwise do not consume, so every update count in
+     * compound SQL (e.g. {@code DELETE; INSERT; INSERT; UPDATE; INSERT; SELECT}) and the trailing
+     * SELECT are preserved (GitHub #2722 / #2940) — per the documented contract that
+     * {@code lastUpdateCount} applies only to {@code executeUpdate()}, while all other execute
+     * methods return all results and update counts
+     * (<a href="https://learn.microsoft.com/en-us/sql/connect/jdbc/setting-the-connection-properties#lastupdatecount">lastUpdateCount</a>).
+     * The {@code EXECUTE_UPDATE} branch below is defensive only and unreachable today.
      */
     @Override
     protected boolean shouldConsumeInsertDoneToken() {
-        return bRequestedGeneratedKeys;
+        if (bRequestedGeneratedKeys) {
+            return true;
+        }
+        if (EXECUTE_UPDATE == executeMethod) {
+            return connection.useLastUpdateCount();
+        }
+        return false;
     }
 
     /**

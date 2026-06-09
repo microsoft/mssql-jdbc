@@ -1679,7 +1679,32 @@ public class SQLServerStatement implements ISQLServerStatement {
                  * know at the time whether it was the undesired result from a trigger, and if we did not encounter an
                  * ERROR token before hitting this COLMETADATA token, with any intervening DONE token (does not indicate
                  * an error result), then go ahead.
+                 *
+                 * Problem:
+                 * In onDone(), stmtDoneToken is assigned before checking whether the DONE/DONEINPROC
+                 * token (e.g., from an INSERT) should be consumed. If such a token is later consumed
+                 * (i.e., not exposed to the caller), stmtDoneToken may still reference it.
+                 *
+                 * When a COLMETADATA token follows (for a subsequent SELECT), this stale reference
+                 * can cause the driver to misinterpret the state and skip creating the expected
+                 * ResultSet — the trailing SELECT silently disappears (GitHub #2940 / #2722).
+                 *
+                 * Fix:
+                 * If stmtDoneToken refers to an INSERT DONE/DONEINPROC token that has been consumed
+                 * (per shouldConsumeInsertDoneToken()), clear it so that the subsequent COLMETADATA
+                 * is correctly recognized as a ResultSet.
+                 *
+                 * The guard "!bRequestedGeneratedKeys" ensures we do not clear stmtDoneToken when
+                 * COLMETADATA corresponds to the driver-injected SCOPE_IDENTITY() result used for
+                 * generated keys, where the INSERT update count must remain available for
+                 * getUpdateCount() (preserves PR #2554 / #2740 / #2742).
                  */
+                if (null != stmtDoneToken && null == getDatabaseError()
+                        && StreamDone.CMD_INSERT == stmtDoneToken.getCurCmd()
+                        && shouldConsumeInsertDoneToken()
+                        && !bRequestedGeneratedKeys) {
+                    stmtDoneToken = null;
+                }
                 if (null == stmtDoneToken && null == getDatabaseError()) {
                     // If both conditions are true, column metadata indicates the start of a ResultSet
                     isResultSet = true;

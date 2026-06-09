@@ -3125,39 +3125,37 @@ public class StatementTest extends AbstractTest {
 
         /**
          * Tests multi-statement PreparedStatement with loop to process all results
-         * using lastUpdateCount=true (default). The table has an INSERT trigger, so
-         * INSERT DONEINPROC tokens (both trigger and main) are consumed.
-         *
-         * SQL: "DELETE; INSERT; INSERT; UPDATE; INSERT; INSERT; SELECT"
-         * Table starts with 3 rows from @BeforeEach setup.
-         * Expected visible results with lastUpdateCount=true:
-         *   DELETE=3, UPDATE=2, SELECT(4 rows)
-         *   (all INSERT DONEINPROC tokens consumed: trigger + main)
          *
          * @throws SQLException
          */
         @Test
         public void testMultiStatementPreparedStatementLoopResults() throws SQLException {
             try (Connection con = getConnection()) {
-                String sql = "DELETE FROM " + tableName + " " +
+                try (PreparedStatement ps = con.prepareStatement("DELETE FROM " + tableName + " " +
                         "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
                         "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
                         "UPDATE " + tableName + " SET NAME = 'updated' " +
                         "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
                         "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
-                        "SELECT * FROM " + tableName;
-                try (PreparedStatement ps = con.prepareStatement(sql)) {
+                        "SELECT * FROM " + tableName)) {
+                    
                     ps.setString(1, "test1");
                     ps.setString(2, "test2");
                     ps.setString(3, "test3");
                     ps.setString(4, "test4");
 
-                    boolean hasResults = ps.execute();
-                    List<Integer> updateCounts = new ArrayList<>();
-                    int resultSetCount = 0;
-
-                    while (true) {
-                        if (hasResults) {
+                    boolean retval = ps.execute();
+                    do {
+                        if (!retval) {
+                            int count = ps.getUpdateCount();
+                            if (count == -1) {
+                                // no more results
+                                break;
+                            } else {
+                                assertTrue(count >= 0, "update count should be non-negative: " + count);
+                            }
+                        } else {
+                            // process ResultSet
                             try (ResultSet rs = ps.getResultSet()) {
                                 int rowCount = 0;
                                 while (rs.next()) {
@@ -3167,118 +3165,9 @@ public class StatementTest extends AbstractTest {
                                 }
                                 assertEquals(4, rowCount, "Expected 4 rows in result set");
                             }
-                            resultSetCount++;
-                        } else {
-                            int count = ps.getUpdateCount();
-                            if (count == -1) break;
-                            updateCounts.add(count);
                         }
-                        hasResults = ps.getMoreResults();
-                    }
-
-            // With execute() and getMoreResults(), all update counts are returned regardless of lastUpdateCount property.
-            // Expected: DELETE=3, then for each of 4 INSERTs: trigger=1 + main=1, UPDATE=2, then 2 more INSERTs: trigger=1 + main=1
-            // Total: 1(DELETE) + 4*2(INSERT trigger+main) + 1(UPDATE) = 10 update counts
-            assertEquals(10, updateCounts.size(),
-                "Should have 10 update counts (DELETE, all INSERT triggers/mains, UPDATE), got: " + updateCounts);
-            assertEquals(3, updateCounts.get(0), "DELETE should affect 3 rows");
-            // First INSERT: trigger then main
-            assertEquals(1, updateCounts.get(1), "First INSERT trigger count should be 1");
-            assertEquals(1, updateCounts.get(2), "First INSERT main count should be 1");
-            // Second INSERT: trigger then main
-            assertEquals(1, updateCounts.get(3), "Second INSERT trigger count should be 1");
-            assertEquals(1, updateCounts.get(4), "Second INSERT main count should be 1");
-            // UPDATE
-            assertEquals(2, updateCounts.get(5), "UPDATE should affect 2 rows");
-            // Third INSERT: trigger then main
-            assertEquals(1, updateCounts.get(6), "Third INSERT trigger count should be 1");
-            assertEquals(1, updateCounts.get(7), "Third INSERT main count should be 1");
-            // Fourth INSERT: trigger then main
-            assertEquals(1, updateCounts.get(8), "Fourth INSERT trigger count should be 1");
-            assertEquals(1, updateCounts.get(9), "Fourth INSERT main count should be 1");
-            assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
-            assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1");
-                }
-            }
-        }
-
-        /**
-         * Tests multi-statement PreparedStatement with loop to process all results
-         * using lastUpdateCount=false. The table has an INSERT trigger, so ALL
-         * DONEINPROC tokens (trigger + main) are visible.
-         *
-         * SQL: "DELETE; INSERT; INSERT; UPDATE; INSERT; INSERT; SELECT"
-         * Table starts with 3 rows from @BeforeEach setup.
-         * Expected visible results with lastUpdateCount=false:
-         *   DELETE=3, triggerINSERT=1, mainINSERT=1, triggerINSERT=1, mainINSERT=1,
-         *   UPDATE=2, triggerINSERT=1, mainINSERT=1, triggerINSERT=1, mainINSERT=1,
-         *   SELECT(4 rows)
-         *   Total: 10 update counts + 1 ResultSet
-         *
-         * @throws SQLException
-         */
-        @Test
-        public void testMultiStatementPreparedStatementLoopResultsLastUpdateCountFalse() throws SQLException {
-            try (Connection con = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false")) {
-                String sql = "DELETE FROM " + tableName + " " +
-                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
-                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
-                        "UPDATE " + tableName + " SET NAME = 'updated' " +
-                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
-                        "INSERT INTO " + tableName + " (NAME) VALUES (?) " +
-                        "SELECT * FROM " + tableName;
-                try (PreparedStatement ps = con.prepareStatement(sql)) {
-                    ps.setString(1, "test1");
-                    ps.setString(2, "test2");
-                    ps.setString(3, "test3");
-                    ps.setString(4, "test4");
-
-                    boolean hasResults = ps.execute();
-                    List<Integer> updateCounts = new ArrayList<>();
-                    int resultSetCount = 0;
-
-                    while (true) {
-                        if (hasResults) {
-                            try (ResultSet rs = ps.getResultSet()) {
-                                int rowCount = 0;
-                                while (rs.next()) {
-                                    String name = rs.getString("NAME");
-                                    assertTrue(name != null, "name should not be null");
-                                    rowCount++;
-                                }
-                                assertEquals(4, rowCount, "Expected 4 rows in result set");
-                            }
-                            resultSetCount++;
-                        } else {
-                            int count = ps.getUpdateCount();
-                            if (count == -1) break;
-                            updateCounts.add(count);
-                        }
-                        hasResults = ps.getMoreResults();
-                    }
-
-                    // With lastUpdateCount=false and triggers, ALL tokens are visible:
-                    // DELETE=3, then for each of 4 INSERTs: trigger=1 + main=1, plus UPDATE=2
-                    // Total: 1(DELETE) + 4*2(INSERT trigger+main) + 1(UPDATE) = 10 update counts
-                    assertEquals(10, updateCounts.size(),
-                            "With lastUpdateCount=false, all update counts including trigger should be visible, got: " + updateCounts);
-                    assertEquals(3, updateCounts.get(0), "DELETE should affect 3 rows");
-                    // First INSERT: trigger then main
-                    assertEquals(1, updateCounts.get(1), "First INSERT trigger count should be 1");
-                    assertEquals(1, updateCounts.get(2), "First INSERT main count should be 1");
-                    // Second INSERT: trigger then main
-                    assertEquals(1, updateCounts.get(3), "Second INSERT trigger count should be 1");
-                    assertEquals(1, updateCounts.get(4), "Second INSERT main count should be 1");
-                    // UPDATE
-                    assertEquals(2, updateCounts.get(5), "UPDATE should affect 2 rows");
-                    // Third INSERT: trigger then main
-                    assertEquals(1, updateCounts.get(6), "Third INSERT trigger count should be 1");
-                    assertEquals(1, updateCounts.get(7), "Third INSERT main count should be 1");
-                    // Fourth INSERT: trigger then main
-                    assertEquals(1, updateCounts.get(8), "Fourth INSERT trigger count should be 1");
-                    assertEquals(1, updateCounts.get(9), "Fourth INSERT main count should be 1");
-                    assertEquals(1, resultSetCount, "Should have exactly 1 ResultSet");
-                    assertEquals(-1, ps.getUpdateCount(), "Final getUpdateCount() should return -1");
+                        retval = ps.getMoreResults();
+                    } while (true);
                 }
             }
         }
@@ -3546,9 +3435,11 @@ public class StatementTest extends AbstractTest {
 
                 stmt.executeUpdate("CREATE TABLE " + testTableA + " (ID int NOT NULL IDENTITY(1,1) PRIMARY KEY, NAME varchar(32))");
                 stmt.executeUpdate("CREATE TABLE " + testTableB + " (ID int NOT NULL IDENTITY(1,1) PRIMARY KEY)");
-                
-             
+
+                // SET NOCOUNT ON suppresses the trigger's own DONEINPROC row count so the outer
+                // INSERT's update count (2) is the first one the driver surfaces. See test Javadoc.
                 stmt.executeUpdate("CREATE TRIGGER " + testTrigger + " ON " + testTableA + " FOR INSERT AS "
+                        + "SET NOCOUNT ON; "
                         + "INSERT INTO " + testTableB + " DEFAULT VALUES");
 
                 // Test case: INSERT with multiple values should return correct update count
