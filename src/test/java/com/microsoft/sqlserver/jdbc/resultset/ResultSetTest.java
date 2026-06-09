@@ -1681,6 +1681,7 @@ public class ResultSetTest extends AbstractTest {
      * All bugs are tagged with their VSTS bug number for traceability.
      */
     @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxResultSet)
     @Nested
     class BugRegressionTests {
 

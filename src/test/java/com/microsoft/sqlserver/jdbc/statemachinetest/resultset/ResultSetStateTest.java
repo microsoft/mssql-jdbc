@@ -50,6 +50,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * validated against DataCache.
  */
 @Tag(Constants.legacyFx)
+@Tag(Constants.legacyFxStateMachine)
 public class ResultSetStateTest extends AbstractTest {
 
     private static final String TABLE_NAME = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SM_ResultSet_Test"));
