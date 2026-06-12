@@ -323,6 +323,48 @@ public class KerberosTest extends AbstractTest {
     }
 
     /**
+     * Test that assertSafeJaasLoginConfigProperty allows mounted drive paths,
+     * UNC paths, mapped network drives, relative paths, paths with spaces,
+     * and paths using the JAAS '=' prefix syntax.
+     */
+    @Test
+    public void testAssertSafeJaasLoginConfigPropertyAllowsMountedAndPositiveFilePaths() throws Exception {
+        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
+        java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
+        assertMethod.setAccessible(true);
+
+        String[] validPaths = {
+                // Mounted drive paths
+                "Z:\\shared\\security\\jaas.conf",
+                "E:/mnt/kerberos/login.conf",
+                "\\\\fileserver.domain.com\\security\\jaas.conf",
+                // Positive file paths
+                "../config/jaas.conf",
+                "C:\\Program Files\\Java\\conf\\jaas.conf",
+                "=/etc/jaas.conf",
+                "=C:\\config\\jaas.conf"
+        };
+
+        String original = System.getProperty("java.security.auth.login.config");
+        try {
+            for (String path : validPaths) {
+                System.setProperty("java.security.auth.login.config", path);
+                try {
+                    assertMethod.invoke(null);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    Assertions.fail("Should NOT have thrown for valid path: " + path + " - " + e.getCause());
+                }
+            }
+        } finally {
+            if (original != null) {
+                System.setProperty("java.security.auth.login.config", original);
+            } else {
+                System.clearProperty("java.security.auth.login.config");
+            }
+        }
+    }
+
+    /**
      * Overwrites the default JAAS config. Call before making a connection.
      */
     private static void overwriteJaasConfig() {
