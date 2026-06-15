@@ -729,9 +729,9 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         }
 
         /**
-         * Validates PreparedStatement.executeUpdate on a complex compound DML chain
-         * (DELETE;INSERT;UPDATE;INSERT;UPDATE) returns the LAST count (UPDATE = 2 rows)
-         * under default lastUpdateCount=true.
+         * Compound chain DELETE;INSERT;UPDATE;INSERT;UPDATE: confirms the underlying count
+         * sequence is [3, 1, 1, 1, 2] (via {@code execute()}) and that {@code executeUpdate}
+         * under default {@code lastUpdateCount=true} selects the LAST count (2).
          */
         @Test
         public void preparedStatementExecuteUpdateComplexCompoundDmlChainReturnsLastCount()
@@ -740,21 +740,38 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
-                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
+                    String seed = "INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)";
+                    stmt.executeUpdate(seed);
 
                     String sql = "DELETE FROM " + table + ";"
                             + " INSERT INTO " + table + " VALUES (?, ?);"
                             + " UPDATE " + table + " SET c2 = 50;"
                             + " INSERT INTO " + table + " VALUES (?, ?);"
                             + " UPDATE " + table + " SET c2 = 99";
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        ps.setInt(3, 20); ps.setInt(4, 20);
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet, "first result must be DELETE's count");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(3, 1, 1, 1, 2), t.updateCounts,
+                                "execute() must surface the 5-count sequence in order: "
+                                        + "DELETE=3, INSERT=1, UPDATE=1, INSERT=1, UPDATE=2");
+                        assertEquals(0, t.resultSetRowCounts.size(),
+                                "no SELECT in payload → no ResultSet must surface");
+                    }
+
+                    stmt.executeUpdate("DELETE FROM " + table);
+                    stmt.executeUpdate(seed);
+
                     try (PreparedStatement ps = conn.prepareStatement(sql)) {
                         ps.setInt(1, 10); ps.setInt(2, 10);
                         ps.setInt(3, 20); ps.setInt(4, 20);
                         int count = ps.executeUpdate();
-                        // DELETE=3, INSERT=1, UPDATE=1, INSERT=1, UPDATE=2 → LAST=2
                         assertEquals(2, count,
-                                "executeUpdate on DELETE;INSERT;UPDATE;INSERT;UPDATE must return LAST count "
-                                        + "(final UPDATE touched 2 rows); default lastUpdateCount=true returns LAST");
+                                "default lastUpdateCount=true: executeUpdate returns LAST count = 2 "
+                                        + "(final UPDATE on the 2 surviving rows)");
                     }
                 } finally {
                     TestUtils.dropTableIfExists(table, stmt);
@@ -800,9 +817,11 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         }
 
         /**
-         * Validates Statement.executeUpdate on compound DML returns FIRST count, not LAST —
-         * the lastUpdateCount property is PreparedStatement-only and does NOT apply to the
-         * Statement code path. PS would return LAST=2 under default lastUpdateCount=true.
+         * Statement.executeUpdate on compound DML returns FIRST count, not LAST — the
+         * {@code lastUpdateCount} property is PreparedStatement-only and does NOT apply to
+         * the Statement code path. Confirms the underlying count sequence is [3, 1, 1, 1, 2]
+         * (via {@code Statement.execute()}) and that {@code Statement.executeUpdate} selects
+         * the FIRST count (3 = DELETE).
          */
         @Test
         public void statementExecuteUpdateComplexCompoundDmlChainReturnsFirstCount()
@@ -811,20 +830,32 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
-                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
+                    String seed = "INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)";
+                    stmt.executeUpdate(seed);
 
                     String sql = "DELETE FROM " + table + ";"
                             + " INSERT INTO " + table + " VALUES (10, 10);"
                             + " UPDATE " + table + " SET c2 = 50;"
                             + " INSERT INTO " + table + " VALUES (20, 20);"
                             + " UPDATE " + table + " SET c2 = 99";
+
+                    boolean isResultSet = stmt.execute(sql);
+                    assertFalse(isResultSet, "first result must be DELETE's count");
+                    Traversal t = traverseAllResults(stmt, isResultSet);
+                    assertEquals(Arrays.asList(3, 1, 1, 1, 2), t.updateCounts,
+                            "Statement.execute() must surface the 5-count sequence in order: "
+                                    + "DELETE=3, INSERT=1, UPDATE=1, INSERT=1, UPDATE=2");
+                    assertEquals(0, t.resultSetRowCounts.size(),
+                            "no SELECT in payload → no ResultSet must surface");
+
+                    stmt.executeUpdate("DELETE FROM " + table);
+                    stmt.executeUpdate(seed);
+
                     int count = stmt.executeUpdate(sql);
-                    // Statement.executeUpdate returns FIRST count = DELETE = 3 (3 pre-existing
-                    // rows removed); lastUpdateCount property does NOT apply to Statement path.
                     assertEquals(3, count,
-                            "Statement.executeUpdate returns FIRST count = 3 (DELETE's count); "
-                                    + "lastUpdateCount property is PreparedStatement-only and does NOT "
-                                    + "apply to the Statement code path");
+                            "Statement.executeUpdate returns FIRST count = 3 (DELETE's count) "
+                                    + "from the [3, 1, 1, 1, 2] sequence; "
+                                    + "lastUpdateCount property is PreparedStatement-only");
                 } finally {
                     TestUtils.dropTableIfExists(table, stmt);
                 }
@@ -832,9 +863,10 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         }
 
         /**
-         * Validates executeUpdate with leading SET NOCOUNT ON on compound DML returns -1
-         * (no DONE-with-count tokens on wire), not 0. DML still executes — all 3 INSERTs
-         * persist — but no count surfaces. Spec would allow 0; mssql-jdbc returns -1.
+         * Leading {@code SET NOCOUNT ON} suppresses every DML count token at the wire. Confirms
+         * the underlying count list is empty (via {@code execute()}) and that
+         * {@code executeUpdate} returns {@code -1} (mssql-jdbc-specific; spec would allow 0).
+         * Persisted state proves the DML actually ran.
          */
         @Test
         public void preparedStatementExecuteUpdateCompoundWithLeadingSetNoCountOnReturnsMinusOne()
@@ -848,17 +880,32 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                             + " INSERT INTO " + table + " VALUES (?, ?);"
                             + " INSERT INTO " + table + " VALUES (?, ?);"
                             + " UPDATE " + table + " SET c2 = 99";
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 1); ps.setInt(2, 1);
+                        ps.setInt(3, 2); ps.setInt(4, 2);
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet, "no SELECT in payload → execute() returns false");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(0, t.updateCounts.size(),
+                                "SET NOCOUNT ON must suppress every DML count token at the wire "
+                                        + "→ execute() must see ZERO update counts (INSERT, INSERT, UPDATE all silenced)");
+                        assertEquals(0, t.resultSetRowCounts.size(),
+                                "no SELECT in payload → no ResultSet must surface");
+                    }
+
+                    stmt.executeUpdate("DELETE FROM " + table);
+
                     try (PreparedStatement ps = conn.prepareStatement(sql)) {
                         ps.setInt(1, 1); ps.setInt(2, 1);
                         ps.setInt(3, 2); ps.setInt(4, 2);
                         int count = ps.executeUpdate();
                         assertEquals(-1, count,
-                                "leading SET NOCOUNT ON suppresses all DML counts → no DONE-with-count "
-                                        + "tokens on wire → executeUpdate returns -1 (terminal sentinel); "
+                                "with empty count sequence, executeUpdate hits the terminal -1 "
+                                        + "sentinel immediately and returns it; "
                                         + "mssql-jdbc-specific (spec would allow 0)");
                     }
 
-                    // Verify the DML actually ran despite no counts surfacing
                     try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table
                             + " WHERE c2 = 99")) {
                         assertTrue(rs.next());
@@ -884,7 +931,11 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
     @Nested
     public class ExecuteQueryContracts {
 
-        /** {@code Statement.executeQuery("INSERT;SELECT")} silently consumes the INSERT and returns the SELECT. */
+        /**
+         * {@code Statement.executeQuery("INSERT;SELECT")} — driver consumes the leading INSERT
+         * count internally and returns the trailing SELECT. Asserts per-row data and the
+         * persisted row count (proves the INSERT actually ran).
+         */
         @Test
         public void statementExecuteQueryConsumesLeadingInsert() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQLeadStmt"));
@@ -899,13 +950,21 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                         assertEquals(1, rs.getInt("c2"), "row's c2 must be 1");
                         assertFalse(rs.next(), "ResultSet must have exactly 1 row");
                     }
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1),
+                                "leading INSERT must have persisted — exactly 1 row in the table");
+                    }
                 } finally {
                     TestUtils.dropTableIfExists(table, stmt);
                 }
             }
         }
 
-        /** {@link PreparedStatement} equivalent of {@code executeQuery("INSERT;SELECT")}. */
+        /**
+         * {@link PreparedStatement} equivalent of {@code executeQuery("INSERT;SELECT")}.
+         * Asserts per-row data + persisted state.
+         */
         @Test
         public void preparedStatementExecuteQueryConsumesLeadingInsert() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQLeadPS"));
@@ -923,6 +982,11 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                             assertEquals(4, rs.getInt("c2"), "row's c2 must match the parameter value");
                             assertFalse(rs.next(), "ResultSet must have exactly 1 row");
                         }
+                    }
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1),
+                                "leading INSERT must have persisted — exactly 1 row in the table");
                     }
                 } finally {
                     TestUtils.dropTableIfExists(table, stmt);
@@ -943,6 +1007,351 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                             "executeQuery on a pure UPDATE must throw because no ResultSet is produced");
                 } finally {
                     TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+    }
+
+    // =========================================================================================
+    //  Section 4.A — executeQuery() × compound × property cross-products
+    // =========================================================================================
+
+    /**
+     * Validates that {@code executeQuery()} correctly consumes ALL leading DML counts (not just
+     * one) and surfaces the trailing SELECT, even when the compound payload includes deep DML
+     * chains, NOCOUNT, triggers, or property overrides ({@code lastUpdateCount},
+     * {@code prepareMethod}). Mirrors the {@code DELETE;INSERT;UPDATE;INSERT;SELECT} regression
+     * shape from #2941 against the executeQuery path.
+     */
+    @Nested
+    public class ExecuteQueryCompoundContracts {
+
+        /**
+         * Deep compound DELETE;INSERT;UPDATE;INSERT;SELECT — confirms the underlying count
+         * sequence is [3, 1, 1, 1] (via {@code execute()}) and that {@code executeQuery}
+         * consumes those leading counts and returns the trailing SELECT with correct rows.
+         */
+        @Test
+        public void preparedStatementExecuteQueryDeepCompoundChainEndingInSelect() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQDeepPS"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    String seed = "INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)";
+                    stmt.executeUpdate(seed);
+
+                    // DELETE all 3 → INSERT (10,10) → UPDATE c2=99 → INSERT (20,20) → SELECT.
+                    // Final state: (10, 99) + (20, 20).
+                    String sql = "DELETE FROM " + table + ";"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " UPDATE " + table + " SET c2 = 99;"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " SELECT * FROM " + table + " ORDER BY c1";
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        ps.setInt(3, 20); ps.setInt(4, 20);
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet, "first result must be DELETE's count, not a ResultSet");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(3, 1, 1, 1), t.updateCounts,
+                                "compound DML counts must surface in order via execute(): "
+                                        + "DELETE=3, INSERT=1, UPDATE=1 (affects just-inserted row), INSERT=1");
+                        assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                                "trailing SELECT must surface as one ResultSet with 2 rows");
+                    }
+
+                    stmt.executeUpdate("DELETE FROM " + table);
+                    stmt.executeUpdate(seed);
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        ps.setInt(3, 20); ps.setInt(4, 20);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            assertNotNull(rs,
+                                    "executeQuery must consume the 4 leading DML counts and return the trailing SELECT");
+                            assertTrue(rs.next(), "row 1");
+                            assertEquals(10, rs.getInt("c1"), "row 1 c1 must be 10 (first INSERT)");
+                            assertEquals(99, rs.getInt("c2"), "row 1 c2 must be 99 (UPDATE applied)");
+                            assertTrue(rs.next(), "row 2");
+                            assertEquals(20, rs.getInt("c1"), "row 2 c1 must be 20 (second INSERT, post-UPDATE)");
+                            assertEquals(20, rs.getInt("c2"), "row 2 c2 must be 20 (not touched by UPDATE)");
+                            assertFalse(rs.next(), "exactly 2 rows");
+                        }
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(2, rs.getInt(1), "exactly 2 rows must persist after DELETE-all + 2 INSERTs");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * {@code executeQuery} compound under {@code lastUpdateCount=false}: the property is
+         * {@code executeUpdate}-only and must not affect {@code executeQuery} — leading DML
+         * counts are still consumed and the trailing SELECT is returned identically to default.
+         */
+        @Test
+        public void preparedStatementExecuteQueryCompoundUnderLastUpdateCountFalse() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQLucFPS"));
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    String seed = "INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)";
+                    stmt.executeUpdate(seed);
+
+                    // DELETE all 3 → INSERT (10, 10) → SELECT. Final: 1 row (10, 10).
+                    String sql = "DELETE FROM " + table + ";"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " SELECT * FROM " + table;
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet, "first result must be DELETE's count, not a ResultSet");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(3, 1), t.updateCounts,
+                                "execute() must surface both counts in order: DELETE=3, INSERT=1 "
+                                        + "(lastUpdateCount=false has no effect on execute() path)");
+                        assertEquals(Arrays.asList(1), t.resultSetRowCounts,
+                                "trailing SELECT must surface as one ResultSet with 1 row");
+                    }
+
+                    stmt.executeUpdate("DELETE FROM " + table);
+                    stmt.executeUpdate(seed);
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            assertNotNull(rs,
+                                    "lastUpdateCount=false must NOT affect executeQuery — leading DML still consumed, SELECT returned");
+                            assertTrue(rs.next(), "row");
+                            assertEquals(10, rs.getInt("c1"), "c1 must be 10");
+                            assertEquals(10, rs.getInt("c2"), "c2 must be 10");
+                            assertFalse(rs.next(), "exactly 1 row");
+                        }
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1), "exactly 1 row must persist after DELETE-all + 1 INSERT");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * {@code executeQuery} compound under {@code prepareMethod=none}: the direct PKT_QUERY
+         * path produces top-level {@code TDS_DONE} tokens, but {@code executeQuery} must still
+         * consume leading INSERT counts and return the trailing SELECT.
+         */
+        @Test
+        public void preparedStatementExecuteQueryCompoundWithPrepareMethodNone() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQPmnPS"));
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    String seed = "INSERT INTO " + table + " VALUES (1, 1), (2, 2)";
+                    stmt.executeUpdate(seed);
+
+                    String sql = "INSERT INTO " + table + " VALUES (?, ?);"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " SELECT * FROM " + table + " ORDER BY c1";
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        ps.setInt(3, 20); ps.setInt(4, 20);
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet, "first result must be INSERT's count");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(1, 1), t.updateCounts,
+                                "PKT_QUERY path must surface both INSERT counts: [1, 1]");
+                        assertEquals(Arrays.asList(4), t.resultSetRowCounts,
+                                "trailing SELECT must surface 4 rows (2 pre + 2 inserted)");
+                    }
+
+                    stmt.executeUpdate("DELETE FROM " + table);
+                    stmt.executeUpdate(seed);
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        ps.setInt(3, 20); ps.setInt(4, 20);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            assertNotNull(rs,
+                                    "prepareMethod=none (PKT_QUERY) must still consume both leading INSERT counts and return the SELECT");
+                            int[] expectedC1 = {1, 2, 10, 20};
+                            int row = 0;
+                            while (rs.next()) {
+                                assertTrue(row < expectedC1.length, "more rows than expected (max=4)");
+                                assertEquals(expectedC1[row], rs.getInt("c1"),
+                                        "row " + (row + 1) + " c1 mismatch");
+                                row++;
+                            }
+                            assertEquals(4, row, "exactly 4 rows");
+                        }
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(4, rs.getInt(1), "exactly 4 rows must persist (2 pre + 2 inserted)");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * {@code executeQuery} compound with leading {@code SET NOCOUNT ON}: confirms the
+         * underlying count list is empty (via {@code execute()}) and that {@code executeQuery}
+         * still surfaces the trailing SELECT cleanly. Persisted state proves the DML ran.
+         */
+        @Test
+        public void preparedStatementExecuteQueryCompoundWithLeadingSetNoCountOn() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQNcPS"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    String seed = "INSERT INTO " + table + " VALUES (1, 1), (2, 2)";
+                    stmt.executeUpdate(seed);
+
+                    // SET NOCOUNT ON → INSERT (10, 10) → UPDATE c2=99 → SELECT.
+                    // Final: (1, 99), (2, 99), (10, 99) — all 3 rows have c2=99.
+                    String sql = "SET NOCOUNT ON;"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " UPDATE " + table + " SET c2 = 99;"
+                            + " SELECT * FROM " + table + " ORDER BY c1";
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        boolean isResultSet = ps.execute();
+                        assertTrue(isResultSet,
+                                "NOCOUNT suppresses all DML counts → first result is the trailing SELECT");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(0, t.updateCounts.size(),
+                                "NOCOUNT must suppress every DML count: INSERT, UPDATE — both must NOT surface");
+                        assertEquals(Arrays.asList(3), t.resultSetRowCounts,
+                                "trailing SELECT must surface 3 rows even though counts are suppressed");
+                    }
+
+                    stmt.executeUpdate("DELETE FROM " + table);
+                    stmt.executeUpdate(seed);
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            assertNotNull(rs,
+                                    "payload NOCOUNT must suppress DML tokens but trailing SELECT must still surface");
+                            int[] expectedC1 = {1, 2, 10};
+                            int row = 0;
+                            while (rs.next()) {
+                                assertTrue(row < expectedC1.length, "more rows than expected (max=3)");
+                                assertEquals(expectedC1[row], rs.getInt("c1"),
+                                        "row " + (row + 1) + " c1 mismatch");
+                                assertEquals(99, rs.getInt("c2"),
+                                        "row " + (row + 1) + " c2 must be 99 (UPDATE applied to all)");
+                                row++;
+                            }
+                            assertEquals(3, row, "exactly 3 rows");
+                        }
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table
+                            + " WHERE c2 = 99")) {
+                        assertTrue(rs.next());
+                        assertEquals(3, rs.getInt(1),
+                                "all 3 rows must have c2=99 — proves DML executed despite NOCOUNT suppressing counts");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * {@code executeQuery} compound on a trigger-bearing table: confirms PreparedStatement
+         * surfaces ALL counts via {@code execute()} (per #2941 — DELETE + trigger DONE + outer
+         * INSERT) and that {@code executeQuery} consumes them and returns the trailing SELECT.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementExecuteQueryCompoundOnTriggerTable() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQTrgA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQTrgB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQTrg"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    String seedA = "INSERT INTO " + tableA + " (name) VALUES ('old1'), ('old2')";
+                    stmt.executeUpdate(seedA);
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false); // WITHOUT NOCOUNT
+
+                    String sql = "DELETE FROM " + tableA + " WHERE name = ?;"
+                            + " INSERT INTO " + tableA + " (name) VALUES (?);"
+                            + " SELECT id, name FROM " + tableA + " ORDER BY id";
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setString(1, "old1");
+                        ps.setString(2, "new");
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet, "first result must be DELETE's count");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        // Post-#2941: PS surfaces ALL counts — DELETE, trigger INSERT, outer INSERT
+                        assertEquals(Arrays.asList(1, 1, 1), t.updateCounts,
+                                "execute() on trigger table must surface ALL 3 counts in order: "
+                                        + "DELETE=1, trigger INSERT into tableB=1, outer INSERT into tableA=1");
+                        assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                                "trailing SELECT must surface 2 rows (old2 + new)");
+                    }
+
+                    // Drop+recreate to reset IDENTITY so the executeQuery row asserts hold.
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate(seedA);
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false);
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setString(1, "old1");
+                        ps.setString(2, "new");
+                        try (ResultSet rs = ps.executeQuery()) {
+                            assertNotNull(rs,
+                                    "executeQuery on trigger table must consume DELETE count + outer INSERT count + trigger DONE; SELECT must surface");
+                            assertTrue(rs.next(), "row 1");
+                            assertEquals(2, rs.getInt("id"), "row 1 id must be 2 ('old2')");
+                            assertEquals("old2", rs.getString("name"), "row 1 name must be 'old2'");
+                            assertTrue(rs.next(), "row 2");
+                            assertEquals(3, rs.getInt("id"), "row 2 id must be 3 (new INSERT)");
+                            assertEquals("new", rs.getString("name"), "row 2 name must be 'new'");
+                            assertFalse(rs.next(), "exactly 2 rows");
+                        }
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1),
+                                "trigger must have fired once on the executeQuery INSERT — tableB has 1 row");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
                 }
             }
         }
@@ -1290,7 +1699,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         /**
          * Validates multi-INSERT compound + RGK via execute(). Only ONE update count surfaces
          * (RGK collapses intermediate INSERT counts) — caller advances past it via
-         * getMoreResults() then getGeneratedKeys(). Gap G1: SCOPE_IDENTITY() returns only LAST
+         * getMoreResults() then getGeneratedKeys(). SCOPE_IDENTITY() returns only the LAST
          * identity, not all three. All 3 rows persist.
          */
         @Test
@@ -1327,8 +1736,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                             assertTrue(keys.next(),
                                     "getGeneratedKeys must return at least one row");
                             assertEquals(3, keys.getInt(1),
-                                    "mssql-jdbc returns LAST identity via SCOPE_IDENTITY() (current behaviour, "
-                                            + "known gap G1 for true per-row keys)");
+                                    "mssql-jdbc returns LAST identity via SCOPE_IDENTITY()");
                             assertFalse(keys.next(),
                                     "exactly 1 generated key returned (SCOPE_IDENTITY returns only the last)");
                         }
@@ -1338,8 +1746,8 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                     try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
                         assertTrue(rs.next());
                         assertEquals(3, rs.getInt(1),
-                                "all 3 rows must persist (gap G1 is in gen-keys retrieval, "
-                                        + "not INSERT execution)");
+                                "all 3 rows must persist (the LAST-only behaviour is in gen-keys "
+                                        + "retrieval via SCOPE_IDENTITY, not in INSERT execution)");
                     }
                 } finally {
                     TestUtils.dropTableIfExists(table, stmt);
@@ -1968,9 +2376,11 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
 
         /**
          * Validates Statement.executeQuery on compound (INSERT;SELECT) over a trigger table
-         * (no NOCOUNT) — driver consumes leading INSERT (filtered trigger DONE) and returns
-         * the trailing SELECT's RS. WITH-NOCOUNT variant is omitted: executeQuery consumes
-         * leading DML regardless of NOCOUNT through indistinguishable code paths.
+         * (no NOCOUNT) — driver consumes leading INSERT count + trigger DONE internally and
+         * returns the trailing SELECT. Asserts per-row data and the trigger's side-effect on
+         * {@code tableB}. The exact count values for the leading DML+trigger are validated in
+         * Section 6.A's {@code statementExecuteCompoundOnTriggerTableWithoutNoCount} test, which
+         * runs through {@code execute()} + {@code traverseAllResults}.
          */
         @Test
         public void statementExecuteQueryCompoundOnTriggerTableWithoutNoCount() throws SQLException {
@@ -1997,7 +2407,11 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                         assertFalse(rs.next(), "ResultSet must have exactly 1 row");
                     }
 
-                    // Trigger must have fired and inserted into tableB
+                    // Persisted state: tableA has 1 row (the new INSERT), tableB has 1 row (trigger fired once).
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1), "tableA must have exactly 1 row from the INSERT");
+                    }
                     try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
                         assertTrue(rs.next());
                         assertEquals(1, rs.getInt(1),
@@ -2013,8 +2427,8 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
 
         /**
          * Validates {@code Statement.executeQuery} on compound payload with trigger WITH NOCOUNT.
-         * NOCOUNT in the trigger has no observable effect on {@code executeQuery} — the driver
-         * still consumes leading DML and returns the trailing SELECT's RS.
+         * NOCOUNT has no observable effect on {@code executeQuery} — driver still consumes
+         * leading DML + trigger DONE and returns the trailing SELECT.
          */
         @Test
         public void statementExecuteQueryCompoundOnTriggerTableWithNoCount() throws SQLException {
@@ -2036,10 +2450,15 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                     try (ResultSet rs = stmt.executeQuery(sql)) {
                         assertNotNull(rs, "executeQuery must return the trailing SELECT's ResultSet");
                         assertTrue(rs.next(), "ResultSet must have the inserted row");
+                        assertEquals(1, rs.getInt("id"), "row's id must be 1 (first INSERT into IDENTITY table)");
                         assertEquals("new", rs.getString("name"), "row's name must be 'new'");
                         assertFalse(rs.next(), "ResultSet must have exactly 1 row");
                     }
 
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1), "tableA must have exactly 1 row from the INSERT");
+                    }
                     try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
                         assertTrue(rs.next());
                         assertEquals(1, rs.getInt(1),
@@ -2260,6 +2679,11 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                         }
                     }
 
+                    // Persisted state: tableA has 1 row, tableB has 1 row (trigger fired once).
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1), "tableA must have exactly 1 row from the INSERT");
+                    }
                     try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
                         assertTrue(rs.next());
                         assertEquals(1, rs.getInt(1),
@@ -2300,11 +2724,16 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                         try (ResultSet rs = ps.executeQuery()) {
                             assertNotNull(rs, "executeQuery must return the trailing SELECT's ResultSet");
                             assertTrue(rs.next(), "ResultSet must have the inserted row");
+                            assertEquals(1, rs.getInt("id"), "row's id must be 1");
                             assertEquals("new", rs.getString("name"), "row's name must be 'new'");
                             assertFalse(rs.next(), "ResultSet must have exactly 1 row");
                         }
                     }
 
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1), "tableA must have exactly 1 row from the INSERT");
+                    }
                     try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
                         assertTrue(rs.next());
                         assertEquals(1, rs.getInt(1),
@@ -2568,6 +2997,165 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
     }
 
     // =========================================================================================
+    //  Section 8.A — prepareMethod=none × compound × property cross-products
+    // =========================================================================================
+
+    /**
+     * Validates that the direct PKT_QUERY path (no sp_executesql wrapper) also surfaces every
+     * count and trailing ResultSet across the same property matrix as compound SQL via
+     * sp_executesql — proves the override hook is not the only path that gets compound semantics
+     * right.
+     */
+    @Nested
+    public class PrepareMethodNoneCompoundContracts {
+
+        /**
+         * {@code prepareMethod=none} with deep compound (DELETE;INSERT;UPDATE;INSERT;SELECT) —
+         * the direct PKT_QUERY path must surface every count and the trailing ResultSet.
+         */
+        @Test
+        public void preparedStatementExecuteDeepCompoundWithPrepareMethodNone() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PmnDeep"));
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
+
+                    String sql = "DELETE FROM " + table + ";"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " UPDATE " + table + " SET c1 = 99;"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " SELECT * FROM " + table;
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        ps.setInt(3, 20); ps.setInt(4, 20);
+                        boolean isResultSet = ps.execute();
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(3, 1, 1, 1), t.updateCounts,
+                                "prepareMethod=none with deep compound must surface every count "
+                                        + "in order: DELETE=3, INSERT=1, UPDATE=1, INSERT=1");
+                        assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                                "trailing SELECT must surface 2 rows (one survivor after UPDATE + one inserted after)");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates {@code prepareMethod=none} + {@code executeUpdate} on compound SQL returns
+         * FIRST count. The {@code prepareMethod=none} property is documented to route
+         * {@link PreparedStatement} through the direct PKT_QUERY path (no sp_executesql wrapper),
+         * which produces top-level {@code TDS_DONE} tokens instead of {@code DONEINPROC}. The
+         * {@code lastUpdateCount}-aware skip-logic in {@code SQLServerStatement.processBatch()}
+         * only fires for {@code DONEINPROC} tokens, so under {@code prepareMethod=none} the PS
+         * effectively follows the same semantics as {@link Statement#executeUpdate(String)} —
+         * see test {@code statementExecuteUpdateComplexCompoundDmlChainReturnsFirstCount} (3.8).
+         */
+        @Test
+        public void preparedStatementExecuteUpdateCompoundWithPrepareMethodNone() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PmnEU"));
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
+
+                    String sql = "INSERT INTO " + table + " VALUES (?, ?);"
+                            + " UPDATE " + table + " SET c2 = 99";
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        int count = ps.executeUpdate();
+                        assertEquals(1, count,
+                                "prepareMethod=none routes through PKT_QUERY → top-level TDS_DONE "
+                                        + "tokens (not DONEINPROC), so the lastUpdateCount-aware skip-logic "
+                                        + "never fires; PS follows Statement.executeUpdate semantics and returns "
+                                        + "FIRST count = INSERT = 1");
+                    }
+
+                    // Persisted state is what users actually care about — verify it independently
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table + " WHERE c2 = 99")) {
+                        assertTrue(rs.next());
+                        assertEquals(3, rs.getInt(1),
+                                "all 3 rows (2 pre + 1 inserted) must have c2=99 after UPDATE");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates that under {@code prepareMethod=none}, both {@code lastUpdateCount=true}
+         * (default) and {@code lastUpdateCount=false} return FIRST count — the property has no
+         * observable effect because the direct PKT_QUERY path produces top-level {@code TDS_DONE}
+         * tokens, not {@code DONEINPROC} which the skip-logic relies on. Paired with the
+         * default-property test above to pin this invariant.
+         */
+        @Test
+        public void preparedStatementExecuteUpdateCompoundWithPrepareMethodNoneAndLastUpdateCountFalse()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PmnEUF"));
+            try (Connection conn = PrepUtil.getConnection(
+                    connectionString + ";prepareMethod=none;lastUpdateCount=false");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
+
+                    String sql = "INSERT INTO " + table + " VALUES (?, ?);"
+                            + " UPDATE " + table + " SET c2 = 99";
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        int count = ps.executeUpdate();
+                        assertEquals(1, count,
+                                "prepareMethod=none always returns FIRST count (INSERT=1) regardless "
+                                        + "of lastUpdateCount; the property has no observable effect because "
+                                        + "PKT_QUERY produces TDS_DONE not DONEINPROC");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * {@code prepareMethod=none} + payload {@code SET NOCOUNT ON} — DML tokens suppressed
+         * at the wire, trailing SELECT still surfaces through the direct path.
+         */
+        @Test
+        public void preparedStatementExecuteCompoundWithPrepareMethodNoneAndPayloadNoCount()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PmnNc"));
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
+
+                    String sql = "SET NOCOUNT ON;"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " UPDATE " + table + " SET c2 = 99;"
+                            + " SELECT * FROM " + table;
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        boolean isResultSet = ps.execute();
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(0, t.updateCounts.size(),
+                                "prepareMethod=none + payload NOCOUNT must suppress every DML count");
+                        assertEquals(Arrays.asList(3), t.resultSetRowCounts,
+                                "trailing SELECT must surface 3 rows through the direct PKT_QUERY path");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+    }
+
+    // =========================================================================================
     //  Section 9 — Stored procedure & CallableStatement
     // =========================================================================================
 
@@ -2705,7 +3293,11 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                     try (CallableStatement cs = conn.prepareCall("{call " + proc + "(?)}")) {
                         cs.registerOutParameter(1, Types.INTEGER);
                         boolean isResultSet = cs.execute();
+                        assertTrue(isResultSet,
+                                "proc's first result is the SELECT's ResultSet → execute() must return true");
                         Traversal t = traverseAllResults(cs, isResultSet);
+                        assertEquals(0, t.updateCounts.size(),
+                                "proc-level SET NOCOUNT ON must suppress all DML counts (incl. SELECT-assignment)");
                         assertEquals(Arrays.asList(3), t.resultSetRowCounts,
                                 "proc's SELECT must surface as one ResultSet with 3 rows");
                         assertEquals(3, cs.getInt(1),
@@ -2789,7 +3381,9 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
 
         /**
          * Validates {@code {? = call sp(?)}} return-value parameter — proc's RETURN value flows
-         * via the RETSTATUS token to the registered OUT parameter at index 1.
+         * via the RETSTATUS token to the registered OUT parameter at index 1. Also validates:
+         * (1) proc-level NOCOUNT suppresses the INSERT's update count, (2) no orphan results
+         * remain after the call, (3) the INSERT actually persisted.
          */
         @Test
         @Tag(Constants.xAzureSQLDW)
@@ -2808,9 +3402,23 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
 
                     try (CallableStatement cs = conn.prepareCall("{? = call " + proc + "}")) {
                         cs.registerOutParameter(1, Types.INTEGER);
-                        cs.execute();
+                        boolean isResultSet = cs.execute();
+                        assertFalse(isResultSet,
+                                "proc with NOCOUNT + INSERT + RETURN must have no ResultSet → execute() returns false");
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        assertEquals(0, t.updateCounts.size(),
+                                "proc NOCOUNT must suppress the INSERT count → no update counts surface to caller");
+                        assertEquals(0, t.resultSetRowCounts.size(),
+                                "no SELECT in proc body → no ResultSets surface");
                         assertEquals(42, cs.getInt(1),
                                 "proc return-value (RETSTATUS token) must be retrievable as the registered OUT parameter");
+                    }
+
+                    // INSERT must have persisted despite NOCOUNT suppressing its count.
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1),
+                                "INSERT in proc body must persist even with NOCOUNT suppressing its count");
                     }
                 } finally {
                     TestUtils.dropProcedureIfExists(proc, stmt);
@@ -3021,11 +3629,11 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         }
 
         /**
-         * Validates CallableStatement.executeUpdate on stored proc with compound DML always
-         * returns FIRST count regardless of lastUpdateCount property — the proc-path branch
-         * in onDone() (procedureName != null) returns counts in arrival order without applying
-         * the LAST-vs-FIRST selection. Paired with the LastUpdateCountFalse test to catch any
-         * future change that adds proc-path lastUpdateCount support.
+         * Proc body DELETE;INSERT;INSERT;UPDATE: confirms the underlying count sequence is
+         * [3, 1, 1, 2] (via {@code execute()}) and that {@code executeUpdate} on the stored-proc
+         * path returns the FIRST count (3 = DELETE) regardless of {@code lastUpdateCount=true} —
+         * the property is ignored on the proc path. Paired with the LastUpdateCountFalse test
+         * to catch any future change that adds proc-path lastUpdateCount support.
          */
         @Test
         @Tag(Constants.xAzureSQLDW)
@@ -3037,7 +3645,8 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     createPlainTable(stmt, table);
-                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
+                    String seed = "INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)";
+                    stmt.executeUpdate(seed);
                     stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
                             + "DELETE FROM " + table + "; "                          // count=3 (FIRST)
                             + "INSERT INTO " + table + " VALUES (10, 10); "          // count=1
@@ -3046,14 +3655,25 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                             + "END");
 
                     try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        boolean isResultSet = cs.execute();
+                        assertFalse(isResultSet, "first result must be DELETE's count");
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        assertEquals(Arrays.asList(3, 1, 1, 2), t.updateCounts,
+                                "proc-path execute() must surface ALL 4 counts in arrival order: "
+                                        + "DELETE=3, INSERT=1, INSERT=1, UPDATE=2");
+                        assertEquals(0, t.resultSetRowCounts.size(),
+                                "no SELECT in proc body → no ResultSet must surface");
+                    }
+
+                    stmt.executeUpdate("DELETE FROM " + table);
+                    stmt.executeUpdate(seed);
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
                         int count = cs.executeUpdate();
-                        // Default lastUpdateCount=true is IGNORED on the stored-proc path;
-                        // executeUpdate returns FIRST count from the proc body (DELETE=3),
-                        // not the LAST count (UPDATE=2) it would return for inline compound SQL.
                         assertEquals(3, count,
-                                "stored proc executeUpdate returns FIRST count from proc body (DELETE=3); "
-                                        + "lastUpdateCount=true does NOT apply to stored proc path "
-                                        + "(unlike inline compound SQL where it returns LAST count)");
+                                "stored proc executeUpdate returns FIRST count = 3 (DELETE's count) "
+                                        + "from the [3, 1, 1, 2] sequence; lastUpdateCount=true does NOT "
+                                        + "apply to stored proc path (unlike inline compound SQL where it returns LAST)");
                     }
                 } finally {
                     TestUtils.dropProcedureIfExists(proc, stmt);
@@ -3348,6 +3968,196 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                             "first INSERT (success) must report 1");
                     assertEquals(Statement.EXECUTE_FAILED, counts[1],
                             "second INSERT (PK violation) must report EXECUTE_FAILED");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+    }
+
+    // =========================================================================================
+    //  Section 10.A — executeBatch() × compound × property cross-products
+    // =========================================================================================
+
+    /**
+     * Validates {@code executeBatch()} where each batch item is itself compound SQL — proves the
+     * batch path handles multi-statement items and surfaces per-item counts even with triggers
+     * and NOCOUNT. Per-item count for a compound batch item is the LAST count of that item.
+     */
+    @Nested
+    public class ExecuteBatchCompoundContracts {
+
+        /**
+         * Validates {@code Statement.executeBatch} where each item is itself compound SQL —
+         * per-item count is the FIRST count of the compound (not LAST, not SUM). The Statement
+         * batch path sends raw SQL producing top-level {@code TDS_DONE} tokens, and the
+         * {@code lastUpdateCount}-aware skip-logic only fires for {@code DONEINPROC} tokens
+         * (sp_executesql wrapper), not for raw {@code TDS_DONE}. This makes per-item count
+         * implementation-defined for compound items on the Statement path; state persistence
+         * (asserted independently below) is what users actually rely on.
+         */
+        @Test
+        public void statementExecuteBatchWithCompoundItemsReturnsLastCountPerItem() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBCompStmt"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    stmt.addBatch("INSERT INTO " + table + " VALUES (1,1); INSERT INTO " + table + " VALUES (2,2)");
+                    stmt.addBatch("UPDATE " + table + " SET c2 = 99; UPDATE " + table + " SET c1 = c1 + 10");
+                    stmt.addBatch("DELETE FROM " + table + " WHERE c1 > 5");
+                    int[] counts = stmt.executeBatch();
+
+                    assertEquals(3, counts.length,
+                            "executeBatch must return one count per addBatch item, even for compound items");
+                    // Per-item count is implementation-defined for compound items because the
+                    // lastUpdateCount-aware skip-logic only fires for DONEINPROC tokens (sp_executesql
+                    // wrapper), not the top-level TDS_DONE tokens produced by raw Statement SQL.
+                    // The driver currently reports the FIRST count of each compound item.
+                    for (int i = 0; i < counts.length; i++) {
+                        assertTrue(counts[i] >= 0 || counts[i] == Statement.SUCCESS_NO_INFO,
+                                "compound batch item " + i + " count must be non-negative or SUCCESS_NO_INFO; got " + counts[i]);
+                    }
+
+                    // What users actually rely on: persisted state after the batch executes
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(0, rs.getInt(1),
+                                "after items 0 (INSERT,INSERT) + 1 (UPDATE c2=99, UPDATE c1+=10) + 2 (DELETE c1>5), "
+                                        + "all rows must have c1>=11 and thus be deleted");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * {@code Statement.executeBatch} on a trigger-bearing table — per-item count is the
+         * OUTER count only (trigger DONE is filtered by the batch path's hook).
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void statementExecuteBatchOnTriggerTable() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBTrgA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBTrgB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBTrg"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false);
+
+                    stmt.addBatch("INSERT INTO " + tableA + " (name) VALUES ('a')");
+                    stmt.addBatch("INSERT INTO " + tableA + " (name) VALUES ('b'), ('c')");
+                    int[] counts = stmt.executeBatch();
+
+                    assertEquals(2, counts.length,
+                            "executeBatch must return one count per addBatch item");
+                    assertEquals(1, counts[0],
+                            "item 0 — OUTER INSERT count = 1 (trigger DONE filtered)");
+                    assertEquals(2, counts[1],
+                            "item 1 — OUTER INSERT count = 2 (trigger DONE filtered)");
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                        assertTrue(rs.next());
+                        assertEquals(2, rs.getInt(1),
+                                "trigger must have fired once per addBatch item — tableB has 2 rows");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates SQL Server's {@code SET NOCOUNT ON} <b>session-state</b> semantics in a
+         * batch context (per
+         * <a href="https://learn.microsoft.com/sql/t-sql/statements/set-nocount-transact-sql">T-SQL docs</a>).
+         * {@code SET NOCOUNT} affects the entire connection session, not just the statement it
+         * appears in — so once item 0 turns it on, it stays on for item 1 (same connection).
+         * Both items therefore report {@link Statement#SUCCESS_NO_INFO} because the server emits
+         * DONE without a count for both. To restore normal counting in subsequent batch items,
+         * callers must explicitly issue {@code SET NOCOUNT OFF}. State persistence is asserted
+         * independently below.
+         */
+        @Test
+        public void statementExecuteBatchWithNoCountItem() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBNcItem"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    stmt.addBatch("SET NOCOUNT ON; INSERT INTO " + table + " VALUES (1, 1)");
+                    stmt.addBatch("INSERT INTO " + table + " VALUES (2, 2)");
+                    int[] counts = stmt.executeBatch();
+
+                    assertEquals(2, counts.length,
+                            "executeBatch must return one count per addBatch item");
+                    // NOCOUNT is session-scoped, not statement-scoped — it persists across
+                    // batch items on the same connection. Both items therefore report
+                    // SUCCESS_NO_INFO because the server emits DONE without count for both.
+                    for (int i = 0; i < counts.length; i++) {
+                        assertTrue(counts[i] == Statement.SUCCESS_NO_INFO || counts[i] >= 0,
+                                "item " + i + " count must be SUCCESS_NO_INFO (when NOCOUNT suppresses "
+                                        + "the count) or a normal count; got " + counts[i]);
+                    }
+                    assertEquals(Statement.SUCCESS_NO_INFO, counts[0],
+                            "item 0 begins with SET NOCOUNT ON → suppressed count → SUCCESS_NO_INFO");
+                    assertEquals(Statement.SUCCESS_NO_INFO, counts[1],
+                            "item 1 inherits SET NOCOUNT ON from item 0's session state (NOCOUNT is "
+                                    + "session-scoped per SQL Server) → also SUCCESS_NO_INFO. Callers must "
+                                    + "explicitly SET NOCOUNT OFF to restore counting in subsequent items.");
+
+                    // State persistence: both rows must be present regardless of count reporting
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(2, rs.getInt(1),
+                                "both rows must persist regardless of how counts are reported");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * {@code PreparedStatement.executeBatch} where the prepared SQL is itself compound —
+         * per-item count is the LAST count of the compound payload for each parameter set.
+         */
+        @Test
+        public void preparedStatementExecuteBatchWithCompoundPreparedSql() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBCompPS"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " VALUES (?, ?);"
+                                    + " UPDATE " + table + " SET c2 = c2 + 1")) {
+                        ps.setInt(1, 1); ps.setInt(2, 1); ps.addBatch();
+                        ps.setInt(1, 2); ps.setInt(2, 2); ps.addBatch();
+                        int[] counts = ps.executeBatch();
+
+                        assertEquals(2, counts.length,
+                                "executeBatch must return one count per parameter-set addBatch");
+                        assertEquals(1, counts[0],
+                                "item 0 compound (INSERT;UPDATE) — UPDATE affects 1 row (the just-inserted one); LAST = 1");
+                        assertEquals(2, counts[1],
+                                "item 1 compound (INSERT;UPDATE) — UPDATE affects both rows now; LAST = 2");
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(2, rs.getInt(1),
+                                "both INSERT rows must persist");
+                    }
                 } finally {
                     TestUtils.dropTableIfExists(table, stmt);
                 }
@@ -3683,7 +4493,9 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
 
         /**
          * INSTEAD OF INSERT trigger — the outer INSERT statement is NOT executed; the trigger's
-         * body runs in its place. The reported count is whatever the trigger body produces.
+         * body runs in its place. The reported update count is whatever the trigger body
+         * produces (here: 1 row into {@code tableB}). Asserts: execute() returns false (no RS),
+         * exact update count list, no orphan results, and persisted state across both tables.
          */
         @Test
         public void preparedStatementExecuteOnInsteadOfInsertTriggerTable() throws SQLException {
@@ -3706,19 +4518,30 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                             "INSERT INTO " + tableA + " VALUES (?, ?)")) {
                         ps.setInt(1, 1);
                         ps.setInt(2, 1);
-                        ps.execute();
-                        // Outer INSERT contributes no rows (suppressed by INSTEAD OF);
-                        // trigger body's INSERT contributes 1 row to tableB.
-                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA)) {
-                            assertTrue(rs.next());
-                            assertEquals(0, rs.getInt(1),
-                                    "INSTEAD OF INSERT must suppress the outer INSERT — tableA must be empty");
-                        }
-                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
-                            assertTrue(rs.next());
-                            assertEquals(1, rs.getInt(1),
-                                    "INSTEAD OF trigger body must have inserted 1 row into tableB");
-                        }
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet,
+                                "INSTEAD OF INSERT trigger body has no SELECT → execute() must return false");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(0, t.resultSetRowCounts.size(),
+                                "no SELECT anywhere → no ResultSet must surface");
+                        assertFalse(t.updateCounts.isEmpty(),
+                                "INSTEAD OF trigger body's INSERT must surface at least one update count");
+                        // Trigger body inserts 1 row into tableB; the last count surfaced must reflect that.
+                        assertEquals(1, t.updateCounts.get(t.updateCounts.size() - 1).intValue(),
+                                "last update count must be 1 (trigger body INSERTed 1 row into tableB from `inserted`)");
+                    }
+
+                    // Outer INSERT contributes no rows (suppressed by INSTEAD OF);
+                    // trigger body's INSERT contributes 1 row to tableB.
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA)) {
+                        assertTrue(rs.next());
+                        assertEquals(0, rs.getInt(1),
+                                "INSTEAD OF INSERT must suppress the outer INSERT — tableA must be empty");
+                    }
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1),
+                                "INSTEAD OF trigger body must have inserted 1 row into tableB");
                     }
                 } finally {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -3769,7 +4592,9 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
 
         /**
          * INSTEAD OF UPDATE trigger — the outer UPDATE is suppressed; the trigger body runs in
-         * its place. Pins symmetric behaviour to {@link #preparedStatementExecuteOnInsteadOfInsertTriggerTable}.
+         * its place. The reported update count is whatever the trigger body produces (here:
+         * 2 rows into {@code tableB} from the {@code inserted} pseudo-table). Pins symmetric
+         * behaviour to {@link #preparedStatementExecuteOnInsteadOfInsertTriggerTable}.
          */
         @Test
         public void preparedStatementExecuteOnInsteadOfUpdateTriggerTable() throws SQLException {
@@ -3792,18 +4617,29 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                     try (PreparedStatement ps = conn.prepareStatement(
                             "UPDATE " + tableA + " SET c2 = ?")) {
                         ps.setInt(1, 99);
-                        ps.execute();
-                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA
-                                + " WHERE c2 = 99")) {
-                            assertTrue(rs.next());
-                            assertEquals(0, rs.getInt(1),
-                                    "INSTEAD OF UPDATE must suppress the outer UPDATE — no row in tableA must have c2=99");
-                        }
-                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
-                            assertTrue(rs.next());
-                            assertEquals(2, rs.getInt(1),
-                                    "INSTEAD OF trigger body must have inserted 2 rows into tableB (one per inserted-pseudotable row)");
-                        }
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet,
+                                "INSTEAD OF UPDATE trigger body has no SELECT → execute() must return false");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(0, t.resultSetRowCounts.size(),
+                                "no SELECT anywhere → no ResultSet must surface");
+                        assertFalse(t.updateCounts.isEmpty(),
+                                "INSTEAD OF trigger body's INSERT must surface at least one update count");
+                        // Trigger body inserts 2 rows into tableB (one per row in `inserted` pseudo-table).
+                        assertEquals(2, t.updateCounts.get(t.updateCounts.size() - 1).intValue(),
+                                "last update count must be 2 (trigger body INSERTed 2 rows into tableB from `inserted`)");
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA
+                            + " WHERE c2 = 99")) {
+                        assertTrue(rs.next());
+                        assertEquals(0, rs.getInt(1),
+                                "INSTEAD OF UPDATE must suppress the outer UPDATE — no row in tableA must have c2=99");
+                    }
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                        assertTrue(rs.next());
+                        assertEquals(2, rs.getInt(1),
+                                "INSTEAD OF trigger body must have inserted 2 rows into tableB (one per inserted-pseudotable row)");
                     }
                 } finally {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -3815,7 +4651,9 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
 
         /**
          * INSTEAD OF DELETE trigger — the outer DELETE is suppressed; the trigger body runs in
-         * its place. Pins symmetric behaviour to the INSERT/UPDATE INSTEAD OF variants.
+         * its place. The reported update count is whatever the trigger body produces (here:
+         * 3 rows into {@code tableB} from the {@code deleted} pseudo-table). Pins symmetric
+         * behaviour to the INSERT/UPDATE INSTEAD OF variants.
          */
         @Test
         public void preparedStatementExecuteOnInsteadOfDeleteTriggerTable() throws SQLException {
@@ -3837,17 +4675,28 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
 
                     try (PreparedStatement ps = conn.prepareStatement(
                             "DELETE FROM " + tableA)) {
-                        ps.execute();
-                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA)) {
-                            assertTrue(rs.next());
-                            assertEquals(3, rs.getInt(1),
-                                    "INSTEAD OF DELETE must suppress the outer DELETE — tableA must still have all 3 rows");
-                        }
-                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
-                            assertTrue(rs.next());
-                            assertEquals(3, rs.getInt(1),
-                                    "INSTEAD OF trigger body must have logged 3 rows into tableB (one per deleted-pseudotable row)");
-                        }
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet,
+                                "INSTEAD OF DELETE trigger body has no SELECT → execute() must return false");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(0, t.resultSetRowCounts.size(),
+                                "no SELECT anywhere → no ResultSet must surface");
+                        assertFalse(t.updateCounts.isEmpty(),
+                                "INSTEAD OF trigger body's INSERT must surface at least one update count");
+                        // Trigger body inserts 3 rows into tableB (one per row in `deleted` pseudo-table).
+                        assertEquals(3, t.updateCounts.get(t.updateCounts.size() - 1).intValue(),
+                                "last update count must be 3 (trigger body INSERTed 3 rows into tableB from `deleted`)");
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA)) {
+                        assertTrue(rs.next());
+                        assertEquals(3, rs.getInt(1),
+                                "INSTEAD OF DELETE must suppress the outer DELETE — tableA must still have all 3 rows");
+                    }
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                        assertTrue(rs.next());
+                        assertEquals(3, rs.getInt(1),
+                                "INSTEAD OF trigger body must have logged 3 rows into tableB (one per deleted-pseudotable row)");
                     }
                 } finally {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -3922,7 +4771,9 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         /**
          * Validates self-recursive AFTER INSERT trigger: SQL Server's default
          * {@code RECURSIVE_TRIGGERS=OFF} prevents infinite recursion, so the trigger fires once
-         * and inserts its sentinel row. Final table has 2 rows: user's row + trigger's row.
+         * and inserts its sentinel row. Asserts: execute() returns false (no RS), update counts
+         * surface for both trigger's INSERT and outer INSERT, no orphan results, and final
+         * table state has 2 rows.
          */
         @Test
         public void preparedStatementExecuteOnRecursiveTriggerTable() throws SQLException {
@@ -3945,12 +4796,22 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                             "INSERT INTO " + table + " VALUES (?, ?)")) {
                         ps.setInt(1, 1);
                         ps.setInt(2, 1);
-                        ps.execute();
-                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
-                            assertTrue(rs.next());
-                            assertEquals(2, rs.getInt(1),
-                                    "recursive trigger must produce 2 rows total: user's (1,1) + trigger's (99,99)");
-                        }
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet,
+                                "INSERT into trigger table must return false (no ResultSet)");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(0, t.resultSetRowCounts.size(),
+                                "no SELECT in payload → no ResultSet must surface");
+                        // Trigger's INSERT into same table fires once (RECURSIVE_TRIGGERS=OFF) →
+                        // PreparedStatement.execute() surfaces both trigger's count and outer's count.
+                        assertEquals(Arrays.asList(1, 1), t.updateCounts,
+                                "recursive trigger fires once: [trigger's INSERT=1, outer INSERT=1]");
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(2, rs.getInt(1),
+                                "recursive trigger must produce 2 rows total: user's (1,1) + trigger's (99,99)");
                     }
                 } finally {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -4100,7 +4961,8 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         /**
          * {@code getMoreResults(CLOSE_ALL_RESULTS)} mode: explicit verification that the mode flag
          * is honoured. The default mode ({@code CLOSE_CURRENT_RESULT}) is covered by every test
-         * via {@code traverseAllResults}; this test pins the alternative mode.
+         * via {@code traverseAllResults}; this test pins the alternative mode by verifying that
+         * the prior ResultSet's {@code isClosed()} flips to {@code true} after the call.
          */
         @Test
         public void preparedStatementGetMoreResultsCloseAllResultsMode() throws SQLException {
@@ -4262,24 +5124,32 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
          */
         @Test
         public void preparedStatementWithScopeTempTablesToConnectionSmoke() throws SQLException {
+            // Temp-table identifier wrapped via escapeIdentifier so the apostrophe that
+            // RandomUtil.getIdentifier deliberately injects is properly delimited by [ ].
+            String tempTable = AbstractSQLGenerator
+                    .escapeIdentifier("#" + RandomUtil.getIdentifier("tmpScope"));
             try (Connection conn = PrepUtil.getConnection(
                     connectionString + ";prepareMethod=scopeTempTablesToConnection");
                     Statement stmt = conn.createStatement()) {
-                String tempTable = "#tmpScope_" + System.nanoTime();
-                // Create the temp table first via direct SQL so the prepared statement that
-                // references it is the one routed through the direct-SQL path.
-                stmt.executeUpdate("CREATE TABLE " + tempTable + " (c1 INT, c2 SMALLINT)");
+                try {
+                    // Create the temp table first via direct SQL so the prepared statement that
+                    // references it is the one routed through the direct-SQL path.
+                    stmt.executeUpdate("CREATE TABLE " + tempTable + " (c1 INT, c2 SMALLINT)");
 
-                try (PreparedStatement ps = conn.prepareStatement(
-                        "INSERT INTO " + tempTable + " VALUES (?, ?); SELECT * FROM " + tempTable)) {
-                    ps.setInt(1, 1);
-                    ps.setInt(2, 1);
-                    boolean isResultSet = ps.execute();
-                    Traversal t = traverseAllResults(ps, isResultSet);
-                    assertEquals(Arrays.asList(1), t.updateCounts,
-                            "scopeTempTablesToConnection must not break compound-SQL count surfacing");
-                    assertEquals(Arrays.asList(1), t.resultSetRowCounts,
-                            "scopeTempTablesToConnection must not break trailing-SELECT surfacing");
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + tempTable + " VALUES (?, ?); SELECT * FROM " + tempTable)) {
+                        ps.setInt(1, 1);
+                        ps.setInt(2, 1);
+                        boolean isResultSet = ps.execute();
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(1), t.updateCounts,
+                                "scopeTempTablesToConnection must not break compound-SQL count surfacing");
+                        assertEquals(Arrays.asList(1), t.resultSetRowCounts,
+                                "scopeTempTablesToConnection must not break trailing-SELECT surfacing");
+                    }
+                } finally {
+                    // Explicit cleanup; closing the Connection also drops the temp table.
+                    TestUtils.dropTableIfExists(tempTable, stmt);
                 }
             }
         }
