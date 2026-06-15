@@ -130,7 +130,7 @@ class PLPInputStream extends BaseInputStream {
         try {
             close();
         } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
         }
 
         return value;
@@ -514,7 +514,7 @@ final class PLPXMLInputStream extends PLPInputStream {
             } else
                 bytesToReturn = valueWithoutBOM;
         } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
         }
 
         return bytesToReturn;

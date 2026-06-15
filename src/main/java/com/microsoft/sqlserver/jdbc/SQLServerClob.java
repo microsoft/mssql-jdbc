@@ -223,7 +223,7 @@ abstract class SQLServerClobBase extends SQLServerLob {
             try {
                 inputStream.reset();
             } catch (IOException e) {
-                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
+                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false, e);
             }
             getterStream = new BufferedInputStream(inputStream);
         } else {
@@ -255,7 +255,7 @@ abstract class SQLServerClobBase extends SQLServerLob {
             try {
                 inputStream.reset();
             } catch (IOException e) {
-                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
+                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false, e);
             }
             Charset cs = (defaultCharset == null) ? typeInfo.getCharset() : defaultCharset;
             getterStream = new BufferedReader(new InputStreamReader(inputStream, cs));
@@ -374,7 +374,7 @@ abstract class SQLServerClobBase extends SQLServerLob {
             try {
                 stream.reset();
             } catch (IOException e) {
-                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
+                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false, e);
             }
             Charset cs = (defaultCharset == null) ? typeInfo.getCharset() : defaultCharset;
             value = new String(stream.getBytes(), cs);

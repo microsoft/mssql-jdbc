@@ -356,7 +356,7 @@ final class SimpleInputStream extends BaseInputStream {
             read(value);
             close();
         } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
         }
 
         return value;
