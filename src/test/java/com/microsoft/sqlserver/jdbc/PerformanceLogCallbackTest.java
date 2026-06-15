@@ -79,7 +79,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
             perfLogHandler.close();
             perfLogHandler = null;
         }
-        //Files.deleteIfExists(logPath);
+        Files.deleteIfExists(logPath);
     }
 
     /**
