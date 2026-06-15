@@ -10,11 +10,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -35,19 +37,14 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
- * Regression matrix for multi-statement result traversal across {@link Statement} and
- * {@link PreparedStatement}.
- *
- * <p>Pins the {@code execute}, {@code executeUpdate} and {@code executeQuery} contracts on
- * compound SQL (DML chains, trailing/leading SELECT, triggers, generated keys, mid-batch errors,
- * and connection-property variants) using the canonical JDBC §13.1.4 / {@link Statement#getMoreResults()}
- * traversal loop. Every test drives results through {@link #traverseAllResults} and asserts the
- * exact ordered list of update counts and ResultSet row counts — replacing the loose
- * {@code do { ... } while (count != -1)} pattern whose silent-exit behaviour let #2722 and #2940
- * ship.
- *
- * <p>Issues covered: #2554, #2587, #2722, #2737, #2740, #2742, #2817, #2850, #2866, #2940, #2941.
- * Trigger-based tests are tagged {@link Constants#xAzureSQLDW} (Azure SQL DW does not support DML triggers).
+ * Regression matrix for multi-statement result traversal across {@link Statement},
+ * {@link PreparedStatement}, and {@link java.sql.CallableStatement}. Pins {@code execute},
+ * {@code executeUpdate}, {@code executeQuery}, and {@code executeBatch} contracts on single and
+ * compound SQL using the canonical JDBC §13.1.4 / {@link Statement#getMoreResults()} traversal
+ * loop. Every test asserts exact ordered update counts and ResultSet row counts to prevent the
+ * silent-exit regressions that let #2722 and #2940 ship. Covers issues #2554, #2587, #2722,
+ * #2737, #2740, #2742, #2817, #2850, #2866, #2940, #2941. Trigger tests are tagged
+ * {@link Constants#xAzureSQLDW}.
  */
 @RunWith(JUnitPlatform.class)
 public class MultiStatementResultTraversalTest extends AbstractTest {
@@ -730,6 +727,150 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                 }
             }
         }
+
+        /**
+         * Validates PreparedStatement.executeUpdate on a complex compound DML chain
+         * (DELETE;INSERT;UPDATE;INSERT;UPDATE) returns the LAST count (UPDATE = 2 rows)
+         * under default lastUpdateCount=true.
+         */
+        @Test
+        public void preparedStatementExecuteUpdateComplexCompoundDmlChainReturnsLastCount()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EUCpxLast"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
+
+                    String sql = "DELETE FROM " + table + ";"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " UPDATE " + table + " SET c2 = 50;"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " UPDATE " + table + " SET c2 = 99";
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 10); ps.setInt(2, 10);
+                        ps.setInt(3, 20); ps.setInt(4, 20);
+                        int count = ps.executeUpdate();
+                        // DELETE=3, INSERT=1, UPDATE=1, INSERT=1, UPDATE=2 → LAST=2
+                        assertEquals(2, count,
+                                "executeUpdate on DELETE;INSERT;UPDATE;INSERT;UPDATE must return LAST count "
+                                        + "(final UPDATE touched 2 rows); default lastUpdateCount=true returns LAST");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates PreparedStatement.executeUpdate on multi-INSERT compound (INSERT;INSERT;INSERT)
+         * returns LAST INSERT's count = 1; all 3 rows must persist.
+         */
+        @Test
+        public void preparedStatementExecuteUpdateMultipleInsertsCompoundReturnsLastCount()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EUMultiIns"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    String sql = "INSERT INTO " + table + " VALUES (?, ?);"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " INSERT INTO " + table + " VALUES (?, ?)";
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 1); ps.setInt(2, 1);
+                        ps.setInt(3, 2); ps.setInt(4, 2);
+                        ps.setInt(5, 3); ps.setInt(6, 3);
+                        int count = ps.executeUpdate();
+                        assertEquals(1, count,
+                                "executeUpdate on INSERT;INSERT;INSERT must return LAST count of 1 "
+                                        + "(each single-row INSERT reports 1)");
+                    }
+
+                    // Verify all 3 INSERTs actually persisted
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(3, rs.getInt(1),
+                                "all 3 INSERTs in the compound payload must have persisted");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates Statement.executeUpdate on compound DML returns FIRST count, not LAST —
+         * the lastUpdateCount property is PreparedStatement-only and does NOT apply to the
+         * Statement code path. PS would return LAST=2 under default lastUpdateCount=true.
+         */
+        @Test
+        public void statementExecuteUpdateComplexCompoundDmlChainReturnsFirstCount()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EUStmtCpx"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
+
+                    String sql = "DELETE FROM " + table + ";"
+                            + " INSERT INTO " + table + " VALUES (10, 10);"
+                            + " UPDATE " + table + " SET c2 = 50;"
+                            + " INSERT INTO " + table + " VALUES (20, 20);"
+                            + " UPDATE " + table + " SET c2 = 99";
+                    int count = stmt.executeUpdate(sql);
+                    // Statement.executeUpdate returns FIRST count = DELETE = 3 (3 pre-existing
+                    // rows removed); lastUpdateCount property does NOT apply to Statement path.
+                    assertEquals(3, count,
+                            "Statement.executeUpdate returns FIRST count = 3 (DELETE's count); "
+                                    + "lastUpdateCount property is PreparedStatement-only and does NOT "
+                                    + "apply to the Statement code path");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates executeUpdate with leading SET NOCOUNT ON on compound DML returns -1
+         * (no DONE-with-count tokens on wire), not 0. DML still executes — all 3 INSERTs
+         * persist — but no count surfaces. Spec would allow 0; mssql-jdbc returns -1.
+         */
+        @Test
+        public void preparedStatementExecuteUpdateCompoundWithLeadingSetNoCountOnReturnsMinusOne()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EUNoCnt"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    String sql = "SET NOCOUNT ON;"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " UPDATE " + table + " SET c2 = 99";
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 1); ps.setInt(2, 1);
+                        ps.setInt(3, 2); ps.setInt(4, 2);
+                        int count = ps.executeUpdate();
+                        assertEquals(-1, count,
+                                "leading SET NOCOUNT ON suppresses all DML counts → no DONE-with-count "
+                                        + "tokens on wire → executeUpdate returns -1 (terminal sentinel); "
+                                        + "mssql-jdbc-specific (spec would allow 0)");
+                    }
+
+                    // Verify the DML actually ran despite no counts surfacing
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table
+                            + " WHERE c2 = 99")) {
+                        assertTrue(rs.next());
+                        assertEquals(2, rs.getInt(1),
+                                "DML must still execute even though NOCOUNT suppresses counts — "
+                                        + "both INSERTs persist and UPDATE applies c2=99 to both");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
     }
 
     // =========================================================================================
@@ -1056,6 +1197,399 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                 }
             }
         }
+
+        /**
+         * Validates #2940 compound (DELETE;INSERT) + RGK via execute(). Caller must advance
+         * past intermediate counts via getMoreResults() before getGeneratedKeys() — unlike
+         * executeUpdate which consumes intermediates internally. Calling getGeneratedKeys()
+         * directly throws "statement must be executed".
+         */
+        @Test
+        public void preparedStatementExecuteCompoundDeleteInsertWithGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKCmpDIS"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createIdentityTable(stmt, table);
+                    // Pre-populate with id=1, id=2 so DELETE has something to remove
+                    stmt.executeUpdate("INSERT INTO " + table + " (name) VALUES ('a'), ('b')");
+
+                    String sql = "DELETE FROM " + table + " WHERE name = 'a';"
+                            + " INSERT INTO " + table + " (name) VALUES (?)";
+                    try (PreparedStatement ps = conn.prepareStatement(sql,
+                            Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setString(1, "new");
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet, "first result must be DELETE's update count");
+                        assertEquals(1, ps.getUpdateCount(), "DELETE count must be 1");
+
+                        // Advance past the DELETE count to reach the INSERT count.
+                        // (Required before getGeneratedKeys works on compound + RGK shape.)
+                        assertFalse(ps.getMoreResults(), "next result is INSERT count (not a ResultSet)");
+                        assertEquals(1, ps.getUpdateCount(), "INSERT count must be 1");
+
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertTrue(keys.next(),
+                                    "compound payload + RETURN_GENERATED_KEYS must produce gen-keys for the INSERT");
+                            assertEquals(3, keys.getInt(1),
+                                    "INSERT in compound payload must produce identity=3 (after pre-populated 1, 2)");
+                            assertFalse(keys.next(),
+                                    "exactly 1 generated key for the single INSERT in the compound payload");
+                        }
+                    }
+
+                    // Verify expected rows persisted (DELETE removed 'a', INSERT added 'new')
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(2, rs.getInt(1),
+                                "after DELETE+INSERT: 2 rows must remain ('b' + 'new')");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates compound (DELETE;INSERT) + RGK via executeUpdate() returns LAST count = 1
+         * (INSERT) and getGeneratedKeys() returns the identity from the INSERT.
+         */
+        @Test
+        public void preparedStatementExecuteUpdateCompoundDeleteInsertWithGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKEUCmp"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createIdentityTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " (name) VALUES ('a'), ('b')");
+
+                    String sql = "DELETE FROM " + table + " WHERE name = 'a';"
+                            + " INSERT INTO " + table + " (name) VALUES (?)";
+                    try (PreparedStatement ps = conn.prepareStatement(sql,
+                            Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setString(1, "new");
+                        int count = ps.executeUpdate();
+                        assertEquals(1, count,
+                                "executeUpdate on DELETE;INSERT must return LAST count=1 (INSERT count)");
+
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertTrue(keys.next(),
+                                    "executeUpdate + compound + RETURN_GENERATED_KEYS must produce gen-keys");
+                            assertEquals(3, keys.getInt(1),
+                                    "identity must be 3 (after pre-populated 1, 2)");
+                            assertFalse(keys.next(),
+                                    "exactly 1 generated key for the single INSERT");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates multi-INSERT compound + RGK via execute(). Only ONE update count surfaces
+         * (RGK collapses intermediate INSERT counts) — caller advances past it via
+         * getMoreResults() then getGeneratedKeys(). Gap G1: SCOPE_IDENTITY() returns only LAST
+         * identity, not all three. All 3 rows persist.
+         */
+        @Test
+        public void preparedStatementExecuteCompoundMultipleInsertsReturnsLastIdentityViaScopeIdentity()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKMultiIns"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createIdentityTable(stmt, table);
+
+                    String sql = "INSERT INTO " + table + " (name) VALUES (?);"
+                            + " INSERT INTO " + table + " (name) VALUES (?);"
+                            + " INSERT INTO " + table + " (name) VALUES (?)";
+                    try (PreparedStatement ps = conn.prepareStatement(sql,
+                            Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setString(1, "r1");
+                        ps.setString(2, "r2");
+                        ps.setString(3, "r3");
+                        ps.execute();
+
+                        // On execute() + multi-INSERT compound + RGK, only ONE count surfaces
+                        // (the RGK code path collapses intermediate INSERT counts). Advance once
+                        // past that single count to position for getGeneratedKeys().
+                        assertEquals(1, ps.getUpdateCount(),
+                                "only ONE count surfaces with RGK on multi-INSERT compound; "
+                                        + "intermediate INSERT counts are collapsed by the RGK code path "
+                                        + "(mssql-jdbc-specific)");
+                        ps.getMoreResults();
+                        assertEquals(-1, ps.getUpdateCount(),
+                                "after advancing past the single surfaced count, no more counts "
+                                        + "are visible to the user (SCOPE_IDENTITY RS is reserved for getGeneratedKeys)");
+
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertTrue(keys.next(),
+                                    "getGeneratedKeys must return at least one row");
+                            assertEquals(3, keys.getInt(1),
+                                    "mssql-jdbc returns LAST identity via SCOPE_IDENTITY() (current behaviour, "
+                                            + "known gap G1 for true per-row keys)");
+                            assertFalse(keys.next(),
+                                    "exactly 1 generated key returned (SCOPE_IDENTITY returns only the last)");
+                        }
+                    }
+
+                    // Verify all 3 rows actually persisted with identities 1, 2, 3
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(3, rs.getInt(1),
+                                "all 3 rows must persist (gap G1 is in gen-keys retrieval, "
+                                        + "not INSERT execution)");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates SET NOCOUNT ON + INSERT + RGK via execute() — NOCOUNT suppresses INSERT
+         * count, getGeneratedKeys() still retrieves the identity (covers #2587 with compound
+         * shape). SQL omits trailing user SELECT — the driver does NOT support user SELECT
+         * + RGK (user SELECT and driver SCOPE_IDENTITY RS clash).
+         */
+        @Test
+        public void preparedStatementExecuteCompoundWithNoCountAndInsertAndGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKNCSelect"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createIdentityTable(stmt, table);
+
+                    String sql = "SET NOCOUNT ON;"
+                            + " INSERT INTO " + table + " (name) VALUES (?)";
+                    try (PreparedStatement ps = conn.prepareStatement(sql,
+                            Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setString(1, "x");
+                        ps.execute();
+
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertTrue(keys.next(),
+                                    "NOCOUNT must NOT break SCOPE_IDENTITY() injection for gen-keys");
+                            assertEquals(1, keys.getInt(1),
+                                    "first identity value must be 1");
+                            assertFalse(keys.next(),
+                                    "exactly 1 generated key for the single INSERT");
+                        }
+                    }
+
+                    // Verify the INSERT actually persisted
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1), "INSERT must have persisted the row");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates SET NOCOUNT ON + (DELETE;INSERT) + RGK via executeUpdate() — NOCOUNT
+         * suppresses all counts so executeUpdate returns -1 (mssql-jdbc-specific; spec allows
+         * 0), but getGeneratedKeys() still returns the identity (covers #2587 with compound).
+         */
+        @Test
+        public void preparedStatementExecuteUpdateCompoundWithNoCountAndGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKEUNoCnt"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createIdentityTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " (name) VALUES ('seed')");
+
+                    String sql = "SET NOCOUNT ON;"
+                            + " DELETE FROM " + table + " WHERE name = 'seed';"
+                            + " INSERT INTO " + table + " (name) VALUES (?)";
+                    try (PreparedStatement ps = conn.prepareStatement(sql,
+                            Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setString(1, "new");
+                        int count = ps.executeUpdate();
+                        assertEquals(-1, count,
+                                "NOCOUNT suppresses all DML counts → no DONE-with-count on wire → "
+                                        + "executeUpdate returns -1 (mssql-jdbc-specific; spec would allow 0)");
+
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertTrue(keys.next(),
+                                    "NOCOUNT on compound must NOT break gen-keys retrieval (#2587 with compound)");
+                            assertEquals(2, keys.getInt(1),
+                                    "identity must be 2 (seed was 1, new INSERT gets 2 — IDENTITY doesn't reset on DELETE)");
+                            assertFalse(keys.next(),
+                                    "exactly 1 generated key for the single INSERT");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates single INSERT into trigger table + RGK (covers #2740 trigger + gen-keys).
+         * Trigger has NOCOUNT. SQL is single-statement — driver does NOT support user SELECT
+         * + RGK on compound payloads.
+         */
+        @Test
+        public void preparedStatementExecuteInsertOnTriggerTableWithGeneratedKeys()
+                throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrSelA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrSelB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrSel"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, true); // NOCOUNT trigger
+
+                    String sql = "INSERT INTO " + tableA + " (name) VALUES (?)";
+                    try (PreparedStatement ps = conn.prepareStatement(sql,
+                            new String[] {"id"})) {
+                        ps.setString(1, "x");
+                        ps.execute();
+
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertTrue(keys.next(),
+                                    "trigger + RETURN_GENERATED_KEYS must produce gen-keys for the outer INSERT");
+                            assertEquals(1, keys.getInt(1),
+                                    "identity must be 1 from the outer INSERT into tableA (not the trigger's INSERT into tableB)");
+                            assertFalse(keys.next(),
+                                    "exactly 1 generated key for the single outer INSERT");
+                        }
+                    }
+
+                    // Verify INSERT into tableA persisted and trigger fired (1 row in tableB)
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1), "outer INSERT must have persisted in tableA");
+                    }
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1), "trigger must have inserted 1 row into tableB");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates compound (DELETE;INSERT) into trigger table + RGK via executeUpdate()
+         * (NOCOUNT trigger) returns LAST count = 1 (outer INSERT) and getGeneratedKeys()
+         * returns the identity.
+         */
+        @Test
+        public void preparedStatementExecuteUpdateCompoundOnTriggerTableWithGeneratedKeys()
+                throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrEUA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrEUB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrEU"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('seed1'), ('seed2')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, true); // NOCOUNT trigger
+
+                    String sql = "DELETE FROM " + tableA + " WHERE name = 'seed1';"
+                            + " INSERT INTO " + tableA + " (name) VALUES (?)";
+                    try (PreparedStatement ps = conn.prepareStatement(sql,
+                            new String[] {"id"})) {
+                        ps.setString(1, "new");
+                        int count = ps.executeUpdate();
+                        assertEquals(1, count,
+                                "executeUpdate on DELETE;INSERT (with NOCOUNT trigger) must return "
+                                        + "LAST count=1 (the outer INSERT's count)");
+
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertTrue(keys.next(),
+                                    "executeUpdate + compound + trigger + RETURN_GENERATED_KEYS must produce gen-keys");
+                            assertEquals(3, keys.getInt(1),
+                                    "identity must be 3 (seeds were 1, 2; new INSERT gets 3 — IDENTITY doesn't reset)");
+                            assertFalse(keys.next(),
+                                    "exactly 1 generated key for the single new INSERT");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Quadruple combination — SET NOCOUNT ON + trigger + compound (DELETE;INSERT) + RGK.
+         * All four dimensions interact through the same onDone() / gen-keys injection path;
+         * any regression in one will fail this test. SQL omits trailing user SELECT (unsupported
+         * with RGK).
+         */
+        @Test
+        public void preparedStatementExecuteComplexCompoundNoCountTriggerAndGeneratedKeys()
+                throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKQuadA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKQuadB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKQuad"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('old')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, true); // NOCOUNT trigger
+
+                    String sql = "SET NOCOUNT ON;"
+                            + " DELETE FROM " + tableA + " WHERE name = 'old';"
+                            + " INSERT INTO " + tableA + " (name) VALUES (?)";
+                    try (PreparedStatement ps = conn.prepareStatement(sql,
+                            new String[] {"id"})) {
+                        ps.setString(1, "new");
+                        ps.execute();
+
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertTrue(keys.next(),
+                                    "NOCOUNT + trigger + compound + RETURN_GENERATED_KEYS combo must still produce gen-keys");
+                            assertEquals(2, keys.getInt(1),
+                                    "identity must be 2 (seed 'old' got 1; new INSERT gets 2 — IDENTITY doesn't reset)");
+                            assertFalse(keys.next(),
+                                    "exactly 1 generated key for the single outer INSERT in the compound payload");
+                        }
+                    }
+
+                    // Verify state after execution: tableA has 1 row ('new'), tableB has 1 row (trigger)
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1),
+                                "after DELETE+INSERT: 1 row in tableA (the new row only)");
+                    }
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1), "trigger must have inserted 1 row into tableB");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
     }
 
     // =========================================================================================
@@ -1063,18 +1597,11 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
     // =========================================================================================
 
     /**
-     * Trigger-noise filtering trade-offs pinned by API. Without {@code SET NOCOUNT ON} in the
-     * trigger body, the trigger's own DONEINPROC row count is wire-level indistinguishable from
-     * the outer INSERT's DONEINPROC:
-     *
-     * <p>{@code PreparedStatement.execute()} — post-#2941 — surfaces both (trigger first, outer
-     * second). {@code PreparedStatement.executeUpdate()} (default {@code lastUpdateCount=true})
-     * skips intermediate DONEINPROCs and returns only the outer count. {@code Statement.execute()}
-     * filters the trigger DONE via the base hook and surfaces only the outer count.
-     *
-     * <p>Microsoft's documented best practice for triggers is to begin the body with
-     * {@code SET NOCOUNT ON}, which suppresses the trigger's DONEINPROC row count and makes all
-     * APIs consistently surface only the outer INSERT count.
+     * Trigger-noise filtering trade-offs by API. Without {@code SET NOCOUNT ON}, the trigger's
+     * DONEINPROC is wire-indistinguishable from the outer DONEINPROC:
+     * {@code PreparedStatement.execute()} (post-#2941) surfaces both; {@code executeUpdate} and
+     * {@code Statement.execute()} surface only the outer count. With {@code SET NOCOUNT ON}
+     * (Microsoft best practice), all APIs surface only the outer count.
      */
     @Nested
     @Tag(Constants.xAzureSQLDW)
@@ -1200,14 +1727,10 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         }
 
         /**
-         * {@code Statement.execute} on a trigger table without {@code SET NOCOUNT ON} surfaces
-         * only the outer INSERT count — the trigger's nested {@code DONEINPROC} is filtered as
-         * noise by the base {@code shouldConsumeInsertDoneToken()} hook. Matches Microsoft's
-         * <a href="https://learn.microsoft.com/en-us/sql/t-sql/statements/create-trigger-transact-sql">
-         * trigger best-practices</a> (use {@code SET NOCOUNT ON} in trigger bodies). The
-         * PreparedStatement variant ({@link #preparedStatementExecuteMultiRowInsertWithoutNoCountTrigger})
-         * surfaces both counts — its override returns {@code false} to preserve compound-SQL
-         * fidelity for #2722 / #2940.
+         * Validates Statement.execute on a trigger table without NOCOUNT surfaces only the outer
+         * INSERT count — the trigger's nested DONEINPROC is filtered as noise by the base
+         * {@code shouldConsumeInsertDoneToken()} hook (per Microsoft trigger best-practices).
+         * Contrast with the PreparedStatement variant which surfaces both counts.
          */
         @Test
         public void statementExecuteMultiRowInsertWithoutNoCountTrigger() throws SQLException {
@@ -1270,6 +1793,522 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                         int count = ps.executeUpdate();
                         assertEquals(3, count,
                                 "executeUpdate must return outer INSERT count=3; intermediate trigger DONEINPROC must be skipped (default lastUpdateCount=true)");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        // -----------------------------------------------------------------------------------------
+        //  Section 6.A — Compound SQL on trigger tables (Statement × execute/executeUpdate/executeQuery × NOCOUNT)
+        // -----------------------------------------------------------------------------------------
+
+        /**
+         * Validates Statement.execute on compound (DELETE;INSERT;SELECT) over a trigger table
+         * (no NOCOUNT) — base hook filters trigger's nested CMD_INSERT DONE as noise, so only
+         * outer DELETE and INSERT counts surface plus the trailing SELECT.
+         */
+        @Test
+        public void statementExecuteCompoundOnTriggerTableWithoutNoCount() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSCpA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSCpB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSCp"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('old1'), ('old2')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false);
+
+                    String sql = "DELETE FROM " + tableA + " WHERE name = 'old1';"
+                            + " INSERT INTO " + tableA + " (name) VALUES ('new');"
+                            + " SELECT id, name FROM " + tableA;
+                    boolean isResultSet = stmt.execute(sql);
+
+                    assertFalse(isResultSet, "first result must be DELETE's count, not a ResultSet");
+                    Traversal t = traverseAllResults(stmt, isResultSet);
+                    assertEquals(Arrays.asList(1, 1), t.updateCounts,
+                            "Statement.execute filters trigger noise → only outer DELETE count=1 and "
+                                    + "outer INSERT count=1 surface (no trigger DONE)");
+                    assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                            "trailing SELECT must surface as one ResultSet with 2 rows (old2 + new)");
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates Statement.execute on same compound shape with trigger WITH NOCOUNT — NOCOUNT
+         * produces a count-less DONE that's skipped regardless; outcome identical to
+         * WITHOUT-NOCOUNT variant on the Statement path.
+         */
+        @Test
+        public void statementExecuteCompoundOnTriggerTableWithNoCount() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSCpNA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSCpNB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSCpN"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('old1'), ('old2')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, true); // WITH NOCOUNT
+
+                    String sql = "DELETE FROM " + tableA + " WHERE name = 'old1';"
+                            + " INSERT INTO " + tableA + " (name) VALUES ('new');"
+                            + " SELECT id, name FROM " + tableA;
+                    boolean isResultSet = stmt.execute(sql);
+
+                    assertFalse(isResultSet, "first result must be DELETE's count, not a ResultSet");
+                    Traversal t = traverseAllResults(stmt, isResultSet);
+                    assertEquals(Arrays.asList(1, 1), t.updateCounts,
+                            "WITH NOCOUNT in trigger: outer DELETE count=1 and outer INSERT count=1 "
+                                    + "surface (identical to WITHOUT-NOCOUNT outcome on Statement path)");
+                    assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                            "trailing SELECT must surface as one ResultSet with 2 rows");
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates Statement.executeUpdate on compound (DELETE;INSERT;UPDATE) over a trigger
+         * table (no NOCOUNT) returns FIRST count = DELETE = 1 — lastUpdateCount property is
+         * PS-only and does NOT apply to Statement path.
+         */
+        @Test
+        public void statementExecuteUpdateCompoundOnTriggerTableWithoutNoCount() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEUA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEUB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEU"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('a'), ('b')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false);
+
+                    String sql = "DELETE FROM " + tableA + " WHERE name = 'a';"
+                            + " INSERT INTO " + tableA + " (name) VALUES ('c');"
+                            + " UPDATE " + tableA + " SET name = 'updated'";
+                    int count = stmt.executeUpdate(sql);
+
+                    // Statement.executeUpdate returns FIRST count = DELETE's count = 1;
+                    // lastUpdateCount property doesn't apply to Statement code path.
+                    assertEquals(1, count,
+                            "Statement.executeUpdate returns FIRST count = 1 (DELETE's count); "
+                                    + "lastUpdateCount property is PS-only — Statement path always FIRST");
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates Statement.executeUpdate on same shape with trigger WITH NOCOUNT — NOCOUNT
+         * suppresses trigger DONE but Statement path returns FIRST = DELETE = 1 regardless
+         * (NOCOUNT has no observable effect on this code path).
+         */
+        @Test
+        public void statementExecuteUpdateCompoundOnTriggerTableWithNoCount() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEUNA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEUNB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEUN"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('a'), ('b')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, true); // WITH NOCOUNT
+
+                    String sql = "DELETE FROM " + tableA + " WHERE name = 'a';"
+                            + " INSERT INTO " + tableA + " (name) VALUES ('c');"
+                            + " UPDATE " + tableA + " SET name = 'updated'";
+                    int count = stmt.executeUpdate(sql);
+
+                    // Same FIRST count = 1 as WITHOUT-NOCOUNT variant — trigger NOCOUNT has no
+                    // effect on Statement.executeUpdate (already returns FIRST regardless).
+                    assertEquals(1, count,
+                            "Statement.executeUpdate returns FIRST count = 1 (DELETE's count); "
+                                    + "trigger NOCOUNT has no effect on Statement path");
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates Statement.executeQuery on compound (INSERT;SELECT) over a trigger table
+         * (no NOCOUNT) — driver consumes leading INSERT (filtered trigger DONE) and returns
+         * the trailing SELECT's RS. WITH-NOCOUNT variant is omitted: executeQuery consumes
+         * leading DML regardless of NOCOUNT through indistinguishable code paths.
+         */
+        @Test
+        public void statementExecuteQueryCompoundOnTriggerTableWithoutNoCount() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEQA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEQB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEQ"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false);
+
+                    String sql = "INSERT INTO " + tableA + " (name) VALUES ('new');"
+                            + " SELECT id, name FROM " + tableA;
+                    try (ResultSet rs = stmt.executeQuery(sql)) {
+                        assertNotNull(rs, "executeQuery must return the trailing SELECT's ResultSet");
+                        assertTrue(rs.next(), "ResultSet must have the inserted row");
+                        assertEquals(1, rs.getInt("id"), "row's id must be 1 (first INSERT into IDENTITY table)");
+                        assertEquals("new", rs.getString("name"), "row's name must be 'new'");
+                        assertFalse(rs.next(), "ResultSet must have exactly 1 row");
+                    }
+
+                    // Trigger must have fired and inserted into tableB
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1),
+                                "trigger must have fired once and inserted 1 row into tableB");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates {@code Statement.executeQuery} on compound payload with trigger WITH NOCOUNT.
+         * NOCOUNT in the trigger has no observable effect on {@code executeQuery} — the driver
+         * still consumes leading DML and returns the trailing SELECT's RS.
+         */
+        @Test
+        public void statementExecuteQueryCompoundOnTriggerTableWithNoCount() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEQNA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEQNB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEQN"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, true); // WITH NOCOUNT
+
+                    String sql = "INSERT INTO " + tableA + " (name) VALUES ('new');"
+                            + " SELECT id, name FROM " + tableA;
+                    try (ResultSet rs = stmt.executeQuery(sql)) {
+                        assertNotNull(rs, "executeQuery must return the trailing SELECT's ResultSet");
+                        assertTrue(rs.next(), "ResultSet must have the inserted row");
+                        assertEquals("new", rs.getString("name"), "row's name must be 'new'");
+                        assertFalse(rs.next(), "ResultSet must have exactly 1 row");
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1),
+                                "trigger must have fired once and inserted 1 row into tableB (NOCOUNT doesn't affect execution)");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        // -----------------------------------------------------------------------------------------
+        //  Section 6.B — Compound SQL on trigger tables (PreparedStatement × execute/executeUpdate/executeQuery × NOCOUNT)
+        // -----------------------------------------------------------------------------------------
+
+        /**
+         * Validates PreparedStatement.execute on compound (DELETE;INSERT;SELECT) over a trigger
+         * table (no NOCOUNT) — post-#2941, the PS override returns false so ALL DONEs surface
+         * including the trigger's nested INSERT count [1, 1, 1] plus the trailing SELECT.
+         */
+        @Test
+        public void preparedStatementExecuteCompoundOnTriggerTableWithoutNoCount() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPCpA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPCpB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPCp"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('old1'), ('old2')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false);
+
+                    String sql = "DELETE FROM " + tableA + " WHERE name = 'old1';"
+                            + " INSERT INTO " + tableA + " (name) VALUES (?);"
+                            + " SELECT id, name FROM " + tableA;
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setString(1, "new");
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet, "first result must be DELETE's count, not a ResultSet");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        // PS execute() per #2941: override returns false → ALL DONEs surface
+                        // including the trigger's nested INSERT DONE between DELETE and outer INSERT
+                        assertEquals(Arrays.asList(1, 1, 1), t.updateCounts,
+                                "PreparedStatement.execute (post-#2941) surfaces ALL counts: "
+                                        + "DELETE=1, trigger nested INSERT=1, outer INSERT=1");
+                        assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                                "trailing SELECT must surface as one ResultSet with 2 rows (old2 + new)");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates PreparedStatement.execute on same compound shape with trigger WITH NOCOUNT
+         * — NOCOUNT suppresses trigger's DONE row count, only outer DELETE and INSERT counts
+         * surface [1, 1] plus the trailing SELECT.
+         */
+        @Test
+        public void preparedStatementExecuteCompoundOnTriggerTableWithNoCount() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPCpNA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPCpNB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPCpN"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('old1'), ('old2')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, true); // WITH NOCOUNT
+
+                    String sql = "DELETE FROM " + tableA + " WHERE name = 'old1';"
+                            + " INSERT INTO " + tableA + " (name) VALUES (?);"
+                            + " SELECT id, name FROM " + tableA;
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setString(1, "new");
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet, "first result must be DELETE's count, not a ResultSet");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(1, 1), t.updateCounts,
+                                "WITH NOCOUNT in trigger: trigger DONE carries no count → only outer "
+                                        + "DELETE=1 and outer INSERT=1 surface");
+                        assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                                "trailing SELECT must surface as one ResultSet with 2 rows");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates PreparedStatement.executeUpdate on compound (DELETE;INSERT;UPDATE) over a
+         * trigger table (no NOCOUNT) — default lastUpdateCount=true returns LAST count =
+         * UPDATE = 2; trigger noise skipped.
+         */
+        @Test
+        public void preparedStatementExecuteUpdateCompoundOnTriggerTableWithoutNoCount()
+                throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEUA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEUB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEU"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('a'), ('b')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false);
+
+                    String sql = "DELETE FROM " + tableA + " WHERE name = 'a';"
+                            + " INSERT INTO " + tableA + " (name) VALUES (?);"
+                            + " UPDATE " + tableA + " SET name = 'updated'";
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setString(1, "c");
+                        int count = ps.executeUpdate();
+                        assertEquals(2, count,
+                                "PreparedStatement.executeUpdate (lastUpdateCount=true) returns LAST "
+                                        + "count = 2 (final UPDATE touched 2 surviving rows); trigger noise skipped");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates PreparedStatement.executeUpdate on compound + trigger WITH NOCOUNT under
+         * lastUpdateCount=false — returns FIRST count = DELETE = 1. Pins the executeUpdate ×
+         * property × trigger interaction.
+         */
+        @Test
+        public void preparedStatementExecuteUpdateCompoundOnTriggerTableWithNoCountAndLastUpdateCountFalse()
+                throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEUNA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEUNB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEUN"));
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('a'), ('b')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, true); // WITH NOCOUNT
+
+                    String sql = "DELETE FROM " + tableA + " WHERE name = 'a';"
+                            + " INSERT INTO " + tableA + " (name) VALUES (?);"
+                            + " UPDATE " + tableA + " SET name = 'updated'";
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setString(1, "c");
+                        int count = ps.executeUpdate();
+                        assertEquals(1, count,
+                                "lastUpdateCount=false: executeUpdate returns FIRST count = 1 "
+                                        + "(DELETE's count); WITH NOCOUNT in trigger doesn't change semantics");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates PreparedStatement.executeQuery on compound (INSERT;SELECT) over a trigger
+         * table (no NOCOUNT) — driver consumes leading INSERT (filtered trigger DONE) and
+         * returns the trailing SELECT's RS. WITH-NOCOUNT variant is omitted: executeQuery
+         * consumes leading DML regardless of NOCOUNT through indistinguishable code paths.
+         */
+        @Test
+        public void preparedStatementExecuteQueryCompoundOnTriggerTableWithoutNoCount() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEQA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEQB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEQ"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false);
+
+                    String sql = "INSERT INTO " + tableA + " (name) VALUES (?);"
+                            + " SELECT id, name FROM " + tableA;
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setString(1, "new");
+                        try (ResultSet rs = ps.executeQuery()) {
+                            assertNotNull(rs, "executeQuery must return the trailing SELECT's ResultSet");
+                            assertTrue(rs.next(), "ResultSet must have the inserted row");
+                            assertEquals(1, rs.getInt("id"), "row's id must be 1");
+                            assertEquals("new", rs.getString("name"), "row's name must be 'new'");
+                            assertFalse(rs.next(), "ResultSet must have exactly 1 row");
+                        }
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1),
+                                "trigger must have fired once and inserted 1 row into tableB");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates {@code PreparedStatement.executeQuery} on compound payload with trigger
+         * WITH NOCOUNT — identical outcome to WITHOUT-NOCOUNT for executeQuery (the API consumes
+         * leading DML and trigger noise regardless of NOCOUNT setting).
+         */
+        @Test
+        public void preparedStatementExecuteQueryCompoundOnTriggerTableWithNoCount() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEQNA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEQNB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEQN"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, true); // WITH NOCOUNT
+
+                    String sql = "INSERT INTO " + tableA + " (name) VALUES (?);"
+                            + " SELECT id, name FROM " + tableA;
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setString(1, "new");
+                        try (ResultSet rs = ps.executeQuery()) {
+                            assertNotNull(rs, "executeQuery must return the trailing SELECT's ResultSet");
+                            assertTrue(rs.next(), "ResultSet must have the inserted row");
+                            assertEquals("new", rs.getString("name"), "row's name must be 'new'");
+                            assertFalse(rs.next(), "ResultSet must have exactly 1 row");
+                        }
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1),
+                                "trigger must have fired once and inserted 1 row into tableB (NOCOUNT doesn't affect execution)");
                     }
                 } finally {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -1520,6 +2559,1756 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                                 "leading SET NOCOUNT ON must suppress every subsequent INSERT update count");
                         assertEquals(Arrays.asList(2), t.resultSetRowCounts,
                                 "trailing SELECT must still surface as one ResultSet with 2 rows (NOCOUNT does not affect SELECTs)");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+    }
+
+    // =========================================================================================
+    //  Section 9 — Stored procedure & CallableStatement
+    // =========================================================================================
+
+    /**
+     * Stored procedures take the {@code procedureName != null} branch in {@code onDone()} — a
+     * code path not exercised by the inline-SQL sections. Also verifies
+     * {@link java.sql.CallableStatement} inherits PreparedStatement's #2941 fix for compound SQL.
+     */
+    @Nested
+    public class StoredProcedureAndCallable {
+
+        /**
+         * Validates proc body (DELETE;INSERT;INSERT;SELECT) — all DML counts and the trailing
+         * SELECT must surface through the procedureName != null branch of onDone().
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteProcWithMultipleDmlAndSelect() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPDml"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPDmlProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "DELETE FROM " + table + "; "
+                            + "INSERT INTO " + table + " VALUES (10, 10); "
+                            + "INSERT INTO " + table + " VALUES (20, 20); "
+                            + "SELECT * FROM " + table + "; "
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        boolean isResultSet = cs.execute();
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        assertEquals(Arrays.asList(3, 1, 1), t.updateCounts,
+                                "proc body DML counts (DELETE=3, INSERT=1, INSERT=1) must all surface");
+                        assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                                "trailing SELECT inside proc must surface as one ResultSet with 2 rows");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates proc body with SET NOCOUNT ON + INSERT + SELECT — NOCOUNT suppresses the
+         * INSERT count, trailing SELECT still surfaces (covers #2587 with stored-proc path).
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteProcWithSetNoCountOnAndSelect() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPNoCnt"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPNoCntProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "SET NOCOUNT ON; "
+                            + "INSERT INTO " + table + " VALUES (1, 1); "
+                            + "SELECT * FROM " + table + "; "
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        boolean isResultSet = cs.execute();
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        assertEquals(0, t.updateCounts.size(),
+                                "SET NOCOUNT ON in proc body must suppress the INSERT update count");
+                        assertEquals(Arrays.asList(1), t.resultSetRowCounts,
+                                "trailing SELECT in proc must still surface (NOCOUNT does not suppress SELECTs)");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates proc returning only a ResultSet — trailing RETSTATUS token must be consumed
+         * via procedureRetStatToken without producing a phantom result.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteProcReturningResultSetOnly() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPRsOnly"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPRsOnlyProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "SET NOCOUNT ON; SELECT * FROM " + table + "; END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        boolean isResultSet = cs.execute();
+                        assertTrue(isResultSet, "execute() must return true because proc's first result is a ResultSet");
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        assertEquals(0, t.updateCounts.size(),
+                                "no DML in proc body → no update count must surface");
+                        assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                                "single SELECT from proc must surface as exactly one ResultSet with 2 rows");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates proc returning ResultSet + OUT param — OUT delivered as RETVALUE token
+         * after the RS; consuming the RS must not interfere with subsequent getInt() on OUT.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteProcWithResultSetAndOutParam() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPRsOut"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPRsOutProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " @rowCount INT OUTPUT AS BEGIN "
+                            + "SET NOCOUNT ON; "
+                            + "SELECT * FROM " + table + "; "
+                            + "SELECT @rowCount = COUNT(*) FROM " + table + "; "
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "(?)}")) {
+                        cs.registerOutParameter(1, Types.INTEGER);
+                        boolean isResultSet = cs.execute();
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        assertEquals(Arrays.asList(3), t.resultSetRowCounts,
+                                "proc's SELECT must surface as one ResultSet with 3 rows");
+                        assertEquals(3, cs.getInt(1),
+                                "OUT parameter must be 3 (COUNT(*)) after consuming all results");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates CallableStatement parity for #2940 literal repro (DELETE;INSERT;SELECT) —
+         * the #2941 fix in SQLServerPreparedStatement must be inherited by
+         * SQLServerCallableStatement.
+         */
+        @Test
+        public void callableStatementExecuteCompoundDeleteInsertSelectParityWithPreparedStatement()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CSCompound"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
+
+                    String sql = "DELETE FROM " + table + " WHERE c1 = 1;"
+                            + " INSERT INTO " + table + " (c1, c2) VALUES (?, ?);"
+                            + " SELECT * FROM " + table;
+                    try (CallableStatement cs = conn.prepareCall(sql)) {
+                        cs.setInt(1, 3);
+                        cs.setInt(2, 30);
+                        boolean isResultSet = cs.execute();
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        assertEquals(Arrays.asList(1, 1), t.updateCounts,
+                                "CallableStatement must inherit PreparedStatement behaviour for compound SQL");
+                        assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                                "trailing SELECT must surface on CallableStatement path");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates stored proc emitting two back-to-back ResultSets — both must surface as
+         * distinct ResultSets in order through the proc-path multi-RS interleaving.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteProcReturningMultipleResultSets() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPMultiRs"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPMultiRsProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "SET NOCOUNT ON; "
+                            + "SELECT * FROM " + table + " WHERE c1 < 2; "
+                            + "SELECT * FROM " + table + " WHERE c1 >= 2; "
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        boolean isResultSet = cs.execute();
+                        assertTrue(isResultSet, "first result from proc must be the first SELECT's ResultSet");
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        assertEquals(0, t.updateCounts.size(),
+                                "no DML in proc body (NOCOUNT on) → no update count must surface");
+                        assertEquals(Arrays.asList(1, 2), t.resultSetRowCounts,
+                                "both SELECTs must surface in order: c1<2 → 1 row, c1>=2 → 2 rows");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates {@code {? = call sp(?)}} return-value parameter — proc's RETURN value flows
+         * via the RETSTATUS token to the registered OUT parameter at index 1.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteProcWithReturnValueParameter() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPRet"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPRetProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "SET NOCOUNT ON; "
+                            + "INSERT INTO " + table + " VALUES (1, 1); "
+                            + "RETURN 42; "
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{? = call " + proc + "}")) {
+                        cs.registerOutParameter(1, Types.INTEGER);
+                        cs.execute();
+                        assertEquals(42, cs.getInt(1),
+                                "proc return-value (RETSTATUS token) must be retrievable as the registered OUT parameter");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates proc with INTERLEAVED multi-DML and multi-RS (INSERT;SELECT;UPDATE;SELECT;
+         * DELETE;SELECT) — all 3 DML counts AND all 3 ResultSets surface in exact order
+         * through the proc-path interleaving in onDone() / onColMetaData().
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteProcWithInterleavedDmlAndResultSets() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPInter"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPInterProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "INSERT INTO " + table + " VALUES (3, 3); "          // count=1
+                            + "SELECT c1 FROM " + table + " ORDER BY c1; "         // RS with 3 rows
+                            + "UPDATE " + table + " SET c2 = 99; "                 // count=3
+                            + "SELECT c2 FROM " + table + " WHERE c2 = 99; "       // RS with 3 rows
+                            + "DELETE FROM " + table + " WHERE c1 = 1; "           // count=1
+                            + "SELECT COUNT(*) AS remaining FROM " + table + "; "  // RS with 1 row (value=2)
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        boolean isResultSet = cs.execute();
+                        assertFalse(isResultSet,
+                                "proc's first result is INSERT's count (not a ResultSet)");
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        assertEquals(Arrays.asList(1, 3, 1), t.updateCounts,
+                                "all 3 DML counts must surface in proc body order: "
+                                        + "INSERT=1, UPDATE=3, DELETE=1");
+                        assertEquals(Arrays.asList(3, 3, 1), t.resultSetRowCounts,
+                                "all 3 SELECTs must surface as distinct ResultSets in order: "
+                                        + "[3 rows after INSERT, 3 rows after UPDATE, 1 row after DELETE]");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        // -----------------------------------------------------------------------------------------
+        //  Section 9.A — Stored proc × compound × triggers × NOCOUNT × lastUpdateCount matrix
+        // -----------------------------------------------------------------------------------------
+
+        /**
+         * Validates proc body (DELETE;INSERT;UPDATE;SELECT) over a trigger table (no NOCOUNT)
+         * — proc-path surfaces ALL counts including trigger's nested INSERT DONE in arrival
+         * order, plus trailing SELECT.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteProcWithCompoundDmlOnTriggerTableWithoutNoCount()
+                throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTrA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTrB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTr"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTrProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('old1'), ('old2')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false); // WITHOUT NOCOUNT
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "DELETE FROM " + tableA + " WHERE name = 'old1'; "
+                            + "INSERT INTO " + tableA + " (name) VALUES ('new'); "
+                            + "UPDATE " + tableA + " SET name = 'updated'; "
+                            + "SELECT id, name FROM " + tableA + "; "
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        boolean isResultSet = cs.execute();
+                        assertFalse(isResultSet, "first result is DELETE count, not a ResultSet");
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        // DELETE=1, trigger_INSERT=1 (no NOCOUNT), outer_INSERT=1, UPDATE=2
+                        assertEquals(Arrays.asList(1, 1, 1, 2), t.updateCounts,
+                                "proc body without NOCOUNT must surface ALL counts in order: "
+                                        + "DELETE=1, trigger INSERT=1, outer INSERT=1, UPDATE=2");
+                        assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                                "trailing SELECT must surface as one ResultSet with 2 rows (old2 + updated)");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates same proc/compound shape with trigger WITH NOCOUNT — trigger's DONE is
+         * suppressed, only proc's own DML counts surface (DELETE=1, INSERT=1, UPDATE=2).
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteProcWithCompoundDmlOnTriggerTableWithNoCount()
+                throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTNA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTNB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTN"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTNProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('old1'), ('old2')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, true); // WITH NOCOUNT
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "DELETE FROM " + tableA + " WHERE name = 'old1'; "
+                            + "INSERT INTO " + tableA + " (name) VALUES ('new'); "
+                            + "UPDATE " + tableA + " SET name = 'updated'; "
+                            + "SELECT id, name FROM " + tableA + "; "
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        boolean isResultSet = cs.execute();
+                        assertFalse(isResultSet, "first result is DELETE count, not a ResultSet");
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        // DELETE=1, trigger DONE suppressed by NOCOUNT, outer_INSERT=1, UPDATE=2
+                        assertEquals(Arrays.asList(1, 1, 2), t.updateCounts,
+                                "trigger WITH NOCOUNT suppresses its DONE → only proc's own counts surface: "
+                                        + "DELETE=1, outer INSERT=1, UPDATE=2");
+                        assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                                "trailing SELECT must surface as one ResultSet with 2 rows");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Proc body begins with {@code SET NOCOUNT ON} → suppresses every DML count regardless of
+         * trigger. Only the trailing SELECT surfaces.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteProcWithSetNoCountOnInBodyAndCompoundDmlAndTrigger()
+                throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPNCBdyA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPNCBdyB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPNCBdy"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPNCBdyProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('seed')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    // Trigger WITHOUT NOCOUNT — proc's SET NOCOUNT ON should still suppress everything
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false);
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "SET NOCOUNT ON; "
+                            + "DELETE FROM " + tableA + " WHERE name = 'seed'; "
+                            + "INSERT INTO " + tableA + " (name) VALUES ('a'); "
+                            + "INSERT INTO " + tableA + " (name) VALUES ('b'); "
+                            + "UPDATE " + tableA + " SET name = 'updated'; "
+                            + "SELECT id, name FROM " + tableA + "; "
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        boolean isResultSet = cs.execute();
+                        assertTrue(isResultSet,
+                                "proc-level SET NOCOUNT ON suppresses all DML counts → first result is the SELECT's ResultSet");
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        assertEquals(0, t.updateCounts.size(),
+                                "SET NOCOUNT ON in proc body must suppress every DML count "
+                                        + "(DELETE, trigger INSERTs, outer INSERTs, UPDATE — all silenced)");
+                        assertEquals(Arrays.asList(2), t.resultSetRowCounts,
+                                "trailing SELECT must surface as one ResultSet with 2 rows (a, b after UPDATE)");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates CallableStatement.executeUpdate on stored proc with compound DML always
+         * returns FIRST count regardless of lastUpdateCount property — the proc-path branch
+         * in onDone() (procedureName != null) returns counts in arrival order without applying
+         * the LAST-vs-FIRST selection. Paired with the LastUpdateCountFalse test to catch any
+         * future change that adds proc-path lastUpdateCount support.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteUpdateProcWithCompoundDmlAndLastUpdateCountTrue()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEULast"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEULastProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "DELETE FROM " + table + "; "                          // count=3 (FIRST)
+                            + "INSERT INTO " + table + " VALUES (10, 10); "          // count=1
+                            + "INSERT INTO " + table + " VALUES (20, 20); "          // count=1
+                            + "UPDATE " + table + " SET c2 = 99; "                   // count=2
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        int count = cs.executeUpdate();
+                        // Default lastUpdateCount=true is IGNORED on the stored-proc path;
+                        // executeUpdate returns FIRST count from the proc body (DELETE=3),
+                        // not the LAST count (UPDATE=2) it would return for inline compound SQL.
+                        assertEquals(3, count,
+                                "stored proc executeUpdate returns FIRST count from proc body (DELETE=3); "
+                                        + "lastUpdateCount=true does NOT apply to stored proc path "
+                                        + "(unlike inline compound SQL where it returns LAST count)");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates same proc body under lastUpdateCount=false returns SAME FIRST count
+         * (DELETE=3) — proving lastUpdateCount has no effect on stored-proc executeUpdate path.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteUpdateProcWithCompoundDmlAndLastUpdateCountFalse()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUFst"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUFstProc"));
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "DELETE FROM " + table + "; "                          // count=3 (FIRST)
+                            + "INSERT INTO " + table + " VALUES (10, 10); "          // count=1
+                            + "INSERT INTO " + table + " VALUES (20, 20); "          // count=1
+                            + "UPDATE " + table + " SET c2 = 99; "                   // count=2
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        int count = cs.executeUpdate();
+                        // Same FIRST count = 3 as the paired LAST test — proves lastUpdateCount
+                        // property has no effect on the stored-proc executeUpdate path.
+                        assertEquals(3, count,
+                                "lastUpdateCount=false returns same FIRST count = 3 as default "
+                                        + "lastUpdateCount=true — property has no effect on stored proc path");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates proc.executeUpdate on compound DML over trigger table (no NOCOUNT) under
+         * default lastUpdateCount=true returns FIRST count = DELETE = 1 — lastUpdateCount does
+         * NOT apply to stored-proc executeUpdate path.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteUpdateProcWithCompoundDmlOnTriggerTableLastUpdateCountTrue()
+                throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTrA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTrB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTr"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTrProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('old1'), ('old2')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false); // WITHOUT NOCOUNT
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "DELETE FROM " + tableA + " WHERE name = 'old1'; "    // count=1 (FIRST)
+                            + "INSERT INTO " + tableA + " (name) VALUES ('new'); "  // count=1 + trigger=1
+                            + "UPDATE " + tableA + " SET name = 'updated'; "        // count=2
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        int count = cs.executeUpdate();
+                        // Default lastUpdateCount=true is IGNORED on the stored-proc path;
+                        // returns FIRST count = DELETE's count = 1, same as the FALSE variant.
+                        assertEquals(1, count,
+                                "stored proc executeUpdate returns FIRST count = 1 (DELETE's count); "
+                                        + "lastUpdateCount=true does NOT apply to stored proc path");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates same proc/trigger setup under lastUpdateCount=false returns SAME FIRST
+         * count = 1 — property has no effect on stored-proc executeUpdate even with triggers.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteUpdateProcWithCompoundDmlOnTriggerTableLastUpdateCountFalse()
+                throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTFA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTFB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTF"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTFProc"));
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('old1'), ('old2')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false); // WITHOUT NOCOUNT
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "DELETE FROM " + tableA + " WHERE name = 'old1'; "    // count=1 (FIRST)
+                            + "INSERT INTO " + tableA + " (name) VALUES ('new'); "
+                            + "UPDATE " + tableA + " SET name = 'updated'; "
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        int count = cs.executeUpdate();
+                        assertEquals(1, count,
+                                "lastUpdateCount=false returns same FIRST count = 1 (DELETE's count) "
+                                        + "as default lastUpdateCount=true — property has no effect on "
+                                        + "stored proc path even with trigger in play");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates quintuple combo: proc body + compound DML + trigger (no NOCOUNT) +
+         * proc-level SET NOCOUNT ON + multi-SELECT. Proc-level NOCOUNT wins — all DML counts
+         * suppressed, both SELECTs surface as distinct ResultSets.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void callableStatementExecuteProcWithSetNoCountOnAndCompoundDmlAndTriggerAndMultipleSelects()
+                throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPQuintA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPQuintB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPQuint"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPQuintProc"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " (name) VALUES ('old')");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    // Trigger WITHOUT NOCOUNT — proc-level NOCOUNT should still silence everything
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false);
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "SET NOCOUNT ON; "
+                            + "DELETE FROM " + tableA + " WHERE name = 'old'; "
+                            + "INSERT INTO " + tableA + " (name) VALUES ('a'); "
+                            + "SELECT id, name FROM " + tableA + "; "         // RS#1: 1 row (a)
+                            + "INSERT INTO " + tableA + " (name) VALUES ('b'); "
+                            + "UPDATE " + tableA + " SET name = name + '!'; "
+                            + "SELECT id, name FROM " + tableA + " ORDER BY id; " // RS#2: 2 rows (a!, b!)
+                            + "END");
+
+                    try (CallableStatement cs = conn.prepareCall("{call " + proc + "}")) {
+                        boolean isResultSet = cs.execute();
+                        assertTrue(isResultSet,
+                                "proc-level SET NOCOUNT ON → first result is the first SELECT's ResultSet");
+                        Traversal t = traverseAllResults(cs, isResultSet);
+                        assertEquals(0, t.updateCounts.size(),
+                                "proc-level SET NOCOUNT ON must suppress every DML count "
+                                        + "(DELETE, trigger INSERTs, outer INSERTs, UPDATE — all silenced)");
+                        assertEquals(Arrays.asList(1, 2), t.resultSetRowCounts,
+                                "both SELECTs must surface in order: [1 row after first INSERT, "
+                                        + "2 rows after second INSERT+UPDATE]");
+                    }
+                } finally {
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+    }
+
+    // =========================================================================================
+    //  Section 10 — executeBatch() result handling
+    // =========================================================================================
+
+    /**
+     * Validates {@code executeBatch()} per-batch-item update count semantics for both
+     * {@link Statement} and {@link PreparedStatement}. Uses {@code EXECUTE_BATCH} code path
+     * with its own DONE-token handling in {@code onDone()}.
+     */
+    @Nested
+    public class ExecuteBatchHandling {
+
+        /** {@code Statement.addBatch + executeBatch} on mixed DML — one count per batch item. */
+        @Test
+        public void statementExecuteBatchReturnsOneCountPerItem() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBStmt"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    stmt.addBatch("INSERT INTO " + table + " VALUES (1, 1)");
+                    stmt.addBatch("INSERT INTO " + table + " VALUES (2, 2), (3, 3)");
+                    stmt.addBatch("UPDATE " + table + " SET c2 = 99");
+                    int[] counts = stmt.executeBatch();
+
+                    assertEquals(3, counts.length,
+                            "executeBatch must return one count per addBatch item");
+                    assertEquals(1, counts[0],
+                            "batch item 0 (INSERT 1 row) must report 1");
+                    assertEquals(2, counts[1],
+                            "batch item 1 (INSERT 2 rows) must report 2");
+                    assertEquals(3, counts[2],
+                            "batch item 2 (UPDATE 3 rows) must report 3");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /** {@code PreparedStatement.addBatch + executeBatch} — one count per parameter set. */
+        @Test
+        public void preparedStatementExecuteBatchReturnsOneCountPerParameterSet() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBPS"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " VALUES (?, ?)")) {
+                        ps.setInt(1, 1); ps.setInt(2, 1); ps.addBatch();
+                        ps.setInt(1, 2); ps.setInt(2, 2); ps.addBatch();
+                        ps.setInt(1, 3); ps.setInt(2, 3); ps.addBatch();
+                        int[] counts = ps.executeBatch();
+
+                        assertEquals(3, counts.length,
+                                "executeBatch must return one count per parameter-set addBatch");
+                        for (int i = 0; i < counts.length; i++) {
+                            assertEquals(1, counts[i],
+                                    "each single-row INSERT batch item must report 1 (index " + i + ")");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Mid-batch failure: {@code addBatch + executeBatch} where the second item is a PK
+         * violation. JDBC requires a {@link java.sql.BatchUpdateException} with one element per
+         * item including the failure. The failed item is reported as {@link Statement#EXECUTE_FAILED}.
+         */
+        @Test
+        public void statementExecuteBatchReportsExecuteFailedOnMidBatchPkViolation() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBErr"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    stmt.executeUpdate("CREATE TABLE " + table
+                            + " (id INT PRIMARY KEY, name VARCHAR(16))");
+
+                    stmt.addBatch("INSERT INTO " + table + " VALUES (1, 'a')");
+                    stmt.addBatch("INSERT INTO " + table + " VALUES (1, 'dup')");
+                    stmt.addBatch("INSERT INTO " + table + " VALUES (2, 'b')");
+
+                    int[] counts;
+                    try {
+                        stmt.executeBatch();
+                        counts = new int[0];
+                    } catch (java.sql.BatchUpdateException bue) {
+                        counts = bue.getUpdateCounts();
+                    }
+
+                    assertEquals(3, counts.length,
+                            "BatchUpdateException must carry one count per addBatch item");
+                    assertEquals(1, counts[0],
+                            "first INSERT (success) must report 1");
+                    assertEquals(Statement.EXECUTE_FAILED, counts[1],
+                            "second INSERT (PK violation) must report EXECUTE_FAILED");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+    }
+
+    // =========================================================================================
+    //  Section 11 — Cross-product property combinations
+    // =========================================================================================
+
+    /**
+     * Cross-products of dimensions that already have single-dimension coverage but combine in
+     * ways the driver code paths can interact unexpectedly. Examples: trigger + lastUpdateCount,
+     * trigger + prepareMethod=none, gen-keys + lastUpdateCount=false, gen-keys +
+     * prepareMethod=none.
+     */
+    @Nested
+    public class PropertyCrossProducts {
+
+        /**
+         * Trigger + {@code lastUpdateCount=false}: connection property only affects
+         * {@code executeUpdate}, so {@code PreparedStatement.execute} still surfaces both trigger
+         * and outer counts identically to default.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementExecuteOnTriggerTableWithLastUpdateCountFalse() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XTrigLucA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XTrigLucB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XTrigLuc"));
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + tableA + " (name) VALUES (?), (?)")) {
+                        ps.setString(1, "x");
+                        ps.setString(2, "y");
+                        boolean isResultSet = ps.execute();
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(1, 2), t.updateCounts,
+                                "lastUpdateCount=false must NOT change execute() trigger behaviour — same [trigger=1, outer=2]");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates that {@code prepareMethod=none} (prepare-strategy knob) does NOT change
+         * compound-SQL traversal: runtime class is still PreparedStatement, override still fires,
+         * both trigger and outer counts surface. Setting it must not re-introduce #2940.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementExecuteOnTriggerTableWithPrepareMethodNone() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XTrigPMA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XTrigPMB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XTrigPM"));
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + tableA + " (name) VALUES (?), (?), (?)")) {
+                        ps.setString(1, "a");
+                        ps.setString(2, "b");
+                        ps.setString(3, "c");
+                        boolean isResultSet = ps.execute();
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(1, 3), t.updateCounts,
+                                "prepareMethod=none must NOT change PreparedStatement.execute trigger-noise "
+                                        + "behaviour — both trigger count=1 and outer INSERT count=3 surface, "
+                                        + "identical to default prepareMethod");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Generated keys + {@code lastUpdateCount=false}: the connection property must not break
+         * the {@code SCOPE_IDENTITY()} injection path. INSERT count must still be 1 and
+         * {@code getGeneratedKeys()} must return the identity.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementGeneratedKeysWithLastUpdateCountFalse() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XGKLuc"));
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    createIdentityTable(stmt, table);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " (name) VALUES (?)",
+                            Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setString(1, "row1");
+                        int count = ps.executeUpdate();
+                        assertEquals(1, count,
+                                "INSERT count must be 1 regardless of lastUpdateCount=false");
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertTrue(keys.next(),
+                                    "lastUpdateCount=false must not break generated-keys retrieval");
+                            assertEquals(1, keys.getInt(1),
+                                    "first identity value must be 1");
+                            assertFalse(keys.next(),
+                                    "exactly 1 generated key");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+    }
+
+    // =========================================================================================
+    //  Section 12 — DDL, MERGE, and SELECT INTO in compound SQL
+    // =========================================================================================
+
+    /**
+     * Validates DDL/MERGE/SELECT INTO traversal. Per JDBC spec, DDL surfaces as count=0
+     * ("0 for SQL statements that return nothing") — a valid result distinct from -1.
+     */
+    @Nested
+    public class DdlAndMergeAndSelectInto {
+
+        /**
+         * {@code CREATE TABLE; INSERT; SELECT} via {@code Statement.execute}. CREATE TABLE
+         * surfaces as count=0 per JDBC spec; INSERT surfaces as count=1; SELECT surfaces as
+         * a ResultSet. All three results are visible to the canonical traversal loop.
+         */
+        @Test
+        public void statementExecuteCreateTableInsertSelect() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DdlCIS"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    String sql = "CREATE TABLE " + table + " (c1 INT, c2 SMALLINT);"
+                            + " INSERT INTO " + table + " VALUES (1, 1);"
+                            + " SELECT * FROM " + table;
+
+                    boolean isResultSet = stmt.execute(sql);
+                    Traversal t = traverseAllResults(stmt, isResultSet);
+                    assertEquals(Arrays.asList(0, 1), t.updateCounts,
+                            "CREATE TABLE must surface as count=0 (per JDBC spec: 0 for SQL statements that return nothing); "
+                                    + "INSERT must surface as count=1");
+                    assertEquals(Arrays.asList(1), t.resultSetRowCounts,
+                            "trailing SELECT must surface as one ResultSet with the inserted row");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * {@code MERGE} statement with no trailing semicolon-statement. MERGE returns a single
+         * row count for the total rows affected (inserts + updates + deletes combined).
+         */
+        @Test
+        public void statementExecuteMergeReturnsTotalAffectedRowCount() throws SQLException {
+            String src = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("MrgSrc"));
+            String tgt = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("MrgTgt"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, src);
+                    createPlainTable(stmt, tgt);
+                    stmt.executeUpdate("INSERT INTO " + src + " VALUES (1, 10), (2, 20), (3, 30)");
+                    stmt.executeUpdate("INSERT INTO " + tgt + " VALUES (1, 99), (4, 40)");
+
+                    String mergeSql = "MERGE INTO " + tgt + " AS t"
+                            + " USING " + src + " AS s ON t.c1 = s.c1"
+                            + " WHEN MATCHED THEN UPDATE SET t.c2 = s.c2"
+                            + " WHEN NOT MATCHED BY TARGET THEN INSERT (c1, c2) VALUES (s.c1, s.c2)"
+                            + ";"; // MERGE statement must terminate with semicolon
+                    boolean isResultSet = stmt.execute(mergeSql);
+
+                    assertFalse(isResultSet, "MERGE must return false (no ResultSet)");
+                    Traversal t = traverseAllResults(stmt, isResultSet);
+                    // MERGE affects: 1 row updated (c1=1), 2 rows inserted (c1=2,3) = 3 total
+                    assertEquals(Arrays.asList(3), t.updateCounts,
+                            "MERGE must surface a single total affected count (1 UPDATE + 2 INSERT = 3)");
+                    assertEquals(0, t.resultSetRowCounts.size(),
+                            "MERGE without OUTPUT clause must not produce a ResultSet");
+                } finally {
+                    TestUtils.dropTableIfExists(tgt, stmt);
+                    TestUtils.dropTableIfExists(src, stmt);
+                }
+            }
+        }
+
+        /**
+         * {@code SELECT INTO new_table} — hybrid DDL+DML. Creates the table AND inserts rows in
+         * one statement, returning the inserted row count.
+         */
+        @Test
+        public void statementExecuteSelectIntoReturnsRowCount() throws SQLException {
+            String src = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SelIntoSrc"));
+            String dst = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SelIntoDst"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, src);
+                    stmt.executeUpdate("INSERT INTO " + src + " VALUES (1, 1), (2, 2), (3, 3)");
+
+                    boolean isResultSet = stmt.execute(
+                            "SELECT * INTO " + dst + " FROM " + src);
+
+                    assertFalse(isResultSet, "SELECT INTO must return false (no ResultSet)");
+                    Traversal t = traverseAllResults(stmt, isResultSet);
+                    assertEquals(Arrays.asList(3), t.updateCounts,
+                            "SELECT INTO must surface one count equal to rows copied (3)");
+                    assertEquals(0, t.resultSetRowCounts.size(),
+                            "SELECT INTO must not produce a ResultSet to the caller");
+                } finally {
+                    TestUtils.dropTableIfExists(dst, stmt);
+                    TestUtils.dropTableIfExists(src, stmt);
+                }
+            }
+        }
+    }
+
+    // =========================================================================================
+    //  Section 13 — Trigger varieties (UPDATE / DELETE / INSTEAD OF / nested-DML body)
+    // =========================================================================================
+
+    /**
+     * Trigger varieties beyond AFTER INSERT (which is covered in Section 6). Each variety
+     * touches a different {@code CMD_*} code path in {@code StreamDone.getCurCmd()} and
+     * different conditions in {@code shouldConsumeInsertDoneToken()}.
+     */
+    @Nested
+    @Tag(Constants.xAzureSQLDW)
+    public class TriggerVarieties {
+
+        /**
+         * Validates AFTER UPDATE trigger that does an INSERT — PreparedStatement.execute()
+         * surfaces both the trigger's nested CMD_INSERT count and the outer CMD_UPDATE count
+         * (per #2941 design: override returns {@code false} to preserve compound-SQL fidelity).
+         */
+        @Test
+        public void preparedStatementExecuteOnUpdateTriggerTable() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TUpdA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TUpdB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TUpd"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createPlainTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " VALUES (1, 1), (2, 2), (3, 3)");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + tableA
+                            + " FOR UPDATE AS INSERT INTO " + tableB + " DEFAULT VALUES");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE " + tableA + " SET c2 = ?")) {
+                        ps.setInt(1, 99);
+                        boolean isResultSet = ps.execute();
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(1, 3), t.updateCounts,
+                                "PreparedStatement.execute surfaces both trigger CMD_INSERT count=1 and "
+                                        + "outer CMD_UPDATE count=3 (override returns false on execute() path)");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates AFTER DELETE trigger that does an INSERT — PreparedStatement.execute()
+         * surfaces both the trigger's CMD_INSERT count and the outer CMD_DELETE count
+         * (symmetric to the AFTER UPDATE variant).
+         */
+        @Test
+        public void preparedStatementExecuteOnDeleteTriggerTable() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TDelA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TDelB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TDel"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createPlainTable(stmt, tableA);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " VALUES (1, 1), (2, 2)");
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + tableA
+                            + " FOR DELETE AS INSERT INTO " + tableB + " DEFAULT VALUES");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "DELETE FROM " + tableA)) {
+                        boolean isResultSet = ps.execute();
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(1, 2), t.updateCounts,
+                                "PreparedStatement.execute surfaces both trigger CMD_INSERT count=1 and "
+                                        + "outer CMD_DELETE count=2 (override returns false on execute() path)");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * INSTEAD OF INSERT trigger — the outer INSERT statement is NOT executed; the trigger's
+         * body runs in its place. The reported count is whatever the trigger body produces.
+         */
+        @Test
+        public void preparedStatementExecuteOnInsteadOfInsertTriggerTable() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIof"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createPlainTable(stmt, tableA);
+                    createPlainTable(stmt, tableB);
+                    // INSTEAD OF redirects the INSERT entirely into tableB
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + tableA
+                            + " INSTEAD OF INSERT AS INSERT INTO " + tableB
+                            + " SELECT * FROM inserted");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + tableA + " VALUES (?, ?)")) {
+                        ps.setInt(1, 1);
+                        ps.setInt(2, 1);
+                        ps.execute();
+                        // Outer INSERT contributes no rows (suppressed by INSTEAD OF);
+                        // trigger body's INSERT contributes 1 row to tableB.
+                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA)) {
+                            assertTrue(rs.next());
+                            assertEquals(0, rs.getInt(1),
+                                    "INSTEAD OF INSERT must suppress the outer INSERT — tableA must be empty");
+                        }
+                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                            assertTrue(rs.next());
+                            assertEquals(1, rs.getInt(1),
+                                    "INSTEAD OF trigger body must have inserted 1 row into tableB");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates the scope of the trigger-noise filter: it filters {@code CMD_INSERT} DONEs
+         * only. A trigger body with nested INSERT+UPDATE — the INSERT is filtered as noise but
+         * the UPDATE surfaces. Expected counts=[trigger UPDATE=2, outer INSERT=2]; trigger's
+         * nested INSERT count=1 is filtered.
+         */
+        @Test
+        public void statementExecuteOnTriggerWithCompoundBody() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TBodyA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TBodyB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TBody"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    createPlainTable(stmt, tableB);
+                    stmt.executeUpdate("INSERT INTO " + tableB + " VALUES (1, 1)");
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + tableA
+                            + " FOR INSERT AS BEGIN "
+                            + "INSERT INTO " + tableB + " VALUES (99, 99); "
+                            + "UPDATE " + tableB + " SET c2 = c2 + 1; "
+                            + "END");
+
+                    boolean isResultSet = stmt.execute(
+                            "INSERT INTO " + tableA + " (name) VALUES ('a'), ('b')");
+                    Traversal t = traverseAllResults(stmt, isResultSet);
+                    assertEquals(Arrays.asList(2, 2), t.updateCounts,
+                            "trigger-noise filter scope is CMD_INSERT only; trigger body's UPDATE count=2 "
+                                    + "surfaces (NOT filtered), and outer INSERT count=2 also surfaces");
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * INSTEAD OF UPDATE trigger — the outer UPDATE is suppressed; the trigger body runs in
+         * its place. Pins symmetric behaviour to {@link #preparedStatementExecuteOnInsteadOfInsertTriggerTable}.
+         */
+        @Test
+        public void preparedStatementExecuteOnInsteadOfUpdateTriggerTable() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofUA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofUB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofU"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createPlainTable(stmt, tableA);
+                    createPlainTable(stmt, tableB);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " VALUES (1, 1), (2, 2)");
+                    // INSTEAD OF redirects the UPDATE entirely into tableB instead of tableA
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + tableA
+                            + " INSTEAD OF UPDATE AS INSERT INTO " + tableB
+                            + " SELECT c1, c2 FROM inserted");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "UPDATE " + tableA + " SET c2 = ?")) {
+                        ps.setInt(1, 99);
+                        ps.execute();
+                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA
+                                + " WHERE c2 = 99")) {
+                            assertTrue(rs.next());
+                            assertEquals(0, rs.getInt(1),
+                                    "INSTEAD OF UPDATE must suppress the outer UPDATE — no row in tableA must have c2=99");
+                        }
+                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                            assertTrue(rs.next());
+                            assertEquals(2, rs.getInt(1),
+                                    "INSTEAD OF trigger body must have inserted 2 rows into tableB (one per inserted-pseudotable row)");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * INSTEAD OF DELETE trigger — the outer DELETE is suppressed; the trigger body runs in
+         * its place. Pins symmetric behaviour to the INSERT/UPDATE INSTEAD OF variants.
+         */
+        @Test
+        public void preparedStatementExecuteOnInsteadOfDeleteTriggerTable() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofDA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofDB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofD"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createPlainTable(stmt, tableA);
+                    createPlainTable(stmt, tableB);
+                    stmt.executeUpdate("INSERT INTO " + tableA + " VALUES (1, 1), (2, 2), (3, 3)");
+                    // INSTEAD OF DELETE preserves tableA and only logs the deleted rows to tableB
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + tableA
+                            + " INSTEAD OF DELETE AS INSERT INTO " + tableB
+                            + " SELECT c1, c2 FROM deleted");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "DELETE FROM " + tableA)) {
+                        ps.execute();
+                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableA)) {
+                            assertTrue(rs.next());
+                            assertEquals(3, rs.getInt(1),
+                                    "INSTEAD OF DELETE must suppress the outer DELETE — tableA must still have all 3 rows");
+                        }
+                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                            assertTrue(rs.next());
+                            assertEquals(3, rs.getInt(1),
+                                    "INSTEAD OF trigger body must have logged 3 rows into tableB (one per deleted-pseudotable row)");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates compound-SQL recovery model when a trigger body raises an error:
+         * {@code execute()} returns normally, the trigger's nested INSERT count surfaces first,
+         * then the {@code RAISERROR} surfaces as a {@link SQLException} on the next traversal
+         * step (same pattern as Section 7 mid-batch error recovery).
+         */
+        @Test
+        public void preparedStatementExecuteOnTriggerWithRaiserror() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRaA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRaB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRa"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    createPlainTable(stmt, tableB);
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + tableA
+                            + " FOR INSERT AS BEGIN "
+                            + "INSERT INTO " + tableB + " VALUES (99, 99); "
+                            + "RAISERROR ('trigger-side error', 16, 1); "
+                            + "END");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + tableA + " (name) VALUES (?)")) {
+                        ps.setString(1, "test");
+                        // execute() must NOT throw eagerly (recovery model)
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet,
+                                "execute() must return false (first result is the trigger's INSERT count, not a ResultSet)");
+
+                        // Traverse with recovery — the trigger's nested INSERT count surfaces
+                        // first, then the RAISERROR surfaces as SQLException on the next step.
+                        SQLException raised = null;
+                        List<Integer> countsBeforeError = new ArrayList<>();
+                        try {
+                            int c = ps.getUpdateCount();
+                            assertTrue(c >= 0,
+                                    "first result must be the trigger's nested INSERT count, not -1");
+                            countsBeforeError.add(c);
+                            ps.getMoreResults();
+                        } catch (SQLException e) {
+                            raised = e;
+                        }
+
+                        assertNotNull(raised,
+                                "RAISERROR(16) in trigger body must surface as SQLException during traversal");
+                        assertTrue(raised.getMessage() != null
+                                && raised.getMessage().contains("trigger-side error"),
+                                "SQLException message must include the RAISERROR text; got: " + raised.getMessage());
+                        assertEquals(Arrays.asList(1), countsBeforeError,
+                                "trigger's nested INSERT count=1 must surface before the RAISERROR");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates self-recursive AFTER INSERT trigger: SQL Server's default
+         * {@code RECURSIVE_TRIGGERS=OFF} prevents infinite recursion, so the trigger fires once
+         * and inserts its sentinel row. Final table has 2 rows: user's row + trigger's row.
+         */
+        @Test
+        public void preparedStatementExecuteOnRecursiveTriggerTable() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRecur"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRecurTrig"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                    createPlainTable(stmt, table);
+                    // The trigger inserts a 'marker' row when c1 != 99 (preventing infinite recursion
+                    // even if RECURSIVE_TRIGGERS were on)
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + table
+                            + " FOR INSERT AS BEGIN "
+                            + "IF NOT EXISTS (SELECT 1 FROM inserted WHERE c1 = 99) "
+                            + "INSERT INTO " + table + " VALUES (99, 99); "
+                            + "END");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " VALUES (?, ?)")) {
+                        ps.setInt(1, 1);
+                        ps.setInt(2, 1);
+                        ps.execute();
+                        try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                            assertTrue(rs.next());
+                            assertEquals(2, rs.getInt(1),
+                                    "recursive trigger must produce 2 rows total: user's (1,1) + trigger's (99,99)");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates trigger body that calls a stored procedure: the proc's NOCOUNT-suppressed
+         * DONEs are filtered, only the outer INSERT count surfaces.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void statementExecuteOnTriggerThatCallsStoredProcedure() throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TProcA"));
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TProcB"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TProc"));
+            String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TProcSP"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createIdentityTable(stmt, tableA);
+                    createPlainTable(stmt, tableB);
+                    stmt.executeUpdate("CREATE PROCEDURE " + proc + " AS BEGIN "
+                            + "SET NOCOUNT ON; "
+                            + "INSERT INTO " + tableB + " VALUES (99, 99); "
+                            + "END");
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + tableA
+                            + " FOR INSERT AS EXEC " + proc);
+
+                    boolean isResultSet = stmt.execute(
+                            "INSERT INTO " + tableA + " (name) VALUES ('a'), ('b')");
+                    Traversal t = traverseAllResults(stmt, isResultSet);
+                    assertEquals(Arrays.asList(2), t.updateCounts,
+                            "trigger-body proc with NOCOUNT must contribute no noise; only outer INSERT count=2 surfaces");
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropProcedureIfExists(proc, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
+
+        /**
+         * Validates trigger emitting a SELECT — on modern SQL Server
+         * ({@code disallow_results_from_triggers=ON} default) the INSERT throws and the table
+         * stays empty; on older servers the SELECT surfaces and the INSERT succeeds. Test
+         * accepts either outcome — the contract is that the driver must not crash.
+         */
+        @Test
+        public void preparedStatementExecuteOnTriggerThatEmitsResultSet() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRsT"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRs"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + table
+                            + " FOR INSERT AS BEGIN "
+                            + "SET NOCOUNT ON; "
+                            + "SELECT 'noise' AS trigger_result; "
+                            + "END");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " VALUES (?, ?)")) {
+                        ps.setInt(1, 1);
+                        ps.setInt(2, 1);
+                        // On modern SQL Server (disallow_results_from_triggers=ON by default),
+                        // the trigger's SELECT causes the INSERT to fail.
+                        // If the server allows it (older default), the SELECT's ResultSet would
+                        // surface — accept either outcome but ensure the driver doesn't crash.
+                        try {
+                            ps.execute();
+                            // If we get here, the server allowed the trigger-side SELECT —
+                            // the row should still have been inserted.
+                            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                                assertTrue(rs.next());
+                                assertEquals(1, rs.getInt(1),
+                                        "if trigger SELECT is allowed, the INSERT must still succeed");
+                            }
+                        } catch (SQLException expected) {
+                            // disallow_results_from_triggers=ON: the INSERT must have failed
+                            // and the row must NOT have been inserted.
+                            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                                assertTrue(rs.next());
+                                assertEquals(0, rs.getInt(1),
+                                        "with disallow_results_from_triggers=ON, the INSERT must fail and leave the table empty");
+                            }
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+    }
+
+    // =========================================================================================
+    //  Section 14 — Edge cases
+    // =========================================================================================
+
+    /**
+     * Edge cases that test specific niche behaviours not covered by the main matrix.
+     */
+    @Nested
+    public class EdgeCases {
+
+        /**
+         * Empty ResultSets in compound SQL: {@code SELECT WHERE 1=0; INSERT; SELECT WHERE 1=0}.
+         * A 0-row ResultSet is still a ResultSet — it must surface as an empty RS with row
+         * count 0, not be silently dropped.
+         */
+        @Test
+        public void preparedStatementExecuteCompoundWithEmptyResultSets() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EEmptyRs"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    String sql = "SELECT * FROM " + table + " WHERE 1=0;"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"
+                            + " SELECT * FROM " + table + " WHERE 1=0";
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 1);
+                        ps.setInt(2, 1);
+                        boolean isResultSet = ps.execute();
+                        assertTrue(isResultSet, "first result must be the empty SELECT");
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(1), t.updateCounts,
+                                "middle INSERT count=1 must surface");
+                        assertEquals(Arrays.asList(0, 0), t.resultSetRowCounts,
+                                "both empty SELECTs must surface as 0-row ResultSets — empty RS is still an RS");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * {@code getMoreResults(CLOSE_ALL_RESULTS)} mode: explicit verification that the mode flag
+         * is honoured. The default mode ({@code CLOSE_CURRENT_RESULT}) is covered by every test
+         * via {@code traverseAllResults}; this test pins the alternative mode.
+         */
+        @Test
+        public void preparedStatementGetMoreResultsCloseAllResultsMode() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EGMRMode"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "SELECT * FROM " + table + "; SELECT * FROM " + table)) {
+                        assertTrue(ps.execute(),
+                                "first result must be the first SELECT");
+                        ResultSet rs1 = ps.getResultSet();
+                        assertNotNull(rs1, "first ResultSet must be retrievable");
+
+                        boolean isResultSet = ps.getMoreResults(Statement.CLOSE_ALL_RESULTS);
+                        assertTrue(isResultSet, "second result must also be a ResultSet");
+                        assertTrue(rs1.isClosed(),
+                                "first ResultSet must be closed by CLOSE_ALL_RESULTS mode");
+                        try (ResultSet rs2 = ps.getResultSet()) {
+                            assertNotNull(rs2, "second ResultSet must be retrievable");
+                            int rows = 0;
+                            while (rs2.next()) {
+                                rows++;
+                            }
+                            assertEquals(2, rows, "second SELECT must return both rows");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Update count after error then continue then SELECT — on {@link PreparedStatement}.
+         * Verifies that the recovery semantics (#2850 / #2866 fix) also work on the PS path
+         * when the failing statement is in the middle of a longer compound payload.
+         */
+        @Test
+        public void preparedStatementExecuteWithMidBatchErrorFollowedByCountAndSelect()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EErrCS"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    stmt.executeUpdate("CREATE TABLE " + table
+                            + " (id INT PRIMARY KEY, name VARCHAR(16))");
+
+                    String sql = "INSERT INTO " + table + " VALUES (?, ?);"
+                            + " INSERT INTO " + table + " VALUES (?, ?);"   // PK violation
+                            + " UPDATE " + table + " SET name = 'x';"
+                            + " SELECT * FROM " + table;
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setInt(1, 1); ps.setString(2, "a");
+                        ps.setInt(3, 1); ps.setString(4, "dup");
+                        boolean isResultSet = ps.execute();
+
+                        // Use the same recovery pattern as Section 7.
+                        List<Integer> counts = new ArrayList<>();
+                        List<Integer> rsRows = new ArrayList<>();
+                        boolean errorSeen = false;
+                        while (true) {
+                            try {
+                                if (isResultSet) {
+                                    try (ResultSet rs = ps.getResultSet()) {
+                                        int rows = 0;
+                                        while (rs.next()) {
+                                            rows++;
+                                        }
+                                        rsRows.add(rows);
+                                    }
+                                } else {
+                                    int c = ps.getUpdateCount();
+                                    if (c == -1) {
+                                        break;
+                                    }
+                                    counts.add(c);
+                                }
+                                isResultSet = ps.getMoreResults();
+                            } catch (SQLException e) {
+                                errorSeen = true;
+                                isResultSet = ps.getMoreResults();
+                            }
+                        }
+
+                        assertTrue(errorSeen, "PK violation must surface as SQLException");
+                        assertEquals(Arrays.asList(1, 1), counts,
+                                "first INSERT count + post-error UPDATE count must both surface");
+                        assertEquals(Arrays.asList(1), rsRows,
+                                "trailing SELECT must surface with the single surviving row");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+    }
+
+    // =========================================================================================
+    //  Section 15 — Specialized property dimensions (smoke tests; dedicated suites exist)
+    // =========================================================================================
+
+    /**
+     * Narrow smoke checks — one per dimension — verifying #2941's consume-vs-surface contract
+     * is not broken by alternative code paths. NOT comprehensive coverage; each dimension has
+     * its own dedicated test suite elsewhere in the project.
+     */
+    @Nested
+    public class SpecializedPropertyDimensions {
+
+        /**
+         * Smoke-validates {@code useBulkCopyForBatchInsert=true}: PreparedStatement batches go
+         * through SQLServerBulkCopy (not the override hook); per-batch-item counts must still
+         * surface and all rows must persist. Comprehensive coverage in {@code BatchExecutionTest}.
+         */
+        @Test
+        public void preparedStatementBatchWithUseBulkCopyForBatchInsertSmoke() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPBulk"));
+            try (Connection conn = PrepUtil.getConnection(
+                    connectionString + ";useBulkCopyForBatchInsert=true");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " VALUES (?, ?)")) {
+                        ps.setInt(1, 1); ps.setInt(2, 1); ps.addBatch();
+                        ps.setInt(1, 2); ps.setInt(2, 2); ps.addBatch();
+                        ps.setInt(1, 3); ps.setInt(2, 3); ps.addBatch();
+                        int[] counts = ps.executeBatch();
+                        assertEquals(3, counts.length,
+                                "useBulkCopyForBatchInsert must still return one count per batch item");
+                        // Bulk-copy reports SUCCESS_NO_INFO (-2) for individual items because the
+                        // per-row count is not available; accept either SUCCESS_NO_INFO or 1.
+                        for (int i = 0; i < counts.length; i++) {
+                            assertTrue(counts[i] == 1 || counts[i] == Statement.SUCCESS_NO_INFO,
+                                    "batch item " + i + " must report 1 (per-row) or SUCCESS_NO_INFO "
+                                            + "(bulk-copy aggregate); got " + counts[i]);
+                        }
+                    }
+
+                    // Verify all 3 rows were actually inserted regardless of how the count was reported
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(3, rs.getInt(1),
+                                "all 3 rows must be persisted via bulk-copy path");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Smoke-validates {@code prepareMethod=scopeTempTablesToConnection}: temp-table-aware
+         * direct-SQL routing must not break compound-SQL traversal.
+         * Comprehensive coverage in {@code PrepStmtDirectSQLExecutionTests}.
+         */
+        @Test
+        public void preparedStatementWithScopeTempTablesToConnectionSmoke() throws SQLException {
+            try (Connection conn = PrepUtil.getConnection(
+                    connectionString + ";prepareMethod=scopeTempTablesToConnection");
+                    Statement stmt = conn.createStatement()) {
+                String tempTable = "#tmpScope_" + System.nanoTime();
+                // Create the temp table first via direct SQL so the prepared statement that
+                // references it is the one routed through the direct-SQL path.
+                stmt.executeUpdate("CREATE TABLE " + tempTable + " (c1 INT, c2 SMALLINT)");
+
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "INSERT INTO " + tempTable + " VALUES (?, ?); SELECT * FROM " + tempTable)) {
+                    ps.setInt(1, 1);
+                    ps.setInt(2, 1);
+                    boolean isResultSet = ps.execute();
+                    Traversal t = traverseAllResults(ps, isResultSet);
+                    assertEquals(Arrays.asList(1), t.updateCounts,
+                            "scopeTempTablesToConnection must not break compound-SQL count surfacing");
+                    assertEquals(Arrays.asList(1), t.resultSetRowCounts,
+                            "scopeTempTablesToConnection must not break trailing-SELECT surfacing");
+                }
+            }
+        }
+
+        /**
+         * Smoke-validates {@code columnEncryptionSetting=Enabled} on a non-encrypted table:
+         * AlwaysEncrypted code path must be a no-op for non-encrypted statements.
+         * Comprehensive AE coverage in the {@code AlwaysEncrypted} package suites.
+         */
+        @Test
+        public void preparedStatementExecuteWithColumnEncryptionEnabledOnPlainTableSmoke()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPAE"));
+            try (Connection conn = PrepUtil.getConnection(
+                    connectionString + ";columnEncryptionSetting=Enabled");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " VALUES (?, ?); SELECT * FROM " + table)) {
+                        ps.setInt(1, 1);
+                        ps.setInt(2, 1);
+                        boolean isResultSet = ps.execute();
+                        Traversal t = traverseAllResults(ps, isResultSet);
+                        assertEquals(Arrays.asList(1), t.updateCounts,
+                                "columnEncryptionSetting=Enabled on a non-encrypted table must NOT change compound-SQL count surfacing");
+                        assertEquals(Arrays.asList(1), t.resultSetRowCounts,
+                                "columnEncryptionSetting=Enabled on a non-encrypted table must NOT change trailing-SELECT surfacing");
                     }
                 } finally {
                     TestUtils.dropTableIfExists(table, stmt);
