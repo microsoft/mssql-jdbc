@@ -20,6 +20,10 @@ class PerformanceLog {
     private static boolean callbackInitialized = false;
     private static boolean cachedUseNanos = false;
 
+    // ThreadLocal to hold current SQL text and statement type for the duration of a publish callback
+    static final ThreadLocal<String> currentUserSql = new ThreadLocal<>();
+    static final ThreadLocal<StatementType> currentStatementType = new ThreadLocal<>();
+
     /**
      * Register a callback for performance log events.
      * The value of {@link PerformanceLogCallback#useNanoseconds()} is captured at registration
@@ -46,9 +50,6 @@ class PerformanceLog {
         callbackInitialized = false;
     }
 
-    //TODO
-    //More loggers to be added here e.g. com.microsoft.sqlserver.jdbc.PerformanceMetrics.Statement
-    
     public static class Scope implements AutoCloseable {
         private Logger logger;
         private int connectionId;
@@ -59,14 +60,17 @@ class PerformanceLog {
         private final boolean useNanos;
 
         private Exception exception;
+        private SQLServerStatement stmtHandle;
+        private String userSql;
 
         // Constructor for connection-level activities
         public Scope(Logger logger, int connectionId, PerformanceActivity activity) {
-            this(logger, connectionId, 0, activity);
+            this(logger, connectionId, 0, null, null, activity);
         }
 
         // Constructor for statement-level activities
-        public Scope(Logger logger, int connectionId, int statementId, PerformanceActivity activity) {
+        public Scope(Logger logger, int connectionId, int statementId,
+                     SQLServerStatement stmt, String userSql, PerformanceActivity activity) {
             this.enabled = logger.isLoggable(Level.FINE) || (callback != null);
             this.useNanos = cachedUseNanos;
 
@@ -76,6 +80,12 @@ class PerformanceLog {
                 this.statementId = statementId;
                 this.activity = activity;
                 this.startTime = useNanos ? System.nanoTime() : System.currentTimeMillis();
+
+                // If we have a callback and statement info, capture it for use during publish
+                if (callback != null && stmt != null) {
+                    this.stmtHandle = stmt;
+                    this.userSql = userSql;
+                }
             }
         }
 
@@ -101,6 +111,13 @@ class PerformanceLog {
 
             if (callback != null) {
                 try {
+                    if (stmtHandle != null) {
+                        // Set the current SQL and statement type for the callback to access via ThreadLocal during publish
+                        // Note: we set these before calling publish, and remove them afterward to avoid leaking data across calls
+                        currentUserSql.set(userSql);
+                        currentStatementType.set(deriveStatementType(stmtHandle));
+                    }
+
                     if (statementId == 0) {
                         callback.publish(activity, connectionId, duration, exception);
                     } else {
@@ -108,6 +125,11 @@ class PerformanceLog {
                     }
                 } catch (Exception e) {
                     logger.fine(String.format("Failed to publish performance log: %s", e.getMessage()));
+                } finally {
+                    if (stmtHandle != null) {
+                        currentUserSql.remove();
+                        currentStatementType.remove();
+                    }
                 }
             }
 
@@ -126,8 +148,20 @@ class PerformanceLog {
         return new Scope(logger, connectionId, activity);
     }
 
-    public static Scope createScope(Logger logger, int connectionId, Integer statementId, PerformanceActivity activity) {
-        return new Scope(logger, connectionId, statementId, activity);
+    public static Scope createScope(Logger logger, int connectionId, int statementId,
+                                    SQLServerStatement stmt, String userSql, PerformanceActivity activity) {
+        return new Scope(logger, connectionId, statementId, stmt, userSql, activity);
+    }
+
+    // Helper method to derive statement type based on the statement class
+    private static StatementType deriveStatementType(SQLServerStatement stmt) {
+        if (stmt instanceof SQLServerCallableStatement) {
+            return StatementType.CALLABLE_STATEMENT;
+        }
+        if (stmt instanceof SQLServerPreparedStatement) {
+            return StatementType.PREPARED_STATEMENT;
+        }
+        return StatementType.STATEMENT;
     }
 
 }

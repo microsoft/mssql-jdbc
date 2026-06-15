@@ -770,6 +770,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         PerformanceLog.perfLoggerStatement,
                         connection.getConnectionID(),
                         getStatementID(),
+                        this,
+                        userSQL,
                         isPrepExecUsed ? PerformanceActivity.STATEMENT_PREPEXEC : PerformanceActivity.STATEMENT_EXECUTE)) {
                     try {
                         // Track server roundtrip time
@@ -1409,6 +1411,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
                 getStatementID(),
+                this,
+                userSQL,
                 PerformanceActivity.STATEMENT_PREPARE)) {
 
             try {
@@ -3415,6 +3419,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
                 getStatementID(),
+                this,
+                userSQL,
                 PerformanceActivity.STATEMENT_EXECUTE)) {
             try {
                 while (numBatchesExecuted < numBatches) {
@@ -3701,6 +3707,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     PerformanceLog.perfLoggerStatement,
                     connection.getConnectionID(),
                     getStatementID(),
+                    this,
+                    userSQL,
                     PerformanceActivity.STATEMENT_EXECUTE)) {
                 try {
                     // Track server roundtrip time

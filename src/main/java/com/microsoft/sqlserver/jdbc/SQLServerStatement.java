@@ -374,6 +374,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                 PerformanceLog.perfLoggerStatement, 
                 connection.getConnectionID(), 
                 getStatementID(), 
+                null,
+                null,
                 PerformanceActivity.STATEMENT_REQUEST_BUILD
             );
         }
@@ -400,6 +402,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
                 getStatementID(),
+                null,
+                null,
                 PerformanceActivity.STATEMENT_FIRST_SERVER_RESPONSE
             );
         }
@@ -1096,6 +1100,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                     PerformanceLog.perfLoggerStatement,
                     connection.getConnectionID(),
                     getStatementID(),
+                    this,
+                    sql,
                     PerformanceActivity.STATEMENT_EXECUTE)) {
                 try {
                     // Track server roundtrip time
@@ -1193,6 +1199,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
                 getStatementID(),
+                this,
+                batchStatementString,
                 PerformanceActivity.STATEMENT_EXECUTE)) {
             try {
                 // Track server roundtrip time
@@ -2462,6 +2470,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
                 getStatementID(),
+                this,
+                sql,
                 PerformanceActivity.STATEMENT_EXECUTE)) {
             try {
                 // Track server roundtrip time
