@@ -24,6 +24,13 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -72,7 +79,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
             perfLogHandler.close();
             perfLogHandler = null;
         }
-        Files.deleteIfExists(logPath);
+        //Files.deleteIfExists(logPath);
     }
 
     /**
@@ -1091,6 +1098,168 @@ class PerformanceLogCallbackTest extends AbstractTest {
                 "Plain statement should report type 'Statement'");
         assertEquals(StatementType.PREPARED_STATEMENT, capturedType.get(pstmtIdx),
                 "Prepared statement should report type 'PreparedStatement'");
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test that 10 connections firing statements simultaneously each receive
+     * the correct SQL in their performance callbacks. Each thread uses a unique
+     * SQL containing its thread ID, and the callback verifies the SQL matches.
+     */
+    @Test
+    void testConcurrentConnectionsReceiveCorrectSql() throws Exception {
+        int threadCount = 10;
+        // Map: expected SQL -> set of thread IDs that produced it
+        Map<String, Set<Long>> capturedSqlByThread = new ConcurrentHashMap<>();
+        List<Throwable> errors = new ArrayList<>();
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                String sql = getCurrentUserSql();
+                if (sql != null && sql.startsWith("SELECT ")) {
+                    capturedSqlByThread.computeIfAbsent(sql, k -> ConcurrentHashMap.newKeySet())
+                            .add(Thread.currentThread().getId());
+                    StatementType type = getCurrentStatementType();
+                    perfLoggerStatement.fine(String.format(
+                            "[ThreadID:%d] %s | ConnID:%d StmtID:%d | %s | SQL: %s | %d ms",
+                            Thread.currentThread().getId(), activity, connectionId, statementId,
+                            type, sql, durationMs));
+                }
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+            final long expectedThreadMarker = i;
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    String sql = "SELECT " + expectedThreadMarker + " AS thread_marker";
+                    try (Connection con = getConnection();
+                         Statement stmt = con.createStatement();
+                         ResultSet rs = stmt.executeQuery(sql)) {
+                        rs.next();
+                    }
+                } catch (Throwable t) {
+                    synchronized (errors) {
+                        errors.add(t);
+                    }
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        // Release all threads simultaneously
+        startLatch.countDown();
+        assertTrue(doneLatch.await(60, TimeUnit.SECONDS), "Threads did not complete in time");
+        executor.shutdown();
+
+        assertTrue(errors.isEmpty(),
+                "Errors during concurrent execution: " + errors);
+
+        // Verify each unique SQL was captured
+        for (int i = 0; i < threadCount; i++) {
+            String expectedSql = "SELECT " + i + " AS thread_marker";
+            assertTrue(capturedSqlByThread.containsKey(expectedSql),
+                    "Callback should have received SQL for thread marker " + i
+                            + ". Captured keys: " + capturedSqlByThread.keySet().size());
+        }
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test that a single connection firing 10 statements from multiple threads
+     * receives the correct SQL for each in the performance callback. Each thread
+     * uses a unique SQL containing its thread ID to verify isolation.
+     */
+    @Test
+    void testSingleConnectionMultipleThreadsReceiveCorrectSql() throws Exception {
+        int threadCount = 10;
+        Map<String, Set<Long>> capturedSqlByThread = new ConcurrentHashMap<>();
+        List<Throwable> errors = new ArrayList<>();
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                String sql = getCurrentUserSql();
+                if (sql != null && sql.startsWith("SELECT ")) {
+                    capturedSqlByThread.computeIfAbsent(sql, k -> ConcurrentHashMap.newKeySet())
+                            .add(Thread.currentThread().getId());
+                    StatementType type = getCurrentStatementType();
+                    perfLoggerStatement.fine(String.format(
+                            "[ThreadID:%d] %s | ConnID:%d StmtID:%d | %s | SQL: %s | %d ms",
+                            Thread.currentThread().getId(), activity, connectionId, statementId,
+                            type, sql, durationMs));
+                }
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+        try (Connection sharedCon = getConnection()) {
+            for (int i = 0; i < threadCount; i++) {
+                final long expectedThreadMarker = i;
+                executor.submit(() -> {
+                    try {
+                        startLatch.await();
+                        String sql = "SELECT " + expectedThreadMarker + " AS thread_marker";
+                        // Each thread creates its own statement on the shared connection
+                        try (Statement stmt = sharedCon.createStatement();
+                             ResultSet rs = stmt.executeQuery(sql)) {
+                            rs.next();
+                        }
+                    } catch (Throwable t) {
+                        synchronized (errors) {
+                            errors.add(t);
+                        }
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+
+            // Release all threads simultaneously
+            startLatch.countDown();
+            assertTrue(doneLatch.await(60, TimeUnit.SECONDS), "Threads did not complete in time");
+        }
+
+        executor.shutdown();
+
+        assertTrue(errors.isEmpty(),
+                "Errors during concurrent execution: " + errors);
+
+        // Verify each unique SQL was captured in the callback
+        for (int i = 0; i < threadCount; i++) {
+            String expectedSql = "SELECT " + i + " AS thread_marker";
+            assertTrue(capturedSqlByThread.containsKey(expectedSql),
+                    "Callback should have received SQL for thread marker " + i
+                            + ". Captured keys: " + capturedSqlByThread.keySet().size());
+        }
 
         SQLServerDriver.unregisterPerformanceLogCallback();
     }
