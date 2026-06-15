@@ -818,7 +818,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
     @Test
     void testUserSqlInBatchExecution() throws Exception {
         List<String> capturedSql = new ArrayList<>();
-        List<String> capturedType = new ArrayList<>();
+        List<StatementType> capturedType = new ArrayList<>();
         List<PerformanceActivity> capturedActivities = new ArrayList<>();
 
         PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
@@ -831,7 +831,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
             public void publish(PerformanceActivity activity, int connectionId, int statementId,
                     long durationMs, Exception exception) {
                 String sql = getCurrentUserSql();
-                String type = getCurrentStatementType();
+                StatementType type = getCurrentStatementType();
                 if (sql != null) {
                     capturedSql.add(sql);
                     capturedType.add(type);
@@ -874,7 +874,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
                 "Should capture batch INSERT SQL. Captured: " + capturedSql);
 
         int batchIdx = capturedSql.indexOf(batchInsertSql);
-        assertEquals("PreparedStatement", capturedType.get(batchIdx),
+        assertEquals(StatementType.PREPARED_STATEMENT, capturedType.get(batchIdx),
                 "Batch statement should report type 'PreparedStatement'");
 
         SQLServerDriver.unregisterPerformanceLogCallback();
@@ -1031,7 +1031,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
     @Test
     void testUserSqlAndStatementTypeInCallback() throws Exception {
         List<String> capturedSql = new ArrayList<>();
-        List<String> capturedType = new ArrayList<>();
+        List<StatementType> capturedType = new ArrayList<>();
         List<PerformanceActivity> capturedActivities = new ArrayList<>();
 
         PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
@@ -1045,7 +1045,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
             public void publish(PerformanceActivity activity, int connectionId, int statementId,
                     long durationMs, Exception exception) {
                 String sql = getCurrentUserSql();
-                String type = getCurrentStatementType();
+                StatementType type = getCurrentStatementType();
                 if (sql != null) {
                     capturedSql.add(sql);
                     capturedType.add(type);
@@ -1087,9 +1087,9 @@ class PerformanceLogCallbackTest extends AbstractTest {
         int stmtIdx = capturedSql.indexOf(stmtQuery);
         int pstmtIdx = capturedSql.indexOf(pstmtQuery);
 
-        assertEquals("Statement", capturedType.get(stmtIdx),
+        assertEquals(StatementType.STATEMENT, capturedType.get(stmtIdx),
                 "Plain statement should report type 'Statement'");
-        assertEquals("PreparedStatement", capturedType.get(pstmtIdx),
+        assertEquals(StatementType.PREPARED_STATEMENT, capturedType.get(pstmtIdx),
                 "Prepared statement should report type 'PreparedStatement'");
 
         SQLServerDriver.unregisterPerformanceLogCallback();

@@ -90,7 +90,7 @@ SQLServerDriver.registerPerformanceLogCallback(new PerformanceLogCallback() {
             long durationMs, Exception exception) {
         // Statement-level: SQL and type available for EXECUTE/PREPEXEC/PREPARE activities
         String sql = getCurrentUserSql();
-        String type = getCurrentStatementType();
+        StatementType type = getCurrentStatementType();
         System.out.printf("[%s] %s | %s | %d ms%n", type, activity, sql, durationMs);
     }
 });
@@ -101,10 +101,10 @@ SQLServerDriver.registerPerformanceLogCallback(new PerformanceLogCallback() {
 - For `PreparedStatement`/`CallableStatement`: the SQL passed to `prepareStatement(sql)` or `prepareCall(sql)`
 - Returns `null` for connection-level activities and sub-activities (REQUEST_BUILD, FIRST_SERVER_RESPONSE)
 
-**`getCurrentStatementType()`** returns one of:
-- `"Statement"` — plain `java.sql.Statement`
-- `"PreparedStatement"` — `java.sql.PreparedStatement`
-- `"CallableStatement"` — `java.sql.CallableStatement`
+**`getCurrentStatementType()`** returns a `StatementType` enum value:
+- `StatementType.STATEMENT` — plain `java.sql.Statement`
+- `StatementType.PREPARED_STATEMENT` — `java.sql.PreparedStatement`
+- `StatementType.CALLABLE_STATEMENT` — `java.sql.CallableStatement`
 - `null` — for connection-level activities and sub-activities
 
 These methods are only valid **inside** a `publish()` invocation. Calling them outside

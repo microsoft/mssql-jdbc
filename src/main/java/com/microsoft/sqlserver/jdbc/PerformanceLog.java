@@ -22,7 +22,7 @@ class PerformanceLog {
 
     // ThreadLocal to hold current SQL text and statement type for the duration of a publish callback
     static final ThreadLocal<String> currentUserSql = new ThreadLocal<>();
-    static final ThreadLocal<String> currentStatementType = new ThreadLocal<>();
+    static final ThreadLocal<StatementType> currentStatementType = new ThreadLocal<>();
 
     /**
      * Register a callback for performance log events.
@@ -153,15 +153,15 @@ class PerformanceLog {
         return new Scope(logger, connectionId, statementId, stmt, userSql, activity);
     }
 
-    // Helper method to derive statement type string based on the statement class
-    private static String deriveStatementType(SQLServerStatement stmt) {
+    // Helper method to derive statement type based on the statement class
+    private static StatementType deriveStatementType(SQLServerStatement stmt) {
         if (stmt instanceof SQLServerCallableStatement) {
-            return "CallableStatement";
+            return StatementType.CALLABLE_STATEMENT;
         }
         if (stmt instanceof SQLServerPreparedStatement) {
-            return "PreparedStatement";
+            return StatementType.PREPARED_STATEMENT;
         }
-        return "Statement";
+        return StatementType.STATEMENT;
     }
 
 }
