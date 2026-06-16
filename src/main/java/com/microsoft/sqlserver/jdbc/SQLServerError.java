@@ -272,7 +272,10 @@ public final class SQLServerError extends StreamPacket implements Serializable, 
         return errorChain;
     }
 
+    // @java.beans.Transient hides this self-referential getter from JavaBeans introspection
+    // (Jackson, XMLEncoder, DataWeave, etc.) to prevent infinite recursion during serialization.
     @Override
+    @java.beans.Transient
     public SQLServerError getSQLServerMessage() {
         return this;
     }
