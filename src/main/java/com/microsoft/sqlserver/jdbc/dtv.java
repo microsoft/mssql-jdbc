@@ -133,6 +133,15 @@ final class DTV {
     /** The source (app or server) providing the data for this value. */
     private DTVImpl impl;
 
+    /**
+    * Single-slot cache for reusing a {@link ServerDTVImpl} across row reads,
+    * avoiding repeated allocations on the ResultSet hot path. {@link #clear()}
+    * still resets {@link #impl} to {@code null}, preserving the existing
+    * initialization and null-state semantics. {@link AppDTVImpl} is excluded
+    * because its update-path lifecycle differs from {@link ServerDTVImpl}.
+    */
+    private ServerDTVImpl pooledServerImpl;
+
     CryptoMetadata cryptoMeta = null;
     JDBCType jdbcTypeSetByUser = null;
     int valueLength = 0;
@@ -157,20 +166,38 @@ final class DTV {
         impl.setValue(value, javaType);
     }
 
+    /** Returns the pooled {@link ServerDTVImpl} (already reset) or a fresh instance. */
+    private ServerDTVImpl acquireServerImpl() {
+        ServerDTVImpl s = pooledServerImpl;
+        if (null != s) {
+            pooledServerImpl = null;
+            return s;
+        }
+        return new ServerDTVImpl();
+    }
+
     final void clear() {
+        // Pool the outgoing ServerDTVImpl for reuse on the next read, so we
+        // avoid a fresh allocation per column per row. AppDTVImpl is not pooled
+        // (rare update path; would complicate the AppDTV <-> ServerDTV swap).
+        if (impl instanceof ServerDTVImpl) {
+            ServerDTVImpl s = (ServerDTVImpl) impl;
+            s.reset();
+            pooledServerImpl = s;
+        }
         impl = null;
     }
 
     final void skipValue(TypeInfo type, TDSReader tdsReader, boolean isDiscard) throws SQLServerException {
         if (null == impl)
-            impl = new ServerDTVImpl();
+            impl = acquireServerImpl();
 
         impl.skipValue(type, tdsReader, isDiscard);
     }
 
     final void initFromCompressedNull() {
         if (null == impl)
-            impl = new ServerDTVImpl();
+            impl = acquireServerImpl();
 
         impl.initFromCompressedNull();
     }
@@ -250,7 +277,7 @@ final class DTV {
             TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader,
             SQLServerStatement statement) throws SQLServerException {
         if (null == impl) {
-            impl = new ServerDTVImpl();
+            impl = acquireServerImpl();
         } else if (impl.isNull()) {
             return null;
         }
@@ -270,6 +297,13 @@ final class DTV {
      * Called by DTV implementation instances to change to a different DTV implementation.
      */
     void setImpl(DTVImpl impl) {
+        // Preserve an outgoing ServerDTVImpl for reuse when replacing the
+        // current implementation, avoiding a fresh allocation on the next read.
+        if (this.impl instanceof ServerDTVImpl && this.impl != impl) {
+            ServerDTVImpl s = (ServerDTVImpl) this.impl;
+            s.reset();
+            pooledServerImpl = s;
+        }
         this.impl = impl;
     }
 
@@ -3321,6 +3355,19 @@ final class ServerDTVImpl extends DTVImpl {
     private SqlVariant internalVariant;
 
     /**
+     * Resets all wire-side state (length, mark, null indicator, SQL_VARIANT context)
+     * so this instance can be reused for the next row's value. Invoked by
+     * {@link DTV#clear()} on the per-row hot path to avoid allocating a fresh
+     * {@code ServerDTVImpl} for every column of every row.
+     */
+    final void reset() {
+        valueLength = 0;
+        valueMark = null;
+        isNull = false;
+        internalVariant = null;
+    }
+
+    /**
      * Sets the value of the DTV to an app-specified Java type.
      *
      * Generally, the value cannot be stored back into the TDS byte stream (although this could be done for fixed-length
@@ -3833,9 +3880,31 @@ final class ServerDTVImpl extends DTVImpl {
                 // (CHAR/VARCHAR/TEXT/NCHAR/NVARCHAR/NTEXT/BINARY/VARBINARY/IMAGE) -> ANY jdbcType.
                 case CHAR:
                 case VARCHAR:
-                case TEXT:
                 case NCHAR:
                 case NVARCHAR:
+                {
+                    // Fast path: small synchronous rs.getString() reads bytes directly into
+                    // a String, bypassing the SimpleInputStream wrapper and its embedded
+                    // TDSReaderMark / close() machinery (~4 allocations per cell saved).
+                    //
+                    // Guards (all required for byte-identical semantics with the stream path):
+                    //   - valueLength in (0, 4000]  : skips zero-length and overly large values
+                    //   - streamType == NONE        : stream getters need the actual InputStream
+                    //   - !isAdaptive               : adaptive paths wrap the stream for user code
+                    //   - jdbcType.isTextual()      : non-textual targets need convertStringToObject
+                    //                                 to trim/parse the value
+                    if (valueLength > 0 && valueLength <= 4000
+                            && StreamType.NONE == streamGetterArgs.streamType
+                            && !streamGetterArgs.isAdaptive
+                            && jdbcType.isTextual()) {
+                        byte[] bytes = new byte[valueLength];
+                        tdsReader.readBytes(bytes, 0, valueLength);
+                        convertedValue = new String(bytes, typeInfo.getCharset());
+                        break;
+                    }
+                    // Fall through to the stream-based path for large/streaming/non-textual cases.
+                }
+                case TEXT:
                 case NTEXT:
                 case IMAGE:
                 case BINARY:
