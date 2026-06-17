@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Maven settings for the Docker-only OTel POC image.
+
+  The project's default `central` repository points at an Azure Artifacts feed
+  that denies anonymous access (HTTP 401). A Docker-only POC must build with no
+  PAT, so we mirror *all* artifact and plugin resolution to Maven Central, where
+  every driver, test, OpenTelemetry, and plugin dependency is publicly available.
+
+  Baked into the image at /root/.m2/settings.xml; not used by any host build.
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <mirrors>
+    <mirror>
+      <id>central-public</id>
+      <name>Force all resolution to Maven Central (no auth required)</name>
+      <url>https://repo.maven.apache.org/maven2</url>
+      <mirrorOf>*</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>

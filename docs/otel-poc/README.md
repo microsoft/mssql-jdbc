@@ -1,93 +1,112 @@
 # mssql-jdbc OpenTelemetry POC Runbook
 
-Follow [README](../../contrib/README.md) to setup a fresh WSL machine with Docker.
+A complete, **Docker-only** local stack and runnable workload for the OTel POC on
+this branch: driver metrics to Prometheus/Grafana and traces to Jaeger.
 
-This folder contains a complete local stack and runnable workload for the OTel
-POC in this branch: metrics to Prometheus/Grafana and traces to Jaeger.
+> You need **nothing but Docker + bash** on the host. JDK, Maven, and SQL Server
+> all run in containers — there is no host install of Java, Maven, or a database.
+> See [contrib/README.md](../../contrib/README.md) to get a fresh machine with Docker.
 
-## Branch Scope
-
-Changes in this branch wire OTel export from the driver and provide:
-
-- OTel callback + bootstrap in the driver.
-- Load generator and smoke test in test sources.
-- Docker Compose stack for collector, Prometheus, Grafana, and Jaeger.
-- Provisioned Grafana datasources/dashboard.
-
-## Files You Need
-
-- Stack entrypoint: docs/otel-poc/docker-compose.yml
-- Collector config: docs/otel-poc/otel-collector-config.yaml
-- Prometheus config: docs/otel-poc/prometheus.yml
-- Grafana datasources: docs/otel-poc/grafana/provisioning/datasources/datasource.yml
-- Grafana dashboard provider: docs/otel-poc/grafana/provisioning/dashboards/provider.yml
-- Grafana dashboard JSON: docs/otel-poc/grafana/dashboards/mssql-jdbc.json
-- Load generator: src/test/java/com/microsoft/sqlserver/jdbc/otel/OtelPocLoadGen.java
-- Smoke test: src/test/java/com/microsoft/sqlserver/jdbc/otel/OtelPocSmokeTest.java
-
-## Get The Code
-
-```powershell
-git clone https://github.com/microsoft/mssql-jdbc.git
-cd mssql-jdbc
-git checkout users/machavan/otelexperiment
+```bash
+cd docs/otel-poc
+./.scripts/dev.sh
 ```
 
-Verify you are on the right branch:
+That one command builds the driver, brings the whole stack up, proves it green,
+and then leaves a load generator running so the dashboards stay live. When it
+finishes you will see a **GREEN** banner and these URLs:
 
-```powershell
-git branch --show-current
-# should print: users/machavan/otelexperiment
+- Grafana: http://localhost:3000  (Dashboards -> mssql-jdbc -> *mssql-jdbc - driver metrics*)
+- Prometheus: http://localhost:9090
+- Jaeger UI: http://localhost:16686  (service: `mssql-jdbc-poc-loadgen`)
+- Collector Prometheus endpoint: http://localhost:8889/metrics
+
+Tear it down with `./.scripts/dev.sh down` (or `clean` to also drop the SQL
+Server volume and the build output).
+
+## What `dev.sh` does
+
+`dev.sh` is the only thing you run. Internally it:
+
+1. **Builds** the builder/runner image (`docs/otel-poc/Dockerfile`) — JDK 11 +
+   Maven with a warm dependency cache baked at image-build time.
+2. **Brings up** the stack from `docker-compose.yml`: a containerized **SQL
+   Server**, the **OTel Collector**, **Prometheus**, **Grafana**, and **Jaeger**.
+3. **Compiles** the driver and test classes (`-Pjre11 test-compile`).
+4. **Proves green** (see below).
+5. **Starts a long-running load generator** (`loadgen` service) so Grafana and
+   Jaeger keep receiving fresh data until you tear down.
+
+### Definition of GREEN (asserted automatically)
+
+| # | Gate | How it is checked |
+|---|------|-------------------|
+| 1 | Smoke test passes | `OtelPocSmokeTest` (JUnit) runs in a container against the SQL Server. |
+| 2 | Metrics flow | Prometheus exposes at least one `db_client_*` series from the load generator. |
+| 3 | Traces flow | Jaeger lists service `mssql-jdbc-poc-loadgen` with at least one trace. |
+| 4 | Health probes | HTTP 200 from collector (`:13133`), Prometheus, Grafana, and Jaeger, plus a healthy SQL Server container. |
+
+If any gate fails, `dev.sh` prints the relevant container logs and exits non-zero.
+
+## Commands
+
+```bash
+./.scripts/dev.sh            # = up: build, start, prove green, leave loadgen running
+./.scripts/dev.sh status     # container status + live health summary
+./.scripts/dev.sh logs       # tail all logs
+./.scripts/dev.sh logs loadgen   # tail just the load generator
+./.scripts/dev.sh down       # stop + remove the stack (keeps the SQL volume)
+./.scripts/dev.sh clean      # stop + remove the stack, the SQL volume, and target/
 ```
 
-## Prerequisites
+### Useful overrides (environment variables)
 
-| Requirement | Minimum version | Notes |
-|-------------|----------------|-------|
-| JDK | 11 (build target) — JDK 26 recommended | Any JDK ≥ 11 works for the `jre11` Maven profile used in all commands below. JDK 26 is required to build the `jre26` profile or the full multi-profile build. |
-| Maven | 3.9+ | The project uses `mvn` from `PATH`. If Maven is not on `PATH`, prefix every `mvn` command with the full path, e.g. `C:\tools\apache-maven-3.9.9\bin\mvn`. |
-| Docker Desktop | Latest | Required only for `docker compose up`. If you prefer a native stack (Windows binaries for otelcol, Prometheus, Grafana, Jaeger) see the "Native Windows stack" section below. |
-| SQL Server | 2016+ / Azure SQL / LocalDB | Any instance reachable from the machine running the load generator. |
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MSSQL_SA_PASSWORD` | `Otel_Poc_Str0ng!Pass` | SA password for the containerized SQL Server. |
+| `SQL_SERVER_IMAGE` | `mcr.microsoft.com/mssql/server:2022-latest` | SQL Server image (auto-switches to `azure-sql-edge` on arm64). |
+| `BURST_SECONDS` | `60` | Length of the timed load burst used for the green gate. |
 
-### Install JDK (if needed)
+Example: `MSSQL_SA_PASSWORD='My$tr0ngPwd!' BURST_SECONDS=120 ./.scripts/dev.sh`
 
-Download from https://adoptium.net (Temurin) or https://www.microsoft.com/openjdk.
+## Files in this folder
 
-Verify: `java -version`
+- `Dockerfile` — builder/runner image (JDK 11 + Maven + warm cache + curl/jq).
+- `docker-compose.yml` — SQL Server, collector, Prometheus, Grafana, Jaeger, and the `app`/`loadgen` runners.
+- `otel-collector-config.yaml` — collector pipelines + `health_check` extension.
+- `prometheus.yml` — scrape config for the collector's Prometheus endpoint.
+- `grafana/provisioning/...` and `grafana/dashboards/mssql-jdbc.json` — auto-provisioned datasources + dashboard.
+- `.scripts/dev.sh` — the host entrypoint.
 
-### Install Maven (if needed)
+The driver/test sources exercised by the POC:
 
-Download from https://maven.apache.org/download.cgi, extract, and add `bin/` to `PATH`.
+- Load generator: `src/test/java/com/microsoft/sqlserver/jdbc/otel/OtelPocLoadGen.java`
+- Smoke test: `src/test/java/com/microsoft/sqlserver/jdbc/otel/OtelPocSmokeTest.java`
 
-Verify: `mvn -version`
+## Using your own OTel endpoint (optional)
 
-## Using Your Own OTel Endpoint
+If you already have an OTLP/HTTP backend (Azure Monitor, Grafana Cloud,
+Honeycomb, Datadog, a remote collector, etc.) you can point the driver straight
+at it instead of the local collector. Run the load generator in the `app`
+container with your endpoint:
 
-If you already have an OTLP/HTTP backend (Azure Monitor, Grafana Cloud, Honeycomb,
-Datadog, a remote collector, etc.) you can skip `docker compose up` entirely and
-point the driver straight at it.
-
-**Step 1 — Set your connection string as normal:**
-
-```powershell
-$env:mssql_jdbc_test_connection_properties = "jdbc:sqlserver://<HOST>:1433;user=<USER>;password=<PASSWORD>;trustServerCertificate=true;"
-```
-
-**Step 2 — Pass your endpoint and any auth headers via `-D` system properties:**
-
-```powershell
-mvn -B -Pjre11 exec:java -Dexec.classpathScope=test `
-  -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen `
-  -Dexec.args="forever" `
-  -DotelEndpoint=https://otlp.example.com/v1/metrics `
+```bash
+cd docs/otel-poc
+docker compose run --rm app mvn -B -Pjre11 \
+  org.codehaus.mojo:exec-maven-plugin:3.1.0:java \
+  -Dexec.classpathScope=test \
+  -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen \
+  -Dexec.args="forever" \
+  -DotelEndpoint=https://otlp.example.com/v1/metrics \
   -DotelExportInterval=10
 ```
 
-For backends that require an API key or auth header, append it directly in the
-connection string (the `otelHeaders` property is the cleanest way):
+For backends that need an API key, add `otelHeaders` to the JDBC connection
+string via `MSSQL_SA_PASSWORD`-style env injection, or bake it into
+`mssql_jdbc_test_connection_properties`:
 
-```powershell
-$env:mssql_jdbc_test_connection_properties = "jdbc:sqlserver://<HOST>:1433;...;otelEndpoint=https://otlp.example.com/v1/metrics;otelHeaders=x-api-key=<YOUR_KEY>;otelServiceName=my-team-app;"
+```
+...;otelEndpoint=https://otlp.example.com/v1/metrics;otelHeaders=x-api-key=<YOUR_KEY>;otelServiceName=my-team-app;
 ```
 
 Common endpoint formats:
@@ -98,154 +117,44 @@ Common endpoint formats:
 | Honeycomb              | `https://api.honeycomb.io/v1/metrics`                     | `x-honeycomb-team=<API_KEY>` |
 | Azure Monitor (via collector) | `http://<collector-host>:4318/v1/metrics`          | none (collector handles auth) |
 | Datadog                | `https://api.datadoghq.com/api/v0.2/series`               | `DD-API-KEY=<KEY>` |
-| Local collector        | `http://localhost:4318/v1/metrics`                        | none |
+| Local collector        | `http://otel-collector:4318/v1/metrics`                   | none |
 
 > The driver ships **metrics and traces on the same base endpoint**. It derives
 > the traces URL by replacing `/v1/metrics` with `/v1/traces`. Make sure your
 > backend or collector accepts both paths, or use a collector as a fan-out proxy.
 
-## Bring Up The Local Observability Stack (Docker)
+## OTel connection-string properties
 
-From repository root:
-
-```powershell
-cd docs\otel-poc
-docker compose up -d
-```
-
-Verify containers:
-
-```powershell
-docker compose ps
-```
-
-## URLs
-
-- Grafana: http://localhost:3000
-- Prometheus: http://localhost:9090
-- Jaeger UI: http://localhost:16686
-- OTLP HTTP ingest (driver -> collector): http://localhost:4318/v1/metrics and http://localhost:4318/v1/traces
-- Prometheus scrape endpoint (collector): http://localhost:8889/metrics
-
-## Build Driver And Test Classes
-
-From repository root:
-
-```powershell
-mvn -B -Pjre11 -DskipTests test-compile
-```
-
-## Run The Load Generator (Post-build)
-
-### 1. Set your SQL Server connection string
-
-Replace `<HOST>`, `<USER>`, and `<PASSWORD>` with your values.
-`trustServerCertificate=true` is needed for local/self-signed SQL Server instances.
-
-```powershell
-$env:mssql_jdbc_test_connection_properties = "jdbc:sqlserver://<HOST>:1433;user=<USER>;password=<PASSWORD>;trustServerCertificate=true;"
-```
-
-Example (LocalDB):
-```powershell
-$env:mssql_jdbc_test_connection_properties = "jdbc:sqlserver://localhost\SQLEXPRESS:1433;user=sa;password=YourPassword;trustServerCertificate=true;"
-```
-
-### 2. OTel connection-string properties (all optional)
-
-The load generator appends these automatically; you can override them via JVM system properties:
-
-| JVM system property   | Connection-string property | Default                                  | Description                                 |
-|-----------------------|----------------------------|------------------------------------------|---------------------------------------------|
-| `otelEndpoint`        | `otelEndpoint`             | `http://localhost:4318/v1/metrics`       | OTLP/HTTP endpoint the driver POSTs to      |
-| `otelExportInterval`  | `otelExportInterval`       | `5` (seconds)                            | How often metrics/traces are flushed        |
-| `loadgen.sleepMs`     | —                          | `200` (ms)                               | Sleep between load iterations               |
-
-You can also set them directly in the connection string passed to `mssql_jdbc_test_connection_properties`:
-
-```
-...;otelEndpoint=http://localhost:4318/v1/metrics;otelServiceName=my-app;otelExportInterval=10;otelHeaders=Authorization=Bearer <token>;
-```
-
-All available `otel*` connection-string properties:
+The load generator sets these automatically; you can override them via `-D`
+system properties (e.g. `-DotelEndpoint=...`) or set them directly in
+`mssql_jdbc_test_connection_properties`.
 
 | Property              | Example value                              | Description                                                      |
 |-----------------------|--------------------------------------------|------------------------------------------------------------------|
-| `otelEndpoint`        | `http://localhost:4318/v1/metrics`         | Required to activate OTel export. Point at the collector or any OTLP/HTTP backend. |
-| `otelServiceName`     | `mssql-jdbc-poc-loadgen`                   | `service.name` resource attribute in OTel spans/metrics          |
+| `otelEndpoint`        | `http://otel-collector:4318/v1/metrics`    | Required to activate OTel export. Point at the collector or any OTLP/HTTP backend. |
+| `otelServiceName`     | `mssql-jdbc-poc-loadgen`                   | `service.name` resource attribute on OTel spans/metrics          |
 | `otelExportInterval`  | `5`                                        | Metric export interval in seconds (default 60)                   |
-| `otelHeaders`         | `Authorization=Bearer eyJ…,X-Tenant=demo` | Comma-separated `key=value` pairs sent as HTTP headers           |
+| `otelHeaders`         | `Authorization=Bearer eyJ...,X-Tenant=demo`| Comma-separated `key=value` pairs sent as HTTP headers           |
 
-### 3. Run commands
+## What you should see
 
-Run forever (Ctrl+C to stop):
+**Grafana** — http://localhost:3000 -> Dashboards -> mssql-jdbc ->
+*mssql-jdbc - driver metrics*. Panels populate within ~10 s of the load burst.
 
-```powershell
-mvn -B -Pjre11 exec:java -Dexec.classpathScope=test -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen -Dexec.args="forever"
-```
+**Jaeger** — http://localhost:16686, service `mssql-jdbc-poc-loadgen`. Example
+operations:
 
-Run for 120 seconds:
+- `db.client.statement.execute`
+- `db.client.statement.prepexec`
+- `db.client.connection`
 
-```powershell
-mvn -B -Pjre11 exec:java -Dexec.classpathScope=test -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen -Dexec.args="120 s"
-```
-
-Override OTel properties at the command line:
-
-```powershell
-mvn -B -Pjre11 exec:java -Dexec.classpathScope=test -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen -Dexec.args="forever" -DotelEndpoint=http://localhost:4318/v1/metrics -DotelExportInterval=5 -Dloadgen.sleepMs=200
-```
-
-## Run The Smoke Test
-
-```powershell
-mvn -B -Pjre11 -Dtest=OtelPocSmokeTest -DfailIfNoTests=false test
-```
-
-## See Metrics In Grafana
-
-- Open http://localhost:3000
-- Dashboards -> mssql-jdbc -> mssql-jdbc - driver metrics
-
-## See Traces In Jaeger
-
-- Open http://localhost:16686
-- Service: mssql-jdbc-poc-loadgen
-- Operation examples:
-  - db.client.statement.execute
-  - db.client.statement.prepexec
-  - db.client.connection
-
-You can also query Jaeger API directly:
-
-```powershell
-Invoke-RestMethod -Uri "http://localhost:16686/api/services"
-Invoke-RestMethod -Uri "http://localhost:16686/api/traces?service=mssql-jdbc-poc-loadgen&limit=5&lookback=1h"
-```
-
-## See Collector Logs (Metrics + Trace Export)
-
-```powershell
-cd docs\otel-poc
-docker compose logs -f otel-collector
-```
-
-## See Jaeger Logs
-
-```powershell
-cd docs\otel-poc
-docker compose logs -f jaeger
-```
-
-## Stop Everything
-
-```powershell
-cd docs\otel-poc
-docker compose down
-```
+**Collector logs** (metric + trace export) — `./.scripts/dev.sh logs otel-collector`.
 
 ## Notes
 
-- The driver uses connection property otelEndpoint to turn OTel export on.
-- If GlobalOpenTelemetry is already set by the host app, the driver reuses it.
-- Existing PerformanceLogCallback duration behavior remains backward-compatible.
+- The driver uses the connection property `otelEndpoint` to turn OTel export on.
+- If `GlobalOpenTelemetry` is already set by the host app, the driver reuses it
+  (this is exactly how `OtelPocSmokeTest` asserts metrics in-process).
+- Existing `PerformanceLogCallback` duration behavior remains backward-compatible.
+- Builds run as root inside the container, so `target/` written into the repo is
+  root-owned; `./.scripts/dev.sh clean` removes it for you.

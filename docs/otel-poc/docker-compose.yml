@@ -1,13 +1,54 @@
-# Local visualization stack for the mssql-jdbc OTel POC.
+# Local, Docker-only stack for the mssql-jdbc OTel POC. The host needs nothing
+# but Docker — JDK, Maven, and SQL Server all run in containers here.
 #
 #   metrics: driver --OTLP/HTTP:4318--> collector --:8889--> Prometheus --> Grafana :3000
-#   traces : driver --OTLP/HTTP:4318--> collector --OTLP/HTTP:4318--> Jaeger :16686
+#   traces : driver --OTLP/HTTP:4318--> collector --OTLP/HTTP--> Jaeger :16686
+#   sqldb  : driver --TDS:1433--------> sqlserver (in-network only)
 #
-# Open Grafana at http://localhost:3000 (anonymous, Admin role) and load the
-# auto-provisioned dashboard "mssql-jdbc — driver metrics" under Dashboards
-# → mssql-jdbc. For traces, use Explore and select the Jaeger datasource.
+# Driven by ./.scripts/dev.sh. Open Grafana at http://localhost:3000 (anonymous,
+# Admin) for the auto-provisioned "mssql-jdbc" dashboard; Jaeger at
+# http://localhost:16686 for traces (service mssql-jdbc-poc-loadgen).
+
+# Shared definition for the builder/runner image. `app` is a manual, one-shot
+# runner (smoke test, timed burst, probes); `loadgen` runs the generator forever
+# for live dashboards. Both reuse the single baked image.
+x-otel-app: &otel-app
+  build:
+    context: ../..
+    dockerfile: docs/otel-poc/Dockerfile
+  image: mssql-jdbc-otel-poc:local
+  working_dir: /work
+  volumes:
+    - ../..:/work
+  environment:
+    # Base JDBC URL consumed by OtelPocLoadGen (env) and OtelPocSmokeTest
+    # (AbstractTest). dev.sh / the load generator append the otel* properties.
+    mssql_jdbc_test_connection_properties: "jdbc:sqlserver://sqlserver:1433;user=sa;password=${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass};trustServerCertificate=true;"
+  depends_on:
+    sqlserver:
+      condition: service_healthy
+    otel-collector:
+      condition: service_started
 
 services:
+  sqlserver:
+    image: ${SQL_SERVER_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}
+    container_name: mssql-jdbc-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass}"
+      MSSQL_PID: "Developer"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      # 2022 image ships mssql-tools18 (-C trusts the self-signed cert); the
+      # arm64 azure-sql-edge fallback ships mssql-tools v17. Try both.
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass}\" -Q 'SELECT 1' -b -o /dev/null || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass}\" -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.110.0
     container_name: mssql-jdbc-otel-collector
@@ -17,6 +58,7 @@ services:
     ports:
       - "4318:4318"   # OTLP/HTTP (driver -> collector)
       - "8889:8889"   # Prometheus scrape endpoint (collector -> prometheus)
+      - "13133:13133" # health_check extension (probed by dev.sh)
 
   prometheus:
     image: prom/prometheus:v2.55.0
@@ -32,7 +74,7 @@ services:
       - otel-collector
 
   jaeger:
-    image: jaegertracing/all-in-one:1.62
+    image: jaegertracing/all-in-one:1.62.0
     container_name: mssql-jdbc-jaeger
     environment:
       - COLLECTOR_OTLP_ENABLED=true
@@ -55,3 +97,32 @@ services:
     depends_on:
       - prometheus
       - jaeger
+
+  # Manual one-shot runner. Never auto-starts (tools profile); dev.sh invokes it
+  # via `docker compose run --rm app <mvn ...>` for test-compile, the smoke test,
+  # the timed burst, and the health/metric/trace probes.
+  app:
+    <<: *otel-app
+    container_name: mssql-jdbc-otel-app
+    profiles: ["tools"]
+
+  # Long-running load generator for live dashboards. Started by dev.sh after the
+  # green gates pass; keeps shipping metrics + traces until `dev.sh down`.
+  loadgen:
+    <<: *otel-app
+    container_name: mssql-jdbc-otel-loadgen
+    profiles: ["loadgen"]
+    restart: unless-stopped
+    command:
+      - mvn
+      - -B
+      - -Pjre11
+      - org.codehaus.mojo:exec-maven-plugin:3.1.0:java
+      - -Dexec.classpathScope=test
+      - -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen
+      - -Dexec.args=forever
+      - -DotelEndpoint=http://otel-collector:4318/v1/metrics
+      - -DotelExportInterval=5
+
+volumes:
+  mssql-data:

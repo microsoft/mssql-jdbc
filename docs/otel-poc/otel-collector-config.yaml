@@ -7,6 +7,11 @@
 # The `debug` exporter prints each metrics batch to stdout so you can verify
 # the driver shipped data. Prometheus scrapes :8889 for Grafana dashboards.
 
+extensions:
+  # Liveness/readiness endpoint probed by dev.sh (curl http://otel-collector:13133/).
+  health_check:
+    endpoint: 0.0.0.0:13133
+
 receivers:
   otlp:
     protocols:
@@ -28,6 +33,7 @@ exporters:
     endpoint: http://jaeger:4318
 
 service:
+  extensions: [health_check]
   telemetry:
     logs:
       level: info
