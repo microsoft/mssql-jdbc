@@ -1,5 +1,7 @@
 # mssql-jdbc OpenTelemetry POC Runbook
 
+Follow [README](../../contrib/README.md) to setup a fresh WSL machine with Docker.
+
 This folder contains a complete local stack and runnable workload for the OTel
 POC in this branch: metrics to Prometheus/Grafana and traces to Jaeger.
 

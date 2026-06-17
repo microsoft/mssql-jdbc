@@ -12,7 +12,7 @@
 
    ```powershell
    $GIT_ROOT = git rev-parse --show-toplevel
-   & "$GIT_ROOT\contrib\bootstrap-dev-env.ps1"
+   & "$GIT_ROOT\contrib\bootstrap_devbox.ps1"
    ```
 
 1. Clone the repo, and open VSCode in it:
@@ -39,7 +39,7 @@
 
    ```bash
    GIT_ROOT=$(git rev-parse --show-toplevel)
-   chmod +x ${GIT_ROOT}/contrib/bootstrap-dev-env.sh && ${GIT_ROOT}/contrib/bootstrap-dev-env.sh
+   chmod +x ${GIT_ROOT}/contrib/bootstrap_devbox.sh && ${GIT_ROOT}/contrib/bootstrap_devbox.sh
    ```
 
 1. Install recommended developer tooling (optional):
