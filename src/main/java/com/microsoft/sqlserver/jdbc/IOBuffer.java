@@ -915,7 +915,7 @@ final class TDSChannel implements Serializable {
                     sslHandshakeOutputStream.endMessage();
                 } catch (SQLServerException e) {
                     logger.finer(logContext + " Ending TDS message threw exception:" + e.getMessage());
-                    throw new IOException(e.getMessage());
+                    throw new IOException(e.getMessage(), e);
                 }
 
                 if (logger.isLoggable(Level.FINEST))
@@ -925,7 +925,7 @@ final class TDSChannel implements Serializable {
                     tdsReader.readPacket();
                 } catch (SQLServerException e) {
                     logger.finer(logContext + " Reading response packet threw exception:" + e.getMessage());
-                    throw new IOException(e.getMessage());
+                    throw new IOException(e.getMessage(), e);
                 }
             }
         }
@@ -947,7 +947,7 @@ final class TDSChannel implements Serializable {
                 tdsReader.skip((int) n);
             } catch (SQLServerException e) {
                 logger.finer(logContext + " Skipping bytes threw exception:" + e.getMessage());
-                throw new IOException(e.getMessage());
+                throw new IOException(e.getMessage(), e);
             }
 
             return n;
@@ -985,7 +985,7 @@ final class TDSChannel implements Serializable {
                 tdsReader.readBytes(b, offset, maxBytes);
             } catch (SQLServerException e) {
                 logger.finer(logContext + " Reading bytes threw exception:" + e.getMessage());
-                throw new IOException(e.getMessage());
+                throw new IOException(e.getMessage(), e);
             }
 
             return maxBytes;
@@ -1075,7 +1075,7 @@ final class TDSChannel implements Serializable {
                 tdsWriter.writeBytes(b, off, len);
             } catch (SQLServerException e) {
                 logger.finer(logContext + " Writing bytes threw exception:" + e.getMessage());
-                throw new IOException(e.getMessage());
+                throw new IOException(e.getMessage(), e);
             }
         }
     }

@@ -689,7 +689,7 @@ final class SQLServerClobWriter extends java.io.Writer {
             int charsWritten = parentClob.setString(streamPos, str, off, len);
             streamPos += charsWritten;
         } catch (SQLException ex) {
-            throw new IOException(ex.getMessage());
+            throw new IOException(ex.getMessage(), ex);
         }
     }
 
@@ -751,7 +751,7 @@ final class SQLServerClobAsciiOutputStream extends java.io.OutputStream {
             int charsWritten = parentClob.setString(streamPos, s);
             streamPos += charsWritten;
         } catch (SQLException ex) {
-            throw new IOException(ex.getMessage());
+            throw new IOException(ex.getMessage(), ex);
         }
     }
 
