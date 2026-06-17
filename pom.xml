@@ -65,6 +65,8 @@
 		<com.google.code.gson.version>2.11.0</com.google.code.gson.version>
 		<bcprov-jdk18on.version>1.79</bcprov-jdk18on.version>
 		<bcpkix-jdk18on.version>1.79</bcpkix-jdk18on.version>
+		<!-- OpenTelemetry POC (S4: direct OTel dependency, kept optional) -->
+		<opentelemetry.version>1.42.1</opentelemetry.version>
 		<!-- JUnit Test Dependencies -->
 		<junit.platform.version>[1.3.2, 1.11.4]</junit.platform.version>
 		<junit.jupiter.version>5.11.4</junit.jupiter.version>
@@ -122,6 +124,25 @@
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk18on</artifactId>
 			<version>${bcpkix-jdk18on.version}</version>
+			<optional>true</optional>
+		</dependency>
+		<!-- OpenTelemetry POC: optional so users who do not set otelEndpoint pay nothing -->
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-api</artifactId>
+			<version>${opentelemetry.version}</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-sdk</artifactId>
+			<version>${opentelemetry.version}</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-otlp</artifactId>
+			<version>${opentelemetry.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<!-- dependencies provided by an OSGi-Framework -->
@@ -222,6 +243,13 @@
 			<version>${junit.jupiter.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<!-- OpenTelemetry POC: in-memory metric reader for OtelPocSmokeTest. -->
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-sdk-testing</artifactId>
+			<version>${opentelemetry.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<repositories>
 		<repository>
@@ -232,6 +260,17 @@
 			</releases>
 			<snapshots>
 				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+		<!-- POC fallback for OpenTelemetry artifacts not yet proxied by the internal feed. -->
+		<repository>
+			<id>maven-central</id>
+			<url>https://repo.maven.apache.org/maven2</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
 			</snapshots>
 		</repository>
 	</repositories>

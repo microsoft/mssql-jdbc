@@ -687,7 +687,11 @@ enum SQLServerDriverStringProperty {
     QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.ON.toString()),
     CONCAT_NULL_YIELDS_NULL("concatNullYieldsNull", OnOffOption.ON.toString()),
     VECTOR_TYPE_SUPPORT("vectorTypeSupport", VectorTypeSupport.V1.toString()),
-    DEFAULT_TRANSACTION_ISOLATION("defaultTransactionIsolation", null);
+    DEFAULT_TRANSACTION_ISOLATION("defaultTransactionIsolation", null),
+    // OpenTelemetry POC (Solution 4): empty otelEndpoint = disabled, no-op
+    OTEL_ENDPOINT("otelEndpoint", ""),
+    OTEL_SERVICE_NAME("otelServiceName", "mssql-jdbc"),
+    OTEL_HEADERS("otelHeaders", "");
 
     private final String name;
     private final String defaultValue;
@@ -720,7 +724,9 @@ enum SQLServerDriverIntProperty {
     CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
     CONNECT_RETRY_COUNT("connectRetryCount", 1, 0, 255),
     CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60),
-    BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE("bulkCopyForBatchInsertBatchSize", 0);
+    BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE("bulkCopyForBatchInsertBatchSize", 0),
+    // OpenTelemetry POC (Solution 4): periodic exporter interval in seconds
+    OTEL_EXPORT_INTERVAL("otelExportInterval", 30, 1, 3600);
 
     private final String name;
     private final int defaultValue;
@@ -1131,7 +1137,15 @@ public final class SQLServerDriver implements java.sql.Driver {
                     new String[] {OnOffOption.ON.toString(), OnOffOption.OFF.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString(),
                     SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.getDefaultValue(), false,
-                    new String[] {"READ_UNCOMMITTED", "READ_COMMITTED", "REPEATABLE_READ", "SERIALIZABLE", "SNAPSHOT"}),};
+                    new String[] {"READ_UNCOMMITTED", "READ_COMMITTED", "REPEATABLE_READ", "SERIALIZABLE", "SNAPSHOT"}),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_ENDPOINT.toString(),
+                    SQLServerDriverStringProperty.OTEL_ENDPOINT.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_SERVICE_NAME.toString(),
+                    SQLServerDriverStringProperty.OTEL_SERVICE_NAME.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_HEADERS.toString(),
+                    SQLServerDriverStringProperty.OTEL_HEADERS.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.toString(),
+                    Integer.toString(SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.getDefaultValue()), false, null),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string

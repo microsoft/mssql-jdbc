@@ -23,7 +23,7 @@ public interface PerformanceLogCallback {
      *                        {@link #useNanoseconds()} returns true).
      * @param exception       An exception, if an error occurred.
      */
-    void publish(PerformanceActivity activity, int connectionId, long duration, Exception exception) throws Exception;
+    void publish(PerformanceActivity activity, int connectionId, long duration, Exception exception);
 
     /**
      * Publish performance log for statement-level activities.
@@ -34,7 +34,43 @@ public interface PerformanceLogCallback {
      *                        {@link #useNanoseconds()} returns true).
      * @param exception       An exception, if an error occurred.
      */
-    void publish(PerformanceActivity activity, int connectionId, int statementId, long duration, Exception exception) throws Exception;
+    void publish(PerformanceActivity activity, int connectionId, int statementId, long duration, Exception exception);
+
+    /**
+     * Publish performance log for connection-level activities with explicit start/end timestamps.
+     * The unit of {@code startTime} and {@code endTime} matches {@link #useNanoseconds()}:
+     * {@code System.currentTimeMillis()} values when false (default), {@code System.nanoTime()}
+     * values when true. The default implementation delegates to
+     * {@link #publish(PerformanceActivity, int, long, Exception)} with {@code endTime - startTime}.
+     * Override this when you need the exact wall-clock placement of the event (e.g. emitting
+     * trace spans), not just its duration.
+     *
+     * @param activity        The type of activity being logged.
+     * @param connectionId    The ID of the connection.
+     * @param startTime       Start timestamp captured when the activity began.
+     * @param endTime         End timestamp captured when the activity completed.
+     * @param exception       An exception, if an error occurred.
+     */
+    default void publish(PerformanceActivity activity, int connectionId, long startTime, long endTime,
+            Exception exception) {
+        publish(activity, connectionId, endTime - startTime, exception);
+    }
+
+    /**
+     * Publish performance log for statement-level activities with explicit start/end timestamps.
+     * See {@link #publish(PerformanceActivity, int, long, long, Exception)} for the timestamp unit.
+     *
+     * @param activity        The type of activity being logged.
+     * @param connectionId    The ID of the connection.
+     * @param statementId     The ID of the statement.
+     * @param startTime       Start timestamp captured when the activity began.
+     * @param endTime         End timestamp captured when the activity completed.
+     * @param exception       An exception, if an error occurred.
+     */
+    default void publish(PerformanceActivity activity, int connectionId, int statementId, long startTime, long endTime,
+            Exception exception) {
+        publish(activity, connectionId, statementId, endTime - startTime, exception);
+    }
 
     /**
      * Indicates whether the callback wants duration values in nanoseconds.

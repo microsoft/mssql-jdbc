@@ -1,0 +1,42 @@
+# OpenTelemetry Collector — local sandbox config for the mssql-jdbc OTel POC.
+#
+# Pipelines:
+#   metrics: driver --OTLP/HTTP:4318--> collector --(debug + prometheus:8889)--> Prometheus --> Grafana
+#   traces : driver --OTLP/HTTP:4318--> collector --OTLP/HTTP--> Jaeger
+#
+# The `debug` exporter prints each metrics batch to stdout so you can verify
+# the driver shipped data. Prometheus scrapes :8889 for Grafana dashboards.
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 5s
+
+exporters:
+  debug:
+    verbosity: detailed
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    resource_to_telemetry_conversion:
+      enabled: true
+  otlphttp/jaeger:
+    endpoint: http://jaeger:4318
+
+service:
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    metrics:
+      receivers:  [otlp]
+      processors: [batch]
+      exporters:  [debug, prometheus]
+    traces:
+      receivers:  [otlp]
+      processors: [batch]
+      exporters:  [otlphttp/jaeger]

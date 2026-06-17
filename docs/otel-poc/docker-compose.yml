@@ -1,0 +1,57 @@
+# Local visualization stack for the mssql-jdbc OTel POC.
+#
+#   metrics: driver --OTLP/HTTP:4318--> collector --:8889--> Prometheus --> Grafana :3000
+#   traces : driver --OTLP/HTTP:4318--> collector --OTLP/HTTP:4318--> Jaeger :16686
+#
+# Open Grafana at http://localhost:3000 (anonymous, Admin role) and load the
+# auto-provisioned dashboard "mssql-jdbc — driver metrics" under Dashboards
+# → mssql-jdbc. For traces, use Explore and select the Jaeger datasource.
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.110.0
+    container_name: mssql-jdbc-otel-collector
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4318:4318"   # OTLP/HTTP (driver -> collector)
+      - "8889:8889"   # Prometheus scrape endpoint (collector -> prometheus)
+
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: mssql-jdbc-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=1h"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - otel-collector
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    container_name: mssql-jdbc-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4319:4318"   # Host OTLP/HTTP ingress to Jaeger
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: mssql-jdbc-grafana
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - jaeger

@@ -2681,6 +2681,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 activeConnectionProperties = (Properties) propsIn.clone();
 
+                // POC: wire up OpenTelemetry export if otelEndpoint is set (docs/otelproposal.md, Solution 4)
+                OtelBootstrap.ensureInitialized(activeConnectionProperties);
+
                 pooledConnectionParent = pooledConnection;
 
                 String trustStorePassword = activeConnectionProperties

@@ -107,7 +107,8 @@ class PerformanceLog {
                 return;
             }
 
-            long duration = useNanos ? (System.nanoTime() - startTime) : (System.currentTimeMillis() - startTime);
+            long endTime = useNanos ? System.nanoTime() : System.currentTimeMillis();
+            long duration = endTime - startTime;
 
             if (callback != null) {
                 try {
@@ -119,12 +120,14 @@ class PerformanceLog {
                     }
 
                     if (statementId == 0) {
-                        callback.publish(activity, connectionId, duration, exception);
+                        callback.publish(activity, connectionId, startTime, endTime, exception);
                     } else {
-                        callback.publish(activity, connectionId, statementId, duration, exception);
+                        callback.publish(activity, connectionId, statementId, startTime, endTime, exception);
                     }
-                } catch (Exception e) {
-                    logger.fine(String.format("Failed to publish performance log: %s", e.getMessage()));
+                } catch (Throwable e) {
+                    if (logger.isLoggable(Level.WARNING)) {
+                        logger.log(Level.WARNING, "PerformanceLogCallback.publish threw unexpectedly; event dropped", e);
+                    }
                 } finally {
                     if (stmtHandle != null) {
                         currentUserSql.remove();
