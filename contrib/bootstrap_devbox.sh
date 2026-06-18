@@ -56,7 +56,7 @@ sudo systemctl restart docker
 sudo chmod 666 /var/run/docker.sock
 docker container ls
 docker ps -q | xargs -r docker kill
-az acr login --name monitoringdev --expose-token | jq -r '"echo \(.accessToken) | docker login \(.loginServer) --username 00000000-0000-0000-0000-000000000000 --password-stdin"' | bash
+az acr login --name arcdataanalyticsacr --expose-token | jq -r '"echo \(.accessToken) | docker login \(.loginServer) --username 00000000-0000-0000-0000-000000000000 --password-stdin"' | bash
 
 if ! [ -x "$(command -v npm)" ]; then
   echo "npm is not installed on your devbox, installing..."

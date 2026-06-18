@@ -1,0 +1,114 @@
+# otelcol-arcdata config for the mssql-jdbc OTel POC.
+#
+# Adapted from the protobus-benchmark e2e config. The mssql-jdbc driver ships
+# OTLP/HTTP (metrics + traces) to :4318; this collector fans every signal out to
+#   1. deltalake/otap  -> Azure Delta Lake (Managed Identity via token-server,
+#                         notifications via Event Hub consumed by delta-bulk-loader)
+#   2. otlp/aspire     -> the .NET Aspire Dashboard (local metrics/traces/logs UI)
+#   3. debug           -> stdout, so dev.sh can prove telemetry reached the collector
+#
+# The protobus (air_quality) receiver/exporter/pipeline from the benchmark config
+# is intentionally removed — there is no producer-csharp in this POC.
+
+extensions:
+
+receivers:
+  # Native OTLP from the mssql-jdbc driver (and anything else OTLP).
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        max_recv_msg_size_mib: 64
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    # Sized for a normal dev box (the benchmark config assumed ~124 GiB). The POC
+    # workload is tiny, so these limits never actually trip.
+    limit_mib: 2048
+    spike_limit_mib: 512
+  batch:
+    send_batch_size: 8192
+    send_batch_max_size: 8192
+    timeout: 1s
+
+exporters:
+  # OTAP / native OTLP path -> Azure Delta Lake.
+  deltalake/otap:
+    storage_url: "https://${env:STORAGE_ACCOUNT}.dfs.core.windows.net"
+    container: "${env:STORAGE_CONTAINER}"
+    root_path: "${env:ROOT_PATH}"
+
+    auth:
+      authentication_method: "SystemManagedIdentity"
+
+    # Notification path: Event Hub the C# Delta Bulk Loader (MirrorMaker) consumes
+    # from, plus the Bulk Loader's own ADLS credential type.
+    delta_bulk_loader:
+      storage_account_csharp_named_auth_type: "ManagedIdentityCredential"
+      event_hub:
+        enabled: true
+        namespace: "${env:EVENT_HUB_NAMESPACE}"
+        name: "${env:EVENT_HUB_NAME}"
+        tenant_id: "${env:AZURE_TENANT_ID}"
+        publish_timeout: 30s
+        auth:
+          authentication_method: "SystemManagedIdentity"
+
+    parquet:
+      compression: "zstd"
+      row_group_target_rows: 1000000
+      page_buffer_size: 524288
+      data_page_size_bytes: 2097152
+
+    # Flush promptly so Delta commits show up during the POC instead of waiting
+    # for the benchmark's 30-minute / 6M-row window.
+    buffer:
+      max_buffer_rows: 1000
+      flush_timeout: 60s
+      flush_check_interval: 5s
+      # High enough that flushes are driven by the row/timeout triggers above
+      # rather than by an absolute host-memory threshold (which would otherwise
+      # trip constantly and spam Azure with tiny flushes).
+      max_memory_usage_in_mega_bytes: 65536
+
+    partition:
+      default:
+        time: "event_year_date_hour"
+        data_columns: ["application"]
+
+    sending_queue:
+      enabled: false
+    timeout: 60s
+    marshaler: otap_parquet
+
+  # Local viz path -> .NET Aspire Dashboard OTLP ingest (gRPC on :18889).
+  otlp/aspire:
+    endpoint: http://aspire-dashboard:18889
+    tls:
+      insecure: true
+
+  # Prints an export summary per batch so dev.sh can assert telemetry flowed.
+  debug:
+    verbosity: basic
+
+service:
+  telemetry:
+    logs:
+      # info so the debug exporter's per-batch summary lines are visible.
+      level: info
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [deltalake/otap, otlp/aspire, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [deltalake/otap, otlp/aspire, debug]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [deltalake/otap, otlp/aspire, debug]

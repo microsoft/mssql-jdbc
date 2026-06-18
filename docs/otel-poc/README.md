@@ -1,160 +1,87 @@
-# mssql-jdbc OpenTelemetry POC Runbook
+# mssql-jdbc OpenTelemetry POC — internal pipeline + Aspire Dashboard
 
-A complete, **Docker-only** local stack and runnable workload for the OTel POC on
-this branch: driver metrics to Prometheus/Grafana and traces to Jaeger.
+Docker-only stack: the driver ships OTLP to `otelcol-arcdata` (our collector
+image), which fans every signal to **Azure Delta Lake** (Managed Identity +
+Event Hub + Delta Bulk Loader) **and** a local **.NET Aspire Dashboard** for
+metrics, traces, and logs.
 
-> You need **nothing but Docker + bash** on the host. JDK, Maven, and SQL Server
-> all run in containers — there is no host install of Java, Maven, or a database.
-> See [contrib/README.md](../../contrib/README.md) to get a fresh machine with Docker.
+```
+driver ─OTLP/HTTP:4318─▶ otelcol-arcdata ─deltalake─▶ Azure Delta Lake
+                              └─otlp:18889─▶ Aspire Dashboard (http://localhost:18888)
+driver ─TDS:1433───────▶ sqlserver (in-network only)
+```
+
+## Prerequisites
+
+Docker + bash, plus a host Azure session (the `token-server` vends Managed
+Identity tokens from your `~/.azure`):
+
+- `az login` to the tenant owning the target storage/Event Hub (defaults:
+  `mdrrahmansandbox`, tenant `72f9…`).
+- **AcrPull** on `arcdataanalyticsacr.azurecr.io` — `dev.sh` runs `az acr login`.
+- **RBAC** on the storage account / Event Hub only if you want data to land in
+  Delta Lake; the local green gates never inspect Azure.
+
+JDK, Maven, and SQL Server all run in containers.
+
+## Quickstart
 
 ```bash
 cd docs/otel-poc
 ./.scripts/dev.sh
 ```
 
-That one command builds the driver, brings the whole stack up, proves it green,
-and then leaves a load generator running so the dashboards stay live. When it
-finishes you will see a **GREEN** banner and these URLs:
+Each `up` starts fresh (`down --volumes` + clears `target/`), brings the stack
+up, proves it green, and leaves a load generator running. It ends with a
+**GREEN** banner and the Aspire URL:
 
-- Grafana: http://localhost:3000  (Dashboards -> mssql-jdbc -> *mssql-jdbc - driver metrics*)
-- Prometheus: http://localhost:9090
-- Jaeger UI: http://localhost:16686  (service: `mssql-jdbc-poc-loadgen`)
-- Collector Prometheus endpoint: http://localhost:8889/metrics
-
-Tear it down with `./.scripts/dev.sh down` (or `clean` to also drop the SQL
-Server volume and the build output).
-
-## What `dev.sh` does
-
-`dev.sh` is the only thing you run. Internally it:
-
-1. **Builds** the builder/runner image (`docs/otel-poc/Dockerfile`) — JDK 11 +
-   Maven with a warm dependency cache baked at image-build time.
-2. **Brings up** the stack from `docker-compose.yml`: a containerized **SQL
-   Server**, the **OTel Collector**, **Prometheus**, **Grafana**, and **Jaeger**.
-3. **Compiles** the driver and test classes (`-Pjre11 test-compile`).
-4. **Proves green** (see below).
-5. **Starts a long-running load generator** (`loadgen` service) so Grafana and
-   Jaeger keep receiving fresh data until you tear down.
-
-### Definition of GREEN (asserted automatically)
-
-| # | Gate | How it is checked |
-|---|------|-------------------|
-| 1 | Smoke test passes | `OtelPocSmokeTest` (JUnit) runs in a container against the SQL Server. |
-| 2 | Metrics flow | Prometheus exposes at least one `db_client_*` series from the load generator. |
-| 3 | Traces flow | Jaeger lists service `mssql-jdbc-poc-loadgen` with at least one trace. |
-| 4 | Health probes | HTTP 200 from collector (`:13133`), Prometheus, Grafana, and Jaeger, plus a healthy SQL Server container. |
-
-If any gate fails, `dev.sh` prints the relevant container logs and exits non-zero.
+- **Aspire Dashboard** — http://localhost:18888 (service `mssql-jdbc-poc-loadgen`).
+  On a remote dev container, forward port **18888**.
+- Collector OTLP — `localhost:4318` (HTTP) / `4317` (gRPC).
 
 ## Commands
 
 ```bash
-./.scripts/dev.sh            # = up: build, start, prove green, leave loadgen running
-./.scripts/dev.sh status     # container status + live health summary
-./.scripts/dev.sh logs       # tail all logs
-./.scripts/dev.sh logs loadgen   # tail just the load generator
-./.scripts/dev.sh down       # stop + remove the stack (keeps the SQL volume)
-./.scripts/dev.sh clean      # stop + remove the stack, the SQL volume, and target/
+./.scripts/dev.sh            # up: fresh start, build, prove green, leave loadgen running
+./.scripts/dev.sh status     # container status + health + Aspire URL
+./.scripts/dev.sh logs [svc] # tail all logs, or one service (loadgen, otelcol-arcdata, …)
+./.scripts/dev.sh down       # stop + remove the stack
+./.scripts/dev.sh clean      # down + drop the SQL volume + target/
 ```
 
-### Useful overrides (environment variables)
+## GREEN (asserted automatically; local only — Azure is best-effort, never inspected)
+
+| # | Gate | Check |
+|---|------|-------|
+| 1 | Smoke test | `OtelPocSmokeTest` passes against SQL Server. |
+| 2 | Telemetry reaches collector | arcdata `debug` exporter logs driver **metrics** + **traces**. |
+| 3 | Aspire receiving | Dashboard answers on `:18888`; `otlp/aspire` export not failing. |
+| 4 | Health | sqlserver + token-server healthy; arcdata, delta-bulk-loader, aspire running. |
+
+## Overrides (env)
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `MSSQL_SA_PASSWORD` | `Otel_Poc_Str0ng!Pass` | SA password for the containerized SQL Server. |
-| `SQL_SERVER_IMAGE` | `mcr.microsoft.com/mssql/server:2022-latest` | SQL Server image (auto-switches to `azure-sql-edge` on arm64). |
-| `BURST_SECONDS` | `60` | Length of the timed load burst used for the green gate. |
+| `MSSQL_SA_PASSWORD` | `Otel_Poc_Str0ng!Pass` | SA password. |
+| `BURST_SECONDS` | `60` | Green-gate load-burst length. |
+| `OTELCOL_ARCDATA_IMAGE` / `DELTA_BULK_LOADER_IMAGE` | pinned | Override the private images. |
+| `STORAGE_ACCOUNT` / `STORAGE_CONTAINER` / `ROOT_PATH` | `mdrrahmansandbox` / `onelake` / `arcdata-otel-poc` | Delta Lake target. |
+| `EVENT_HUB_NAMESPACE` / `EVENT_HUB_NAME` / `AZURE_TENANT_ID` | sandbox defaults | Event Hub + tenant. |
 
-Example: `MSSQL_SA_PASSWORD='My$tr0ngPwd!' BURST_SECONDS=120 ./.scripts/dev.sh`
+## Layout
 
-## Files in this folder
-
-- `Dockerfile` — builder/runner image (JDK 11 + Maven + warm cache + curl/jq).
-- `docker-compose.yml` — SQL Server, collector, Prometheus, Grafana, Jaeger, and the `app`/`loadgen` runners.
-- `otel-collector-config.yaml` — collector pipelines + `health_check` extension.
-- `prometheus.yml` — scrape config for the collector's Prometheus endpoint.
-- `grafana/provisioning/...` and `grafana/dashboards/mssql-jdbc.json` — auto-provisioned datasources + dashboard.
-- `.scripts/dev.sh` — the host entrypoint.
-
-The driver/test sources exercised by the POC:
-
-- Load generator: `src/test/java/com/microsoft/sqlserver/jdbc/otel/OtelPocLoadGen.java`
-- Smoke test: `src/test/java/com/microsoft/sqlserver/jdbc/otel/OtelPocSmokeTest.java`
-
-## Using your own OTel endpoint (optional)
-
-If you already have an OTLP/HTTP backend (Azure Monitor, Grafana Cloud,
-Honeycomb, Datadog, a remote collector, etc.) you can point the driver straight
-at it instead of the local collector. Run the load generator in the `app`
-container with your endpoint:
-
-```bash
-cd docs/otel-poc
-docker compose run --rm app mvn -B -Pjre11 \
-  org.codehaus.mojo:exec-maven-plugin:3.1.0:java \
-  -Dexec.classpathScope=test \
-  -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen \
-  -Dexec.args="forever" \
-  -DotelEndpoint=https://otlp.example.com/v1/metrics \
-  -DotelExportInterval=10
-```
-
-For backends that need an API key, add `otelHeaders` to the JDBC connection
-string via `MSSQL_SA_PASSWORD`-style env injection, or bake it into
-`mssql_jdbc_test_connection_properties`:
-
-```
-...;otelEndpoint=https://otlp.example.com/v1/metrics;otelHeaders=x-api-key=<YOUR_KEY>;otelServiceName=my-team-app;
-```
-
-Common endpoint formats:
-
-| Backend                | `otelEndpoint` value                                      | Header needed |
-|------------------------|-----------------------------------------------------------|---------------|
-| Grafana Cloud          | `https://<instance>.grafana.net/otlp/v1/metrics`          | `Authorization=Basic <base64(user:token)>` |
-| Honeycomb              | `https://api.honeycomb.io/v1/metrics`                     | `x-honeycomb-team=<API_KEY>` |
-| Azure Monitor (via collector) | `http://<collector-host>:4318/v1/metrics`          | none (collector handles auth) |
-| Datadog                | `https://api.datadoghq.com/api/v0.2/series`               | `DD-API-KEY=<KEY>` |
-| Local collector        | `http://otel-collector:4318/v1/metrics`                   | none |
-
-> The driver ships **metrics and traces on the same base endpoint**. It derives
-> the traces URL by replacing `/v1/metrics` with `/v1/traces`. Make sure your
-> backend or collector accepts both paths, or use a collector as a fan-out proxy.
-
-## OTel connection-string properties
-
-The load generator sets these automatically; you can override them via `-D`
-system properties (e.g. `-DotelEndpoint=...`) or set them directly in
-`mssql_jdbc_test_connection_properties`.
-
-| Property              | Example value                              | Description                                                      |
-|-----------------------|--------------------------------------------|------------------------------------------------------------------|
-| `otelEndpoint`        | `http://otel-collector:4318/v1/metrics`    | Required to activate OTel export. Point at the collector or any OTLP/HTTP backend. |
-| `otelServiceName`     | `mssql-jdbc-poc-loadgen`                   | `service.name` resource attribute on OTel spans/metrics          |
-| `otelExportInterval`  | `5`                                        | Metric export interval in seconds (default 60)                   |
-| `otelHeaders`         | `Authorization=Bearer eyJ...,X-Tenant=demo`| Comma-separated `key=value` pairs sent as HTTP headers           |
-
-## What you should see
-
-**Grafana** — http://localhost:3000 -> Dashboards -> mssql-jdbc ->
-*mssql-jdbc - driver metrics*. Panels populate within ~10 s of the load burst.
-
-**Jaeger** — http://localhost:16686, service `mssql-jdbc-poc-loadgen`. Example
-operations:
-
-- `db.client.statement.execute`
-- `db.client.statement.prepexec`
-- `db.client.connection`
-
-**Collector logs** (metric + trace export) — `./.scripts/dev.sh logs otel-collector`.
+- `docker-compose.yml`, `Dockerfile`, `settings.xml`, `.scripts/dev.sh`
+- `internal/` (vendored): `token-server/`,
+  `otelcol-arcdata/deltalake-e2e.yaml` (`otlp` → `deltalake` + `otlp/aspire` + `debug`),
+  `delta-bulk-loader/appsettings.json`
+- Driver sources: `src/test/java/com/microsoft/sqlserver/jdbc/otel/{OtelPocLoadGen,OtelPocSmokeTest}.java`
 
 ## Notes
 
-- The driver uses the connection property `otelEndpoint` to turn OTel export on.
-- If `GlobalOpenTelemetry` is already set by the host app, the driver reuses it
-  (this is exactly how `OtelPocSmokeTest` asserts metrics in-process).
-- Existing `PerformanceLogCallback` duration behavior remains backward-compatible.
-- Builds run as root inside the container, so `target/` written into the repo is
-  root-owned; `./.scripts/dev.sh clean` removes it for you.
+- `otelcol-arcdata` has **no Prometheus exporter** — the Aspire Dashboard (over
+  OTLP) is the local viz, replacing the old Prometheus/Grafana/Jaeger stack.
+- The collector serves Aspire even if Azure isn't fully provisioned; Delta Lake
+  writes just log errors until RBAC is in place, so the POC stays green locally.
+- The driver activates OTel via the `otelEndpoint` connection property; the load
+  generator sets `otelEndpoint` / `otelServiceName` / `otelExportInterval` for you.
+- `target/` is written root-owned inside the container; `clean` removes it.

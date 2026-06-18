@@ -1,17 +1,22 @@
-# Local, Docker-only stack for the mssql-jdbc OTel POC. The host needs nothing
-# but Docker — JDK, Maven, and SQL Server all run in containers here.
+# Local, Docker-only stack for the mssql-jdbc OTel POC, wired to the team's
+# INTERNAL telemetry pipeline instead of the OSS one.
 #
-#   metrics: driver --OTLP/HTTP:4318--> collector --:8889--> Prometheus --> Grafana :3000
-#   traces : driver --OTLP/HTTP:4318--> collector --OTLP/HTTP--> Jaeger :16686
-#   sqldb  : driver --TDS:1433--------> sqlserver (in-network only)
+#   driver --OTLP/HTTP:4318--> otelcol-arcdata --deltalake--> Azure Delta Lake
+#                                       \                      (token-server = Managed Identity,
+#                                        \                      delta-bulk-loader = Event Hub sink)
+#                                         `--otlp:18889------> aspire-dashboard (local metrics/traces/logs UI)
+#   driver --TDS:1433---------> sqlserver (in-network only)
 #
-# Driven by ./.scripts/dev.sh. Open Grafana at http://localhost:3000 (anonymous,
-# Admin) for the auto-provisioned "mssql-jdbc" dashboard; Jaeger at
-# http://localhost:16686 for traces (service mssql-jdbc-poc-loadgen).
+# Driven by ./.scripts/dev.sh. Open the Aspire Dashboard at http://localhost:18888
+# (anonymous) for driver metrics, traces, and structured logs.
+#
+# Azure prerequisites on the host: `az login` (the token-server vends Managed
+# Identity tokens from the mounted ~/.azure session) and AcrPull on
+# arcdataanalyticsacr.azurecr.io. See README.md.
 
-# Shared definition for the builder/runner image. `app` is a manual, one-shot
+# Shared definition for the Java builder/runner image. `app` is a manual, one-shot
 # runner (smoke test, timed burst, probes); `loadgen` runs the generator forever
-# for live dashboards. Both reuse the single baked image.
+# for live dashboards. Both reuse the single baked image and emit OTLP to arcdata.
 x-otel-app: &otel-app
   build:
     context: ../..
@@ -27,7 +32,7 @@ x-otel-app: &otel-app
   depends_on:
     sqlserver:
       condition: service_healthy
-    otel-collector:
+    otelcol-arcdata:
       condition: service_started
 
 services:
@@ -49,58 +54,89 @@ services:
       retries: 18
       start_period: 45s
 
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.110.0
-    container_name: mssql-jdbc-otel-collector
-    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+  # Vends Entra/Managed-Identity tokens to the collector + bulk loader by thinly
+  # wrapping the host `az` CLI session mounted read-only at /host/.azure.
+  token-server:
+    build:
+      context: ./internal/token-server
+    container_name: mssql-jdbc-token-server
+    environment:
+      IDENTITY_HEADER: "${IDENTITY_HEADER:-e2e-deltalake-secret}"
     volumes:
-      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - "${AZURE_HOST_PATH:-${HOME}/.azure}:/host/.azure:ro"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+  # The team's internal OTel collector. Receives the driver's OTLP, fans every
+  # signal out to Azure Delta Lake (deltalake exporter) and the Aspire Dashboard
+  # (otlp exporter). Config is vendored at internal/otelcol-arcdata/.
+  otelcol-arcdata:
+    image: "${OTELCOL_ARCDATA_IMAGE:-arcdataanalyticsacr.azurecr.io/protobus-benchmark/otelcol-arcdata:protobus-benchmark-20260617224128}"
+    container_name: mssql-jdbc-otelcol-arcdata
+    depends_on:
+      token-server:
+        condition: service_healthy
+    environment:
+      CONFIG: "/etc/deltalake-e2e.yaml"
+      # Managed Identity via the token-server sidecar.
+      IDENTITY_ENDPOINT: "http://token-server:8080/metadata/identity/oauth2/token"
+      IDENTITY_HEADER: "${IDENTITY_HEADER:-e2e-deltalake-secret}"
+      IMDS_ENDPOINT: "http://token-server:8080/metadata/identity/oauth2/token"
+      # Azure Delta Lake target (override to point at your own sandbox).
+      STORAGE_ACCOUNT: "${STORAGE_ACCOUNT:-mdrrahmansandbox}"
+      STORAGE_CONTAINER: "${STORAGE_CONTAINER:-onelake}"
+      ROOT_PATH: "${ROOT_PATH:-arcdata-otel-poc}"
+      EVENT_HUB_NAMESPACE: "${EVENT_HUB_NAMESPACE:-mdrrahmansandbox.servicebus.windows.net}"
+      EVENT_HUB_NAME: "${EVENT_HUB_NAME:-delta-bulk-loader}"
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-72f988bf-86f1-41af-91ab-2d7cd011db47}"
+    volumes:
+      - ./internal/otelcol-arcdata/deltalake-e2e.yaml:/etc/deltalake-e2e.yaml:ro
     ports:
+      - "4317:4317"   # OTLP/gRPC
       - "4318:4318"   # OTLP/HTTP (driver -> collector)
-      - "8889:8889"   # Prometheus scrape endpoint (collector -> prometheus)
-      - "13133:13133" # health_check extension (probed by dev.sh)
+    restart: unless-stopped
 
-  prometheus:
-    image: prom/prometheus:v2.55.0
-    container_name: mssql-jdbc-prometheus
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=1h"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    ports:
-      - "9090:9090"
+  # MirrorMaker / Delta Bulk Loader: consumes the collector's Event Hub
+  # notifications and commits the Delta log in Azure Storage.
+  delta-bulk-loader:
+    image: "${DELTA_BULK_LOADER_IMAGE:-arcdataanalyticsacr.azurecr.io/artifact/ca486455-1a37-40b8-9d7c-9fb79233c8f0/buddy/adshybrid/dataplane-mirror-maker-service:latest}"
+    container_name: mssql-jdbc-delta-bulk-loader
+    entrypoint: ["/usr/bin/dotnet", "/app/Dataplane.StreamProcessing.MirrorMaker.dll"]
     depends_on:
-      - otel-collector
-
-  jaeger:
-    image: jaegertracing/all-in-one:1.62.0
-    container_name: mssql-jdbc-jaeger
+      token-server:
+        condition: service_healthy
     environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    ports:
-      - "16686:16686" # Jaeger UI
-      - "4319:4318"   # Host OTLP/HTTP ingress to Jaeger
-
-  grafana:
-    image: grafana/grafana:11.3.0
-    container_name: mssql-jdbc-grafana
-    environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      IDENTITY_ENDPOINT: "http://token-server:8080/metadata/identity/oauth2/token"
+      IDENTITY_HEADER: "${IDENTITY_HEADER:-e2e-deltalake-secret}"
+      IMDS_ENDPOINT: "http://token-server:8080/metadata/identity/oauth2/token"
+      TOKEN_CREDENTIAL_MODE_OVERRIDE: "ManagedIdentityCredential"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otelcol-arcdata:4317"
+      AddLogsOtlpExporter: "false"
+      AddMetricsOtlpExporter: "false"
+      AddTracingOtlpExporter: "false"
     volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./internal/delta-bulk-loader/appsettings.json:/app/appsettings.json:ro
+    restart: unless-stopped
+
+  # .NET Aspire Dashboard — unified local UI for metrics, traces, and logs.
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:8.0
+    container_name: mssql-jdbc-aspire-dashboard
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
     ports:
-      - "3000:3000"
-    depends_on:
-      - prometheus
-      - jaeger
+      - "18888:18888" # Dashboard UI
+      - "18889:18889" # OTLP ingress (collector -> dashboard)
+    restart: unless-stopped
 
   # Manual one-shot runner. Never auto-starts (tools profile); dev.sh invokes it
   # via `docker compose run --rm app <mvn ...>` for test-compile, the smoke test,
-  # the timed burst, and the health/metric/trace probes.
+  # the timed burst, and the health/flow probes.
   app:
     <<: *otel-app
     container_name: mssql-jdbc-otel-app
@@ -121,7 +157,7 @@ services:
       - -Dexec.classpathScope=test
       - -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen
       - -Dexec.args=forever
-      - -DotelEndpoint=http://otel-collector:4318/v1/metrics
+      - -DotelEndpoint=http://otelcol-arcdata:4318/v1/metrics
       - -DotelExportInterval=5
 
 volumes:
