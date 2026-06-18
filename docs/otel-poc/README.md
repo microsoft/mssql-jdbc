@@ -76,6 +76,20 @@ up, proves it green, and leaves a load generator running. It ends with a
   `delta-bulk-loader/appsettings.json`
 - Driver sources: `src/test/java/com/microsoft/sqlserver/jdbc/otel/{OtelPocLoadGen,OtelPocSmokeTest}.java`
 
+## OTel export auth
+
+Attach an `Authorization` header to OTLP/HTTP exports via connection-string properties:
+
+| Property | Default | Effect |
+|----------|---------|--------|
+| `otelUseSqlAccessToken` | `false` | Reuse the SQL AAD access token as OTLP `Authorization: Bearer …`. |
+| `otelBearerToken` | — | Explicit bearer token sent as `Authorization: Bearer …`. |
+| `otelHeaders` | — | Comma-separated `key=value` headers (e.g. vendor API keys). |
+
+Precedence: `otelUseSqlAccessToken` (when a SQL AAD token was acquired) → `otelBearerToken`
+→ none, plus anything in `otelHeaders`. SQL-token reuse applies only to Azure AD auth flows;
+if the token isn't available yet, OTel bootstrap initializes later, after acquisition.
+
 ## Notes
 
 - `otelcol-arcdata` has **no Prometheus exporter** — the Aspire Dashboard (over

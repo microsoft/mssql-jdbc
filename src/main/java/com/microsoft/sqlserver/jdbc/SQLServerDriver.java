@@ -691,7 +691,8 @@ enum SQLServerDriverStringProperty {
     // OpenTelemetry POC (Solution 4): empty otelEndpoint = disabled, no-op
     OTEL_ENDPOINT("otelEndpoint", ""),
     OTEL_SERVICE_NAME("otelServiceName", "mssql-jdbc"),
-    OTEL_HEADERS("otelHeaders", "");
+    OTEL_HEADERS("otelHeaders", ""),
+    OTEL_BEARER_TOKEN("otelBearerToken", "");
 
     private final String name;
     private final String defaultValue;
@@ -788,6 +789,7 @@ enum SQLServerDriverBooleanProperty {
     IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION("ignoreOffsetOnDateTimeOffsetConversion", false),
     USE_DEFAULT_JAAS_CONFIG("useDefaultJaasConfig", false),
     USE_DEFAULT_GSS_CREDENTIAL("useDefaultGSSCredential", false),
+    OTEL_USE_SQL_ACCESS_TOKEN("otelUseSqlAccessToken", false),
     CALC_BIG_DECIMAL_PRECISION("calcBigDecimalPrecision", false);
 
     private final String name;
@@ -1144,6 +1146,11 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverStringProperty.OTEL_SERVICE_NAME.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_HEADERS.toString(),
                     SQLServerDriverStringProperty.OTEL_HEADERS.getDefaultValue(), false, null),
+                new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_BEARER_TOKEN.toString(),
+                    SQLServerDriverStringProperty.OTEL_BEARER_TOKEN.getDefaultValue(), false, null),
+                new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.getDefaultValue()), false,
+                    TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.toString(),
                     Integer.toString(SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.getDefaultValue()), false, null),};
 
