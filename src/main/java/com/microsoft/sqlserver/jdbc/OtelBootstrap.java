@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -48,6 +49,18 @@ final class OtelBootstrap {
      * Subsequent invocations are no-ops.
      */
     static void ensureInitialized(Properties props) {
+        ensureInitialized(props, null);
+    }
+
+    /**
+     * Initializes OpenTelemetry export on the first connection that opts in.
+     * If otelUseSqlAccessToken is enabled, the SQL AAD token is reused as the
+     * Authorization bearer token when available.
+     *
+     * @param props connection properties
+     * @param sqlAuthToken SQL AAD access token, if one was acquired for the connection
+     */
+    static void ensureInitialized(Properties props, SqlAuthenticationToken sqlAuthToken) {
         if (props == null || initialized.get()) {
             return;
         }
@@ -55,11 +68,19 @@ final class OtelBootstrap {
         if (endpoint.isEmpty()) {
             return;
         }
+        boolean useSqlAccessToken = boolProp(props,
+                SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.toString(),
+                SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.getDefaultValue());
+        String sqlAccessToken = sqlAuthToken == null ? "" : trim(sqlAuthToken.getAccessToken());
+        String explicitBearerToken = trim(props.getProperty(SQLServerDriverStringProperty.OTEL_BEARER_TOKEN.toString()));
+        if (useSqlAccessToken && sqlAccessToken.isEmpty() && explicitBearerToken.isEmpty()) {
+            return;
+        }
         if (!initialized.compareAndSet(false, true)) {
             return;
         }
         try {
-            OpenTelemetry otel = buildOrReuseGlobal(props, endpoint);
+            OpenTelemetry otel = buildOrReuseGlobal(props, endpoint, sqlAuthToken);
             PerformanceLog.registerCallback(new OpenTelemetryPerformanceCallback(otel));
             if (logger.isLoggable(Level.INFO)) {
                 logger.info("OpenTelemetry performance export enabled - metrics + traces (endpoint=" + endpoint + ")");
@@ -80,7 +101,7 @@ final class OtelBootstrap {
         }
     }
 
-    private static OpenTelemetry buildOrReuseGlobal(Properties props, String endpoint) {
+    private static OpenTelemetry buildOrReuseGlobal(Properties props, String endpoint, SqlAuthenticationToken sqlAuthToken) {
         OpenTelemetry existing = GlobalOpenTelemetry.get();
         if (existing != OpenTelemetry.noop()) {
             if (logger.isLoggable(Level.FINE)) {
@@ -99,7 +120,7 @@ final class OtelBootstrap {
 
         OtlpHttpMetricExporterBuilder exporterBuilder = OtlpHttpMetricExporter.builder()
                 .setEndpoint(endpoint);
-        for (String[] kv : parseHeaders(props.getProperty(SQLServerDriverStringProperty.OTEL_HEADERS.toString()))) {
+        for (String[] kv : otlpHeaders(props, sqlAuthToken)) {
             exporterBuilder.addHeader(kv[0], kv[1]);
         }
 
@@ -121,7 +142,7 @@ final class OtelBootstrap {
                 : endpoint;
         OtlpHttpSpanExporterBuilder spanExporterBuilder = OtlpHttpSpanExporter.builder()
                 .setEndpoint(traceEndpoint);
-        for (String[] kv : parseHeaders(props.getProperty(SQLServerDriverStringProperty.OTEL_HEADERS.toString()))) {
+        for (String[] kv : otlpHeaders(props, sqlAuthToken)) {
             spanExporterBuilder.addHeader(kv[0], kv[1]);
         }
 
@@ -140,6 +161,32 @@ final class OtelBootstrap {
             meterProvider.close();
         }, "mssql-jdbc-otel-shutdown"));
         return sdk;
+    }
+
+    static String[][] otlpHeaders(Properties props, SqlAuthenticationToken sqlAuthToken) {
+        LinkedHashMap<String, String> headers = new LinkedHashMap<>();
+        for (String[] kv : parseHeaders(props.getProperty(SQLServerDriverStringProperty.OTEL_HEADERS.toString()))) {
+            headers.put(kv[0], kv[1]);
+        }
+
+        boolean useSqlAccessToken = boolProp(props,
+                SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.toString(),
+                SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.getDefaultValue());
+        String sqlAccessToken = sqlAuthToken == null ? "" : trim(sqlAuthToken.getAccessToken());
+        String bearerToken = useSqlAccessToken && !sqlAccessToken.isEmpty() ? sqlAccessToken
+                : trim(props.getProperty(SQLServerDriverStringProperty.OTEL_BEARER_TOKEN.toString()));
+        if (!bearerToken.isEmpty()) {
+            headers.put("Authorization", bearerToken.regionMatches(true, 0, "Bearer ", 0, "Bearer ".length())
+                    ? bearerToken
+                    : "Bearer " + bearerToken);
+        }
+
+        String[][] out = new String[headers.size()][];
+        int i = 0;
+        for (java.util.Map.Entry<String, String> entry : headers.entrySet()) {
+            out[i++] = new String[] {entry.getKey(), entry.getValue()};
+        }
+        return out;
     }
 
     private static String[][] parseHeaders(String raw) {
@@ -186,5 +233,13 @@ final class OtelBootstrap {
         }
         String t = s.trim();
         return t.isEmpty() ? defaultValue : t;
+    }
+
+    private static boolean boolProp(Properties props, String key, boolean defaultValue) {
+        String raw = props.getProperty(key);
+        if (raw == null || raw.isEmpty()) {
+            return defaultValue;
+        }
+        return Boolean.parseBoolean(raw.trim());
     }
 }

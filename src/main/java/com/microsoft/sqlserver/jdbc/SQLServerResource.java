@@ -352,6 +352,8 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_otelEndpointPropertyDescription", "OpenTelemetry OTLP/HTTP metrics endpoint. When set, the driver exports per-event performance metrics (e.g. db.client.connection.duration, db.client.statement.execute.duration) via OpenTelemetry. Default empty (disabled)."},
         {"R_otelServiceNamePropertyDescription", "The service.name resource attribute attached to OpenTelemetry metrics emitted by this driver. Defaults to mssql-jdbc."},
         {"R_otelHeadersPropertyDescription", "Optional comma-separated key=value pairs appended as HTTP headers on every OTLP/HTTP export (e.g. for vendor API keys)."},
+        {"R_otelBearerTokenPropertyDescription", "Optional bearer token that the driver sends as Authorization: Bearer <token> on every OTLP/HTTP export."},
+        {"R_otelUseSqlAccessTokenPropertyDescription", "When true, the driver reuses the same SQL AAD access token for OTLP/HTTP Authorization: Bearer <token> headers."},
         {"R_otelExportIntervalPropertyDescription", "How often (seconds) the OpenTelemetry SDK flushes metric batches when the driver builds its own SdkMeterProvider. Ignored when the host application has already registered a GlobalOpenTelemetry. Default 30."},
         {"R_accessTokenPropertyDescription", "The access token to use for Azure Active Directory."},
         {"R_FedAuthRequiredPreLoginResponseInvalidValue", "Server sent an unexpected value for FedAuthRequired PreLogin Option. Value was {0}."},

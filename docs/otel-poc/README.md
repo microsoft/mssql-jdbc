@@ -82,10 +82,13 @@ mvn -B -Pjre11 exec:java -Dexec.classpathScope=test `
 ```
 
 For backends that require an API key or auth header, append it directly in the
-connection string (the `otelHeaders` property is the cleanest way):
+connection string. Use `otelUseSqlAccessToken=true` when you want the driver to
+reuse the same SQL AAD access token for OTLP/HTTP `Authorization: Bearer ...`.
+Use `otelHeaders` for any other headers, and keep `otelBearerToken` only for a
+separate, pre-existing bearer token:
 
 ```powershell
-$env:mssql_jdbc_test_connection_properties = "jdbc:sqlserver://<HOST>:1433;...;otelEndpoint=https://otlp.example.com/v1/metrics;otelHeaders=x-api-key=<YOUR_KEY>;otelServiceName=my-team-app;"
+$env:mssql_jdbc_test_connection_properties = "jdbc:sqlserver://<HOST>:1433;...;otelEndpoint=https://otlp.example.com/v1/metrics;otelUseSqlAccessToken=true;otelServiceName=my-team-app;"
 ```
 
 Common endpoint formats:
@@ -158,11 +161,12 @@ The load generator appends these automatically; you can override them via JVM sy
 | `otelEndpoint`        | `otelEndpoint`             | `http://localhost:4318/v1/metrics`       | OTLP/HTTP endpoint the driver POSTs to      |
 | `otelExportInterval`  | `otelExportInterval`       | `5` (seconds)                            | How often metrics/traces are flushed        |
 | `loadgen.sleepMs`     | —                          | `200` (ms)                               | Sleep between load iterations               |
+| `otelUseSqlAccessToken` | `otelUseSqlAccessToken`   | `false`                                  | Reuse the SQL AAD access token as OTLP `Authorization` |
 
 You can also set them directly in the connection string passed to `mssql_jdbc_test_connection_properties`:
 
 ```
-...;otelEndpoint=http://localhost:4318/v1/metrics;otelServiceName=my-app;otelExportInterval=10;otelHeaders=Authorization=Bearer <token>;
+...;otelEndpoint=http://localhost:4318/v1/metrics;otelServiceName=my-app;otelExportInterval=10;otelUseSqlAccessToken=true;
 ```
 
 All available `otel*` connection-string properties:
@@ -172,7 +176,22 @@ All available `otel*` connection-string properties:
 | `otelEndpoint`        | `http://localhost:4318/v1/metrics`         | Required to activate OTel export. Point at the collector or any OTLP/HTTP backend. |
 | `otelServiceName`     | `mssql-jdbc-poc-loadgen`                   | `service.name` resource attribute in OTel spans/metrics          |
 | `otelExportInterval`  | `5`                                        | Metric export interval in seconds (default 60)                   |
-| `otelHeaders`         | `Authorization=Bearer eyJ…,X-Tenant=demo` | Comma-separated `key=value` pairs sent as HTTP headers           |
+| `otelHeaders`         | `x-api-key=eyJ…,X-Tenant=demo`           | Comma-separated `key=value` pairs sent as HTTP headers           |
+| `otelUseSqlAccessToken` | `true`                                  | Reuse the SQL AAD access token as OTLP `Authorization`           |
+| `otelBearerToken`     | `eyJ…`                                    | Sent as `Authorization: Bearer <token>` on every OTLP/HTTP export |
+
+### 2.1 OTel auth header precedence and caveats
+
+When the driver builds OTLP/HTTP exporters, auth header resolution is:
+
+1. If `otelUseSqlAccessToken=true` and a SQL AAD token was acquired, use that token for `Authorization: Bearer ...`.
+2. Else if `otelBearerToken` is set, use `otelBearerToken` for `Authorization: Bearer ...`.
+3. Else no bearer `Authorization` header is added (except anything you manually set in `otelHeaders`).
+
+Notes:
+
+- SQL token reuse works only for flows that actually acquire `fedAuthToken` (Azure AD authentication modes).
+- If `otelUseSqlAccessToken=true` but no SQL token is available yet, OTel bootstrap waits and initializes later after token acquisition.
 
 ### 3. Run commands
 

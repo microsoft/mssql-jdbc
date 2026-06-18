@@ -6963,6 +6963,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // fedAuthToken cannot be null.
                 assert null != fedAuthToken;
 
+                // If the caller opted into reusing the SQL access token for OTel auth,
+                // initialize now that the token exists.
+                OtelBootstrap.ensureInitialized(activeConnectionProperties, fedAuthToken);
+
                 TDSCommand fedAuthCommand = new FedAuthTokenCommand(fedAuthToken, tdsTokenHandler);
                 fedAuthCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(fedAuthCommand));
 
