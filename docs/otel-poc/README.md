@@ -80,12 +80,12 @@ up, proves it green, and leaves a load generator running. It ends with a
 
 Attach an `Authorization` header to OTLP/HTTP exports via connection-string properties:
 
-| Property                       | Default | Effect                                                                                                                                     |
-| ------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `otelUseSqlAccessToken`        | `false` | Reuse the SQL AAD access token as OTLP `Authorization: Bearer …`.                                                                          |
+| Property                       | Default | Effect                                                                                                                                                    |
+| ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `otelUseSqlAccessToken`        | `false` | Reuse the SQL AAD access token as OTLP `Authorization: Bearer …`.                                                                                         |
 | `otelAccessTokenCallbackClass` | —       | FQCN of a `SQLServerAccessTokenCallback`; the driver calls it to mint the OTLP bearer JWT and re-mints it near expiry — **independent of the SQL login**. |
-| `otelBearerToken`              | —       | Explicit static bearer token sent as `Authorization: Bearer …`.                                                                            |
-| `otelHeaders`                  | —       | Comma-separated `key=value` headers (e.g. vendor API keys).                                                                                |
+| `otelBearerToken`              | —       | Explicit static bearer token sent as `Authorization: Bearer …`.                                                                                           |
+| `otelHeaders`                  | —       | Comma-separated `key=value` headers (e.g. vendor API keys).                                                                                               |
 
 Precedence: `otelUseSqlAccessToken` (when a SQL AAD token was acquired) → `otelAccessTokenCallbackClass`
 → `otelBearerToken` → none, plus anything in `otelHeaders`. The `Authorization` header is resolved on
