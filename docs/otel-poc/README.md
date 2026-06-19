@@ -83,13 +83,15 @@ Attach an `Authorization` header to OTLP/HTTP exports via connection-string prop
 | Property                       | Default | Effect                                                                                                                                     |
 | ------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `otelUseSqlAccessToken`        | `false` | Reuse the SQL AAD access token as OTLP `Authorization: Bearer …`.                                                                          |
-| `otelAccessTokenCallbackClass` | —       | FQCN of a `SQLServerAccessTokenCallback`; the driver calls it once at init to mint the OTLP bearer JWT — **independent of the SQL login**. |
+| `otelAccessTokenCallbackClass` | —       | FQCN of a `SQLServerAccessTokenCallback`; the driver calls it to mint the OTLP bearer JWT and re-mints it near expiry — **independent of the SQL login**. |
 | `otelBearerToken`              | —       | Explicit static bearer token sent as `Authorization: Bearer …`.                                                                            |
 | `otelHeaders`                  | —       | Comma-separated `key=value` headers (e.g. vendor API keys).                                                                                |
 
 Precedence: `otelUseSqlAccessToken` (when a SQL AAD token was acquired) → `otelAccessTokenCallbackClass`
-→ `otelBearerToken` → none, plus anything in `otelHeaders`. The callback token is minted **once at
-OTel init** (no per-request refresh). A callback failure is non-fatal — export continues without the bearer.
+→ `otelBearerToken` → none, plus anything in `otelHeaders`. The `Authorization` header is resolved on
+**every OTLP export** via a `Supplier`, so token renewals are picked up without rebuilding the pipeline:
+the reused SQL AAD token refreshes on each fedAuth (re)connect, and the callback JWT is re-minted shortly
+before its expiry. A callback failure is non-fatal — export continues with the last good bearer (or none).
 
 The POC ships a demo callback,
 `com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback`, that mints the JWT with

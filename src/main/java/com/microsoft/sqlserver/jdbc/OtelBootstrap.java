@@ -6,9 +6,13 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,6 +46,50 @@ final class OtelBootstrap {
 
     private static final AtomicBoolean initialized = new AtomicBoolean(false);
 
+    /**
+     * Holds the most-recent SQL AAD access token pre-formatted as {@code "Bearer <token>"}.
+     * Updated on every fedAuth token acquisition (initial connect and pool-triggered reconnect)
+     * so that the OTLP exporter's per-request header supplier always sees a fresh value without
+     * rebuilding the exporter pipeline.
+     */
+    private static final AtomicReference<String> sqlBearerToken = new AtomicReference<>("");
+
+    /**
+     * Re-mint the {@code otelAccessTokenCallbackClass} token this far ahead of its stated expiry so a
+     * near-expired JWT is never sent on an OTLP export.
+     */
+    private static final long CALLBACK_REFRESH_SKEW_MS = 300_000L;
+
+    /**
+     * Most recent {@code otelAccessTokenCallbackClass} bearer paired with its absolute expiry. Refreshed by
+     * {@link #currentCallbackBearer} shortly before expiry so long-running exports stay authenticated across
+     * the AAD token lifetime without rebuilding the exporter pipeline. {@code null} until first minted.
+     */
+    private static final AtomicReference<CallbackToken> callbackToken = new AtomicReference<>(null);
+
+    /** Serializes callback re-mints so concurrent metric and span exports don't stampede the callback. */
+    private static final Object callbackMintLock = new Object();
+
+    /**
+     * Records the latest SQL AAD access token so the OTLP Authorization header stays current
+     * across token renewals. Must be called before {@link #ensureInitialized} on every
+     * {@code onFedAuthInfo} invocation — both first connect and pool-triggered reconnect.
+     */
+    static void updateSqlToken(SqlAuthenticationToken token) {
+        if (token == null) {
+            return;
+        }
+        String raw = token.getAccessToken();
+        if (raw != null && !raw.isEmpty()) {
+            String bearer = raw.regionMatches(true, 0, "Bearer ", 0, "Bearer ".length())
+                    ? raw : "Bearer " + raw;
+            sqlBearerToken.set(bearer);
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine("OTel SQL bearer token updated (expires=" + token.getExpiresOn() + ")");
+            }
+        }
+    }
+
     private OtelBootstrap() {}
 
     /**
@@ -71,16 +119,17 @@ final class OtelBootstrap {
         boolean useSqlAccessToken = boolProp(props,
                 SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.toString(),
                 SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.getDefaultValue());
-        String sqlAccessToken = sqlAuthToken == null ? "" : trim(sqlAuthToken.getAccessToken());
         String explicitBearerToken = trim(props.getProperty(SQLServerDriverStringProperty.OTEL_BEARER_TOKEN.toString()));
-        if (useSqlAccessToken && sqlAccessToken.isEmpty() && explicitBearerToken.isEmpty()) {
+        // Guard: if SQL-token mode is on but no token is available yet (updateSqlToken not called)
+        // and no explicit bearer is set either, defer until a token exists.
+        if (useSqlAccessToken && sqlBearerToken.get().isEmpty() && explicitBearerToken.isEmpty()) {
             return;
         }
         if (!initialized.compareAndSet(false, true)) {
             return;
         }
         try {
-            OpenTelemetry otel = buildOrReuseGlobal(props, endpoint, sqlAuthToken);
+            OpenTelemetry otel = buildOrReuseGlobal(props, endpoint);
             PerformanceLog.registerCallback(new OpenTelemetryPerformanceCallback(otel));
             if (logger.isLoggable(Level.INFO)) {
                 logger.info("OpenTelemetry performance export enabled - metrics + traces (endpoint=" + endpoint + ")");
@@ -101,7 +150,7 @@ final class OtelBootstrap {
         }
     }
 
-    private static OpenTelemetry buildOrReuseGlobal(Properties props, String endpoint, SqlAuthenticationToken sqlAuthToken) {
+    private static OpenTelemetry buildOrReuseGlobal(Properties props, String endpoint) {
         OpenTelemetry existing = GlobalOpenTelemetry.get();
         if (existing != OpenTelemetry.noop()) {
             if (logger.isLoggable(Level.FINE)) {
@@ -118,15 +167,25 @@ final class OtelBootstrap {
                 SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.toString(),
                 SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.getDefaultValue());
 
-        // Resolve OTLP headers (incl. any Authorization bearer) once so a token callback is
-        // invoked a single time and the same headers apply to both the metric and span exporters.
-        String[][] resolvedHeaders = otlpHeaders(props, sqlAuthToken);
+        String[][] customHeaders = parseHeaders(
+                props.getProperty(SQLServerDriverStringProperty.OTEL_HEADERS.toString()));
+
+        // Dynamic Authorization header resolved on every OTLP HTTP request via this Supplier, so token
+        // renewals - SQL fedAuth pool reconnects, or otelAccessTokenCallbackClass re-mints near expiry -
+        // are picked up without rebuilding the exporter pipeline. Static custom headers (otelHeaders) are
+        // baked once below. Mirrors the C# AuthorizationHeaderHandler pattern from authenticated-otel-logger.
+        Supplier<Map<String, String>> authHeaderSupplier = () -> {
+            String bearer = currentBearer(props);
+            return bearer.isEmpty() ? Collections.emptyMap()
+                    : Collections.singletonMap("Authorization", bearer);
+        };
 
         OtlpHttpMetricExporterBuilder exporterBuilder = OtlpHttpMetricExporter.builder()
                 .setEndpoint(endpoint);
-        for (String[] kv : resolvedHeaders) {
+        for (String[] kv : customHeaders) {
             exporterBuilder.addHeader(kv[0], kv[1]);
         }
+        exporterBuilder.setHeaders(authHeaderSupplier);
 
         Resource resource = Resource.getDefault().merge(
                 Resource.create(Attributes.of(AttributeKey.stringKey("service.name"), serviceName)));
@@ -146,9 +205,10 @@ final class OtelBootstrap {
                 : endpoint;
         OtlpHttpSpanExporterBuilder spanExporterBuilder = OtlpHttpSpanExporter.builder()
                 .setEndpoint(traceEndpoint);
-        for (String[] kv : resolvedHeaders) {
+        for (String[] kv : customHeaders) {
             spanExporterBuilder.addHeader(kv[0], kv[1]);
         }
+        spanExporterBuilder.setHeaders(authHeaderSupplier);
 
         SdkTracerProvider tracerProvider = SdkTracerProvider.builder()
                 .setResource(resource)
@@ -197,6 +257,90 @@ final class OtelBootstrap {
             out[i++] = new String[] {entry.getKey(), entry.getValue()};
         }
         return out;
+    }
+
+    /**
+     * Resolves the live OTLP {@code Authorization} value as {@code "Bearer <jwt>"} on every export so token
+     * renewals are picked up without rebuilding the pipeline. Precedence mirrors {@link #otlpHeaders}: the
+     * SQL AAD token (when {@code otelUseSqlAccessToken=true} and one has been acquired) takes priority over
+     * the {@code otelAccessTokenCallbackClass} token, which takes priority over a static {@code otelBearerToken}.
+     *
+     * @param props connection properties
+     * @return the {@code "Bearer <jwt>"} header value, or an empty string when no bearer is configured
+     */
+    static String currentBearer(Properties props) {
+        boolean useSqlAccessToken = boolProp(props,
+                SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.toString(),
+                SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.getDefaultValue());
+        String sqlBearer = sqlBearerToken.get();
+        if (useSqlAccessToken && !sqlBearer.isEmpty()) {
+            return sqlBearer;
+        }
+        String callbackBearer = currentCallbackBearer(props);
+        if (!callbackBearer.isEmpty()) {
+            return callbackBearer;
+        }
+        return asBearer(trim(props.getProperty(SQLServerDriverStringProperty.OTEL_BEARER_TOKEN.toString())));
+    }
+
+    /**
+     * Returns the current {@code otelAccessTokenCallbackClass} bearer as {@code "Bearer <jwt>"}, re-minting via
+     * the callback when the cached token is within {@link #CALLBACK_REFRESH_SKEW_MS} of its expiry. This keeps
+     * long-running OTLP exports authenticated across the AAD token lifetime without rebuilding the exporter
+     * pipeline. Returns {@code ""} when no callback class is configured; on a refresh failure the last good
+     * bearer is retained so export degrades to (at worst) one rejected batch rather than dropping auth.
+     *
+     * @param props connection properties
+     * @return the {@code "Bearer <jwt>"} header value, or an empty string when no callback class is configured
+     */
+    private static String currentCallbackBearer(Properties props) {
+        String className = trim(
+                props.getProperty(SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.toString()));
+        if (className.isEmpty()) {
+            return "";
+        }
+        long now = System.currentTimeMillis();
+        CallbackToken cached = callbackToken.get();
+        if (cached != null && now < cached.expiresAtMs - CALLBACK_REFRESH_SKEW_MS) {
+            return cached.bearer;
+        }
+        synchronized (callbackMintLock) {
+            now = System.currentTimeMillis();
+            cached = callbackToken.get();
+            if (cached != null && now < cached.expiresAtMs - CALLBACK_REFRESH_SKEW_MS) {
+                return cached.bearer;
+            }
+            SqlAuthenticationToken token = mintCallbackToken(props);
+            if (token == null) {
+                return cached != null ? cached.bearer : "";
+            }
+            String bearer = asBearer(trim(token.getAccessToken()));
+            long expiresAtMs = token.getExpiresOn() != null ? token.getExpiresOn().getTime() : now;
+            callbackToken.set(new CallbackToken(bearer, expiresAtMs));
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine("OTel callback bearer token refreshed (expires=" + token.getExpiresOn() + ")");
+            }
+            return bearer;
+        }
+    }
+
+    /** Prefixes {@code "Bearer "} (case-insensitive) when absent; an empty input yields an empty output. */
+    private static String asBearer(String token) {
+        if (token.isEmpty()) {
+            return "";
+        }
+        return token.regionMatches(true, 0, "Bearer ", 0, "Bearer ".length()) ? token : "Bearer " + token;
+    }
+
+    /** Cached callback-minted OTLP bearer paired with its absolute expiry, enabling expiry-based refresh. */
+    private static final class CallbackToken {
+        final String bearer;
+        final long expiresAtMs;
+
+        CallbackToken(String bearer, long expiresAtMs) {
+            this.bearer = bearer;
+            this.expiresAtMs = expiresAtMs;
+        }
     }
 
     private static String[][] parseHeaders(String raw) {
@@ -254,21 +398,32 @@ final class OtelBootstrap {
     }
 
     /**
-     * Resolves the OTLP bearer token from {@code otelAccessTokenCallbackClass}, when set. The named
-     * class must implement {@link SQLServerAccessTokenCallback} and expose a public no-argument
-     * constructor; the driver instantiates it once at OpenTelemetry initialization and uses the
-     * returned access token as the {@code Authorization: Bearer} header. The {@code otelEndpoint}
-     * value is passed as the callback's {@code spn} so an implementation can derive a scope from it.
-     * Any failure is logged and treated as "no token" so OpenTelemetry export still proceeds.
+     * Resolves the {@code otelAccessTokenCallbackClass} access token as a raw string for the one-shot
+     * {@link #otlpHeaders} path. Delegates to {@link #mintCallbackToken}.
      *
      * @param props connection properties
      * @return the access token string, or an empty string when the property is unset or resolution fails
      */
     private static String resolveCallbackToken(Properties props) {
+        SqlAuthenticationToken token = mintCallbackToken(props);
+        return token == null ? "" : trim(token.getAccessToken());
+    }
+
+    /**
+     * Instantiates {@code otelAccessTokenCallbackClass} (which must implement
+     * {@link SQLServerAccessTokenCallback} and expose a public no-argument constructor) and invokes it to mint
+     * an OTLP bearer token. The {@code otelEndpoint} value is passed as the callback's {@code spn} so an
+     * implementation can derive a scope from it. Any failure is logged and treated as "no token" so
+     * OpenTelemetry export still proceeds.
+     *
+     * @param props connection properties
+     * @return the minted token (carrying its expiry), or {@code null} when unset or resolution fails
+     */
+    private static SqlAuthenticationToken mintCallbackToken(Properties props) {
         String className = trim(
                 props.getProperty(SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.toString()));
         if (className.isEmpty()) {
-            return "";
+            return null;
         }
         try {
             String spn = trim(props.getProperty(SQLServerDriverStringProperty.OTEL_ENDPOINT.toString()));
@@ -277,15 +432,15 @@ final class OtelBootstrap {
             SQLServerAccessTokenCallback callback = Util.newInstance(SQLServerAccessTokenCallback.class, className,
                     null, msgArgs);
             SqlAuthenticationToken token = callback.getAccessToken(spn, "");
-            String accessToken = token == null ? "" : trim(token.getAccessToken());
-            if (accessToken.isEmpty()) {
+            if (token == null || trim(token.getAccessToken()).isEmpty()) {
                 logger.log(Level.WARNING, "otelAccessTokenCallbackClass {0} returned no access token.", className);
+                return null;
             }
-            return accessToken;
+            return token;
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to obtain an OTLP bearer token from otelAccessTokenCallbackClass "
                     + className + "; continuing without it.", e);
-            return "";
+            return null;
         }
     }
 }

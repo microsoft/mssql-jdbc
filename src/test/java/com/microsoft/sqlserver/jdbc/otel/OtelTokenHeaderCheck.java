@@ -12,8 +12,9 @@ import java.util.Properties;
  * {@link AzureCliAccessTokenCallback} produces a real Azure AD JWT in the OTLP/HTTP
  * {@code Authorization: Bearer ...} header that the driver attaches to every export.
  *
- * <p>It drives the driver's actual (package-private) {@code OtelBootstrap.otlpHeaders} code path
- * with the real callback, so a green run proves the live token-acquisition + header wiring.
+ * <p>It drives the driver's actual (package-private) {@code OtelBootstrap.currentBearer} code path —
+ * the same rotating Supplier source the OTLP exporter reads on every export — with the real callback,
+ * so a green run proves the live token-acquisition + header wiring.
  * Requires the {@code az} CLI on PATH and a logged-in {@code ~/.azure} (the otel-poc app
  * container provides both). Exits non-zero on failure.
  *
@@ -34,21 +35,14 @@ public final class OtelTokenHeaderCheck {
         props.setProperty("otelAccessTokenCallbackClass", AzureCliAccessTokenCallback.class.getName());
 
         Class<?> bootstrap = Class.forName("com.microsoft.sqlserver.jdbc.OtelBootstrap");
-        Class<?> tokenClass = Class.forName("com.microsoft.sqlserver.jdbc.SqlAuthenticationToken");
-        Method otlpHeaders = bootstrap.getDeclaredMethod("otlpHeaders", Properties.class, tokenClass);
-        otlpHeaders.setAccessible(true);
+        Method currentBearer = bootstrap.getDeclaredMethod("currentBearer", Properties.class);
+        currentBearer.setAccessible(true);
 
-        String[][] headers = (String[][]) otlpHeaders.invoke(null, props, null);
+        String authorization = (String) currentBearer.invoke(null, props);
 
-        String authorization = null;
-        for (String[] kv : headers) {
-            if ("Authorization".equals(kv[0])) {
-                authorization = kv[1];
-                break;
-            }
-        }
-        if (authorization == null) {
-            throw new IllegalStateException("FAIL: OtelBootstrap.otlpHeaders produced no Authorization header.");
+        if (authorization == null || authorization.isEmpty()) {
+            throw new IllegalStateException(
+                    "FAIL: OtelBootstrap.currentBearer produced no Authorization bearer for otelAccessTokenCallbackClass.");
         }
 
         String token = authorization.regionMatches(true, 0, "Bearer ", 0, "Bearer ".length())

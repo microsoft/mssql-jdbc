@@ -8,9 +8,12 @@ package com.microsoft.sqlserver.jdbc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
@@ -116,6 +119,55 @@ class OtelBootstrapTest {
         assertEquals("Bearer fallbackToken", headers[0][1]);
     }
 
+    @Test
+    void callbackBearerRefreshesWhenTokenExpires() throws Exception {
+        resetCallbackTokenCache();
+        CountingCallback.mintCount.set(0);
+        CountingCallback.expiryOffsetMs = 0L; // already past the refresh skew -> re-mint on every export
+
+        Properties props = new Properties();
+        props.setProperty(SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                CountingCallback.class.getName());
+
+        String first = OtelBootstrap.currentBearer(props);
+        String second = OtelBootstrap.currentBearer(props);
+        String third = OtelBootstrap.currentBearer(props);
+
+        assertEquals("Bearer token-1", first);
+        assertEquals("Bearer token-2", second);
+        assertEquals("Bearer token-3", third);
+        assertEquals(3, CountingCallback.mintCount.get(),
+                "an expired callback token must be re-minted on every OTLP export");
+    }
+
+    @Test
+    void callbackBearerIsCachedUntilNearExpiry() throws Exception {
+        resetCallbackTokenCache();
+        CountingCallback.mintCount.set(0);
+        CountingCallback.expiryOffsetMs = 3_600_000L; // 1h ahead, well beyond the 5-min refresh skew
+
+        Properties props = new Properties();
+        props.setProperty(SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                CountingCallback.class.getName());
+
+        String first = OtelBootstrap.currentBearer(props);
+        String second = OtelBootstrap.currentBearer(props);
+        String third = OtelBootstrap.currentBearer(props);
+
+        assertEquals("Bearer token-1", first);
+        assertEquals(first, second);
+        assertEquals(first, third);
+        assertEquals(1, CountingCallback.mintCount.get(),
+                "a valid callback token must be reused, not re-minted, on each export");
+    }
+
+    /** Clears the static callback-token cache so rotation assertions start from a known state. */
+    private static void resetCallbackTokenCache() throws Exception {
+        Field field = OtelBootstrap.class.getDeclaredField("callbackToken");
+        field.setAccessible(true);
+        ((AtomicReference<?>) field.get(null)).set(null);
+    }
+
     /** Stub callback returning a fixed token, loaded by name via otelAccessTokenCallbackClass. */
     public static class StubCallback implements SQLServerAccessTokenCallback {
         @Override
@@ -129,6 +181,18 @@ class OtelBootstrapTest {
         @Override
         public SqlAuthenticationToken getAccessToken(String spn, String stsurl) {
             throw new RuntimeException("simulated token acquisition failure");
+        }
+    }
+
+    /** Callback that mints a fresh, changing token each call with a configurable expiry, for rotation tests. */
+    public static class CountingCallback implements SQLServerAccessTokenCallback {
+        static final AtomicInteger mintCount = new AtomicInteger(0);
+        static long expiryOffsetMs = 0L;
+
+        @Override
+        public SqlAuthenticationToken getAccessToken(String spn, String stsurl) {
+            int n = mintCount.incrementAndGet();
+            return new SqlAuthenticationToken("token-" + n, System.currentTimeMillis() + expiryOffsetMs);
         }
     }
 }

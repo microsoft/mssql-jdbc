@@ -112,6 +112,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** flag to indicate if attempt refresh token is locked */
     boolean attemptRefreshTokenLocked = false;
 
+    /** true when otelEndpoint connection property is set — cached to keep onFedAuthInfo hot path branch-free. */
+    private boolean otelEnabled = false;
+
     /**
      * Thresholds related to when prepared statement handles are cleaned-up. 1 == immediately.
      * 
@@ -2681,8 +2684,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 activeConnectionProperties = (Properties) propsIn.clone();
 
+                // Cache once: hot paths (e.g. onFedAuthInfo on every pool reconnect) check this
+                // boolean instead of doing repeated Properties.getProperty lookups.
+                String otelEndpoint = activeConnectionProperties
+                        .getProperty(SQLServerDriverStringProperty.OTEL_ENDPOINT.toString());
+                otelEnabled = otelEndpoint != null && !otelEndpoint.isEmpty();
+
                 // POC: wire up OpenTelemetry export if otelEndpoint is set (docs/otelproposal.md, Solution 4)
-                OtelBootstrap.ensureInitialized(activeConnectionProperties);
+                if (otelEnabled) {
+                    OtelBootstrap.ensureInitialized(activeConnectionProperties);
+                }
 
                 pooledConnectionParent = pooledConnection;
 
@@ -6963,9 +6974,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // fedAuthToken cannot be null.
                 assert null != fedAuthToken;
 
-                // If the caller opted into reusing the SQL access token for OTel auth,
-                // initialize now that the token exists.
-                OtelBootstrap.ensureInitialized(activeConnectionProperties, fedAuthToken);
+                // Only relevant when the caller opted into OTel export via otelEndpoint.
+                if (otelEnabled) {
+                    // Update the shared token store first so the per-request header supplier
+                    // immediately sees the freshest value — covers first connect and every
+                    // pool-triggered reconnect where the old token was near expiry.
+                    OtelBootstrap.updateSqlToken(fedAuthToken);
+                    // One-time pipeline bootstrap: no-op if already initialized.
+                    OtelBootstrap.ensureInitialized(activeConnectionProperties, fedAuthToken);
+                }
 
                 TDSCommand fedAuthCommand = new FedAuthTokenCommand(fedAuthToken, tdsTokenHandler);
                 fedAuthCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(fedAuthCommand));
