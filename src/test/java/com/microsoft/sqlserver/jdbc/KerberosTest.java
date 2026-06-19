@@ -137,33 +137,18 @@ public class KerberosTest extends AbstractTest {
      * When java.security.auth.login.config is unset, the method should pass without error.
      */
     @Test
-    public void testAssertSafeJaasLoginConfigProperty_allowsNullProperty() throws Exception {
-        // assertSafeJaasLoginConfigProperty should allow null/empty property
-        String original = System.getProperty("java.security.auth.login.config");
-        try {
-            System.clearProperty("java.security.auth.login.config");
-
-            Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
-            java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
-            assertMethod.setAccessible(true);
-
+    public void testAssertSafeJaasLoginConfigPropertyAllowsNullProperty() throws Exception {
+        withJaasConfigProperty(null, assertMethod -> {
             // Null property => should pass
             assertMethod.invoke(null);
-        } finally {
-            if (original != null) {
-                System.setProperty("java.security.auth.login.config", original);
-            }
-        }
+        });
     }
 
     /**
      * Test that assertSafeJaasLoginConfigProperty blocks remote URLs (http, https, ldap).
      */
     @Test
-    public void testAssertSafeJaasLoginConfigProperty_rejectsRemoteUrls() throws Exception {
-        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
-        java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
-        assertMethod.setAccessible(true);
+    public void testAssertSafeJaasLoginConfigPropertyRejectsRemoteUrls() throws Exception {
 
         String[] remoteUrls = {
                 "http://remote.example.com/jaas.conf",
@@ -172,10 +157,8 @@ public class KerberosTest extends AbstractTest {
                 "ftp://remote.example.com/jaas.conf"
         };
 
-        String original = System.getProperty("java.security.auth.login.config");
-        try {
-            for (String url : remoteUrls) {
-                System.setProperty("java.security.auth.login.config", url);
+        for (String url : remoteUrls) {
+            withJaasConfigProperty(url, assertMethod -> {
                 try {
                     assertMethod.invoke(null);
                     Assertions.fail("Should have thrown for remote URL: " + url);
@@ -183,13 +166,7 @@ public class KerberosTest extends AbstractTest {
                     Assertions.assertTrue(e.getCause() instanceof SQLServerException,
                             "Should throw SQLServerException for: " + url);
                 }
-            }
-        } finally {
-            if (original != null) {
-                System.setProperty("java.security.auth.login.config", original);
-            } else {
-                System.clearProperty("java.security.auth.login.config");
-            }
+            });
         }
     }
 
@@ -197,10 +174,7 @@ public class KerberosTest extends AbstractTest {
      * Test that assertSafeJaasLoginConfigProperty allows local file paths and file: URIs.
      */
     @Test
-    public void testAssertSafeJaasLoginConfigProperty_allowsLocalPaths() throws Exception {
-        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
-        java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
-        assertMethod.setAccessible(true);
+    public void testAssertSafeJaasLoginConfigPropertyAllowsLocalPaths() throws Exception {
 
         String[] localPaths = {
                 "/etc/jaas.conf",
@@ -211,23 +185,15 @@ public class KerberosTest extends AbstractTest {
                 "file:///C:/Users/me/jaas.conf"
         };
 
-        String original = System.getProperty("java.security.auth.login.config");
-        try {
-            for (String path : localPaths) {
-                System.setProperty("java.security.auth.login.config", path);
+        for (String path : localPaths) {
+            withJaasConfigProperty(path, assertMethod -> {
                 try {
                     assertMethod.invoke(null);
                     // Good - local path accepted
                 } catch (java.lang.reflect.InvocationTargetException e) {
                     Assertions.fail("Should NOT have thrown for local path: " + path + " - " + e.getCause());
                 }
-            }
-        } finally {
-            if (original != null) {
-                System.setProperty("java.security.auth.login.config", original);
-            } else {
-                System.clearProperty("java.security.auth.login.config");
-            }
+            });
         }
     }
 
@@ -244,10 +210,7 @@ public class KerberosTest extends AbstractTest {
      * step, before any network or JNDI activity occurs.
      */
     @Test
-    public void testMSRC117029_pocPayloadsBlocked() throws Exception {
-        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
-        java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
-        assertMethod.setAccessible(true);
+    public void testMsrc117029PocPayloadsBlocked() throws Exception {
 
         // Exact payloads from the MSRC-117029 PoC reproduction scripts
         String[] pocPayloads = {
@@ -258,10 +221,8 @@ public class KerberosTest extends AbstractTest {
                 "rmi://remote.example.com/Exploit"
         };
 
-        String original = System.getProperty("java.security.auth.login.config");
-        try {
-            for (String payload : pocPayloads) {
-                System.setProperty("java.security.auth.login.config", payload);
+        for (String payload : pocPayloads) {
+            withJaasConfigProperty(payload, assertMethod -> {
                 try {
                     assertMethod.invoke(null);
                     Assertions.fail("MSRC-117029 PoC NOT blocked for payload: " + payload);
@@ -272,13 +233,7 @@ public class KerberosTest extends AbstractTest {
                             e.getCause().getMessage().contains("must be a local file path"),
                             "Error message should indicate local file requirement for: " + payload);
                 }
-            }
-        } finally {
-            if (original != null) {
-                System.setProperty("java.security.auth.login.config", original);
-            } else {
-                System.clearProperty("java.security.auth.login.config");
-            }
+            });
         }
     }
 
@@ -290,10 +245,7 @@ public class KerberosTest extends AbstractTest {
      * would fail URI parsing but could still be fetched by URL.
      */
     @Test
-    public void testAssertSafeJaasLoginConfigProperty_rejectsMalformedRemoteUrls() throws Exception {
-        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
-        java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
-        assertMethod.setAccessible(true);
+    public void testAssertSafeJaasLoginConfigPropertyRejectsMalformedRemoteUrls() throws Exception {
 
         // These are invalid URIs (would throw URISyntaxException) but start with remote schemes
         String[] malformedRemote = {"http://remote.example.com/path with spaces/evil.jaas",
@@ -301,10 +253,8 @@ public class KerberosTest extends AbstractTest {
                 "rmi://remote.example.com/ex[ploit", "ftp://remote.example.com/file name.conf",
                 "ldaps://remote.example.com/cn={bad}"};
 
-        String original = System.getProperty("java.security.auth.login.config");
-        try {
-            for (String payload : malformedRemote) {
-                System.setProperty("java.security.auth.login.config", payload);
+        for (String payload : malformedRemote) {
+            withJaasConfigProperty(payload, assertMethod -> {
                 try {
                     assertMethod.invoke(null);
                     Assertions.fail("Should have blocked malformed remote URL: " + payload);
@@ -312,13 +262,7 @@ public class KerberosTest extends AbstractTest {
                     Assertions.assertTrue(e.getCause() instanceof SQLServerException,
                             "Should throw SQLServerException for malformed remote URL: " + payload);
                 }
-            }
-        } finally {
-            if (original != null) {
-                System.setProperty("java.security.auth.login.config", original);
-            } else {
-                System.clearProperty("java.security.auth.login.config");
-            }
+            });
         }
     }
 
@@ -329,9 +273,6 @@ public class KerberosTest extends AbstractTest {
      */
     @Test
     public void testAssertSafeJaasLoginConfigPropertyAllowsMountedAndPositiveFilePaths() throws Exception {
-        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
-        java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
-        assertMethod.setAccessible(true);
 
         String[] validPaths = {
                 // Mounted drive paths
@@ -345,16 +286,38 @@ public class KerberosTest extends AbstractTest {
                 "=C:\\config\\jaas.conf"
         };
 
-        String original = System.getProperty("java.security.auth.login.config");
-        try {
-            for (String path : validPaths) {
-                System.setProperty("java.security.auth.login.config", path);
+        for (String path : validPaths) {
+            withJaasConfigProperty(path, assertMethod -> {
                 try {
                     assertMethod.invoke(null);
                 } catch (java.lang.reflect.InvocationTargetException e) {
                     Assertions.fail("Should NOT have thrown for valid path: " + path + " - " + e.getCause());
                 }
+            });
+        }
+    }
+
+    /**
+     * Helper method to safely set and restore the java.security.auth.login.config property.
+     * This reduces code duplication across multiple tests.
+     *
+     * @param propertyValue The value to set for java.security.auth.login.config (null to clear)
+     * @param testBlock     The test logic to execute with the property set
+     */
+    private static void withJaasConfigProperty(String propertyValue,
+            PropertyTestBlock testBlock) throws Exception {
+        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
+        java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
+        assertMethod.setAccessible(true);
+
+        String original = System.getProperty("java.security.auth.login.config");
+        try {
+            if (propertyValue == null) {
+                System.clearProperty("java.security.auth.login.config");
+            } else {
+                System.setProperty("java.security.auth.login.config", propertyValue);
             }
+            testBlock.execute(assertMethod);
         } finally {
             if (original != null) {
                 System.setProperty("java.security.auth.login.config", original);
@@ -362,6 +325,11 @@ public class KerberosTest extends AbstractTest {
                 System.clearProperty("java.security.auth.login.config");
             }
         }
+    }
+
+    @FunctionalInterface
+    private interface PropertyTestBlock {
+        void execute(java.lang.reflect.Method assertMethod) throws Exception;
     }
 
     /**

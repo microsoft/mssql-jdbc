@@ -203,7 +203,8 @@ final class KerbAuthentication extends SSPIAuthentication {
             // SecurityManager denies reading the property; the JVM will still resolve it for JAAS,
             // but we cannot vet it here. Fail closed.
             throw new SQLServerException(
-                    SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null, 0, se);
+                       SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null,
+                       SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, se);
         }
         if (null == value || value.isEmpty()) {
             return;
@@ -221,6 +222,7 @@ final class KerbAuthentication extends SSPIAuthentication {
         // If the value parses as a URI with a scheme of more than one character, the only
         // scheme we accept is file:. Single-letter schemes (e.g. URI parses "C:/foo" with
         // scheme "C") are Windows drive letters and fall through to the Path check below.
+        String detectedRemoteScheme = null;
         try {
             java.net.URI uri = new java.net.URI(value);
             String scheme = uri.getScheme();
@@ -233,7 +235,21 @@ final class KerbAuthentication extends SSPIAuthentication {
                 return;
             }
         } catch (java.net.URISyntaxException e) {
-            // Not a URI (e.g. "C:\foo\jaas.conf" with backslashes). Fall through to Path check.
+            // URI parsing failed. As defense-in-depth, check if the value starts with a known
+            // remote scheme prefix. This catches malformed URLs (e.g., with spaces) that bypass
+            // URI parsing but could still be fetched by java.net.URL (which JAAS ConfigFile uses).
+            String[] remoteSchemes = {"http://", "https://", "ldap://", "ldaps://", "ftp://", "ftps://",
+                    "jar:", "rmi://", "nis://"};
+            for (String scheme : remoteSchemes) {
+                if (value.toLowerCase().startsWith(scheme)) {
+                    detectedRemoteScheme = scheme;
+                    break;
+                }
+            }
+            if (null != detectedRemoteScheme) {
+                failUnsafeJaasLoginConfig(detectedRemoteScheme);
+            }
+            // Otherwise, not a URI (e.g. "C:\foo\jaas.conf" with backslashes). Fall through to Path check.
         } catch (IllegalArgumentException e) {
             // file: URI that Paths.get cannot resolve (e.g. opaque or unsupported authority).
             // Also covers InvalidPathException which is a subclass of IllegalArgumentException.
@@ -255,7 +271,8 @@ final class KerbAuthentication extends SSPIAuthentication {
                             + "path or file: URI. Rejected: '" + detail + "'.");
         }
         throw new SQLServerException(
-                SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null, 0, null);
+                SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null,
+                SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, null);
     }
 
     // We have to do a privileged action to create the credential of the user in the current context
