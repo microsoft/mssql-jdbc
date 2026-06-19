@@ -6,9 +6,12 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,6 +45,34 @@ final class OtelBootstrap {
 
     private static final AtomicBoolean initialized = new AtomicBoolean(false);
 
+    /**
+     * Holds the most-recent SQL AAD access token pre-formatted as {@code "Bearer <token>"}.
+     * Updated on every fedAuth token acquisition (initial connect and pool-triggered reconnect)
+     * so that the OTLP exporter's per-request header supplier always sees a fresh value without
+     * rebuilding the exporter pipeline.
+     */
+    private static final AtomicReference<String> sqlBearerToken = new AtomicReference<>("");
+
+    /**
+     * Records the latest SQL AAD access token so the OTLP Authorization header stays current
+     * across token renewals. Must be called before {@link #ensureInitialized} on every
+     * {@code onFedAuthInfo} invocation — both first connect and pool-triggered reconnect.
+     */
+    static void updateSqlToken(SqlAuthenticationToken token) {
+        if (token == null) {
+            return;
+        }
+        String raw = token.getAccessToken();
+        if (raw != null && !raw.isEmpty()) {
+            String bearer = raw.regionMatches(true, 0, "Bearer ", 0, "Bearer ".length())
+                    ? raw : "Bearer " + raw;
+            sqlBearerToken.set(bearer);
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine("OTel SQL bearer token updated (expires=" + token.getExpiresOn() + ")");
+            }
+        }
+    }
+
     private OtelBootstrap() {}
 
     /**
@@ -71,16 +102,17 @@ final class OtelBootstrap {
         boolean useSqlAccessToken = boolProp(props,
                 SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.toString(),
                 SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.getDefaultValue());
-        String sqlAccessToken = sqlAuthToken == null ? "" : trim(sqlAuthToken.getAccessToken());
         String explicitBearerToken = trim(props.getProperty(SQLServerDriverStringProperty.OTEL_BEARER_TOKEN.toString()));
-        if (useSqlAccessToken && sqlAccessToken.isEmpty() && explicitBearerToken.isEmpty()) {
+        // Guard: if SQL-token mode is on but no token is available yet (updateSqlToken not called)
+        // and no explicit bearer is set either, defer until a token exists.
+        if (useSqlAccessToken && sqlBearerToken.get().isEmpty() && explicitBearerToken.isEmpty()) {
             return;
         }
         if (!initialized.compareAndSet(false, true)) {
             return;
         }
         try {
-            OpenTelemetry otel = buildOrReuseGlobal(props, endpoint, sqlAuthToken);
+            OpenTelemetry otel = buildOrReuseGlobal(props, endpoint);
             PerformanceLog.registerCallback(new OpenTelemetryPerformanceCallback(otel));
             if (logger.isLoggable(Level.INFO)) {
                 logger.info("OpenTelemetry performance export enabled - metrics + traces (endpoint=" + endpoint + ")");
@@ -101,7 +133,7 @@ final class OtelBootstrap {
         }
     }
 
-    private static OpenTelemetry buildOrReuseGlobal(Properties props, String endpoint, SqlAuthenticationToken sqlAuthToken) {
+    private static OpenTelemetry buildOrReuseGlobal(Properties props, String endpoint) {
         OpenTelemetry existing = GlobalOpenTelemetry.get();
         if (existing != OpenTelemetry.noop()) {
             if (logger.isLoggable(Level.FINE)) {
@@ -118,10 +150,30 @@ final class OtelBootstrap {
                 SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.toString(),
                 SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.getDefaultValue());
 
+        boolean useSqlToken = boolProp(props,
+                SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.toString(),
+                SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.getDefaultValue());
+
         OtlpHttpMetricExporterBuilder exporterBuilder = OtlpHttpMetricExporter.builder()
                 .setEndpoint(endpoint);
-        for (String[] kv : otlpHeaders(props, sqlAuthToken)) {
-            exporterBuilder.addHeader(kv[0], kv[1]);
+        if (useSqlToken) {
+            // Static custom headers (otelHeaders connection property) — baked once at pipeline init.
+            for (String[] kv : parseHeaders(props.getProperty(SQLServerDriverStringProperty.OTEL_HEADERS.toString()))) {
+                exporterBuilder.addHeader(kv[0], kv[1]);
+            }
+            // Dynamic Authorization header — this Supplier is called on every OTLP HTTP request,
+            // so token renewals (pool reconnects, mid-session refreshes) are automatically picked
+            // up without rebuilding the exporter pipeline. Mirrors the C# AuthorizationHeaderHandler
+            // pattern from authenticated-otel-logger.
+            exporterBuilder.setHeaders(() -> {
+                String bearer = sqlBearerToken.get();
+                return bearer.isEmpty() ? Collections.emptyMap()
+                        : Collections.singletonMap("Authorization", bearer);
+            });
+        } else {
+            for (String[] kv : otlpHeaders(props, null)) {
+                exporterBuilder.addHeader(kv[0], kv[1]);
+            }
         }
 
         Resource resource = Resource.getDefault().merge(
@@ -142,8 +194,19 @@ final class OtelBootstrap {
                 : endpoint;
         OtlpHttpSpanExporterBuilder spanExporterBuilder = OtlpHttpSpanExporter.builder()
                 .setEndpoint(traceEndpoint);
-        for (String[] kv : otlpHeaders(props, sqlAuthToken)) {
-            spanExporterBuilder.addHeader(kv[0], kv[1]);
+        if (useSqlToken) {
+            for (String[] kv : parseHeaders(props.getProperty(SQLServerDriverStringProperty.OTEL_HEADERS.toString()))) {
+                spanExporterBuilder.addHeader(kv[0], kv[1]);
+            }
+            spanExporterBuilder.setHeaders(() -> {
+                String bearer = sqlBearerToken.get();
+                return bearer.isEmpty() ? Collections.emptyMap()
+                        : Collections.singletonMap("Authorization", bearer);
+            });
+        } else {
+            for (String[] kv : otlpHeaders(props, null)) {
+                spanExporterBuilder.addHeader(kv[0], kv[1]);
+            }
         }
 
         SdkTracerProvider tracerProvider = SdkTracerProvider.builder()
