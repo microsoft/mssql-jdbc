@@ -64,6 +64,8 @@ public final class OtelPocLoadGen {
         String otelEndpoint = System.getProperty("otelEndpoint", "http://localhost:4318/v1/metrics");
         int intervalSec = Integer.parseInt(System.getProperty("otelExportInterval", "5"));
         int sleepMs = Integer.parseInt(System.getProperty("loadgen.sleepMs", "200"));
+        String otelUseSqlAccessToken = System.getProperty("otelUseSqlAccessToken", "");
+        String otelAccessTokenCallbackClass = System.getProperty("otelAccessTokenCallbackClass", "");
 
         // Per-connection prefix; prepareMethod is appended below so we can
         // rotate it across iterations and exercise every code path.
@@ -75,7 +77,10 @@ public final class OtelPocLoadGen {
                 + "trustServerCertificate=true;"
                 + "statementPoolingCacheSize=20;"
                 + "disableStatementPooling=false;"
-                + "enablePrepareOnFirstPreparedStatementCall=true;";
+                + "enablePrepareOnFirstPreparedStatementCall=true;"
+                + (otelUseSqlAccessToken.isEmpty() ? "" : "otelUseSqlAccessToken=" + otelUseSqlAccessToken + ";")
+                + (otelAccessTokenCallbackClass.isEmpty() ? ""
+                        : "otelAccessTokenCallbackClass=" + otelAccessTokenCallbackClass + ";");
 
         // Rotate the four prepareMethod values so we light up every histogram:
         //   prepare                       -> sp_prepare  (STATEMENT_PREPARE)

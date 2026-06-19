@@ -25,6 +25,7 @@ x-otel-app: &otel-app
   working_dir: /work
   volumes:
     - ../..:/work
+    - "${AZURE_HOST_PATH:-${HOME}/.azure}:/root/.azure"
   environment:
     # Base JDBC URL consumed by OtelPocLoadGen (env) and OtelPocSmokeTest
     # (AbstractTest). dev.sh / the load generator append the otel* properties.
@@ -159,6 +160,9 @@ services:
       - -Dexec.args=forever
       - -DotelEndpoint=http://otelcol-arcdata:4318/v1/metrics
       - -DotelExportInterval=5
+      # OTLP bearer JWT from the Azure CLI credential, independent of the SQL login.
+      - -DotelUseSqlAccessToken=false
+      - -DotelAccessTokenCallbackClass=com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback
 
 volumes:
   mssql-data:

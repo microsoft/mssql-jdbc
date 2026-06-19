@@ -37,4 +37,15 @@ RUN mvn -B -Pjre11 -DskipTests test-compile \
  && mvn -B -q -N "org.codehaus.mojo:exec-maven-plugin:${EXEC_PLUGIN_VERSION}:help" \
  && rm -rf /work/target
 
+# Azure CLI for the AzureCliCredential-backed OTLP token callback
+# (otelAccessTokenCallbackClass). Added last so it never busts the warm m2 cache layer.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates gnupg lsb-release \
+ && install -m 0755 -d /etc/apt/keyrings \
+ && curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg \
+ && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/azure-cli.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends azure-cli \
+ && rm -rf /var/lib/apt/lists/*
+
 CMD ["mvn", "-version"]

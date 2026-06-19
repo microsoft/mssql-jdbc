@@ -51,22 +51,22 @@ up, proves it green, and leaves a load generator running. It ends with a
 
 ## GREEN (asserted automatically; local only — Azure is best-effort, never inspected)
 
-| # | Gate | Check |
-|---|------|-------|
-| 1 | Smoke test | `OtelPocSmokeTest` passes against SQL Server. |
-| 2 | Telemetry reaches collector | arcdata `debug` exporter logs driver **metrics** + **traces**. |
-| 3 | Aspire receiving | Dashboard answers on `:18888`; `otlp/aspire` export not failing. |
-| 4 | Health | sqlserver + token-server healthy; arcdata, delta-bulk-loader, aspire running. |
+| #   | Gate                        | Check                                                                         |
+| --- | --------------------------- | ----------------------------------------------------------------------------- |
+| 1   | Smoke test                  | `OtelPocSmokeTest` passes against SQL Server.                                 |
+| 2   | Telemetry reaches collector | arcdata `debug` exporter logs driver **metrics** + **traces**.                |
+| 3   | Aspire receiving            | Dashboard answers on `:18888`; `otlp/aspire` export not failing.              |
+| 4   | Health                      | sqlserver + token-server healthy; arcdata, delta-bulk-loader, aspire running. |
 
 ## Overrides (env)
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `MSSQL_SA_PASSWORD` | `Otel_Poc_Str0ng!Pass` | SA password. |
-| `BURST_SECONDS` | `60` | Green-gate load-burst length. |
-| `OTELCOL_ARCDATA_IMAGE` / `DELTA_BULK_LOADER_IMAGE` | pinned | Override the private images. |
-| `STORAGE_ACCOUNT` / `STORAGE_CONTAINER` / `ROOT_PATH` | `mdrrahmansandbox` / `onelake` / `arcdata-otel-poc` | Delta Lake target. |
-| `EVENT_HUB_NAMESPACE` / `EVENT_HUB_NAME` / `AZURE_TENANT_ID` | sandbox defaults | Event Hub + tenant. |
+| Variable                                                     | Default                                             | Purpose                       |
+| ------------------------------------------------------------ | --------------------------------------------------- | ----------------------------- |
+| `MSSQL_SA_PASSWORD`                                          | `Otel_Poc_Str0ng!Pass`                              | SA password.                  |
+| `BURST_SECONDS`                                              | `60`                                                | Green-gate load-burst length. |
+| `OTELCOL_ARCDATA_IMAGE` / `DELTA_BULK_LOADER_IMAGE`          | pinned                                              | Override the private images.  |
+| `STORAGE_ACCOUNT` / `STORAGE_CONTAINER` / `ROOT_PATH`        | `mdrrahmansandbox` / `onelake` / `arcdata-otel-poc` | Delta Lake target.            |
+| `EVENT_HUB_NAMESPACE` / `EVENT_HUB_NAME` / `AZURE_TENANT_ID` | sandbox defaults                                    | Event Hub + tenant.           |
 
 ## Layout
 
@@ -80,15 +80,30 @@ up, proves it green, and leaves a load generator running. It ends with a
 
 Attach an `Authorization` header to OTLP/HTTP exports via connection-string properties:
 
-| Property | Default | Effect |
-|----------|---------|--------|
-| `otelUseSqlAccessToken` | `false` | Reuse the SQL AAD access token as OTLP `Authorization: Bearer …`. |
-| `otelBearerToken` | — | Explicit bearer token sent as `Authorization: Bearer …`. |
-| `otelHeaders` | — | Comma-separated `key=value` headers (e.g. vendor API keys). |
+| Property                       | Default | Effect                                                                                                                                     |
+| ------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `otelUseSqlAccessToken`        | `false` | Reuse the SQL AAD access token as OTLP `Authorization: Bearer …`.                                                                          |
+| `otelAccessTokenCallbackClass` | —       | FQCN of a `SQLServerAccessTokenCallback`; the driver calls it once at init to mint the OTLP bearer JWT — **independent of the SQL login**. |
+| `otelBearerToken`              | —       | Explicit static bearer token sent as `Authorization: Bearer …`.                                                                            |
+| `otelHeaders`                  | —       | Comma-separated `key=value` headers (e.g. vendor API keys).                                                                                |
 
-Precedence: `otelUseSqlAccessToken` (when a SQL AAD token was acquired) → `otelBearerToken`
-→ none, plus anything in `otelHeaders`. SQL-token reuse applies only to Azure AD auth flows;
-if the token isn't available yet, OTel bootstrap initializes later, after acquisition.
+Precedence: `otelUseSqlAccessToken` (when a SQL AAD token was acquired) → `otelAccessTokenCallbackClass`
+→ `otelBearerToken` → none, plus anything in `otelHeaders`. The callback token is minted **once at
+OTel init** (no per-request refresh). A callback failure is non-fatal — export continues without the bearer.
+
+The POC ships a demo callback,
+`com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback`, that mints the JWT with
+`AzureCliCredential` (the `az` CLI + mounted `~/.azure`). The `loadgen` service uses it
+(`otelUseSqlAccessToken=false` + `otelAccessTokenCallbackClass=…AzureCliAccessTokenCallback`), so SQL
+stays on SA auth while OTLP export carries a real AAD JWT. Prove it in isolation:
+
+```bash
+docker compose run --rm --no-deps app mvn -B -Pjre11 -DskipTests test-compile \
+  org.codehaus.mojo:exec-maven-plugin:3.1.0:java -Dexec.classpathScope=test \
+  -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelTokenHeaderCheck
+```
+
+(Override the requested scope with `-DotelAccessTokenScope=…`; default `https://database.windows.net/.default`.)
 
 ## Notes
 

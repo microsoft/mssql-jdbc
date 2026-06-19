@@ -118,9 +118,13 @@ final class OtelBootstrap {
                 SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.toString(),
                 SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.getDefaultValue());
 
+        // Resolve OTLP headers (incl. any Authorization bearer) once so a token callback is
+        // invoked a single time and the same headers apply to both the metric and span exporters.
+        String[][] resolvedHeaders = otlpHeaders(props, sqlAuthToken);
+
         OtlpHttpMetricExporterBuilder exporterBuilder = OtlpHttpMetricExporter.builder()
                 .setEndpoint(endpoint);
-        for (String[] kv : otlpHeaders(props, sqlAuthToken)) {
+        for (String[] kv : resolvedHeaders) {
             exporterBuilder.addHeader(kv[0], kv[1]);
         }
 
@@ -142,7 +146,7 @@ final class OtelBootstrap {
                 : endpoint;
         OtlpHttpSpanExporterBuilder spanExporterBuilder = OtlpHttpSpanExporter.builder()
                 .setEndpoint(traceEndpoint);
-        for (String[] kv : otlpHeaders(props, sqlAuthToken)) {
+        for (String[] kv : resolvedHeaders) {
             spanExporterBuilder.addHeader(kv[0], kv[1]);
         }
 
@@ -173,8 +177,14 @@ final class OtelBootstrap {
                 SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.toString(),
                 SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.getDefaultValue());
         String sqlAccessToken = sqlAuthToken == null ? "" : trim(sqlAuthToken.getAccessToken());
-        String bearerToken = useSqlAccessToken && !sqlAccessToken.isEmpty() ? sqlAccessToken
-                : trim(props.getProperty(SQLServerDriverStringProperty.OTEL_BEARER_TOKEN.toString()));
+        String bearerToken;
+        if (useSqlAccessToken && !sqlAccessToken.isEmpty()) {
+            bearerToken = sqlAccessToken;
+        } else {
+            String callbackToken = resolveCallbackToken(props);
+            bearerToken = !callbackToken.isEmpty() ? callbackToken
+                    : trim(props.getProperty(SQLServerDriverStringProperty.OTEL_BEARER_TOKEN.toString()));
+        }
         if (!bearerToken.isEmpty()) {
             headers.put("Authorization", bearerToken.regionMatches(true, 0, "Bearer ", 0, "Bearer ".length())
                     ? bearerToken
@@ -241,5 +251,41 @@ final class OtelBootstrap {
             return defaultValue;
         }
         return Boolean.parseBoolean(raw.trim());
+    }
+
+    /**
+     * Resolves the OTLP bearer token from {@code otelAccessTokenCallbackClass}, when set. The named
+     * class must implement {@link SQLServerAccessTokenCallback} and expose a public no-argument
+     * constructor; the driver instantiates it once at OpenTelemetry initialization and uses the
+     * returned access token as the {@code Authorization: Bearer} header. The {@code otelEndpoint}
+     * value is passed as the callback's {@code spn} so an implementation can derive a scope from it.
+     * Any failure is logged and treated as "no token" so OpenTelemetry export still proceeds.
+     *
+     * @param props connection properties
+     * @return the access token string, or an empty string when the property is unset or resolution fails
+     */
+    private static String resolveCallbackToken(Properties props) {
+        String className = trim(
+                props.getProperty(SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.toString()));
+        if (className.isEmpty()) {
+            return "";
+        }
+        try {
+            String spn = trim(props.getProperty(SQLServerDriverStringProperty.OTEL_ENDPOINT.toString()));
+            Object[] msgArgs = {SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                    "com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback"};
+            SQLServerAccessTokenCallback callback = Util.newInstance(SQLServerAccessTokenCallback.class, className,
+                    null, msgArgs);
+            SqlAuthenticationToken token = callback.getAccessToken(spn, "");
+            String accessToken = token == null ? "" : trim(token.getAccessToken());
+            if (accessToken.isEmpty()) {
+                logger.log(Level.WARNING, "otelAccessTokenCallbackClass {0} returned no access token.", className);
+            }
+            return accessToken;
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to obtain an OTLP bearer token from otelAccessTokenCallbackClass "
+                    + className + "; continuing without it.", e);
+            return "";
+        }
     }
 }
