@@ -116,3 +116,15 @@ docker compose run --rm --no-deps app mvn -B -Pjre11 -DskipTests test-compile \
 - The driver activates OTel via the `otelEndpoint` connection property; the load
   generator sets `otelEndpoint` / `otelServiceName` / `otelExportInterval` for you.
 - `target/` is written root-owned inside the container; `clean` removes it.
+
+## UI
+
+Aspire is up by default at:  `http://localhost:18888/structuredlogs`
+
+Portainer is up by default at:  `https://localhost:9443` — full Docker UI (logs, stats, shells). Pre-seeded admin login: `admin` / the POC SA password (`Otel_Poc_Str0ng!Pass`); self-signed TLS, so accept the browser warning.
+
+To get [Lazydocker](https://github.com/jesseduffield/lazydocker):
+
+```bash
+curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
+```

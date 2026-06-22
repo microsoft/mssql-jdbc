@@ -37,13 +37,14 @@ BURST_SECONDS="${BURST_SECONDS:-60}"             # timed burst length for the gr
 OTEL_ENDPOINT="http://otelcol-arcdata:4318/v1/metrics"
 LOADGEN_SERVICE="mssql-jdbc-poc-loadgen"         # otelServiceName the load generator uses
 ASPIRE_URL="${ASPIRE_URL:-http://localhost:18888}"   # Aspire Dashboard UI (published to the host)
+PORTAINER_URL="${PORTAINER_URL:-https://localhost:9443}" # Portainer Docker UI (published to the host)
 ACR_REGISTRY="${ACR_REGISTRY:-arcdataanalyticsacr}"  # ACR that hosts the private images
 SQL_HEALTH_TIMEOUT="${SQL_HEALTH_TIMEOUT:-240}"  # seconds to wait for SQL Server
 ASSERT_RETRIES="${ASSERT_RETRIES:-30}"           # metric/trace assertion attempts
 ASSERT_INTERVAL="${ASSERT_INTERVAL:-5}"          # seconds between assertion attempts
 
 # Image-based services (the rest are built locally).
-IMAGE_SERVICES=(sqlserver otelcol-arcdata delta-bulk-loader aspire-dashboard)
+IMAGE_SERVICES=(sqlserver otelcol-arcdata delta-bulk-loader aspire-dashboard portainer)
 
 C_BLUE="\033[1;34m"; C_GREEN="\033[1;32m"; C_RED="\033[1;31m"; C_YEL="\033[1;33m"; C_OFF="\033[0m"
 log()  { printf "${C_BLUE}==>${C_OFF} %s\n" "$*"; }
@@ -62,6 +63,20 @@ print_aspire_url() {
   case "$code" in
     200|301|302) printf "${C_GREEN}>>> Aspire Dashboard:${C_OFF} ${C_BLUE}%s${C_OFF} ${C_GREEN}[reachable on host: http %s]${C_OFF}\n" "$ASPIRE_URL" "$code" ;;
     *)           printf "${C_GREEN}>>> Aspire Dashboard:${C_OFF} ${C_BLUE}%s${C_OFF} ${C_YEL}[port published; open it in your browser]${C_OFF}\n" "$ASPIRE_URL" ;;
+  esac
+}
+
+# Print the Portainer UI URL prominently and report whether it answers on the host.
+# Portainer serves HTTPS on 9443 with a self-signed cert (curl -k) and prompts for a
+# one-time admin account on first visit. In a remote dev container, forward port 9443.
+print_portainer_url() {
+  local code="n/a"
+  if command -v curl >/dev/null 2>&1; then
+    code="$(curl -sk -o /dev/null -w '%{http_code}' "$PORTAINER_URL" 2>/dev/null || echo 000)"
+  fi
+  case "$code" in
+    200|301|302|307|308) printf "${C_GREEN}>>> Portainer:${C_OFF} ${C_BLUE}%s${C_OFF} ${C_GREEN}[reachable on host: http %s — self-signed TLS; log in with admin / the SA password]${C_OFF}\n" "$PORTAINER_URL" "$code" ;;
+    *)                   printf "${C_GREEN}>>> Portainer:${C_OFF} ${C_BLUE}%s${C_OFF} ${C_YEL}[port published; open it in your browser (self-signed TLS)]${C_OFF}\n" "$PORTAINER_URL" ;;
   esac
 }
 
@@ -218,7 +233,7 @@ health_summary() {
   local name cname st
   for pair in "sqlserver:mssql-jdbc-sqlserver" "token-server:mssql-jdbc-token-server" \
               "otelcol-arcdata:mssql-jdbc-otelcol-arcdata" "delta-bulk-loader:mssql-jdbc-delta-bulk-loader" \
-              "aspire-dashboard:mssql-jdbc-aspire-dashboard"; do
+              "aspire-dashboard:mssql-jdbc-aspire-dashboard" "portainer:mssql-jdbc-portainer"; do
     name="${pair%%:*}"; cname="${pair##*:}"
     st="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{if .State.Running}}running{{else}}{{.State.Status}}{{end}}{{end}}' \
             "$cname" 2>/dev/null || echo missing)"
@@ -254,7 +269,7 @@ cmd_up() {
   ok "images built"
 
   log "Bringing up the internal telemetry + SQL Server stack..."
-  docker compose up -d sqlserver token-server otelcol-arcdata delta-bulk-loader aspire-dashboard
+  docker compose up -d sqlserver token-server otelcol-arcdata delta-bulk-loader aspire-dashboard portainer
 
   wait_sql_healthy
   wait_container_healthy mssql-jdbc-token-server token-server 90
@@ -295,6 +310,7 @@ cmd_up() {
   cat <<EOF
 
   Aspire Dashboard  ${ASPIRE_URL}   (metrics, traces, structured logs)
+  Portainer         ${PORTAINER_URL}   (Docker UI: logs, stats, shells — login admin / SA password `Otel_Poc_Str0ng!Pass`)
   Collector OTLP    localhost:4318 (HTTP) / 4317 (gRPC)
   Azure Delta Lake  best-effort sink via deltalake exporter + delta-bulk-loader
 
@@ -303,6 +319,7 @@ cmd_up() {
 
 EOF
   print_aspire_url
+  print_portainer_url
 }
 
 cmd_down() {
@@ -325,6 +342,7 @@ cmd_status() {
   detect_sql_image
   health_summary
   print_aspire_url
+  print_portainer_url
 }
 
 cmd_logs() { docker compose logs -f "${1:-}"; }

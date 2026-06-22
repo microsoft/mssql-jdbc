@@ -135,6 +135,22 @@ services:
       - "18889:18889" # OTLP ingress (collector -> dashboard)
     restart: unless-stopped
 
+  # Portainer CE — local Docker management UI (browse container logs, stats, shells).
+  # Pre-seeded admin so there is no first-run setup wizard and no "instance timed out
+  # for security" lockout: log in with admin / the password in
+  # internal/portainer/admin-password (the POC SA password by default).
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: mssql-jdbc-portainer
+    command: ["--admin-password-file", "/run/portainer/admin-password"]
+    ports:
+      - "9443:9443" # HTTPS UI (self-signed cert)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+      - ./internal/portainer/admin-password:/run/portainer/admin-password:ro
+    restart: unless-stopped
+
   # Manual one-shot runner. Never auto-starts (tools profile); dev.sh invokes it
   # via `docker compose run --rm app <mvn ...>` for test-compile, the smoke test,
   # the timed burst, and the health/flow probes.
@@ -166,3 +182,4 @@ services:
 
 volumes:
   mssql-data:
+  portainer_data:
