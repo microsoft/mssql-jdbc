@@ -14,6 +14,7 @@ import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
 
@@ -45,6 +46,8 @@ public class SQLServerErrorSerializationTest {
         assertNotNull(sqlServerMessage,
                 "Expected a 'SQLServerMessage' descriptor to exist - the getter is part of the "
                         + "ISQLServerMessage contract and is only expected to be flagged transient, not removed.");
+        // PropertyDescriptor.isTransient() is package-private (not public API); read the
+        // standard "transient" attribute that java.beans.Introspector sets from @Transient.
         assertEquals(Boolean.TRUE, sqlServerMessage.getValue("transient"),
                 "SQLServerError.getSQLServerMessage() must be flagged transient via @java.beans.Transient "
                         + "so bean serializers skip the self-referential property and do not recurse "
@@ -74,7 +77,7 @@ public class SQLServerErrorSerializationTest {
 
         String json = new ObjectMapper().writeValueAsString(err);
 
-        assertFalse(json.toLowerCase().contains("sqlservermessage"),
+        assertFalse(json.toLowerCase(Locale.ROOT).contains("sqlservermessage"),
                 "Jackson output must not contain a 'SQLServerMessage' key for a SQLServerError - "
                         + "its presence means the self-referential getter is being walked; see issue #2968. "
                         + "Got: " + json);
@@ -98,7 +101,7 @@ public class SQLServerErrorSerializationTest {
         // nesting-limit error) and fails the test - which is the regression signal we want.
         String json = mapper.writeValueAsString(err);
 
-        assertFalse(json.toLowerCase().contains("sqlservermessage"),
+        assertFalse(json.toLowerCase(Locale.ROOT).contains("sqlservermessage"),
                 "JSON must not contain a 'SQLServerMessage' key. Got: " + json);
     }
 }
