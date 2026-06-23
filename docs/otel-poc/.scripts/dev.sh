@@ -38,6 +38,7 @@ OTEL_ENDPOINT="http://otelcol-arcdata:4318/v1/metrics"
 LOADGEN_SERVICE="mssql-jdbc-poc-loadgen"         # otelServiceName the load generator uses
 ASPIRE_URL="${ASPIRE_URL:-http://localhost:18888}"   # Aspire Dashboard UI (published to the host)
 PORTAINER_URL="${PORTAINER_URL:-https://localhost:9443}" # Portainer Docker UI (published to the host)
+PORTAINER_ADMIN_PASSWORD="$(cat "$POC_DIR/internal/portainer/admin-password" 2>/dev/null || true)" # Pre-seeded Portainer admin password
 ACR_REGISTRY="${ACR_REGISTRY:-arcdataanalyticsacr}"  # ACR that hosts the private images
 SQL_HEALTH_TIMEOUT="${SQL_HEALTH_TIMEOUT:-240}"  # seconds to wait for SQL Server
 ASSERT_RETRIES="${ASSERT_RETRIES:-30}"           # metric/trace assertion attempts
@@ -310,7 +311,7 @@ cmd_up() {
   cat <<EOF
 
   Aspire Dashboard  ${ASPIRE_URL}   (metrics, traces, structured logs)
-  Portainer         ${PORTAINER_URL}   (Docker UI: logs, stats, shells — login admin / SA password `Otel_Poc_Str0ng!Pass`)
+  Portainer         ${PORTAINER_URL}   (Docker UI: logs, stats, shells — login admin / ${PORTAINER_ADMIN_PASSWORD})
   Collector OTLP    localhost:4318 (HTTP) / 4317 (gRPC)
   Azure Delta Lake  best-effort sink via deltalake exporter + delta-bulk-loader
 
