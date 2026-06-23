@@ -6,7 +6,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -170,22 +169,24 @@ final class OtelBootstrap {
         String[][] customHeaders = parseHeaders(
                 props.getProperty(SQLServerDriverStringProperty.OTEL_HEADERS.toString()));
 
-        // Dynamic Authorization header resolved on every OTLP HTTP request via this Supplier, so token
-        // renewals - SQL fedAuth pool reconnects, or otelAccessTokenCallbackClass re-mints near expiry -
-        // are picked up without rebuilding the exporter pipeline. Static custom headers (otelHeaders) are
-        // baked once below. Mirrors the C# AuthorizationHeaderHandler pattern from authenticated-otel-logger.
-        Supplier<Map<String, String>> authHeaderSupplier = () -> {
+        // The OTLP/HTTP exporter's setHeaders(Supplier) REPLACES static addHeader values, so the
+        // supplier must return BOTH the static custom headers (otelHeaders, e.g. x-ms-telemetry-kind)
+        // and the dynamic Authorization bearer; otherwise the custom headers are silently dropped.
+        Supplier<Map<String, String>> headerSupplier = () -> {
+            Map<String, String> headers = new LinkedHashMap<>();
+            for (String[] kv : customHeaders) {
+                headers.put(kv[0], kv[1]);
+            }
             String bearer = currentBearer(props);
-            return bearer.isEmpty() ? Collections.emptyMap()
-                    : Collections.singletonMap("Authorization", bearer);
+            if (!bearer.isEmpty()) {
+                headers.put("Authorization", bearer);
+            }
+            return headers;
         };
 
         OtlpHttpMetricExporterBuilder exporterBuilder = OtlpHttpMetricExporter.builder()
                 .setEndpoint(endpoint);
-        for (String[] kv : customHeaders) {
-            exporterBuilder.addHeader(kv[0], kv[1]);
-        }
-        exporterBuilder.setHeaders(authHeaderSupplier);
+        exporterBuilder.setHeaders(headerSupplier);
 
         Resource resource = Resource.getDefault().merge(
                 Resource.create(Attributes.of(AttributeKey.stringKey("service.name"), serviceName)));
@@ -205,10 +206,7 @@ final class OtelBootstrap {
                 : endpoint;
         OtlpHttpSpanExporterBuilder spanExporterBuilder = OtlpHttpSpanExporter.builder()
                 .setEndpoint(traceEndpoint);
-        for (String[] kv : customHeaders) {
-            spanExporterBuilder.addHeader(kv[0], kv[1]);
-        }
-        spanExporterBuilder.setHeaders(authHeaderSupplier);
+        spanExporterBuilder.setHeaders(headerSupplier);
 
         SdkTracerProvider tracerProvider = SdkTracerProvider.builder()
                 .setResource(resource)

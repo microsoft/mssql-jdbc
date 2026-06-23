@@ -40,12 +40,13 @@ ASPIRE_URL="${ASPIRE_URL:-http://localhost:18888}"   # Aspire Dashboard UI (publ
 PORTAINER_URL="${PORTAINER_URL:-https://localhost:9443}" # Portainer Docker UI (published to the host)
 PORTAINER_ADMIN_PASSWORD="$(cat "$POC_DIR/internal/portainer/admin-password" 2>/dev/null || true)" # Pre-seeded Portainer admin password
 ACR_REGISTRY="${ACR_REGISTRY:-arcdataanalyticsacr}"  # ACR that hosts the private images
+MISE_ACR_REGISTRY="${MISE_ACR_REGISTRY:-azurehybriddatadogfood}"  # ACR that hosts the MISE buddy image
 SQL_HEALTH_TIMEOUT="${SQL_HEALTH_TIMEOUT:-240}"  # seconds to wait for SQL Server
 ASSERT_RETRIES="${ASSERT_RETRIES:-30}"           # metric/trace assertion attempts
 ASSERT_INTERVAL="${ASSERT_INTERVAL:-5}"          # seconds between assertion attempts
 
 # Image-based services (the rest are built locally).
-IMAGE_SERVICES=(sqlserver otelcol-arcdata delta-bulk-loader aspire-dashboard portainer)
+IMAGE_SERVICES=(sqlserver otelcol-arcdata delta-bulk-loader aspire-dashboard portainer mise)
 
 C_BLUE="\033[1;34m"; C_GREEN="\033[1;32m"; C_RED="\033[1;31m"; C_YEL="\033[1;33m"; C_OFF="\033[0m"
 log()  { printf "${C_BLUE}==>${C_OFF} %s\n" "$*"; }
@@ -107,21 +108,26 @@ mvn_run() { docker compose run --rm -T app mvn "$@"; }
 # Log in to the ACR that hosts the private collector + bulk-loader images. If the
 # login fails but both images already exist locally, continue with a warning.
 ensure_acr() {
-  log "Authenticating to ACR '$ACR_REGISTRY' for the private images..."
-  if az acr login --name "$ACR_REGISTRY" >/dev/null 2>&1; then
+  log "Authenticating to ACRs for the private images ($ACR_REGISTRY, $MISE_ACR_REGISTRY)..."
+  local primary_ok=1 mise_ok=1
+  az acr login --name "$ACR_REGISTRY" >/dev/null 2>&1 && primary_ok=0 || warn "az acr login to $ACR_REGISTRY failed"
+  az acr login --name "$MISE_ACR_REGISTRY" >/dev/null 2>&1 && mise_ok=0 || warn "az acr login to $MISE_ACR_REGISTRY failed"
+  if [[ $primary_ok -eq 0 && $mise_ok -eq 0 ]]; then
     ok "ACR login succeeded"
     return 0
   fi
-  warn "az acr login failed (is 'az login' done with AcrPull on $ACR_REGISTRY?)"
-  local arc dbl
+  warn "one or more az acr logins failed (is 'az login' done with AcrPull on both registries?)"
+  local arc dbl mise
   arc="$(docker compose config --images 2>/dev/null | grep otelcol-arcdata || true)"
   dbl="$(docker compose config --images 2>/dev/null | grep dataplane-mirror-maker-service || true)"
+  mise="$(docker compose config --images 2>/dev/null | grep misecontainer || true)"
   if [[ -n "$arc" ]] && docker image inspect "$arc" >/dev/null 2>&1 \
-     && [[ -n "$dbl" ]] && docker image inspect "$dbl" >/dev/null 2>&1; then
+     && [[ -n "$dbl" ]] && docker image inspect "$dbl" >/dev/null 2>&1 \
+     && [[ -n "$mise" ]] && docker image inspect "$mise" >/dev/null 2>&1; then
     warn "private images already present locally — continuing"
     return 0
   fi
-  die "cannot obtain the private images: run 'az login' on the host with AcrPull on $ACR_REGISTRY"
+  die "cannot obtain the private images: run 'az login' on the host with AcrPull on $ACR_REGISTRY and $MISE_ACR_REGISTRY"
 }
 
 # ---------------------------------------------------------------------------
@@ -255,10 +261,11 @@ cmd_up() {
   ok "images built"
 
   log "Bringing up the internal telemetry + SQL Server stack..."
-  docker compose up -d sqlserver token-server otelcol-arcdata delta-bulk-loader aspire-dashboard portainer
+  docker compose up -d sqlserver token-server mise otelcol-arcdata delta-bulk-loader aspire-dashboard portainer
 
   wait_sql_healthy
   wait_container_healthy mssql-jdbc-token-server token-server 90
+  wait_container_healthy mssql-jdbc-mise mise 90
   wait_arcdata_ready
   wait_aspire_ready
 
@@ -279,7 +286,10 @@ cmd_up() {
     -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen \
     -Dexec.args="${BURST_SECONDS} s" \
     -DotelEndpoint="${OTEL_ENDPOINT}" \
-    -DotelExportInterval=5
+    -DotelExportInterval=5 \
+    -DotelUseSqlAccessToken=false \
+    -DotelAccessTokenCallbackClass=com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback \
+    -DotelHeaders=x-ms-telemetry-kind=mssql-jdbc-poc,Original-Uri=/v1/metrics,Original-Method=POST,X-Forwarded-For=127.0.0.1
   ok "load burst complete"
 
   assert_arcdata_flow

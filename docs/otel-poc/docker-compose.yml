@@ -73,6 +73,22 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  # MISE container sidecar — production-style inbound AuthN.
+  mise:
+    image: "${MISE_IMAGE:-azurehybriddatadogfood.azurecr.io/artifact/ca486455-1a37-40b8-9d7c-9fb79233c8f0/official/misecontainer:20260622.1}"
+    container_name: mssql-jdbc-mise
+    environment:
+      MISE_APPSETTINGS_LOCATION: /mise/mise.appsettings.json
+    volumes:
+      - ./internal/mise/mise.appsettings.json:/mise/mise.appsettings.json:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 18
+      start_period: 10s
+    restart: unless-stopped
+
   # The team's internal OTel collector. Receives the driver's OTLP, fans every
   # signal out to Azure Delta Lake (deltalake exporter) and the Aspire Dashboard
   # (otlp exporter). Config is vendored at internal/otelcol-arcdata/.
@@ -81,6 +97,8 @@ services:
     container_name: mssql-jdbc-otelcol-arcdata
     depends_on:
       token-server:
+        condition: service_healthy
+      mise:
         condition: service_healthy
     environment:
       CONFIG: "/etc/deltalake-e2e.yaml"
@@ -186,6 +204,10 @@ services:
       # OTLP bearer JWT from the Azure CLI credential, independent of the SQL login.
       - -DotelUseSqlAccessToken=false
       - -DotelAccessTokenCallbackClass=com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback
+      # MISE inbound auth requires the telemetry-kind header plus the Original-Uri /
+      # Original-Method / X-Forwarded-For headers an ingress would normally inject
+      # (there is no ingress locally, so the driver sends them itself).
+      - -DotelHeaders=x-ms-telemetry-kind=mssql-jdbc-poc,Original-Uri=/v1/metrics,Original-Method=POST,X-Forwarded-For=127.0.0.1
 
 volumes:
   mssql-data:

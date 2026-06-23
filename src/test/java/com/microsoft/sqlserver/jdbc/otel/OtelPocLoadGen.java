@@ -66,6 +66,7 @@ public final class OtelPocLoadGen {
         int sleepMs = Integer.parseInt(System.getProperty("loadgen.sleepMs", "200"));
         String otelUseSqlAccessToken = System.getProperty("otelUseSqlAccessToken", "");
         String otelAccessTokenCallbackClass = System.getProperty("otelAccessTokenCallbackClass", "");
+        String otelHeaders = System.getProperty("otelHeaders", "");
 
         // Per-connection prefix; prepareMethod is appended below so we can
         // rotate it across iterations and exercise every code path.
@@ -80,7 +81,9 @@ public final class OtelPocLoadGen {
                 + "enablePrepareOnFirstPreparedStatementCall=true;"
                 + (otelUseSqlAccessToken.isEmpty() ? "" : "otelUseSqlAccessToken=" + otelUseSqlAccessToken + ";")
                 + (otelAccessTokenCallbackClass.isEmpty() ? ""
-                        : "otelAccessTokenCallbackClass=" + otelAccessTokenCallbackClass + ";");
+                        : "otelAccessTokenCallbackClass=" + otelAccessTokenCallbackClass + ";")
+                // Brace-wrap so the comma/equals-laden header list survives connection-string parsing.
+                + (otelHeaders.isEmpty() ? "" : "otelHeaders={" + otelHeaders + "};");
 
         // Rotate the four prepareMethod values so we light up every histogram:
         //   prepare                       -> sp_prepare  (STATEMENT_PREPARE)

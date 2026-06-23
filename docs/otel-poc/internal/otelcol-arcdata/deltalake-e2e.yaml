@@ -22,6 +22,16 @@ extensions:
         enabled: true
         path: "/health/status"
 
+  misecontainerauth:
+    first_party_app_ids:
+      - 04b07795-8ddb-461a-bbee-02f9e1bf7b46   # Azure CLI (the loadgen's token appid)
+    first_party_tenant_ids:
+      - 72f988bf-86f1-41af-91ab-2d7cd011db47   # Microsoft tenant
+    first_party_subscriptions:
+      - 00000000-0000-0000-0000-000000000000   # Unused on the standalone-identity path
+    http:
+      mise_service_endpoint: http://mise:5000/ValidateRequest
+
 receivers:
   # Native OTLP from the mssql-jdbc driver (and anything else OTLP).
   otlp:
@@ -33,6 +43,10 @@ receivers:
       http:
         endpoint: 0.0.0.0:4318
         include_metadata: true
+        # MISE auth on the HTTP path only (the driver/loadgen path). gRPC :4317 stays
+        # open so the delta-bulk-loader's internal telemetry keeps flowing unauthenticated.
+        auth:
+          authenticator: misecontainerauth
 
 processors:
   memory_limiter:
@@ -115,10 +129,10 @@ exporters:
     verbosity: basic
 
   debug/headers:
-    verbosity: detailed
+    verbosity: basic
 
 service:
-  extensions: [healthcheckv2]
+  extensions: [healthcheckv2, misecontainerauth]
   telemetry:
     resource:
       service.name: otelcol-arcdata
