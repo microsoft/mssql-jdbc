@@ -11,6 +11,16 @@
 # is intentionally removed — there is no producer-csharp in this POC.
 
 extensions:
+  healthcheckv2:
+    use_v2: true
+    component_health:
+      include_permanent_errors: false
+      include_recoverable_errors: false
+    http:
+      endpoint: 0.0.0.0:13133
+      status:
+        enabled: true
+        path: "/health/status"
 
 receivers:
   # Native OTLP from the mssql-jdbc driver (and anything else OTLP).
@@ -19,8 +29,10 @@ receivers:
       grpc:
         endpoint: 0.0.0.0:4317
         max_recv_msg_size_mib: 64
+        include_metadata: true
       http:
         endpoint: 0.0.0.0:4318
+        include_metadata: true
 
 processors:
   memory_limiter:
@@ -33,6 +45,15 @@ processors:
     send_batch_size: 8192
     send_batch_max_size: 8192
     timeout: 1s
+
+  # The custom metadataprocessor copies selected
+  # incoming OTLP request headers onto resource attributes
+  metadataprocessor:
+    client_addr_key: "client.address"
+    headers:
+      authorization: "http.request.header.authorization"
+      user-agent: "http.request.header.user_agent"
+      content-type: "http.request.header.content_type"
 
 exporters:
   # OTAP / native OTLP path -> Azure Delta Lake.
@@ -90,15 +111,43 @@ exporters:
     tls:
       insecure: true
 
-  # Prints an export summary per batch so dev.sh can assert telemetry flowed.
   debug:
     verbosity: basic
 
+  debug/headers:
+    verbosity: detailed
+
 service:
+  extensions: [healthcheckv2]
   telemetry:
+    resource:
+      service.name: otelcol-arcdata
+    metrics:
+      readers:
+        - periodic:
+            interval: 15000
+            exporter:
+              otlp:
+                protocol: grpc
+                endpoint: http://aspire-dashboard:18889
+                insecure: true
+    traces:
+      processors:
+        - batch:
+            exporter:
+              otlp:
+                protocol: grpc
+                endpoint: http://aspire-dashboard:18889
+                insecure: true
     logs:
-      # info so the debug exporter's per-batch summary lines are visible.
       level: info
+      processors:
+        - batch:
+            exporter:
+              otlp:
+                protocol: grpc
+                endpoint: http://aspire-dashboard:18889
+                insecure: true
   pipelines:
     logs:
       receivers: [otlp]
@@ -106,9 +155,14 @@ service:
       exporters: [deltalake/otap, otlp/aspire, debug]
     metrics:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
+      processors: [memory_limiter, metadataprocessor, batch]
       exporters: [deltalake/otap, otlp/aspire, debug]
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [deltalake/otap, otlp/aspire, debug]
+
+    metrics/headers:
+      receivers: [otlp]
+      processors: [metadataprocessor]
+      exporters: [debug/headers]

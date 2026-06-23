@@ -161,22 +161,7 @@ container_running() {  # <container-name>
 }
 
 wait_arcdata_ready() {
-  log "Waiting for otelcol-arcdata to be ready..."
-  local deadline=$(( $(date +%s) + 90 ))
-  while true; do
-    if docker compose logs otelcol-arcdata 2>/dev/null | grep -q "Everything is ready"; then
-      ok "otelcol-arcdata ready"; return 0
-    fi
-    if ! container_running mssql-jdbc-otelcol-arcdata; then
-      docker compose logs --tail=60 otelcol-arcdata || true
-      die "otelcol-arcdata exited during startup"
-    fi
-    (( $(date +%s) >= deadline )) && {
-      docker compose logs --tail=60 otelcol-arcdata || true
-      die "otelcol-arcdata did not report ready in 90s"
-    }
-    sleep 3
-  done
+  wait_container_healthy mssql-jdbc-otelcol-arcdata otelcol-arcdata 90
 }
 
 wait_aspire_ready() {

@@ -100,6 +100,13 @@ services:
     ports:
       - "4317:4317"   # OTLP/gRPC
       - "4318:4318"   # OTLP/HTTP (driver -> collector)
+      - "13133:13133" # healthcheckv2 probe (/health/status)
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:13133/health/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 18
+      start_period: 10s
     restart: unless-stopped
 
   # MirrorMaker / Delta Bulk Loader: consumes the collector's Event Hub
