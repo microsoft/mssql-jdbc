@@ -1139,7 +1139,7 @@ final class Parameter {
                     } catch (IOException e) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
                         Object[] msgArgs = {e.toString()};
-                        SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true);
+                        SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true, e);
                     }
 
                     dtv.setValue(bufferedStream, JavaType.INPUTSTREAM);
@@ -1189,7 +1189,7 @@ final class Parameter {
                     } catch (IOException e) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
                         Object[] msgArgs = {e.toString()};
-                        SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true);
+                        SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true, e);
                     }
 
                     dtv.setValue(bufferedReader, JavaType.READER);

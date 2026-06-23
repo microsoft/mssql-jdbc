@@ -395,7 +395,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             }
             handleMap.put(request, hassoc);
         } catch (SQLException e) {
-            SQLServerException.makeFromDriverError(connection, cs, e.toString(), null, false);
+            SQLServerException.makeFromDriverError(connection, cs, e.toString(), null, false, e);
         }
         return cs;
     }

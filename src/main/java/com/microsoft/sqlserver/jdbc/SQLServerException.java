@@ -240,6 +240,31 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
+     * Constructs a new SQLServerException with cause.
+     * 
+     * @param obj
+     *        the object
+     * @param errText
+     *        the exception message
+     * @param errState
+     *        the exception state
+     * @param errNum
+     *        the error number
+     * @param bStack
+     *        true to generate the stack trace
+     * @param cause
+     *        the underlying cause (set before logging)
+     */
+    SQLServerException(Object obj, String errText, String errState, int errNum, boolean bStack, Throwable cause) {
+        super(errText, errState, errNum);
+        // Set the cause BEFORE logging so that logException can include it in the log
+        if (null != cause) {
+            initCause(cause);
+        }
+        logException(obj, errText, bStack);
+    }
+
+    /**
      * Constructs a new SQLServerException from SQL Server error
      * 
      * @param sqlServerError
@@ -325,11 +350,9 @@ public final class SQLServerException extends java.sql.SQLException {
         if (con == null || !con.xopenStates)
             stateCode = mapFromXopen(state);
 
+        // Use the new constructor that sets cause BEFORE logging (so logs include the cause chain)
         SQLServerException theException = new SQLServerException(obj,
-                SQLServerException.checkAndAppendClientConnId(errText, con), stateCode, 0, bStack);
-        if (null != cause) {
-            theException.initCause(cause);
-        }
+                SQLServerException.checkAndAppendClientConnId(errText, con), stateCode, 0, bStack, cause);
 
         if ((null != state && state.equals(EXCEPTION_XOPEN_CONNECTION_FAILURE)) && (null != con)) {
             con.notifyPooledConnection(theException);
