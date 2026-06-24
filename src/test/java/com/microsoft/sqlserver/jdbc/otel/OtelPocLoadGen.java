@@ -56,36 +56,46 @@ public final class OtelPocLoadGen {
             }
         }
 
-        String baseUrl = System.getenv("mssql_jdbc_test_connection_properties");
-        if (baseUrl == null || baseUrl.isEmpty()) {
-            System.err.println("Set env var mssql_jdbc_test_connection_properties to a valid JDBC URL.");
-            System.exit(2);
-        }
-        String otelEndpoint = System.getProperty("otelEndpoint", "http://localhost:4318/v1/metrics");
-        int intervalSec = Integer.parseInt(System.getProperty("otelExportInterval", "5"));
         int sleepMs = Integer.parseInt(System.getProperty("loadgen.sleepMs", "200"));
-        String otelUseSqlAccessToken = System.getProperty("otelUseSqlAccessToken", "");
-        String otelAccessTokenCallbackClass = System.getProperty("otelAccessTokenCallbackClass", "");
-        String otelHeaders = System.getProperty("otelHeaders", "");
-        String otelArmResourceId = System.getProperty("otelArmResourceId", "");
+        int intervalSec = Integer.parseInt(System.getProperty("otelExportInterval", "5"));
 
-        // Per-connection prefix; prepareMethod is appended below so we can
-        // rotate it across iterations and exercise every code path.
-        String urlPrefix = baseUrl
-                + (baseUrl.endsWith(";") ? "" : ";")
-                + "otelEndpoint=" + otelEndpoint + ";"
-                + "otelServiceName=mssql-jdbc-poc-loadgen;"
-                + "otelExportInterval=" + intervalSec + ";"
-                + "trustServerCertificate=true;"
-                + "statementPoolingCacheSize=20;"
-                + "disableStatementPooling=false;"
-                + "enablePrepareOnFirstPreparedStatementCall=true;"
-                + (otelUseSqlAccessToken.isEmpty() ? "" : "otelUseSqlAccessToken=" + otelUseSqlAccessToken + ";")
-                + (otelAccessTokenCallbackClass.isEmpty() ? ""
-                        : "otelAccessTokenCallbackClass=" + otelAccessTokenCallbackClass + ";")
-                + (otelArmResourceId.isEmpty() ? "" : "otelArmResourceId=" + otelArmResourceId + ";")
-                // Brace-wrap so the comma/equals-laden header list survives connection-string parsing.
-                + (otelHeaders.isEmpty() ? "" : "otelHeaders={" + otelHeaders + "};");
+        // Single source of truth: the full JDBC connection string (SQL auth + statement pooling +
+        // every otel* property + otelArmResourceId + otelHeaders) comes from the
+        // OTEL_POC_CONNECTION_STRING env var (defined once in docker-compose). prepareMethod is the
+        // only thing appended per iteration. Fallback: assemble from mssql_jdbc_test_connection_properties
+        // + -D system properties so ad-hoc/manual runs still work.
+        String urlPrefix = System.getenv("OTEL_POC_CONNECTION_STRING");
+        if (urlPrefix != null && !urlPrefix.isEmpty()) {
+            if (!urlPrefix.endsWith(";")) {
+                urlPrefix = urlPrefix + ";";
+            }
+        } else {
+            String baseUrl = System.getenv("mssql_jdbc_test_connection_properties");
+            if (baseUrl == null || baseUrl.isEmpty()) {
+                System.err.println("Set OTEL_POC_CONNECTION_STRING (or mssql_jdbc_test_connection_properties) to a valid JDBC URL.");
+                System.exit(2);
+            }
+            String otelEndpoint = System.getProperty("otelEndpoint", "http://localhost:4318/v1/metrics");
+            String otelUseSqlAccessToken = System.getProperty("otelUseSqlAccessToken", "");
+            String otelAccessTokenCallbackClass = System.getProperty("otelAccessTokenCallbackClass", "");
+            String otelHeaders = System.getProperty("otelHeaders", "");
+            String otelArmResourceId = System.getProperty("otelArmResourceId", "");
+            urlPrefix = baseUrl
+                    + (baseUrl.endsWith(";") ? "" : ";")
+                    + "otelEndpoint=" + otelEndpoint + ";"
+                    + "otelServiceName=mssql-jdbc-poc-loadgen;"
+                    + "otelExportInterval=" + intervalSec + ";"
+                    + "trustServerCertificate=true;"
+                    + "statementPoolingCacheSize=20;"
+                    + "disableStatementPooling=false;"
+                    + "enablePrepareOnFirstPreparedStatementCall=true;"
+                    + (otelUseSqlAccessToken.isEmpty() ? "" : "otelUseSqlAccessToken=" + otelUseSqlAccessToken + ";")
+                    + (otelAccessTokenCallbackClass.isEmpty() ? ""
+                            : "otelAccessTokenCallbackClass=" + otelAccessTokenCallbackClass + ";")
+                    + (otelArmResourceId.isEmpty() ? "" : "otelArmResourceId=" + otelArmResourceId + ";")
+                    // Brace-wrap so the comma/equals-laden header list survives connection-string parsing.
+                    + (otelHeaders.isEmpty() ? "" : "otelHeaders={" + otelHeaders + "};");
+        }
 
         // Rotate the four prepareMethod values so we light up every histogram:
         //   prepare                       -> sp_prepare  (STATEMENT_PREPARE)
@@ -98,8 +108,7 @@ public final class OtelPocLoadGen {
         System.out.println("  mode        = " + (durationMs > 0
                 ? (durationMs == Long.MAX_VALUE ? "forever (Ctrl-C to stop)" : (durationMs / 1000) + "s")
                 : iterations + " iterations"));
-        System.out.println("  otelEndpoint= " + otelEndpoint);
-        System.out.println("  interval    = " + intervalSec + "s");
+        System.out.println("  connection  = " + redactPassword(urlPrefix));
         System.out.println("  sleepMs     = " + sleepMs);
         System.out.println("  Grafana     = http://localhost:3000  (Dashboards -> mssql-jdbc)");
         System.out.println();
@@ -186,5 +195,10 @@ public final class OtelPocLoadGen {
         System.out.println("Waiting one export cycle (" + (intervalSec + 2) + "s) for the final flush...");
         Thread.sleep((intervalSec + 2) * 1000L);
         System.out.println("Done. Open http://localhost:3000 -> Dashboards -> mssql-jdbc.");
+    }
+
+    /** Masks the {@code password=...} value so the connection string is safe to log. */
+    private static String redactPassword(String url) {
+        return url.replaceAll("(?i)(password=)[^;]*", "$1***");
     }
 }

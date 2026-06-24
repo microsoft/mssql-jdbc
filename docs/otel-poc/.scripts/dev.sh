@@ -334,16 +334,12 @@ cmd_up() {
   fi
 
   log "Running a ${BURST_SECONDS}s load burst to push metrics + traces through arcdata..."
+  # OtelPocLoadGen reads the full JDBC URL from OTEL_POC_CONNECTION_STRING (defined on x-otel-app,
+  # inherited by the app service), so only the run duration is passed here.
   mvn_run -B -Pjre11 org.codehaus.mojo:exec-maven-plugin:3.1.0:java \
     -Dexec.classpathScope=test \
     -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen \
-    -Dexec.args="${BURST_SECONDS} s" \
-    -DotelEndpoint="${OTEL_ENDPOINT}" \
-    -DotelExportInterval=5 \
-    -DotelUseSqlAccessToken=false \
-    -DotelAccessTokenCallbackClass=com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback \
-    -DotelArmResourceId="${ARM_RESOURCE_ID}" \
-    -DotelHeaders=x-ms-telemetry-kind=mssql-jdbc-poc,Original-Uri=/v1/metrics,Original-Method=POST,X-Forwarded-For=127.0.0.1
+    -Dexec.args="${BURST_SECONDS} s"
   ok "load burst complete"
 
   assert_checkaccess_authorized
