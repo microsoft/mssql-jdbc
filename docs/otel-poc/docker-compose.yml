@@ -73,7 +73,8 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  # MISE container sidecar — production-style inbound AuthN.
+  # MISE container sidecar — production-style inbound AuthN plus optional CheckAccess (RBAC)
+  # AuthZ via the AzureAuthorizationModule (1P SNI cert mounted from internal/mise/, see dev.sh).
   mise:
     image: "${MISE_IMAGE:-azurehybriddatadogfood.azurecr.io/artifact/ca486455-1a37-40b8-9d7c-9fb79233c8f0/official/misecontainer:20260622.1}"
     container_name: mssql-jdbc-mise
@@ -81,6 +82,7 @@ services:
       MISE_APPSETTINGS_LOCATION: /mise/mise.appsettings.json
     volumes:
       - ./internal/mise/mise.appsettings.json:/mise/mise.appsettings.json:ro
+      - ./internal/mise/kusto-proxy-3p-dev.pfx:/mise/kusto-proxy-3p-dev.pfx:ro
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:5000/readyz"]
       interval: 5s
@@ -93,7 +95,7 @@ services:
   # signal out to Azure Delta Lake (deltalake exporter) and the Aspire Dashboard
   # (otlp exporter). Config is vendored at internal/otelcol-arcdata/.
   otelcol-arcdata:
-    image: "${OTELCOL_ARCDATA_IMAGE:-arcdataanalyticsacr.azurecr.io/protobus-benchmark/otelcol-arcdata:protobus-benchmark-20260617224128}"
+    image: "${OTELCOL_ARCDATA_IMAGE:-arcdataanalyticsacr.azurecr.io/protobus-benchmark/otelcol-arcdata:protobus-benchmark-20260623233640}"
     container_name: mssql-jdbc-otelcol-arcdata
     depends_on:
       token-server:
@@ -204,6 +206,9 @@ services:
       # OTLP bearer JWT from the Azure CLI credential, independent of the SQL login.
       - -DotelUseSqlAccessToken=false
       - -DotelAccessTokenCallbackClass=com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback
+      # Target ARM resource id -> x-ms-arm-resource-id header, used by the collector's MISE
+      # CheckAccess (RBAC) authorization since this caller's token has no xms_mirid.
+      - -DotelArmResourceId=${ARM_RESOURCE_ID:-/subscriptions/ce859648-30e1-4135-9d0f-8358aebfe789/resourceGroups/otel-bench/providers/Microsoft.Sql/servers/mdrrahmansandbox/databases/jdbc}
       # MISE inbound auth requires the telemetry-kind header plus the Original-Uri /
       # Original-Method / X-Forwarded-For headers an ingress would normally inject
       # (there is no ingress locally, so the driver sends them itself).

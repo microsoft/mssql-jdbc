@@ -59,6 +59,9 @@ final class OtelBootstrap {
      */
     private static final long CALLBACK_REFRESH_SKEW_MS = 300_000L;
 
+    /** Header carrying the optional ARM resource id used by the collector for CheckAccess authorization. */
+    private static final String ARM_RESOURCE_ID_HEADER = "x-ms-arm-resource-id";
+
     /**
      * Most recent {@code otelAccessTokenCallbackClass} bearer paired with its absolute expiry. Refreshed by
      * {@link #currentCallbackBearer} shortly before expiry so long-running exports stay authenticated across
@@ -169,6 +172,10 @@ final class OtelBootstrap {
         String[][] customHeaders = parseHeaders(
                 props.getProperty(SQLServerDriverStringProperty.OTEL_HEADERS.toString()));
 
+        // Optional ARM resource id forwarded as a header so the collector can run a CheckAccess
+        // (RBAC) authorization for callers whose token has no resource identity (no xms_mirid).
+        String armResourceId = trim(props.getProperty(SQLServerDriverStringProperty.OTEL_ARM_RESOURCE_ID.toString()));
+
         // The OTLP/HTTP exporter's setHeaders(Supplier) REPLACES static addHeader values, so the
         // supplier must return BOTH the static custom headers (otelHeaders, e.g. x-ms-telemetry-kind)
         // and the dynamic Authorization bearer; otherwise the custom headers are silently dropped.
@@ -176,6 +183,9 @@ final class OtelBootstrap {
             Map<String, String> headers = new LinkedHashMap<>();
             for (String[] kv : customHeaders) {
                 headers.put(kv[0], kv[1]);
+            }
+            if (!armResourceId.isEmpty()) {
+                headers.put(ARM_RESOURCE_ID_HEADER, armResourceId);
             }
             String bearer = currentBearer(props);
             if (!bearer.isEmpty()) {
@@ -229,6 +239,11 @@ final class OtelBootstrap {
         LinkedHashMap<String, String> headers = new LinkedHashMap<>();
         for (String[] kv : parseHeaders(props.getProperty(SQLServerDriverStringProperty.OTEL_HEADERS.toString()))) {
             headers.put(kv[0], kv[1]);
+        }
+
+        String armResourceId = trim(props.getProperty(SQLServerDriverStringProperty.OTEL_ARM_RESOURCE_ID.toString()));
+        if (!armResourceId.isEmpty()) {
+            headers.put(ARM_RESOURCE_ID_HEADER, armResourceId);
         }
 
         boolean useSqlAccessToken = boolProp(props,

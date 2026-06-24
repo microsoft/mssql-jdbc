@@ -45,6 +45,14 @@ SQL_HEALTH_TIMEOUT="${SQL_HEALTH_TIMEOUT:-240}"  # seconds to wait for SQL Serve
 ASSERT_RETRIES="${ASSERT_RETRIES:-30}"           # metric/trace assertion attempts
 ASSERT_INTERVAL="${ASSERT_INTERVAL:-5}"          # seconds between assertion attempts
 
+# CheckAccess (RBAC) AuthZ: the loadgen sends this ARM resource id as the x-ms-arm-resource-id header
+# so the MISE AzureAuthorizationModule can authorize the (no-xms_mirid) caller. The MISE container
+# mints its 1P token from an SNI cert downloaded by ensure_mise_cert (see internal/mise/).
+ARM_RESOURCE_ID="${ARM_RESOURCE_ID:-/subscriptions/ce859648-30e1-4135-9d0f-8358aebfe789/resourceGroups/otel-bench/providers/Microsoft.Sql/servers/mdrrahmansandbox/databases/jdbc}"
+MISE_CERT_KEYVAULT="${MISE_CERT_KEYVAULT:-adshybrid-kv-dev}"      # KeyVault holding the 1P SNI cert
+MISE_CERT_NAME="${MISE_CERT_NAME:-kusto-proxy-3p-dev}"           # cert/secret name (PFX with private key)
+MISE_CERT_FILE="$POC_DIR/internal/mise/${MISE_CERT_NAME}.pfx"     # mounted into the mise container
+
 # Image-based services (the rest are built locally).
 IMAGE_SERVICES=(sqlserver otelcol-arcdata delta-bulk-loader aspire-dashboard portainer mise)
 
@@ -130,6 +138,28 @@ ensure_acr() {
   die "cannot obtain the private images: run 'az login' on the host with AcrPull on $ACR_REGISTRY and $MISE_ACR_REGISTRY"
 }
 
+# Download the 1P SNI certificate the MISE container uses to mint its Remote PDP (CheckAccess) token,
+# and mount it (via docker-compose) at /mise. The PFX (with private key) is pulled from Key Vault with
+# the host az session; it is git-ignored and never committed. Skips the download if already present.
+ensure_mise_cert() {
+  if [[ -s "$MISE_CERT_FILE" ]]; then
+    ok "MISE 1P cert already present ($MISE_CERT_NAME.pfx)"
+    return 0
+  fi
+  log "Downloading the MISE 1P SNI cert ($MISE_CERT_NAME) from Key Vault $MISE_CERT_KEYVAULT..."
+  mkdir -p "$(dirname "$MISE_CERT_FILE")"
+  if ! az keyvault secret download --vault-name "$MISE_CERT_KEYVAULT" --name "$MISE_CERT_NAME" \
+        --encoding base64 --file "$MISE_CERT_FILE" >/dev/null 2>&1; then
+    rm -f "$MISE_CERT_FILE"
+    die "failed to download $MISE_CERT_NAME from $MISE_CERT_KEYVAULT — ensure 'az login' has Key Vault secret read access (ask the cert owner to grant it)"
+  fi
+  if ! openssl pkcs12 -info -nokeys -passin pass: -in "$MISE_CERT_FILE" >/dev/null 2>&1; then
+    rm -f "$MISE_CERT_FILE"
+    die "downloaded $MISE_CERT_NAME.pfx is not a valid password-less PKCS#12 bundle"
+  fi
+  ok "MISE 1P cert downloaded + validated ($MISE_CERT_NAME.pfx)"
+}
+
 # ---------------------------------------------------------------------------
 wait_sql_healthy() {
   log "Waiting for SQL Server to become healthy (timeout ${SQL_HEALTH_TIMEOUT}s)..."
@@ -184,7 +214,7 @@ wait_aspire_ready() {
 }
 
 assert_arcdata_flow() {
-  log "Asserting otelcol-arcdata received driver metrics + traces (gate 2)..."
+  log "Asserting otelcol-arcdata received driver metrics + traces (gate 2b)..."
   local i logs m t
   for (( i=1; i<=ASSERT_RETRIES; i++ )); do
     logs="$(docker compose logs --tail=1000 otelcol-arcdata 2>/dev/null || true)"
@@ -199,6 +229,28 @@ assert_arcdata_flow() {
   done
   docker compose logs --tail=80 otelcol-arcdata || true
   die "otelcol-arcdata never logged both driver metrics and traces"
+}
+
+assert_checkaccess_authorized() {
+  log "Asserting the MISE CheckAccess (RBAC) authorization allowed the caller (gate 2)..."
+  local i logs allowed denied
+  for (( i=1; i<=ASSERT_RETRIES; i++ )); do
+    logs="$(docker compose logs --tail=2000 otelcol-arcdata 2>/dev/null || true)"
+    denied="$(printf '%s' "$logs" | grep -c 'CheckAccess denied' || true)"
+    allowed="$(printf '%s' "$logs" | grep -c 'CheckAccess allowed' || true)"
+    if [[ "${denied:-0}" -gt 0 ]]; then
+      docker compose logs --tail=40 otelcol-arcdata | grep -i checkaccess || true
+      die "MISE CheckAccess DENIED the caller for $ARM_RESOURCE_ID — verify the 1P app is onboarded/role-assigned on that subscription"
+    fi
+    if [[ "${allowed:-0}" -gt 0 ]]; then
+      ok "MISE CheckAccess authorized the caller for $ARM_RESOURCE_ID ($allowed allow log(s))"
+      return 0
+    fi
+    warn "attempt $i/${ASSERT_RETRIES}: no CheckAccess decision logged yet — retrying..."
+    sleep "$ASSERT_INTERVAL"
+  done
+  docker compose logs --tail=80 otelcol-arcdata || true
+  die "otelcol-arcdata never logged a MISE CheckAccess authorization decision"
 }
 
 assert_aspire_receiving() {
@@ -251,6 +303,7 @@ cmd_up() {
   nuke_state
   detect_sql_image
   ensure_acr
+  ensure_mise_cert
 
   log "Pulling image-based services..."
   docker compose pull "${IMAGE_SERVICES[@]}"
@@ -289,9 +342,11 @@ cmd_up() {
     -DotelExportInterval=5 \
     -DotelUseSqlAccessToken=false \
     -DotelAccessTokenCallbackClass=com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback \
+    -DotelArmResourceId="${ARM_RESOURCE_ID}" \
     -DotelHeaders=x-ms-telemetry-kind=mssql-jdbc-poc,Original-Uri=/v1/metrics,Original-Method=POST,X-Forwarded-For=127.0.0.1
   ok "load burst complete"
 
+  assert_checkaccess_authorized
   assert_arcdata_flow
   assert_aspire_receiving
   health_summary

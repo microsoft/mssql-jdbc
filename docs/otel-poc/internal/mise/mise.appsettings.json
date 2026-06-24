@@ -2,9 +2,17 @@
     "Version": "1",
     "AzureAd": {
         "Instance": "https://login.microsoftonline.com/",
-        "ClientId": "04b07795-8ddb-461a-bbee-02f9e1bf7b46",
+        "ClientId": "f5aa87db-a6c2-4b87-a4d6-21e0b21eaebd",
         "TenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47",
         "Audience": "https://database.windows.net",
+        "SendX5C": true,
+        "ClientCredentials": [
+            {
+                "SourceType": "Path",
+                "CertificateDiskPath": "/mise/kusto-proxy-3p-dev.pfx",
+                "CertificatePassword": ""
+            }
+        ],
         "ShowPII": true,
         "MinimumDataClassificationCategory": "SystemMetadata",
         "Logging": {
@@ -14,6 +22,16 @@
             "TrV2": {
                 "ModuleType": "TrV2Module",
                 "Enabled": true
+            },
+            "AzureAuthorization": {
+                "ModuleType": "AzureAuthorizationModule",
+                "Enabled": true
+            }
+        },
+        "DataProviders": {
+            "AzureAuthorization": {
+                "DataProviderType": "AzureAuthorizationDataProvider",
+                "Region": "eastus"
             }
         }
     },

@@ -67,6 +67,7 @@ public final class OtelPocLoadGen {
         String otelUseSqlAccessToken = System.getProperty("otelUseSqlAccessToken", "");
         String otelAccessTokenCallbackClass = System.getProperty("otelAccessTokenCallbackClass", "");
         String otelHeaders = System.getProperty("otelHeaders", "");
+        String otelArmResourceId = System.getProperty("otelArmResourceId", "");
 
         // Per-connection prefix; prepareMethod is appended below so we can
         // rotate it across iterations and exercise every code path.
@@ -82,6 +83,7 @@ public final class OtelPocLoadGen {
                 + (otelUseSqlAccessToken.isEmpty() ? "" : "otelUseSqlAccessToken=" + otelUseSqlAccessToken + ";")
                 + (otelAccessTokenCallbackClass.isEmpty() ? ""
                         : "otelAccessTokenCallbackClass=" + otelAccessTokenCallbackClass + ";")
+                + (otelArmResourceId.isEmpty() ? "" : "otelArmResourceId=" + otelArmResourceId + ";")
                 // Brace-wrap so the comma/equals-laden header list survives connection-string parsing.
                 + (otelHeaders.isEmpty() ? "" : "otelHeaders={" + otelHeaders + "};");
 

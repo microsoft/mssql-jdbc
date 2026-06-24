@@ -23,12 +23,18 @@ extensions:
         path: "/health/status"
 
   misecontainerauth:
-    first_party_app_ids:
-      - 04b07795-8ddb-461a-bbee-02f9e1bf7b46   # Azure CLI (the loadgen's token appid)
-    first_party_tenant_ids:
-      - 72f988bf-86f1-41af-91ab-2d7cd011db47   # Microsoft tenant
+    # The loadgen's Azure CLI app is intentionally NOT listed as first-party so its (valid, but
+    # no-xms_mirid) user token falls through to the CheckAccess (RBAC) authorization path below,
+    # which the MISE AzureAuthorizationModule evaluates against the x-ms-arm-resource-id header.
+    first_party_app_ids: []
+    first_party_tenant_ids: []
     first_party_subscriptions:
-      - 00000000-0000-0000-0000-000000000000   # Unused on the standalone-identity path
+      - 00000000-0000-0000-0000-000000000000   # Unused; required to be non-empty by the extension
+    authz_check_access:
+      enabled: true
+      arm_resource_id_header: x-ms-arm-resource-id
+      decision_cache_max_size: 10000
+      decision_cache_ttl_sec: 0   # cache each decision for the caller token's lifetime (exp)
     http:
       mise_service_endpoint: http://mise:5000/ValidateRequest
 

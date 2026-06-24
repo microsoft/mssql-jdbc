@@ -21,6 +21,32 @@ import org.junit.jupiter.api.Test;
 class OtelBootstrapTest {
 
     @Test
+    void otlpHeadersIncludeArmResourceIdWhenSet() {
+        Properties props = new Properties();
+        props.setProperty(SQLServerDriverStringProperty.OTEL_HEADERS.toString(), "x-ms-telemetry-kind=poc");
+        props.setProperty(SQLServerDriverStringProperty.OTEL_ARM_RESOURCE_ID.toString(),
+                "/subscriptions/s/resourceGroups/rg/providers/Microsoft.Sql/servers/x/databases/y");
+
+        Map<String, String> headers = Arrays.stream(OtelBootstrap.otlpHeaders(props, null))
+                .collect(Collectors.toMap(pair -> pair[0], pair -> pair[1]));
+
+        assertEquals("poc", headers.get("x-ms-telemetry-kind"));
+        assertEquals("/subscriptions/s/resourceGroups/rg/providers/Microsoft.Sql/servers/x/databases/y",
+                headers.get("x-ms-arm-resource-id"));
+    }
+
+    @Test
+    void otlpHeadersOmitArmResourceIdWhenUnset() {
+        Properties props = new Properties();
+        props.setProperty(SQLServerDriverStringProperty.OTEL_HEADERS.toString(), "x-ms-telemetry-kind=poc");
+
+        Map<String, String> headers = Arrays.stream(OtelBootstrap.otlpHeaders(props, null))
+                .collect(Collectors.toMap(pair -> pair[0], pair -> pair[1]));
+
+        assertFalse(headers.containsKey("x-ms-arm-resource-id"));
+    }
+
+    @Test
     void otlpHeadersIncludeBearerTokenAndPreserveOtherHeaders() {
         Properties props = new Properties();
         props.setProperty(SQLServerDriverStringProperty.OTEL_HEADERS.toString(), "x-api-key=abc,tenant=demo");

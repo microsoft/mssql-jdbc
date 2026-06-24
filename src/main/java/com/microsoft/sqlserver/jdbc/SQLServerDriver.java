@@ -693,7 +693,8 @@ enum SQLServerDriverStringProperty {
     OTEL_SERVICE_NAME("otelServiceName", "mssql-jdbc"),
     OTEL_HEADERS("otelHeaders", ""),
     OTEL_BEARER_TOKEN("otelBearerToken", ""),
-    OTEL_ACCESS_TOKEN_CALLBACK_CLASS("otelAccessTokenCallbackClass", "");
+    OTEL_ACCESS_TOKEN_CALLBACK_CLASS("otelAccessTokenCallbackClass", ""),
+    OTEL_ARM_RESOURCE_ID("otelArmResourceId", "");
 
     private final String name;
     private final String defaultValue;
@@ -1156,7 +1157,9 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Boolean.toString(SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.getDefaultValue()), false,
                     TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.toString(),
-                    Integer.toString(SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.getDefaultValue()), false, null),};
+                    Integer.toString(SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.getDefaultValue()), false, null),
+                new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_ARM_RESOURCE_ID.toString(),
+                    SQLServerDriverStringProperty.OTEL_ARM_RESOURCE_ID.getDefaultValue(), false, null),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string
