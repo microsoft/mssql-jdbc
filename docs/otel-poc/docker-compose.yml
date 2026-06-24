@@ -43,7 +43,7 @@ x-otel-app: &otel-app
     # -------------------------------------------------------------------------------------------------------------
     #
     # YES ACCESS: /subscriptions/ce859648-30e1-4135-9d0f-8358aebfe789/resourceGroups/otel-bench/providers/Microsoft.Sql/servers/mdrrahmansandbox/databases/jdbc
-    # NO ACCESS:  /subscriptions/ce859648-30e1-4135-9d0f-8358aebfe789/resourceGroups/otel-bench/providers/Microsoft.Sql/servers/mdrrahmansandbox/databases/jdbc
+    # NO ACCESS:  /subscriptions/78e47976-009f-4d4a-a961-6046cdabf459/resourceGroups/dataflows_e2e_tests/providers/Microsoft.Sql/servers/cdsa-e2e-test-server2/databases/AdventureWorksDW
     # -------------------------------------------------------------------------------------------------------------
     #
     OTEL_POC_CONNECTION_STRING: "jdbc:sqlserver://sqlserver:1433;user=sa;password=${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass};trustServerCertificate=true;statementPoolingCacheSize=20;disableStatementPooling=false;enablePrepareOnFirstPreparedStatementCall=true;otelServiceName=mssql-jdbc-poc-loadgen;otelEndpoint=http://otelcol-arcdata:4318/v1/metrics;otelExportInterval=5;otelUseSqlAccessToken=false;otelAccessTokenCallbackClass=com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback;otelArmResourceId=${ARM_RESOURCE_ID:-/subscriptions/ce859648-30e1-4135-9d0f-8358aebfe789/resourceGroups/otel-bench/providers/Microsoft.Sql/servers/mdrrahmansandbox/databases/jdbc};otelHeaders={x-ms-telemetry-kind=mssql-jdbc-poc,Original-Uri=/v1/metrics,Original-Method=POST,X-Forwarded-For=127.0.0.1}"
