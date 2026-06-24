@@ -733,6 +733,16 @@ class SQLServerConnectionPoolProxy implements ISQLServerConnection, java.io.Seri
         wrappedConnection.setCalcBigDecimalPrecision(calcBigDecimalPrecision);
     }
 
+    @Override
+    public boolean getUseColumnTypeSizing() {
+        return wrappedConnection.getUseColumnTypeSizing();
+    }
+
+    @Override
+    public void setUseColumnTypeSizing(boolean useColumnTypeSizing) {
+        wrappedConnection.setUseColumnTypeSizing(useColumnTypeSizing);
+    }
+
     /**
      * Returns the useBulkCopyForBatchInsert value.
      * 

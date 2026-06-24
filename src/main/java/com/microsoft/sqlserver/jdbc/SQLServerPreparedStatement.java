@@ -691,8 +691,122 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
+    /** SQL Server 2012 (Denali) major version - first version supporting sp_describe_undeclared_parameters. */
+    private static final int SQL_SERVER_2012_MAJOR_VERSION = 11;
+
+    /** Guards the once-per-statement sp_describe_undeclared_parameters round-trip used by useColumnTypeSizing. */
+    private boolean describeAttempted = false;
+
+    /**
+     * Per-ordinal inferred target column length (in the column type's unit), or null until the describe round-trip has
+     * been attempted. Entry {@link Parameter#NO_INFERRED_COLUMN_LENGTH} means that parameter is not eligible for
+     * column sizing. Computed once and applied to whichever parameter array a given execution path uses (single or
+     * batch), so the round-trip happens at most once per statement object regardless of statement pooling.
+     */
+    private int[] inferredColumnLengthByOrdinal = null;
+
+    /**
+     * When the {@code useColumnTypeSizing} connection property is enabled, discovers the target column type/length of
+     * each unsized variable-length string/binary input parameter via {@code sp_describe_undeclared_parameters} and
+     * records the inferred length on the corresponding {@link Parameter}, so its declared type can be sized to the
+     * target column instead of the fixed {@code varchar(8000)}/{@code nvarchar(4000)}/{@code varbinary(8000)} defaults.
+     *
+     * Runs the round-trip at most once per statement object, independent of statement pooling. It is skipped on Always
+     * Encrypted connections, for the FMTONLY metadata path, for internal driver queries, and on pre-2012 servers. Any
+     * failure leaves the parameters unsized (legacy default - no behavior change) and is never propagated to the caller.
+     *
+     * @param params
+     *        the parameter array used by this execution (inOutParam for single execution, the batch parameter array
+     *        for batch execution)
+     */
+    private void inferColumnTypeSizes(Parameter[] params) {
+        if (!connection.getUseColumnTypeSizing() || isInternalQuery || connection.isColumnEncryptionSettingEnabled()
+                || Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection) || useFmtOnly
+                || connection.getServerMajorVersion() < SQL_SERVER_2012_MAJOR_VERSION) {
+            return;
+        }
+
+        if (!describeAttempted) {
+            // Set first and unconditionally so a failed lookup never re-runs the round-trip on subsequent executes.
+            describeAttempted = true;
+            if (hasUnsizedVarLenInputParameter(params)) {
+                inferredColumnLengthByOrdinal = describeColumnLengths(params.length);
+            }
+        }
+
+        if (null != inferredColumnLengthByOrdinal) {
+            for (int i = 0; i < params.length && i < inferredColumnLengthByOrdinal.length; i++) {
+                if (null != params[i] && !params[i].isOutput()) {
+                    params[i].setInferredColumnLength(inferredColumnLengthByOrdinal[i]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Runs sp_describe_undeclared_parameters (via getParameterMetaData) and returns the per-ordinal inferred column
+     * length for variable-length string/binary parameters; non-eligible ordinals get NO_INFERRED_COLUMN_LENGTH. Never
+     * throws: any failure returns null so the caller falls back to legacy default sizing.
+     */
+    private int[] describeColumnLengths(int paramArrayLength) {
+        int[] lengths = new int[paramArrayLength];
+        java.util.Arrays.fill(lengths, Parameter.NO_INFERRED_COLUMN_LENGTH);
+        try {
+            SQLServerParameterMetaData pmd = (SQLServerParameterMetaData) this.getParameterMetaData();
+            int paramCount = pmd.getParameterCount();
+            for (int i = 0; i < paramArrayLength && i < paramCount; i++) {
+                int columnType = pmd.getParameterType(i + 1);
+                if (isVariableLengthCharOrBinaryType(columnType)) {
+                    lengths[i] = pmd.getPrecision(i + 1);
+                }
+            }
+            return lengths;
+        } catch (SQLException | RuntimeException e) {
+            // Inference is best-effort: on any failure (checked or unchecked) fall back to the legacy default
+            // parameter sizing. The describe round-trip must never surface a new failure mode to the caller.
+            if (loggerExternal.isLoggable(java.util.logging.Level.FINE)) {
+                loggerExternal.fine(toString()
+                        + " useColumnTypeSizing: could not infer parameter column metadata; using default sizing. "
+                        + e.getMessage());
+            }
+            return null;
+        }
+    }
+
+    /** Returns true if at least one input parameter is a variable-length string/binary type eligible for sizing. */
+    private boolean hasUnsizedVarLenInputParameter(Parameter[] params) {
+        for (Parameter param : params) {
+            if (null != param && !param.isOutput()
+                    && isVariableLengthCharOrBinaryType(param.getJdbcType().getIntValue())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** True for the JDBC char/binary types whose parameters are declared with a length (so can be column-sized). */
+    private static boolean isVariableLengthCharOrBinaryType(int jdbcType) {
+        switch (jdbcType) {
+            case java.sql.Types.CHAR:
+            case java.sql.Types.VARCHAR:
+            case java.sql.Types.LONGVARCHAR:
+            case java.sql.Types.NCHAR:
+            case java.sql.Types.NVARCHAR:
+            case java.sql.Types.LONGNVARCHAR:
+            case java.sql.Types.BINARY:
+            case java.sql.Types.VARBINARY:
+            case java.sql.Types.LONGVARBINARY:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     final void doExecutePreparedStatement(PrepStmtExecCmd command) throws SQLServerException {
         resetForReexecute();
+
+        // useColumnTypeSizing: infer target column lengths (once) before parameter type definitions are built below.
+        inferColumnTypeSizes(inOutParam);
 
         // If this request might be a query (as opposed to an update) then make
         // sure we set the max number of rows and max field size for any ResultSet
@@ -3428,6 +3542,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     Parameter[] paramValues = batchParamValues.get(numBatchesPrepared);
                     assert paramValues.length == batchParam.length;
                     System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
+
+                    // useColumnTypeSizing: infer/apply target column lengths before building the type definitions.
+                    inferColumnTypeSizes(batchParam);
 
                     boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
                     boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);

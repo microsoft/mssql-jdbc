@@ -1459,6 +1459,23 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     boolean getCalcBigDecimalPrecision();
 
     /**
+     * Sets whether the driver sizes unsized variable-length string/binary parameters to the target column's length
+     * (discovered via sp_describe_undeclared_parameters) instead of the fixed varchar(8000)/nvarchar(4000)/
+     * varbinary(8000) defaults.
+     *
+     * @param useColumnTypeSizing
+     *        true to enable column-type sizing; default is false
+     */
+    void setUseColumnTypeSizing(boolean useColumnTypeSizing);
+
+    /**
+     * Returns whether the driver sizes unsized variable-length string/binary parameters to the target column's length.
+     *
+     * @return useColumnTypeSizing boolean value
+     */
+    boolean getUseColumnTypeSizing();
+
+    /**
      * Returns value of 'cacheBulkCopyMetadata' from Connection String.
      *
      * @param cacheBulkCopyMetadata
