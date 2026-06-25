@@ -842,6 +842,29 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
+     * Decides whether to consume INSERT DONEINPROC tokens on the {@code execute()} path
+     * (only reached when {@code onDone()} matches {@code EXECUTE == executeMethod}). Consume when
+     * generated keys are requested so the parser reaches the injected {@code SCOPE_IDENTITY()}
+     * ResultSet (PR #2554 / #2740 / #2742); otherwise do not consume, so every update count in
+     * compound SQL (e.g. {@code DELETE; INSERT; INSERT; UPDATE; INSERT; SELECT}) and the trailing
+     * SELECT are preserved (GitHub #2722 / #2940) — per the documented contract that
+     * {@code lastUpdateCount} applies only to {@code executeUpdate()}, while all other execute
+     * methods return all results and update counts
+     * (<a href="https://learn.microsoft.com/en-us/sql/connect/jdbc/setting-the-connection-properties#lastupdatecount">lastUpdateCount</a>).
+     * The {@code EXECUTE_UPDATE} branch below is defensive only and unreachable today.
+     */
+    @Override
+    protected boolean shouldConsumeInsertDoneToken() {
+        if (bRequestedGeneratedKeys) {
+            return true;
+        }
+        if (EXECUTE_UPDATE == executeMethod) {
+            return connection.useLastUpdateCount();
+        }
+        return false;
+    }
+
+    /**
      * Consumes the OUT parameter for the statement object itself.
      *
      * When a prepared statement handle is expected as the first OUT parameter from PreparedStatement or
