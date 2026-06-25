@@ -279,6 +279,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             
             try {
                 // (Re)execute this Statement with the new command
+                connection.applySetNoCount();
                 executeCommand(newStmtCmd);
             } catch (SQLServerException e) {
                 SQLServerError sqlServerError = e.getSQLServerError();
