@@ -1,268 +1,130 @@
-# mssql-jdbc OpenTelemetry POC Runbook
+# mssql-jdbc OpenTelemetry POC — internal pipeline + Aspire Dashboard
 
-This folder contains a complete local stack and runnable workload for the OTel
-POC in this branch: metrics to Prometheus/Grafana and traces to Jaeger.
+Docker-only stack: the driver ships OTLP to `otelcol-arcdata` (our collector
+image), which fans every signal to **Azure Delta Lake** (Managed Identity +
+Event Hub + Delta Bulk Loader) **and** a local **.NET Aspire Dashboard** for
+metrics, traces, and logs.
 
-## Branch Scope
-
-Changes in this branch wire OTel export from the driver and provide:
-
-- OTel callback + bootstrap in the driver.
-- Load generator and smoke test in test sources.
-- Docker Compose stack for collector, Prometheus, Grafana, and Jaeger.
-- Provisioned Grafana datasources/dashboard.
-
-## Files You Need
-
-- Stack entrypoint: docs/otel-poc/docker-compose.yml
-- Collector config: docs/otel-poc/otel-collector-config.yaml
-- Prometheus config: docs/otel-poc/prometheus.yml
-- Grafana datasources: docs/otel-poc/grafana/provisioning/datasources/datasource.yml
-- Grafana dashboard provider: docs/otel-poc/grafana/provisioning/dashboards/provider.yml
-- Grafana dashboard JSON: docs/otel-poc/grafana/dashboards/mssql-jdbc.json
-- Load generator: src/test/java/com/microsoft/sqlserver/jdbc/otel/OtelPocLoadGen.java
-- Smoke test: src/test/java/com/microsoft/sqlserver/jdbc/otel/OtelPocSmokeTest.java
-
-## Get The Code
-
-```powershell
-git clone https://github.com/microsoft/mssql-jdbc.git
-cd mssql-jdbc
-git checkout users/machavan/otelexperiment
 ```
-
-Verify you are on the right branch:
-
-```powershell
-git branch --show-current
-# should print: users/machavan/otelexperiment
+driver ─OTLP/HTTP:4318─▶ otelcol-arcdata ─deltalake─▶ Azure Delta Lake
+                              └─otlp:18889─▶ Aspire Dashboard (http://localhost:18888)
+driver ─TDS:1433───────▶ sqlserver (in-network only)
 ```
 
 ## Prerequisites
 
-| Requirement | Minimum version | Notes |
-|-------------|----------------|-------|
-| JDK | 11 (build target) — JDK 26 recommended | Any JDK ≥ 11 works for the `jre11` Maven profile used in all commands below. JDK 26 is required to build the `jre26` profile or the full multi-profile build. |
-| Maven | 3.9+ | The project uses `mvn` from `PATH`. If Maven is not on `PATH`, prefix every `mvn` command with the full path, e.g. `C:\tools\apache-maven-3.9.9\bin\mvn`. |
-| Docker Desktop | Latest | Required only for `docker compose up`. If you prefer a native stack (Windows binaries for otelcol, Prometheus, Grafana, Jaeger) see the "Native Windows stack" section below. |
-| SQL Server | 2016+ / Azure SQL / LocalDB | Any instance reachable from the machine running the load generator. |
+Docker + bash, plus a host Azure session (the `token-server` vends Managed
+Identity tokens from your `~/.azure`):
 
-### Install JDK (if needed)
+- `az login` to the tenant owning the target storage/Event Hub (defaults:
+  `mdrrahmansandbox`, tenant `72f9…`).
+- **AcrPull** on `arcdataanalyticsacr.azurecr.io` — `dev.sh` runs `az acr login`.
+- **RBAC** on the storage account / Event Hub only if you want data to land in
+  Delta Lake; the local green gates never inspect Azure.
 
-Download from https://adoptium.net (Temurin) or https://www.microsoft.com/openjdk.
+JDK, Maven, and SQL Server all run in containers.
 
-Verify: `java -version`
+## Quickstart
 
-### Install Maven (if needed)
-
-Download from https://maven.apache.org/download.cgi, extract, and add `bin/` to `PATH`.
-
-Verify: `mvn -version`
-
-## Using Your Own OTel Endpoint
-
-If you already have an OTLP/HTTP backend (Azure Monitor, Grafana Cloud, Honeycomb,
-Datadog, a remote collector, etc.) you can skip `docker compose up` entirely and
-point the driver straight at it.
-
-**Step 1 — Set your connection string as normal:**
-
-```powershell
-$env:mssql_jdbc_test_connection_properties = "jdbc:sqlserver://<HOST>:1433;user=<USER>;password=<PASSWORD>;trustServerCertificate=true;"
+```bash
+cd docs/otel-poc
+./.scripts/dev.sh
 ```
 
-**Step 2 — Pass your endpoint and any auth headers via `-D` system properties:**
+Each `up` starts fresh (`down --volumes` + clears `target/`), brings the stack
+up, proves it green, and leaves a load generator running. It ends with a
+**GREEN** banner and the Aspire URL:
 
-```powershell
-mvn -B -Pjre11 exec:java -Dexec.classpathScope=test `
-  -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen `
-  -Dexec.args="forever" `
-  -DotelEndpoint=https://otlp.example.com/v1/metrics `
-  -DotelExportInterval=10
+- **Aspire Dashboard** — http://localhost:18888 (service `mssql-jdbc-poc-loadgen`).
+  On a remote dev container, forward port **18888**.
+- Collector OTLP — `localhost:4318` (HTTP) / `4317` (gRPC).
+
+## Commands
+
+```bash
+./.scripts/dev.sh            # up: fresh start, build, prove green, leave loadgen running
+./.scripts/dev.sh status     # container status + health + Aspire URL
+./.scripts/dev.sh logs [svc] # tail all logs, or one service (loadgen, otelcol-arcdata, …)
+./.scripts/dev.sh down       # stop + remove the stack
+./.scripts/dev.sh clean      # down + drop the SQL volume + target/
 ```
 
-For backends that require an API key or auth header, append it directly in the
-connection string. Use `otelUseSqlAccessToken=true` when you want the driver to
-reuse the same SQL AAD access token for OTLP/HTTP `Authorization: Bearer ...`.
-Use `otelHeaders` for any other headers, and keep `otelBearerToken` only for a
-separate, pre-existing bearer token:
+## GREEN (asserted automatically; local only — Azure is best-effort, never inspected)
 
-```powershell
-$env:mssql_jdbc_test_connection_properties = "jdbc:sqlserver://<HOST>:1433;...;otelEndpoint=https://otlp.example.com/v1/metrics;otelUseSqlAccessToken=true;otelServiceName=my-team-app;"
+| #   | Gate                        | Check                                                                         |
+| --- | --------------------------- | ----------------------------------------------------------------------------- |
+| 1   | Smoke test                  | `OtelPocSmokeTest` passes against SQL Server.                                 |
+| 2   | Telemetry reaches collector | arcdata `debug` exporter logs driver **metrics** + **traces**.                |
+| 3   | Aspire receiving            | Dashboard answers on `:18888`; `otlp/aspire` export not failing.              |
+| 4   | Health                      | sqlserver + token-server healthy; arcdata, delta-bulk-loader, aspire running. |
+
+## Overrides (env)
+
+| Variable                                                     | Default                                             | Purpose                       |
+| ------------------------------------------------------------ | --------------------------------------------------- | ----------------------------- |
+| `MSSQL_SA_PASSWORD`                                          | `Otel_Poc_Str0ng!Pass`                              | SA password.                  |
+| `BURST_SECONDS`                                              | `60`                                                | Green-gate load-burst length. |
+| `OTELCOL_ARCDATA_IMAGE` / `DELTA_BULK_LOADER_IMAGE`          | pinned                                              | Override the private images.  |
+| `STORAGE_ACCOUNT` / `STORAGE_CONTAINER` / `ROOT_PATH`        | `mdrrahmansandbox` / `onelake` / `arcdata-otel-poc` | Delta Lake target.            |
+| `EVENT_HUB_NAMESPACE` / `EVENT_HUB_NAME` / `AZURE_TENANT_ID` | sandbox defaults                                    | Event Hub + tenant.           |
+
+## Layout
+
+- `docker-compose.yml`, `Dockerfile`, `settings.xml`, `.scripts/dev.sh`
+- `internal/` (vendored): `token-server/`,
+  `otelcol-arcdata/deltalake-e2e.yaml` (`otlp` → `deltalake` + `otlp/aspire` + `debug`),
+  `delta-bulk-loader/appsettings.json`
+- Driver sources: `src/test/java/com/microsoft/sqlserver/jdbc/otel/{OtelPocLoadGen,OtelPocSmokeTest}.java`
+
+## OTel export auth
+
+Attach an `Authorization` header to OTLP/HTTP exports via connection-string properties:
+
+| Property                       | Default | Effect                                                                                                                                                    |
+| ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `otelUseSqlAccessToken`        | `false` | Reuse the SQL AAD access token as OTLP `Authorization: Bearer …`.                                                                                         |
+| `otelAccessTokenCallbackClass` | —       | FQCN of a `SQLServerAccessTokenCallback`; the driver calls it to mint the OTLP bearer JWT and re-mints it near expiry — **independent of the SQL login**. |
+| `otelBearerToken`              | —       | Explicit static bearer token sent as `Authorization: Bearer …`.                                                                                           |
+| `otelHeaders`                  | —       | Comma-separated `key=value` headers (e.g. vendor API keys).                                                                                               |
+
+Precedence: `otelUseSqlAccessToken` (when a SQL AAD token was acquired) → `otelAccessTokenCallbackClass`
+→ `otelBearerToken` → none, plus anything in `otelHeaders`. The `Authorization` header is resolved on
+**every OTLP export** via a `Supplier`, so token renewals are picked up without rebuilding the pipeline:
+the reused SQL AAD token refreshes on each fedAuth (re)connect, and the callback JWT is re-minted shortly
+before its expiry. A callback failure is non-fatal — export continues with the last good bearer (or none).
+
+The POC ships a demo callback,
+`com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback`, that mints the JWT with
+`AzureCliCredential` (the `az` CLI + mounted `~/.azure`). The `loadgen` service uses it
+(`otelUseSqlAccessToken=false` + `otelAccessTokenCallbackClass=…AzureCliAccessTokenCallback`), so SQL
+stays on SA auth while OTLP export carries a real AAD JWT. Prove it in isolation:
+
+```bash
+docker compose run --rm --no-deps app mvn -B -Pjre11 -DskipTests test-compile \
+  org.codehaus.mojo:exec-maven-plugin:3.1.0:java -Dexec.classpathScope=test \
+  -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelTokenHeaderCheck
 ```
 
-Common endpoint formats:
-
-| Backend                | `otelEndpoint` value                                      | Header needed |
-|------------------------|-----------------------------------------------------------|---------------|
-| Grafana Cloud          | `https://<instance>.grafana.net/otlp/v1/metrics`          | `Authorization=Basic <base64(user:token)>` |
-| Honeycomb              | `https://api.honeycomb.io/v1/metrics`                     | `x-honeycomb-team=<API_KEY>` |
-| Azure Monitor (via collector) | `http://<collector-host>:4318/v1/metrics`          | none (collector handles auth) |
-| Datadog                | `https://api.datadoghq.com/api/v0.2/series`               | `DD-API-KEY=<KEY>` |
-| Local collector        | `http://localhost:4318/v1/metrics`                        | none |
-
-> The driver ships **metrics and traces on the same base endpoint**. It derives
-> the traces URL by replacing `/v1/metrics` with `/v1/traces`. Make sure your
-> backend or collector accepts both paths, or use a collector as a fan-out proxy.
-
-## Bring Up The Local Observability Stack (Docker)
-
-From repository root:
-
-```powershell
-cd docs\otel-poc
-docker compose up -d
-```
-
-Verify containers:
-
-```powershell
-docker compose ps
-```
-
-## URLs
-
-- Grafana: http://localhost:3000
-- Prometheus: http://localhost:9090
-- Jaeger UI: http://localhost:16686
-- OTLP HTTP ingest (driver -> collector): http://localhost:4318/v1/metrics and http://localhost:4318/v1/traces
-- Prometheus scrape endpoint (collector): http://localhost:8889/metrics
-
-## Build Driver And Test Classes
-
-From repository root:
-
-```powershell
-mvn -B -Pjre11 -DskipTests test-compile
-```
-
-## Run The Load Generator (Post-build)
-
-### 1. Set your SQL Server connection string
-
-Replace `<HOST>`, `<USER>`, and `<PASSWORD>` with your values.
-`trustServerCertificate=true` is needed for local/self-signed SQL Server instances.
-
-```powershell
-$env:mssql_jdbc_test_connection_properties = "jdbc:sqlserver://<HOST>:1433;user=<USER>;password=<PASSWORD>;trustServerCertificate=true;"
-```
-
-Example (LocalDB):
-```powershell
-$env:mssql_jdbc_test_connection_properties = "jdbc:sqlserver://localhost\SQLEXPRESS:1433;user=sa;password=YourPassword;trustServerCertificate=true;"
-```
-
-### 2. OTel connection-string properties (all optional)
-
-The load generator appends these automatically; you can override them via JVM system properties:
-
-| JVM system property   | Connection-string property | Default                                  | Description                                 |
-|-----------------------|----------------------------|------------------------------------------|---------------------------------------------|
-| `otelEndpoint`        | `otelEndpoint`             | `http://localhost:4318/v1/metrics`       | OTLP/HTTP endpoint the driver POSTs to      |
-| `otelExportInterval`  | `otelExportInterval`       | `5` (seconds)                            | How often metrics/traces are flushed        |
-| `loadgen.sleepMs`     | —                          | `200` (ms)                               | Sleep between load iterations               |
-| `otelUseSqlAccessToken` | `otelUseSqlAccessToken`   | `false`                                  | Reuse the SQL AAD access token as OTLP `Authorization` |
-
-You can also set them directly in the connection string passed to `mssql_jdbc_test_connection_properties`:
-
-```
-...;otelEndpoint=http://localhost:4318/v1/metrics;otelServiceName=my-app;otelExportInterval=10;otelUseSqlAccessToken=true;
-```
-
-All available `otel*` connection-string properties:
-
-| Property              | Example value                              | Description                                                      |
-|-----------------------|--------------------------------------------|------------------------------------------------------------------|
-| `otelEndpoint`        | `http://localhost:4318/v1/metrics`         | Required to activate OTel export. Point at the collector or any OTLP/HTTP backend. |
-| `otelServiceName`     | `mssql-jdbc-poc-loadgen`                   | `service.name` resource attribute in OTel spans/metrics          |
-| `otelExportInterval`  | `5`                                        | Metric export interval in seconds (default 60)                   |
-| `otelHeaders`         | `x-api-key=eyJ…,X-Tenant=demo`           | Comma-separated `key=value` pairs sent as HTTP headers           |
-| `otelUseSqlAccessToken` | `true`                                  | Reuse the SQL AAD access token as OTLP `Authorization`           |
-| `otelBearerToken`     | `eyJ…`                                    | Sent as `Authorization: Bearer <token>` on every OTLP/HTTP export |
-
-### 2.1 OTel auth header precedence and caveats
-
-When the driver builds OTLP/HTTP exporters, auth header resolution is:
-
-1. If `otelUseSqlAccessToken=true` and a SQL AAD token was acquired, use that token for `Authorization: Bearer ...`.
-2. Else if `otelBearerToken` is set, use `otelBearerToken` for `Authorization: Bearer ...`.
-3. Else no bearer `Authorization` header is added (except anything you manually set in `otelHeaders`).
-
-Notes:
-
-- SQL token reuse works only for flows that actually acquire `fedAuthToken` (Azure AD authentication modes).
-- If `otelUseSqlAccessToken=true` but no SQL token is available yet, OTel bootstrap waits and initializes later after token acquisition.
-
-### 3. Run commands
-
-Run forever (Ctrl+C to stop):
-
-```powershell
-mvn -B -Pjre11 exec:java -Dexec.classpathScope=test -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen -Dexec.args="forever"
-```
-
-Run for 120 seconds:
-
-```powershell
-mvn -B -Pjre11 exec:java -Dexec.classpathScope=test -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen -Dexec.args="120 s"
-```
-
-Override OTel properties at the command line:
-
-```powershell
-mvn -B -Pjre11 exec:java -Dexec.classpathScope=test -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen -Dexec.args="forever" -DotelEndpoint=http://localhost:4318/v1/metrics -DotelExportInterval=5 -Dloadgen.sleepMs=200
-```
-
-## Run The Smoke Test
-
-```powershell
-mvn -B -Pjre11 -Dtest=OtelPocSmokeTest -DfailIfNoTests=false test
-```
-
-## See Metrics In Grafana
-
-- Open http://localhost:3000
-- Dashboards -> mssql-jdbc -> mssql-jdbc - driver metrics
-
-## See Traces In Jaeger
-
-- Open http://localhost:16686
-- Service: mssql-jdbc-poc-loadgen
-- Operation examples:
-  - db.client.statement.execute
-  - db.client.statement.prepexec
-  - db.client.connection
-
-You can also query Jaeger API directly:
-
-```powershell
-Invoke-RestMethod -Uri "http://localhost:16686/api/services"
-Invoke-RestMethod -Uri "http://localhost:16686/api/traces?service=mssql-jdbc-poc-loadgen&limit=5&lookback=1h"
-```
-
-## See Collector Logs (Metrics + Trace Export)
-
-```powershell
-cd docs\otel-poc
-docker compose logs -f otel-collector
-```
-
-## See Jaeger Logs
-
-```powershell
-cd docs\otel-poc
-docker compose logs -f jaeger
-```
-
-## Stop Everything
-
-```powershell
-cd docs\otel-poc
-docker compose down
-```
+(Override the requested scope with `-DotelAccessTokenScope=…`; default `https://database.windows.net/.default`.)
 
 ## Notes
 
-- The driver uses connection property otelEndpoint to turn OTel export on.
-- If GlobalOpenTelemetry is already set by the host app, the driver reuses it.
-- Existing PerformanceLogCallback duration behavior remains backward-compatible.
+- `otelcol-arcdata` has **no Prometheus exporter** — the Aspire Dashboard (over
+  OTLP) is the local viz, replacing the old Prometheus/Grafana/Jaeger stack.
+- The collector serves Aspire even if Azure isn't fully provisioned; Delta Lake
+  writes just log errors until RBAC is in place, so the POC stays green locally.
+- The driver activates OTel via the `otelEndpoint` connection property; the load
+  generator sets `otelEndpoint` / `otelServiceName` / `otelExportInterval` for you.
+- `target/` is written root-owned inside the container; `clean` removes it.
+
+## UI
+
+Aspire is up by default at:  `http://localhost:18888/structuredlogs`
+
+Portainer is up by default at:  `https://localhost:9443` — full Docker UI (logs, stats, shells). Pre-seeded admin login: `admin` / the POC SA password (`Otel_Poc_Str0ng!Pass`); self-signed TLS, so accept the browser warning.
+
+To get [Lazydocker](https://github.com/jesseduffield/lazydocker):
+
+```bash
+curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
+```

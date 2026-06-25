@@ -1,0 +1,164 @@
+# otelcol-arcdata config for the mssql-jdbc OTel POC.
+
+extensions:
+  healthcheckv2:
+    use_v2: true
+    component_health:
+      include_permanent_errors: false
+      include_recoverable_errors: false
+    http:
+      endpoint: 0.0.0.0:13133
+      status:
+        enabled: true
+        path: "/health/status"
+
+  misecontainerauth:
+    # The loadgen's Azure CLI app is intentionally NOT listed as first-party so its (valid, but
+    # no-xms_mirid) user token falls through to the CheckAccess (RBAC) authorization path below,
+    # which the MISE AzureAuthorizationModule evaluates against the x-ms-arm-resource-id header.
+    first_party_app_ids: []
+    first_party_tenant_ids: []
+    first_party_subscriptions:
+      - 00000000-0000-0000-0000-000000000000 # Unused; required to be non-empty by the extension
+    authz_check_access:
+      enabled: true
+      arm_resource_id_header: x-ms-arm-resource-id
+      decision_cache_max_size: 10000
+      decision_cache_ttl_sec: 0 # cache each decision for the caller token's lifetime (exp)
+    http:
+      mise_service_endpoint: http://mise:5000/ValidateRequest
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        max_recv_msg_size_mib: 64
+        include_metadata: true
+      http:
+        endpoint: 0.0.0.0:4318
+        include_metadata: true
+        # MISE auth on the HTTP path only (the driver/loadgen path). gRPC :4317 stays
+        # open so the delta-bulk-loader's internal telemetry keeps flowing unauthenticated.
+        auth:
+          authenticator: misecontainerauth
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 2048
+    spike_limit_mib: 512
+  batch:
+    send_batch_size: 8192
+    send_batch_max_size: 8192
+    timeout: 1s
+
+  metadataprocessor:
+    client_addr_key: "client.address"
+    headers:
+      authorization: "http.request.header.authorization"
+      user-agent: "http.request.header.user_agent"
+      content-type: "http.request.header.content_type"
+
+exporters:
+  deltalake/otap:
+    storage_url: "https://${env:STORAGE_ACCOUNT}.dfs.core.windows.net"
+    container: "${env:STORAGE_CONTAINER}"
+    root_path: "${env:ROOT_PATH}"
+
+    auth:
+      authentication_method: "SystemManagedIdentity"
+
+    delta_bulk_loader:
+      storage_account_csharp_named_auth_type: "ManagedIdentityCredential"
+      event_hub:
+        enabled: true
+        namespace: "${env:EVENT_HUB_NAMESPACE}"
+        name: "${env:EVENT_HUB_NAME}"
+        tenant_id: "${env:AZURE_TENANT_ID}"
+        publish_timeout: 30s
+        auth:
+          authentication_method: "SystemManagedIdentity"
+
+    parquet:
+      compression: "zstd"
+      row_group_target_rows: 1000000
+      page_buffer_size: 524288
+      data_page_size_bytes: 2097152
+
+    buffer:
+      max_buffer_rows: 1000
+      flush_timeout: 60s
+      flush_check_interval: 5s
+      max_memory_usage_in_mega_bytes: 65536
+
+    partition:
+      default:
+        time: "event_year_date_hour"
+        data_columns: ["application"]
+
+    sending_queue:
+      enabled: false
+    timeout: 60s
+    marshaler: otap_parquet
+
+  otlp/aspire:
+    endpoint: http://aspire-dashboard:18889
+    tls:
+      insecure: true
+
+  debug:
+    verbosity: basic
+
+  debug/headers:
+    verbosity: basic
+
+service:
+  extensions: [healthcheckv2, misecontainerauth]
+  telemetry:
+    resource:
+      service.name: otelcol-arcdata
+    metrics:
+      readers:
+        - periodic:
+            interval: 15000
+            exporter:
+              otlp:
+                protocol: grpc
+                endpoint: http://aspire-dashboard:18889
+                insecure: true
+    traces:
+      processors:
+        - batch:
+            exporter:
+              otlp:
+                protocol: grpc
+                endpoint: http://aspire-dashboard:18889
+                insecure: true
+    logs:
+      level: info
+      processors:
+        - batch:
+            exporter:
+              otlp:
+                protocol: grpc
+                endpoint: http://aspire-dashboard:18889
+                insecure: true
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [deltalake/otap, otlp/aspire, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, metadataprocessor, batch]
+      exporters: [deltalake/otap, otlp/aspire, debug]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [deltalake/otap, otlp/aspire, debug]
+
+    metrics/headers:
+      receivers: [otlp]
+      processors: [metadataprocessor]
+      exporters: [debug/headers]

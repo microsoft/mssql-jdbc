@@ -1,0 +1,12 @@
+# Ignore file for docs/otel-poc/Dockerfile (BuildKit reads <dockerfile>.dockerignore).
+# Patterns are relative to the build context (the repository root). Keep the
+# context small: the image only needs pom.xml, the root build XMLs, and src/.
+.git
+**/target
+tmp
+.devcontainer
+.github
+*.log
+*.iml
+.idea
+.vscode

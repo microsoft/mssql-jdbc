@@ -1,57 +1,264 @@
-# Local visualization stack for the mssql-jdbc OTel POC.
+# Local, Docker-only stack for the mssql-jdbc OTel POC, wired to the team's
+# INTERNAL telemetry pipeline instead of the OSS one.
 #
-#   metrics: driver --OTLP/HTTP:4318--> collector --:8889--> Prometheus --> Grafana :3000
-#   traces : driver --OTLP/HTTP:4318--> collector --OTLP/HTTP:4318--> Jaeger :16686
+#   driver --OTLP/HTTP:4318--> otelcol-arcdata --deltalake--> Azure Delta Lake
+#                                       \                      (token-server = Managed Identity,
+#                                        \                      delta-bulk-loader = Event Hub sink)
+#                                         `--otlp:18889------> aspire-dashboard (local metrics/traces/logs UI)
+#   driver --TDS:1433---------> sqlserver (in-network only)
 #
-# Open Grafana at http://localhost:3000 (anonymous, Admin role) and load the
-# auto-provisioned dashboard "mssql-jdbc — driver metrics" under Dashboards
-# → mssql-jdbc. For traces, use Explore and select the Jaeger datasource.
+# Driven by ./.scripts/dev.sh. Open the Aspire Dashboard at http://localhost:18888
+# (anonymous) for driver metrics, traces, and structured logs.
+#
+# Azure prerequisites on the host: `az login` (the token-server vends Managed
+# Identity tokens from the mounted ~/.azure session) and AcrPull on
+# arcdataanalyticsacr.azurecr.io. See README.md.
+
+# Shared definition for the Java builder/runner image. `app` is a manual, one-shot
+# runner (smoke test, timed burst, probes); `loadgen` runs the generator forever
+# for live dashboards. Both reuse the single baked image and emit OTLP to arcdata.
+x-otel-app: &otel-app
+  build:
+    context: ../..
+    dockerfile: docs/otel-poc/Dockerfile
+  image: mssql-jdbc-otel-poc:local
+  working_dir: /work
+  volumes:
+    - ../..:/work
+    - "${AZURE_HOST_PATH:-${HOME}/.azure}:/root/.azure"
+  environment:
+    # Base JDBC URL consumed by OtelPocSmokeTest (AbstractTest) — SQL auth only, no otel props
+    # (the smoke test is hermetic and appends its own throwaway otelEndpoint).
+    mssql_jdbc_test_connection_properties: "jdbc:sqlserver://sqlserver:1433;user=sa;password=${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass};trustServerCertificate=true;"
+    # Single source of truth for the load generator's full JDBC connection string. OtelPocLoadGen
+    # (the loadgen service AND the dev.sh burst) reads this verbatim and only appends the rotating
+    # prepareMethod. Override ARM_RESOURCE_ID / MSSQL_SA_PASSWORD via the shell or a .env file.
+    #   - SQL auth ...... user=sa + password
+    #   - pooling ....... statementPoolingCacheSize / disableStatementPooling / enablePrepareOnFirst...
+    #   - OTLP export ... otelServiceName / otelExportInterval (endpoint is NOT here — see below)
+    #   - OTLP auth ..... otelUseSqlAccessToken=false + otelAccessTokenCallbackClass (Azure CLI JWT)
+    #   - MISE headers .. otelHeaders -> x-ms-telemetry-kind + the ingress headers (Original-Uri/Method, X-Forwarded-For)
+    #
+    # NOTE: the OTLP endpoint and the ARM resource id are deliberately NOT in this string. On telemetry
+    # boot the driver self-discovers them (Arc-style) from msdb.dbo.SQLServerAzureArcProperties, which the
+    # sqlserver-init service seeds from DEMO_LOCAL_OTEL_ENDPOINT / AZURE_RESOURCE_ID / AZURE_REGION below.
+    # -------------------------------------------------------------------------------------------------------------
+    #
+    # YES ACCESS: /subscriptions/ce859648-30e1-4135-9d0f-8358aebfe789/resourceGroups/otel-bench/providers/Microsoft.Sql/servers/mdrrahmansandbox/databases/jdbc
+    # NO ACCESS:  /subscriptions/78e47976-009f-4d4a-a961-6046cdabf459/resourceGroups/dataflows_e2e_tests/providers/Microsoft.Sql/servers/cdsa-e2e-test-server2/databases/AdventureWorksDW
+    # -------------------------------------------------------------------------------------------------------------
+    #
+    OTEL_POC_CONNECTION_STRING: "jdbc:sqlserver://sqlserver:1433;user=sa;password=${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass};trustServerCertificate=true;statementPoolingCacheSize=20;disableStatementPooling=false;enablePrepareOnFirstPreparedStatementCall=true;otelServiceName=mssql-jdbc-poc-loadgen;otelExportInterval=5;otelUseSqlAccessToken=false;otelAccessTokenCallbackClass=com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback;otelHeaders={x-ms-telemetry-kind=mssql-jdbc-poc,Original-Uri=/v1/metrics,Original-Method=POST,X-Forwarded-For=127.0.0.1}"
+  depends_on:
+    sqlserver:
+      condition: service_healthy
+    sqlserver-init:
+      condition: service_completed_successfully
+    otelcol-arcdata:
+      condition: service_started
 
 services:
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.110.0
-    container_name: mssql-jdbc-otel-collector
-    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+  sqlserver:
+    image: ${SQL_SERVER_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}
+    container_name: mssql-jdbc-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass}"
+      MSSQL_PID: "Developer"
     volumes:
-      - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      # 2022 image ships mssql-tools18 (-C trusts the self-signed cert); the
+      # arm64 azure-sql-edge fallback ships mssql-tools v17. Try both.
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass}\" -Q 'SELECT 1' -b -o /dev/null || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass}\" -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+
+  # One-shot init: idempotently seed msdb.dbo.SQLServerAzureArcProperties (Azure resource id, local
+  # OTLP endpoint, region) that the JDBC driver self-discovers on telemetry boot. Reuses the SQL image
+  # for sqlcmd; runs once after sqlserver is healthy, then exits 0. Values come from the env below.
+  sqlserver-init:
+    image: ${SQL_SERVER_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}
+    container_name: mssql-jdbc-sqlserver-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass}"
+      # The 3 columns the driver discovers. AZURE_RESOURCE_ID reuses dev.sh's ARM_RESOURCE_ID knob.
+      AZURE_RESOURCE_ID: "${ARM_RESOURCE_ID:-/subscriptions/ce859648-30e1-4135-9d0f-8358aebfe789/resourceGroups/otel-bench/providers/Microsoft.Sql/servers/mdrrahmansandbox/databases/jdbc}"
+      DEMO_LOCAL_OTEL_ENDPOINT: "${DEMO_LOCAL_OTEL_ENDPOINT:-http://otelcol-arcdata:4318}"
+      AZURE_REGION: "${AZURE_REGION:-eastus}"
+    volumes:
+      - ./internal/sqlserver-init/arc-properties.sql:/init/arc-properties.sql:ro
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        for SQLCMD in /opt/mssql-tools18/bin/sqlcmd /opt/mssql-tools/bin/sqlcmd; do
+          [ -x "$$SQLCMD" ] || continue
+          CFLAG=""; case "$$SQLCMD" in *mssql-tools18*) CFLAG="-C";; esac
+          echo "sqlserver-init: seeding msdb via $$SQLCMD ..."
+          if "$$SQLCMD" $$CFLAG -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -b -v ArcId="$$AZURE_RESOURCE_ID" OtelEndpoint="$$DEMO_LOCAL_OTEL_ENDPOINT" Region="$$AZURE_REGION" -i /init/arc-properties.sql; then
+            echo "sqlserver-init: msdb seeded."; exit 0
+          fi
+          echo "sqlserver-init: $$SQLCMD attempt failed" >&2
+        done
+        echo "sqlserver-init: failed to seed msdb" >&2; exit 1
+    restart: "no"
+
+  # Vends Entra/Managed-Identity tokens to the collector + bulk loader by thinly
+  # wrapping the host `az` CLI session mounted read-only at /host/.azure.
+  token-server:
+    build:
+      context: ./internal/token-server
+    container_name: mssql-jdbc-token-server
+    environment:
+      IDENTITY_HEADER: "${IDENTITY_HEADER:-e2e-deltalake-secret}"
+    volumes:
+      - "${AZURE_HOST_PATH:-${HOME}/.azure}:/host/.azure:ro"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+  # MISE container sidecar — production-style inbound AuthN plus optional CheckAccess (RBAC)
+  # AuthZ via the AzureAuthorizationModule (1P SNI cert mounted from internal/mise/, see dev.sh).
+  mise:
+    image: "${MISE_IMAGE:-azurehybriddatadogfood.azurecr.io/artifact/ca486455-1a37-40b8-9d7c-9fb79233c8f0/official/misecontainer:20260622.1}"
+    container_name: mssql-jdbc-mise
+    environment:
+      MISE_APPSETTINGS_LOCATION: /mise/mise.appsettings.json
+    volumes:
+      - ./internal/mise/mise.appsettings.json:/mise/mise.appsettings.json:ro
+      - ./internal/mise/kusto-proxy-3p-dev.pfx:/mise/kusto-proxy-3p-dev.pfx:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 18
+      start_period: 10s
+    restart: unless-stopped
+
+  # The team's internal OTel collector. Receives the driver's OTLP, fans every
+  # signal out to Azure Delta Lake (deltalake exporter) and the Aspire Dashboard
+  # (otlp exporter). Config is vendored at internal/otelcol-arcdata/.
+  otelcol-arcdata:
+    image: "${OTELCOL_ARCDATA_IMAGE:-arcdataanalyticsacr.azurecr.io/protobus-benchmark/otelcol-arcdata:protobus-benchmark-20260623233640}"
+    container_name: mssql-jdbc-otelcol-arcdata
+    depends_on:
+      token-server:
+        condition: service_healthy
+      mise:
+        condition: service_healthy
+    environment:
+      CONFIG: "/etc/deltalake-e2e.yaml"
+      # Managed Identity via the token-server sidecar.
+      IDENTITY_ENDPOINT: "http://token-server:8080/metadata/identity/oauth2/token"
+      IDENTITY_HEADER: "${IDENTITY_HEADER:-e2e-deltalake-secret}"
+      IMDS_ENDPOINT: "http://token-server:8080/metadata/identity/oauth2/token"
+      # Azure Delta Lake target (override to point at your own sandbox).
+      STORAGE_ACCOUNT: "${STORAGE_ACCOUNT:-mdrrahmansandbox}"
+      STORAGE_CONTAINER: "${STORAGE_CONTAINER:-onelake}"
+      ROOT_PATH: "${ROOT_PATH:-arcdata-otel-poc}"
+      EVENT_HUB_NAMESPACE: "${EVENT_HUB_NAMESPACE:-mdrrahmansandbox.servicebus.windows.net}"
+      EVENT_HUB_NAME: "${EVENT_HUB_NAME:-delta-bulk-loader}"
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-72f988bf-86f1-41af-91ab-2d7cd011db47}"
+    volumes:
+      - ./internal/otelcol-arcdata/deltalake-e2e.yaml:/etc/deltalake-e2e.yaml:ro
     ports:
+      - "4317:4317"   # OTLP/gRPC
       - "4318:4318"   # OTLP/HTTP (driver -> collector)
-      - "8889:8889"   # Prometheus scrape endpoint (collector -> prometheus)
+      - "13133:13133" # healthcheckv2 probe (/health/status)
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:13133/health/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 18
+      start_period: 10s
+    restart: unless-stopped
 
-  prometheus:
-    image: prom/prometheus:v2.55.0
-    container_name: mssql-jdbc-prometheus
+  # MirrorMaker / Delta Bulk Loader: consumes the collector's Event Hub
+  # notifications and commits the Delta log in Azure Storage.
+  delta-bulk-loader:
+    image: "${DELTA_BULK_LOADER_IMAGE:-arcdataanalyticsacr.azurecr.io/artifact/ca486455-1a37-40b8-9d7c-9fb79233c8f0/buddy/adshybrid/dataplane-mirror-maker-service:latest}"
+    container_name: mssql-jdbc-delta-bulk-loader
+    entrypoint: ["/usr/bin/dotnet", "/app/Dataplane.StreamProcessing.MirrorMaker.dll"]
+    depends_on:
+      token-server:
+        condition: service_healthy
+    environment:
+      IDENTITY_ENDPOINT: "http://token-server:8080/metadata/identity/oauth2/token"
+      IDENTITY_HEADER: "${IDENTITY_HEADER:-e2e-deltalake-secret}"
+      IMDS_ENDPOINT: "http://token-server:8080/metadata/identity/oauth2/token"
+      TOKEN_CREDENTIAL_MODE_OVERRIDE: "ManagedIdentityCredential"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otelcol-arcdata:4317"
+      AddLogsOtlpExporter: "false"
+      AddMetricsOtlpExporter: "false"
+      AddTracingOtlpExporter: "false"
+    volumes:
+      - ./internal/delta-bulk-loader/appsettings.json:/app/appsettings.json:ro
+    restart: unless-stopped
+
+  # .NET Aspire Dashboard — unified local UI for metrics, traces, and logs.
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:8.0
+    container_name: mssql-jdbc-aspire-dashboard
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    ports:
+      - "18888:18888" # Dashboard UI
+      - "18889:18889" # OTLP ingress (collector -> dashboard)
+    restart: unless-stopped
+
+  # Portainer CE — local Docker management UI (browse container logs, stats, shells).
+  # Pre-seeded admin so there is no first-run setup wizard and no "instance timed out
+  # for security" lockout: log in with admin / the password in
+  # internal/portainer/admin-password (the POC SA password by default).
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: mssql-jdbc-portainer
+    command: ["--admin-password-file", "/run/portainer/admin-password"]
+    ports:
+      - "9443:9443" # HTTPS UI (self-signed cert)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+      - ./internal/portainer/admin-password:/run/portainer/admin-password:ro
+    restart: unless-stopped
+
+  # Manual one-shot runner. Never auto-starts (tools profile); dev.sh invokes it
+  # via `docker compose run --rm app <mvn ...>` for test-compile, the smoke test,
+  # the timed burst, and the health/flow probes.
+  app:
+    <<: *otel-app
+    container_name: mssql-jdbc-otel-app
+    profiles: ["tools"]
+
+  # Long-running load generator for live dashboards. Started by dev.sh after the
+  # green gates pass; keeps shipping metrics + traces until `dev.sh down`.
+  loadgen:
+    <<: *otel-app
+    container_name: mssql-jdbc-otel-loadgen
+    profiles: ["loadgen"]
+    restart: unless-stopped
     command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=1h"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    ports:
-      - "9090:9090"
-    depends_on:
-      - otel-collector
+      - mvn
+      - -B
+      - -Pjre11
+      - org.codehaus.mojo:exec-maven-plugin:3.1.0:java
+      - -Dexec.classpathScope=test
+      - -Dexec.mainClass=com.microsoft.sqlserver.jdbc.otel.OtelPocLoadGen
+      - -Dexec.args=forever
+      # The full JDBC connection string (SQL auth + statement pooling + all otel* props +
+      # otelArmResourceId + otelHeaders) is the single OTEL_POC_CONNECTION_STRING env var on
+      # x-otel-app above; OtelPocLoadGen reads it and only appends the rotating prepareMethod.
 
-  jaeger:
-    image: jaegertracing/all-in-one:1.62
-    container_name: mssql-jdbc-jaeger
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    ports:
-      - "16686:16686" # Jaeger UI
-      - "4319:4318"   # Host OTLP/HTTP ingress to Jaeger
-
-  grafana:
-    image: grafana/grafana:11.3.0
-    container_name: mssql-jdbc-grafana
-    environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-    ports:
-      - "3000:3000"
-    depends_on:
-      - prometheus
-      - jaeger
+volumes:
+  mssql-data:
+  portainer_data:
