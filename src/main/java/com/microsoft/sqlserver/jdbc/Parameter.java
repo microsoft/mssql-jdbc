@@ -63,6 +63,18 @@ final class Parameter {
 
     private boolean forceEncryption = false;
 
+    // Set to true when defineParameterType() has been called for this parameter.
+    // When true, valueLength holds the caller-supplied max-length hint and the type
+    // definition (e.g. varchar(N)) is built from that hint rather than the conservative
+    // driver default (e.g. varchar(8000) / nvarchar(4000) / varbinary(8000)).
+    // This code path does not truncate the client-side value before writing it to TDS;
+    // SQL Server enforces the declared parameter type/length represented by that hint.
+    private boolean defineParameterTypeCalled = false;
+
+    void setDefineParameterTypeCalled(boolean value) {
+        this.defineParameterTypeCalled = value;
+    }
+
     Parameter(boolean honorAE) {
         shouldHonorAEForParameter = honorAE;
     }
@@ -202,6 +214,7 @@ final class Parameter {
         clonedParam.valueLength = valueLength;
         clonedParam.userProvidesPrecision = userProvidesPrecision;
         clonedParam.userProvidesScale = userProvidesScale;
+        clonedParam.defineParameterTypeCalled = defineParameterTypeCalled;
         return clonedParam;
     }
 
@@ -621,6 +634,16 @@ final class Parameter {
                         if (JDBCType.LONGVARBINARY == jdbcTypeSetByUser) {
                             param.typeDefinition = VARBINARY_MAX;
                         }
+                    } else if (param.defineParameterTypeCalled) {
+                        // defineParameterType hint: declare the user-specified length for
+                        // VARBINARY/BINARY. Data exceeding the hint is truncated on the wire.
+                        int hint = param.valueLength;
+                        if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
+                            param.typeDefinition = VARBINARY_MAX;
+                        } else {
+                            // Math.max(hint, 1): varbinary(0) is an invalid TDS token; minimum is varbinary(1)
+                            param.typeDefinition = SSType.VARBINARY.toString() + "(" + Math.max(hint, 1) + ")";
+                        }
                     } else
                         param.typeDefinition = VARBINARY_8K;
                     break;
@@ -775,6 +798,16 @@ final class Parameter {
                                 param.typeDefinition = VARCHAR_MAX;
                             }
                         }
+                    } else if (param.defineParameterTypeCalled) {
+                        // defineParameterType hint: declare the user-specified length for
+                        // VARCHAR/CHAR. Data exceeding the hint is truncated on the wire.
+                        int hint = param.valueLength;
+                        if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
+                            param.typeDefinition = VARCHAR_MAX;
+                        } else {
+                            // Math.max(hint, 1): varchar(0) is an invalid TDS token; minimum is varchar(1)
+                            param.typeDefinition = SSType.VARCHAR.toString() + "(" + Math.max(hint, 1) + ")";
+                        }
                     } else
                         param.typeDefinition = VARCHAR_8K;
                     break;
@@ -907,6 +940,16 @@ final class Parameter {
                             }
                         }
                         break;
+                    } else if (param.defineParameterTypeCalled) {
+                        // defineParameterType hint: declare the user-specified length for
+                        // NVARCHAR/NCHAR. Data exceeding the hint is truncated on the wire.
+                        int hint = param.valueLength;
+                        if (hint > DataTypes.SHORT_VARTYPE_MAX_CHARS) {
+                            param.typeDefinition = NVARCHAR_MAX;
+                        } else {
+                            // Math.max(hint, 1): nvarchar(0) is an invalid TDS token; minimum is nvarchar(1)
+                            param.typeDefinition = SSType.NVARCHAR.toString() + "(" + Math.max(hint, 1) + ")";
+                        }
                     } else
                         param.typeDefinition = NVARCHAR_4K;
                     break;

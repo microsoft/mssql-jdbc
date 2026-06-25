@@ -111,6 +111,50 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     int getPreparedStatementHandle() throws SQLServerException;
 
     /**
+     * Specifies the SQL type and maximum character or byte length for a parameter, allowing the driver to use a
+     * tighter type declaration than the default (e.g. {@code varchar(50)} instead of {@code varchar(8000)}). This
+     * enables SQL Server to compute a more accurate memory grant for query execution plans, which is especially
+     * beneficial for large batch operations.
+     *
+     * <p><strong>Important:</strong> The {@code sqlType} argument is used only for validation (to ensure the
+     * type is one of the supported character or binary families). It is <em>not</em> persisted or enforced at
+     * execution time. The actual wire type is determined by the setter method invoked on the parameter
+     * (e.g. {@code setString} → NVARCHAR when {@code sendStringParametersAsUnicode=true},
+     * {@code setNString} → NVARCHAR, {@code setBytes} → VARBINARY). Only the {@code maxLength} value is
+     * retained and applied to the type definition sent to the server.
+     *
+     * The hint persists across {@code addBatch} calls on this prepared statement for the specified parameter —
+     * call it once before the batch loop. Only character types (VARCHAR, CHAR, NVARCHAR, NCHAR) and binary types
+     * (VARBINARY, BINARY) are supported.
+     *
+     * If a value longer than {@code maxLength} is set, this hint does not cause the driver to truncate the
+     * outbound characters or bytes before sending them. Instead, the declared parameter type sent to SQL Server
+     * uses {@code maxLength}, and SQL Server may truncate or otherwise enforce that declared length when
+     * processing the parameter value. The caller is responsible for setting a hint that accommodates their
+     * largest expected value.
+     *
+     * When {@code sendStringParametersAsUnicode} is {@code true} (the default), VARCHAR/CHAR hints produce a
+     * declared parameter type of {@code nvarchar(N)} because {@code setString()} promotes the parameter to
+     * NVARCHAR. When {@code sendStringParametersAsUnicode} is {@code false}, VARCHAR/CHAR hints produce
+     * {@code varchar(N)}. {@code setNString()} always produces {@code nvarchar(N)} regardless of the connection
+     * property.
+     * 
+     * @param parameterIndex
+     *        the first parameter is 1, the second is 2, ...
+     * @param sqlType
+     *        a {@code java.sql.Types} constant indicating the intended type family; used only for validation
+     *        (must be VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, or BINARY). The actual wire type is determined
+     *        by the setter method called on the parameter, not by this value.
+     * @param maxLength
+     *        the expected maximum length in characters (for VARCHAR/CHAR/NVARCHAR/NCHAR) or bytes (for
+     *        VARBINARY/BINARY); must be >= 0
+     * @throws SQLServerException
+     *         if {@code parameterIndex} is out of range, {@code maxLength} is negative, {@code sqlType} is not a
+     *         supported type, or this method is called on a closed statement
+     */
+    void defineParameterType(int parameterIndex, int sqlType, int maxLength) throws SQLServerException;
+
+    /**
      * Sets the designated parameter to the given <code>java.math.BigDecimal</code> value. The driver converts this to
      * an SQL <code>NUMERIC</code> value when it sends it to the database.
      *
