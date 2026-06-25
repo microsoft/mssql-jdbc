@@ -5,6 +5,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,6 +31,7 @@ import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
 
 /**
  * POC for docs/otelproposal.md Solution 4: when the user sets {@code otelEndpoint}
@@ -61,6 +64,21 @@ final class OtelBootstrap {
 
     /** Header carrying the optional ARM resource id used by the collector for CheckAccess authorization. */
     private static final String ARM_RESOURCE_ID_HEADER = "x-ms-arm-resource-id";
+
+    /**
+     * Internal carry key (NOT a registered connection property) used to thread the Arc-discovered Azure
+     * region from {@link #discoverAndInitialize} through to the OpenTelemetry {@code cloud.region} resource
+     * attribute. Set only on a private clone of the connection properties, never parsed from a URL.
+     */
+    private static final String DISCOVERED_REGION_KEY = "otelDiscoveredArmRegion";
+
+    /**
+     * msdb table an Arc-enabled SQL Server (and this POC's SQL init) advertises the local Azure resource id,
+     * OTLP collector endpoint, and region in. Queried once on telemetry boot when no explicit
+     * {@code otelEndpoint} is configured.
+     */
+    private static final String ARC_PROPERTIES_QUERY = "SELECT TOP 1 DemoLocalOtelEndpoint, AzureResourceId, "
+            + "AzureRegion FROM msdb.dbo.SQLServerAzureArcProperties";
 
     /**
      * Most recent {@code otelAccessTokenCallbackClass} bearer paired with its absolute expiry. Refreshed by
@@ -152,6 +170,89 @@ final class OtelBootstrap {
         }
     }
 
+    /**
+     * Arc auto-discovery: when no explicit {@code otelEndpoint} is configured, look up the local OTLP
+     * endpoint, Azure resource id, and region from {@code msdb.dbo.SQLServerAzureArcProperties} on the
+     * just-opened connection and bootstrap OpenTelemetry export from those values. This lets an application
+     * enable export with zero otel routing configuration when connected to an (Arc-enabled) SQL Server that
+     * advertises these properties.
+     *
+     * <p>Best-effort and fail-safe by contract: a missing table, missing msdb permission, an empty row, or
+     * any other error logs at FINE and leaves the connection untouched. Callers additionally guard against
+     * {@link NoClassDefFoundError} for runtimes without the optional OpenTelemetry libraries.
+     *
+     * @param con   the freshly-opened connection to query
+     * @param props the active connection properties (carry otelServiceName / otelExportInterval / otelHeaders /
+     *              otelAccessTokenCallbackClass etc. used to build the exporter)
+     */
+    static void discoverAndInitialize(SQLServerConnection con, Properties props) {
+        if (props == null || con == null || initialized.get()) {
+            return;
+        }
+        // Explicit otelEndpoint always wins; the ensureInitialized path already owns that case.
+        if (!trim(props.getProperty(SQLServerDriverStringProperty.OTEL_ENDPOINT.toString())).isEmpty()) {
+            return;
+        }
+
+        String endpoint;
+        String armResourceId;
+        String region;
+        try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery(ARC_PROPERTIES_QUERY)) {
+            if (!rs.next()) {
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.fine("OTel Arc discovery: SQLServerAzureArcProperties has no row; export not enabled.");
+                }
+                return;
+            }
+            endpoint = trim(rs.getString(1));
+            armResourceId = trim(rs.getString(2));
+            region = trim(rs.getString(3));
+        } catch (Exception e) {
+            // Missing table / no msdb access / not an Arc-enabled server: stay silent and disabled.
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine("OTel Arc discovery unavailable (" + e.getClass().getSimpleName() + ": " + e.getMessage()
+                        + "); export not enabled.");
+            }
+            return;
+        }
+
+        if (endpoint.isEmpty()) {
+            return;
+        }
+
+        String metricsEndpoint = normalizeMetricsEndpoint(endpoint);
+        Properties discovered = (Properties) props.clone();
+        discovered.setProperty(SQLServerDriverStringProperty.OTEL_ENDPOINT.toString(), metricsEndpoint);
+        if (!armResourceId.isEmpty()) {
+            discovered.setProperty(SQLServerDriverStringProperty.OTEL_ARM_RESOURCE_ID.toString(), armResourceId);
+        }
+        if (!region.isEmpty()) {
+            discovered.setProperty(DISCOVERED_REGION_KEY, region);
+        }
+        if (logger.isLoggable(Level.INFO)) {
+            logger.info("OTel Arc discovery: endpoint=" + metricsEndpoint + " armResourceId="
+                    + (armResourceId.isEmpty() ? "(none)" : armResourceId) + " region="
+                    + (region.isEmpty() ? "(none)" : region));
+        }
+        ensureInitialized(discovered);
+    }
+
+    /**
+     * Ensures the OTLP/HTTP metrics endpoint ends in {@code /v1/metrics} (the span exporter derives
+     * {@code /v1/traces} from it). A bare base URL such as {@code http://host:4318} gets the suffix appended;
+     * a value already ending in {@code /v1/metrics} or {@code /v1/traces} is returned unchanged.
+     */
+    private static String normalizeMetricsEndpoint(String endpoint) {
+        String e = endpoint;
+        while (e.endsWith("/")) {
+            e = e.substring(0, e.length() - 1);
+        }
+        if (e.endsWith("/v1/metrics") || e.endsWith("/v1/traces")) {
+            return e;
+        }
+        return e + "/v1/metrics";
+    }
+
     private static OpenTelemetry buildOrReuseGlobal(Properties props, String endpoint) {
         OpenTelemetry existing = GlobalOpenTelemetry.get();
         if (existing != OpenTelemetry.noop()) {
@@ -198,8 +299,7 @@ final class OtelBootstrap {
                 .setEndpoint(endpoint);
         exporterBuilder.setHeaders(headerSupplier);
 
-        Resource resource = Resource.getDefault().merge(
-                Resource.create(Attributes.of(AttributeKey.stringKey("service.name"), serviceName)));
+        Resource resource = buildResource(props, serviceName);
 
         SdkMeterProvider meterProvider = SdkMeterProvider.builder()
                 .setResource(resource)
@@ -233,6 +333,20 @@ final class OtelBootstrap {
             meterProvider.close();
         }, "mssql-jdbc-otel-shutdown"));
         return sdk;
+    }
+
+    /**
+     * Builds the exporter's OTel {@link Resource}: always carries {@code service.name}, and — when an Arc
+     * region was discovered (see {@link #discoverAndInitialize}) — the {@code cloud.region} attribute so the
+     * region surfaces on every exported metric/trace (and thus in the downstream tables / Aspire).
+     */
+    private static Resource buildResource(Properties props, String serviceName) {
+        AttributesBuilder attrs = Attributes.builder().put(AttributeKey.stringKey("service.name"), serviceName);
+        String region = trim(props.getProperty(DISCOVERED_REGION_KEY));
+        if (!region.isEmpty()) {
+            attrs.put(AttributeKey.stringKey("cloud.region"), region);
+        }
+        return Resource.getDefault().merge(Resource.create(attrs.build()));
     }
 
     static String[][] otlpHeaders(Properties props, SqlAuthenticationToken sqlAuthToken) {

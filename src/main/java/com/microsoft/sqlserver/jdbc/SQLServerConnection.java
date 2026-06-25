@@ -49,6 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -114,6 +115,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** true when otelEndpoint connection property is set — cached to keep onFedAuthInfo hot path branch-free. */
     private boolean otelEnabled = false;
+
+    /**
+     * Guards the one-time, per-JVM Arc OpenTelemetry discovery probe. When no explicit {@code otelEndpoint}
+     * is configured, the first opened connection queries {@code msdb.dbo.SQLServerAzureArcProperties} to
+     * self-discover the OTLP endpoint; this CAS bounds that probe so non-Arc connections pay it at most once.
+     */
+    private static final AtomicBoolean otelArcDiscoveryAttempted = new AtomicBoolean(false);
 
     /**
      * Thresholds related to when prepared statement handles are cleaned-up. 1 == immediately.
@@ -3798,6 +3806,21 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // Socket timeout is bounded by loginTimeout during the login phase.
             // Reset socket timeout back to the original value.
             tdsChannel.resetTcpSocketTimeout();
+
+            // POC: when no explicit otelEndpoint was supplied, let the driver self-discover the OTLP endpoint
+            // + Azure resource id (+ region) from msdb.dbo.SQLServerAzureArcProperties on this freshly-opened
+            // connection (Arc-style). Guarded so runtimes without the optional OpenTelemetry libraries
+            // (NoClassDefFoundError) or without the table are unaffected, and bounded to one probe per JVM via
+            // the CAS. Strictly best-effort: never throws, never disturbs the connection.
+            if (!otelEnabled && otelArcDiscoveryAttempted.compareAndSet(false, true)) {
+                try {
+                    OtelBootstrap.discoverAndInitialize(this, activeConnectionProperties);
+                } catch (Throwable t) {
+                    if (connectionlogger.isLoggable(Level.FINER)) {
+                        connectionlogger.finer(toString() + " OTel Arc discovery skipped: " + t);
+                    }
+                }
+            }
 
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " End of connect");

@@ -35,21 +35,25 @@ x-otel-app: &otel-app
     # prepareMethod. Override ARM_RESOURCE_ID / MSSQL_SA_PASSWORD via the shell or a .env file.
     #   - SQL auth ...... user=sa + password
     #   - pooling ....... statementPoolingCacheSize / disableStatementPooling / enablePrepareOnFirst...
-    #   - OTLP export ... otelEndpoint / otelServiceName / otelExportInterval
+    #   - OTLP export ... otelServiceName / otelExportInterval (endpoint is NOT here — see below)
     #   - OTLP auth ..... otelUseSqlAccessToken=false + otelAccessTokenCallbackClass (Azure CLI JWT)
-    #   - ARM resource .. otelArmResourceId -> x-ms-arm-resource-id header (MISE CheckAccess RBAC)
     #   - MISE headers .. otelHeaders -> x-ms-telemetry-kind + the ingress headers (Original-Uri/Method, X-Forwarded-For)
     #
+    # NOTE: the OTLP endpoint and the ARM resource id are deliberately NOT in this string. On telemetry
+    # boot the driver self-discovers them (Arc-style) from msdb.dbo.SQLServerAzureArcProperties, which the
+    # sqlserver-init service seeds from DEMO_LOCAL_OTEL_ENDPOINT / AZURE_RESOURCE_ID / AZURE_REGION below.
     # -------------------------------------------------------------------------------------------------------------
     #
     # YES ACCESS: /subscriptions/ce859648-30e1-4135-9d0f-8358aebfe789/resourceGroups/otel-bench/providers/Microsoft.Sql/servers/mdrrahmansandbox/databases/jdbc
     # NO ACCESS:  /subscriptions/78e47976-009f-4d4a-a961-6046cdabf459/resourceGroups/dataflows_e2e_tests/providers/Microsoft.Sql/servers/cdsa-e2e-test-server2/databases/AdventureWorksDW
     # -------------------------------------------------------------------------------------------------------------
     #
-    OTEL_POC_CONNECTION_STRING: "jdbc:sqlserver://sqlserver:1433;user=sa;password=${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass};trustServerCertificate=true;statementPoolingCacheSize=20;disableStatementPooling=false;enablePrepareOnFirstPreparedStatementCall=true;otelServiceName=mssql-jdbc-poc-loadgen;otelEndpoint=http://otelcol-arcdata:4318/v1/metrics;otelExportInterval=5;otelUseSqlAccessToken=false;otelAccessTokenCallbackClass=com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback;otelArmResourceId=${ARM_RESOURCE_ID:-/subscriptions/ce859648-30e1-4135-9d0f-8358aebfe789/resourceGroups/otel-bench/providers/Microsoft.Sql/servers/mdrrahmansandbox/databases/jdbc};otelHeaders={x-ms-telemetry-kind=mssql-jdbc-poc,Original-Uri=/v1/metrics,Original-Method=POST,X-Forwarded-For=127.0.0.1}"
+    OTEL_POC_CONNECTION_STRING: "jdbc:sqlserver://sqlserver:1433;user=sa;password=${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass};trustServerCertificate=true;statementPoolingCacheSize=20;disableStatementPooling=false;enablePrepareOnFirstPreparedStatementCall=true;otelServiceName=mssql-jdbc-poc-loadgen;otelExportInterval=5;otelUseSqlAccessToken=false;otelAccessTokenCallbackClass=com.microsoft.sqlserver.jdbc.otel.AzureCliAccessTokenCallback;otelHeaders={x-ms-telemetry-kind=mssql-jdbc-poc,Original-Uri=/v1/metrics,Original-Method=POST,X-Forwarded-For=127.0.0.1}"
   depends_on:
     sqlserver:
       condition: service_healthy
+    sqlserver-init:
+      condition: service_completed_successfully
     otelcol-arcdata:
       condition: service_started
 
@@ -71,6 +75,39 @@ services:
       timeout: 5s
       retries: 18
       start_period: 45s
+
+  # One-shot init: idempotently seed msdb.dbo.SQLServerAzureArcProperties (Azure resource id, local
+  # OTLP endpoint, region) that the JDBC driver self-discovers on telemetry boot. Reuses the SQL image
+  # for sqlcmd; runs once after sqlserver is healthy, then exits 0. Values come from the env below.
+  sqlserver-init:
+    image: ${SQL_SERVER_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}
+    container_name: mssql-jdbc-sqlserver-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-Otel_Poc_Str0ng!Pass}"
+      # The 3 columns the driver discovers. AZURE_RESOURCE_ID reuses dev.sh's ARM_RESOURCE_ID knob.
+      AZURE_RESOURCE_ID: "${ARM_RESOURCE_ID:-/subscriptions/ce859648-30e1-4135-9d0f-8358aebfe789/resourceGroups/otel-bench/providers/Microsoft.Sql/servers/mdrrahmansandbox/databases/jdbc}"
+      DEMO_LOCAL_OTEL_ENDPOINT: "${DEMO_LOCAL_OTEL_ENDPOINT:-http://otelcol-arcdata:4318}"
+      AZURE_REGION: "${AZURE_REGION:-eastus}"
+    volumes:
+      - ./internal/sqlserver-init/arc-properties.sql:/init/arc-properties.sql:ro
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        for SQLCMD in /opt/mssql-tools18/bin/sqlcmd /opt/mssql-tools/bin/sqlcmd; do
+          [ -x "$$SQLCMD" ] || continue
+          CFLAG=""; case "$$SQLCMD" in *mssql-tools18*) CFLAG="-C";; esac
+          echo "sqlserver-init: seeding msdb via $$SQLCMD ..."
+          if "$$SQLCMD" $$CFLAG -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -b -v ArcId="$$AZURE_RESOURCE_ID" OtelEndpoint="$$DEMO_LOCAL_OTEL_ENDPOINT" Region="$$AZURE_REGION" -i /init/arc-properties.sql; then
+            echo "sqlserver-init: msdb seeded."; exit 0
+          fi
+          echo "sqlserver-init: $$SQLCMD attempt failed" >&2
+        done
+        echo "sqlserver-init: failed to seed msdb" >&2; exit 1
+    restart: "no"
 
   # Vends Entra/Managed-Identity tokens to the collector + bulk loader by thinly
   # wrapping the host `az` CLI session mounted read-only at /host/.azure.

@@ -196,6 +196,26 @@ container_running() {  # <container-name>
   [[ "$(docker inspect --format '{{.State.Running}}' "$1" 2>/dev/null || echo false)" == "true" ]]
 }
 
+wait_container_completed() {  # <container-name> <pretty-name> [timeout]
+  local cname="$1" pretty="$2" timeout="${3:-120}"
+  log "Waiting for $pretty to complete (timeout ${timeout}s)..."
+  local deadline=$(( $(date +%s) + timeout )) status code
+  while true; do
+    status="$(docker inspect --format '{{.State.Status}}' "$cname" 2>/dev/null || echo missing)"
+    if [[ "$status" == "exited" ]]; then
+      code="$(docker inspect --format '{{.State.ExitCode}}' "$cname" 2>/dev/null || echo 1)"
+      [[ "$code" == "0" ]] && { ok "$pretty completed (exit 0)"; return 0; }
+      docker compose logs --tail=60 "$pretty" 2>/dev/null || true
+      die "$pretty exited with code $code"
+    fi
+    (( $(date +%s) >= deadline )) && {
+      docker compose logs --tail=60 "$pretty" 2>/dev/null || true
+      die "$pretty did not complete in ${timeout}s (status=$status)"
+    }
+    sleep 3
+  done
+}
+
 wait_arcdata_ready() {
   wait_container_healthy mssql-jdbc-otelcol-arcdata otelcol-arcdata 90
 }
@@ -314,9 +334,10 @@ cmd_up() {
   ok "images built"
 
   log "Bringing up the internal telemetry + SQL Server stack..."
-  docker compose up -d sqlserver token-server mise otelcol-arcdata delta-bulk-loader aspire-dashboard portainer
+  docker compose up -d sqlserver sqlserver-init token-server mise otelcol-arcdata delta-bulk-loader aspire-dashboard portainer
 
   wait_sql_healthy
+  wait_container_completed mssql-jdbc-sqlserver-init sqlserver-init 120
   wait_container_healthy mssql-jdbc-token-server token-server 90
   wait_container_healthy mssql-jdbc-mise mise 90
   wait_arcdata_ready
