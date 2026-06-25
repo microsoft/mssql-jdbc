@@ -168,7 +168,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
                 try {
                     contents.close();
                 } catch (IOException e) {
-                    SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+                    SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
                 }
             }
         }
@@ -262,7 +262,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             contents.read();
             contents.read();
         } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
         }
 
         return (Reader) DDC.convertStreamToObject(contents, typeInfo, type.getJDBCType(), newArgs);
@@ -279,7 +279,7 @@ final class SQLServerSQLXML implements java.sql.SQLXML {
             contents.read();
             contents.read();
         } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
         }
 
         byte[] byteContents = contents.getBytes();

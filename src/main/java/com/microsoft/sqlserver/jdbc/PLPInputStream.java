@@ -130,7 +130,7 @@ class PLPInputStream extends BaseInputStream {
         try {
             close();
         } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
         }
 
         return value;
@@ -191,7 +191,7 @@ class PLPInputStream extends BaseInputStream {
 
             return available;
         } catch (SQLServerException e) {
-            throw new IOException(e.getMessage());
+            throw new IOException(e.getMessage(), e);
         }
 
     }
@@ -285,7 +285,7 @@ class PLPInputStream extends BaseInputStream {
         try {
             return readBytesInternal(b, offset, maxBytes);
         } catch (SQLServerException e) {
-            throw new IOException(e.getMessage());
+            throw new IOException(e.getMessage(), e);
         }
     }
 
@@ -514,7 +514,7 @@ final class PLPXMLInputStream extends PLPInputStream {
             } else
                 bytesToReturn = valueWithoutBOM;
         } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
         }
 
         return bytesToReturn;

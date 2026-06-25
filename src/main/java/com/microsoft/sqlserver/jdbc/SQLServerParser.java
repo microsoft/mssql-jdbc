@@ -429,7 +429,7 @@ final class SQLServerParser {
             }
         } catch (java.util.NoSuchElementException e) {
             SQLServerException.makeFromDriverError(null, null, SQLServerResource.getResource("R_invalidCTEFormat"),
-                    null, false);
+                    null, false, e);
         }
     }
 

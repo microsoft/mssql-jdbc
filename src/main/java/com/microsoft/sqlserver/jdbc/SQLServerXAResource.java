@@ -468,7 +468,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                         Object[] msgArgs = {e1.getMessage()};
                         if (xaLogger.isLoggable(Level.FINER))
                             xaLogger.finer(toString() + " exception:" + form.format(msgArgs));
-                        SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
+                        SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true, e1);
                     }
                     xaInitDone = true;
                 }
@@ -720,7 +720,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                         } catch (SQLServerException e1) {
                             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToEnlist"));
                             Object[] msgArgs = {e1.getMessage()};
-                            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
+                            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true, e1);
                         }
                     }
                 }
@@ -735,7 +735,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                     } catch (SQLServerException e1) {
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_failedToUnEnlist"));
                         Object[] msgArgs = {e1.getMessage()};
-                        SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
+                        SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true, e1);
                     }
                 }
                 if (nType == XA_RECOVER)
@@ -747,7 +747,7 @@ public final class SQLServerXAResource implements javax.transaction.xa.XAResourc
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_failedToReadRecoveryXIDs"));
                         Object[] msgArgs = {e1.getMessage()};
-                        SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
+                        SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true, e1);
                     }
                 }
             }

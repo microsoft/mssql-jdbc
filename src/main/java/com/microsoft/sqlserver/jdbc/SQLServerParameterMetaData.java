@@ -385,7 +385,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         catch (SQLServerException e) {
             throw e;
         } catch (SQLException | StringIndexOutOfBoundsException e) {
-            SQLServerException.makeFromDriverError(con, stmtParent, e.getMessage(), null, false);
+            SQLServerException.makeFromDriverError(con, stmtParent, e.getMessage(), null, false, e);
         }
     }
 
@@ -457,7 +457,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 return JDBCType.of((short) getParameterInfo(param).get(DATA_TYPE)).className();
             }
         } catch (SQLServerException e) {
-            SQLServerException.makeFromDriverError(con, stmtParent, e.getMessage(), null, false);
+            SQLServerException.makeFromDriverError(con, stmtParent, e.getMessage(), null, false, e);
             return null;
         }
     }
@@ -585,7 +585,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                 return JDBCType.of((short) getParameterInfo(param).get(DATA_TYPE)).isSigned();
             }
         } catch (SQLException e) {
-            SQLServerException.makeFromDriverError(con, stmtParent, e.getMessage(), null, false);
+            SQLServerException.makeFromDriverError(con, stmtParent, e.getMessage(), null, false, e);
             return false;
         }
     }

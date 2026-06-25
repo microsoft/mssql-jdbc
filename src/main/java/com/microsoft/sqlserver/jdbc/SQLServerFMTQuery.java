@@ -99,7 +99,7 @@ class SQLServerFMTQuery {
             try {
                 lexer = new SQLServerLexer(CharStreams.fromStream(stream));
             } catch (IOException e) {
-                SQLServerException.makeFromDriverError(null, userSql, e.getLocalizedMessage(), null, false);
+                SQLServerException.makeFromDriverError(null, userSql, e.getLocalizedMessage(), null, false, e);
             }
             if (null != lexer) {
                 lexer.removeErrorListeners();

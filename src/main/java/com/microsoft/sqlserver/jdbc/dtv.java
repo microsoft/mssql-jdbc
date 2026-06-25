@@ -318,7 +318,7 @@ final class DTV {
                 clobLength = DataTypes.getCheckedLength(conn, dtv.getJdbcType(), clobValue.length(), false);
                 clobReader = clobValue.getCharacterStream();
             } catch (SQLException e) {
-                SQLServerException.makeFromDriverError(conn, null, e.getMessage(), null, false);
+                SQLServerException.makeFromDriverError(conn, null, e.getMessage(), null, false, e);
             }
 
             // If the Clob value is to be sent as MBCS, then convert the value to an MBCS InputStream
@@ -1396,7 +1396,7 @@ final class DTV {
                 blobLength = DataTypes.getCheckedLength(conn, dtv.getJdbcType(), blobValue.length(), false);
                 blobStream = blobValue.getBinaryStream();
             } catch (SQLException e) {
-                SQLServerException.makeFromDriverError(conn, null, e.getMessage(), null, false);
+                SQLServerException.makeFromDriverError(conn, null, e.getMessage(), null, false, e);
             }
 
             if (null == blobStream) {
@@ -2088,7 +2088,7 @@ final class AppDTVImpl extends DTVImpl {
             try {
                 DataTypes.getCheckedLength(con, dtv.getJdbcType(), clobValue.length(), false);
             } catch (SQLException e) {
-                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
+                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false, e);
             }
         }
 
@@ -2228,7 +2228,7 @@ final class AppDTVImpl extends DTVImpl {
             try {
                 DataTypes.getCheckedLength(con, dtv.getJdbcType(), blobValue.length(), false);
             } catch (SQLException e) {
-                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
+                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false, e);
             }
         }
 

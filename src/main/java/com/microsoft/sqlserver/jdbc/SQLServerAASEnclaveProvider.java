@@ -63,7 +63,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             try {
                 aasParams = new AASAttestationParameters(attestationUrl);
             } catch (IOException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
     }
@@ -91,7 +91,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
                 enclaveCache.addEntry(connection.getServerName(), connection.getCatalog(),
                         connection.enclaveAttestationUrl, aasParams, enclaveSession);
             } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
         return b;
@@ -118,7 +118,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
                 hgsResponse.validateToken(attestationUrl, aasParams.getNonce());
                 hgsResponse.validateDHPublicKey(aasParams.getNonce());
             } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
     }
@@ -374,7 +374,7 @@ class AASAttestationResponse extends BaseAttestationResponse {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasJWTError"), "0",
                     false);
         } catch (IOException | GeneralSecurityException e) {
-            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false);
+            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false, e);
         }
     }
 

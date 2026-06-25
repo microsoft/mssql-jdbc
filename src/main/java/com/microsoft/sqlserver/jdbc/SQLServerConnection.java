@@ -5086,7 +5086,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                                 // Keep compiler happy, something's probably seriously wrong if this line is run
                                 SQLServerException.makeFromDriverError(this, sessionRecovery, e.getMessage(), null,
-                                        false);
+                                        false, e);
                             }
 
                             if (sessionRecovery.getReconnectException() != null) {

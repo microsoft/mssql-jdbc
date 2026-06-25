@@ -85,7 +85,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 enclaveCache.addEntry(connection.getServerName(), connection.getCatalog(),
                         connection.enclaveAttestationUrl, vsmParams, enclaveSession);
             } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
         return b;
@@ -114,7 +114,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 hgsResponse.validateStatementSignature();
                 hgsResponse.validateDHPublicKey();
             } catch (IOException | GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
     }
@@ -286,7 +286,7 @@ class VSMAttestationResponse extends BaseAttestationResponse {
         } catch (CertificateException ce) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_HealthCertError"));
             Object[] msgArgs = {ce.getLocalizedMessage()};
-            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true, ce);
         }
     }
 
@@ -307,7 +307,7 @@ class VSMAttestationResponse extends BaseAttestationResponse {
                     }
                 }
             } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
         SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidHealthCert"), "0",
