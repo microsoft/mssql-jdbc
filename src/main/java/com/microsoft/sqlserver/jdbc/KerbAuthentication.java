@@ -12,6 +12,7 @@ import java.security.PrivilegedExceptionAction;
 import java.text.MessageFormat;
 import java.util.logging.Level;
 
+import org.ietf.jgss.ChannelBinding;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
@@ -22,6 +23,8 @@ import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
+
+import static com.microsoft.sqlserver.jdbc.TDSChannel.channelBindingInfo;
 
 
 /**
@@ -65,6 +68,9 @@ final class KerbAuthentication extends SSPIAuthentication {
             if (null != peerCredentials) {
                 peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
                         GSSContext.DEFAULT_LIFETIME);
+                if (null != channelBindingInfo) {
+                    peerContext.setChannelBinding(new ChannelBinding(channelBindingInfo));
+                }
                 peerContext.requestCredDeleg(false);
                 peerContext.requestMutualAuth(true);
                 peerContext.requestInteg(true);
@@ -158,6 +164,10 @@ final class KerbAuthentication extends SSPIAuthentication {
                 }
                 peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
                         GSSContext.DEFAULT_LIFETIME);
+
+                if (null != channelBindingInfo) {
+                    peerContext.setChannelBinding(new ChannelBinding(channelBindingInfo));
+                }
 
                 // The following flags should be inline with our native implementation.
                 peerContext.requestCredDeleg(true);
