@@ -1842,8 +1842,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         deletedCurrentRow = false;
         if (lastColumnIndex >= 1) {
             initializeNullCompressedColumns();
-            // Discard columns up to, but not including, the last indexed column
-            for (int columnIndex = 1; columnIndex < lastColumnIndex; ++columnIndex)
+
+            // Clear accessed columns to release DTV state for reuse on the next row.
+            // Math.min guards against out-of-bounds if lastColumnIndex exceeds columns.length.
+            int clearUpTo = Math.min(lastColumnIndex, columns.length + 1);
+            for (int columnIndex = 1; columnIndex < clearUpTo; ++columnIndex)
                 getColumn(columnIndex).clear();
 
             // Skip and discard the remainder of the last indexed column
