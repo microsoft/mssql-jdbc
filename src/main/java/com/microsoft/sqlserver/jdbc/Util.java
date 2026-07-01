@@ -213,23 +213,7 @@ final class Util {
 
     static BigDecimal readBigDecimal(byte[] valueBytes, int valueLength, int scale) {
         int sign = (0 == valueBytes[0]) ? -1 : 1;
-        int magnitudeLength = valueLength - 1;
-
-        // Fast path for DECIMAL/NUMERIC values whose unscaled magnitude fits in a long.
-        // Assemble the little-endian magnitude directly and create a compact
-        // BigDecimal without allocating an intermediate byte[] or BigInteger.
-        // Values that do not fit fall back to the BigInteger-based path.
-        if (magnitudeLength <= 8) {
-            long magnitude = 0;
-            for (int i = magnitudeLength; i >= 1; i--)
-                magnitude = (magnitude << 8) | (valueBytes[i] & 0xFFL);
-
-            if (magnitude >= 0)
-                return BigDecimal.valueOf(sign * magnitude, scale);
-        }
-
-        // Fallback for larger values: reverse the little-endian magnitude and construct the BigDecimal through BigInteger.
-        byte[] magnitude = new byte[magnitudeLength];
+        byte[] magnitude = new byte[valueLength - 1];
         for (int i = 1; i <= magnitude.length; i++)
             magnitude[magnitude.length - i] = valueBytes[i];
         return new BigDecimal(new BigInteger(sign, magnitude), scale);
