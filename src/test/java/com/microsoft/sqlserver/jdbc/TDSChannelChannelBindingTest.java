@@ -18,9 +18,9 @@ import org.mockito.Mockito;
 class TDSChannelChannelBindingTest {
 
     @Test
-    void createChannelBindingInfoPrefixesTlsUniqueData() throws ClassNotFoundException {
-        assumeTrue(isTlsUniqueChannelBindingMethodAvailable(),
-                "Skipping because getTlsUniqueChannelBinding is not available on this JDK");
+    void createChannelBindingInfoPrefixesClientFirstFinishedVerifyData() throws ClassNotFoundException {
+        assumeTrue(isTlsUniqueClientFirstFinishedVerifyDataMethodAvailable(),
+                "Skipping because getTlsUniqueClientFirstFinishedVerifyData is not available on this JDK");
 
         byte[] tlsUnique = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 
@@ -38,8 +38,8 @@ class TDSChannelChannelBindingTest {
     }
 
     @Test
-    void createChannelBindingInfoReturnsNullWhenJdkDoesNotSupportTlsUniqueChannelBinding() {
-        if (isTlsUniqueChannelBindingMethodAvailable()) {
+    void createChannelBindingInfoReturnsNullWhenJdkDoesNotSupportTlsUniqueClientFirstFinishedVerifyData() {
+        if (isTlsUniqueClientFirstFinishedVerifyDataMethodAvailable()) {
             return;
         }
 
@@ -49,7 +49,10 @@ class TDSChannelChannelBindingTest {
     private static SSLSession createExtendedSessionMock(byte[] tlsUnique) throws ClassNotFoundException {
         Class<?> extendedSessionClass = Class.forName("javax.net.ssl.ExtendedSSLSession");
         Object mock = Mockito.mock(extendedSessionClass, invocation -> {
-            if ("getTlsUniqueChannelBinding".equals(invocation.getMethod().getName())) {
+            if ("getTlsUniqueClientFirstFinishedVerifyData".equals(invocation.getMethod().getName())) {
+                return tlsUnique;
+            }
+            if ("getTlsUniqueFirstFinishedVerifyData".equals(invocation.getMethod().getName())) {
                 return tlsUnique;
             }
             return Answers.RETURNS_DEFAULTS.answer(invocation);
@@ -57,10 +60,10 @@ class TDSChannelChannelBindingTest {
         return (SSLSession) mock;
     }
 
-    private static boolean isTlsUniqueChannelBindingMethodAvailable() {
+    private static boolean isTlsUniqueClientFirstFinishedVerifyDataMethodAvailable() {
         try {
             Class<?> extendedSessionClass = Class.forName("javax.net.ssl.ExtendedSSLSession");
-            extendedSessionClass.getMethod("getTlsUniqueChannelBinding");
+            extendedSessionClass.getMethod("getTlsUniqueClientFirstFinishedVerifyData");
             return true;
         } catch (ClassNotFoundException | NoSuchMethodException e) {
             return false;
