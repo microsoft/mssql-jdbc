@@ -167,19 +167,9 @@ class SQLServerMSAL4JUtils {
                                                                     : fedAuthInfo.spn + defaultScopeSuffix;
         Set<String> scopes = new HashSet<>();
         scopes.add(scope);
-        
+
         boolean isSemAcquired = false;
         try {
-            //
-            //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
-            //The purpose is to optimize the token acquisition process, the first caller succeeding does caching 
-            //which is then leveraged by subsequent threads. However, if the first thread takes considerable time, 
-            //then we want the others to also go and try after waiting for a while.
-            //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
-            //to get their tokens at the same time, stressing the auth endpoint.
-            //
-            isSemAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
-
             String hashedSecret = getHashedSecret(
                     new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
             PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(aadPrincipalID,
@@ -203,6 +193,51 @@ class SQLServerMSAL4JUtils {
             ConfidentialClientApplication clientApplication = ConfidentialClientApplication
                     .builder(aadPrincipalID, credential).executorService(executorService)
                     .setTokenCacheAccessAspect(persistentTokenCacheAccessAspect).authority(fedAuthInfo.stsurl).build();
+
+            //
+            // Fast path: try to satisfy the request from the MSAL in-memory token cache (rehydrated
+            // from the persistent cache aspect) WITHOUT taking the semaphore. A cache hit needs no
+            // AAD round-trip, so it must not queue behind threads that are refreshing/fetching the token from Entra ID.
+            // Serializing cache hits behind the gate is the bottleneck this avoids.
+            //
+            try {
+                // acquireTokenSilently: MSAL's cache-only token lookup. It checks the client
+                // application's in-memory token cache (rehydrated here from the persistent cache
+                // aspect) for a still-valid access token matching these scopes and returns it
+                // WITHOUT contacting Entra ID. If none is cached (or it is expired and cannot be
+                // refreshed silently), the returned future fails with an ExecutionException, which
+                // we treat as a cache miss and handle by falling through to the gated slow path.
+                final IAuthenticationResult silentResult = clientApplication
+                        .acquireTokenSilently(SilentParameters.builder(scopes).build())
+                        .get(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(LOGCONTEXT + ": retrieved token silently for principal id: " + aadPrincipalID);
+                }
+
+                return new SqlAuthenticationToken(silentResult.accessToken(), silentResult.expiresOnDate());
+            } catch (ExecutionException silentMiss) {
+                // No valid access token cached for these scopes; fall through to the gated slow path.
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer(LOGCONTEXT + ": silent token acquisition missed for principal id: " + aadPrincipalID);
+                }
+            }
+
+            //
+            // Slow path: only cache misses reach here. Gate the AAD call with the semaphore so a
+            // burst of misses does not stampede the token endpoint. The first caller to acquire the
+            // gate refreshes the token and populates the shared cache; callers that were waiting on
+            // the gate pick up that freshly-cached token because acquireToken performs its own cache
+            // lookup first (skipCache defaults to false) and therefore avoids a redundant AAD call.
+            //
+            //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
+            //The purpose is to optimize the token acquisition process, the first caller succeeding does caching 
+            //which is then leveraged by subsequent threads. However, if the first thread takes considerable time, 
+            //then we want the others to also go and try after waiting for a while.
+            //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
+            //to get their tokens at the same time, stressing the auth endpoint.
+            //
+            isSemAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
             final CompletableFuture<IAuthenticationResult> future = clientApplication
                     .acquireToken(ClientCredentialParameters.builder(scopes).build());
