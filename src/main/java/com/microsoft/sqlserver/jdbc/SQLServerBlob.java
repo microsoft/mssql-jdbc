@@ -443,7 +443,7 @@ final class SQLServerBlobOutputStream extends java.io.OutputStream {
             int bytesWritten = parentBlob.setBytes(currentPos, b, off, len);
             currentPos += bytesWritten;
         } catch (SQLException ex) {
-            throw new IOException(ex.getMessage());
+            throw new IOException(ex.getMessage(), ex);
         }
     }
 

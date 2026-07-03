@@ -1755,7 +1755,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     sourceResultSet.setFetchSize(1);
                 } catch (SQLException e) {
                     SQLServerException.makeFromDriverError(connection, sourceResultSet, e.getMessage(), e.getSQLState(),
-                            true);
+                            true, e);
                 }
             }
         }

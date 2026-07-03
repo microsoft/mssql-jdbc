@@ -240,6 +240,31 @@ public final class SQLServerException extends java.sql.SQLException {
     }
 
     /**
+     * Constructs a new SQLServerException with cause.
+     * 
+     * @param obj
+     *        the object
+     * @param errText
+     *        the exception message
+     * @param errState
+     *        the exception state
+     * @param errNum
+     *        the error number
+     * @param bStack
+     *        true to generate the stack trace
+     * @param cause
+     *        the underlying cause (set before logging)
+     */
+    SQLServerException(Object obj, String errText, String errState, int errNum, boolean bStack, Throwable cause) {
+        super(errText, errState, errNum);
+        // Set the cause BEFORE logging so that logException can include it in the log
+        if (null != cause) {
+            initCause(cause);
+        }
+        logException(obj, errText, bStack);
+    }
+
+    /**
      * Constructs a new SQLServerException from SQL Server error
      * 
      * @param sqlServerError
@@ -292,6 +317,27 @@ public final class SQLServerException extends java.sql.SQLException {
      */
     static void makeFromDriverError(SQLServerConnection con, Object obj, String errText, String state,
             boolean bStack) throws SQLServerException {
+        makeFromDriverError(con, obj, errText, state, bStack, null);
+    }
+
+    /**
+     * Constructs a SQLServerException from an error detected by the driver.
+     * 
+     * @param con
+     *        the connection
+     * @param obj
+     * @param errText
+     *        the exception message
+     * @param state
+     *        the exception state
+     * @param bStack
+     *        true to generate the stack trace
+     * @param cause
+     *        the underlying cause
+     * @throws SQLServerException
+     */
+    static void makeFromDriverError(SQLServerConnection con, Object obj, String errText, String state,
+            boolean bStack, Throwable cause) throws SQLServerException {
         // The sql error code is 0 since the error was not returned from the database
         // The state code is supplied by the calling code as XOPEN compliant.
         // XOPEN is used as the primary code here since they are published free
@@ -304,8 +350,10 @@ public final class SQLServerException extends java.sql.SQLException {
         if (con == null || !con.xopenStates)
             stateCode = mapFromXopen(state);
 
+        // Use the new constructor that sets cause BEFORE logging (so logs include the cause chain)
         SQLServerException theException = new SQLServerException(obj,
-                SQLServerException.checkAndAppendClientConnId(errText, con), stateCode, 0, bStack);
+                SQLServerException.checkAndAppendClientConnId(errText, con), stateCode, 0, bStack, cause);
+
         if ((null != state && state.equals(EXCEPTION_XOPEN_CONNECTION_FAILURE)) && (null != con)) {
             con.notifyPooledConnection(theException);
             // note this close wont close the connection if there is an associated pooled connection.

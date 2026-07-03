@@ -1516,7 +1516,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             try {
                 activeStream.close();
             } catch (IOException e) {
-                SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+                SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
             } finally {
                 activeStream = null;
             }

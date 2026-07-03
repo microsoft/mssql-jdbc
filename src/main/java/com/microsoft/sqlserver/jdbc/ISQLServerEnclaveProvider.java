@@ -85,7 +85,7 @@ interface ISQLServerEnclaveProvider {
                 enclavePackage.write(algo.encryptData(keys.toByteArray()));
                 return enclavePackage.toByteArray();
             } catch (GeneralSecurityException | SQLServerException | IOException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
         return null;
@@ -383,7 +383,7 @@ abstract class BaseAttestationRequest {
             x = adjustBigInt(w.getAffineX().toByteArray());
             y = adjustBigInt(w.getAffineY().toByteArray());
         } catch (GeneralSecurityException | IOException e) {
-            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
         }
     }
 

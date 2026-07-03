@@ -791,7 +791,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                 fillLOBs();
                 activeStream.close();
             } catch (IOException e) {
-                SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+                SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
             } finally {
                 activeStream = null;
             }

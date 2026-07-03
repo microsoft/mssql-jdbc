@@ -1441,7 +1441,7 @@ final class DDC {
         } catch (IOException ioEx) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorReadingStream"));
             Object[] msgArgs = {ioEx.toString()};
-            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true);
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), "", true, ioEx);
         }
 
         // Unreachable code, but needed for compiler.
