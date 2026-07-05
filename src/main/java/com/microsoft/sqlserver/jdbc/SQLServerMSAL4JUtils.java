@@ -172,14 +172,14 @@ class SQLServerMSAL4JUtils {
         try {
             String hashedSecret = getHashedSecret(
                     new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
-            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(aadPrincipalID,
-                    hashedSecret);
+            // Atomic get-or-create so a cold-start burst for the same principal shares a single
+            // aspect instance instead of racing (check-then-act) and each building its own.
+            java.util.concurrent.atomic.AtomicBoolean created = new java.util.concurrent.atomic.AtomicBoolean(false);
+            PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP
+                    .getOrCreateEntry(aadPrincipalID, hashedSecret, created);
 
             // check if principal secret was changed
-            if (null == persistentTokenCacheAccessAspect) {
-                persistentTokenCacheAccessAspect = new PersistentTokenCacheAccessAspect();
-                TOKEN_CACHE_MAP.addEntry(hashedSecret, persistentTokenCacheAccessAspect);
-
+            if (created.get()) {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer(LOGCONTEXT + ": cache token for principal id: " + aadPrincipalID);
                 }
@@ -654,6 +654,32 @@ class SQLServerMSAL4JUtils {
             }
 
             return persistentTokenCacheAccessAspect;
+        }
+
+        /**
+         * Atomically returns the aspect for {@code key}, creating (or replacing an expired) one under
+         * the map's per-bin lock so concurrent callers for the same key share a single instance.
+         * {@code createdOut} is set to true when a fresh aspect was created for this call.
+         */
+        PersistentTokenCacheAccessAspect getOrCreateEntry(String value, String key,
+                java.util.concurrent.atomic.AtomicBoolean createdOut) {
+            return tokenCacheMap.compute(key, (k, existing) -> {
+                long currentTime = System.currentTimeMillis();
+                if (null == existing || currentTime > existing.getExpiryTime()) {
+                    PersistentTokenCacheAccessAspect fresh = new PersistentTokenCacheAccessAspect();
+                    fresh.setExpiryTime(currentTime + PersistentTokenCacheAccessAspect.TIME_TO_LIVE);
+                    if (null != createdOut) {
+                        createdOut.set(true);
+                    }
+                    if (logger.isLoggable(Level.FINER)) {
+                        logger.finer(LOGCONTEXT + ": add entry for: " + value + ", will expire in: "
+                                + TimeUnit.MILLISECONDS.toSeconds(PersistentTokenCacheAccessAspect.TIME_TO_LIVE)
+                                + "s");
+                    }
+                    return fresh;
+                }
+                return existing;
+            });
         }
 
         void addEntry(String key, PersistentTokenCacheAccessAspect value) {
