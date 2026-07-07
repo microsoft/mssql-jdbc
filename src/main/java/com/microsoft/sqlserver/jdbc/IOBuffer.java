@@ -982,13 +982,24 @@ final class TDSChannel implements Serializable {
             ensureSSLPayload();
 
             try {
-                tdsReader.readBytes(b, offset, maxBytes);
+                // Honor the InputStream contract: read UP TO maxBytes, returning the number of
+                // bytes actually read. Previously this blocked until exactly maxBytes were read,
+                // which deadlocks with SSL providers (e.g. Conscrypt on Android) that issue a
+                // single large read for the whole record: the server sends its handshake flight
+                // in fewer bytes and then waits for the client's response, while the driver waits
+                // for more bytes that never come. SunJSSE happened to avoid this by reading in
+                // exact TLS-record-sized chunks.
+                int bytesToRead = Math.min(maxBytes, tdsReader.available());
+                if (bytesToRead < maxBytes && logger.isLoggable(Level.FINEST))
+                    logger.finest(logContext + " Returning " + bytesToRead
+                            + " buffered bytes reported by tdsReader.available() instead of the " + maxBytes
+                            + " requested to avoid blocking");
+                tdsReader.readBytes(b, offset, bytesToRead);
+                return bytesToRead;
             } catch (SQLServerException e) {
                 logger.finer(logContext + " Reading bytes threw exception:" + e.getMessage());
                 throw new IOException(e.getMessage(), e);
             }
-
-            return maxBytes;
         }
     }
 
