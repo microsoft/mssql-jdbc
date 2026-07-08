@@ -1037,8 +1037,15 @@ final class TDSChannel implements Serializable {
         }
 
         void endMessage() throws SQLServerException {
-            // We should only be asked to end the message if we have started one
-            assert messageStarted;
+            // Nothing to flush if no handshake output has been buffered since the last flush.
+            // With the "read up to maxBytes" behavior in SSLHandshakeInputStream.readInternal, the
+            // input stream may ask us to ensure payload again while reading a handshake response
+            // that spans multiple TDS packets. At that point no new output has been written, so
+            // there is nothing to end. (Previously this method asserted messageStarted, which
+            // failed for multi-packet handshake responses, e.g. large server certificate chains.)
+            if (!messageStarted) {
+                return;
+            }
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(logContext + " Finishing TDS message");
