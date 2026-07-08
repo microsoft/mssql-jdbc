@@ -687,22 +687,14 @@
 					</argLine>
 					<excludedGroups>${excludedGroups}</excludedGroups>
 					<!--
-						Diagnostics for intermittent CI hangs where a forked test JVM does not exit
-						after its last test class completes (observed on the linux SQL2025 legs, e.g.
-						right after DatabaseMetaDataTest / JDBC43Test), leaving the job to hang until
-						the 3-hour pipeline timeout. Hypothesis: a non-daemon worker in
-						SocketFinder.threadPoolExecutor (created with the default, non-daemon
-						ThreadFactory) is left blocked on a socket operation and keeps the JVM alive.
-
-						These bounds make Surefire kill a stuck fork and write a thread dump to
-						target/surefire-reports/*.dumpstream instead of hanging, so the next
-						occurrence positively identifies the offending thread. Values are generous
-						relative to a normal run (~9 min per leg) and can be tuned.
-						- forkedProcessExitTimeoutInSeconds: max wait for a fork to exit AFTER its
-						  last test finishes; targets the post-suite shutdown hang directly.
-						- forkedProcessTimeoutInSeconds: hard cap on total fork run time, as a backstop.
+						Backstop against a forked test JVM that never exits, which previously left CI
+						jobs hanging until the 3-hour pipeline timeout. If a fork exceeds this cap,
+						Surefire terminates it and writes target/surefire-reports/*.dumpstream, turning
+						a job-killing hang into a normal, retryable failure. This is defense-in-depth
+						(generous vs. a normal leg of ~9 min); the known root cause (a worker thread
+						failing before counting down a latch in RequestBoundaryMethodsTest.testThreads)
+						is fixed directly in that test in this change.
 					-->
-					<forkedProcessExitTimeoutInSeconds>120</forkedProcessExitTimeoutInSeconds>
 					<forkedProcessTimeoutInSeconds>1800</forkedProcessTimeoutInSeconds>
 				</configuration>
 			</plugin>
