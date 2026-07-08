@@ -686,16 +686,6 @@
 					<argLine>${argLine} -Xmx1024m -Djava.library.path=${dllPath}
 					</argLine>
 					<excludedGroups>${excludedGroups}</excludedGroups>
-					<!--
-						Backstop against a forked test JVM that never exits, which previously left CI
-						jobs hanging until the 3-hour pipeline timeout. If a fork exceeds this cap,
-						Surefire terminates it and writes target/surefire-reports/*.dumpstream, turning
-						a job-killing hang into a normal, retryable failure. This is defense-in-depth
-						(generous vs. a normal leg of ~9 min); the known root cause (a worker thread
-						failing before counting down a latch in RequestBoundaryMethodsTest.testThreads)
-						is fixed directly in that test in this change.
-					-->
-					<forkedProcessTimeoutInSeconds>1800</forkedProcessTimeoutInSeconds>
 				</configuration>
 			</plugin>
 			<plugin>
