@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -46,14 +47,23 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
- * Tests for {@link SQLServerPreparedStatement#defineParameterType(int, int, int)}.
+ * Tests for parameter length hints via {@link SQLServerPreparedStatement#defineParameterType(int, int, int)}
+ * and {@link SQLServerPreparedStatement#setObject(int, Object, int, int) setObject(..., scaleOrLength)}.
  *
- * Verifies that the caller-supplied max-length hint is declared on the TDS wire for variable-length types
- * (VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY), and that out-of-contract usage is rejected with
- * appropriate errors.
+ * Verifies that caller-supplied max-length hints are correctly declared on the TDS wire for variable-length types
+ * (VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY), that precedence is enforced (defineParameterType takes
+ * priority over setObject scaleOrLength), and that out-of-contract usage is rejected with appropriate errors.
+ *
+ * Test organization:
+ * - StringTypeDefinitionTests: Wire type declarations for string types
+ * - BinaryTypeDefinitionTests: Wire type declarations for binary types
+ * - NullAndEmptyValueTests: Behavior with NULL and empty values
+ * - ErrorHandlingTests: Validation errors and constraints
+ * - BatchTests: Batch execution with hints
+ * - LifecycleTests: Statement lifecycle and hint isolation
  */
 @RunWith(JUnitPlatform.class)
-public class DefineParameterTypeTest extends AbstractTest {
+public class ParameterLengthHintTest extends AbstractTest {
 
     static String tableName = RandomUtil.getIdentifier("DefineParamTypeTest");
     static String escapedTable = AbstractSQLGenerator.escapeIdentifier(tableName);
@@ -245,6 +255,68 @@ public class DefineParameterTypeTest extends AbstractTest {
             }
             assertEquals(value, readLastNvarchar());
         }
+
+        Stream<Arguments> setObjectStringLengthHintCases() {
+            // setObject(..., scaleOrLength) path for string families.
+            return Stream.of(
+                    Arguments.of("Engineering", Types.VARCHAR, 40, "vcol", "nvarchar(40)",
+                            "setObject VARCHAR scaleOrLength honored"),
+                    Arguments.of("Engineering", Types.CHAR, 40, "vcol", "nvarchar(40)",
+                            "setObject CHAR scaleOrLength honored"),
+                    Arguments.of("Engineering", Types.NVARCHAR, 40, "nvcol", "nvarchar(40)",
+                            "setObject NVARCHAR scaleOrLength honored"),
+                    Arguments.of("Engineering", Types.NCHAR, 40, "nvcol", "nvarchar(40)",
+                            "setObject NCHAR scaleOrLength honored"));
+        }
+
+        @ParameterizedTest(name = "{5}")
+        @MethodSource("setObjectStringLengthHintCases")
+        void testSetObjectStringLengthHint(String value, int sqlType, int scaleOrLength, String column,
+                String expectedTypeDef, String description) throws Exception {
+            // Verifies inline scaleOrLength controls declaration when defineParameterType is not present.
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
+
+                pstmt.setObject(1, value, sqlType, scaleOrLength);
+                pstmt.executeUpdate();
+
+                assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1));
+            }
+            if ("nvcol".equals(column)) {
+                assertEquals(value, readLastNvarchar());
+            } else {
+                assertEquals(value, readLastVarchar());
+            }
+        }
+
+        Stream<Arguments> definePrecedesSetObjectStringCases() {
+            // Precedence: defineParameterType must override setObject scaleOrLength.
+            return Stream.of(
+                    Arguments.of(Types.VARCHAR, "vcol", "nvarchar(5)", "define VARCHAR beats setObject length"),
+                    Arguments.of(Types.CHAR, "vcol", "nvarchar(5)", "define CHAR beats setObject length"),
+                    Arguments.of(Types.NVARCHAR, "nvcol", "nvarchar(5)", "define NVARCHAR beats setObject length"),
+                    Arguments.of(Types.NCHAR, "nvcol", "nvarchar(5)", "define NCHAR beats setObject length"));
+        }
+
+        @ParameterizedTest(name = "{3}")
+        @MethodSource("definePrecedesSetObjectStringCases")
+        void testDefineParameterTypePrecedesSetObjectLengthHintForStrings(int sqlType, String column,
+                String expectedTypeDef, String description) throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
+
+                pstmt.defineParameterType(1, sqlType, 5);
+                pstmt.setObject(1, "Eng", sqlType, 40);
+                pstmt.executeUpdate();
+
+                assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1));
+            }
+            if ("nvcol".equals(column)) {
+                assertEquals("Eng", readLastNvarchar());
+            } else {
+                assertEquals("Eng", readLastVarchar());
+            }
+        }
     }
 
     @Nested
@@ -288,6 +360,58 @@ public class DefineParameterTypeTest extends AbstractTest {
 
                 pstmt.defineParameterType(1, sqlType, hintLength);
                 pstmt.setBytes(1, value);
+                pstmt.executeUpdate();
+
+                assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1));
+            }
+            assertArrayEquals(value, readLastVarbinary());
+        }
+
+        Stream<Arguments> setObjectBinaryLengthHintCases() {
+            // setObject(..., scaleOrLength) path for binary families.
+            byte[] threeBytes = {0x01, 0x02, 0x03};
+            return Stream.of(
+                    Arguments.of(threeBytes, Types.VARBINARY, 40, "varbinary(40)",
+                            "setObject VARBINARY scaleOrLength honored"),
+                    Arguments.of(threeBytes, Types.BINARY, 40, "varbinary(40)",
+                            "setObject BINARY scaleOrLength honored"));
+        }
+
+        @ParameterizedTest(name = "{4}")
+        @MethodSource("setObjectBinaryLengthHintCases")
+        void testSetObjectBinaryLengthHint(byte[] value, int sqlType, int scaleOrLength, String expectedTypeDef,
+                String description) throws Exception {
+            // Verifies scaleOrLength controls varbinary declaration when used via setObject.
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
+
+                pstmt.setObject(1, value, sqlType, scaleOrLength);
+                pstmt.executeUpdate();
+
+                assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1));
+            }
+            assertArrayEquals(value, readLastVarbinary());
+        }
+
+        Stream<Arguments> definePrecedesSetObjectBinaryCases() {
+            // Binary precedence counterpart: defineParameterType must win over setObject hints.
+            byte[] threeBytes = {0x01, 0x02, 0x03};
+            return Stream.of(
+                    Arguments.of(threeBytes, Types.VARBINARY, "varbinary(5)",
+                            "define VARBINARY beats setObject length"),
+                    Arguments.of(threeBytes, Types.BINARY, "varbinary(5)",
+                            "define BINARY beats setObject length"));
+        }
+
+        @ParameterizedTest(name = "{3}")
+        @MethodSource("definePrecedesSetObjectBinaryCases")
+        void testDefineParameterTypePrecedesSetObjectLengthHintForBinary(byte[] value, int sqlType,
+                String expectedTypeDef, String description) throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
+
+                pstmt.defineParameterType(1, sqlType, 5);
+                pstmt.setObject(1, value, sqlType, 40);
                 pstmt.executeUpdate();
 
                 assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1));
@@ -504,37 +628,37 @@ public class DefineParameterTypeTest extends AbstractTest {
                     "Unexpected error: " + e.getMessage());
         }
 
-        // value, sqlType, hintLength, column, expectedTypeDef, expectedStoredValue, description
+        // value, sqlType, hintLength, column, description
         Stream<Arguments> hintSmallerThanValueCases() {
             return Stream.of(
-                    // VARCHAR with SSPAU=true → nvarchar on wire, value truncated
-                    Arguments.of("0123456789", Types.VARCHAR, 3, "vcol", "nvarchar(3)", "012",
+                // VARCHAR with SSPAU=true → nvarchar on wire, value exceeds hint and execution fails
+                Arguments.of("0123456789", Types.VARCHAR, 3, "vcol",
                             "VARCHAR hint=3, value=10 chars"),
-                    Arguments.of("abcdef", Types.VARCHAR, 2, "vcol", "nvarchar(2)", "ab",
+                Arguments.of("abcdef", Types.VARCHAR, 2, "vcol",
                             "VARCHAR hint=2, value=6 chars"),
-                    // CHAR with SSPAU=true → nvarchar on wire, value truncated
-                    Arguments.of("0123456789", Types.CHAR, 3, "vcol", "nvarchar(3)", "012",
+                // CHAR with SSPAU=true → nvarchar on wire, value exceeds hint and execution fails
+                Arguments.of("0123456789", Types.CHAR, 3, "vcol",
                             "CHAR hint=3, value=10 chars"),
-                    Arguments.of("abcdef", Types.CHAR, 4, "vcol", "nvarchar(4)", "abcd",
+                Arguments.of("abcdef", Types.CHAR, 4, "vcol",
                             "CHAR hint=4, value=6 chars"),
-                    // NVARCHAR → nvarchar on wire, value truncated
-                    Arguments.of("0123456789", Types.NVARCHAR, 3, "nvcol", "nvarchar(3)", "012",
+                // NVARCHAR → nvarchar on wire, value exceeds hint and execution fails
+                Arguments.of("0123456789", Types.NVARCHAR, 3, "nvcol",
                             "NVARCHAR hint=3, value=10 chars"),
-                    Arguments.of("abcdef", Types.NVARCHAR, 2, "nvcol", "nvarchar(2)", "ab",
+                Arguments.of("abcdef", Types.NVARCHAR, 2, "nvcol",
                             "NVARCHAR hint=2, value=6 chars"),
-                    // NCHAR → nvarchar on wire, value truncated
-                    Arguments.of("0123456789", Types.NCHAR, 5, "nvcol", "nvarchar(5)", "01234",
+                // NCHAR → nvarchar on wire, value exceeds hint and execution fails
+                Arguments.of("0123456789", Types.NCHAR, 5, "nvcol",
                             "NCHAR hint=5, value=10 chars"),
-                    Arguments.of("abcdef", Types.NCHAR, 1, "nvcol", "nvarchar(1)", "a",
+                Arguments.of("abcdef", Types.NCHAR, 1, "nvcol",
                             "NCHAR hint=1, value=6 chars")
             );
         }
 
-        // Verify that when the hint is smaller than the value, data is truncated on the wire.
-        @ParameterizedTest(name = "Truncation: {6}")
+        // Verify that when the hint is smaller than the value, execution fails with the expected error.
+        @ParameterizedTest(name = "Length validation: {4}")
         @MethodSource("hintSmallerThanValueCases")
-        void testHintSmallerThanValueCausesTruncation(String value, int sqlType, int hintLength,
-                String column, String expectedTypeDef, String expectedStoredValue,
+        void testHintSmallerThanValueThrowsError(String value, int sqlType, int hintLength,
+            String column,
                 String description) throws Exception {
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
@@ -545,14 +669,15 @@ public class DefineParameterTypeTest extends AbstractTest {
                 } else {
                     pstmt.setString(1, value);
                 }
-                pstmt.executeUpdate();
-
-                assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1),
-                        "Expected type definition to reflect defined length hint");
+                try {
+                    pstmt.executeUpdate();
+                    fail("Expected SQLServerException for value length exceeding defineParameterType hint");
+                } catch (SQLServerException e) {
+                    assertTrue(e.getMessage()
+                            .matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                            "Unexpected error: " + e.getMessage());
+                }
             }
-            String stored = "nvcol".equals(column) ? readLastNvarchar() : readLastVarchar();
-            assertEquals(expectedStoredValue, stored,
-                    "Expected value to be truncated to fit defined parameter length");
         }
 
         Stream<Arguments> binaryHintSmallerThanValueCases() {
@@ -569,10 +694,64 @@ public class DefineParameterTypeTest extends AbstractTest {
             );
         }
 
-        // Verify binary data is truncated when the hint is smaller than the byte[] length.
-        @ParameterizedTest(name = "Truncation: {5}")
+        Stream<Arguments> setObjectHintSmallerThanValueCases() {
+            return Stream.of(
+                    Arguments.of("Engineering", Types.VARCHAR, 5, "setObject VARCHAR hint smaller than value"),
+                    Arguments.of("Engineering", Types.NVARCHAR, 5,
+                            "setObject NVARCHAR hint smaller than value"));
+        }
+
+        @ParameterizedTest(name = "{3}")
+        @MethodSource("setObjectHintSmallerThanValueCases")
+        void testSetObjectHintSmallerThanValueThrowsError(String value, int sqlType, int hintLength,
+                String description) throws Exception {
+            String column = Types.NVARCHAR == sqlType ? "nvcol" : "vcol";
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
+
+                pstmt.setObject(1, value, sqlType, hintLength);
+                try {
+                    pstmt.executeUpdate();
+                    fail("Expected SQLServerException for value length exceeding setObject scaleOrLength hint");
+                } catch (SQLServerException e) {
+                    assertTrue(e.getMessage()
+                            .matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                            "Unexpected error: " + e.getMessage());
+                }
+            }
+        }
+
+        Stream<Arguments> setObjectBinaryHintSmallerThanValueCases() {
+            byte[] fiveBytes = {0x01, 0x02, 0x03, 0x04, 0x05};
+            return Stream.of(
+                    Arguments.of(fiveBytes, Types.VARBINARY, 2,
+                            "setObject VARBINARY hint smaller than value"),
+                    Arguments.of(fiveBytes, Types.BINARY, 2, "setObject BINARY hint smaller than value"));
+        }
+
+        @ParameterizedTest(name = "{3}")
+        @MethodSource("setObjectBinaryHintSmallerThanValueCases")
+        void testSetObjectBinaryHintSmallerThanValueThrowsError(byte[] value, int sqlType, int hintLength,
+                String description) throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
+
+                pstmt.setObject(1, value, sqlType, hintLength);
+                try {
+                    pstmt.executeUpdate();
+                    fail("Expected SQLServerException for value length exceeding setObject scaleOrLength hint");
+                } catch (SQLServerException e) {
+                    assertTrue(e.getMessage()
+                            .matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                            "Unexpected error: " + e.getMessage());
+                }
+            }
+        }
+
+        // Verify binary data fails execution when the hint is smaller than the byte[] length.
+        @ParameterizedTest(name = "Length validation: {5}")
         @MethodSource("binaryHintSmallerThanValueCases")
-        void testBinaryHintSmallerThanValueCausesTruncation(byte[] value, int sqlType, int hintLength,
+        void testBinaryHintSmallerThanValueThrowsError(byte[] value, int sqlType, int hintLength,
                 String expectedTypeDef, byte[] expectedStoredValue,
                 String description) throws Exception {
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
@@ -580,13 +759,73 @@ public class DefineParameterTypeTest extends AbstractTest {
 
                 pstmt.defineParameterType(1, sqlType, hintLength);
                 pstmt.setBytes(1, value);
-                pstmt.executeUpdate();
-
-                assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1),
-                        "Expected type definition to reflect defined length hint");
+                try {
+                    pstmt.executeUpdate();
+                    fail("Expected SQLServerException for value length exceeding defineParameterType hint");
+                } catch (SQLServerException e) {
+                    assertTrue(e.getMessage()
+                            .matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                            "Unexpected error: " + e.getMessage());
+                }
             }
-            assertArrayEquals(expectedStoredValue, readLastVarbinary(),
-                    "Expected value to be truncated to fit defined parameter length");
+        }
+
+        // value, sqlType, scaleOrLength, column, description
+        Stream<Arguments> setObjectLengthSmallerThanValueCases() {
+            return Stream.of(
+                    Arguments.of("0123456789", Types.VARCHAR, 3, "vcol",
+                            "setObject VARCHAR hint=3, value=10 chars"),
+                    Arguments.of("0123456789", Types.CHAR, 3, "vcol",
+                            "setObject CHAR hint=3, value=10 chars"),
+                    Arguments.of("0123456789", Types.NVARCHAR, 3, "nvcol",
+                            "setObject NVARCHAR hint=3, value=10 chars"),
+                    Arguments.of("0123456789", Types.NCHAR, 3, "nvcol",
+                            "setObject NCHAR hint=3, value=10 chars"));
+        }
+
+        @ParameterizedTest(name = "{4}")
+        @MethodSource("setObjectLengthSmallerThanValueCases")
+        void testSetObjectLengthSmallerThanValueThrowsError(String value, int sqlType, int scaleOrLength,
+                String column, String description) throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
+
+                pstmt.setObject(1, value, sqlType, scaleOrLength);
+                try {
+                    pstmt.executeUpdate();
+                    fail("Expected SQLServerException for setObject value length exceeding scaleOrLength");
+                } catch (SQLServerException e) {
+                    assertTrue(e.getMessage()
+                            .matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                            "Unexpected error: " + e.getMessage());
+                }
+            }
+        }
+
+        Stream<Arguments> setObjectBinaryLengthSmallerThanValueCases() {
+            byte[] fiveBytes = {0x01, 0x02, 0x03, 0x04, 0x05};
+            return Stream.of(
+                    Arguments.of(fiveBytes, Types.VARBINARY, 2, "setObject VARBINARY hint=2, value=5 bytes"),
+                    Arguments.of(fiveBytes, Types.BINARY, 2, "setObject BINARY hint=2, value=5 bytes"));
+        }
+
+        @ParameterizedTest(name = "{3}")
+        @MethodSource("setObjectBinaryLengthSmallerThanValueCases")
+        void testSetObjectBinaryLengthSmallerThanValueThrowsError(byte[] value, int sqlType, int scaleOrLength,
+                String description) throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
+
+                pstmt.setObject(1, value, sqlType, scaleOrLength);
+                try {
+                    pstmt.executeUpdate();
+                    fail("Expected SQLServerException for setObject value length exceeding scaleOrLength");
+                } catch (SQLServerException e) {
+                    assertTrue(e.getMessage()
+                            .matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                            "Unexpected error: " + e.getMessage());
+                }
+            }
         }
     }
 
@@ -644,21 +883,20 @@ public class DefineParameterTypeTest extends AbstractTest {
         // sqlType, hintLength, column, expectedTypeDef, description
         Stream<Arguments> batchHintTooSmallCases() {
             return Stream.of(
-                    Arguments.of(Types.VARCHAR, 5, "vcol", "nvarchar(5)", "VARCHAR batch truncation"),
-                    Arguments.of(Types.CHAR, 5, "vcol", "nvarchar(5)", "CHAR batch truncation"),
-                    Arguments.of(Types.NVARCHAR, 5, "nvcol", "nvarchar(5)", "NVARCHAR batch truncation"),
-                    Arguments.of(Types.NCHAR, 5, "nvcol", "nvarchar(5)", "NCHAR batch truncation"),
-                    Arguments.of(Types.VARBINARY, 5, "bincol", "varbinary(5)", "VARBINARY batch truncation"),
-                    Arguments.of(Types.BINARY, 5, "bincol", "varbinary(5)", "BINARY batch truncation")
+                    Arguments.of(Types.VARCHAR, 5, "vcol", "nvarchar(5)", "VARCHAR batch over-length error"),
+                    Arguments.of(Types.CHAR, 5, "vcol", "nvarchar(5)", "CHAR batch over-length error"),
+                    Arguments.of(Types.NVARCHAR, 5, "nvcol", "nvarchar(5)", "NVARCHAR batch over-length error"),
+                    Arguments.of(Types.NCHAR, 5, "nvcol", "nvarchar(5)", "NCHAR batch over-length error"),
+                    Arguments.of(Types.VARBINARY, 5, "bincol", "varbinary(5)", "VARBINARY batch over-length error"),
+                    Arguments.of(Types.BINARY, 5, "bincol", "varbinary(5)", "BINARY batch over-length error")
             );
         }
 
-        // Verify that a small hint truncates longer values in a batch while shorter values pass intact.
+        // Verify that a small hint causes batch execution to fail when a value exceeds the hint.
         @ParameterizedTest(name = "{4}")
         @MethodSource("batchHintTooSmallCases")
-        void testBatchHintTooSmallTruncatesData(int sqlType, int hintLength, String column,
+        void testBatchHintTooSmallThrowsError(int sqlType, int hintLength, String column,
                 String expectedTypeDef, String description) throws Exception {
-            int maxIdBefore = getMaxId();
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
 
@@ -682,24 +920,141 @@ public class DefineParameterTypeTest extends AbstractTest {
                 }
                 assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1),
                         "Expected type definition for batch with hint");
-                pstmt.executeBatch();
-            }
-            // All types truncate data to the hint length
-            if ("bincol".equals(column)) {
-                List<byte[]> stored = readVarbinariesSince(maxIdBefore);
-                assertEquals(2, stored.size());
-                assertArrayEquals(new byte[]{0x01, 0x02, 0x03}, stored.get(0),
-                        "Short value should be stored intact");
-                assertArrayEquals(new byte[]{0x01, 0x02, 0x03, 0x04, 0x05}, stored.get(1),
-                        "Long value should be truncated to hint length");
-            } else {
-                List<String> stored = "nvcol".equals(column)
-                        ? readNvarcharsSince(maxIdBefore) : readVarcharsSince(maxIdBefore);
-                assertEquals(2, stored.size());
-                assertEquals("hi", stored.get(0), "Short value should be stored intact");
-                assertEquals("trunc", stored.get(1), "Long value should be truncated to hint length");
+                try {
+                    pstmt.executeBatch();
+                    fail("Expected SQLException for value length exceeding defineParameterType hint in batch");
+                } catch (SQLException e) {
+                    String msg = e.getMessage();
+                    String causeMsg = (null != e.getCause()) ? e.getCause().getMessage() : null;
+                    assertTrue((null != msg
+                            && msg.matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")))
+                            || (null != causeMsg && causeMsg.matches(TestUtils
+                                    .formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint"))),
+                            "Unexpected error: " + e.getMessage());
+                }
             }
         }
+
+            Stream<Arguments> batchSetObjectLengthHintCases() {
+                return Stream.of(
+                    Arguments.of(Types.VARCHAR, "vcol", "batch_setobject_value", "nvarchar(40)",
+                        "Batch setObject VARCHAR scaleOrLength honored"),
+                    Arguments.of(Types.CHAR, "vcol", "batch_setobject_value", "nvarchar(40)",
+                        "Batch setObject CHAR scaleOrLength honored"),
+                    Arguments.of(Types.NVARCHAR, "nvcol", "batch_setobject_value", "nvarchar(40)",
+                        "Batch setObject NVARCHAR scaleOrLength honored"),
+                    Arguments.of(Types.NCHAR, "nvcol", "batch_setobject_value", "nvarchar(40)",
+                        "Batch setObject NCHAR scaleOrLength honored"),
+                    Arguments.of(Types.VARBINARY, "bincol", new byte[] {0x01, 0x02, 0x03}, "varbinary(40)",
+                        "Batch setObject VARBINARY scaleOrLength honored"),
+                    Arguments.of(Types.BINARY, "bincol", new byte[] {0x01, 0x02, 0x03}, "varbinary(40)",
+                        "Batch setObject BINARY scaleOrLength honored"));
+            }
+
+            @ParameterizedTest(name = "{4}")
+            @MethodSource("batchSetObjectLengthHintCases")
+            void testBatchSetObjectLengthHintHonored(int sqlType, String column, Object value, String expectedTypeDef,
+                String description) throws Exception {
+                int maxIdBefore = getMaxId();
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
+
+                pstmt.setObject(1, value, sqlType, 40);
+                pstmt.addBatch();
+                pstmt.setObject(1, value, sqlType, 40);
+                pstmt.addBatch();
+
+                assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1),
+                    "Expected type definition from setObject scaleOrLength hint");
+                int[] counts = pstmt.executeBatch();
+                assertEquals(2, counts.length);
+                }
+                assertEquals(2, countRowsSince(maxIdBefore));
+            }
+
+            Stream<Arguments> batchDefinePrecedesSetObjectCases() {
+                return Stream.of(
+                    Arguments.of(Types.VARCHAR, "vcol", "Eng", "nvarchar(5)",
+                        "Batch define VARCHAR beats setObject length"),
+                    Arguments.of(Types.CHAR, "vcol", "Eng", "nvarchar(5)",
+                        "Batch define CHAR beats setObject length"),
+                    Arguments.of(Types.NVARCHAR, "nvcol", "Eng", "nvarchar(5)",
+                        "Batch define NVARCHAR beats setObject length"),
+                    Arguments.of(Types.NCHAR, "nvcol", "Eng", "nvarchar(5)",
+                        "Batch define NCHAR beats setObject length"),
+                    Arguments.of(Types.VARBINARY, "bincol", new byte[] {0x01, 0x02, 0x03}, "varbinary(5)",
+                        "Batch define VARBINARY beats setObject length"),
+                    Arguments.of(Types.BINARY, "bincol", new byte[] {0x01, 0x02, 0x03}, "varbinary(5)",
+                        "Batch define BINARY beats setObject length"));
+            }
+
+            @ParameterizedTest(name = "{4}")
+            @MethodSource("batchDefinePrecedesSetObjectCases")
+            void testBatchDefineParameterTypePrecedesSetObjectLengthHint(int sqlType, String column, Object value,
+                String expectedTypeDef, String description) throws Exception {
+                int maxIdBefore = getMaxId();
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
+
+                pstmt.defineParameterType(1, sqlType, 5);
+                pstmt.setObject(1, value, sqlType, 40);
+                pstmt.addBatch();
+                pstmt.setObject(1, value, sqlType, 40);
+                pstmt.addBatch();
+
+                assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1),
+                    "Expected defineParameterType to take precedence over setObject length hint");
+                int[] counts = pstmt.executeBatch();
+                assertEquals(2, counts.length);
+                }
+                assertEquals(2, countRowsSince(maxIdBefore));
+            }
+
+            Stream<Arguments> batchSetObjectHintTooSmallCases() {
+                return Stream.of(
+                    Arguments.of(Types.VARCHAR, "vcol", "0123456789", "Batch setObject VARCHAR over-length error"),
+                    Arguments.of(Types.CHAR, "vcol", "0123456789", "Batch setObject CHAR over-length error"),
+                    Arguments.of(Types.NVARCHAR, "nvcol", "0123456789", "Batch setObject NVARCHAR over-length error"),
+                    Arguments.of(Types.NCHAR, "nvcol", "0123456789", "Batch setObject NCHAR over-length error"),
+                    Arguments.of(Types.VARBINARY, "bincol", new byte[] {0x01, 0x02, 0x03, 0x04, 0x05},
+                        "Batch setObject VARBINARY over-length error"),
+                    Arguments.of(Types.BINARY, "bincol", new byte[] {0x01, 0x02, 0x03, 0x04, 0x05},
+                        "Batch setObject BINARY over-length error"));
+            }
+
+            @ParameterizedTest(name = "{3}")
+            @MethodSource("batchSetObjectHintTooSmallCases")
+            void testBatchSetObjectHintTooSmallThrowsError(int sqlType, String column, Object longValue,
+                String description) throws Exception {
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
+
+                if ("bincol".equals(column)) {
+                    pstmt.setObject(1, new byte[] {0x01, 0x02, 0x03}, sqlType, 5);
+                    pstmt.addBatch();
+                    pstmt.setObject(1, longValue, sqlType, 5);
+                    pstmt.addBatch();
+                } else {
+                    pstmt.setObject(1, "hi", sqlType, 5);
+                    pstmt.addBatch();
+                    pstmt.setObject(1, longValue, sqlType, 5);
+                    pstmt.addBatch();
+                }
+
+                try {
+                    pstmt.executeBatch();
+                    fail("Expected SQLException for setObject value length exceeding scaleOrLength in batch");
+                } catch (SQLException e) {
+                    String msg = e.getMessage();
+                    String causeMsg = (null != e.getCause()) ? e.getCause().getMessage() : null;
+                    assertTrue((null != msg
+                        && msg.matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")))
+                        || (null != causeMsg && causeMsg.matches(TestUtils
+                            .formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint"))),
+                        "Unexpected error: " + e.getMessage());
+                }
+                }
+            }
 
     }
 

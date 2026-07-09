@@ -67,8 +67,10 @@ final class Parameter {
     // When true, valueLength holds the caller-supplied max-length hint and the type
     // definition (e.g. varchar(N)) is built from that hint rather than the conservative
     // driver default (e.g. varchar(8000) / nvarchar(4000) / varbinary(8000)).
-    // This code path does not truncate the client-side value before writing it to TDS;
-    // SQL Server enforces the declared parameter type/length represented by that hint.
+    // For supported short character/binary parameter types, values longer than the
+    // defineParameterType max-length hint are rejected before execution.
+    // For max types and unsupported validation paths, SQL Server still enforces the
+    // declared parameter type/length represented by that hint.
     private boolean defineParameterTypeCalled = false;
 
     void setDefineParameterTypeCalled(boolean value) {
@@ -454,7 +456,81 @@ final class Parameter {
             this.con = con;
         }
 
-        private void setTypeDefinition(DTV dtv) {
+        private Integer getApplicationSpecifiedLengthHint(DTV dtv) {
+            // Precedence rule for short character/binary families:
+            // 1) defineParameterType(maxLength)
+            // 2) setObject(..., scaleOrLength)
+            if (param.defineParameterTypeCalled) {
+                return param.valueLength;
+            }
+
+            Integer setObjectScaleOrLength = dtv.getScale();
+            if (null == setObjectScaleOrLength) {
+                return null;
+            }
+
+            switch (dtv.getJdbcType()) {
+                case CHAR:
+                case VARCHAR:
+                case NCHAR:
+                case NVARCHAR:
+                case BINARY:
+                case VARBINARY:
+                    return setObjectScaleOrLength;
+                default:
+                    return null;
+            }
+        }
+
+        private Integer getBoundedDeclaredLengthHint(JDBCType jdbcType, int hintLength) {
+            switch (jdbcType) {
+                case CHAR:
+                case VARCHAR:
+                    return (hintLength > DataTypes.SHORT_VARTYPE_MAX_BYTES) ? null : hintLength;
+                case NCHAR:
+                case NVARCHAR:
+                    return (hintLength > DataTypes.SHORT_VARTYPE_MAX_CHARS) ? null : hintLength;
+                case BINARY:
+                case VARBINARY:
+                    return (hintLength > DataTypes.SHORT_VARTYPE_MAX_BYTES) ? null : hintLength;
+                default:
+                    return null;
+            }
+        }
+
+        private void validateApplicationSpecifiedLength(DTV dtv, int applicationLengthHint)
+                throws SQLServerException {
+            if (null == dtv.getSetterValue()) {
+                return;
+            }
+
+            Integer boundedDeclaredLength = getBoundedDeclaredLengthHint(dtv.getJdbcType(), applicationLengthHint);
+            if (null == boundedDeclaredLength) {
+                return;
+            }
+
+            JavaType javaType = dtv.getJavaType();
+            if (JavaType.STRING != javaType && JavaType.BYTEARRAY != javaType) {
+                return;
+            }
+
+            int actualLength = Util.getValueLengthBaseOnJavaType(dtv.getSetterValue(), javaType, null, dtv.getScale(),
+                    dtv.getJdbcType());
+
+            if (actualLength > boundedDeclaredLength) {
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_defineParameterTypeValueLengthExceedsHint"));
+                Object[] msgArgs = {boundedDeclaredLength, actualLength};
+                SQLServerException.makeFromDriverError(con, param, form.format(msgArgs), null, false);
+            }
+        }
+
+        private void setTypeDefinition(DTV dtv) throws SQLServerException {
+            Integer applicationLengthHint = getApplicationSpecifiedLengthHint(dtv);
+            if (null != applicationLengthHint) {
+                validateApplicationSpecifiedLength(dtv, applicationLengthHint);
+            }
+
             switch (dtv.getJdbcType()) {
                 case TINYINT:
                     param.typeDefinition = SSType.TINYINT.toString();
@@ -634,10 +710,10 @@ final class Parameter {
                         if (JDBCType.LONGVARBINARY == jdbcTypeSetByUser) {
                             param.typeDefinition = VARBINARY_MAX;
                         }
-                    } else if (param.defineParameterTypeCalled) {
-                        // defineParameterType hint: declare the user-specified length for
-                        // VARBINARY/BINARY. Data exceeding the hint is truncated on the wire.
-                        int hint = param.valueLength;
+                    } else if (null != applicationLengthHint) {
+                        // Application-provided hint from defineParameterType() or setObject(..., scaleOrLength):
+                        // declare the requested length for VARBINARY/BINARY.
+                        int hint = applicationLengthHint;
                         if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
                             param.typeDefinition = VARBINARY_MAX;
                         } else {
@@ -798,10 +874,10 @@ final class Parameter {
                                 param.typeDefinition = VARCHAR_MAX;
                             }
                         }
-                    } else if (param.defineParameterTypeCalled) {
-                        // defineParameterType hint: declare the user-specified length for
-                        // VARCHAR/CHAR. Data exceeding the hint is truncated on the wire.
-                        int hint = param.valueLength;
+                    } else if (null != applicationLengthHint) {
+                        // Application-provided hint from defineParameterType() or setObject(..., scaleOrLength):
+                        // declare the requested length for VARCHAR/CHAR.
+                        int hint = applicationLengthHint;
                         if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
                             param.typeDefinition = VARCHAR_MAX;
                         } else {
@@ -940,10 +1016,10 @@ final class Parameter {
                             }
                         }
                         break;
-                    } else if (param.defineParameterTypeCalled) {
-                        // defineParameterType hint: declare the user-specified length for
-                        // NVARCHAR/NCHAR. Data exceeding the hint is truncated on the wire.
-                        int hint = param.valueLength;
+                    } else if (null != applicationLengthHint) {
+                        // Application-provided hint from defineParameterType() or setObject(..., scaleOrLength):
+                        // declare the requested length for NVARCHAR/NCHAR.
+                        int hint = applicationLengthHint;
                         if (hint > DataTypes.SHORT_VARTYPE_MAX_CHARS) {
                             param.typeDefinition = NVARCHAR_MAX;
                         } else {

@@ -123,15 +123,20 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * {@code setNString} → NVARCHAR, {@code setBytes} → VARBINARY). Only the {@code maxLength} value is
      * retained and applied to the type definition sent to the server.
      *
+     * <p><strong>Precedence:</strong> If {@code defineParameterType} is called on a parameter,
+     * its {@code maxLength} hint takes precedence over any length specified via
+     * {@link #setObject(int, Object, int, int) setObject(..., scaleOrLength)} for that parameter.
+     * This allows developers to establish a baseline type contract that is not overridden by subsequent setter calls.
+     *
      * The hint persists across {@code addBatch} calls on this prepared statement for the specified parameter —
      * call it once before the batch loop. Only character types (VARCHAR, CHAR, NVARCHAR, NCHAR) and binary types
      * (VARBINARY, BINARY) are supported.
      *
-     * If a value longer than {@code maxLength} is set, this hint does not cause the driver to truncate the
-     * outbound characters or bytes before sending them. Instead, the declared parameter type sent to SQL Server
-     * uses {@code maxLength}, and SQL Server may truncate or otherwise enforce that declared length when
-     * processing the parameter value. The caller is responsible for setting a hint that accommodates their
-     * largest expected value.
+        * If a value longer than {@code maxLength} is set for supported short character/binary parameter types,
+        * execution fails with an error instead of silently truncating the outbound value. For declarations that
+        * map to max types (for example, hints beyond short type limits), SQL Server continues to enforce the
+        * declared parameter type/length during execution. The caller should set a hint that accommodates their
+        * largest expected value.
      *
      * When {@code sendStringParametersAsUnicode} is {@code true} (the default), VARCHAR/CHAR hints produce a
      * declared parameter type of {@code nvarchar(N)} because {@code setString()} promotes the parameter to
@@ -148,9 +153,10 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @param maxLength
      *        the expected maximum length in characters (for VARCHAR/CHAR/NVARCHAR/NCHAR) or bytes (for
      *        VARBINARY/BINARY); must be >= 0
-     * @throws SQLServerException
-     *         if {@code parameterIndex} is out of range, {@code maxLength} is negative, {@code sqlType} is not a
-     *         supported type, or this method is called on a closed statement
+        * @throws SQLServerException
+        *         if {@code parameterIndex} is out of range, {@code maxLength} is negative, {@code sqlType} is not a
+        *         supported type, this method is called on a closed statement, or execution detects a value length
+        *         that exceeds {@code maxLength} for supported short character/binary parameter types
      */
     void defineParameterType(int parameterIndex, int sqlType, int maxLength) throws SQLServerException;
 

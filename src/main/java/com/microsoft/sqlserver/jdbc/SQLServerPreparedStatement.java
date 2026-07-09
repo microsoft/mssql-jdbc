@@ -231,6 +231,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Validate that sqlType is one of the supported character or binary types.
         // The sqlType value itself is not stored on the parameter — the wire type is
         // determined by what setString/setNString/setBytes sets on the DTV at execution time.
+        // The maxLength hint will take precedence over any scaleOrLength provided via setObject().
         switch (sqlType) {
             case java.sql.Types.VARCHAR:
             case java.sql.Types.CHAR:
@@ -2045,19 +2046,27 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // scaleOrLength - for java.sql.Types.DECIMAL, java.sql.Types.NUMERIC or temporal types,
         // this is the number of digits after the decimal point. For Java Object types
         // InputStream and Reader, this is the length of the data in the stream or reader.
-        // For all other types, this value will be ignored.
+        // For supported short character/binary SQL types, this is treated as an
+        // application-provided length hint.
+        // Precedence: defineParameterType() hint (if present) takes priority over this value.
 
         Integer precision = null;
         if (microsoft.sql.Types.VECTOR == targetSqlType && x instanceof microsoft.sql.Vector) {
             precision = ((microsoft.sql.Vector) x).getDimensionCount();
         }
 
-        setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
-                (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
-                        || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
-                        || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
-                        || Reader.class.isInstance(x)
-                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scaleOrLength : null,
+        JDBCType targetJDBCType = JDBCType.of(targetSqlType);
+
+        setObject(setterGetParam(parameterIndex), x, JavaType.of(x), targetJDBCType,
+            (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
+                || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
+                || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
+                || Reader.class.isInstance(x) || microsoft.sql.Types.VECTOR == targetSqlType
+                || JDBCType.CHAR == targetJDBCType || JDBCType.VARCHAR == targetJDBCType
+                || JDBCType.NCHAR == targetJDBCType || JDBCType.NVARCHAR == targetJDBCType
+                || JDBCType.BINARY == targetJDBCType || JDBCType.VARBINARY == targetJDBCType)
+                    ? scaleOrLength
+                    : null,
                 precision, false, parameterIndex, null);
 
         if (loggerExternal.isLoggable(Level.FINER)) {

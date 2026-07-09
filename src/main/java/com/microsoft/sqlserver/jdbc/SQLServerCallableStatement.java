@@ -1994,7 +1994,17 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             loggerExternal.entering(getClassNameLogging(), "setObject",
                     new Object[] {parameterName, value, sqlType, decimals});
         checkClosed();
-        setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), decimals,
+        // decimals - for java.sql.Types.DECIMAL or java.sql.Types.NUMERIC types,
+        // this is the number of digits after the decimal point.
+        // For supported short character/binary SQL types (VARCHAR, CHAR, NVARCHAR, NCHAR,
+        // VARBINARY, BINARY), this is treated as application-provided length hint.
+        // Precedence: defineParameterType() hint (if present) takes priority over this value.
+        // For all other types, this value will be ignored.
+        setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType),
+                (java.sql.Types.NUMERIC == sqlType || java.sql.Types.DECIMAL == sqlType
+                        || java.sql.Types.VARCHAR == sqlType || java.sql.Types.CHAR == sqlType
+                        || java.sql.Types.NVARCHAR == sqlType || java.sql.Types.NCHAR == sqlType
+                        || java.sql.Types.VARBINARY == sqlType || java.sql.Types.BINARY == sqlType) ? decimals : null,
                 null, false, findColumn(parameterName), null);
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "setObject");
@@ -2011,9 +2021,15 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // scale - for java.sql.Types.DECIMAL or java.sql.Types.NUMERIC types,
         // this is the number of digits after the decimal point.
+        // For supported short character/binary SQL types (VARCHAR, CHAR, NVARCHAR, NCHAR,
+        // VARBINARY, BINARY), this is treated as application-provided length hint.
+        // Precedence: defineParameterType() hint (if present) takes priority over this value.
         // For all other types, this value will be ignored.
         setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType),
-                (java.sql.Types.NUMERIC == sqlType || java.sql.Types.DECIMAL == sqlType) ? decimals : null, null,
+                (java.sql.Types.NUMERIC == sqlType || java.sql.Types.DECIMAL == sqlType
+                        || java.sql.Types.VARCHAR == sqlType || java.sql.Types.CHAR == sqlType
+                        || java.sql.Types.NVARCHAR == sqlType || java.sql.Types.NCHAR == sqlType
+                        || java.sql.Types.VARBINARY == sqlType || java.sql.Types.BINARY == sqlType) ? decimals : null, null,
                 forceEncrypt, findColumn(parameterName), null);
 
         if (loggerExternal.isLoggable(Level.FINER)) {
