@@ -2,14 +2,14 @@
  * ============================================================================
  *  REFERENCE ONLY -- NOT PART OF THE BUILD
  * ============================================================================
- *  This file is intentionally placed under docs/ so Maven never compiles it.
- *  It documents the standalone benchmark harness that produced the
- *  TOKEN_ACQUISITION numbers reported in the "silent fast-path before
- *  semaphore" change (see SQLServerMSAL4JUtils#getSqlFedAuthTokenPrincipal).
+ *  I placed this file under docs/ so Maven never compiles it. It documents the
+ *  standalone benchmark harness I used to produce the TOKEN_ACQUISITION numbers
+ *  I report in the "silent fast-path before semaphore" change (see
+ *  SQLServerMSAL4JUtils#getSqlFedAuthTokenPrincipal).
  *
  *  It will NOT compile inside this repo: it depends on a small, local,
- *  git-ignored `Creds` helper that the reader supplies with their own Azure
- *  SQL server FQDN, database name and service-principal client-id/secret(s):
+ *  git-ignored `Creds` helper that you supply with your own Azure SQL server
+ *  FQDN, database name and service-principal client-id/secret(s):
  *
  *      final class Creds {
  *          static final String SERVER_FQDN   = "<your-server>.database.windows.net";
@@ -18,9 +18,8 @@
  *          static final String[][] SPS = { { "<client-id>", "<client-secret>" } };
  *      }
  *
- *  No credentials are embedded here -- they live only in the reader's local
- *  Creds class. This file is kept purely so reviewers can see exactly how the
- *  measurements were produced.
+ *  I embed no credentials here -- they live only in your local Creds class. I
+ *  kept this file purely so you can see exactly how I produced the measurements.
  *
  * ----------------------------------------------------------------------------
  *  Results (single service principal, all K threads on SPS[0], warm cache,
@@ -39,17 +38,18 @@
  *  K-way in parallel -- which is what the ~56-63% reduction reflects.
  *
  * ----------------------------------------------------------------------------
- *  Retry configuration (both baseline and fast-cache builds, so the comparison
- *  stays apples-to-apples): retries are disabled so a transient failure surfaces
- *  immediately instead of being silently retried and inflating latency.
+ *  Retry configuration (I built both the baseline and the fast-cache jars this
+ *  way, so my comparison stays apples-to-apples): I disable retries so a
+ *  transient failure surfaces immediately instead of being silently retried and
+ *  inflating latency.
  *
- *    1. connectRetryCount=0 -- set via the connection string below (no code
- *       change required).
+ *    1. connectRetryCount=0 -- I set this via the connection string below (no
+ *       code change required).
  *    2. INTERMITTENT_TLS_MAX_RETRY=0 -- the driver's internal, no-wait
  *       TLS/prelogin handshake retry (normally 5). This is a hard-coded
  *       `private final` constant in SQLServerConnection and CANNOT be set from
- *       the connection string; to reproduce these numbers, build the driver
- *       with that constant patched to 0 for BOTH the baseline and the change.
+ *       the connection string; to reproduce my numbers, build the driver with
+ *       that constant patched to 0 for BOTH the baseline and the change.
  * ============================================================================
  */
 
@@ -383,8 +383,8 @@ public final class TokenAcquisitionTest {
                         + "hostNameInCertificate=*.database.windows.net;"
                         + "loginTimeout=3000;"
                         + "connectionTimeout=3000;"
-                        // Disable connection-level retry (see the "Retry configuration" note in the
-                        // file header; INTERMITTENT_TLS_MAX_RETRY=0 must additionally be patched in the driver build).
+                        // I disable connection-level retry here (see the "Retry configuration" note in
+                        // the file header; I also patch INTERMITTENT_TLS_MAX_RETRY=0 in the driver build).
                         + "connectRetryCount=0;"
                         + "authentication=ActiveDirectoryServicePrincipal;"
                         + "AADSecurePrincipalId=%s;"
