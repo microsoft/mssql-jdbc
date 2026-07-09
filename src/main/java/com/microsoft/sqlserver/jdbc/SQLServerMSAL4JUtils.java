@@ -90,7 +90,8 @@ class SQLServerMSAL4JUtils {
     // never exceed SEM_POOL_SIZE. Distinct principals may occasionally share a slot (hash
     // collision); that only causes a little extra serialisation and never an incorrect token,
     // because correctness comes from the hashedSecret-keyed TOKEN_CACHE_MAP.
-    private static final int SEM_POOL_SIZE = 10;
+    // Package-private (not private) so SQLServerMSAL4JUtilsTest can verify the slot mapping.
+    static final int SEM_POOL_SIZE = 10;
     private static final Semaphore[] SEM_POOL = new Semaphore[SEM_POOL_SIZE];
     static {
         for (int i = 0; i < SEM_POOL_SIZE; i++) {
@@ -100,7 +101,8 @@ class SQLServerMSAL4JUtils {
 
     // Deterministically map a credential (identified by hashedSecret) to one pool slot.
     // The sign bit is masked off before the modulo so the index is always in 0 .. SEM_POOL_SIZE-1.
-    private static int poolIndexForHashedSecret(String hashedSecret) {
+    // Package-private (not private) so the deterministic mapping can be unit-tested in isolation.
+    static int poolIndexForHashedSecret(String hashedSecret) {
         return (hashedSecret.hashCode() & 0x7fffffff) % SEM_POOL_SIZE;
     }
 
