@@ -33,21 +33,12 @@
  *  kept this file purely so you can see exactly how I produced the measurements.
  *
  * ----------------------------------------------------------------------------
- *  Results (N distinct service principals round-robined across K threads, warm
- *  cache, driver-measured TOKEN_ACQUISITION avg latency; lower is better):
- *
- *      duration   driver-org avg   pooled-sem avg   change
- *      --------   --------------   --------------   ------
- *        10 s        (baseline)        (pooled)      (fill in)
- *        60 s        (baseline)        (pooled)      (fill in)
- *       300 s        (baseline)        (pooled)      (fill in)
- *       600 s        (baseline)        (pooled)      (fill in)
- *
- *  driver-org: every SP token acquisition takes the ONE global Semaphore(1), so
- *  unrelated principals serialise against each other. pooled-sem: each principal
- *  maps (via its hashedSecret) onto one of SEM_POOL_SIZE slots, so distinct
- *  principals contend only on a hash collision (~1/SEM_POOL_SIZE) -- which is
- *  what the reduction reflects.
+ *  This measures the cross-principal contention on the token gate: driver-org
+ *  routes every SP token acquisition through ONE global Semaphore(1), so unrelated
+ *  principals serialise against each other. pooled-sem maps each principal (via
+ *  its hashedSecret) onto one of SEM_POOL_SIZE slots, so distinct principals
+ *  contend only on a hash collision (~1/SEM_POOL_SIZE). See the PR description for
+ *  the driver-org vs pooled-sem TOKEN_ACQUISITION results produced by this harness.
  *
  * ----------------------------------------------------------------------------
  *  Retry configuration (I built both the baseline and the pooled-sem jars this
