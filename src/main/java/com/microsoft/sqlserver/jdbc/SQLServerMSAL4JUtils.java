@@ -197,30 +197,15 @@ class SQLServerMSAL4JUtils {
             //
             // Fast path: try to satisfy the request from the MSAL in-memory token cache (rehydrated
             // from the persistent cache aspect) WITHOUT taking the semaphore. A cache hit needs no
-            // AAD round-trip, so it must not queue behind threads that are refreshing/fetching the token from Entra ID.
-            // Serializing cache hits behind the gate is the bottleneck this avoids.
+            // AAD round-trip, so it must not queue behind threads that are refreshing/fetching the
+            // token from Entra ID. Serializing cache hits behind the gate is the bottleneck this
+            // avoids. Extracted into acquireTokenSilentlyOrNull so the hit/miss behavior can be
+            // unit-tested in isolation.
             //
-            try {
-                // acquireTokenSilently: MSAL's cache-only token lookup. It checks the client
-                // application's in-memory token cache (rehydrated here from the persistent cache
-                // aspect) for a still-valid access token matching these scopes and returns it
-                // WITHOUT contacting Entra ID. If none is cached (or it is expired and cannot be
-                // refreshed silently), the returned future fails with an ExecutionException, which
-                // we treat as a cache miss and handle by falling through to the gated slow path.
-                final IAuthenticationResult silentResult = clientApplication
-                        .acquireTokenSilently(SilentParameters.builder(scopes).build())
-                        .get(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
-
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(LOGCONTEXT + ": retrieved token silently for principal id: " + aadPrincipalID);
-                }
-
-                return new SqlAuthenticationToken(silentResult.accessToken(), silentResult.expiresOnDate());
-            } catch (ExecutionException silentMiss) {
-                // No valid access token cached for these scopes; fall through to the gated slow path.
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(LOGCONTEXT + ": silent token acquisition missed for principal id: " + aadPrincipalID);
-                }
+            SqlAuthenticationToken cachedToken = acquireTokenSilentlyOrNull(clientApplication, scopes,
+                    millisecondsRemaining, aadPrincipalID);
+            if (null != cachedToken) {
+                return cachedToken;
             }
 
             //
@@ -264,6 +249,54 @@ class SQLServerMSAL4JUtils {
                 sem.release();
             }
             executorService.shutdown();
+        }
+    }
+
+    /**
+     * Attempts a lock-free, cache-only token read for the ActiveDirectoryServicePrincipal flow. This
+     * is the fast path that lets a caller whose token is already present in the MSAL in-memory cache
+     * (rehydrated from the persistent cache aspect) return immediately, without contending for the
+     * global token semaphore. {@code acquireTokenSilently} never contacts Entra ID: on a cache miss
+     * its future completes with an {@link ExecutionException}, which is reported here as {@code null}
+     * so the caller falls through to the gated slow path that performs the real token acquisition.
+     *
+     * @param clientApplication
+     *        the MSAL confidential client application for this service principal
+     * @param scopes
+     *        the requested token scopes
+     * @param millisecondsRemaining
+     *        the remaining login timeout budget, in milliseconds
+     * @param aadPrincipalID
+     *        the service principal (client) id, used for logging only
+     * @return the cached {@link SqlAuthenticationToken} on a silent cache hit, or {@code null} on a
+     *         cache miss
+     * @throws InterruptedException
+     *         if the calling thread is interrupted while waiting for the silent result
+     * @throws TimeoutException
+     *         if the silent read does not complete within the remaining budget
+     * @throws MalformedURLException
+     *         if MSAL rejects the configured authority URL
+     */
+    static SqlAuthenticationToken acquireTokenSilentlyOrNull(ConfidentialClientApplication clientApplication,
+            Set<String> scopes, int millisecondsRemaining, String aadPrincipalID)
+            throws InterruptedException, TimeoutException, MalformedURLException {
+        try {
+            final IAuthenticationResult silentResult = clientApplication
+                    .acquireTokenSilently(SilentParameters.builder(scopes).build())
+                    .get(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(LOGCONTEXT + ": retrieved token silently for principal id: " + aadPrincipalID);
+            }
+
+            return new SqlAuthenticationToken(silentResult.accessToken(), silentResult.expiresOnDate());
+        } catch (ExecutionException silentMiss) {
+            // No valid access token cached for these scopes; signal a miss so the caller takes the
+            // gated slow path.
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(LOGCONTEXT + ": silent token acquisition missed for principal id: " + aadPrincipalID);
+            }
+            return null;
         }
     }
 
