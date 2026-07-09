@@ -37,6 +37,19 @@
  *  for the key, so all K threads serialize through one permit. fast-cache:
  *  silent (cache-hit) reads bypass that semaphore, so the same key is served
  *  K-way in parallel -- which is what the ~56-63% reduction reflects.
+ *
+ * ----------------------------------------------------------------------------
+ *  Retry configuration (both baseline and fast-cache builds, so the comparison
+ *  stays apples-to-apples): retries are disabled so a transient failure surfaces
+ *  immediately instead of being silently retried and inflating latency.
+ *
+ *    1. connectRetryCount=0 -- set via the connection string below (no code
+ *       change required).
+ *    2. INTERMITTENT_TLS_MAX_RETRY=0 -- the driver's internal, no-wait
+ *       TLS/prelogin handshake retry (normally 5). This is a hard-coded
+ *       `private final` constant in SQLServerConnection and CANNOT be set from
+ *       the connection string; to reproduce these numbers, build the driver
+ *       with that constant patched to 0 for BOTH the baseline and the change.
  * ============================================================================
  */
 
@@ -370,6 +383,8 @@ public final class TokenAcquisitionTest {
                         + "hostNameInCertificate=*.database.windows.net;"
                         + "loginTimeout=3000;"
                         + "connectionTimeout=3000;"
+                        // Disable connection-level retry (see the "Retry configuration" note in the
+                        // file header; INTERMITTENT_TLS_MAX_RETRY=0 must additionally be patched in the driver build).
                         + "connectRetryCount=0;"
                         + "authentication=ActiveDirectoryServicePrincipal;"
                         + "AADSecurePrincipalId=%s;"
