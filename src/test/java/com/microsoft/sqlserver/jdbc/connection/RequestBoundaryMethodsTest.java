@@ -384,19 +384,30 @@ public class RequestBoundaryMethodsTest extends AbstractTest {
             int originalNetworkTimeout = sharedVariables.con.getNetworkTimeout();
             int originalHoldability = sharedVariables.con.getHoldability();
             sharedVariables.con.beginRequest();
+            // Run the workers as daemon threads so that if one ever blocks (e.g. on a socket read)
+            // it can never keep the forked test JVM alive after this method returns. A wedged,
+            // non-daemon test thread is exactly what previously hung CI jobs until the pipeline
+            // timeout, so this guarantees the fork can always exit regardless of worker state.
+            thread1.setDaemon(true);
+            thread2.setDaemon(true);
+            thread3.setDaemon(true);
             thread1.start();
             thread2.start();
             thread3.start();
-            // Bound the wait so a worker that fails before completing cannot hang the test JVM
-            // indefinitely. Previously each worker only counted the latch down on its success
+            // Bound the wait so a worker that fails or blocks before completing cannot hang the
+            // test indefinitely. Previously each worker only counted the latch down on its success
             // path, so an uncaught error (e.g. a read timeout from the 100 ms network timeout set
-            // above) left the latch above zero and main blocked forever on latch.await(), which
-            // kept the forked test JVM alive and hung CI jobs until the multi-hour pipeline timeout.
+            // above) left the latch above zero and main blocked forever on latch.await().
             if (!latch.await(30, TimeUnit.SECONDS)) {
-                fail("testThreads timed out waiting for worker threads to finish");
+                // Best-effort: interrupt the stragglers so they can unwind promptly.
+                thread1.interrupt();
+                thread2.interrupt();
+                thread3.interrupt();
+                fail("testThreads timed out after 30s waiting for worker threads to finish");
             }
             if (null != workerError.get()) {
-                fail("A worker thread failed: " + workerError.get());
+                // Propagate the worker's throwable as the cause so its stack trace is preserved.
+                throw new AssertionError("A worker thread failed", workerError.get());
             }
             sharedVariables.con.endRequest();
 
