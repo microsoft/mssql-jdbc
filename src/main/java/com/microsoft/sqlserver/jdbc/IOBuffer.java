@@ -989,6 +989,15 @@ final class TDSChannel implements Serializable {
                 // in fewer bytes and then waits for the client's response, while the driver waits
                 // for more bytes that never come. SunJSSE happened to avoid this by reading in
                 // exact TLS-record-sized chunks.
+                //
+                // ensureSSLPayload() only guarantees a packet was read, not that it carried any
+                // payload. Guard against a zero-length payload packet so we never return 0 for a
+                // non-zero request, which would violate the InputStream.read contract and can make
+                // SSL engines busy-spin. Reading the next packet is bounded: readPacket() blocks
+                // for server data and terminates on premature EOF, so this cannot spin.
+                while (maxBytes > 0 && 0 == tdsReader.available())
+                    ensureSSLPayload();
+
                 int bytesToRead = Math.min(maxBytes, tdsReader.available());
                 if (bytesToRead < maxBytes && logger.isLoggable(Level.FINEST))
                     logger.finest(logContext + " Returning " + bytesToRead
