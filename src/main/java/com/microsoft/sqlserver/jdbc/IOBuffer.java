@@ -2023,31 +2023,31 @@ final class TDSChannel implements Serializable {
                 return null;
             }
 
-            // Try getTlsUniqueClientFirstFinishedVerifyData() first (client's Finished
-            // verify_data,
-            // preferred per RFC 5929 tls-unique for the initiating side).
-            // Fall back to getTlsUniqueFirstFinishedVerifyData() if the former is not
-            // available.
-            java.lang.reflect.Method method = null;
-            try {
-                method = clazz.getMethod("getTlsUniqueClientFirstFinishedVerifyData");
+            // Prefer the client's Finished verify_data for the initiating side.
+            java.lang.reflect.Method method = getTlsUniqueMethod(clazz, "getTlsUniqueClientFirstFinishedVerifyData");
+            if (null == method) {
+                method = getTlsUniqueMethod(clazz, "getTlsUniqueFirstFinishedVerifyData");
+            }
+
+            if (null == method) {
                 if (logger.isLoggable(Level.FINER)) {
-                    logger.finer("Using getTlsUniqueClientFirstFinishedVerifyData for tls-unique channel binding.");
+                    logger.finer("tls-unique channel binding methods are not supported on this platform.");
                 }
-            } catch (NoSuchMethodException e) {
-                if (logger.isLoggable(Level.FINER)) {
-                    logger.finer(
-                            "getTlsUniqueClientFirstFinishedVerifyData not found, falling back to getTlsUniqueFirstFinishedVerifyData.");
-                }
-                method = clazz.getMethod("getTlsUniqueFirstFinishedVerifyData");
+                return null;
+            }
+
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer("Using " + method.getName() + " for tls-unique channel binding.");
             }
 
             Object value = method.invoke(session);
             if (value instanceof byte[]) {
                 tlsUnique = (byte[]) value;
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer("tls-unique verify_data received: " + tlsUnique.length + " bytes.");
+                }
             }
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException
-                | InvocationTargetException e) {
+        } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
             if (logger.isLoggable(Level.FINER)) {
                 logger.finer("tls-unique channel binding methods are not supported on this platform.");
             }
@@ -2062,6 +2062,14 @@ final class TDSChannel implements Serializable {
         byte[] channelBinding = Arrays.copyOf(prefix, prefix.length + tlsUnique.length);
         System.arraycopy(tlsUnique, 0, channelBinding, prefix.length, tlsUnique.length);
         return channelBinding;
+    }
+
+    private static java.lang.reflect.Method getTlsUniqueMethod(Class<?> clazz, String methodName) {
+        try {
+            return clazz.getMethod(methodName);
+        } catch (NoSuchMethodException e) {
+            return null;
+        }
     }
 
     /**
