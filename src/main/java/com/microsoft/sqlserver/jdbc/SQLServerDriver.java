@@ -682,17 +682,16 @@ enum SQLServerDriverStringProperty {
     SERVER_CERTIFICATE("serverCertificate", ""),
     DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString()),
     ACCESS_TOKEN_CALLBACK_CLASS("accessTokenCallbackClass", ""),
+    OTEL_PROFILE("otelProfile", ""),
+    OTEL_AUTH("otelAuth", ""),
+    OTEL_ENDPOINT("otelEndpoint", ""),
+    OTEL_ACCESS_TOKEN_CALLBACK_CLASS("otelAccessTokenCallbackClass", ""),
     RETRY_EXEC("retryExec", ""),
     RETRY_CONN("retryConn", ""),
     QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.ON.toString()),
     CONCAT_NULL_YIELDS_NULL("concatNullYieldsNull", OnOffOption.ON.toString()),
     VECTOR_TYPE_SUPPORT("vectorTypeSupport", VectorTypeSupport.V1.toString()),
-    DEFAULT_TRANSACTION_ISOLATION("defaultTransactionIsolation", null),
-    // OpenTelemetry POC (Solution 4): empty otelEndpoint = disabled, no-op
-    OTEL_ENDPOINT("otelEndpoint", ""),
-    OTEL_SERVICE_NAME("otelServiceName", "mssql-jdbc"),
-    OTEL_HEADERS("otelHeaders", ""),
-    OTEL_BEARER_TOKEN("otelBearerToken", "");
+    DEFAULT_TRANSACTION_ISOLATION("defaultTransactionIsolation", null);
 
     private final String name;
     private final String defaultValue;
@@ -725,9 +724,7 @@ enum SQLServerDriverIntProperty {
     CANCEL_QUERY_TIMEOUT("cancelQueryTimeout", -1),
     CONNECT_RETRY_COUNT("connectRetryCount", 1, 0, 255),
     CONNECT_RETRY_INTERVAL("connectRetryInterval", 10, 1, 60),
-    BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE("bulkCopyForBatchInsertBatchSize", 0),
-    // OpenTelemetry POC (Solution 4): periodic exporter interval in seconds
-    OTEL_EXPORT_INTERVAL("otelExportInterval", 30, 1, 3600);
+    BULK_COPY_FOR_BATCH_INSERT_BATCH_SIZE("bulkCopyForBatchInsertBatchSize", 0);
 
     private final String name;
     private final int defaultValue;
@@ -789,7 +786,6 @@ enum SQLServerDriverBooleanProperty {
     IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION("ignoreOffsetOnDateTimeOffsetConversion", false),
     USE_DEFAULT_JAAS_CONFIG("useDefaultJaasConfig", false),
     USE_DEFAULT_GSS_CREDENTIAL("useDefaultGSSCredential", false),
-    OTEL_USE_SQL_ACCESS_TOKEN("otelUseSqlAccessToken", false),
     CALC_BIG_DECIMAL_PRECISION("calcBigDecimalPrecision", false);
 
     private final String name;
@@ -1011,6 +1007,14 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString(),
                     SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_PROFILE.toString(),
+                    SQLServerDriverStringProperty.OTEL_PROFILE.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_AUTH.toString(),
+                    SQLServerDriverStringProperty.OTEL_AUTH.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_ENDPOINT.toString(),
+                    SQLServerDriverStringProperty.OTEL_ENDPOINT.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                    SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.RETRY_EXEC.toString(),
                     SQLServerDriverStringProperty.RETRY_EXEC.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.RETRY_CONN.toString(),
@@ -1139,20 +1143,7 @@ public final class SQLServerDriver implements java.sql.Driver {
                     new String[] {OnOffOption.ON.toString(), OnOffOption.OFF.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString(),
                     SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.getDefaultValue(), false,
-                    new String[] {"READ_UNCOMMITTED", "READ_COMMITTED", "REPEATABLE_READ", "SERIALIZABLE", "SNAPSHOT"}),
-            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_ENDPOINT.toString(),
-                    SQLServerDriverStringProperty.OTEL_ENDPOINT.getDefaultValue(), false, null),
-            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_SERVICE_NAME.toString(),
-                    SQLServerDriverStringProperty.OTEL_SERVICE_NAME.getDefaultValue(), false, null),
-            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_HEADERS.toString(),
-                    SQLServerDriverStringProperty.OTEL_HEADERS.getDefaultValue(), false, null),
-                new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_BEARER_TOKEN.toString(),
-                    SQLServerDriverStringProperty.OTEL_BEARER_TOKEN.getDefaultValue(), false, null),
-                new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.toString(),
-                    Boolean.toString(SQLServerDriverBooleanProperty.OTEL_USE_SQL_ACCESS_TOKEN.getDefaultValue()), false,
-                    TRUE_FALSE),
-            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.toString(),
-                    Integer.toString(SQLServerDriverIntProperty.OTEL_EXPORT_INTERVAL.getDefaultValue()), false, null),};
+                    new String[] {"READ_UNCOMMITTED", "READ_COMMITTED", "REPEATABLE_READ", "SERIALIZABLE", "SNAPSHOT"}),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string
@@ -1300,6 +1291,22 @@ public final class SQLServerDriver implements java.sql.Driver {
      */
     public static synchronized void unregisterPerformanceLogCallback() {
         PerformanceLog.unregisterCallback();
+    }
+
+    /**
+     * Registers a global telemetry bridge that receives performance events as a typed payload.
+     *
+     * @param bridge The telemetry bridge to register.
+     */
+    public static synchronized void registerTelemetryBridge(TelemetryBridge bridge) {
+        PerformanceLog.registerTelemetryBridge(bridge);
+    }
+
+    /**
+     * Unregisters the global telemetry bridge.
+     */
+    public static synchronized void unregisterTelemetryBridge() {
+        PerformanceLog.unregisterTelemetryBridge();
     }
 
 

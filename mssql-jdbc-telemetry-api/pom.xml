@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.microsoft.sqlserver</groupId>
+        <artifactId>mssql-jdbc-parent</artifactId>
+        <version>13.5.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mssql-jdbc-telemetry-api</artifactId>
+    <name>Microsoft JDBC Driver for SQL Server Telemetry API</name>
+    <description>Shared API for optional telemetry bridges.</description>
+    <packaging>jar</packaging>
+</project>

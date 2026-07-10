@@ -1871,6 +1871,22 @@ public class SQLServerConnectionTest extends AbstractTest {
 
     @Test
     @Tag(Constants.CodeCov)
+    public void testTelemetryProfilePropertiesRoundTrip() {
+        SQLServerDataSource ds = new SQLServerDataSource();
+
+        ds.setOtelProfile("SQLDB");
+        ds.setOtelAuth("MANAGEDIDENTITY");
+        ds.setOtelEndpoint("https://example.test:4318/v1/traces");
+        ds.setOtelAccessTokenCallbackClass("com.example.TestCallback");
+
+        assertEquals("SQLDB", ds.getOtelProfile());
+        assertEquals("MANAGEDIDENTITY", ds.getOtelAuth());
+        assertEquals("https://example.test:4318/v1/traces", ds.getOtelEndpoint());
+        assertEquals("com.example.TestCallback", ds.getOtelAccessTokenCallbackClass());
+    }
+
+    @Test
+    @Tag(Constants.CodeCov)
     public void testGetAccessTokenCallbackClass() throws Exception {
         // Use reflection to instantiate SQLServerConnection with a dummy argument
         java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class

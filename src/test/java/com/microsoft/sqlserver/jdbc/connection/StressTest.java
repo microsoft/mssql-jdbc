@@ -13,7 +13,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,6 +32,8 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerDriver;
+import com.microsoft.sqlserver.jdbc.TelemetryBridge;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -52,6 +57,7 @@ public class StressTest extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
+        enableTelemetryBridgeIfAvailable();
         setConnection();
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
@@ -68,6 +74,20 @@ public class StressTest extends AbstractTest {
     public static void cleanupTests() throws Exception {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
+        }
+        SQLServerDriver.unregisterTelemetryBridge();
+    }
+
+    private static void enableTelemetryBridgeIfAvailable() {
+        try {
+            Iterator<TelemetryBridge> providers = ServiceLoader.load(TelemetryBridge.class).iterator();
+            if (providers.hasNext()) {
+                SQLServerDriver.registerTelemetryBridge(providers.next());
+            } else {
+                SQLServerDriver.registerTelemetryBridge(null);
+            }
+        } catch (ServiceConfigurationError e) {
+            SQLServerDriver.registerTelemetryBridge(null);
         }
     }
 

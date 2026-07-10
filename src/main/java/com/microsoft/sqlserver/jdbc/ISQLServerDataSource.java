@@ -1444,6 +1444,66 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setAccessTokenCallbackClass(String accessTokenCallbackClass);
 
     /**
+     * Sets the OpenTelemetry export profile.
+     *
+     * @param otelProfile
+     *        the OpenTelemetry export profile
+     */
+    void setOtelProfile(String otelProfile);
+
+    /**
+     * Returns the OpenTelemetry export profile.
+     *
+     * @return the OpenTelemetry export profile
+     */
+    String getOtelProfile();
+
+    /**
+     * Sets the OpenTelemetry authentication mode.
+     *
+     * @param otelAuth
+     *        the OpenTelemetry authentication mode
+     */
+    void setOtelAuth(String otelAuth);
+
+    /**
+     * Returns the OpenTelemetry authentication mode.
+     *
+     * @return the OpenTelemetry authentication mode
+     */
+    String getOtelAuth();
+
+    /**
+     * Sets the OpenTelemetry endpoint.
+     *
+     * @param otelEndpoint
+     *        the OpenTelemetry endpoint
+     */
+    void setOtelEndpoint(String otelEndpoint);
+
+    /**
+     * Returns the OpenTelemetry endpoint.
+     *
+     * @return the OpenTelemetry endpoint
+     */
+    String getOtelEndpoint();
+
+    /**
+     * Sets the fully qualified class name of the OpenTelemetry access token callback.
+     *
+     * @param otelAccessTokenCallbackClass
+     *        the OpenTelemetry access token callback class
+     */
+    void setOtelAccessTokenCallbackClass(String otelAccessTokenCallbackClass);
+
+    /**
+     * Returns the fully qualified class name of the OpenTelemetry access token callback.
+     *
+     * @return the OpenTelemetry access token callback class
+     */
+    String getOtelAccessTokenCallbackClass();
+
+    /**
      * Returns value of 'calcBigDecimalPrecision' from Connection String.
      *
      * @param calcBigDecimalPrecision

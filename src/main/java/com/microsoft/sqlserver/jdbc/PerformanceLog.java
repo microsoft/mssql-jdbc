@@ -5,6 +5,12 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,9 +22,14 @@ class PerformanceLog {
     static final java.util.logging.Logger perfLoggerStatement = java.util.logging.Logger
             .getLogger("com.microsoft.sqlserver.jdbc.PerformanceMetrics.Statement");
 
+    private static final Logger telemetryLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.Telemetry");
+
     private static PerformanceLogCallback callback;
+    private static TelemetryBridge telemetryBridge;
     private static boolean callbackInitialized = false;
     private static boolean cachedUseNanos = false;
+    private static boolean telemetryBridgeDiscoveryAttempted = false;
+    private static boolean telemetryBridgeMissingLogged = false;
 
     // ThreadLocal to hold current SQL text and statement type for the duration of a publish callback
     static final ThreadLocal<String> currentUserSql = new ThreadLocal<>();
@@ -50,6 +61,58 @@ class PerformanceLog {
         callbackInitialized = false;
     }
 
+    /**
+     * Register an optional telemetry bridge that receives performance events as a typed payload.
+     *
+     * @param bridge the bridge implementation to invoke
+     */
+    public static synchronized void registerTelemetryBridge(TelemetryBridge bridge) {
+        telemetryBridge = bridge;
+        telemetryBridgeDiscoveryAttempted = bridge != null;
+        telemetryBridgeMissingLogged = false;
+    }
+
+    /**
+     * Unregister any previously registered telemetry bridge.
+     */
+    public static synchronized void unregisterTelemetryBridge() {
+        telemetryBridge = null;
+        telemetryBridgeDiscoveryAttempted = false;
+        telemetryBridgeMissingLogged = false;
+    }
+
+    private static synchronized TelemetryBridge resolveTelemetryBridge() {
+        if (telemetryBridge != null) {
+            return telemetryBridge;
+        }
+        if (telemetryBridgeDiscoveryAttempted) {
+            if (!telemetryBridgeMissingLogged) {
+                telemetryLogger.log(Level.SEVERE,
+                        "No TelemetryBridge implementation was found on the classpath. Add the optional mssql-jdbc-otel jar to enable telemetry publishing.");
+                telemetryBridgeMissingLogged = true;
+            }
+            return null;
+        }
+
+        telemetryBridgeDiscoveryAttempted = true;
+        try {
+            Iterator<TelemetryBridge> providers = ServiceLoader.load(TelemetryBridge.class).iterator();
+            if (providers.hasNext()) {
+                telemetryBridge = providers.next();
+            } else {
+                telemetryLogger.log(Level.SEVERE,
+                        "No TelemetryBridge implementation was found on the classpath. Add the optional mssql-jdbc-otel jar to enable telemetry publishing.");
+                telemetryBridgeMissingLogged = true;
+            }
+        } catch (ServiceConfigurationError e) {
+            telemetryLogger.log(Level.SEVERE,
+                    "Failed to discover a TelemetryBridge implementation on the classpath. Telemetry publishing will be skipped.", e);
+            telemetryBridgeMissingLogged = true;
+        }
+
+        return telemetryBridge;
+    }
+
     public static class Scope implements AutoCloseable {
         private Logger logger;
         private int connectionId;
@@ -62,17 +125,20 @@ class PerformanceLog {
         private Exception exception;
         private SQLServerStatement stmtHandle;
         private String userSql;
+        private final Map<String, Object> attributes;
 
         // Constructor for connection-level activities
-        public Scope(Logger logger, int connectionId, PerformanceActivity activity) {
-            this(logger, connectionId, 0, null, null, activity);
+        public Scope(Logger logger, int connectionId, PerformanceActivity activity, SQLServerConnection connection) {
+            this(logger, connectionId, 0, null, null, activity, connection);
         }
 
         // Constructor for statement-level activities
         public Scope(Logger logger, int connectionId, int statementId,
-                     SQLServerStatement stmt, String userSql, PerformanceActivity activity) {
+                     SQLServerStatement stmt, String userSql, PerformanceActivity activity,
+                     SQLServerConnection connection) {
             this.enabled = logger.isLoggable(Level.FINE) || (callback != null);
             this.useNanos = cachedUseNanos;
+            this.attributes = buildAttributes(connection);
 
             if (enabled) {
                 this.logger = logger;
@@ -107,10 +173,10 @@ class PerformanceLog {
                 return;
             }
 
-            long endTime = useNanos ? System.nanoTime() : System.currentTimeMillis();
-            long duration = endTime - startTime;
+            long duration = useNanos ? (System.nanoTime() - startTime) : (System.currentTimeMillis() - startTime);
 
-            if (callback != null) {
+            TelemetryBridge bridge = resolveTelemetryBridge();
+            if (callback != null || bridge != null) {
                 try {
                     if (stmtHandle != null) {
                         // Set the current SQL and statement type for the callback to access via ThreadLocal during publish
@@ -119,15 +185,22 @@ class PerformanceLog {
                         currentStatementType.set(deriveStatementType(stmtHandle));
                     }
 
-                    if (statementId == 0) {
-                        callback.publish(activity, connectionId, startTime, endTime, exception);
-                    } else {
-                        callback.publish(activity, connectionId, statementId, startTime, endTime, exception);
+                    if (callback != null) {
+                        if (statementId == 0) {
+                            callback.publish(activity, connectionId, duration, exception);
+                        } else {
+                            callback.publish(activity, connectionId, statementId, duration, exception);
+                        }
                     }
-                } catch (Throwable e) {
-                    if (logger.isLoggable(Level.WARNING)) {
-                        logger.log(Level.WARNING, "PerformanceLogCallback.publish threw unexpectedly; event dropped", e);
+
+                    if (bridge != null) {
+                        TelemetryEvent event = new TelemetryEvent(activity, connectionId, statementId, duration,
+                                exception, currentUserSql.get(), currentStatementType.get(), Collections.emptyMap(),
+                                null, null, null, null, useNanos ? "ns" : "ms", attributes);
+                        bridge.publish(event);
                     }
+                } catch (Exception e) {
+                    logger.fine(String.format("Failed to publish performance log: %s", e.getMessage()));
                 } finally {
                     if (stmtHandle != null) {
                         currentUserSql.remove();
@@ -147,13 +220,34 @@ class PerformanceLog {
         }
     }
 
-    public static Scope createScope(Logger logger, int connectionId, PerformanceActivity activity) {
-        return new Scope(logger, connectionId, activity);
+    public static Scope createScope(Logger logger, int connectionId, PerformanceActivity activity,
+                                    SQLServerConnection connection) {
+        return new Scope(logger, connectionId, activity, connection);
     }
 
     public static Scope createScope(Logger logger, int connectionId, int statementId,
-                                    SQLServerStatement stmt, String userSql, PerformanceActivity activity) {
-        return new Scope(logger, connectionId, statementId, stmt, userSql, activity);
+                                    SQLServerStatement stmt, String userSql, PerformanceActivity activity,
+                                    SQLServerConnection connection) {
+        return new Scope(logger, connectionId, statementId, stmt, userSql, activity, connection);
+    }
+
+    private static Map<String, Object> buildAttributes(SQLServerConnection connection) {
+        Map<String, Object> attrs = new LinkedHashMap<>();
+        attrs.put("mssql.jdbc.useragent", SQLServerConnection.userAgentStr);
+        if (connection != null) {
+            addIfNotEmpty(attrs, "mssql.jdbc.otel.profile", connection.getOtelProfile());
+            addIfNotEmpty(attrs, "mssql.jdbc.otel.auth", connection.getOtelAuth());
+            addIfNotEmpty(attrs, "mssql.jdbc.otel.endpoint", connection.getOtelEndpoint());
+            addIfNotEmpty(attrs, "mssql.jdbc.otel.access_token_callback_class",
+                    connection.getOtelAccessTokenCallbackClass());
+        }
+        return attrs;
+    }
+
+    private static void addIfNotEmpty(Map<String, Object> attrs, String key, String value) {
+        if (value != null && !value.isEmpty()) {
+            attrs.put(key, value);
+        }
     }
 
     // Helper method to derive statement type based on the statement class

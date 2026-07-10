@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mssql-jdbc Driver Metrics</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --panel: #0f172a;
+      --panel-2: #111c2f;
+      --text: #e5eefc;
+      --muted: #87a3c4;
+      --accent: #36b9f0;
+      --accent-2: #8b5cf6;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, var(--bg), #0b1426);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .shell { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    h1 { margin: 0 0 8px; font-size: 2rem; }
+    .subtitle { color: var(--muted); margin-bottom: 24px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .card {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.24);
+    }
+    .metric-label { color: var(--muted); font-size: 0.92rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .metric-value { font-size: 2rem; font-weight: 700; margin-top: 6px; }
+    .metric-trend { margin-top: 6px; color: var(--accent); }
+    .charts { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-top: 16px; }
+    canvas { width: 100%; height: 260px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align: left; }
+    th { color: var(--muted); font-weight: 600; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; background: var(--accent); }
+    .status-dot.warning { background: var(--warn); }
+    .status-dot.danger { background: var(--danger); }
+    .footer { color: var(--muted); margin-top: 12px; font-size: 0.92rem; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <h1>mssql-jdbc Driver Metrics</h1>
+    <div class="subtitle">Live telemetry from the optional OpenTelemetry bridge path</div>
+    <div class="grid">
+      <div class="card">
+        <div class="metric-label">Operations</div>
+        <div class="metric-value" id="op-count">--</div>
+        <div class="metric-trend" id="op-trend">Waiting for data…</div>
+      </div>
+      <div class="card">
+        <div class="metric-label">Avg Duration</div>
+        <div class="metric-value" id="avg-duration">--</div>
+        <div class="metric-trend" id="duration-trend">ms</div>
+      </div>
+      <div class="card">
+        <div class="metric-label">Errors</div>
+        <div class="metric-value" id="error-count">--</div>
+        <div class="metric-trend" id="error-trend">counter</div>
+      </div>
+      <div class="card">
+        <div class="metric-label">Status</div>
+        <div class="metric-value" id="status">Connecting</div>
+        <div class="metric-trend" id="status-trend"><span class="status-dot warning"></span>Polling metrics endpoint</div>
+      </div>
+    </div>
+    <div class="charts">
+      <div class="card">
+        <h3>Operation Count Trend</h3>
+        <canvas id="countChart" width="800" height="260"></canvas>
+      </div>
+      <div class="card">
+        <h3>Latest Samples</h3>
+        <table>
+          <thead>
+            <tr><th>Metric</th><th>Value</th></tr>
+          </thead>
+          <tbody id="sampleTable"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="footer">Endpoint: <span id="endpoint">http://127.0.0.1:9090/metrics</span></div>
+  </div>
+  <script>
+    const endpoint = 'http://127.0.0.1:9090/metrics';
+    const countChart = document.getElementById('countChart');
+    const ctx = countChart.getContext('2d');
+    const history = [];
+
+    function drawChart() {
+      const width = countChart.width;
+      const height = countChart.height;
+      ctx.clearRect(0, 0, width, height);
+      ctx.strokeStyle = '#36b9f0';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const max = Math.max(1, ...history.map(item => item.count));
+      history.forEach((item, index) => {
+        const x = 16 + (index / Math.max(1, history.length - 1)) * (width - 32);
+        const y = height - 16 - (item.count / max) * (height - 32);
+        if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.fillStyle = '#87a3c4';
+      ctx.font = '12px Segoe UI';
+      ctx.fillText('count', 16, 16);
+    }
+
+    function updateCards(metrics) {
+      document.getElementById('op-count').textContent = metrics.operationCount.toLocaleString();
+      document.getElementById('avg-duration').textContent = metrics.avgDuration.toFixed(2);
+      document.getElementById('error-count').textContent = metrics.errorCount.toLocaleString();
+      document.getElementById('op-trend').textContent = 'counter: ' + metrics.operationCount;
+      document.getElementById('duration-trend').textContent = 'average ms';
+      document.getElementById('error-trend').textContent = metrics.errorCount === 0 ? 'healthy' : 'errors observed';
+      document.getElementById('status').textContent = 'Live';
+      document.getElementById('status-trend').innerHTML = '<span class="status-dot"></span>Streaming metrics';
+      const rows = [
+        ['operation_count', metrics.operationCount],
+        ['avg_duration_ms', metrics.avgDuration.toFixed(2)],
+        ['errors_total', metrics.errorCount]
+      ];
+      document.getElementById('sampleTable').innerHTML = rows.map(([name, value]) => `<tr><td>${name}</td><td>${value}</td></tr>`).join('');
+    }
+
+    function parseMetrics(text) {
+      const metrics = { operationCount: 0, avgDuration: 0, errorCount: 0 };
+      const lines = text.split(/\r?\n/);
+      lines.forEach((line) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return;
+        const parts = trimmed.split(/\s+/);
+        if (parts.length < 2) return;
+        const metricName = parts[0].split('{')[0];
+        const value = Number(parts[parts.length - 1]);
+        if (metricName === 'mssql_jdbc_operation_count') metrics.operationCount = value;
+        if (metricName === 'mssql_jdbc_operation_duration_ms') metrics.avgDuration = value;
+        if (metricName === 'mssql_jdbc_operation_errors_total') metrics.errorCount = value;
+      });
+      return metrics;
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch(endpoint, { mode: 'cors' });
+        if (!response.ok) throw new Error('status ' + response.status);
+        const text = await response.text();
+        const metrics = parseMetrics(text);
+        updateCards(metrics);
+        history.push({ count: metrics.operationCount, duration: metrics.avgDuration });
+        if (history.length > 24) history.shift();
+        drawChart();
+      } catch (error) {
+        document.getElementById('status').textContent = 'Offline';
+        document.getElementById('status-trend').innerHTML = '<span class="status-dot danger"></span>' + error.message;
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 2000);
+  </script>
+</body>
+</html>

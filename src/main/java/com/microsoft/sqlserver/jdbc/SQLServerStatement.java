@@ -371,12 +371,13 @@ public class SQLServerStatement implements ISQLServerStatement {
     final void startCreationToFirstPacketTracking() {
         if (creationToFirstPacketScope == null) {
             creationToFirstPacketScope = PerformanceLog.createScope(
-                PerformanceLog.perfLoggerStatement, 
-                connection.getConnectionID(), 
-                getStatementID(), 
+                PerformanceLog.perfLoggerStatement,
+                connection.getConnectionID(),
+                getStatementID(),
                 null,
                 null,
-                PerformanceActivity.STATEMENT_REQUEST_BUILD
+                PerformanceActivity.STATEMENT_REQUEST_BUILD,
+                connection
             );
         }
     }
@@ -404,7 +405,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                 getStatementID(),
                 null,
                 null,
-                PerformanceActivity.STATEMENT_FIRST_SERVER_RESPONSE
+                PerformanceActivity.STATEMENT_FIRST_SERVER_RESPONSE,
+                connection
             );
         }
     }
@@ -1102,7 +1104,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                     getStatementID(),
                     this,
                     sql,
-                    PerformanceActivity.STATEMENT_EXECUTE)) {
+                    PerformanceActivity.STATEMENT_EXECUTE,
+                    connection)) {
                 try {
                     // Track server roundtrip time
                     startFirstPacketToFirstResponseTracking();
@@ -1201,7 +1204,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                 getStatementID(),
                 this,
                 batchStatementString,
-                PerformanceActivity.STATEMENT_EXECUTE)) {
+                PerformanceActivity.STATEMENT_EXECUTE,
+                connection)) {
             try {
                 // Track server roundtrip time
                 startFirstPacketToFirstResponseTracking();
@@ -2472,7 +2476,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                 getStatementID(),
                 this,
                 sql,
-                PerformanceActivity.STATEMENT_EXECUTE)) {
+                PerformanceActivity.STATEMENT_EXECUTE,
+                connection)) {
             try {
                 // Track server roundtrip time
                 startFirstPacketToFirstResponseTracking();

@@ -16,6 +16,11 @@ public enum StatementType {
     STATEMENT("Statement"),
 
     /**
+     * A SQL SELECT statement.
+     */
+    SELECT("Select"),
+
+    /**
      * A {@link java.sql.PreparedStatement}.
      */
     PREPARED_STATEMENT("PreparedStatement"),

@@ -97,7 +97,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
             @Override
             public void publish(PerformanceActivity activity, int connectionId, int statementId, long durationMs,
-                    Exception exception) {
+                    Exception exception) throws Exception {
                 called.set(true);
             }
         };
@@ -131,7 +131,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
             @Override
             public void publish(PerformanceActivity activity, int connectionId, int statementId, long durationMs,
-                    Exception exception) {
+                    Exception exception) throws Exception {
                 called.set(true);
             }
         };
@@ -333,7 +333,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
             @Override
             public void publish(PerformanceActivity activity, int connectionId, int statementId, long durationMs,
-                    Exception exception) {
+                    Exception exception) throws Exception {
                 called.set(true);
             }
         };
@@ -406,7 +406,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
             @Override
             public void publish(PerformanceActivity activity, int connectionId, int statementId, long durationMs,
-                    Exception exception) {
+                    Exception exception) throws Exception {
                 called.set(true);
             }
         };

@@ -112,9 +112,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** flag to indicate if attempt refresh token is locked */
     boolean attemptRefreshTokenLocked = false;
 
-    /** true when otelEndpoint connection property is set — cached to keep onFedAuthInfo hot path branch-free. */
-    private boolean otelEnabled = false;
-
     /**
      * Thresholds related to when prepared statement handles are cleaned-up. 1 == immediately.
      * 
@@ -166,6 +163,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /** Access token callback class name */
     private transient String accessTokenCallbackClass = null;
+
+    /** OpenTelemetry profile name */
+    private transient String otelProfile = null;
+
+    /** OpenTelemetry authentication mode */
+    private transient String otelAuth = null;
+
+    /** OpenTelemetry endpoint */
+    private transient String otelEndpoint = null;
+
+    /** OpenTelemetry access token callback class name */
+    private transient String otelAccessTokenCallbackClass = null;
 
     /** Flag that determines whether the accessToken callback class is set **/
     private boolean hasAccessTokenCallbackClass = false;
@@ -2373,7 +2382,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
         try (PerformanceLog.Scope connectScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                connectionID, PerformanceActivity.CONNECTION)) {
+                connectionID, PerformanceActivity.CONNECTION, this)) {
             try {
                 int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
                 if (propsIn != null) {
@@ -2683,17 +2692,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (propsIn != null) {
 
                 activeConnectionProperties = (Properties) propsIn.clone();
-
-                // Cache once: hot paths (e.g. onFedAuthInfo on every pool reconnect) check this
-                // boolean instead of doing repeated Properties.getProperty lookups.
-                String otelEndpoint = activeConnectionProperties
-                        .getProperty(SQLServerDriverStringProperty.OTEL_ENDPOINT.toString());
-                otelEnabled = otelEndpoint != null && !otelEndpoint.isEmpty();
-
-                // POC: wire up OpenTelemetry export if otelEndpoint is set (docs/otelproposal.md, Solution 4)
-                if (otelEnabled) {
-                    OtelBootstrap.ensureInitialized(activeConnectionProperties);
-                }
 
                 pooledConnectionParent = pooledConnection;
 
@@ -3241,6 +3239,38 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     activeConnectionProperties.setProperty(sPropKey, sPropValue);
                 }
                 setAccessTokenCallbackClass(sPropValue);
+
+                sPropKey = SQLServerDriverStringProperty.OTEL_PROFILE.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.OTEL_PROFILE.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                setOtelProfile(sPropValue);
+
+                sPropKey = SQLServerDriverStringProperty.OTEL_AUTH.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.OTEL_AUTH.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                setOtelAuth(sPropValue);
+
+                sPropKey = SQLServerDriverStringProperty.OTEL_ENDPOINT.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.OTEL_ENDPOINT.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                setOtelEndpoint(sPropValue);
+
+                sPropKey = SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null == sPropValue) {
+                    sPropValue = SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.getDefaultValue();
+                    activeConnectionProperties.setProperty(sPropKey, sPropValue);
+                }
+                setOtelAccessTokenCallbackClass(sPropValue);
 
                 sPropKey = SQLServerDriverStringProperty.AUTHENTICATION.toString();
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
@@ -3894,7 +3924,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private void login(String primary, String primaryInstanceName, int primaryPortNumber, String mirror,
             FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
         try (PerformanceLog.Scope loginScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                connectionID, PerformanceActivity.LOGIN)) {
+                connectionID, PerformanceActivity.LOGIN, this)) {
             try {
                 // standardLogin would be false only for db mirroring scenarios. It would be
                 // true
@@ -4524,7 +4554,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     void prelogin(String serverName, int portNumber) throws SQLServerException {
         try (PerformanceLog.Scope preLoginScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                connectionID, PerformanceActivity.PRELOGIN)) {
+                connectionID, PerformanceActivity.PRELOGIN, this)) {
             try {
                 // Build a TDS Pre-Login packet to send to the server.
                 if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString()))
@@ -6928,7 +6958,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void onFedAuthInfo(SqlFedAuthInfo fedAuthInfo, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
 
         try (PerformanceLog.Scope fedAuthScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                connectionID, PerformanceActivity.TOKEN_ACQUISITION)) {
+                connectionID, PerformanceActivity.TOKEN_ACQUISITION, this)) {
             try {
                 assert (null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                         && null != activeConnectionProperties
@@ -6973,16 +7003,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 // fedAuthToken cannot be null.
                 assert null != fedAuthToken;
-
-                // Only relevant when the caller opted into OTel export via otelEndpoint.
-                if (otelEnabled) {
-                    // Update the shared token store first so the per-request header supplier
-                    // immediately sees the freshest value — covers first connect and every
-                    // pool-triggered reconnect where the old token was near expiry.
-                    OtelBootstrap.updateSqlToken(fedAuthToken);
-                    // One-time pipeline bootstrap: no-op if already initialized.
-                    OtelBootstrap.ensureInitialized(activeConnectionProperties, fedAuthToken);
-                }
 
                 TDSCommand fedAuthCommand = new FedAuthTokenCommand(fedAuthToken, tdsTokenHandler);
                 fedAuthCommand.execute(tdsChannel.getWriter(), tdsChannel.getReader(fedAuthCommand));
@@ -9391,6 +9411,42 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     public void setAccessTokenCallbackClass(String accessTokenCallbackClass) {
         this.accessTokenCallbackClass = accessTokenCallbackClass;
+    }
+
+    public void setOtelProfile(String otelProfile) {
+        this.otelProfile = otelProfile;
+    }
+
+    public String getOtelProfile() {
+        return null == this.otelProfile ? SQLServerDriverStringProperty.OTEL_PROFILE.getDefaultValue()
+                : this.otelProfile;
+    }
+
+    public void setOtelAuth(String otelAuth) {
+        this.otelAuth = otelAuth;
+    }
+
+    public String getOtelAuth() {
+        return null == this.otelAuth ? SQLServerDriverStringProperty.OTEL_AUTH.getDefaultValue() : this.otelAuth;
+    }
+
+    public void setOtelEndpoint(String otelEndpoint) {
+        this.otelEndpoint = otelEndpoint;
+    }
+
+    public String getOtelEndpoint() {
+        return null == this.otelEndpoint ? SQLServerDriverStringProperty.OTEL_ENDPOINT.getDefaultValue()
+                : this.otelEndpoint;
+    }
+
+    public void setOtelAccessTokenCallbackClass(String otelAccessTokenCallbackClass) {
+        this.otelAccessTokenCallbackClass = otelAccessTokenCallbackClass;
+    }
+
+    public String getOtelAccessTokenCallbackClass() {
+        return null == this.otelAccessTokenCallbackClass
+                ? SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.getDefaultValue()
+                : this.otelAccessTokenCallbackClass;
     }
 
     /**

@@ -1493,6 +1493,48 @@ public class SQLServerDataSource
                 null);
     }
 
+    @Override
+    public void setOtelProfile(String otelProfile) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.OTEL_PROFILE.toString(), otelProfile);
+    }
+
+    @Override
+    public String getOtelProfile() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.OTEL_PROFILE.toString(), null);
+    }
+
+    @Override
+    public void setOtelAuth(String otelAuth) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.OTEL_AUTH.toString(), otelAuth);
+    }
+
+    @Override
+    public String getOtelAuth() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.OTEL_AUTH.toString(), null);
+    }
+
+    @Override
+    public void setOtelEndpoint(String otelEndpoint) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.OTEL_ENDPOINT.toString(), otelEndpoint);
+    }
+
+    @Override
+    public String getOtelEndpoint() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.OTEL_ENDPOINT.toString(), null);
+    }
+
+    @Override
+    public void setOtelAccessTokenCallbackClass(String otelAccessTokenCallbackClass) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.toString(),
+                otelAccessTokenCallbackClass);
+    }
+
+    @Override
+    public String getOtelAccessTokenCallbackClass() {
+        return getStringProperty(connectionProps,
+                SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.toString(), null);
+    }
+
     /**
      * Sets the 'calcBigDecimalPrecision' setting.
      *

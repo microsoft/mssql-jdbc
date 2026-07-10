@@ -772,7 +772,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         getStatementID(),
                         this,
                         userSQL,
-                        isPrepExecUsed ? PerformanceActivity.STATEMENT_PREPEXEC : PerformanceActivity.STATEMENT_EXECUTE)) {
+                        isPrepExecUsed ? PerformanceActivity.STATEMENT_PREPEXEC : PerformanceActivity.STATEMENT_EXECUTE,
+                        connection)) {
                     try {
                         // Track server roundtrip time
                         startFirstPacketToFirstResponseTracking();
@@ -1413,7 +1414,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getStatementID(),
                 this,
                 userSQL,
-                PerformanceActivity.STATEMENT_PREPARE)) {
+                PerformanceActivity.STATEMENT_PREPARE,
+                connection)) {
 
             try {
                 ensureExecuteResultsReader(command.startResponse(getIsResponseBufferingAdaptive()));
@@ -3421,7 +3423,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 getStatementID(),
                 this,
                 userSQL,
-                PerformanceActivity.STATEMENT_EXECUTE)) {
+                PerformanceActivity.STATEMENT_EXECUTE,
+                connection)) {
             try {
                 while (numBatchesExecuted < numBatches) {
                     // Fill in the parameter values for this batch
@@ -3709,7 +3712,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     getStatementID(),
                     this,
                     userSQL,
-                    PerformanceActivity.STATEMENT_EXECUTE)) {
+                    PerformanceActivity.STATEMENT_EXECUTE,
+                    connection)) {
                 try {
                     // Track server roundtrip time
                     startFirstPacketToFirstResponseTracking();
