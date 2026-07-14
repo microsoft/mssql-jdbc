@@ -927,33 +927,38 @@ public class ParameterLengthHintTest extends AbstractTest {
                     // 3 bytes fits in hint=5, 10 bytes exceeds hint=5
                     pstmt.setBytes(1, new byte[]{0x01, 0x02, 0x03});
                     pstmt.addBatch();
+                    assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1),
+                            "Expected type definition for batch with hint");
+
                     pstmt.setBytes(1, new byte[]{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A});
-                    pstmt.addBatch();
                 } else if (sqlType == Types.NVARCHAR || sqlType == Types.NCHAR) {
                     pstmt.setNString(1, "hi");
                     pstmt.addBatch();
+                    assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1),
+                            "Expected type definition for batch with hint");
+
                     pstmt.setNString(1, "truncate_me_please");
-                    pstmt.addBatch();
                 } else {
                     pstmt.setString(1, "hi");
                     pstmt.addBatch();
+                    assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1),
+                            "Expected type definition for batch with hint");
+
                     pstmt.setString(1, "truncate_me_please");
+                }
+
+                // Validation can throw when adding the over-length row (before executeBatch).
+                SQLException e = assertThrows(SQLException.class, () -> {
                     pstmt.addBatch();
-                }
-                assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1),
-                        "Expected type definition for batch with hint");
-                try {
                     pstmt.executeBatch();
-                    fail("Expected SQLException for value length exceeding defineParameterType hint in batch");
-                } catch (SQLException e) {
-                    String msg = e.getMessage();
-                    String causeMsg = (null != e.getCause()) ? e.getCause().getMessage() : null;
-                    assertTrue((null != msg
-                            && msg.matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")))
-                            || (null != causeMsg && causeMsg.matches(TestUtils
-                                    .formatErrorMsg("R_parameterTypeValueLengthExceedsHint"))),
-                            "Unexpected error: " + e.getMessage());
-                }
+                });
+                String msg = e.getMessage();
+                String causeMsg = (null != e.getCause()) ? e.getCause().getMessage() : null;
+                assertTrue((null != msg
+                        && msg.matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")))
+                        || (null != causeMsg
+                                && causeMsg.matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint"))),
+                        "Unexpected error: " + e.getMessage());
             }
         }
 
@@ -1038,9 +1043,9 @@ public class ParameterLengthHintTest extends AbstractTest {
                     Arguments.of(Types.CHAR, "vcol", "0123456789", "Batch setObject CHAR over-length error"),
                     Arguments.of(Types.NVARCHAR, "nvcol", "0123456789", "Batch setObject NVARCHAR over-length error"),
                     Arguments.of(Types.NCHAR, "nvcol", "0123456789", "Batch setObject NCHAR over-length error"),
-                    Arguments.of(Types.VARBINARY, "bincol", new byte[] {0x01, 0x02, 0x03, 0x04, 0x05},
+                    Arguments.of(Types.VARBINARY, "bincol", new byte[] {0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
                         "Batch setObject VARBINARY over-length error"),
-                    Arguments.of(Types.BINARY, "bincol", new byte[] {0x01, 0x02, 0x03, 0x04, 0x05},
+                    Arguments.of(Types.BINARY, "bincol", new byte[] {0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
                         "Batch setObject BINARY over-length error"));
             }
 
@@ -1060,21 +1065,20 @@ public class ParameterLengthHintTest extends AbstractTest {
                     pstmt.setObject(1, "hi", sqlType, 5);
                     pstmt.addBatch();
                     pstmt.setObject(1, longValue, sqlType, 5);
-                    pstmt.addBatch();
                 }
 
-                try {
+                // Validation can throw while adding the over-length row in batch mode.
+                SQLException e = assertThrows(SQLException.class, () -> {
+                    pstmt.addBatch();
                     pstmt.executeBatch();
-                    fail("Expected SQLException for setObject value length exceeding scaleOrLength in batch");
-                } catch (SQLException e) {
-                    String msg = e.getMessage();
-                    String causeMsg = (null != e.getCause()) ? e.getCause().getMessage() : null;
-                    assertTrue((null != msg
-                        && msg.matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")))
-                        || (null != causeMsg && causeMsg.matches(TestUtils
-                            .formatErrorMsg("R_parameterTypeValueLengthExceedsHint"))),
-                        "Unexpected error: " + e.getMessage());
-                }
+                });
+                String msg = e.getMessage();
+                String causeMsg = (null != e.getCause()) ? e.getCause().getMessage() : null;
+                assertTrue((null != msg
+                    && msg.matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")))
+                    || (null != causeMsg && causeMsg.matches(TestUtils
+                        .formatErrorMsg("R_parameterTypeValueLengthExceedsHint"))),
+                    "Unexpected error: " + e.getMessage());
                 }
             }
 
