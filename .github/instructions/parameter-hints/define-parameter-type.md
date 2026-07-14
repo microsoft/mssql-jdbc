@@ -170,9 +170,8 @@ the outcome is determined by SQL Server based on that declared type definition r
 than by client-side pre-truncation. This differs from Oracle-style `defineParameterType`
 semantics where the client can avoid sending excess data.
 
-One protocol-level minimum is enforced by the driver: `varchar(0)` is an invalid TDS type
-token, so a hint of `0` is promoted to `varchar(1)` via `Math.max(hint, 1)`. This is a
-protocol guard, not a data-correctness guard.
+For supported bounded variable-length hint paths, non-positive hints (`<= 0`) are rejected
+with `R_invalidParameterLength` during parameter type resolution.
 
 ### Interaction with `sendStringParametersAsUnicode`
 
@@ -352,11 +351,10 @@ if (param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser)
     // defineParameterType hint: declare the user-specified length directly.
     // Values exceeding maxLength are rejected before execution.
     int hint = param.valueLength;
-    if (hint >= DataTypes.SHORT_VARTYPE_MAX_BYTES) {
+    if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
         param.typeDefinition = VARCHAR_MAX;
     } else {
-        param.typeDefinition = SSType.VARCHAR.toString() + "(" + Math.max(hint, 1) + ")";
-        // Math.max(hint, 1): varchar(0) is an invalid TDS token; minimum is varchar(1)
+        param.typeDefinition = SSType.VARCHAR.toString() + "(" + hint + ")";
     }
 } else {
     param.typeDefinition = VARCHAR_8K;  // default — unchanged

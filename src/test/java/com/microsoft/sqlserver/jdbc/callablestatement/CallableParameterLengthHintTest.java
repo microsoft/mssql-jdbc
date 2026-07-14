@@ -347,37 +347,30 @@ public class CallableParameterLengthHintTest extends AbstractTest {
     }
 
     private static Stream<Arguments> boundaryScaleHintCases() {
-        // Boundary coverage for hint normalization and max promotion behavior.
-        byte[] emptyBytes = new byte[0];
+        // Boundary coverage for max promotion behavior (non-positive hints are validated separately).
         byte[] oneByte = new byte[] {0x01};
         byte[] threeBytes = new byte[] {0x01, 0x02, 0x03};
         return Stream.of(
-            Arguments.of(Types.VARCHAR, "@v", "", 0, "nvarchar(1)", false),
                 Arguments.of(Types.VARCHAR, "@v", "v", 1, "nvarchar(1)", false),
                 Arguments.of(Types.VARCHAR, "@v", "v", 8000, "nvarchar(max)", false),
                 Arguments.of(Types.VARCHAR, "@v", "v", 8001, "nvarchar(max)", false),
 
-            Arguments.of(Types.CHAR, "@v", "", 0, "nvarchar(1)", false),
                 Arguments.of(Types.CHAR, "@v", "v", 1, "nvarchar(1)", false),
                 Arguments.of(Types.CHAR, "@v", "v", 8000, "nvarchar(max)", false),
                 Arguments.of(Types.CHAR, "@v", "v", 8001, "nvarchar(max)", false),
 
-            Arguments.of(Types.NVARCHAR, "@v", "", 0, "nvarchar(1)", false),
                 Arguments.of(Types.NVARCHAR, "@v", "v", 1, "nvarchar(1)", false),
                 Arguments.of(Types.NVARCHAR, "@v", "v", 4000, "nvarchar(4000)", false),
                 Arguments.of(Types.NVARCHAR, "@v", "v", 4001, "nvarchar(max)", false),
 
-            Arguments.of(Types.NCHAR, "@v", "", 0, "nvarchar(1)", false),
                 Arguments.of(Types.NCHAR, "@v", "v", 1, "nvarchar(1)", false),
                 Arguments.of(Types.NCHAR, "@v", "v", 4000, "nvarchar(4000)", false),
                 Arguments.of(Types.NCHAR, "@v", "v", 4001, "nvarchar(max)", false),
 
-            Arguments.of(Types.VARBINARY, "@b", emptyBytes, 0, "varbinary(1)", true),
             Arguments.of(Types.VARBINARY, "@b", oneByte, 1, "varbinary(1)", true),
             Arguments.of(Types.VARBINARY, "@b", threeBytes, 8000, "varbinary(8000)", true),
             Arguments.of(Types.VARBINARY, "@b", threeBytes, 8001, "varbinary(max)", true),
 
-            Arguments.of(Types.BINARY, "@b", emptyBytes, 0, "varbinary(1)", true),
             Arguments.of(Types.BINARY, "@b", oneByte, 1, "varbinary(1)", true),
             Arguments.of(Types.BINARY, "@b", threeBytes, 8000, "varbinary(8000)", true),
             Arguments.of(Types.BINARY, "@b", threeBytes, 8001, "varbinary(max)", true));
@@ -387,7 +380,7 @@ public class CallableParameterLengthHintTest extends AbstractTest {
     @MethodSource("boundaryScaleHintCases")
     public void testCallableSetObjectBoundaryScaleHintsForAllSupportedTypes(int sqlType, String parameterName,
             Object value, int hintLength, String expectedTypeDef, boolean binaryType) throws Exception {
-        // Confirms computed declaration at key boundaries (0/1/max/max+1).
+        // Confirms computed declaration at key positive boundaries (1/max/max+1).
         String procName = binaryType ? procVarbinary : procVarchar;
         try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
                 .prepareCall("{call " + procName + "(?)}")) {
@@ -396,6 +389,54 @@ public class CallableParameterLengthHintTest extends AbstractTest {
             cs.execute();
 
             assertEquals(expectedTypeDef, getTypeDefinition(cs, 1));
+        }
+    }
+
+    private static Stream<Arguments> nonPositiveHintCases() {
+        byte[] oneByte = new byte[] {0x01};
+        return Stream.of(
+                Arguments.of(Types.VARCHAR, "@v", "a", false, -1),
+                Arguments.of(Types.VARCHAR, "@v", "a", false, 0),
+                Arguments.of(Types.CHAR, "@v", "a", false, -1),
+                Arguments.of(Types.CHAR, "@v", "a", false, 0),
+                Arguments.of(Types.NVARCHAR, "@v", "a", false, -1),
+                Arguments.of(Types.NVARCHAR, "@v", "a", false, 0),
+                Arguments.of(Types.NCHAR, "@v", "a", false, -1),
+                Arguments.of(Types.NCHAR, "@v", "a", false, 0),
+                Arguments.of(Types.VARBINARY, "@b", oneByte, true, -1),
+                Arguments.of(Types.VARBINARY, "@b", oneByte, true, 0),
+                Arguments.of(Types.BINARY, "@b", oneByte, true, -1),
+                Arguments.of(Types.BINARY, "@b", oneByte, true, 0));
+    }
+
+    @ParameterizedTest(name = "Callable setObject non-positive hint rejected: type={0}, hint={4}")
+    @MethodSource("nonPositiveHintCases")
+    public void testCallableSetObjectNonPositiveHintRejected(int sqlType, String parameterName, Object value,
+            boolean binaryType, int hintLength) throws Exception {
+        String procName = binaryType ? procVarbinary : procVarchar;
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
+                .prepareCall("{call " + procName + "(?)}")) {
+
+            cs.setObject(parameterName, value, sqlType, hintLength);
+            SQLServerException e = org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, cs::execute);
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterLength")),
+                    "Unexpected error: " + e.getMessage());
+        }
+    }
+
+    @ParameterizedTest(name = "Callable defineParameterType non-positive hint rejected: type={0}, hint={4}")
+    @MethodSource("nonPositiveHintCases")
+    public void testCallableDefineParameterTypeNonPositiveHintRejected(int sqlType, String parameterName, Object value,
+            boolean binaryType, int hintLength) throws Exception {
+        String procName = binaryType ? procVarbinary : procVarchar;
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
+                .prepareCall("{call " + procName + "(?)}")) {
+
+            cs.defineParameterType(1, sqlType, hintLength);
+            cs.setObject(parameterName, value, sqlType);
+            SQLServerException e = org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, cs::execute);
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterLength")),
+                    "Unexpected error: " + e.getMessage());
         }
     }
 

@@ -107,14 +107,12 @@ public class ParameterLengthHintTest extends AbstractTest {
                     Arguments.of("hello", Types.VARCHAR, 10, "nvarchar(10)", "VARCHAR hint equal to value length"),
                     Arguments.of("hi", Types.VARCHAR, 100, "nvarchar(100)", "VARCHAR hint larger than value"),
                     Arguments.of("A", Types.VARCHAR, 1, "nvarchar(1)", "VARCHAR minimum meaningful hint"),
-                    Arguments.of("", Types.VARCHAR, 0, "nvarchar(1)", "VARCHAR hint=0 promoted to nvarchar(1)"),
                     Arguments.of("boundary", Types.VARCHAR, 8000, "nvarchar(max)", "VARCHAR hint=8000 exceeds nvarchar 4000-char limit"),
                     Arguments.of("maxtest", Types.VARCHAR, 8001, "nvarchar(max)", "VARCHAR hint>8000 promotes to max"),
 
                     Arguments.of("hello", Types.CHAR, 10, "nvarchar(10)", "CHAR hint equal to value length"),
                     Arguments.of("hi", Types.CHAR, 100, "nvarchar(100)", "CHAR hint larger than value"),
                     Arguments.of("A", Types.CHAR, 1, "nvarchar(1)", "CHAR minimum meaningful hint"),
-                    Arguments.of("", Types.CHAR, 0, "nvarchar(1)", "CHAR hint=0 promoted to nvarchar(1)"),
                     Arguments.of("boundary", Types.CHAR, 8000, "nvarchar(max)", "CHAR hint=8000 exceeds nvarchar 4000-char limit"),
                     Arguments.of("maxtest", Types.CHAR, 8001, "nvarchar(max)", "CHAR hint>8000 promotes to max")
             );
@@ -145,14 +143,12 @@ public class ParameterLengthHintTest extends AbstractTest {
                     Arguments.of("hello", Types.NVARCHAR, 5, "nvarchar(5)", "NVARCHAR hint equal to value length"),
                     Arguments.of("hi", Types.NVARCHAR, 100, "nvarchar(100)", "NVARCHAR hint larger than value"),
                     Arguments.of("A", Types.NVARCHAR, 1, "nvarchar(1)", "NVARCHAR minimum meaningful hint"),
-                    Arguments.of("", Types.NVARCHAR, 0, "nvarchar(1)", "NVARCHAR hint=0 promoted to nvarchar(1)"),
                     Arguments.of("nboundary", Types.NVARCHAR, 4000, "nvarchar(4000)", "NVARCHAR hint=4000 stays bounded"),
                     Arguments.of("nmaxtest", Types.NVARCHAR, 4001, "nvarchar(max)", "NVARCHAR hint>4000 promotes to max"),
 
                     Arguments.of("hello", Types.NCHAR, 5, "nvarchar(5)", "NCHAR hint equal to value length"),
                     Arguments.of("hi", Types.NCHAR, 100, "nvarchar(100)", "NCHAR hint larger than value"),
                     Arguments.of("A", Types.NCHAR, 1, "nvarchar(1)", "NCHAR minimum meaningful hint"),
-                    Arguments.of("", Types.NCHAR, 0, "nvarchar(1)", "NCHAR hint=0 promoted to nvarchar(1)"),
                     Arguments.of("nboundary", Types.NCHAR, 4000, "nvarchar(4000)", "NCHAR hint=4000 stays bounded"),
                     Arguments.of("nmaxtest", Types.NCHAR, 4001, "nvarchar(max)", "NCHAR hint>4000 promotes to max")
             );
@@ -183,14 +179,12 @@ public class ParameterLengthHintTest extends AbstractTest {
                     Arguments.of("hello", Types.VARCHAR, 10, "varchar(10)", "VARCHAR hint equal to value length"),
                     Arguments.of("hi", Types.VARCHAR, 100, "varchar(100)", "VARCHAR hint larger than value"),
                     Arguments.of("A", Types.VARCHAR, 1, "varchar(1)", "VARCHAR minimum meaningful hint"),
-                    Arguments.of("", Types.VARCHAR, 0, "varchar(1)", "VARCHAR hint=0 promoted to varchar(1)"),
                     Arguments.of("boundary", Types.VARCHAR, 8000, "varchar(8000)", "VARCHAR hint=8000 stays bounded"),
                     Arguments.of("maxtest", Types.VARCHAR, 8001, "varchar(max)", "VARCHAR hint>8000 promotes to max"),
 
                     Arguments.of("hello", Types.CHAR, 10, "varchar(10)", "CHAR hint equal to value length"),
                     Arguments.of("hi", Types.CHAR, 100, "varchar(100)", "CHAR hint larger than value"),
                     Arguments.of("A", Types.CHAR, 1, "varchar(1)", "CHAR minimum meaningful hint"),
-                    Arguments.of("", Types.CHAR, 0, "varchar(1)", "CHAR hint=0 promoted to varchar(1)"),
                     Arguments.of("boundary", Types.CHAR, 8000, "varchar(8000)", "CHAR hint=8000 stays bounded"),
                     Arguments.of("maxtest", Types.CHAR, 8001, "varchar(max)", "CHAR hint>8000 promotes to max")
             );
@@ -223,14 +217,12 @@ public class ParameterLengthHintTest extends AbstractTest {
                     Arguments.of("hello", Types.NVARCHAR, 5, "nvarchar(5)", "NVARCHAR hint equal to value length"),
                     Arguments.of("hi", Types.NVARCHAR, 100, "nvarchar(100)", "NVARCHAR hint larger than value"),
                     Arguments.of("A", Types.NVARCHAR, 1, "nvarchar(1)", "NVARCHAR minimum meaningful hint"),
-                    Arguments.of("", Types.NVARCHAR, 0, "nvarchar(1)", "NVARCHAR hint=0 promoted to nvarchar(1)"),
                     Arguments.of("nboundary", Types.NVARCHAR, 4000, "nvarchar(4000)", "NVARCHAR hint=4000 stays bounded"),
                     Arguments.of("nmaxtest", Types.NVARCHAR, 4001, "nvarchar(max)", "NVARCHAR hint>4000 promotes to max"),
 
                     Arguments.of("hello", Types.NCHAR, 5, "nvarchar(5)", "NCHAR hint equal to value length"),
                     Arguments.of("hi", Types.NCHAR, 100, "nvarchar(100)", "NCHAR hint larger than value"),
                     Arguments.of("A", Types.NCHAR, 1, "nvarchar(1)", "NCHAR minimum meaningful hint"),
-                    Arguments.of("", Types.NCHAR, 0, "nvarchar(1)", "NCHAR hint=0 promoted to nvarchar(1)"),
                     Arguments.of("nboundary", Types.NCHAR, 4000, "nvarchar(4000)", "NCHAR hint=4000 stays bounded"),
                     Arguments.of("nmaxtest", Types.NCHAR, 4001, "nvarchar(max)", "NCHAR hint>4000 promotes to max")
             );
@@ -329,7 +321,6 @@ public class ParameterLengthHintTest extends AbstractTest {
             // value, sqlType, hintLength, expectedTypeDef, description
             // VARBINARY and BINARY hints are treated the same since both map to VARBINARY on wire.
             // VARBINARY max length is 8000, so hints >8000 promote to varbinary(max).
-            // If hint length is 0, we promote to varbinary(1) since VARBINARY(0) is not valid.
             // For hints smaller than actual value length, we still declare the hinted length on wire and let the server handle truncation errors as needed.
             byte[] threeBytes = {0x01, 0x02, 0x03};
             byte[] oneByte = {0x01};
@@ -337,14 +328,12 @@ public class ParameterLengthHintTest extends AbstractTest {
                     Arguments.of(threeBytes, Types.VARBINARY, 3, "varbinary(3)", "VARBINARY hint equal to value length"),
                     Arguments.of(threeBytes, Types.VARBINARY, 100, "varbinary(100)", "VARBINARY hint larger than value"),
                     Arguments.of(oneByte, Types.VARBINARY, 1, "varbinary(1)", "VARBINARY minimum meaningful hint"),
-                    Arguments.of(oneByte, Types.VARBINARY, 0, "varbinary(1)", "VARBINARY hint=0 promoted to varbinary(1)"),
                     Arguments.of(threeBytes, Types.VARBINARY, 8000, "varbinary(8000)", "VARBINARY hint=8000 stays bounded"),
                     Arguments.of(threeBytes, Types.VARBINARY, 8001, "varbinary(max)", "VARBINARY hint>8000 promotes to max"),
 
                     Arguments.of(threeBytes, Types.BINARY, 3, "varbinary(3)", "BINARY hint equal to value length"),
                     Arguments.of(threeBytes, Types.BINARY, 100, "varbinary(100)", "BINARY hint larger than value"),
                     Arguments.of(oneByte, Types.BINARY, 1, "varbinary(1)", "BINARY minimum meaningful hint"),
-                    Arguments.of(oneByte, Types.BINARY, 0, "varbinary(1)", "BINARY hint=0 promoted to varbinary(1)"),
                     Arguments.of(threeBytes, Types.BINARY, 8000, "varbinary(8000)", "BINARY hint=8000 stays bounded"),
                     Arguments.of(threeBytes, Types.BINARY, 8001, "varbinary(max)", "BINARY hint>8000 promotes to max")
             );
@@ -559,27 +548,60 @@ public class ParameterLengthHintTest extends AbstractTest {
     class ErrorHandlingTests {
 
         // sqlType, typeName
-        Stream<Arguments> negativeMaxLengthCases() {
+        Stream<Arguments> nonPositiveLengthCases() {
             return Stream.of(
-                    Arguments.of(Types.VARCHAR, "VARCHAR"),
-                    Arguments.of(Types.CHAR, "CHAR"),
-                    Arguments.of(Types.NVARCHAR, "NVARCHAR"),
-                    Arguments.of(Types.NCHAR, "NCHAR"),
-                    Arguments.of(Types.VARBINARY, "VARBINARY"),
-                    Arguments.of(Types.BINARY, "BINARY")
+                    Arguments.of(Types.VARCHAR, "VARCHAR", -1),
+                    Arguments.of(Types.VARCHAR, "VARCHAR", 0),
+                    Arguments.of(Types.CHAR, "CHAR", -1),
+                    Arguments.of(Types.CHAR, "CHAR", 0),
+                    Arguments.of(Types.NVARCHAR, "NVARCHAR", -1),
+                    Arguments.of(Types.NVARCHAR, "NVARCHAR", 0),
+                    Arguments.of(Types.NCHAR, "NCHAR", -1),
+                    Arguments.of(Types.NCHAR, "NCHAR", 0),
+                    Arguments.of(Types.VARBINARY, "VARBINARY", -1),
+                    Arguments.of(Types.VARBINARY, "VARBINARY", 0),
+                    Arguments.of(Types.BINARY, "BINARY", -1),
+                    Arguments.of(Types.BINARY, "BINARY", 0)
             );
         }
 
-        // Verify that negative maxLength is rejected with R_invalidParameterLength for all supported types.
-        @ParameterizedTest(name = "Negative length rejected: {1}")
-        @MethodSource("negativeMaxLengthCases")
-        void testNegativeMaxLengthRejected(int sqlType, String typeName) throws SQLException {
+        // Verify that non-positive hints are rejected with R_invalidParameterLength for all supported types.
+        @ParameterizedTest(name = "Non-positive defineParameterType hint rejected: {1}, hint={2}")
+        @MethodSource("nonPositiveLengthCases")
+        void testDefineParameterTypeNonPositiveHintRejected(int sqlType, String typeName, int hintLength)
+                throws Exception {
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
 
-                SQLServerException e = assertThrows(SQLServerException.class,
-                        () -> pstmt.defineParameterType(1, sqlType, -1));
+                pstmt.defineParameterType(1, sqlType, hintLength);
+                if (sqlType == Types.NVARCHAR || sqlType == Types.NCHAR) {
+                    pstmt.setNString(1, "a");
+                } else {
+                    pstmt.setObject(1, Types.VARBINARY == sqlType || Types.BINARY == sqlType ? new byte[] {0x01} : "a",
+                            sqlType);
+                }
 
+                SQLServerException e = assertThrows(SQLServerException.class,
+                        pstmt::executeUpdate);
+
+                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterLength")),
+                        "Unexpected error: " + e.getMessage());
+            }
+        }
+
+        @ParameterizedTest(name = "Non-positive setObject scaleOrLength hint rejected: {1}, hint={2}")
+        @MethodSource("nonPositiveLengthCases")
+        void testSetObjectNonPositiveHintRejected(int sqlType, String typeName, int hintLength) throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                if (sqlType == Types.VARBINARY || sqlType == Types.BINARY) {
+                    pstmt.setObject(1, new byte[] {0x01}, sqlType, hintLength);
+                } else {
+                    pstmt.setObject(1, "a", sqlType, hintLength);
+                }
+
+                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterLength")),
                         "Unexpected error: " + e.getMessage());
             }

@@ -727,8 +727,7 @@ final class Parameter {
                         if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
                             param.typeDefinition = VARBINARY_MAX;
                         } else {
-                            // Math.max(hint, 1): varbinary(0) is an invalid TDS token; minimum is varbinary(1)
-                            param.typeDefinition = SSType.VARBINARY.toString() + "(" + Math.max(hint, 1) + ")";
+                            param.typeDefinition = SSType.VARBINARY.toString() + "(" + hint + ")";
                         }
                     } else
                         param.typeDefinition = VARBINARY_8K;
@@ -891,8 +890,7 @@ final class Parameter {
                         if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
                             param.typeDefinition = VARCHAR_MAX;
                         } else {
-                            // Math.max(hint, 1): varchar(0) is an invalid TDS token; minimum is varchar(1)
-                            param.typeDefinition = SSType.VARCHAR.toString() + "(" + Math.max(hint, 1) + ")";
+                            param.typeDefinition = SSType.VARCHAR.toString() + "(" + hint + ")";
                         }
                     } else
                         param.typeDefinition = VARCHAR_8K;
@@ -1033,8 +1031,7 @@ final class Parameter {
                         if (hint > DataTypes.SHORT_VARTYPE_MAX_CHARS) {
                             param.typeDefinition = NVARCHAR_MAX;
                         } else {
-                            // Math.max(hint, 1): nvarchar(0) is an invalid TDS token; minimum is nvarchar(1)
-                            param.typeDefinition = SSType.NVARCHAR.toString() + "(" + Math.max(hint, 1) + ")";
+                            param.typeDefinition = SSType.NVARCHAR.toString() + "(" + hint + ")";
                         }
                     } else
                         param.typeDefinition = NVARCHAR_4K;
