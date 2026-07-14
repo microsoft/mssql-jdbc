@@ -163,11 +163,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final short NTLM_AVID_MSVAVCHANNELBINDING = 0x000a;
 
     /**
-     * Section 2.2.2.1 AV_PAIR - MsvAvChannelBindings.
-     *
-     * MD5 hashed channel binding info. By default, an all-zero byte array means no channel binding.
+     * MD5 hashed channel binding info. Null means no channel binding AV_PAIR will
+     * be sent.
      */
-    private byte[] msvAvChannelBindings = new byte[16];
+    private byte[] msvAvChannelBindings = null;
 
     /**
      * Section 2.2.2.1 AV_PAIR
@@ -550,6 +549,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
         time.putLong((TimeUnit.SECONDS.toNanos(Instant.now().getEpochSecond() + WINDOWS_EPOCH_DIFF)) / 100);
         byte[] currentTime = time.array();
 
+        calculateChannelBindingMD5Hash();
+
         // allocate token buffer
         ByteBuffer token = ByteBuffer
                 .allocate(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE.length + NTLM_CLIENT_CHALLENGE_RESERVED1.length
@@ -557,7 +558,10 @@ final class NTLMAuthentication extends SSPIAuthentication {
                         + NTLM_CLIENT_CHALLENGE_RESERVED3.length + context.targetInfo.length
                         + /* add MIC */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + NTLM_AVID_MSVAVFLAGS_LEN
                 + /* add SPN */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + context.spnUbytes.length
-                + /* add channel binding */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + msvAvChannelBindings.length)
+                        + /* add channel binding */ ((null != msvAvChannelBindings)
+                                ? NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH
+                                        + msvAvChannelBindings.length
+                                : 0))
                 .order(ByteOrder.LITTLE_ENDIAN);
 
         token.put(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE);
@@ -594,11 +598,12 @@ final class NTLMAuthentication extends SSPIAuthentication {
         token.putShort((short) context.spnUbytes.length);
         token.put(context.spnUbytes, 0, context.spnUbytes.length);
 
-        // Channel binding
-        calculateChannelBindingMD5Hash();
-        token.putShort(NTLM_AVID_MSVAVCHANNELBINDING);
-        token.putShort((short) msvAvChannelBindings.length);
-        token.put(msvAvChannelBindings, 0, msvAvChannelBindings.length);
+        if (null != msvAvChannelBindings) {
+            // Channel binding
+            token.putShort(NTLM_AVID_MSVAVCHANNELBINDING);
+            token.putShort((short) msvAvChannelBindings.length);
+            token.put(msvAvChannelBindings, 0, msvAvChannelBindings.length);
+        }
 
         // EOL
         token.putShort(NTLM_AVID_MSVAVEOL);
@@ -629,7 +634,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private void calculateChannelBindingMD5Hash() {
         try {
             if (null == channelBindingInfo || 0 == channelBindingInfo.length) {
-                Arrays.fill(msvAvChannelBindings, (byte) 0);
+                msvAvChannelBindings = null;
                 return;
             }
 
