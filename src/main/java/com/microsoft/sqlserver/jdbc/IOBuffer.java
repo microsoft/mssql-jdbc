@@ -2046,6 +2046,8 @@ final class TDSChannel implements Serializable {
                 if (logger.isLoggable(Level.FINER)) {
                     logger.finer("tls-unique verify_data received: " + tlsUnique.length + " bytes.");
                 }
+            } else if (logger.isLoggable(Level.FINER)) {
+                logger.finer("tls-unique verify_data was not available.");
             }
         } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
             if (logger.isLoggable(Level.FINER)) {
