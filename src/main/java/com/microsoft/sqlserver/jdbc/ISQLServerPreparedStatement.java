@@ -116,47 +116,55 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * enables SQL Server to compute a more accurate memory grant for query execution plans, which is especially
      * beneficial for large batch operations.
      *
-     * <p><strong>Important:</strong> The {@code sqlType} argument is used only for validation (to ensure the
-     * type is one of the supported character or binary families). It is <em>not</em> persisted or enforced at
+     * Important: The {@code sqlType} argument is used only for validation (to ensure the
+     * type is one of the supported character or binary families). It is not persisted or enforced at
      * execution time. The actual wire type is determined by the setter method invoked on the parameter
-     * (e.g. {@code setString} → NVARCHAR when {@code sendStringParametersAsUnicode=true},
-     * {@code setNString} → NVARCHAR, {@code setBytes} → VARBINARY). Only the {@code maxLength} value is
+     * (e.g. {@code setString} → NVARCHAR when
+     * {@code sendStringParametersAsUnicode=true},
+     * {@code setNString} → NVARCHAR, {@code setBytes} → VARBINARY). Only the
+     * {@code maxLength} value is
      * retained and applied to the type definition sent to the server.
      *
-     * <p><strong>Precedence:</strong> If {@code defineParameterType} is called on a parameter,
-     * its {@code maxLength} hint takes precedence over any length specified via
-     * {@link #setObject(int, Object, int, int) setObject(..., scaleOrLength)} for that parameter.
+     * Precedence: If {@code defineParameterType} is called on a parameter, its {@code maxLength} hint takes precedence 
+     * over any length specified via {@link #setObject(int, Object, int, int) setObject(..., scaleOrLength)} for that parameter.
      * This allows developers to establish a baseline type contract that is not overridden by subsequent setter calls.
      *
      * The hint persists across {@code addBatch} calls on this prepared statement for the specified parameter —
      * call it once before the batch loop. Only character types (VARCHAR, CHAR, NVARCHAR, NCHAR) and binary types
      * (VARBINARY, BINARY) are supported.
      *
-        * If a value longer than {@code maxLength} is set for supported short character/binary parameter types,
-        * execution fails with an error instead of silently truncating the outbound value. For declarations that
-        * map to max types (for example, hints beyond short type limits), SQL Server continues to enforce the
-        * declared parameter type/length during execution. The caller should set a hint that accommodates their
-        * largest expected value.
+     * If a value longer than {@code maxLength} is set for supported short character/binary parameter types,
+     * execution fails with an error instead of silently truncating the outbound value. For declarations that
+     * map to max types (for example, hints beyond short type limits), SQL Server continues to enforce the
+     * declared parameter type/length during execution. The caller should set a hint that accommodates their
+     * largest expected value.
      *
      * When {@code sendStringParametersAsUnicode} is {@code true} (the default), VARCHAR/CHAR hints produce a
      * declared parameter type of {@code nvarchar(N)} because {@code setString()} promotes the parameter to
      * NVARCHAR. When {@code sendStringParametersAsUnicode} is {@code false}, VARCHAR/CHAR hints produce
-     * {@code varchar(N)}. {@code setNString()} always produces {@code nvarchar(N)} regardless of the connection
-     * property.
+     * {@code varchar(N)}. {@code setNString()} always produces {@code nvarchar(N)} regardless of the connection property.
      * 
      * @param parameterIndex
-     *        the first parameter is 1, the second is 2, ...
+     *                       the first parameter is 1, the second is 2, ...
      * @param sqlType
-     *        a {@code java.sql.Types} constant indicating the intended type family; used only for validation
-     *        (must be VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, or BINARY). The actual wire type is determined
-     *        by the setter method called on the parameter, not by this value.
+     *                       a {@code java.sql.Types} constant indicating the
+     *                       intended type family; used only for validation
+     *                       (must be VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, or
+     *                       BINARY). The actual wire type is determined
+     *                       by the setter method called on the parameter, not by
+     *                       this value.
      * @param maxLength
-     *        the expected maximum length in characters (for VARCHAR/CHAR/NVARCHAR/NCHAR) or bytes (for
-     *        VARBINARY/BINARY); must be >= 0
-        * @throws SQLServerException
-        *         if {@code parameterIndex} is out of range, {@code maxLength} is negative, {@code sqlType} is not a
-        *         supported type, this method is called on a closed statement, or execution detects a value length
-        *         that exceeds {@code maxLength} for supported short character/binary parameter types
+     *                       the expected maximum length in characters (for
+     *                       VARCHAR/CHAR/NVARCHAR/NCHAR) or bytes (for
+     *                       VARBINARY/BINARY); must be >= 0
+     * @throws SQLServerException
+     *                            if {@code parameterIndex} is out of range,
+     *                            {@code maxLength} is negative, {@code sqlType} is
+     *                            not a
+     *                            supported type, this method is called on a closed
+     *                            statement, or execution detects a value length
+     *                            that exceeds {@code maxLength} for supported short
+     *                            character/binary parameter types
      */
     void defineParameterType(int parameterIndex, int sqlType, int maxLength) throws SQLServerException;
 
