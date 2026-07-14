@@ -167,14 +167,10 @@ For more details, see **[README.md](README.md#precedence-rule-defineparametertyp
 
 ## Error Handling
 
-### Negative Length
+### Non-Positive Length
 
-Passing a negative `scaleOrLength` is treated as "no hint provided" — the default TypeInfo is used:
-
-```java
-ps.setObject(1, "value", Types.VARCHAR, -1);
-// Treated as: no hint → wire sends varchar(8000) or nvarchar(4000)
-```
+Passing a non-positive `scaleOrLength` (`<= 0`) for a supported bounded variable-length type
+is rejected with `R_invalidParameterLength` during parameter type resolution.
 
 ### Value Exceeds Declared Length
 
@@ -185,7 +181,7 @@ ps.setObject(1, "this_is_a_very_long_value", Types.VARCHAR, 5);
 try {
     ps.executeUpdate();
 } catch (SQLServerException e) {
-    // Error: R_defineParameterTypeValueLengthExceedsHint
+    // Error: R_parameterTypeValueLengthExceedsHint
     // Actual value (25 chars) exceeds declared length (5 chars)
 }
 ```
@@ -250,7 +246,8 @@ int[] counts = ps.executeBatch();
 The `scaleOrLength` parameter is extracted by `SQLServerPreparedStatement.setObject()` and passed as an integer to the internal parameter setting logic. When the TDS message is prepared, the type definition is computed by checking:
 
 1. **Is `defineParameterType()` called?** If yes, use that hint (takes precedence)
-2. **Is `scaleOrLength > 0` for a supported type?** If yes, use that hint
+2. **Is `scaleOrLength` present for a supported type?** If yes, validate that it is `> 0`
+    and then use that hint
 3. Otherwise, use the default TypeInfo (varchar(8000) / nvarchar(4000) / varbinary(8000))
 
 ### Interaction with Always Encrypted (AE)

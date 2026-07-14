@@ -227,9 +227,10 @@ Add a single new driver-extension method to `ISQLServerPreparedStatement` and
  *                       VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, or BINARY). The actual
  *                       wire type is determined by the setter method, not by this value.
  * @param maxLength      maximum expected length in characters (VARCHAR/NVARCHAR/CHAR/NCHAR)
- *                       or bytes (VARBINARY/BINARY); must be >= 0
- * @throws SQLServerException if the parameter index is out of range, maxLength is
- *                            negative, or the sqlType is not a supported variable-length type
+ *                       or bytes (VARBINARY/BINARY); must be > 0 for the supported hint path
+ * @throws SQLServerException if the parameter index is out of range, the sqlType is not a
+ *                            supported variable-length type, or execution later resolves a
+ *                            non-positive hint for a supported bounded variable-length parameter
  */
 public void defineParameterType(int parameterIndex, int sqlType, int maxLength)
         throws SQLServerException;
@@ -372,12 +373,6 @@ The same `else if` pattern applies to `NCHAR/NVARCHAR` (limit: `SHORT_VARTYPE_MA
 public void defineParameterType(int parameterIndex, int sqlType, int maxLength)
         throws SQLServerException {
     checkClosed();
-    if (maxLength < 0) {
-        MessageFormat form = new MessageFormat(
-                SQLServerException.getErrString("R_invalidParameterLength"));
-        SQLServerException.makeFromDriverError(connection, this,
-                form.format(new Object[] {maxLength}), null, false);
-    }
     // Validate that sqlType is one of the supported character or binary types.
     // The sqlType value itself is not stored on the parameter — the wire type is
     // determined by what setString/setNString/setBytes sets on the DTV at execution time.
@@ -402,7 +397,7 @@ public void defineParameterType(int parameterIndex, int sqlType, int maxLength)
 
 ```java
 {"R_invalidParameterLength",
-    "The maxLength value {0} is not valid. maxLength must be >= 0."},
+    "The maxLength value {0} is not valid. maxLength must be > 0."},
 {"R_unsupportedTypeForDefineParamType",
     "The SQL type {0} is not supported by defineParameterType. "
     + "Supported types: VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY."},
@@ -428,6 +423,11 @@ it is mutually exclusive with the AE path:
 if (AE active for param)  →  AE path (exact length from value; defines encrypted type)
 else if (defineParameterTypeCalled)  →  hint path
 else  →  conservative default (varchar(8000) etc.)
+
+For supported bounded variable-length types, the hint is validated during parameter type
+resolution in `Parameter.GetTypeDefinitionOp.getApplicationSpecifiedLengthHint(...)`. A
+non-positive hint (`<= 0`) throws `R_invalidParameterLength` at execution/type-resolution
+time rather than at the initial `defineParameterType()` call site.
 ```
 
 No AE behaviour changes. The hint is silently ignored when AE is active, which is correct:

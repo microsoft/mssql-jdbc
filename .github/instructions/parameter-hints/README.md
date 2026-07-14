@@ -126,9 +126,9 @@ When SSPAU (`sendStringParametersAsUnicode`) is `true` (default), VARCHAR/CHAR h
 
 Both APIs validate constraints and reject violations:
 
-- **Negative length**: Rejected with error `R_invalidParameterLength`
+- **Non-positive length**: Rejected with error `R_invalidParameterLength`
 - **Unsupported JDBC type**: Rejected with error `R_unsupportedTypeForDefineParamType`
-- **Value exceeds declared length**: Execution fails with error `R_defineParameterTypeValueLengthExceedsHint` (prevents silent data corruption)
+- **Value exceeds declared length**: Execution fails with error `R_parameterTypeValueLengthExceedsHint` (prevents silent data corruption)
 
 ## Batch Workflows
 
