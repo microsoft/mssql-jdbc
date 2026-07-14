@@ -674,7 +674,7 @@ public class ParameterLengthHintTest extends AbstractTest {
                     fail("Expected SQLServerException for value length exceeding defineParameterType hint");
                 } catch (SQLServerException e) {
                     assertTrue(e.getMessage()
-                            .matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                            .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
                             "Unexpected error: " + e.getMessage());
                 }
             }
@@ -715,7 +715,7 @@ public class ParameterLengthHintTest extends AbstractTest {
                     fail("Expected SQLServerException for value length exceeding setObject scaleOrLength hint");
                 } catch (SQLServerException e) {
                     assertTrue(e.getMessage()
-                            .matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                            .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
                             "Unexpected error: " + e.getMessage());
                 }
             }
@@ -742,7 +742,7 @@ public class ParameterLengthHintTest extends AbstractTest {
                     fail("Expected SQLServerException for value length exceeding setObject scaleOrLength hint");
                 } catch (SQLServerException e) {
                     assertTrue(e.getMessage()
-                            .matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                            .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
                             "Unexpected error: " + e.getMessage());
                 }
             }
@@ -764,7 +764,7 @@ public class ParameterLengthHintTest extends AbstractTest {
                     fail("Expected SQLServerException for value length exceeding defineParameterType hint");
                 } catch (SQLServerException e) {
                     assertTrue(e.getMessage()
-                            .matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                            .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
                             "Unexpected error: " + e.getMessage());
                 }
             }
@@ -796,7 +796,7 @@ public class ParameterLengthHintTest extends AbstractTest {
                     fail("Expected SQLServerException for setObject value length exceeding scaleOrLength");
                 } catch (SQLServerException e) {
                     assertTrue(e.getMessage()
-                            .matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                            .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
                             "Unexpected error: " + e.getMessage());
                 }
             }
@@ -822,7 +822,7 @@ public class ParameterLengthHintTest extends AbstractTest {
                     fail("Expected SQLServerException for setObject value length exceeding scaleOrLength");
                 } catch (SQLServerException e) {
                     assertTrue(e.getMessage()
-                            .matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                            .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
                             "Unexpected error: " + e.getMessage());
                 }
             }
@@ -927,9 +927,9 @@ public class ParameterLengthHintTest extends AbstractTest {
                     String msg = e.getMessage();
                     String causeMsg = (null != e.getCause()) ? e.getCause().getMessage() : null;
                     assertTrue((null != msg
-                            && msg.matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")))
+                            && msg.matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")))
                             || (null != causeMsg && causeMsg.matches(TestUtils
-                                    .formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint"))),
+                                    .formatErrorMsg("R_parameterTypeValueLengthExceedsHint"))),
                             "Unexpected error: " + e.getMessage());
                 }
             }
@@ -1048,9 +1048,9 @@ public class ParameterLengthHintTest extends AbstractTest {
                     String msg = e.getMessage();
                     String causeMsg = (null != e.getCause()) ? e.getCause().getMessage() : null;
                     assertTrue((null != msg
-                        && msg.matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")))
+                        && msg.matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")))
                         || (null != causeMsg && causeMsg.matches(TestUtils
-                            .formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint"))),
+                            .formatErrorMsg("R_parameterTypeValueLengthExceedsHint"))),
                         "Unexpected error: " + e.getMessage());
                 }
                 }

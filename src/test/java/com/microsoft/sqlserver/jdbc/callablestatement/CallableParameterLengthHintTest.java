@@ -257,7 +257,7 @@ public class CallableParameterLengthHintTest extends AbstractTest {
                 cs.execute();
                 fail("Expected SQLServerException for value length exceeding setObject scale hint");
             } catch (SQLServerException e) {
-                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
                         "Unexpected error: " + e.getMessage());
             }
         }
@@ -278,7 +278,7 @@ public class CallableParameterLengthHintTest extends AbstractTest {
                 cs.execute();
                 fail("Expected SQLServerException for value length exceeding defineParameterType hint");
             } catch (SQLServerException e) {
-                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_defineParameterTypeValueLengthExceedsHint")),
+                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
                         "Unexpected error: " + e.getMessage());
             }
         }

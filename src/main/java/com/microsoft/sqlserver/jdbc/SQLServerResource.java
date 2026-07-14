@@ -107,7 +107,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_invalidRowcount", "The maximum row count {0} for a result set must be non-negative."},
         {"R_invalidQueryTimeOutValue", "The query timeout value {0} is not valid."},
         {"R_invalidParameterLength", "The maxLength value {0} is not valid. maxLength must be >= 0."},
-        {"R_defineParameterTypeValueLengthExceedsHint", "The value length {1} exceeds the maxLength {0} defined by defineParameterType."},
+        {"R_parameterTypeValueLengthExceedsHint", "The value length {1} exceeds the maximum length hint {0} for this parameter."},
         {"R_unsupportedTypeForDefineParamType", "The SQL type {0} is not supported by defineParameterType. Supported types: VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY."},
         {"R_invalidFetchDirection", "The fetch direction {0} is not valid."},
         {"R_invalidFetchSize", "The fetch size cannot be negative."},

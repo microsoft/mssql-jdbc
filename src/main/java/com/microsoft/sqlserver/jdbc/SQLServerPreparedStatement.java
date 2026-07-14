@@ -222,12 +222,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public void defineParameterType(int parameterIndex, int sqlType, int maxLength) throws SQLServerException {
         checkClosed();
-        if (maxLength < 0) {
-            MessageFormat form = new MessageFormat(
-                    SQLServerException.getErrString("R_invalidParameterLength"));
-            SQLServerException.makeFromDriverError(connection, this,
-                    form.format(new Object[] {maxLength}), null, false);
-        }
         // Validate that sqlType is one of the supported character or binary types.
         // The sqlType value itself is not stored on the parameter — the wire type is
         // determined by what setString/setNString/setBytes sets on the DTV at execution time.

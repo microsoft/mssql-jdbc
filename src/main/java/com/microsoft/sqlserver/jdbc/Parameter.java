@@ -456,16 +456,23 @@ final class Parameter {
             this.con = con;
         }
 
-        private Integer getApplicationSpecifiedLengthHint(DTV dtv) {
+        private void throwInvalidParameterLength(int length) throws SQLServerException {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidParameterLength"));
+            SQLServerException.makeFromDriverError(con, param, form.format(new Object[] {length}), null, false);
+        }
+
+        private Integer getApplicationSpecifiedLengthHint(DTV dtv) throws SQLServerException {
             // Precedence rule for short character/binary families:
             // 1) defineParameterType(maxLength)
             // 2) setObject(..., scaleOrLength)
+            Integer lengthHint;
             if (param.defineParameterTypeCalled) {
-                return param.valueLength;
+                lengthHint = param.valueLength;
+            } else {
+                lengthHint = dtv.getScale();
             }
 
-            Integer setObjectScaleOrLength = dtv.getScale();
-            if (null == setObjectScaleOrLength) {
+            if (null == lengthHint) {
                 return null;
             }
 
@@ -476,7 +483,10 @@ final class Parameter {
                 case NVARCHAR:
                 case BINARY:
                 case VARBINARY:
-                    return setObjectScaleOrLength;
+                    if (lengthHint <= 0) {
+                        throwInvalidParameterLength(lengthHint);
+                    }
+                    return lengthHint;
                 default:
                     return null;
             }
@@ -519,7 +529,7 @@ final class Parameter {
 
             if (actualLength > boundedDeclaredLength) {
                 MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_defineParameterTypeValueLengthExceedsHint"));
+                        SQLServerException.getErrString("R_parameterTypeValueLengthExceedsHint"));
                 Object[] msgArgs = {boundedDeclaredLength, actualLength};
                 SQLServerException.makeFromDriverError(con, param, form.format(msgArgs), null, false);
             }
