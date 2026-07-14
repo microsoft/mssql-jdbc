@@ -45,6 +45,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
@@ -74,6 +75,7 @@ import microsoft.sql.Vector.VectorDimensionType;
 @vectorJsonTest
 @Tag(Constants.vectorTest)
 @Tag(Constants.vectorFloat16Test)
+@AzureDB
 public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
 
     @Override
@@ -132,6 +134,7 @@ public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
     @DisplayName("Mixed FLOAT32 + FLOAT16 Bulk Copy Tests")
     @Tag(Constants.vectorTest)
     @Tag(Constants.vectorFloat16Test)
+    @AzureDB
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     class MixedVectorTypeBulkCopyTest {
 

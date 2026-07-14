@@ -31,6 +31,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
@@ -247,6 +248,7 @@ public class VectorUtilityTest extends AbstractTest {
     @RunWith(JUnitPlatform.class)
     @DisplayName("Vector Negotiation Tests")
     @Tag(Constants.vectorFloat16Test)
+    @AzureDB
     public static class VectorNegotiationTest extends AbstractTest {
 
         @BeforeAll
