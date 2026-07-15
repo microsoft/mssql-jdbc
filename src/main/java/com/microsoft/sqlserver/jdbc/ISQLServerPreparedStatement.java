@@ -111,38 +111,57 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
     int getPreparedStatementHandle() throws SQLServerException;
 
     /**
-     * Specifies the SQL type and maximum character or byte length for a parameter, allowing the driver to use a
-     * tighter type declaration than the default (e.g. {@code varchar(50)} instead of {@code varchar(8000)}). This
-     * enables SQL Server to compute a more accurate memory grant for query execution plans, which is especially
+     * Specifies the SQL type and maximum character or byte length for a parameter,
+     * allowing the driver to use a
+     * tighter type declaration than the default (e.g. {@code varchar(50)} instead
+     * of {@code varchar(8000)}). This
+     * enables SQL Server to compute a more accurate memory grant for query
+     * execution plans, which is especially
      * beneficial for large batch operations.
      *
-     * Important: The {@code sqlType} argument is used only for validation (to ensure the
-     * type is one of the supported character or binary families). It is not persisted or enforced at
-     * execution time. The actual wire type is determined by the setter method invoked on the parameter
+     * Important: The {@code sqlType} argument is used only for validation (to
+     * ensure the
+     * type is one of the supported character or binary families). It is not
+     * persisted or enforced at
+     * execution time. The actual wire type is determined by the setter method
+     * invoked on the parameter
      * (e.g. {@code setString} → NVARCHAR when
      * {@code sendStringParametersAsUnicode=true},
      * {@code setNString} → NVARCHAR, {@code setBytes} → VARBINARY). Only the
      * {@code maxLength} value is
      * retained and applied to the type definition sent to the server.
      *
-     * Precedence: If {@code defineParameterType} is called on a parameter, its {@code maxLength} hint takes precedence 
-     * over any length specified via {@link #setObject(int, Object, int, int) setObject(..., scaleOrLength)} for that parameter.
-     * This allows developers to establish a baseline type contract that is not overridden by subsequent setter calls.
+     * Precedence: If {@code defineParameterType} is called on a parameter, its
+     * {@code maxLength} hint takes precedence
+     * over any length specified via {@link #setObject(int, Object, int, int)
+     * setObject(..., scaleOrLength)} for that parameter.
+     * This allows developers to establish a baseline type contract that is not
+     * overridden by subsequent setter calls.
      *
-     * The hint persists across {@code addBatch} calls on this prepared statement for the specified parameter —
-     * call it once before the batch loop. Only character types (VARCHAR, CHAR, NVARCHAR, NCHAR) and binary types
+     * The hint persists across {@code addBatch} calls on this prepared statement
+     * for the specified parameter —
+     * call it once before the batch loop. Only character types (VARCHAR, CHAR,
+     * NVARCHAR, NCHAR) and binary types
      * (VARBINARY, BINARY) are supported.
      *
-     * If a value longer than {@code maxLength} is set for supported short character/binary parameter types,
-     * execution fails with an error instead of silently truncating the outbound value. For declarations that
-     * map to max types (for example, hints beyond short type limits), SQL Server continues to enforce the
-     * declared parameter type/length during execution. The caller should set a hint that accommodates their
+     * If a value longer than {@code maxLength} is set for supported short
+     * character/binary parameter types,
+     * execution fails with an error instead of silently truncating the outbound
+     * value. For declarations that
+     * map to max types (for example, hints beyond short type limits), SQL Server
+     * continues to enforce the
+     * declared parameter type/length during execution. The caller should set a hint
+     * that accommodates their
      * largest expected value.
      *
-     * When {@code sendStringParametersAsUnicode} is {@code true} (the default), VARCHAR/CHAR hints produce a
-     * declared parameter type of {@code nvarchar(N)} because {@code setString()} promotes the parameter to
-     * NVARCHAR. When {@code sendStringParametersAsUnicode} is {@code false}, VARCHAR/CHAR hints produce
-     * {@code varchar(N)}. {@code setNString()} always produces {@code nvarchar(N)} regardless of the connection property.
+     * When {@code sendStringParametersAsUnicode} is {@code true} (the default),
+     * VARCHAR/CHAR hints produce a
+     * declared parameter type of {@code nvarchar(N)} because {@code setString()}
+     * promotes the parameter to
+     * NVARCHAR. When {@code sendStringParametersAsUnicode} is {@code false},
+     * VARCHAR/CHAR hints produce
+     * {@code varchar(N)}. {@code setNString()} always produces {@code nvarchar(N)}
+     * regardless of the connection property.
      * 
      * @param parameterIndex
      *                       the first parameter is 1, the second is 2, ...
@@ -156,11 +175,11 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * @param maxLength
      *                       the expected maximum length in characters (for
      *                       VARCHAR/CHAR/NVARCHAR/NCHAR) or bytes (for
-     *                       VARBINARY/BINARY); must be >= 0
+     *                       VARBINARY/BINARY); must be {@code > 0}
      * @throws SQLServerException
      *                            if {@code parameterIndex} is out of range,
-     *                            {@code maxLength} is negative, {@code sqlType} is
-     *                            not a
+     *                            {@code maxLength} is non-positive, {@code sqlType}
+     *                            is not a
      *                            supported type, this method is called on a closed
      *                            statement, or execution detects a value length
      *                            that exceeds {@code maxLength} for supported short
