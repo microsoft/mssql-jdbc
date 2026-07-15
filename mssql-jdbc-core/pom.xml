@@ -16,14 +16,6 @@
     <description>Microsoft JDBC Driver for SQL Server.</description>
     <packaging>jar</packaging>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.microsoft.sqlserver</groupId>
-            <artifactId>mssql-jdbc-telemetry-api</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-    </dependencies>
-
     <build>
         <sourceDirectory>../src/main/java</sourceDirectory>
         <testSourceDirectory>../src/test/java</testSourceDirectory>

@@ -249,7 +249,6 @@
 	</pluginRepositories>
 	<modules>
 		<module>mssql-jdbc-core</module>
-		<module>mssql-jdbc-telemetry-api</module>
 		<module>mssql-jdbc-otel</module>
 	</modules>
 	<profiles>

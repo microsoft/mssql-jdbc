@@ -22,7 +22,7 @@
     <dependencies>
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
-            <artifactId>mssql-jdbc-telemetry-api</artifactId>
+            <artifactId>mssql-jdbc</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
