@@ -362,6 +362,7 @@ final class TDS {
 
     // Message header length
     static final int MESSAGE_HEADER_LENGTH = MARS_HEADER_LENGTH + 4; // length includes message header itself
+    static final short QUERY_NOTIFICATION_HEADER_TYPE = 1;
 
     static final byte B_PRELOGIN_OPTION_VERSION = 0x00;
     static final byte B_PRELOGIN_OPTION_ENCRYPTION = 0x01;
@@ -3466,9 +3467,22 @@ final class TDSWriter {
         // Include ALL_Headers/MARS header in message's first packet
         // Note: The PKT_BULK message does not nees this ALL_HEADERS
         if ((TDS.PKT_QUERY == tdsMessageType || TDS.PKT_DTC == tdsMessageType || TDS.PKT_RPC == tdsMessageType)) {
-            int totalHeaderLength = TDS.MESSAGE_HEADER_LENGTH;
+            SQLServerQueryNotificationRequest queryNotificationRequest = command.getQueryNotificationRequest();
+            int queryNotificationHeaderLength = null == queryNotificationRequest ? 0
+                                                                                  : queryNotificationRequest
+                                                                                          .getHeaderLength();
+            int totalHeaderLength = TDS.MESSAGE_HEADER_LENGTH + queryNotificationHeaderLength;
 
             writeInt(totalHeaderLength); // allHeaders.TotalLength (DWORD)
+            if (null != queryNotificationRequest) {
+                writeInt(queryNotificationHeaderLength);
+                writeShort(TDS.QUERY_NOTIFICATION_HEADER_TYPE);
+                writeShort((short) (2 * queryNotificationRequest.getUserData().length()));
+                writeString(queryNotificationRequest.getUserData());
+                writeShort((short) (2 * queryNotificationRequest.getOptions().length()));
+                writeString(queryNotificationRequest.getOptions());
+                writeInt(queryNotificationRequest.getTimeoutMilliseconds());
+            }
             writeInt(TDS.MARS_HEADER_LENGTH); // MARS header length (DWORD)
             writeShort((short) 2); // allHeaders.HeaderType(MARS header) (USHORT)
             writeBytes(con.getTransactionDescriptor());
@@ -7787,6 +7801,16 @@ abstract class TDSCommand implements Serializable {
     }
 
     protected ArrayList<byte[]> enclaveCEKs;
+
+    private SQLServerQueryNotificationRequest queryNotificationRequest;
+
+    final SQLServerQueryNotificationRequest getQueryNotificationRequest() {
+        return queryNotificationRequest;
+    }
+
+    final void setQueryNotificationRequest(SQLServerQueryNotificationRequest queryNotificationRequest) {
+        this.queryNotificationRequest = queryNotificationRequest;
+    }
 
     // Counter reference, so maxResultBuffer property can by acknowledged
     private transient ICounter counter;

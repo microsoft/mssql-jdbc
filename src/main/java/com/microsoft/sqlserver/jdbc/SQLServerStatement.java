@@ -133,6 +133,21 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     int cancelQueryTimeoutSeconds;
 
+    /** Query Notification request included with this statement's executions. */
+    private SQLServerQueryNotificationRequest queryNotificationRequest;
+
+    @Override
+    public void setQueryNotificationRequest(SQLServerQueryNotificationRequest request) throws SQLServerException {
+        checkClosed();
+        queryNotificationRequest = request;
+    }
+
+    @Override
+    public SQLServerQueryNotificationRequest getQueryNotificationRequest() throws SQLServerException {
+        checkClosed();
+        return queryNotificationRequest;
+    }
+
     /**
      * Is closeOnCompletion is enabled? If true statement will be closed when all of its dependent result sets are
      * closed
@@ -1038,6 +1053,8 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     final void doExecuteStatement(StmtExecCmd execCmd) throws SQLServerException {
         resetForReexecute();
+
+        execCmd.setQueryNotificationRequest(queryNotificationRequest);
 
         // Set this command as the current command
         executeMethod = execCmd.executeMethod;

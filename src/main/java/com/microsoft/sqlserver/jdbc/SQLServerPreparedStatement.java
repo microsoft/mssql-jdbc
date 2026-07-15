@@ -694,6 +694,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     final void doExecutePreparedStatement(PrepStmtExecCmd command) throws SQLServerException {
         resetForReexecute();
 
+        command.setQueryNotificationRequest(getQueryNotificationRequest());
+
         // If this request might be a query (as opposed to an update) then make
         // sure we set the max number of rows and max field size for any ResultSet
         // that may be returned.
