@@ -44,6 +44,7 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
+import com.microsoft.sqlserver.testframework.AzureDB;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
@@ -72,6 +73,7 @@ import microsoft.sql.Vector.VectorDimensionType;
 @vectorJsonTest
 @Tag(Constants.vectorTest)
 @Tag(Constants.vectorFloat16Test)
+@AzureDB
 public class VectorFloat16Test extends VectorTest {
 
     @Override
@@ -495,6 +497,7 @@ public class VectorFloat16Test extends VectorTest {
     @DisplayName("Mixed FLOAT32 + FLOAT16 Vector Tests")
     @Tag(Constants.vectorTest)
     @Tag(Constants.vectorFloat16Test)
+    @AzureDB
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     class MixedVectorTypeTest {
 
