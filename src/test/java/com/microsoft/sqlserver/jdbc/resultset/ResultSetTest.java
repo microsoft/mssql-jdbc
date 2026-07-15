@@ -2462,4 +2462,206 @@ public class ResultSetTest extends AbstractTest {
             }
         }
     }
+
+    /**
+     * Reads a wide (fat) table of 10 rows and 601 columns and asserts the exact value of every cell using the
+     * type-specific getter. Each row repeats a group of 20 differently-typed columns 30 times, exercising the
+     * ResultSet read path across integer, string, decimal, floating-point, money, datetime and GUID types.
+     * Every non-null decimal(18,0) value uses an 8-byte magnitude and every decimal(38,4) value uses a
+     * larger-than-8-byte magnitude, so both decimal decode paths are covered.
+     */
+    @Nested
+    class WideRowReadTests {
+
+        private static final int GROUP_COUNT = 30; // 20 columns per group
+        private static final int COLS_PER_GROUP = 20;
+        private static final int NUM_COLUMNS = 1 + GROUP_COUNT * COLS_PER_GROUP;
+        private static final int ROW_COUNT = 10;
+
+        // Column name/type pairs making up one repeating group.
+        private final String[] colNames = {"C_INT", "C_BIGINT", "C_SMALLINT", "C_TINYINT", "C_BIT", "C_CHAR",
+                "C_VARCHAR", "C_NCHAR", "C_NVARCHAR", "C_DEC18", "C_DEC38", "C_NUMERIC", "C_FLOAT", "C_REAL", "C_MONEY",
+                "C_SMALLMONEY", "C_DATETIME", "C_DATETIME2", "C_SMALLDATETIME", "C_UID"};
+        private final String[] colTypes = {"int", "bigint", "smallint", "tinyint", "bit", "char(1)", "varchar(64)",
+                "nchar(4)", "nvarchar(32)", "decimal(18,0)", "decimal(38,4)", "numeric(10,2)", "float", "real", "money",
+                "smallmoney", "datetime", "datetime2", "smalldatetime", "uniqueidentifier"};
+
+        // decimal(18,0) 18-digit value fits an 8-byte magnitude; decimal(38,4) 29-digit value needs more.
+        private final BigDecimal dec18 = new BigDecimal("123456789012345678");
+        private final BigDecimal dec38 = new BigDecimal("1234567890123456789012345.6789");
+        private final String uid = "6F9619FF-8B86-D011-B42D-00CF4FC964FF";
+
+        private final String wideTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("WideRow"));
+
+        @BeforeEach
+        public void createTable() throws Exception {
+            StringBuilder create = new StringBuilder("CREATE TABLE ").append(wideTable)
+                    .append(" ([ID] int NOT NULL PRIMARY KEY");
+            StringBuilder insert = new StringBuilder("INSERT INTO ").append(wideTable).append(" VALUES (?");
+            for (int g = 1; g <= GROUP_COUNT; g++) {
+                for (int i = 0; i < COLS_PER_GROUP; i++) {
+                    create.append(", [").append(colNames[i]).append('_').append(g).append("] ").append(colTypes[i]);
+                    insert.append(",?");
+                }
+            }
+            create.append(")");
+            insert.append(")");
+
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(wideTable, stmt);
+                stmt.execute(create.toString());
+            }
+            try (Connection conn = getConnection();
+                    PreparedStatement pstmt = conn.prepareStatement(insert.toString())) {
+                for (int row = 1; row <= ROW_COUNT; row++) {
+                    int col = 1;
+                    pstmt.setInt(col++, row);
+                    for (int g = 1; g <= GROUP_COUNT; g++) {
+                        int s = seed(row, g);
+                        pstmt.setInt(col++, s);
+                        pstmt.setLong(col++, vLong(s));
+                        pstmt.setShort(col++, vShort(s));
+                        pstmt.setByte(col++, vByte(s));
+                        pstmt.setBoolean(col++, vBit(s));
+                        pstmt.setString(col++, vChar(s));
+                        pstmt.setString(col++, vVarchar(s));
+                        pstmt.setString(col++, vNchar(s));
+                        pstmt.setString(col++, vNvarchar(s));
+                        pstmt.setBigDecimal(col++, dec18);
+                        pstmt.setBigDecimal(col++, dec38);
+                        pstmt.setBigDecimal(col++, vNumeric(s));
+                        pstmt.setDouble(col++, vFloat(s));
+                        pstmt.setFloat(col++, vReal(s));
+                        pstmt.setBigDecimal(col++, vMoney(s));
+                        pstmt.setBigDecimal(col++, vSmallMoney(s));
+                        pstmt.setTimestamp(col++, vDatetime(s));
+                        pstmt.setTimestamp(col++, vDatetime2(s));
+                        pstmt.setTimestamp(col++, vSmalldatetime(s));
+                        pstmt.setString(col++, uid);
+                    }
+                    pstmt.addBatch();
+                }
+                pstmt.executeBatch();
+            }
+        }
+
+        @AfterEach
+        public void dropTable() throws Exception {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(wideTable, stmt);
+            }
+        }
+
+        @Test
+        public void testWideRowMultiTypeRead() throws SQLException {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                stmt.setFetchSize(3); // small fetch so the wide rows span multiple round-trips
+                try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + wideTable + " ORDER BY [ID]")) {
+                    assertEquals(NUM_COLUMNS, rs.getMetaData().getColumnCount());
+
+                    int rowsRead = 0;
+                    while (rs.next()) {
+                        int row = rs.getInt(1);
+                        rowsRead++;
+                        int col = 2;
+                        for (int g = 1; g <= GROUP_COUNT; g++) {
+                            int s = seed(row, g);
+                            String m = " at row " + row + " group " + g;
+                            assertEquals(s, rs.getInt(col++), "int" + m);
+                            assertEquals(vLong(s), rs.getLong(col++), "bigint" + m);
+                            assertEquals(vShort(s), rs.getShort(col++), "smallint" + m);
+                            assertEquals(vByte(s), rs.getByte(col++), "tinyint" + m);
+                            assertEquals(vBit(s), rs.getBoolean(col++), "bit" + m);
+                            assertEquals(vChar(s), rs.getString(col++), "char" + m);
+                            assertEquals(vVarchar(s), rs.getString(col++), "varchar" + m);
+                            assertEquals(vNchar(s), rs.getString(col++), "nchar" + m);
+                            assertEquals(vNvarchar(s), rs.getString(col++), "nvarchar" + m);
+                            assertEquals(dec18, rs.getBigDecimal(col++), "decimal(18,0)" + m);
+                            assertEquals(dec38, rs.getBigDecimal(col++), "decimal(38,4)" + m);
+                            assertEquals(vNumeric(s), rs.getBigDecimal(col++), "numeric" + m);
+                            assertEquals(vFloat(s), rs.getDouble(col++), 0.0, "float" + m);
+                            assertEquals(vReal(s), rs.getFloat(col++), 0.0f, "real" + m);
+                            assertEquals(vMoney(s), rs.getBigDecimal(col++), "money" + m);
+                            assertEquals(vSmallMoney(s), rs.getBigDecimal(col++), "smallmoney" + m);
+                            assertEquals(vDatetime(s), rs.getTimestamp(col++), "datetime" + m);
+                            assertEquals(vDatetime2(s), rs.getTimestamp(col++), "datetime2" + m);
+                            assertEquals(vSmalldatetime(s), rs.getTimestamp(col++), "smalldatetime" + m);
+                            assertEquals(uid, rs.getString(col++), "uniqueidentifier" + m);
+                        }
+                    }
+                    assertEquals(ROW_COUNT, rowsRead);
+                }
+            }
+        }
+
+        private int seed(int row, int group) {
+            return row * 31 + group;
+        }
+
+        private long vLong(int s) {
+            return s * 100000L + 12345L;
+        }
+
+        private short vShort(int s) {
+            return (short) (s % 20000);
+        }
+
+        private byte vByte(int s) {
+            return (byte) (s % 100);
+        }
+
+        private boolean vBit(int s) {
+            return s % 2 == 0;
+        }
+
+        private String vChar(int s) {
+            return s % 2 == 0 ? "A" : "B";
+        }
+
+        private String vVarchar(int s) {
+            return "v" + s;
+        }
+
+        private String vNchar(int s) {
+            return "n" + String.format("%03d", s % 1000); // exactly 4 chars, no nchar padding
+        }
+
+        private String vNvarchar(int s) {
+            return "w" + s;
+        }
+
+        private BigDecimal vNumeric(int s) {
+            return new BigDecimal(s + ".25");
+        }
+
+        private double vFloat(int s) {
+            return s + 0.5;
+        }
+
+        private float vReal(int s) {
+            return s + 0.25f;
+        }
+
+        private BigDecimal vMoney(int s) {
+            return new BigDecimal(s + ".1234");
+        }
+
+        private BigDecimal vSmallMoney(int s) {
+            return new BigDecimal((s % 1000) + ".5000");
+        }
+
+        private Timestamp vDatetime(int s) {
+            return new Timestamp((1_600_000_000L + s * 7L) * 1000L); // whole seconds
+        }
+
+        private Timestamp vDatetime2(int s) {
+            Timestamp ts = new Timestamp((1_600_000_000L + s * 11L) * 1000L);
+            ts.setNanos(123456700); // multiple of 100ns, exact for datetime2(7)
+            return ts;
+        }
+
+        private Timestamp vSmalldatetime(int s) {
+            return new Timestamp((1_600_000_020L + s * 60L) * 1000L); // whole minutes
+        }
+    }
 }
