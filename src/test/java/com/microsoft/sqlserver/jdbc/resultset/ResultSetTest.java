@@ -31,6 +31,7 @@ import java.sql.DriverManager;
 import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
@@ -84,6 +85,22 @@ public class ResultSetTest extends AbstractTest {
     private static final int expectedErrorCode = 8134;
 
     static final String uuid = UUID.randomUUID().toString();
+
+    /*
+     * Shared constants for WideRowReadTests. Declared here (top-level class) rather than in the @Nested inner class
+     * because a non-static @Nested class cannot declare non-constant static fields (arrays, BigDecimal) on jre8.
+     */
+    private static final String[] WIDE_COL_NAMES = {"C_INT", "C_BIGINT", "C_SMALLINT", "C_TINYINT", "C_BIT", "C_CHAR",
+            "C_VARCHAR", "C_NCHAR", "C_NVARCHAR", "C_DEC18", "C_DEC38", "C_NUMERIC", "C_FLOAT", "C_REAL", "C_MONEY",
+            "C_SMALLMONEY", "C_DATETIME", "C_DATETIME2", "C_SMALLDATETIME", "C_UID"};
+    private static final String[] WIDE_COL_TYPES = {"int", "bigint", "smallint", "tinyint", "bit", "char(1)",
+            "varchar(64)", "nchar(4)", "nvarchar(32)", "decimal(18,0)", "decimal(38,4)", "numeric(10,2)", "float",
+            "real", "money", "smallmoney", "datetime", "datetime2", "smalldatetime", "uniqueidentifier"};
+
+    // decimal(18,0) 18-digit value fits an 8-byte magnitude; decimal(38,4) 29-digit value needs more.
+    private static final BigDecimal DEC18 = new BigDecimal("123456789012345678");
+    private static final BigDecimal DEC38 = new BigDecimal("1234567890123456789012345.6789");
+    private static final String UID = "6F9619FF-8B86-D011-B42D-00CF4FC964FF";
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -2478,19 +2495,6 @@ public class ResultSetTest extends AbstractTest {
         private static final int NUM_COLUMNS = 1 + GROUP_COUNT * COLS_PER_GROUP;
         private static final int ROW_COUNT = 10;
 
-        // Column name/type pairs making up one repeating group.
-        private final String[] colNames = {"C_INT", "C_BIGINT", "C_SMALLINT", "C_TINYINT", "C_BIT", "C_CHAR",
-                "C_VARCHAR", "C_NCHAR", "C_NVARCHAR", "C_DEC18", "C_DEC38", "C_NUMERIC", "C_FLOAT", "C_REAL", "C_MONEY",
-                "C_SMALLMONEY", "C_DATETIME", "C_DATETIME2", "C_SMALLDATETIME", "C_UID"};
-        private final String[] colTypes = {"int", "bigint", "smallint", "tinyint", "bit", "char(1)", "varchar(64)",
-                "nchar(4)", "nvarchar(32)", "decimal(18,0)", "decimal(38,4)", "numeric(10,2)", "float", "real", "money",
-                "smallmoney", "datetime", "datetime2", "smalldatetime", "uniqueidentifier"};
-
-        // decimal(18,0) 18-digit value fits an 8-byte magnitude; decimal(38,4) 29-digit value needs more.
-        private final BigDecimal dec18 = new BigDecimal("123456789012345678");
-        private final BigDecimal dec38 = new BigDecimal("1234567890123456789012345.6789");
-        private final String uid = "6F9619FF-8B86-D011-B42D-00CF4FC964FF";
-
         private final String wideTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("WideRow"));
 
         @BeforeEach
@@ -2500,7 +2504,8 @@ public class ResultSetTest extends AbstractTest {
             StringBuilder insert = new StringBuilder("INSERT INTO ").append(wideTable).append(" VALUES (?");
             for (int g = 1; g <= GROUP_COUNT; g++) {
                 for (int i = 0; i < COLS_PER_GROUP; i++) {
-                    create.append(", [").append(colNames[i]).append('_').append(g).append("] ").append(colTypes[i]);
+                    create.append(", [").append(WIDE_COL_NAMES[i]).append('_').append(g).append("] ")
+                            .append(WIDE_COL_TYPES[i]);
                     insert.append(",?");
                 }
             }
@@ -2527,8 +2532,8 @@ public class ResultSetTest extends AbstractTest {
                         pstmt.setString(col++, vVarchar(s));
                         pstmt.setString(col++, vNchar(s));
                         pstmt.setString(col++, vNvarchar(s));
-                        pstmt.setBigDecimal(col++, dec18);
-                        pstmt.setBigDecimal(col++, dec38);
+                        pstmt.setBigDecimal(col++, DEC18);
+                        pstmt.setBigDecimal(col++, DEC38);
                         pstmt.setBigDecimal(col++, vNumeric(s));
                         pstmt.setDouble(col++, vFloat(s));
                         pstmt.setFloat(col++, vReal(s));
@@ -2537,7 +2542,7 @@ public class ResultSetTest extends AbstractTest {
                         pstmt.setTimestamp(col++, vDatetime(s));
                         pstmt.setTimestamp(col++, vDatetime2(s));
                         pstmt.setTimestamp(col++, vSmalldatetime(s));
-                        pstmt.setString(col++, uid);
+                        pstmt.setString(col++, UID);
                     }
                     pstmt.addBatch();
                 }
@@ -2557,7 +2562,18 @@ public class ResultSetTest extends AbstractTest {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 stmt.setFetchSize(3); // small fetch so the wide rows span multiple round-trips
                 try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + wideTable + " ORDER BY [ID]")) {
-                    assertEquals(NUM_COLUMNS, rs.getMetaData().getColumnCount());
+                    ResultSetMetaData md = rs.getMetaData();
+                    assertEquals(NUM_COLUMNS, md.getColumnCount());                    // Verify column order/schema, not just the count, so an accidental reorder is caught early.
+                    assertEquals("ID", md.getColumnName(1));
+                    assertEquals("C_INT_1", md.getColumnName(2));
+                    assertEquals("C_UID_30", md.getColumnName(NUM_COLUMNS));
+                    for (int g = 1; g <= GROUP_COUNT; g++) {
+                        for (int i = 0; i < COLS_PER_GROUP; i++) {
+                            int idx = 1 + (g - 1) * COLS_PER_GROUP + i + 1;
+                            assertEquals(WIDE_COL_NAMES[i] + "_" + g, md.getColumnName(idx),
+                                    "column name mismatch at index " + idx);
+                        }
+                    }
 
                     int rowsRead = 0;
                     while (rs.next()) {
@@ -2566,27 +2582,27 @@ public class ResultSetTest extends AbstractTest {
                         int col = 2;
                         for (int g = 1; g <= GROUP_COUNT; g++) {
                             int s = seed(row, g);
-                            String m = " at row " + row + " group " + g;
-                            assertEquals(s, rs.getInt(col++), "int" + m);
-                            assertEquals(vLong(s), rs.getLong(col++), "bigint" + m);
-                            assertEquals(vShort(s), rs.getShort(col++), "smallint" + m);
-                            assertEquals(vByte(s), rs.getByte(col++), "tinyint" + m);
-                            assertEquals(vBit(s), rs.getBoolean(col++), "bit" + m);
-                            assertEquals(vChar(s), rs.getString(col++), "char" + m);
-                            assertEquals(vVarchar(s), rs.getString(col++), "varchar" + m);
-                            assertEquals(vNchar(s), rs.getString(col++), "nchar" + m);
-                            assertEquals(vNvarchar(s), rs.getString(col++), "nvarchar" + m);
-                            assertEquals(dec18, rs.getBigDecimal(col++), "decimal(18,0)" + m);
-                            assertEquals(dec38, rs.getBigDecimal(col++), "decimal(38,4)" + m);
-                            assertEquals(vNumeric(s), rs.getBigDecimal(col++), "numeric" + m);
-                            assertEquals(vFloat(s), rs.getDouble(col++), 0.0, "float" + m);
-                            assertEquals(vReal(s), rs.getFloat(col++), 0.0f, "real" + m);
-                            assertEquals(vMoney(s), rs.getBigDecimal(col++), "money" + m);
-                            assertEquals(vSmallMoney(s), rs.getBigDecimal(col++), "smallmoney" + m);
-                            assertEquals(vDatetime(s), rs.getTimestamp(col++), "datetime" + m);
-                            assertEquals(vDatetime2(s), rs.getTimestamp(col++), "datetime2" + m);
-                            assertEquals(vSmalldatetime(s), rs.getTimestamp(col++), "smalldatetime" + m);
-                            assertEquals(uid, rs.getString(col++), "uniqueidentifier" + m);
+                            String message = " at row " + row + " group " + g;
+                            assertEquals(s, rs.getInt(col++), "int" + message);
+                            assertEquals(vLong(s), rs.getLong(col++), "bigint" + message);
+                            assertEquals(vShort(s), rs.getShort(col++), "smallint" + message);
+                            assertEquals(vByte(s), rs.getByte(col++), "tinyint" + message);
+                            assertEquals(vBit(s), rs.getBoolean(col++), "bit" + message);
+                            assertEquals(vChar(s), rs.getString(col++), "char" + message);
+                            assertEquals(vVarchar(s), rs.getString(col++), "varchar" + message);
+                            assertEquals(vNchar(s), rs.getString(col++), "nchar" + message);
+                            assertEquals(vNvarchar(s), rs.getString(col++), "nvarchar" + message);
+                            assertEquals(DEC18, rs.getBigDecimal(col++), "decimal(18,0)" + message);
+                            assertEquals(DEC38, rs.getBigDecimal(col++), "decimal(38,4)" + message);
+                            assertEquals(vNumeric(s), rs.getBigDecimal(col++), "numeric" + message);
+                            assertEquals(vFloat(s), rs.getDouble(col++), 0.0, "float" + message);
+                            assertEquals(vReal(s), rs.getFloat(col++), 0.0f, "real" + message);
+                            assertEquals(vMoney(s), rs.getBigDecimal(col++), "money" + message);
+                            assertEquals(vSmallMoney(s), rs.getBigDecimal(col++), "smallmoney" + message);
+                            assertEquals(vDatetime(s), rs.getTimestamp(col++), "datetime" + message);
+                            assertEquals(vDatetime2(s), rs.getTimestamp(col++), "datetime2" + message);
+                            assertEquals(vSmalldatetime(s), rs.getTimestamp(col++), "smalldatetime" + message);
+                            assertEquals(UID, rs.getString(col++), "uniqueidentifier" + message);
                         }
                     }
                     assertEquals(ROW_COUNT, rowsRead);
