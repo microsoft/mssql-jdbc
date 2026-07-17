@@ -22,9 +22,6 @@ import javax.crypto.spec.SecretKeySpec;
 
 import mssql.security.provider.MD4;
 
-import static com.microsoft.sqlserver.jdbc.TDSChannel.channelBindingInfo;
-
-
 /**
  * Provides an implementation of NTLMv2 authentication
  * 
@@ -167,6 +164,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * be sent.
      */
     private byte[] msvAvChannelBindings = null;
+
+    private byte[] channelBindingInfo = null;
 
     /**
      * Section 2.2.2.1 AV_PAIR
@@ -345,10 +344,18 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *         if error occurs
      */
     NTLMAuthentication(final SQLServerConnection con, final String domainName, final String userName,
-            final byte[] passwordHash, final String workstation) throws SQLServerException {
+            final byte[] passwordHash, final String workstation, final byte[] channelBindingInfo)
+            throws SQLServerException {
+        this.channelBindingInfo = null == channelBindingInfo ? null : Arrays.copyOf(channelBindingInfo,
+                channelBindingInfo.length);
         if (null == context) {
             this.context = new NTLMContext(con, domainName, userName, passwordHash, workstation);
         }
+    }
+
+    NTLMAuthentication(final SQLServerConnection con, final String domainName, final String userName,
+            final byte[] passwordHash, final String workstation) throws SQLServerException {
+        this(con, domainName, userName, passwordHash, workstation, null);
     }
 
     /**
@@ -376,6 +383,14 @@ final class NTLMAuthentication extends SSPIAuthentication {
     @Override
     void releaseClientContext() {
         context = null;
+        if (null != channelBindingInfo) {
+            Arrays.fill(channelBindingInfo, (byte) 0);
+            channelBindingInfo = null;
+        }
+        if (null != msvAvChannelBindings) {
+            Arrays.fill(msvAvChannelBindings, (byte) 0);
+            msvAvChannelBindings = null;
+        }
     }
 
     /**
@@ -543,7 +558,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *        client challenge nonce
      * @return client challenge blob
      */
-    private byte[] generateClientChallengeBlob(final byte[] clientNonce) {
+    private byte[] generateClientChallengeBlob(final byte[] clientNonce) throws SQLServerException {
         // timestamp is number of 100 nanosecond ticks since Windows Epoch
         ByteBuffer time = ByteBuffer.allocate(NTLM_TIMESTAMP_LENGTH).order(ByteOrder.LITTLE_ENDIAN);
         time.putLong((TimeUnit.SECONDS.toNanos(Instant.now().getEpochSecond() + WINDOWS_EPOCH_DIFF)) / 100);
@@ -631,7 +646,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
         return context.mac.doFinal(data);
     }
 
-    private void calculateChannelBindingMD5Hash() {
+    private void calculateChannelBindingMD5Hash() throws SQLServerException {
         try {
             if (null == channelBindingInfo || 0 == channelBindingInfo.length) {
                 msvAvChannelBindings = null;
@@ -648,7 +663,12 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
             msvAvChannelBindings = md5.digest();
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+            throw new SQLServerException("Failed to calculate NTLM channel binding hash.", e);
+        } finally {
+            if (null != channelBindingInfo) {
+                Arrays.fill(channelBindingInfo, (byte) 0);
+                channelBindingInfo = null;
+            }
         }
     }
 
@@ -745,7 +765,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @throws InvalidKeyException
      *         if error getting hash due to invalid key
      */
-    private byte[] computeResponse(final byte[] responseKeyNT) throws InvalidKeyException {
+    private byte[] computeResponse(final byte[] responseKeyNT) throws InvalidKeyException, SQLServerException {
         // get random client challenge nonce
         byte[] clientNonce = new byte[NTLM_CLIENT_NONCE_LENGTH];
         ThreadLocalRandom.current().nextBytes(clientNonce);
@@ -769,7 +789,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @throws InvalidKeyException
      *         if error getting hash due to invalid key
      */
-    private byte[] getNtChallengeResp() throws InvalidKeyException {
+    private byte[] getNtChallengeResp() throws InvalidKeyException, SQLServerException {
         byte[] responseKeyNT = ntowfv2();
         return computeResponse(responseKeyNT);
     }

@@ -662,7 +662,7 @@ final class TDSChannel implements Serializable {
     private transient SSLSocket sslSocket;
 
     // tls-unique channel binding data from the completed TLS handshake.
-    static byte[] channelBindingInfo = null;
+    private byte[] channelBindingInfo = null;
 
     /*
      * Socket providing the communications interface to the driver. For SSL-encrypted connections, this is the SSLSocket
@@ -2008,7 +2008,19 @@ final class TDSChannel implements Serializable {
     }
 
     private void setChannelBindingInfo() {
+        clearChannelBindingInfo();
         channelBindingInfo = createChannelBindingInfo(null == sslSocket ? null : sslSocket.getSession());
+    }
+
+    byte[] getChannelBindingInfo() {
+        return null == channelBindingInfo ? null : Arrays.copyOf(channelBindingInfo, channelBindingInfo.length);
+    }
+
+    void clearChannelBindingInfo() {
+        if (null != channelBindingInfo) {
+            Arrays.fill(channelBindingInfo, (byte) 0);
+            channelBindingInfo = null;
+        }
     }
 
     static byte[] createChannelBindingInfo(javax.net.ssl.SSLSession session) {
@@ -2318,6 +2330,8 @@ final class TDSChannel implements Serializable {
     }
 
     final void close() {
+        clearChannelBindingInfo();
+
         if (null != sslSocket)
             disableSSL();
 
