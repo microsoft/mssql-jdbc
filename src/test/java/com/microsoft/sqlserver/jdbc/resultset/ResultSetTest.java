@@ -2543,20 +2543,25 @@ public class ResultSetTest extends AbstractTest {
         void resetInventoryStaysInSync() throws Exception {
             Class<?> implClass = Class.forName(SERVER_DTV_IMPL);
             Set<String> actual = new TreeSet<>();
-            for (Field f : implClass.getDeclaredFields()) {
-                int mod = f.getModifiers();
-                // Skip static and final members (constants such as STREAMCONSUMED and any synthetic fields); they do
-                // not hold per-row state and are therefore not reset() responsibilities.
-                if (Modifier.isStatic(mod) || Modifier.isFinal(mod) || f.isSynthetic()) {
-                    continue;
+            // Walk the whole class hierarchy (ServerDTVImpl and its superclass DTVImpl) so a mutable per-row field
+            // added to the superclass cannot silently bypass this tripwire. Any such field would still need to be
+            // cleared before an instance is pooled.
+            for (Class<?> c = implClass; c != null && c != Object.class; c = c.getSuperclass()) {
+                for (Field f : c.getDeclaredFields()) {
+                    int mod = f.getModifiers();
+                    // Skip static and final members (constants such as STREAMCONSUMED and any synthetic fields); they
+                    // do not hold per-row state and are therefore not reset() responsibilities.
+                    if (Modifier.isStatic(mod) || Modifier.isFinal(mod) || f.isSynthetic()) {
+                        continue;
+                    }
+                    actual.add(f.getName());
                 }
-                actual.add(f.getName());
             }
 
             assertEquals(new TreeSet<>(expectedResettableFields), actual,
-                    "ServerDTVImpl mutable instance fields changed. If you added a field, clear it in "
-                            + "ServerDTVImpl.reset() and update expectedResettableFields in this test so pooled "
-                            + "instances cannot leak stale state.");
+                    "ServerDTVImpl (or its DTVImpl superclass) mutable instance fields changed. If you added a "
+                            + "field, clear it in ServerDTVImpl.reset() and update expectedResettableFields in this "
+                            + "test so pooled instances cannot leak stale state.");
         }
 
         private Object newInstance(Class<?> cls) throws Exception {
@@ -3032,18 +3037,29 @@ public class ResultSetTest extends AbstractTest {
         }
 
         /**
-         * An adaptive stream obtained on one row must not corrupt the next row after {@code next()}. Partially reads
-         * row 1's LOB stream, advances (forward-only, adaptive, small {@code packetSize}), then asserts row 2 is
-         * byte-for-byte intact.
+         * A partially-read adaptive stream obtained on one row must not corrupt the next row after {@code next()}, and
+         * a LATE {@code close()} of that retained stream, issued only after the row's {@code ServerDTVImpl} has been
+         * pooled and reused, must be a harmless no-op.
+         *
+         * <p>
+         * This is the core safety property of {@code ServerDTVImpl} pooling. An adaptive {@code SimpleInputStream} /
+         * {@code PLPInputStream} captures its owning {@code ServerDTVImpl} and, on {@code close()}, calls
+         * {@code setPositionAfterStreamed()} which mutates that impl. Because the driver closes the active stream while
+         * moving off the column (which nulls the stream's back-reference to the impl) BEFORE {@code clear()} pools the
+         * impl, any later user-issued {@code close()} cannot reach the pooled instance. This test deliberately retains
+         * the stream across {@code next()} and closes it late to exercise exactly that ordering; the earlier version
+         * closed the stream before advancing and therefore never covered this path.
          */
         @Test
         @Tag(Constants.xAzureSQLDW)
         public void testAdaptiveStreamDoesNotCorruptNextRow() throws Exception {
             byte[] row1 = new byte[6000];
             byte[] row2 = new byte[6000];
+            byte[] row3 = new byte[6000];
             for (int i = 0; i < row1.length; i++) {
                 row1[i] = (byte) (i % 256);
                 row2[i] = (byte) ((i * 7 + 3) % 256);
+                row3[i] = (byte) ((i * 13 + 5) % 256);
             }
 
             try (Connection setupConn = getConnection(); Statement stmt = setupConn.createStatement()) {
@@ -3051,12 +3067,9 @@ public class ResultSetTest extends AbstractTest {
                 stmt.execute("CREATE TABLE " + hotPathTable + " (id int PRIMARY KEY, b varbinary(max))");
                 try (PreparedStatement pstmt = setupConn
                         .prepareStatement("INSERT INTO " + hotPathTable + " VALUES (?, ?)")) {
-                    pstmt.setInt(1, 1);
-                    pstmt.setBytes(2, row1);
-                    pstmt.executeUpdate();
-                    pstmt.setInt(1, 2);
-                    pstmt.setBytes(2, row2);
-                    pstmt.executeUpdate();
+                    insertBinaryRow(pstmt, 1, row1);
+                    insertBinaryRow(pstmt, 2, row2);
+                    insertBinaryRow(pstmt, 3, row3);
                 }
             }
 
@@ -3067,24 +3080,128 @@ public class ResultSetTest extends AbstractTest {
 
                 assertTrue(rs.next());
                 assertEquals(1, rs.getInt(1));
-                // Partially consume row 1's adaptive stream, then advance without finishing it.
-                try (InputStream s1 = rs.getBinaryStream(2)) {
-                    byte[] buf = new byte[128];
-                    int read = s1.read(buf);
-                    assertTrue(read > 0);
-                    for (int i = 0; i < read; i++) {
-                        assertEquals(row1[i], buf[i], "row 1 stream byte " + i + " incorrect");
-                    }
+
+                // Obtain row 1's adaptive stream and partially read it, but DO NOT close it here. The driver
+                // captures the row-1 ServerDTVImpl inside this stream; we retain the reference across next() so
+                // the eventual close() lands after that impl has been pooled and reused for later rows.
+                InputStream s1 = rs.getBinaryStream(2);
+                byte[] buf = new byte[128];
+                int read = s1.read(buf);
+                assertTrue(read > 0);
+                for (int i = 0; i < read; i++) {
+                    assertEquals(row1[i], buf[i], "row 1 stream byte " + i + " incorrect");
                 }
 
-                // Advance: row 2 must read back intact, with no bytes bled from the pooled/reused row-1 state.
+                // Advance. The driver closes the still-open row-1 stream while moving off the column, nulling the
+                // stream's back-reference to the impl before that impl is pooled and reused for row 2.
                 assertTrue(rs.next());
                 assertEquals(2, rs.getInt(1));
-                byte[] actual2 = rs.getBytes(2);
-                assertNotNull(actual2);
-                assertArrayEquals("row 2 corrupted after advancing off a partially-read stream", row2, actual2);
+                assertArrayEquals("row 2 corrupted after advancing off a partially-read stream", row2,
+                        rs.getBytes(2));
+
+                // Late close of the retained row-1 stream. If pooling introduced an aliasing bug this callback
+                // would mutate the pooled impl now backing later rows; it must be a harmless no-op. A second close
+                // must be equally safe (idempotent).
+                s1.close();
+                s1.close();
+
+                // The pooled/reused impl must still be intact for the remaining rows.
+                assertTrue(rs.next());
+                assertEquals(3, rs.getInt(1));
+                assertArrayEquals("row 3 corrupted by a late stream close()", row3, rs.getBytes(2));
                 assertFalse(rs.next());
             }
+        }
+
+        /**
+         * Scrollable-cursor variant of the pooling-reuse safety check. With a {@code TYPE_SCROLL_INSENSITIVE} cursor,
+         * obtains and partially reads a stream on row 1, scrolls forward (pooling/reusing the impl), then scrolls back
+         * to row 1 and re-reads the full value. The revisited row must decode byte-for-byte identically, proving the
+         * pooled impl reuse does not corrupt values that are re-read after cursor movement.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testScrollableCursorStreamReuseDoesNotCorrupt() throws Exception {
+            byte[] row1 = new byte[6000];
+            byte[] row2 = new byte[6000];
+            for (int i = 0; i < row1.length; i++) {
+                row1[i] = (byte) ((i * 3 + 1) % 256);
+                row2[i] = (byte) ((i * 11 + 9) % 256);
+            }
+
+            try (Connection setupConn = getConnection(); Statement stmt = setupConn.createStatement()) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+                stmt.execute("CREATE TABLE " + hotPathTable + " (id int PRIMARY KEY, b varbinary(max))");
+                try (PreparedStatement pstmt = setupConn
+                        .prepareStatement("INSERT INTO " + hotPathTable + " VALUES (?, ?)")) {
+                    insertBinaryRow(pstmt, 1, row1);
+                    insertBinaryRow(pstmt, 2, row2);
+                }
+            }
+
+            try (Connection conn = PrepUtil.getConnection(connectionString);
+                    Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                            ResultSet.CONCUR_READ_ONLY);
+                    ResultSet rs = stmt.executeQuery("SELECT id, b FROM " + hotPathTable + " ORDER BY id")) {
+
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                // Partially read row 1's stream, then scroll forward without finishing it.
+                try (InputStream s1 = rs.getBinaryStream(2)) {
+                    byte[] buf = new byte[128];
+                    assertTrue(s1.read(buf) > 0);
+                }
+
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt(1));
+                assertArrayEquals("row 2 corrupted on scrollable cursor", row2, rs.getBytes(2));
+
+                // Scroll back to row 1 and re-read the full value: it must be intact after the impl was reused.
+                assertTrue(rs.previous());
+                assertEquals(1, rs.getInt(1));
+                assertArrayEquals("row 1 corrupted after scrolling back on a scrollable cursor", row1,
+                        rs.getBytes(2));
+            }
+        }
+
+        /**
+         * Verifies fixed-width {@code CHAR(n)} / {@code NCHAR(n)} values decode identically through the getString()
+         * fast path and preserve the trailing-space padding SQL Server sends on the wire. The narrow-column tests use
+         * {@code char(1)} / {@code nchar(4)}; this widens to {@code char(10)} / {@code nchar(10)} to confirm the direct
+         * {@code new String(bytes, charset)} decode retains all padding bytes rather than trimming them.
+         */
+        @Test
+        public void testGetStringCharPaddingPreserved() throws Exception {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+                stmt.execute("CREATE TABLE " + hotPathTable + " (c char(10), nc nchar(10))");
+                try (PreparedStatement pstmt = conn
+                        .prepareStatement("INSERT INTO " + hotPathTable + " VALUES (?, ?)")) {
+                    pstmt.setString(1, "abc");
+                    pstmt.setString(2, "xy");
+                    pstmt.executeUpdate();
+                }
+
+                try (ResultSet rs = stmt.executeQuery("SELECT c, nc FROM " + hotPathTable)) {
+                    assertTrue(rs.next());
+                    // SQL Server right-pads fixed-width CHAR/NCHAR to the declared width; getString() must return
+                    // the padded value, and the fast path must match the stream path byte-for-byte.
+                    assertEquals("abc" + repeat(' ', 7), rs.getString(1), "char(10) padding not preserved");
+                    assertEquals("xy" + repeat(' ', 8), rs.getString(2), "nchar(10) padding not preserved");
+                }
+            }
+        }
+
+        private void insertBinaryRow(PreparedStatement pstmt, int id, byte[] value) throws SQLException {
+            pstmt.setInt(1, id);
+            pstmt.setBytes(2, value);
+            pstmt.executeUpdate();
+        }
+
+        private String repeat(char c, int count) {
+            char[] chars = new char[count];
+            Arrays.fill(chars, c);
+            return new String(chars);
         }
     }
 }

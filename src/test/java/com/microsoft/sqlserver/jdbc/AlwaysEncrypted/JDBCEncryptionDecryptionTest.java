@@ -371,17 +371,20 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     /**
-     * Reads Always Encrypted {@code varchar}/{@code nvarchar} columns whose decrypted values sit exactly on the
-     * {@code getString()} fast-path byte boundary (see the CHAR/VARCHAR/NCHAR/NVARCHAR case in {@code dtv.java}).
-     * Fills {@code Varchar8000} with 4000 chars (== 4000 bytes) and {@code Nvarchar4000} with 2000 chars (== 4000
-     * bytes) so both charset decoders are exercised at the boundary, then verifies the decrypted values decode
-     * byte-identically.
+     * Guard test confirming Always Encrypted {@code varchar}/{@code nvarchar} columns are unaffected by the
+     * {@code getString()} fast path added to the CHAR/VARCHAR/NCHAR/NVARCHAR case in {@code dtv.java}. Encrypted reads
+     * return from the {@code if (encrypted)} branch in {@code ServerDTVImpl.getValue()} BEFORE the {@code switch} that
+     * contains the fast path, so AE never takes it. This test fills {@code Varchar8000} with 4000 chars (== 4000
+     * bytes) and {@code Nvarchar4000} with 2000 chars (== 4000 bytes) — the same 4000-byte size that would trigger the
+     * fast path on a non-encrypted column — and verifies the decrypted values still decode byte-identically through
+     * the encrypted decode path.
      *
      * @throws Exception
      */
     @ParameterizedTest
     @MethodSource("enclaveParams")
-    public void testCharGetStringFastPathBoundary(String serverName, String url, String protocol) throws Exception {
+    public void testAeCharBoundarySizeDecodesUnaffectedByFastPath(String serverName, String url,
+            String protocol) throws Exception {
         setAEConnectionString(serverName, url, protocol);
 
         try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
