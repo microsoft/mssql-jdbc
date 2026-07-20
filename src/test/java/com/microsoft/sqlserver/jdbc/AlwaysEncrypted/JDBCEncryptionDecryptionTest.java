@@ -371,6 +371,41 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     /**
+     * Reads Always Encrypted {@code varchar}/{@code nvarchar} columns whose decrypted values sit exactly on the
+     * {@code getString()} fast-path byte boundary (see the CHAR/VARCHAR/NCHAR/NVARCHAR case in {@code dtv.java}).
+     * Fills {@code Varchar8000} with 4000 chars (== 4000 bytes) and {@code Nvarchar4000} with 2000 chars (== 4000
+     * bytes) so both charset decoders are exercised at the boundary, then verifies the decrypted values decode
+     * byte-identically.
+     *
+     * @throws Exception
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testCharGetStringFastPathBoundary(String serverName, String url, String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values = createCharValues(nullable);
+
+            // index 8 == Varchar8000 (1 byte/char -> 4000 chars), index 9 == Nvarchar4000 (2 bytes/char -> 2000 chars).
+            values[8] = makeBoundaryString(4000);
+            values[9] = makeBoundaryString(2000);
+
+            testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, false);
+        }
+    }
+
+    /** Builds a deterministic ASCII string of the given length: char i == 'A' + (i % 26). */
+    private static String makeBoundaryString(int length) {
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append((char) ('A' + (i % 26)));
+        }
+        return sb.toString();
+    }
+
+    /**
      * Junit test case for char set string for string values for AKV
      * 
      * @throws SQLException

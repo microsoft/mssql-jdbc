@@ -21,6 +21,8 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -33,7 +35,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
@@ -44,8 +45,12 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 import java.util.TimeZone;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -2481,6 +2486,125 @@ public class ResultSetTest extends AbstractTest {
     }
 
     /**
+     * White-box guard tests for {@code ServerDTVImpl.reset()}.
+     *
+     * {@code ServerDTVImpl} instances are pooled and reused across rows on the read hot path (see {@code DTV.clear()}
+     * / {@code DTV.setImpl()}). {@code reset()} must therefore zero every piece of wire-side state before an instance
+     * is returned to the pool; a field that is added but forgotten in {@code reset()} would leak stale state into the
+     * next row. These tests act as a tripwire so any new field forces {@code reset()} to be revisited.
+     *
+     * The driver types involved ({@code ServerDTVImpl}, {@code TDSReaderMark}, {@code SqlVariant}) are package-private
+     * in {@code com.microsoft.sqlserver.jdbc}, so these tests reach them via reflection. They run purely in-process and
+     * do not require a SQL Server connection.
+     */
+    @Nested
+    class ServerDTVImplResetTests {
+
+        private static final String SERVER_DTV_IMPL = "com.microsoft.sqlserver.jdbc.ServerDTVImpl";
+        private static final String TDS_READER_MARK = "com.microsoft.sqlserver.jdbc.TDSReaderMark";
+        private static final String SQL_VARIANT = "com.microsoft.sqlserver.jdbc.SqlVariant";
+
+        /**
+         * The mutable per-row instance fields that {@code reset()} is responsible for clearing. When adding a field to
+         * {@code ServerDTVImpl}, update BOTH this set and {@code ServerDTVImpl.reset()} together.
+         */
+        private final Set<String> expectedResettableFields = new HashSet<>(
+                Arrays.asList("valueLength", "valueMark", "isNull", "internalVariant"));
+
+        /**
+         * Sets every known field to a non-default value, calls {@code reset()}, and asserts each is back to its type's
+         * default. This verifies {@code reset()} actually clears the state it is supposed to.
+         */
+        @Test
+        void resetClearsAllKnownState() throws Exception {
+            Class<?> implClass = Class.forName(SERVER_DTV_IMPL);
+            Object impl = newInstance(implClass);
+
+            setField(implClass, impl, "valueLength", 4242);
+            setField(implClass, impl, "valueMark", newTdsReaderMark());
+            setField(implClass, impl, "isNull", true);
+            setField(implClass, impl, "internalVariant", newSqlVariant());
+
+            invokeReset(implClass, impl);
+
+            assertEquals(0, getField(implClass, impl, "valueLength"), "valueLength was not cleared by reset()");
+            assertNull("valueMark was not cleared by reset()", getField(implClass, impl, "valueMark"));
+            assertEquals(Boolean.FALSE, getField(implClass, impl, "isNull"), "isNull was not cleared by reset()");
+            assertNull("internalVariant was not cleared by reset()", getField(implClass, impl, "internalVariant"));
+        }
+
+        /**
+         * Tripwire: if the set of mutable instance fields on {@code ServerDTVImpl} changes, this test fails until the
+         * new field is (a) cleared in {@code ServerDTVImpl.reset()} and (b) added to {@code expectedResettableFields}.
+         * This keeps {@code reset()} in sync with the class as it evolves, guarding against silent stale-state bleed
+         * across rows once instances are pooled.
+         */
+        @Test
+        void resetInventoryStaysInSync() throws Exception {
+            Class<?> implClass = Class.forName(SERVER_DTV_IMPL);
+            Set<String> actual = new TreeSet<>();
+            for (Field f : implClass.getDeclaredFields()) {
+                int mod = f.getModifiers();
+                // Skip static and final members (constants such as STREAMCONSUMED and any synthetic fields); they do
+                // not hold per-row state and are therefore not reset() responsibilities.
+                if (Modifier.isStatic(mod) || Modifier.isFinal(mod) || f.isSynthetic()) {
+                    continue;
+                }
+                actual.add(f.getName());
+            }
+
+            assertEquals(new TreeSet<>(expectedResettableFields), actual,
+                    "ServerDTVImpl mutable instance fields changed. If you added a field, clear it in "
+                            + "ServerDTVImpl.reset() and update expectedResettableFields in this test so pooled "
+                            + "instances cannot leak stale state.");
+        }
+
+        private Object newInstance(Class<?> cls) throws Exception {
+            java.lang.reflect.Constructor<?> ctor = cls.getDeclaredConstructor();
+            ctor.setAccessible(true);
+            return ctor.newInstance();
+        }
+
+        private Object newTdsReaderMark() throws Exception {
+            Class<?> markClass = Class.forName(TDS_READER_MARK);
+            // TDSReaderMark(TDSPacket packet, int payloadOffset)
+            for (java.lang.reflect.Constructor<?> ctor : markClass.getDeclaredConstructors()) {
+                if (ctor.getParameterCount() == 2) {
+                    ctor.setAccessible(true);
+                    return ctor.newInstance(null, 7);
+                }
+            }
+            throw new IllegalStateException("Could not find TDSReaderMark(packet, offset) constructor");
+        }
+
+        private Object newSqlVariant() throws Exception {
+            Class<?> variantClass = Class.forName(SQL_VARIANT);
+            // SqlVariant(int baseType)
+            java.lang.reflect.Constructor<?> ctor = variantClass.getDeclaredConstructor(int.class);
+            ctor.setAccessible(true);
+            return ctor.newInstance(0);
+        }
+
+        private void invokeReset(Class<?> cls, Object target) throws Exception {
+            java.lang.reflect.Method reset = cls.getDeclaredMethod("reset");
+            reset.setAccessible(true);
+            reset.invoke(target);
+        }
+
+        private void setField(Class<?> cls, Object target, String name, Object value) throws Exception {
+            Field f = cls.getDeclaredField(name);
+            f.setAccessible(true);
+            f.set(target, value);
+        }
+
+        private Object getField(Class<?> cls, Object target, String name) throws Exception {
+            Field f = cls.getDeclaredField(name);
+            f.setAccessible(true);
+            return f.get(target);
+        }
+    }
+
+    /**
      * Reads a wide (fat) table of 10 rows and 601 columns and asserts the exact value of every cell using the
      * type-specific getter. Each row repeats a group of 20 differently-typed columns 30 times, exercising the
      * ResultSet read path across integer, string, decimal, floating-point, money, datetime and GUID types.
@@ -2489,7 +2613,6 @@ public class ResultSetTest extends AbstractTest {
      */
     @Nested
     class WideRowReadTests {
-
         private static final int GROUP_COUNT = 30; // 20 columns per group
         private static final int COLS_PER_GROUP = 20;
         private static final int NUM_COLUMNS = 1 + GROUP_COUNT * COLS_PER_GROUP;
@@ -2563,7 +2686,8 @@ public class ResultSetTest extends AbstractTest {
                 stmt.setFetchSize(3); // small fetch so the wide rows span multiple round-trips
                 try (ResultSet rs = stmt.executeQuery("SELECT * FROM " + wideTable + " ORDER BY [ID]")) {
                     ResultSetMetaData md = rs.getMetaData();
-                    assertEquals(NUM_COLUMNS, md.getColumnCount());                    // Verify column order/schema, not just the count, so an accidental reorder is caught early.
+                    assertEquals(NUM_COLUMNS, md.getColumnCount());
+                    // Verify column order/schema, not just the count, so an accidental reorder is caught early.
                     assertEquals("ID", md.getColumnName(1));
                     assertEquals("C_INT_1", md.getColumnName(2));
                     assertEquals("C_UID_30", md.getColumnName(NUM_COLUMNS));
@@ -2678,6 +2802,289 @@ public class ResultSetTest extends AbstractTest {
 
         private Timestamp vSmalldatetime(int s) {
             return new Timestamp((1_600_000_020L + s * 60L) * 1000L); // whole minutes
+        }
+    }
+
+    /**
+     * End-to-end tests for the read hot-path optimization in {@code ServerDTVImpl} / {@code DTV} (see {@code dtv.java}):
+     * the {@code getString()} fast-path that decodes small {@code CHAR/VARCHAR/NCHAR/NVARCHAR} values directly to a
+     * {@code String}, and the pooling/reuse of {@code ServerDTVImpl} across rows. Each test creates its own table so
+     * the scenarios are independent.
+     */
+    @Nested
+    class ReadHotPathTests {
+
+        private final String hotPathTable = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("ReadHotPath"));
+
+        @AfterEach
+        public void dropHotPathTable() throws Exception {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+            }
+        }
+
+        /** Builds a deterministic ASCII string of the requested length: char i == 'A' + (i % 26). */
+        private String makeString(int length) {
+            StringBuilder sb = new StringBuilder(length);
+            for (int i = 0; i < length; i++) {
+                sb.append((char) ('A' + (i % 26)));
+            }
+            return sb.toString();
+        }
+
+        /**
+         * {@code getString()} on {@code varchar} at the fast-path byte boundary. Length 4000 uses the direct-decode
+         * fast path, 4001 falls through to the stream path; both must return byte-identical content.
+         */
+        @Test
+        public void testGetStringVarcharBoundary() throws SQLException {
+            int[] lengths = {1, 3999, 4000, 4001, 8000}; // straddles the (0,4000] fast-path guard
+            String[] values = new String[lengths.length];
+
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+                stmt.execute("CREATE TABLE " + hotPathTable + " (id int PRIMARY KEY, v varchar(8000))");
+
+                try (PreparedStatement pstmt = conn
+                        .prepareStatement("INSERT INTO " + hotPathTable + " VALUES (?, ?)")) {
+                    for (int i = 0; i < lengths.length; i++) {
+                        values[i] = makeString(lengths[i]);
+                        pstmt.setInt(1, i);
+                        pstmt.setString(2, values[i]);
+                        pstmt.executeUpdate();
+                    }
+                }
+
+                try (ResultSet rs = stmt.executeQuery("SELECT id, v FROM " + hotPathTable + " ORDER BY id")) {
+                    int i = 0;
+                    while (rs.next()) {
+                        String actual = rs.getString(2);
+                        assertNotNull(actual, "varchar length " + lengths[i] + " returned null");
+                        assertEquals(lengths[i], actual.length(), "varchar length mismatch for row " + i);
+                        assertEquals(values[i], actual, "varchar content mismatch for length " + lengths[i]);
+                        i++;
+                    }
+                    assertEquals(lengths.length, i, "row count mismatch");
+                }
+            }
+        }
+
+        /**
+         * {@code getString()} on {@code nvarchar} at the fast-path byte boundary. 2000 chars == 4000 bytes (fast path),
+         * 2001 chars == 4002 bytes (stream fallback); a non-ASCII char exercises the UTF-16 decode.
+         */
+        @Test
+        public void testGetStringNvarcharBoundary() throws SQLException {
+            int[] charLengths = {1, 1999, 2000, 2001, 4000}; // byte lengths: 2, 3998, 4000, 4002, 8000
+            String[] values = new String[charLengths.length];
+
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+                stmt.execute("CREATE TABLE " + hotPathTable + " (id int PRIMARY KEY, v nvarchar(4000))");
+
+                try (PreparedStatement pstmt = conn
+                        .prepareStatement("INSERT INTO " + hotPathTable + " VALUES (?, ?)")) {
+                    for (int i = 0; i < charLengths.length; i++) {
+                        // Prefix with a non-ASCII BMP char, pad the rest so the total char count is exact.
+                        String body = "\u00e9" + makeString(charLengths[i] - 1);
+                        values[i] = charLengths[i] == 1 ? "\u00e9" : body;
+                        pstmt.setInt(1, i);
+                        pstmt.setNString(2, values[i]);
+                        pstmt.executeUpdate();
+                    }
+                }
+
+                try (ResultSet rs = stmt.executeQuery("SELECT id, v FROM " + hotPathTable + " ORDER BY id")) {
+                    int i = 0;
+                    while (rs.next()) {
+                        String actual = rs.getNString(2);
+                        assertNotNull(actual, "nvarchar char-length " + charLengths[i] + " returned null");
+                        assertEquals(charLengths[i], actual.length(), "nvarchar length mismatch for row " + i);
+                        assertEquals(values[i], actual, "nvarchar content mismatch for char-length " + charLengths[i]);
+                        i++;
+                    }
+                    assertEquals(charLengths.length, i, "row count mismatch");
+                }
+            }
+        }
+
+        /**
+         * A single {@code getString()} value whose bytes span multiple TDS packets (small {@code packetSize}). Verifies
+         * the fast-path decode ({@literal <=} 4000 bytes) and the stream fallback ({@literal >} 4000) both cross packet
+         * boundaries correctly.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testGetStringAcrossPacketBoundary() throws SQLException {
+            String fastPathValue = makeString(3000); // <= 4000 bytes -> fast path, but spans many 512-byte packets
+            String streamValue = makeString(6000); // > 4000 bytes -> SimpleInputStream fallback
+
+            try (Connection setupConn = getConnection(); Statement stmt = setupConn.createStatement()) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+                stmt.execute("CREATE TABLE " + hotPathTable + " (id int PRIMARY KEY, v varchar(8000))");
+                try (PreparedStatement pstmt = setupConn
+                        .prepareStatement("INSERT INTO " + hotPathTable + " VALUES (?, ?)")) {
+                    pstmt.setInt(1, 0);
+                    pstmt.setString(2, fastPathValue);
+                    pstmt.executeUpdate();
+                    pstmt.setInt(1, 1);
+                    pstmt.setString(2, streamValue);
+                    pstmt.executeUpdate();
+                }
+            }
+
+            // Small packet size forces the wide values to fragment across many TDS packets.
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";packetSize=512");
+                    Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT id, v FROM " + hotPathTable + " ORDER BY id")) {
+                assertTrue(rs.next());
+                assertEquals(fastPathValue, rs.getString(2), "fast-path value corrupted across packet boundary");
+                assertTrue(rs.next());
+                assertEquals(streamValue, rs.getString(2), "stream-path value corrupted across packet boundary");
+                assertFalse(rs.next());
+            }
+        }
+
+        /**
+         * Null values must not bleed across pooled {@code ServerDTVImpl} instances. Rows alternate non-null / null /
+         * non-null so a pooled impl is reused across the null (NBCROW) boundary; asserts values and {@code wasNull()}
+         * per row.
+         */
+        @Test
+        public void testNullValueDoesNotBleedAcrossPooledRows() throws SQLException {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+                stmt.execute("CREATE TABLE " + hotPathTable
+                        + " (id int PRIMARY KEY, i int, s varchar(50), d decimal(18,4))");
+                stmt.executeUpdate("INSERT INTO " + hotPathTable + " VALUES (0, 111, 'first', 12.3400)");
+                stmt.executeUpdate("INSERT INTO " + hotPathTable + " VALUES (1, NULL, NULL, NULL)");
+                stmt.executeUpdate("INSERT INTO " + hotPathTable + " VALUES (2, 333, 'third', 56.7800)");
+
+                try (ResultSet rs = stmt.executeQuery("SELECT id, i, s, d FROM " + hotPathTable + " ORDER BY id")) {
+                    assertTrue(rs.next());
+                    assertEquals(111, rs.getInt(2));
+                    assertFalse(rs.wasNull());
+                    assertEquals("first", rs.getString(3));
+                    assertEquals(new BigDecimal("12.3400"), rs.getBigDecimal(4));
+
+                    assertTrue(rs.next());
+                    assertEquals(0, rs.getInt(2));
+                    assertTrue(rs.wasNull(), "int should be null on row 2");
+                    assertNull("varchar should be null on row 2", rs.getString(3));
+                    assertTrue(rs.wasNull());
+                    assertNull("decimal should be null on row 2", rs.getBigDecimal(4));
+                    assertTrue(rs.wasNull());
+
+                    assertTrue(rs.next());
+                    assertEquals(333, rs.getInt(2), "stale value bled into row 3 int");
+                    assertFalse(rs.wasNull(), "row 3 int wrongly reported null (stale isNull)");
+                    assertEquals("third", rs.getString(3), "stale value bled into row 3 varchar");
+                    assertEquals(new BigDecimal("56.7800"), rs.getBigDecimal(4));
+
+                    assertFalse(rs.next());
+                }
+            }
+        }
+
+        /**
+         * The updatable-cursor {@code setImpl} swap (ServerDTVImpl {@literal ->} AppDTVImpl) must pool the outgoing impl
+         * without corrupting later reads. Updates a row, advances, and requeries to confirm both the updated and
+         * untouched rows read back correctly.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testUpdatableCursorImplSwapPooling() throws SQLException {
+            try (Connection conn = getConnection();
+                    Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+                            ResultSet.CONCUR_UPDATABLE)) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+                stmt.execute("CREATE TABLE " + hotPathTable + " (id int PRIMARY KEY, s varchar(50), n int)");
+                stmt.executeUpdate("INSERT INTO " + hotPathTable + " VALUES (1, 'alpha', 10)");
+                stmt.executeUpdate("INSERT INTO " + hotPathTable + " VALUES (2, 'beta', 20)");
+
+                try (ResultSet rs = stmt.executeQuery("SELECT id, s, n FROM " + hotPathTable + " ORDER BY id")) {
+                    assertTrue(rs.next());
+                    // Read server values first (populates ServerDTVImpl), then swap via updateXxx.
+                    assertEquals("alpha", rs.getString(2));
+                    assertEquals(10, rs.getInt(3));
+                    rs.updateString(2, "ALPHA-UPDATED");
+                    rs.updateInt(3, 99);
+                    rs.updateRow();
+
+                    // Advancing reuses pooled impls for the next row's server values.
+                    assertTrue(rs.next());
+                    assertEquals("beta", rs.getString(2), "second row corrupted after impl swap/pooling");
+                    assertEquals(20, rs.getInt(3));
+                }
+
+                // Requery to confirm the update persisted and no stale state leaked.
+                try (ResultSet rs = stmt.executeQuery("SELECT id, s, n FROM " + hotPathTable + " ORDER BY id")) {
+                    assertTrue(rs.next());
+                    assertEquals("ALPHA-UPDATED", rs.getString(2));
+                    assertEquals(99, rs.getInt(3));
+                    assertTrue(rs.next());
+                    assertEquals("beta", rs.getString(2));
+                    assertEquals(20, rs.getInt(3));
+                    assertFalse(rs.next());
+                }
+            }
+        }
+
+        /**
+         * An adaptive stream obtained on one row must not corrupt the next row after {@code next()}. Partially reads
+         * row 1's LOB stream, advances (forward-only, adaptive, small {@code packetSize}), then asserts row 2 is
+         * byte-for-byte intact.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testAdaptiveStreamDoesNotCorruptNextRow() throws Exception {
+            byte[] row1 = new byte[6000];
+            byte[] row2 = new byte[6000];
+            for (int i = 0; i < row1.length; i++) {
+                row1[i] = (byte) (i % 256);
+                row2[i] = (byte) ((i * 7 + 3) % 256);
+            }
+
+            try (Connection setupConn = getConnection(); Statement stmt = setupConn.createStatement()) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+                stmt.execute("CREATE TABLE " + hotPathTable + " (id int PRIMARY KEY, b varbinary(max))");
+                try (PreparedStatement pstmt = setupConn
+                        .prepareStatement("INSERT INTO " + hotPathTable + " VALUES (?, ?)")) {
+                    pstmt.setInt(1, 1);
+                    pstmt.setBytes(2, row1);
+                    pstmt.executeUpdate();
+                    pstmt.setInt(1, 2);
+                    pstmt.setBytes(2, row2);
+                    pstmt.executeUpdate();
+                }
+            }
+
+            try (Connection conn = PrepUtil
+                    .getConnection(connectionString + ";responseBuffering=adaptive;packetSize=512");
+                    Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+                    ResultSet rs = stmt.executeQuery("SELECT id, b FROM " + hotPathTable + " ORDER BY id")) {
+
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                // Partially consume row 1's adaptive stream, then advance without finishing it.
+                try (InputStream s1 = rs.getBinaryStream(2)) {
+                    byte[] buf = new byte[128];
+                    int read = s1.read(buf);
+                    assertTrue(read > 0);
+                    for (int i = 0; i < read; i++) {
+                        assertEquals(row1[i], buf[i], "row 1 stream byte " + i + " incorrect");
+                    }
+                }
+
+                // Advance: row 2 must read back intact, with no bytes bled from the pooled/reused row-1 state.
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt(1));
+                byte[] actual2 = rs.getBytes(2);
+                assertNotNull(actual2);
+                assertArrayEquals("row 2 corrupted after advancing off a partially-read stream", row2, actual2);
+                assertFalse(rs.next());
+            }
         }
     }
 }
