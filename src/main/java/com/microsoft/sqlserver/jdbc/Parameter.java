@@ -588,7 +588,10 @@ final class Parameter {
         }
 
         private void setTypeDefinition(DTV dtv) throws SQLServerException {
-            Integer applicationLengthHint = getApplicationSpecifiedLengthHint(dtv);
+            boolean aeActive = param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser)
+                    && !(null == param.getCryptoMetadata() && param.renewDefinition);
+
+            Integer applicationLengthHint = aeActive ? null : getApplicationSpecifiedLengthHint(dtv);
             if (null != applicationLengthHint) {
                 validateApplicationSpecifiedLength(dtv, applicationLengthHint);
             }
