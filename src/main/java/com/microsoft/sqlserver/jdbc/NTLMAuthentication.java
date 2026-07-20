@@ -648,6 +648,8 @@ final class NTLMAuthentication extends SSPIAuthentication {
 
     private void calculateChannelBindingMD5Hash() throws SQLServerException {
         try {
+            // This consumes the per-authentication CBT value, NTLM currently calls it once
+            // per auth exchange.
             if (null == channelBindingInfo || 0 == channelBindingInfo.length) {
                 msvAvChannelBindings = null;
                 return;

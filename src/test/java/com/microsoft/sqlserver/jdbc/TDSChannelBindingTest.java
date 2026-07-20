@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.mockito.Mockito;
 
-class TDSChannelChannelBindingTest {
+class TDSChannelBindingTest {
 
     @Test
     void createChannelBindingInfoReturnsNullWhenSessionIsNull() {
