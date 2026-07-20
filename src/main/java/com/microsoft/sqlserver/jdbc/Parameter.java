@@ -64,18 +64,22 @@ final class Parameter {
     private boolean forceEncryption = false;
 
     // Set to true when defineParameterType() has been called for this parameter.
-    // When true, valueLength holds the caller-supplied max-length hint and the type
-    // definition (e.g. varchar(N)) is built from that hint rather than the conservative
-    // driver default (e.g. varchar(8000) / nvarchar(4000) / varbinary(8000)).
-    // For supported short character/binary parameter types, values longer than the
-    // defineParameterType max-length hint are rejected before execution.
-    // For max types and unsupported validation paths, SQL Server still enforces the
-    // declared parameter type/length represented by that hint.
+    // When true, defineParameterTypeLengthHint holds the caller-supplied max-length hint
+    // and the type definition (e.g. varchar(N)) is built from that hint rather than the
+    // conservative driver default (e.g. varchar(8000) / nvarchar(4000) / varbinary(8000)).
+    // This is intentionally separate from valueLength/userProvidesPrecision, which are used
+    // by DECIMAL/NUMERIC precision logic and would misinterpret a character/binary length
+    // hint as numeric precision.
     private boolean defineParameterTypeCalled = false;
 
     // The java.sql.Types value passed to defineParameterType(), used to validate
     // that the setter's JDBC type family (character vs binary) matches what was declared.
     private int defineParameterTypeSqlType = 0;
+
+    // The maxLength value passed to defineParameterType(). Stored separately from
+    // valueLength so it cannot be misinterpreted as numeric precision by the
+    // DECIMAL/NUMERIC type-definition logic (which checks userProvidesPrecision).
+    private int defineParameterTypeLengthHint = 0;
 
     void setDefineParameterTypeCalled(boolean value) {
         this.defineParameterTypeCalled = value;
@@ -83,6 +87,81 @@ final class Parameter {
 
     void setDefineParameterTypeSqlType(int sqlType) {
         this.defineParameterTypeSqlType = sqlType;
+    }
+
+    void setDefineParameterTypeLengthHint(int lengthHint) {
+        this.defineParameterTypeLengthHint = lengthHint;
+    }
+
+    /**
+     * Validates that the setter's JDBC type is in the same type family (character or binary)
+     * as the type declared via defineParameterType(). This prevents misuse where, for example,
+     * a parameter declared as VARCHAR(100) is then populated with setBytes (binary family).
+     *
+     * Types outside the character/binary families (e.g. INTEGER, DECIMAL) are allowed through
+     * without error — defineParameterType only constrains character/binary declarations.
+     */
+    private void validateSetterTypeFamily(JDBCType setterJdbcType,
+            SQLServerConnection con) throws SQLServerException {
+        // Determine declared family
+        boolean declaredIsCharacter;
+        boolean declaredIsBinary;
+        switch (defineParameterTypeSqlType) {
+            case java.sql.Types.VARCHAR:
+            case java.sql.Types.CHAR:
+            case java.sql.Types.NVARCHAR:
+            case java.sql.Types.NCHAR:
+                declaredIsCharacter = true;
+                declaredIsBinary = false;
+                break;
+            case java.sql.Types.VARBINARY:
+            case java.sql.Types.BINARY:
+                declaredIsCharacter = false;
+                declaredIsBinary = true;
+                break;
+            default:
+                return; // Not a constrained family
+        }
+
+        // Determine setter family
+        boolean setterIsCharacter;
+        boolean setterIsBinary;
+        switch (setterJdbcType) {
+            case CHAR:
+            case VARCHAR:
+            case NCHAR:
+            case NVARCHAR:
+            case LONGVARCHAR:
+            case LONGNVARCHAR:
+            case CLOB:
+            case NCLOB:
+                setterIsCharacter = true;
+                setterIsBinary = false;
+                break;
+            case BINARY:
+            case VARBINARY:
+            case LONGVARBINARY:
+            case BLOB:
+                setterIsCharacter = false;
+                setterIsBinary = true;
+                break;
+            default:
+                // Setter is neither character nor binary (e.g. setNull with INTEGER).
+                // Allow it — the mismatch will surface at execution time if inappropriate.
+                return;
+        }
+
+        if (declaredIsCharacter && setterIsBinary) {
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_defineParameterTypeTypeMismatch"));
+            Object[] msgArgs = {"binary", "character"};
+            SQLServerException.makeFromDriverError(con, this, form.format(msgArgs), null, false);
+        } else if (declaredIsBinary && setterIsCharacter) {
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_defineParameterTypeTypeMismatch"));
+            Object[] msgArgs = {"character", "binary"};
+            SQLServerException.makeFromDriverError(con, this, form.format(msgArgs), null, false);
+        }
     }
 
     Parameter(boolean honorAE) {
@@ -226,6 +305,7 @@ final class Parameter {
         clonedParam.userProvidesScale = userProvidesScale;
         clonedParam.defineParameterTypeCalled = defineParameterTypeCalled;
         clonedParam.defineParameterTypeSqlType = defineParameterTypeSqlType;
+        clonedParam.defineParameterTypeLengthHint = defineParameterTypeLengthHint;
         return clonedParam;
     }
 
@@ -387,6 +467,15 @@ final class Parameter {
             }
         }
 
+        // Enforce defineParameterType type-family contract at setter time.
+        // If defineParameterType() declared a character or binary family, the setter's JDBC type
+        // must be in the same family. This catches mismatches early (e.g. setBytes after declaring VARCHAR)
+        // and prevents the defineParameterTypeLengthHint from being misapplied to an incompatible type.
+        // Check is done before SSPAU remapping since VARCHAR→NVARCHAR stays in the character family.
+        if (defineParameterTypeCalled) {
+            validateSetterTypeFamily(jdbcType, con);
+        }
+
         // sendStringParametersAsUnicode
         // If set to true, this connection property tells the driver to send textual parameters
         // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging
@@ -472,11 +561,11 @@ final class Parameter {
 
         private Integer getApplicationSpecifiedLengthHint(DTV dtv) throws SQLServerException {
             // Precedence rule for short character/binary families:
-            // 1) defineParameterType(maxLength)
+            // 1) defineParameterType(maxLength) — stored in dedicated defineParameterTypeLengthHint field
             // 2) setObject(..., scaleOrLength)
             Integer lengthHint;
             if (param.defineParameterTypeCalled) {
-                lengthHint = param.valueLength;
+                lengthHint = param.defineParameterTypeLengthHint;
             } else {
                 lengthHint = dtv.getScale();
             }
@@ -490,57 +579,14 @@ final class Parameter {
                 case VARCHAR:
                 case NCHAR:
                 case NVARCHAR:
-                    if (param.defineParameterTypeCalled) {
-                        validateDeclaredTypeFamily(param.defineParameterTypeSqlType, true);
-                    }
-                    if (lengthHint <= 0) {
-                        throwInvalidParameterLength(lengthHint);
-                    }
-                    return lengthHint;
                 case BINARY:
                 case VARBINARY:
-                    if (param.defineParameterTypeCalled) {
-                        validateDeclaredTypeFamily(param.defineParameterTypeSqlType, false);
-                    }
                     if (lengthHint <= 0) {
                         throwInvalidParameterLength(lengthHint);
                     }
                     return lengthHint;
                 default:
                     return null;
-            }
-        }
-
-        /**
-         * Validates that the declared defineParameterType sqlType family matches the setter's type family.
-         *
-         * @param declaredSqlType the java.sql.Types value from defineParameterType()
-         * @param setterIsCharacter true if the setter produced a character type, false for binary
-         */
-        private void validateDeclaredTypeFamily(int declaredSqlType, boolean setterIsCharacter)
-                throws SQLServerException {
-            boolean declaredIsCharacter;
-            switch (declaredSqlType) {
-                case java.sql.Types.VARCHAR:
-                case java.sql.Types.CHAR:
-                case java.sql.Types.NVARCHAR:
-                case java.sql.Types.NCHAR:
-                    declaredIsCharacter = true;
-                    break;
-                case java.sql.Types.VARBINARY:
-                case java.sql.Types.BINARY:
-                    declaredIsCharacter = false;
-                    break;
-                default:
-                    return; // Should not happen; defineParameterType validates supported types.
-            }
-            if (declaredIsCharacter != setterIsCharacter) {
-                String declaredFamily = declaredIsCharacter ? "character" : "binary";
-                String setterFamily = setterIsCharacter ? "character" : "binary";
-                MessageFormat form = new MessageFormat(
-                        SQLServerException.getErrString("R_defineParameterTypeTypeMismatch"));
-                Object[] msgArgs = {setterFamily, declaredFamily};
-                SQLServerException.makeFromDriverError(con, param, form.format(msgArgs), null, false);
             }
         }
 

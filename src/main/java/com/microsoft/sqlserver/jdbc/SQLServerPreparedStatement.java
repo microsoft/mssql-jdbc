@@ -255,7 +255,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         Parameter param = setterGetParam(parameterIndex);
         param.setDefineParameterTypeCalled(true);
         param.setDefineParameterTypeSqlType(sqlType);
-        param.setValueLength(maxLength); // also sets userProvidesPrecision = true
+        param.setDefineParameterTypeLengthHint(maxLength);
     }
 
     /**

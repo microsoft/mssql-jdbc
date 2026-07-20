@@ -590,10 +590,9 @@ public class CallableParameterLengthHintTest extends AbstractTest {
                 .prepareCall("{call " + procVarbinary + "(?)}")) {
 
             cs.defineParameterType(1, Types.VARCHAR, 50);
-            cs.setBytes(1, new byte[] {0x01, 0x02, 0x03});
 
             SQLServerException e = org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class,
-                    cs::execute);
+                    () -> cs.setBytes(1, new byte[] {0x01, 0x02, 0x03}));
             assertTrue(e.getMessage()
                     .matches(TestUtils.formatErrorMsg("R_defineParameterTypeTypeMismatch")),
                     "Unexpected error: " + e.getMessage());
@@ -606,10 +605,9 @@ public class CallableParameterLengthHintTest extends AbstractTest {
                 .prepareCall("{call " + procVarchar + "(?)}")) {
 
             cs.defineParameterType(1, Types.VARBINARY, 50);
-            cs.setString(1, "hello");
 
             SQLServerException e = org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class,
-                    cs::execute);
+                    () -> cs.setString(1, "hello"));
             assertTrue(e.getMessage()
                     .matches(TestUtils.formatErrorMsg("R_defineParameterTypeTypeMismatch")),
                     "Unexpected error: " + e.getMessage());

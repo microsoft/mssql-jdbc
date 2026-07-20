@@ -324,25 +324,38 @@ These types have no width field in their TDS TypeInfo. No hint is applicable or 
 
 ## Implementation Details
 
-### 8.1 `Parameter.java` — new flag
+### 8.1 `Parameter.java` — new fields
 
-A single new boolean field is added to `Parameter`:
+Three dedicated fields are added to `Parameter`:
 
 ```java
 // Set to true when defineParameterType() has been called for this parameter.
-// When true, valueLength holds the caller-supplied max-length hint and the type
-// definition (e.g. varchar(N)) is built from that hint rather than the conservative
-// driver default (e.g. varchar(8000) / nvarchar(4000) / varbinary(8000)).
-// Data exceeding the hint causes execution to fail with a validation error.
+// When true, defineParameterTypeLengthHint holds the caller-supplied max-length hint
+// and the type definition (e.g. varchar(N)) is built from that hint rather than the
+// conservative driver default (e.g. varchar(8000) / nvarchar(4000) / varbinary(8000)).
+// This is intentionally separate from valueLength/userProvidesPrecision, which are used
+// by DECIMAL/NUMERIC precision logic and would misinterpret a character/binary length
+// hint as numeric precision.
 private boolean defineParameterTypeCalled = false;
+
+// The java.sql.Types value passed to defineParameterType(), used to validate
+// that the setter's JDBC type family (character vs binary) matches what was declared.
+private int defineParameterTypeSqlType = 0;
+
+// The maxLength value passed to defineParameterType(). Stored separately from
+// valueLength so it cannot be misinterpreted as numeric precision by the
+// DECIMAL/NUMERIC type-definition logic (which checks userProvidesPrecision).
+private int defineParameterTypeLengthHint = 0;
 ```
 
-`defineParameterType` calls `param.setValueLength(maxLength)` (which stores the hint in
-the existing `valueLength` field and sets `userProvidesPrecision = true`),
-`param.setDefineParameterTypeCalled(true)`, and `param.setDefineParameterTypeSqlType(sqlType)`.
-The `sqlType` is stored on the parameter and used at execution time to enforce type family
+`defineParameterType` calls `param.setDefineParameterTypeCalled(true)`,
+`param.setDefineParameterTypeSqlType(sqlType)`, and
+`param.setDefineParameterTypeLengthHint(maxLength)`.
+
+The `sqlType` is stored on the parameter and used **at setter time** to enforce type family
 compatibility — the setter's JDBC type must be in the same family (character or binary) as
-the declared `sqlType`. Cross-family usage throws `R_defineParameterTypeTypeMismatch`.
+the declared `sqlType`. Cross-family usage throws `R_defineParameterTypeTypeMismatch`
+immediately when the setter is called, preventing misuse before execution.
 
 Type families:
 - **Character family**: VARCHAR, CHAR, NVARCHAR, NCHAR (all compatible with each other,
@@ -365,7 +378,7 @@ if (param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser)
 } else if (param.defineParameterTypeCalled) {
     // defineParameterType hint: declare the user-specified length directly.
     // Values exceeding maxLength are rejected before execution.
-    int hint = param.valueLength;
+    int hint = param.defineParameterTypeLengthHint;
     if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
         param.typeDefinition = VARCHAR_MAX;
     } else {
@@ -410,7 +423,7 @@ public void defineParameterType(int parameterIndex, int sqlType, int maxLength)
     Parameter param = setterGetParam(parameterIndex);
     param.setDefineParameterTypeCalled(true);
     param.setDefineParameterTypeSqlType(sqlType);
-    param.setValueLength(maxLength); // also sets userProvidesPrecision = true
+    param.setDefineParameterTypeLengthHint(maxLength);
 }
 ```
 
@@ -433,10 +446,9 @@ The flag and hint must survive batch cloning so every row in the batch uses the 
 type declaration:
 
 ```java
-clonedParam.defineParameterTypeCalled = defineParameterTypeCalled;
-clonedParam.defineParameterTypeSqlType = defineParameterTypeSqlType;
-clonedParam.valueLength              = valueLength;
-clonedParam.userProvidesPrecision    = userProvidesPrecision;
+clonedParam.defineParameterTypeCalled    = defineParameterTypeCalled;
+clonedParam.defineParameterTypeSqlType   = defineParameterTypeSqlType;
+clonedParam.defineParameterTypeLengthHint = defineParameterTypeLengthHint;
 ```
 
 ### 8.6 Interaction with AE (Always Encrypted)
@@ -461,14 +473,18 @@ AE requires exact type information that must be derived from the actual value.
 
 ### 8.7 Type family enforcement
 
-The `defineParameterTypeSqlType` field stores the declared `java.sql.Types` value. At
-execution time, `getApplicationSpecifiedLengthHint()` calls `validateDeclaredTypeFamily()`
-which checks that the setter's JDBC type is in the same family as the declared type:
+The `defineParameterTypeSqlType` field stores the declared `java.sql.Types` value.
+Type family enforcement happens **at setter time**: `Parameter.validateSetterTypeFamily()` is
+called from `setValue()` when `defineParameterTypeCalled` is true. This catches mismatches
+immediately when the application calls `setString()`, `setBytes()`, etc. — before SSPAU
+remapping, since VARCHAR→NVARCHAR stays in the character family.
 
+Families:
 - Character family: `CHAR`, `VARCHAR`, `NCHAR`, `NVARCHAR`
 - Binary family: `BINARY`, `VARBINARY`
 
-Cross-family usage (e.g. `defineParameterType(1, Types.VARCHAR, 50)` + `setBytes(...)`) throws:
+Cross-family usage (e.g. `defineParameterType(1, Types.VARCHAR, 50)` + `setBytes(...)`) throws
+at setter time:
 ```
 R_defineParameterTypeTypeMismatch:
 "The setter produced a binary type but defineParameterType declared a character type.
@@ -507,8 +523,8 @@ batchRecord.addColumnMetadata(
     ti.getScale());
 ```
 
-`defineParameterType` stores its hint in `Parameter.valueLength`, which is never read
-by this code path. The Bulk Copy path already uses the actual column widths from the
+`defineParameterType` stores its hint in `Parameter.defineParameterTypeLengthHint`, which is
+never read by this code path. The Bulk Copy path already uses the actual column widths from the
 server schema — which are already optimal.
 
 ### 9.3 Summary

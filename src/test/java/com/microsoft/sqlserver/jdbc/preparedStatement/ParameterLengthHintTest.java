@@ -655,9 +655,9 @@ public class ParameterLengthHintTest extends AbstractTest {
                     .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
 
                 pstmt.defineParameterType(1, Types.VARCHAR, 50);
-                pstmt.setBytes(1, new byte[] {0x01, 0x02, 0x03});
 
-                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
+                SQLServerException e = assertThrows(SQLServerException.class,
+                        () -> pstmt.setBytes(1, new byte[] {0x01, 0x02, 0x03}));
                 assertTrue(e.getMessage()
                         .matches(TestUtils.formatErrorMsg("R_defineParameterTypeTypeMismatch")),
                         "Unexpected error: " + e.getMessage());
@@ -671,9 +671,9 @@ public class ParameterLengthHintTest extends AbstractTest {
                     .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
 
                 pstmt.defineParameterType(1, Types.VARBINARY, 50);
-                pstmt.setString(1, "hello");
 
-                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
+                SQLServerException e = assertThrows(SQLServerException.class,
+                        () -> pstmt.setString(1, "hello"));
                 assertTrue(e.getMessage()
                         .matches(TestUtils.formatErrorMsg("R_defineParameterTypeTypeMismatch")),
                         "Unexpected error: " + e.getMessage());
@@ -687,9 +687,9 @@ public class ParameterLengthHintTest extends AbstractTest {
                     .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
 
                 pstmt.defineParameterType(1, Types.NCHAR, 50);
-                pstmt.setBytes(1, new byte[] {0x01});
 
-                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
+                SQLServerException e = assertThrows(SQLServerException.class,
+                        () -> pstmt.setBytes(1, new byte[] {0x01}));
                 assertTrue(e.getMessage()
                         .matches(TestUtils.formatErrorMsg("R_defineParameterTypeTypeMismatch")),
                         "Unexpected error: " + e.getMessage());
@@ -1027,26 +1027,27 @@ public class ParameterLengthHintTest extends AbstractTest {
                     pstmt.addBatch();
                     assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1),
                             "Expected type definition for batch with hint");
-
-                    pstmt.setBytes(1, new byte[]{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A});
                 } else if (sqlType == Types.NVARCHAR || sqlType == Types.NCHAR) {
                     pstmt.setNString(1, "hi");
                     pstmt.addBatch();
                     assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1),
                             "Expected type definition for batch with hint");
-
-                    pstmt.setNString(1, "truncate_me_please");
                 } else {
                     pstmt.setString(1, "hi");
                     pstmt.addBatch();
                     assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1),
                             "Expected type definition for batch with hint");
-
-                    pstmt.setString(1, "truncate_me_please");
                 }
 
                 // Validation can throw when adding the over-length row (before executeBatch).
                 SQLException e = assertThrows(SQLException.class, () -> {
+                    if ("bincol".equals(column)) {
+                        pstmt.setBytes(1, new byte[]{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A});
+                    } else if (sqlType == Types.NVARCHAR || sqlType == Types.NCHAR) {
+                        pstmt.setNString(1, "truncate_me_please");
+                    } else {
+                        pstmt.setString(1, "truncate_me_please");
+                    }
                     pstmt.addBatch();
                     pstmt.executeBatch();
                 });
