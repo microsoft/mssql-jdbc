@@ -432,9 +432,8 @@ public class CallableParameterLengthHintTest extends AbstractTest {
         try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
                 .prepareCall("{call " + procName + "(?)}")) {
 
-            cs.defineParameterType(1, sqlType, hintLength);
-            cs.setObject(parameterName, value, sqlType);
-            SQLServerException e = org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, cs::execute);
+            SQLServerException e = org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class,
+                    () -> cs.defineParameterType(1, sqlType, hintLength));
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterLength")),
                     "Unexpected error: " + e.getMessage());
         }
@@ -580,6 +579,53 @@ public class CallableParameterLengthHintTest extends AbstractTest {
                 ResultSet rs = stmt
                         .executeQuery("SELECT TOP 1 bincol FROM " + escapedTableName + " ORDER BY id DESC")) {
             return rs.next() ? rs.getBytes(1) : null;
+        }
+    }
+
+    // --- Type family mismatch tests ---
+
+    @Test
+    public void testCallableDefineParameterTypeCharacterDeclaredWithBinarySetterThrows() throws Exception {
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
+                .prepareCall("{call " + procVarbinary + "(?)}")) {
+
+            cs.defineParameterType(1, Types.VARCHAR, 50);
+            cs.setBytes(1, new byte[] {0x01, 0x02, 0x03});
+
+            SQLServerException e = org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class,
+                    cs::execute);
+            assertTrue(e.getMessage()
+                    .matches(TestUtils.formatErrorMsg("R_defineParameterTypeTypeMismatch")),
+                    "Unexpected error: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testCallableDefineParameterTypeBinaryDeclaredWithCharacterSetterThrows() throws Exception {
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
+                .prepareCall("{call " + procVarchar + "(?)}")) {
+
+            cs.defineParameterType(1, Types.VARBINARY, 50);
+            cs.setString(1, "hello");
+
+            SQLServerException e = org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class,
+                    cs::execute);
+            assertTrue(e.getMessage()
+                    .matches(TestUtils.formatErrorMsg("R_defineParameterTypeTypeMismatch")),
+                    "Unexpected error: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testCallableDefineParameterTypeSameFamilyCharacterSucceeds() throws Exception {
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
+                .prepareCall("{call " + procVarchar + "(?)}")) {
+
+            cs.defineParameterType(1, Types.VARCHAR, 50);
+            cs.setNString(1, "hello");
+            cs.execute();
+
+            assertEquals("nvarchar(50)", getTypeDefinition(cs, 1));
         }
     }
 }

@@ -109,6 +109,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_invalidParameterLength", "The parameter length hint value {0} is not valid. The value must be > 0."},
         {"R_parameterTypeValueLengthExceedsHint", "The value length {1} exceeds the maximum length hint {0} for this parameter."},
         {"R_unsupportedTypeForDefineParamType", "The SQL type {0} is not supported by defineParameterType. Supported types: VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY."},
+        {"R_defineParameterTypeTypeMismatch", "The setter produced a {0} type but defineParameterType declared a {1} type. The setter must use a type in the same family as the declared type."},
         {"R_invalidFetchDirection", "The fetch direction {0} is not valid."},
         {"R_invalidFetchSize", "The fetch size cannot be negative."},
         {"R_noColumnParameterValue", "No column parameter values were specified to update the row."},

@@ -73,8 +73,16 @@ final class Parameter {
     // declared parameter type/length represented by that hint.
     private boolean defineParameterTypeCalled = false;
 
+    // The java.sql.Types value passed to defineParameterType(), used to validate
+    // that the setter's JDBC type family (character vs binary) matches what was declared.
+    private int defineParameterTypeSqlType = 0;
+
     void setDefineParameterTypeCalled(boolean value) {
         this.defineParameterTypeCalled = value;
+    }
+
+    void setDefineParameterTypeSqlType(int sqlType) {
+        this.defineParameterTypeSqlType = sqlType;
     }
 
     Parameter(boolean honorAE) {
@@ -217,6 +225,7 @@ final class Parameter {
         clonedParam.userProvidesPrecision = userProvidesPrecision;
         clonedParam.userProvidesScale = userProvidesScale;
         clonedParam.defineParameterTypeCalled = defineParameterTypeCalled;
+        clonedParam.defineParameterTypeSqlType = defineParameterTypeSqlType;
         return clonedParam;
     }
 
@@ -481,14 +490,57 @@ final class Parameter {
                 case VARCHAR:
                 case NCHAR:
                 case NVARCHAR:
+                    if (param.defineParameterTypeCalled) {
+                        validateDeclaredTypeFamily(param.defineParameterTypeSqlType, true);
+                    }
+                    if (lengthHint <= 0) {
+                        throwInvalidParameterLength(lengthHint);
+                    }
+                    return lengthHint;
                 case BINARY:
                 case VARBINARY:
+                    if (param.defineParameterTypeCalled) {
+                        validateDeclaredTypeFamily(param.defineParameterTypeSqlType, false);
+                    }
                     if (lengthHint <= 0) {
                         throwInvalidParameterLength(lengthHint);
                     }
                     return lengthHint;
                 default:
                     return null;
+            }
+        }
+
+        /**
+         * Validates that the declared defineParameterType sqlType family matches the setter's type family.
+         *
+         * @param declaredSqlType the java.sql.Types value from defineParameterType()
+         * @param setterIsCharacter true if the setter produced a character type, false for binary
+         */
+        private void validateDeclaredTypeFamily(int declaredSqlType, boolean setterIsCharacter)
+                throws SQLServerException {
+            boolean declaredIsCharacter;
+            switch (declaredSqlType) {
+                case java.sql.Types.VARCHAR:
+                case java.sql.Types.CHAR:
+                case java.sql.Types.NVARCHAR:
+                case java.sql.Types.NCHAR:
+                    declaredIsCharacter = true;
+                    break;
+                case java.sql.Types.VARBINARY:
+                case java.sql.Types.BINARY:
+                    declaredIsCharacter = false;
+                    break;
+                default:
+                    return; // Should not happen; defineParameterType validates supported types.
+            }
+            if (declaredIsCharacter != setterIsCharacter) {
+                String declaredFamily = declaredIsCharacter ? "character" : "binary";
+                String setterFamily = setterIsCharacter ? "character" : "binary";
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_defineParameterTypeTypeMismatch"));
+                Object[] msgArgs = {setterFamily, declaredFamily};
+                SQLServerException.makeFromDriverError(con, param, form.format(msgArgs), null, false);
             }
         }
 

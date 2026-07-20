@@ -223,8 +223,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     public void defineParameterType(int parameterIndex, int sqlType, int maxLength) throws SQLServerException {
         checkClosed();
         // Validate that sqlType is one of the supported character or binary types.
-        // The sqlType value itself is not stored on the parameter — the wire type is
-        // determined by what setString/setNString/setBytes sets on the DTV at execution time.
+        // The sqlType identifies the type family (character or binary) and is enforced
+        // at execution time — the setter must produce a type in the same family.
         // The maxLength hint will take precedence over any scaleOrLength provided via setObject().
         switch (sqlType) {
             case java.sql.Types.VARCHAR:
@@ -233,6 +233,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             case java.sql.Types.NCHAR:
             case java.sql.Types.VARBINARY:
             case java.sql.Types.BINARY:
+                if (maxLength <= 0) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidParameterLength"));
+                    SQLServerException.makeFromDriverError(connection, this,
+                            form.format(new Object[] {maxLength}), null, false);
+                }
                 break;
             default:
                 String typeName;
@@ -248,6 +254,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
         Parameter param = setterGetParam(parameterIndex);
         param.setDefineParameterTypeCalled(true);
+        param.setDefineParameterTypeSqlType(sqlType);
         param.setValueLength(maxLength); // also sets userProvidesPrecision = true
     }
 
@@ -2029,6 +2036,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * Breaking Behavioral Change: For character and binary target types (VARCHAR, CHAR,
+     * NVARCHAR, NCHAR, VARBINARY, BINARY), {@code scaleOrLength} is now enforced as a
+     * maximum length constraint. Previously, the JDBC 4.3 specification defined
+     * {@code scaleOrLength} only for DECIMAL/NUMERIC (as scale) and for InputStream/Reader
+     * (as stream length), so it was ignored for string and binary types. With this change,
+     * if the actual value length exceeds the specified {@code scaleOrLength}, execution
+     * will fail with {@code R_parameterTypeValueLengthExceedsHint}. Applications that pass
+     * arbitrary or undersized {@code scaleOrLength} values for string/binary types must
+     * either increase the value to accommodate their largest payload or use a two-argument
+     * {@code setObject} overload that omits the length constraint.
+     *
+     * If {@link #defineParameterType(int, int, int)} has been called for the same
+     * parameter, its {@code maxLength} takes precedence over {@code scaleOrLength}.
+     */
     @Override
     public final void setObject(int parameterIndex, Object x, int targetSqlType,
             int scaleOrLength) throws SQLServerException {
@@ -2041,7 +2065,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // this is the number of digits after the decimal point. For Java Object types
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For supported short character/binary SQL types, this is treated as an
-        // application-provided length hint.
+        // application-provided length hint AND enforced as a maximum length constraint.
+        // If the actual value exceeds scaleOrLength for these types, execution fails with
+        // R_parameterTypeValueLengthExceedsHint. This is a breaking behavioral change from
+        // prior versions where scaleOrLength was ignored for string/binary types.
         // Precedence: defineParameterType() hint (if present) takes priority over this value.
 
         Integer precision = null;

@@ -107,12 +107,18 @@ public class ParameterLengthHintTest extends AbstractTest {
                     Arguments.of("hello", Types.VARCHAR, 10, "nvarchar(10)", "VARCHAR hint equal to value length"),
                     Arguments.of("hi", Types.VARCHAR, 100, "nvarchar(100)", "VARCHAR hint larger than value"),
                     Arguments.of("A", Types.VARCHAR, 1, "nvarchar(1)", "VARCHAR minimum meaningful hint"),
+                    Arguments.of("sspau4001", Types.VARCHAR, 4001, "nvarchar(max)", "VARCHAR hint=4001 exceeds nvarchar 4000-char limit with SSPAU"),
+                    Arguments.of("sspau5000", Types.VARCHAR, 5000, "nvarchar(max)", "VARCHAR hint=5000 exceeds nvarchar 4000-char limit with SSPAU"),
+                    Arguments.of("sspau7999", Types.VARCHAR, 7999, "nvarchar(max)", "VARCHAR hint=7999 exceeds nvarchar 4000-char limit with SSPAU"),
                     Arguments.of("boundary", Types.VARCHAR, 8000, "nvarchar(max)", "VARCHAR hint=8000 exceeds nvarchar 4000-char limit"),
                     Arguments.of("maxtest", Types.VARCHAR, 8001, "nvarchar(max)", "VARCHAR hint>8000 promotes to max"),
 
                     Arguments.of("hello", Types.CHAR, 10, "nvarchar(10)", "CHAR hint equal to value length"),
                     Arguments.of("hi", Types.CHAR, 100, "nvarchar(100)", "CHAR hint larger than value"),
                     Arguments.of("A", Types.CHAR, 1, "nvarchar(1)", "CHAR minimum meaningful hint"),
+                    Arguments.of("sspau4001", Types.CHAR, 4001, "nvarchar(max)", "CHAR hint=4001 exceeds nvarchar 4000-char limit with SSPAU"),
+                    Arguments.of("sspau5000", Types.CHAR, 5000, "nvarchar(max)", "CHAR hint=5000 exceeds nvarchar 4000-char limit with SSPAU"),
+                    Arguments.of("sspau7999", Types.CHAR, 7999, "nvarchar(max)", "CHAR hint=7999 exceeds nvarchar 4000-char limit with SSPAU"),
                     Arguments.of("boundary", Types.CHAR, 8000, "nvarchar(max)", "CHAR hint=8000 exceeds nvarchar 4000-char limit"),
                     Arguments.of("maxtest", Types.CHAR, 8001, "nvarchar(max)", "CHAR hint>8000 promotes to max")
             );
@@ -565,7 +571,7 @@ public class ParameterLengthHintTest extends AbstractTest {
             );
         }
 
-        // Verify that non-positive hints are rejected with R_invalidParameterLength for all supported types.
+        // Verify that non-positive hints are rejected eagerly at defineParameterType() call time.
         @ParameterizedTest(name = "Non-positive defineParameterType hint rejected: {1}, hint={2}")
         @MethodSource("nonPositiveLengthCases")
         void testDefineParameterTypeNonPositiveHintRejected(int sqlType, String typeName, int hintLength)
@@ -573,16 +579,8 @@ public class ParameterLengthHintTest extends AbstractTest {
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
 
-                pstmt.defineParameterType(1, sqlType, hintLength);
-                if (sqlType == Types.NVARCHAR || sqlType == Types.NCHAR) {
-                    pstmt.setNString(1, "a");
-                } else {
-                    pstmt.setObject(1, Types.VARBINARY == sqlType || Types.BINARY == sqlType ? new byte[] {0x01} : "a",
-                            sqlType);
-                }
-
                 SQLServerException e = assertThrows(SQLServerException.class,
-                        pstmt::executeUpdate);
+                        () -> pstmt.defineParameterType(1, sqlType, hintLength));
 
                 assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterLength")),
                         "Unexpected error: " + e.getMessage());
@@ -648,6 +646,85 @@ public class ParameterLengthHintTest extends AbstractTest {
                     () -> pstmt.defineParameterType(1, Types.VARCHAR, 10));
             assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_statementIsClosed")),
                     "Unexpected error: " + e.getMessage());
+        }
+
+        // Type family mismatch: defineParameterType declares character but setter sends binary.
+        @Test
+        void testCharacterDeclaredWithBinarySetterThrows() throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
+
+                pstmt.defineParameterType(1, Types.VARCHAR, 50);
+                pstmt.setBytes(1, new byte[] {0x01, 0x02, 0x03});
+
+                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
+                assertTrue(e.getMessage()
+                        .matches(TestUtils.formatErrorMsg("R_defineParameterTypeTypeMismatch")),
+                        "Unexpected error: " + e.getMessage());
+            }
+        }
+
+        // Type family mismatch: defineParameterType declares binary but setter sends character.
+        @Test
+        void testBinaryDeclaredWithCharacterSetterThrows() throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.defineParameterType(1, Types.VARBINARY, 50);
+                pstmt.setString(1, "hello");
+
+                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
+                assertTrue(e.getMessage()
+                        .matches(TestUtils.formatErrorMsg("R_defineParameterTypeTypeMismatch")),
+                        "Unexpected error: " + e.getMessage());
+            }
+        }
+
+        // Cross-family: NCHAR declared with binary setter.
+        @Test
+        void testNcharDeclaredWithBinarySetterThrows() throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
+
+                pstmt.defineParameterType(1, Types.NCHAR, 50);
+                pstmt.setBytes(1, new byte[] {0x01});
+
+                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
+                assertTrue(e.getMessage()
+                        .matches(TestUtils.formatErrorMsg("R_defineParameterTypeTypeMismatch")),
+                        "Unexpected error: " + e.getMessage());
+            }
+        }
+
+        // Same family: VARCHAR declared with setNString (both character) should succeed.
+        @Test
+        void testVarcharDeclaredWithNStringSetter() throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (nvcol) VALUES (?)")) {
+
+                pstmt.defineParameterType(1, Types.VARCHAR, 50);
+                pstmt.setNString(1, "hello");
+                pstmt.executeUpdate();
+
+                assertEquals("nvarchar(50)", getTypeDefinition(pstmt, 1));
+            }
+            assertEquals("hello", readLastNvarchar());
+        }
+
+        // Same family: BINARY declared with setBytes should succeed.
+        @Test
+        void testBinaryDeclaredWithByteSetter() throws Exception {
+            byte[] value = {0x01, 0x02, 0x03};
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
+
+                pstmt.defineParameterType(1, Types.BINARY, 50);
+                pstmt.setBytes(1, value);
+                pstmt.executeUpdate();
+
+                assertEquals("varbinary(50)", getTypeDefinition(pstmt, 1));
+            }
+            assertArrayEquals(value, readLastVarbinary());
         }
 
         // value, sqlType, hintLength, column, description
@@ -900,6 +977,27 @@ public class ParameterLengthHintTest extends AbstractTest {
                 assertEquals(BATCH_SIZE, counts.length);
             }
             assertEquals(BATCH_SIZE, countRowsSince(maxIdBefore));
+
+            // Read back all inserted values and verify data integrity (no truncation).
+            if ("bincol".equals(column)) {
+                List<byte[]> stored = readVarbinariesSince(maxIdBefore);
+                for (int i = 0; i < BATCH_SIZE; i++) {
+                    assertArrayEquals(("row" + i).getBytes(), stored.get(i),
+                            "Binary data mismatch at batch row " + i);
+                }
+            } else if ("nvcol".equals(column)) {
+                List<String> stored = readNvarcharsSince(maxIdBefore);
+                for (int i = 0; i < BATCH_SIZE; i++) {
+                    assertEquals("batchrow" + i, stored.get(i),
+                            "Nvarchar data mismatch at batch row " + i);
+                }
+            } else {
+                List<String> stored = readVarcharsSince(maxIdBefore);
+                for (int i = 0; i < BATCH_SIZE; i++) {
+                    assertEquals("batchrow" + i, stored.get(i),
+                            "Varchar data mismatch at batch row " + i);
+                }
+            }
         }
 
         // sqlType, hintLength, column, expectedTypeDef, description
@@ -997,6 +1095,24 @@ public class ParameterLengthHintTest extends AbstractTest {
                 assertEquals(2, counts.length);
                 }
                 assertEquals(2, countRowsSince(maxIdBefore));
+
+                // Read back inserted values and verify data integrity.
+                if ("bincol".equals(column)) {
+                    List<byte[]> stored = readVarbinariesSince(maxIdBefore);
+                    for (byte[] row : stored) {
+                        assertArrayEquals((byte[]) value, row, "Binary data mismatch in setObject batch");
+                    }
+                } else if ("nvcol".equals(column)) {
+                    List<String> stored = readNvarcharsSince(maxIdBefore);
+                    for (String row : stored) {
+                        assertEquals((String) value, row, "Nvarchar data mismatch in setObject batch");
+                    }
+                } else {
+                    List<String> stored = readVarcharsSince(maxIdBefore);
+                    for (String row : stored) {
+                        assertEquals((String) value, row, "Varchar data mismatch in setObject batch");
+                    }
+                }
             }
 
             Stream<Arguments> batchDefinePrecedesSetObjectCases() {
@@ -1035,6 +1151,27 @@ public class ParameterLengthHintTest extends AbstractTest {
                 assertEquals(2, counts.length);
                 }
                 assertEquals(2, countRowsSince(maxIdBefore));
+
+                // Read back inserted values and verify data integrity.
+                if ("bincol".equals(column)) {
+                    List<byte[]> stored = readVarbinariesSince(maxIdBefore);
+                    for (byte[] row : stored) {
+                        assertArrayEquals((byte[]) value, row,
+                                "Binary data mismatch in define-precedes-setObject batch");
+                    }
+                } else if ("nvcol".equals(column)) {
+                    List<String> stored = readNvarcharsSince(maxIdBefore);
+                    for (String row : stored) {
+                        assertEquals((String) value, row,
+                                "Nvarchar data mismatch in define-precedes-setObject batch");
+                    }
+                } else {
+                    List<String> stored = readVarcharsSince(maxIdBefore);
+                    for (String row : stored) {
+                        assertEquals((String) value, row,
+                                "Varchar data mismatch in define-precedes-setObject batch");
+                    }
+                }
             }
 
             Stream<Arguments> batchSetObjectHintTooSmallCases() {

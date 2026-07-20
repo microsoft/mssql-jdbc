@@ -222,14 +222,20 @@ Add a single new driver-extension method to `ISQLServerPreparedStatement` and
  * {@link java.sql.Types#BINARY}.</p>
  *
  * @param parameterIndex 1-based parameter index
- * @param sqlType        {@code java.sql.Types} constant; used only for validation (must be
- *                       VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, or BINARY). The actual
- *                       wire type is determined by the setter method, not by this value.
+ * @param sqlType        {@code java.sql.Types} constant; identifies the intended type
+ *                       family (character or binary). Used for: (1) validation that the
+ *                       type is one of the 6 supported types, and (2) type family
+ *                       enforcement — the setter must produce a type in the same family
+ *                       (character or binary). Cross-family usage (e.g. VARCHAR declared
+ *                       + setBytes) fails with R_defineParameterTypeTypeMismatch.
  * @param maxLength      maximum expected length in characters (VARCHAR/NVARCHAR/CHAR/NCHAR)
- *                       or bytes (VARBINARY/BINARY); must be > 0 for the supported hint path
+ *                       or bytes (VARBINARY/BINARY); must be > 0 (validated eagerly at
+ *                       call time — non-positive values throw R_invalidParameterLength
+ *                       immediately)
  * @throws SQLServerException if the parameter index is out of range, the sqlType is not a
- *                            supported variable-length type, or execution later resolves a
- *                            non-positive hint for a supported bounded variable-length parameter
+ *                            supported variable-length type, maxLength is non-positive,
+ *                            or execution detects a type family mismatch or a value length
+ *                            that exceeds maxLength for supported bounded types
  */
 public void defineParameterType(int parameterIndex, int sqlType, int maxLength)
         throws SQLServerException;
@@ -332,10 +338,19 @@ private boolean defineParameterTypeCalled = false;
 ```
 
 `defineParameterType` calls `param.setValueLength(maxLength)` (which stores the hint in
-the existing `valueLength` field and sets `userProvidesPrecision = true`) and
-`param.setDefineParameterTypeCalled(true)`. The `sqlType` argument is **validated but not
-stored** — `setTypeDefinition()` already routes via `dtv.getJdbcType()`, which reflects
-what `setString` / `setNString` / `setBytes` etc. actually placed on the parameter.
+the existing `valueLength` field and sets `userProvidesPrecision = true`),
+`param.setDefineParameterTypeCalled(true)`, and `param.setDefineParameterTypeSqlType(sqlType)`.
+The `sqlType` is stored on the parameter and used at execution time to enforce type family
+compatibility — the setter's JDBC type must be in the same family (character or binary) as
+the declared `sqlType`. Cross-family usage throws `R_defineParameterTypeTypeMismatch`.
+
+Type families:
+- **Character family**: VARCHAR, CHAR, NVARCHAR, NCHAR (all compatible with each other,
+  accounting for SSPAU remapping of VARCHAR→NVARCHAR)
+- **Binary family**: VARBINARY, BINARY (compatible with each other)
+
+Non-positive `maxLength` values (`<= 0`) are rejected eagerly at `defineParameterType()`
+call time with `R_invalidParameterLength` — they do not wait until execution.
 
 ### 8.2 `setTypeDefinition()` in `Parameter.java` — `GetTypeDefinitionOp`
 
@@ -372,12 +387,19 @@ public void defineParameterType(int parameterIndex, int sqlType, int maxLength)
         throws SQLServerException {
     checkClosed();
     // Validate that sqlType is one of the supported character or binary types.
-    // The sqlType value itself is not stored on the parameter — the wire type is
-    // determined by what setString/setNString/setBytes sets on the DTV at execution time.
+    // The sqlType identifies the type family (character or binary) and is enforced
+    // at execution time — the setter must produce a type in the same family.
     switch (sqlType) {
         case Types.VARCHAR: case Types.CHAR:
         case Types.NVARCHAR: case Types.NCHAR:
         case Types.VARBINARY: case Types.BINARY:
+            if (maxLength <= 0) {
+                // Fail fast — reject non-positive hints at call time
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_invalidParameterLength"));
+                SQLServerException.makeFromDriverError(connection, this,
+                        form.format(new Object[] {maxLength}), null, false);
+            }
             break;
         default:
             MessageFormat form = new MessageFormat(
@@ -387,6 +409,7 @@ public void defineParameterType(int parameterIndex, int sqlType, int maxLength)
     }
     Parameter param = setterGetParam(parameterIndex);
     param.setDefineParameterTypeCalled(true);
+    param.setDefineParameterTypeSqlType(sqlType);
     param.setValueLength(maxLength); // also sets userProvidesPrecision = true
 }
 ```
@@ -395,10 +418,13 @@ public void defineParameterType(int parameterIndex, int sqlType, int maxLength)
 
 ```java
 {"R_invalidParameterLength",
-    "The maxLength value {0} is not valid. maxLength must be > 0."},
+    "The parameter length hint value {0} is not valid. The value must be > 0."},
 {"R_unsupportedTypeForDefineParamType",
     "The SQL type {0} is not supported by defineParameterType. "
     + "Supported types: VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY."},
+{"R_defineParameterTypeTypeMismatch",
+    "The setter produced a {0} type but defineParameterType declared a {1} type. "
+    + "The setter must use a type in the same family as the declared type."},
 ```
 
 ### 8.5 `cloneForBatch()` in `Parameter.java`
@@ -408,6 +434,7 @@ type declaration:
 
 ```java
 clonedParam.defineParameterTypeCalled = defineParameterTypeCalled;
+clonedParam.defineParameterTypeSqlType = defineParameterTypeSqlType;
 clonedParam.valueLength              = valueLength;
 clonedParam.userProvidesPrecision    = userProvidesPrecision;
 ```
@@ -424,12 +451,32 @@ else  →  conservative default (varchar(8000) etc.)
 
 For supported bounded variable-length types, the hint is validated during parameter type
 resolution in `Parameter.GetTypeDefinitionOp.getApplicationSpecifiedLengthHint(...)`. A
-non-positive hint (`<= 0`) throws `R_invalidParameterLength` at execution/type-resolution
-time rather than at the initial `defineParameterType()` call site.
+non-positive hint (`<= 0`) throws `R_invalidParameterLength` eagerly at the
+`defineParameterType()` call site. For the `setObject(..., scaleOrLength)` path, non-positive
+hints are validated at execution time since the value isn't known until then.
 ```
 
 No AE behaviour changes. The hint is silently ignored when AE is active, which is correct:
 AE requires exact type information that must be derived from the actual value.
+
+### 8.7 Type family enforcement
+
+The `defineParameterTypeSqlType` field stores the declared `java.sql.Types` value. At
+execution time, `getApplicationSpecifiedLengthHint()` calls `validateDeclaredTypeFamily()`
+which checks that the setter's JDBC type is in the same family as the declared type:
+
+- Character family: `CHAR`, `VARCHAR`, `NCHAR`, `NVARCHAR`
+- Binary family: `BINARY`, `VARBINARY`
+
+Cross-family usage (e.g. `defineParameterType(1, Types.VARCHAR, 50)` + `setBytes(...)`) throws:
+```
+R_defineParameterTypeTypeMismatch:
+"The setter produced a binary type but defineParameterType declared a character type.
+The setter must use a type in the same family as the declared type."
+```
+
+Same-family combinations are always allowed (e.g. VARCHAR declared + setNString → NVARCHAR
+is valid because both are in the character family).
 
 ---
 
@@ -485,10 +532,10 @@ then verifies the TDS type definition on the wire using reflection to invoke `Pa
 - **String type definitions**: 48 parameterized cases (SSPAU=true and SSPAU=false)
 - **Binary type definitions**: 12 parameterized cases
 - **NULL/empty values**: 18 parameterized cases
-- **Error handling + validation**: 22 cases
+- **Error handling + validation**: 22 cases + 6 type family mismatch tests
 - **Batch execution**: 12 parameterized cases
 - **Lifecycle/isolation**: 3 tests
-- **Total**: ~115 test cases
+- **Total**: ~121 test cases
 
 See **[README.md](README.md)** for test reference links.
 

@@ -119,12 +119,19 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      * execution plans, which is especially
      * beneficial for large batch operations.
      *
-     * Important: The {@code sqlType} argument is used only for validation (to
-     * ensure the
-     * type is one of the supported character or binary families). It is not
-     * persisted or enforced at
-     * execution time. The actual wire type is determined by the setter method
-     * invoked on the parameter
+     * Important: The {@code sqlType} argument identifies the intended type
+     * family (character or binary) and is used for two purposes:
+     * (1) Validation that the type is one of the supported character or binary
+     * types.
+     * (2) Type family enforcement at execution time — the setter method invoked
+     * on the parameter must produce a type in the same family as the declared
+     * {@code sqlType}. For example, declaring {@code Types.VARCHAR} then calling
+     * {@code setBytes()} (binary family) will fail with
+     * {@code R_defineParameterTypeTypeMismatch}. The character family includes
+     * VARCHAR, CHAR, NVARCHAR, and NCHAR; the binary family includes VARBINARY
+     * and BINARY.
+     * The actual wire type (e.g. {@code nvarchar} vs {@code varchar}) is still
+     * determined by the setter method
      * (e.g. {@code setString} → NVARCHAR when
      * {@code sendStringParametersAsUnicode=true},
      * {@code setNString} → NVARCHAR, {@code setBytes} → VARBINARY). Only the

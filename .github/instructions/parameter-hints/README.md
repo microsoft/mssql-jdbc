@@ -126,9 +126,28 @@ When SSPAU (`sendStringParametersAsUnicode`) is `true` (default), VARCHAR/CHAR h
 
 Both APIs validate constraints and reject violations:
 
-- **Non-positive length**: Rejected with error `R_invalidParameterLength`
+- **Non-positive length via `defineParameterType`**: Rejected eagerly at call time with error `R_invalidParameterLength`
+- **Non-positive length via `setObject`**: Rejected at execution time with error `R_invalidParameterLength`
 - **Unsupported JDBC type**: Rejected with error `R_unsupportedTypeForDefineParamType`
+- **Type family mismatch**: If `defineParameterType` declares a character type but the setter produces a binary type (or vice versa), execution fails with `R_defineParameterTypeTypeMismatch`
 - **Value exceeds declared length**: Execution fails with error `R_parameterTypeValueLengthExceedsHint` (prevents silent data corruption)
+
+### Breaking Behavioral Change: `setObject(..., scaleOrLength)` Enforcement
+
+`setObject(parameterIndex, x, targetSqlType, scaleOrLength)` now enforces `scaleOrLength`
+as a maximum length constraint for character and binary target types (VARCHAR, CHAR, NVARCHAR,
+NVARCH, VARBINARY, BINARY). Previously, the JDBC 4.3 specification defined `scaleOrLength`
+only for DECIMAL/NUMERIC (as scale) and for InputStream/Reader (as stream length), so it was
+ignored for string and binary types.
+
+With this change, if the actual value length exceeds the specified `scaleOrLength`, execution
+will fail with `R_parameterTypeValueLengthExceedsHint`. Applications that pass arbitrary or
+undersized `scaleOrLength` values to `setObject` for string/binary types must either:
+- Increase the value to accommodate their largest payload, or
+- Use a two-argument `setObject` overload that omits the length constraint
+
+This applies equally to the named-parameter callable statement variants
+(`setObject(String, Object, int, int)`).
 
 ## Batch Workflows
 

@@ -4,6 +4,15 @@
 
 The `setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)` JDBC method accepts a `scaleOrLength` parameter. Although the JDBC 4.3 specification states this value is ignored for most types, mssql-jdbc extends this behavior for bounded variable-length types (VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY) to provide an optional length hint on a per-call basis.
 
+**Breaking Behavioral Change:** This is a breaking change from prior driver versions where
+`scaleOrLength` was silently ignored for string and binary types. With this change,
+`scaleOrLength` is now enforced as a maximum length constraint — if the actual value length
+exceeds the specified `scaleOrLength`, execution will fail with
+`R_parameterTypeValueLengthExceedsHint`. Applications that previously passed arbitrary or
+undersized `scaleOrLength` values for string/binary types must either increase the value to
+accommodate their largest payload or use a two-argument `setObject` overload that omits the
+length constraint.
+
 ## See Also
 
 This document focuses specifically on the `setObject(..., scaleOrLength)` behavior. For a broader overview of parameter length hints and the precedence rule between this API and `defineParameterType()`, see **[README.md](README.md)**.
@@ -170,11 +179,14 @@ For more details, see **[README.md](README.md#precedence-rule-defineparametertyp
 ### Non-Positive Length
 
 Passing a non-positive `scaleOrLength` (`<= 0`) for a supported bounded variable-length type
-is rejected with `R_invalidParameterLength` during parameter type resolution.
+is rejected with `R_invalidParameterLength` during parameter type resolution at execution time.
+(Note: for `defineParameterType()`, non-positive values are rejected eagerly at call time.)
 
 ### Value Exceeds Declared Length
 
-If a value exceeds the declared length, execution fails with an error to prevent silent data truncation:
+If a value exceeds the declared length, execution fails with an error to prevent silent data truncation.
+This is a **breaking behavioral change** from prior versions where `scaleOrLength` was ignored
+for string/binary types:
 
 ```java
 ps.setObject(1, "this_is_a_very_long_value", Types.VARCHAR, 5);
