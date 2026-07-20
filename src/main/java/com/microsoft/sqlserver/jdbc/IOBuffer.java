@@ -7282,6 +7282,21 @@ final class TDSReader implements Serializable {
         return valueBytes;
     }
 
+    /**
+     * Reads {@code valueLength} bytes and decodes them into a String using the given charset. Short values reuse the
+     * per-reader scratch buffer to avoid a per-cell byte[]; the buffer is only read by the String constructor, so it
+     * does not escape.
+     */
+    final String readStringFromBytes(int valueLength, Charset charset) throws SQLServerException {
+        if (valueLength <= valueBytes.length) {
+            readBytes(valueBytes, 0, valueLength);
+            return new String(valueBytes, 0, valueLength, charset);
+        }
+        byte[] bytes = new byte[valueLength];
+        readBytes(bytes, 0, valueLength);
+        return new String(bytes, 0, valueLength, charset);
+    }
+
     final Object readDecimal(int valueLength, TypeInfo typeInfo, JDBCType jdbcType,
             StreamType streamType) throws SQLServerException {
         if (valueLength > valueBytes.length) {
@@ -7297,7 +7312,7 @@ final class TDSReader implements Serializable {
     }
 
     final Object readMoney(int valueLength, JDBCType jdbcType, StreamType streamType) throws SQLServerException {
-        BigInteger bi;
+        long unscaledValue;
         switch (valueLength) {
             case 8: // money
             {
@@ -7311,7 +7326,7 @@ final class TDSReader implements Serializable {
                     return value;
                 }
 
-                bi = BigInteger.valueOf(((long) intBitsHi << 32) | (intBitsLo & 0xFFFFFFFFL));
+                unscaledValue = ((long) intBitsHi << 32) | (intBitsLo & 0xFFFFFFFFL);
                 break;
             }
 
@@ -7322,7 +7337,7 @@ final class TDSReader implements Serializable {
                     return value;
                 }
 
-                bi = BigInteger.valueOf(readInt());
+                unscaledValue = readInt();
                 break;
 
             default:
@@ -7330,7 +7345,9 @@ final class TDSReader implements Serializable {
                 return null;
         }
 
-        return DDC.convertBigDecimalToObject(new BigDecimal(bi, 4), jdbcType, streamType);
+        // money/smallmoney unscaled magnitude always fits in a long, so build the BigDecimal
+        // directly and skip the intermediate BigInteger.
+        return DDC.convertBigDecimalToObject(BigDecimal.valueOf(unscaledValue, 4), jdbcType, streamType);
     }
 
     final Object readReal(int valueLength, JDBCType jdbcType, StreamType streamType) throws SQLServerException {

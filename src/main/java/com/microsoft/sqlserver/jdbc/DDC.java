@@ -330,6 +330,22 @@ final class DDC {
             if (isNegative)
                 bi = bi.negate();
 
+            // Fast path: magnitude fits in a long, so emit its bytes directly instead of
+            // allocating an intermediate byte[] via BigInteger.toByteArray().
+            int bitLength = bi.bitLength();
+            if (bitLength < Long.SIZE) {
+                long mag = bi.longValue(); // non-negative and exact since bitLength < 64
+                int numMagBytes = bitLength / 8 + 1; // matches bi.toByteArray().length for non-negative bi
+                valueBytes = new byte[numMagBytes + 3];
+                int k = 0;
+                valueBytes[k++] = (byte) bigDecimalVal.scale();
+                valueBytes[k++] = (byte) (numMagBytes + 1); // data length + sign
+                valueBytes[k++] = (byte) (isNegative ? 0 : 1); // 1 = +ve, 0 = -ve
+                for (int i = 0; i < numMagBytes; i++)
+                    valueBytes[k++] = (byte) (mag >> (8 * i)); // little-endian magnitude
+                return valueBytes;
+            }
+
             byte[] unscaledBytes = bi.toByteArray();
 
             valueBytes = new byte[unscaledBytes.length + 3];
