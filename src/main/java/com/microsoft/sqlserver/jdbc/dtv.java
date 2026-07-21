@@ -3893,10 +3893,13 @@ final class ServerDTVImpl extends DTVImpl {
                     //   - !isAdaptive               : adaptive paths wrap the stream for user code
                     //   - jdbcType.isTextual()      : non-textual targets need convertStringToObject
                     //                                 to trim/parse the value
+                    //   - CLOB/NCLOB excluded        : although textual, getClob()/getNClob() must
+                    //                                 return a SQLServerClob/SQLServerNClob, not a String
                     if (valueLength > 0 && valueLength <= 4000
                             && StreamType.NONE == streamGetterArgs.streamType
                             && !streamGetterArgs.isAdaptive
-                            && jdbcType.isTextual()) {
+                            && jdbcType.isTextual()
+                            && JDBCType.CLOB != jdbcType && JDBCType.NCLOB != jdbcType) {
                         byte[] bytes = new byte[valueLength];
                         tdsReader.readBytes(bytes, 0, valueLength);
                         convertedValue = new String(bytes, typeInfo.getCharset());
