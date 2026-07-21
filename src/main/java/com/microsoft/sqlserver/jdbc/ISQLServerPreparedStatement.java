@@ -191,6 +191,7 @@ public interface ISQLServerPreparedStatement extends java.sql.PreparedStatement,
      *                            statement, or execution detects a value length
      *                            that exceeds {@code maxLength} for supported short
      *                            character/binary parameter types
+     * @since 13.5.1
      */
     void defineParameterType(int parameterIndex, int sqlType, int maxLength) throws SQLServerException;
 
