@@ -8,6 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,7 +18,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -191,5 +198,102 @@ public class EnclaveCacheUnitTest {
         ep.processSDPEv1("SELECT 1", "@p0 int", params, paramNames, conn, sqlStmt, prepStmt, rs1, enclaveCEKs);
 
         assertEquals(1, enclaveCEKs.size(), "expected one enclave CEK entry per call");
+    }
+
+    // ----------------------------------------------------------------
+    // Manual performance test (requires external Azure SQL + AKV setup)
+    // ----------------------------------------------------------------
+
+    // Fill in connection details for your test environment:
+    // - Azure SQL with VBS enclave enabled (DC-series or GP_S with enclave config)
+    // - AKV key for CMK, app registration with KeyVault Crypto User role
+    // - Table: dbo.TestEnclave (Id INT PK, SSN NVARCHAR(50) COLLATE Latin1_General_BIN2, Salary INT)
+    //   with SSN and Salary encrypted (Randomized, AEAD_AES_256_CBC_HMAC_SHA_256)
+    private static final String PERF_TEST_CONNECTION_URL = "jdbc:sqlserver://<your-server>.database.windows.net;"
+            + "database=<your-database>;"
+            + "user=<your-user>;"
+            + "password=<your-password>;"
+            + "columnEncryptionSetting=Enabled;"
+            + "enclaveAttestationProtocol=NONE;"
+            + "keyStoreAuthentication=KeyVaultClientSecret;"
+            + "keyStorePrincipalId=<your-app-client-id>;"
+            + "keyStoreSecret=<your-app-client-secret>;"
+            + "encrypt=true;"
+            + "trustServerCertificate=true;";
+
+    /**
+     * Performance test for enclave CEK cache fix (issue #2957).
+     *
+     * Validates that enclave queries reuse cached CEKs on subsequent executions instead of
+     * re-fetching from Azure Key Vault on every call. With the fix, Run 1+ should be ~5x
+     * faster than Run 0 (cache hit vs. cold AKV fetch).
+     *
+     * Expected results:
+     *   With fix:    Run 0 ~1500-2000ms (cold AKV fetch), Run 1+ ~400ms (cache hit)
+     *   Without fix: ALL runs ~2000ms (CEK refetched every time)
+     */
+    @Disabled("Manual performance test — requires external Azure SQL + AKV setup")
+    @Tag(Constants.reqExternalSetup)
+    @Test
+    public void testEnclaveCekCachePerformance() throws Exception {
+        System.out.println("Connecting...");
+        try (Connection conn = DriverManager.getConnection(PERF_TEST_CONNECTION_URL)) {
+            System.out.println("Connected! Server: " + conn.getMetaData().getDatabaseProductVersion());
+
+            // --- Insert test data ---
+            System.out.println("\n--- Inserting test data ---");
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "IF NOT EXISTS (SELECT 1 FROM dbo.TestEnclave WHERE Id=?) "
+                            + "INSERT INTO dbo.TestEnclave (Id, SSN, Salary) VALUES (?, ?, ?)")) {
+                int[][] data = {{1, 85000}, {2, 92000}, {3, 75000}};
+                String[] ssns = {"123-45-6789", "987-65-4321", "111-22-3333"};
+                for (int i = 0; i < 3; i++) {
+                    ps.setInt(1, data[i][0]);
+                    ps.setInt(2, data[i][0]);
+                    ps.setNString(3, ssns[i]);
+                    ps.setInt(4, data[i][1]);
+                    ps.executeUpdate();
+                }
+            }
+            System.out.println("Data inserted.");
+
+            // --- Enclave query: LIKE on randomized column (requires enclave) ---
+            System.out.println("\n--- Enclave query timing (LIKE on randomized SSN) ---");
+            System.out.println("  With fix: Run 0 ~1500-2000ms (cold AKV fetch), Run 1+ ~400ms (cache hit)");
+            System.out.println("  Without fix: ALL runs ~2000ms (CEK refetched every time)");
+            String sql = "SELECT * FROM dbo.TestEnclave WHERE SSN LIKE ?";
+
+            for (int i = 0; i < 10; i++) {
+                long start = System.nanoTime();
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setNString(1, "%45%");
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            // consume results
+                        }
+                    }
+                }
+                long ms = (System.nanoTime() - start) / 1_000_000;
+                System.out.println("  Run " + i + ": " + ms + " ms");
+            }
+
+            // --- Non-enclave query for baseline comparison ---
+            System.out.println("\n--- Non-enclave equality query timing (baseline) ---");
+            String eqSql = "SELECT * FROM dbo.TestEnclave WHERE Id = ?";
+            for (int i = 0; i < 5; i++) {
+                long start = System.nanoTime();
+                try (PreparedStatement ps = conn.prepareStatement(eqSql)) {
+                    ps.setInt(1, 1);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            // consume
+                        }
+                    }
+                }
+                long ms = (System.nanoTime() - start) / 1_000_000;
+                System.out.println("  Run " + i + ": " + ms + " ms");
+            }
+        }
+        System.out.println("\nDone.");
     }
 }
