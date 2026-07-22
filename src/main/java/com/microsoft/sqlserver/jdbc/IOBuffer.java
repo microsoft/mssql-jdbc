@@ -7283,9 +7283,12 @@ final class TDSReader implements Serializable {
     }
 
     /**
-     * Reads {@code valueLength} bytes and decodes them into a String using the given charset. Short values reuse the
-     * per-reader scratch buffer to avoid a per-cell byte[]; the buffer is only read by the String constructor, so it
-     * does not escape.
+     * Reads {@code valueLength} bytes and decodes them into a String using the given charset. Values that fit in the
+     * per-reader scratch buffer ({@code valueBytes}, 256 bytes) are decoded in place to avoid a per-cell byte[]; the
+     * buffer is only read by the String constructor, so it does not escape. Longer values (the caller admits up to
+     * 4000 bytes) allocate a right-sized byte[] instead. Either way the value bypasses the stream-wrapper path, so the
+     * larger allocation-free win (no SimpleInputStream / marks) still applies; only the byte[] reuse is limited to
+     * values &le; 256 bytes.
      */
     final String readStringFromBytes(int valueLength, Charset charset) throws SQLServerException {
         if (valueLength <= valueBytes.length) {
