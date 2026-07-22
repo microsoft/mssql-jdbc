@@ -7,6 +7,8 @@ package com.microsoft.sqlserver.jdbc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.UUID;
@@ -99,6 +101,50 @@ public class UtilTest {
         Util.writeLong(valueToTest, buffer, 0);
         long newLong = Util.readLong(buffer, 0);
         assertEquals(valueToTest, newLong);
+    }
+
+    /**
+     * Verifies {@link DDC#convertBigDecimalToBytes} produces the same TDS bytes on its long fast path (magnitude fits
+     * in a long) as the reference {@link java.math.BigInteger}-based encoding, with explicit coverage of the
+     * zero-magnitude corner case (bitLength() == 0 must still emit a single zero magnitude byte).
+     */
+    @Test
+    public void testConvertBigDecimalToBytesFastPath() {
+        // Zero is the fragile corner case: it must encode as one zero magnitude byte, matching BigInteger.ZERO.
+        assertArrayEquals(referenceBigDecimalBytes(BigDecimal.ZERO),
+                DDC.convertBigDecimalToBytes(BigDecimal.ZERO, 0), "zero-magnitude encoding mismatch");
+
+        BigDecimal[] values = {new BigDecimal("0.00"), new BigDecimal("1"), new BigDecimal("-1"),
+                new BigDecimal("127"), new BigDecimal("128"), new BigDecimal("255"), new BigDecimal("256"),
+                new BigDecimal("-128"), new BigDecimal("123.4567"), new BigDecimal("-987654321.0001"),
+                BigDecimal.valueOf(Long.MAX_VALUE, 4), BigDecimal.valueOf(Long.MIN_VALUE, 4),
+                // A magnitude that does not fit in a long -> exercises the slow (BigInteger) path.
+                new BigDecimal(new BigInteger("123456789012345678901234567890"), 4)};
+
+        for (BigDecimal v : values) {
+            assertArrayEquals(referenceBigDecimalBytes(v), DDC.convertBigDecimalToBytes(v, v.scale()),
+                    "encoding mismatch for " + v);
+        }
+    }
+
+    /** Reference TDS decimal encoding using the straightforward BigInteger.toByteArray() path. */
+    private static byte[] referenceBigDecimalBytes(BigDecimal bigDecimalVal) {
+        boolean isNegative = bigDecimalVal.signum() < 0;
+        if (bigDecimalVal.scale() < 0)
+            bigDecimalVal = bigDecimalVal.setScale(0);
+        BigInteger bi = bigDecimalVal.unscaledValue();
+        if (isNegative)
+            bi = bi.negate();
+
+        byte[] unscaledBytes = bi.toByteArray();
+        byte[] valueBytes = new byte[unscaledBytes.length + 3];
+        int j = 0;
+        valueBytes[j++] = (byte) bigDecimalVal.scale();
+        valueBytes[j++] = (byte) (unscaledBytes.length + 1); // data length + sign
+        valueBytes[j++] = (byte) (isNegative ? 0 : 1); // 1 = +ve, 0 = -ve
+        for (int i = unscaledBytes.length - 1; i >= 0; i--)
+            valueBytes[j++] = unscaledBytes[i];
+        return valueBytes;
     }
 
 }
