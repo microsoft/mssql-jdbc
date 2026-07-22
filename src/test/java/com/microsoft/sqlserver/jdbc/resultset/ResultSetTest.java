@@ -2488,9 +2488,9 @@ public class ResultSetTest extends AbstractTest {
     /**
      * White-box guard tests for {@code ServerDTVImpl.reset()}.
      *
-     * {@code ServerDTVImpl} instances are pooled and reused across rows on the read hot path (see {@code DTV.clear()}
-     * / {@code DTV.setImpl()}). {@code reset()} must therefore zero every piece of wire-side state before an instance
-     * is returned to the pool; a field that is added but forgotten in {@code reset()} would leak stale state into the
+     * A single {@code ServerDTVImpl} instance is reused across rows on the read hot path (see {@code DTV.clear()}
+     * / {@code DTV.setImpl()}). {@code reset()} must therefore zero every piece of wire-side state before the instance
+     * is retained for reuse; a field that is added but forgotten in {@code reset()} would leak stale state into the
      * next row. These tests act as a tripwire so any new field forces {@code reset()} to be revisited.
      *
      * The driver types involved ({@code ServerDTVImpl}, {@code TDSReaderMark}, {@code SqlVariant}) are package-private
@@ -2537,7 +2537,7 @@ public class ResultSetTest extends AbstractTest {
          * Tripwire: if the set of mutable instance fields on {@code ServerDTVImpl} changes, this test fails until the
          * new field is (a) cleared in {@code ServerDTVImpl.reset()} and (b) added to {@code expectedResettableFields}.
          * This keeps {@code reset()} in sync with the class as it evolves, guarding against silent stale-state bleed
-         * across rows once instances are pooled.
+         * across rows once the instance is reused.
          */
         @Test
         void resetInventoryStaysInSync() throws Exception {
@@ -2545,7 +2545,7 @@ public class ResultSetTest extends AbstractTest {
             Set<String> actual = new TreeSet<>();
             // Walk the whole class hierarchy (ServerDTVImpl and its superclass DTVImpl) so a mutable per-row field
             // added to the superclass cannot silently bypass this tripwire. Any such field would still need to be
-            // cleared before an instance is pooled.
+            // cleared before the instance is reused.
             for (Class<?> c = implClass; c != null && c != Object.class; c = c.getSuperclass()) {
                 for (Field f : c.getDeclaredFields()) {
                     int mod = f.getModifiers();
@@ -2561,7 +2561,7 @@ public class ResultSetTest extends AbstractTest {
             assertEquals(new TreeSet<>(expectedResettableFields), actual,
                     "ServerDTVImpl (or its DTVImpl superclass) mutable instance fields changed. If you added a "
                             + "field, clear it in ServerDTVImpl.reset() and update expectedResettableFields in this "
-                            + "test so pooled instances cannot leak stale state.");
+                            + "test so the reused instance cannot leak stale state.");
         }
 
         private Object newInstance(Class<?> cls) throws Exception {
@@ -2813,8 +2813,8 @@ public class ResultSetTest extends AbstractTest {
     /**
      * End-to-end tests for the read hot-path optimization in {@code ServerDTVImpl} / {@code DTV} (see {@code dtv.java}):
      * the {@code getString()} fast-path that decodes small {@code CHAR/VARCHAR/NCHAR/NVARCHAR} values directly to a
-     * {@code String}, and the pooling/reuse of {@code ServerDTVImpl} across rows. Each test creates its own table so
-     * the scenarios are independent.
+     * {@code String}, and the reuse of a single {@code ServerDTVImpl} instance across rows. Each test creates its own
+     * table so the scenarios are independent.
      */
     @Nested
     class ReadHotPathTests {
@@ -2952,12 +2952,12 @@ public class ResultSetTest extends AbstractTest {
         }
 
         /**
-         * Null values must not bleed across pooled {@code ServerDTVImpl} instances. Rows alternate non-null / null /
-         * non-null so a pooled impl is reused across the null (NBCROW) boundary; asserts values and {@code wasNull()}
+         * Null values must not bleed across the reused {@code ServerDTVImpl} instance. Rows alternate non-null / null /
+         * non-null so the reused impl crosses the null (NBCROW) boundary; asserts values and {@code wasNull()}
          * per row.
          */
         @Test
-        public void testNullValueDoesNotBleedAcrossPooledRows() throws SQLException {
+        public void testNullValueDoesNotBleedAcrossReusedInstance() throws SQLException {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
                 TestUtils.dropTableIfExists(hotPathTable, stmt);
                 stmt.execute("CREATE TABLE " + hotPathTable
@@ -2993,13 +2993,13 @@ public class ResultSetTest extends AbstractTest {
         }
 
         /**
-         * The updatable-cursor {@code setImpl} swap (ServerDTVImpl {@literal ->} AppDTVImpl) must pool the outgoing impl
-         * without corrupting later reads. Updates a row, advances, and requeries to confirm both the updated and
-         * untouched rows read back correctly.
+         * The updatable-cursor {@code setImpl} swap (ServerDTVImpl {@literal ->} AppDTVImpl) must retain the outgoing
+         * impl for reuse without corrupting later reads. Updates a row, advances, and requeries to confirm both the
+         * updated and untouched rows read back correctly.
          */
         @Test
         @Tag(Constants.xAzureSQLDW)
-        public void testUpdatableCursorImplSwapPooling() throws SQLException {
+        public void testUpdatableCursorImplSwapReuse() throws SQLException {
             try (Connection conn = getConnection();
                     Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
                             ResultSet.CONCUR_UPDATABLE)) {
@@ -3017,9 +3017,9 @@ public class ResultSetTest extends AbstractTest {
                     rs.updateInt(3, 99);
                     rs.updateRow();
 
-                    // Advancing reuses pooled impls for the next row's server values.
+                    // Advancing reuses the retained impl for the next row's server values.
                     assertTrue(rs.next());
-                    assertEquals("beta", rs.getString(2), "second row corrupted after impl swap/pooling");
+                    assertEquals("beta", rs.getString(2), "second row corrupted after impl swap/reuse");
                     assertEquals(20, rs.getInt(3));
                 }
 
@@ -3039,16 +3039,16 @@ public class ResultSetTest extends AbstractTest {
         /**
          * A partially-read adaptive stream obtained on one row must not corrupt the next row after {@code next()}, and
          * a LATE {@code close()} of that retained stream, issued only after the row's {@code ServerDTVImpl} has been
-         * pooled and reused, must be a harmless no-op.
+         * reset and reused, must be a harmless no-op.
          *
          * <p>
-         * This is the core safety property of {@code ServerDTVImpl} pooling. An adaptive {@code SimpleInputStream} /
+         * This is the core safety property of {@code ServerDTVImpl} reuse. An adaptive {@code SimpleInputStream} /
          * {@code PLPInputStream} captures its owning {@code ServerDTVImpl} and, on {@code close()}, calls
          * {@code setPositionAfterStreamed()} which mutates that impl. Because the driver closes the active stream while
-         * moving off the column (which nulls the stream's back-reference to the impl) BEFORE {@code clear()} pools the
-         * impl, any later user-issued {@code close()} cannot reach the pooled instance. This test deliberately retains
-         * the stream across {@code next()} and closes it late to exercise exactly that ordering; the earlier version
-         * closed the stream before advancing and therefore never covered this path.
+         * moving off the column (which nulls the stream's back-reference to the impl) BEFORE {@code clear()} retains the
+         * impl for reuse, any later user-issued {@code close()} cannot reach the reused instance. This test deliberately
+         * retains the stream across {@code next()} and closes it late to exercise exactly that ordering; the earlier
+         * version closed the stream before advancing and therefore never covered this path.
          */
         @Test
         @Tag(Constants.xAzureSQLDW)
@@ -3083,7 +3083,7 @@ public class ResultSetTest extends AbstractTest {
 
                 // Obtain row 1's adaptive stream and partially read it, but DO NOT close it here. The driver
                 // captures the row-1 ServerDTVImpl inside this stream; we retain the reference across next() so
-                // the eventual close() lands after that impl has been pooled and reused for later rows.
+                // the eventual close() lands after that impl has been reset and reused for later rows.
                 InputStream s1 = rs.getBinaryStream(2);
                 byte[] buf = new byte[128];
                 int read = s1.read(buf);
@@ -3093,19 +3093,19 @@ public class ResultSetTest extends AbstractTest {
                 }
 
                 // Advance. The driver closes the still-open row-1 stream while moving off the column, nulling the
-                // stream's back-reference to the impl before that impl is pooled and reused for row 2.
+                // stream's back-reference to the impl before that impl is reset and reused for row 2.
                 assertTrue(rs.next());
                 assertEquals(2, rs.getInt(1));
                 assertArrayEquals("row 2 corrupted after advancing off a partially-read stream", row2,
                         rs.getBytes(2));
 
-                // Late close of the retained row-1 stream. If pooling introduced an aliasing bug this callback
-                // would mutate the pooled impl now backing later rows; it must be a harmless no-op. A second close
+                // Late close of the retained row-1 stream. If reuse introduced an aliasing bug this callback
+                // would mutate the reused impl now backing later rows; it must be a harmless no-op. A second close
                 // must be equally safe (idempotent).
                 s1.close();
                 s1.close();
 
-                // The pooled/reused impl must still be intact for the remaining rows.
+                // The reused impl must still be intact for the remaining rows.
                 assertTrue(rs.next());
                 assertEquals(3, rs.getInt(1));
                 assertArrayEquals("row 3 corrupted by a late stream close()", row3, rs.getBytes(2));
@@ -3114,10 +3114,10 @@ public class ResultSetTest extends AbstractTest {
         }
 
         /**
-         * Scrollable-cursor variant of the pooling-reuse safety check. With a {@code TYPE_SCROLL_INSENSITIVE} cursor,
-         * obtains and partially reads a stream on row 1, scrolls forward (pooling/reusing the impl), then scrolls back
+         * Scrollable-cursor variant of the instance-reuse safety check. With a {@code TYPE_SCROLL_INSENSITIVE} cursor,
+         * obtains and partially reads a stream on row 1, scrolls forward (resetting/reusing the impl), then scrolls back
          * to row 1 and re-reads the full value. The revisited row must decode byte-for-byte identically, proving the
-         * pooled impl reuse does not corrupt values that are re-read after cursor movement.
+         * reused impl does not corrupt values that are re-read after cursor movement.
          */
         @Test
         @Tag(Constants.xAzureSQLDW)

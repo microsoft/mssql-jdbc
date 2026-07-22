@@ -134,13 +134,13 @@ final class DTV {
     private DTVImpl impl;
 
     /**
-     * Single-slot cache holding this column's {@link ServerDTVImpl}. Because there is one {@link DTV} per column, this
+     * Single reusable {@link ServerDTVImpl} instance for this column. Because there is one {@link DTV} per column, this
      * instance is created once per column and reused to fetch every row's value for that column, avoiding a fresh
      * allocation per row on the ResultSet hot path. {@link #clear()} still resets {@link #impl} to {@code null},
      * preserving the existing initialization and null-state semantics. {@link AppDTVImpl} is excluded because its
      * update-path lifecycle differs from {@link ServerDTVImpl}.
      */
-    private ServerDTVImpl pooledServerImpl;
+    private ServerDTVImpl reusableServerImpl;
 
     CryptoMetadata cryptoMeta = null;
     JDBCType jdbcTypeSetByUser = null;
@@ -166,24 +166,24 @@ final class DTV {
         impl.setValue(value, javaType);
     }
 
-    /** Returns the pooled {@link ServerDTVImpl} (already reset) or a fresh instance. */
+    /** Returns the reusable {@link ServerDTVImpl} (already reset) or a fresh instance if none is retained. */
     private ServerDTVImpl acquireServerImpl() {
-        ServerDTVImpl s = pooledServerImpl;
+        ServerDTVImpl s = reusableServerImpl;
         if (null != s) {
-            pooledServerImpl = null;
+            reusableServerImpl = null;
             return s;
         }
         return new ServerDTVImpl();
     }
 
     final void clear() {
-        // Pool the outgoing ServerDTVImpl for reuse on the next read, so we
-        // avoid a fresh allocation per column per row. AppDTVImpl is not pooled
+        // Retain the outgoing ServerDTVImpl for reuse on the next read, so we
+        // avoid a fresh allocation per column per row. AppDTVImpl is not retained
         // (rare update path; would complicate the AppDTV <-> ServerDTV swap).
         if (impl instanceof ServerDTVImpl) {
             ServerDTVImpl s = (ServerDTVImpl) impl;
             s.reset();
-            pooledServerImpl = s;
+            reusableServerImpl = s;
         }
         impl = null;
     }
@@ -297,12 +297,12 @@ final class DTV {
      * Called by DTV implementation instances to change to a different DTV implementation.
      */
     void setImpl(DTVImpl impl) {
-        // Preserve an outgoing ServerDTVImpl for reuse when replacing the
+        // Retain an outgoing ServerDTVImpl for reuse when replacing the
         // current implementation, avoiding a fresh allocation on the next read.
         if (this.impl instanceof ServerDTVImpl && this.impl != impl) {
             ServerDTVImpl s = (ServerDTVImpl) this.impl;
             s.reset();
-            pooledServerImpl = s;
+            reusableServerImpl = s;
         }
         this.impl = impl;
     }
