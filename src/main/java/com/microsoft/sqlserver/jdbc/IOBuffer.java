@@ -982,13 +982,33 @@ final class TDSChannel implements Serializable {
             ensureSSLPayload();
 
             try {
-                tdsReader.readBytes(b, offset, maxBytes);
+                // Honor the InputStream contract: read UP TO maxBytes, returning the number of
+                // bytes actually read. Previously this blocked until exactly maxBytes were read,
+                // which deadlocks with SSL providers (e.g. Conscrypt on Android) that issue a
+                // single large read for the whole record: the server sends its handshake flight
+                // in fewer bytes and then waits for the client's response, while the driver waits
+                // for more bytes that never come. SunJSSE happened to avoid this by reading in
+                // exact TLS-record-sized chunks.
+                //
+                // ensureSSLPayload() only guarantees a packet was read, not that it carried any
+                // payload. Guard against a zero-length payload packet so we never return 0 for a
+                // non-zero request, which would violate the InputStream.read contract and can make
+                // SSL engines busy-spin. Reading the next packet is bounded: readPacket() blocks
+                // for server data and terminates on premature EOF, so this cannot spin.
+                while (maxBytes > 0 && 0 == tdsReader.available())
+                    ensureSSLPayload();
+
+                int bytesToRead = Math.min(maxBytes, tdsReader.available());
+                if (bytesToRead < maxBytes && logger.isLoggable(Level.FINEST))
+                    logger.finest(logContext + " Returning " + bytesToRead
+                            + " buffered bytes reported by tdsReader.available() instead of the " + maxBytes
+                            + " requested to avoid blocking");
+                tdsReader.readBytes(b, offset, bytesToRead);
+                return bytesToRead;
             } catch (SQLServerException e) {
                 logger.finer(logContext + " Reading bytes threw exception:" + e.getMessage());
                 throw new IOException(e.getMessage(), e);
             }
-
-            return maxBytes;
         }
     }
 
@@ -1026,8 +1046,15 @@ final class TDSChannel implements Serializable {
         }
 
         void endMessage() throws SQLServerException {
-            // We should only be asked to end the message if we have started one
-            assert messageStarted;
+            // Nothing to flush if no handshake output has been buffered since the last flush.
+            // With the "read up to maxBytes" behavior in SSLHandshakeInputStream.readInternal, the
+            // input stream may ask us to ensure payload again while reading a handshake response
+            // that spans multiple TDS packets. At that point no new output has been written, so
+            // there is nothing to end. (Previously this method asserted messageStarted, which
+            // failed for multi-packet handshake responses, e.g. large server certificate chains.)
+            if (!messageStarted) {
+                return;
+            }
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(logContext + " Finishing TDS message");
