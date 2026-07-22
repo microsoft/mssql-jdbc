@@ -134,12 +134,12 @@ final class DTV {
     private DTVImpl impl;
 
     /**
-    * Single-slot cache for reusing a {@link ServerDTVImpl} across row reads,
-    * avoiding repeated allocations on the ResultSet hot path. {@link #clear()}
-    * still resets {@link #impl} to {@code null}, preserving the existing
-    * initialization and null-state semantics. {@link AppDTVImpl} is excluded
-    * because its update-path lifecycle differs from {@link ServerDTVImpl}.
-    */
+     * Single-slot cache holding this column's {@link ServerDTVImpl}. Because there is one {@link DTV} per column, this
+     * instance is created once per column and reused to fetch every row's value for that column, avoiding a fresh
+     * allocation per row on the ResultSet hot path. {@link #clear()} still resets {@link #impl} to {@code null},
+     * preserving the existing initialization and null-state semantics. {@link AppDTVImpl} is excluded because its
+     * update-path lifecycle differs from {@link ServerDTVImpl}.
+     */
     private ServerDTVImpl pooledServerImpl;
 
     CryptoMetadata cryptoMeta = null;
