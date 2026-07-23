@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Added
 
+- **Add SQL Server Query Notifications Support** [#2910](https://github.com/microsoft/mssql-jdbc/issues/2910)
+**What was added**: Added Query Notification request and statement APIs, TDS header support for SQL batch and RPC requests, a background Service Broker listener with callback dispatch and reconnection, secure notification parsing, and explicit queue/service lifecycle helpers.
+**Who benefits**: Applications using Service Broker Query Notifications for cache invalidation and change detection without polling.
+**Impact**: Enables applications to register and consume one-time Query Notification subscriptions, with application-controlled Service Broker object ownership and callback execution.
+
 - **Add Enhanced Routing Support for Hyperscale Reader Endpoints** [#2935](https://github.com/microsoft/mssql-jdbc/pull/2935)
 **What was added**: Implemented TDS FEATUREEXT 0x0F negotiation and ENVCHANGE 0x21 parsing to support Hyperscale reader endpoints that load balance connections across named replicas, including routed database name propagation in Login7.
 **Who benefits**: Applications connecting to Azure SQL Hyperscale databases using reader endpoints for read scale-out.
