@@ -82,6 +82,34 @@ class SQLServerMSAL4JUtils {
 
     private static final Semaphore sem = new Semaphore(1);
 
+    // Fixed-size pool of semaphores for the ActiveDirectoryServicePrincipal flow.
+    // Instead of one Semaphore per distinct credential (an unbounded map that never evicts),
+    // a bounded pool of SEM_POOL_SIZE semaphores is allocated once. Each credential is mapped
+    // deterministically onto exactly one slot via its hashedSecret, so callers for the SAME
+    // principal still serialise on the same semaphore, while the total number of semaphores can
+    // never exceed SEM_POOL_SIZE. Distinct principals may occasionally share a slot (hash
+    // collision); that only causes a little extra serialisation and never an incorrect token,
+    // because correctness comes from the hashedSecret-keyed TOKEN_CACHE_MAP.
+    // Package-private (not private) so SQLServerMSAL4JUtilsTest can verify the slot mapping.
+    static final int SEM_POOL_SIZE = 10;
+    private static final Semaphore[] SEM_POOL = new Semaphore[SEM_POOL_SIZE];
+    static {
+        for (int i = 0; i < SEM_POOL_SIZE; i++) {
+            SEM_POOL[i] = new Semaphore(1);
+        }
+    }
+
+    // Deterministically map a credential (identified by hashedSecret) to one pool slot.
+    // The sign bit is masked off before the modulo so the index is always in 0 .. SEM_POOL_SIZE-1.
+    // Package-private (not private) so the deterministic mapping can be unit-tested in isolation.
+    static int poolIndexForHashedSecret(String hashedSecret) {
+        return (hashedSecret.hashCode() & 0x7fffffff) % SEM_POOL_SIZE;
+    }
+
+    private static Semaphore semaphoreForHashedSecret(String hashedSecret) {
+        return SEM_POOL[poolIndexForHashedSecret(hashedSecret)];
+    }
+
     static SqlAuthenticationToken getSqlFedAuthToken(SqlFedAuthInfo fedAuthInfo, String user, String password,
             String authenticationString, int millisecondsRemaining) throws SQLServerException {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -167,21 +195,28 @@ class SQLServerMSAL4JUtils {
                                                                     : fedAuthInfo.spn + defaultScopeSuffix;
         Set<String> scopes = new HashSet<>();
         scopes.add(scope);
-        
+
         boolean isSemAcquired = false;
+        Semaphore spSem = null;
         try {
+            // The hashedSecret identifies this exact credential; it keys both the per-service-principal
+            // semaphore and the TOKEN_CACHE_MAP entry, so the gate partition matches the cache partition.
+            String hashedSecret = getHashedSecret(
+                    new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
+
             //
-            //Just try to acquire the semaphore and if can't then proceed to attempt to get the token.
+            //Just try to acquire the pooled semaphore and if can't then proceed to attempt to get the token.
             //The purpose is to optimize the token acquisition process, the first caller succeeding does caching 
             //which is then leveraged by subsequent threads. However, if the first thread takes considerable time, 
             //then we want the others to also go and try after waiting for a while.
             //If we were to let say 30 threads try in parallel, they would all miss the cache and hit the AAD auth endpoints 
             //to get their tokens at the same time, stressing the auth endpoint.
+            //Unlike the global gate, this only serialises callers whose hashedSecret maps to the same
+            //pool slot, so unrelated principals almost never block one another.
             //
-            isSemAcquired = sem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
+            spSem = semaphoreForHashedSecret(hashedSecret);
+            isSemAcquired = spSem.tryAcquire(Math.min(millisecondsRemaining, TOKEN_SEM_WAIT_DURATION_MS), TimeUnit.MILLISECONDS);
 
-            String hashedSecret = getHashedSecret(
-                    new String[] {fedAuthInfo.stsurl, aadPrincipalID, aadPrincipalSecret});
             PersistentTokenCacheAccessAspect persistentTokenCacheAccessAspect = TOKEN_CACHE_MAP.getEntry(aadPrincipalID,
                     hashedSecret);
 
@@ -226,7 +261,7 @@ class SQLServerMSAL4JUtils {
             throw getCorrectedException(new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e), aadPrincipalID, authenticationString);
         } finally {
             if (isSemAcquired) {
-                sem.release();
+                spSem.release();
             }
             executorService.shutdown();
         }
