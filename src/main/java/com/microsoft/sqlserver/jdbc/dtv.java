@@ -3588,17 +3588,17 @@ final class ServerDTVImpl extends DTVImpl {
                 }
 
             case SMALLMONEY:
-                return DDC.convertMoneyToObject(new BigDecimal(BigInteger.valueOf(Util.readInt(decryptedValue, 4)), 4),
+                return DDC.convertMoneyToObject(BigDecimal.valueOf(Util.readInt(decryptedValue, 4), 4),
                         JDBCType.VARBINARY == jdbcType ? baseSSType.getJDBCType() : jdbcType, // use jdbc type from
                                                                                               // baseTypeInfo if using
                                                                                               // getObject()
                         streamGetterArgs.streamType, 4);
 
             case MONEY:
-                BigInteger bi = BigInteger.valueOf(((long) Util.readInt(decryptedValue, 0) << 32)
-                        | (Util.readInt(decryptedValue, 4) & 0xFFFFFFFFL));
+                long moneyUnscaled = ((long) Util.readInt(decryptedValue, 0) << 32)
+                        | (Util.readInt(decryptedValue, 4) & 0xFFFFFFFFL);
 
-                return DDC.convertMoneyToObject(new BigDecimal(bi, 4),
+                return DDC.convertMoneyToObject(BigDecimal.valueOf(moneyUnscaled, 4),
                         JDBCType.VARBINARY == jdbcType ? baseSSType.getJDBCType() : jdbcType, // use
                                                                                               // jdbc
                                                                                               // type
@@ -3833,9 +3833,26 @@ final class ServerDTVImpl extends DTVImpl {
                 // (CHAR/VARCHAR/TEXT/NCHAR/NVARCHAR/NTEXT/BINARY/VARBINARY/IMAGE) -> ANY jdbcType.
                 case CHAR:
                 case VARCHAR:
-                case TEXT:
                 case NCHAR:
                 case NVARCHAR:
+                {
+                    // Fast path: a small synchronous rs.getString() reads the bytes directly into a
+                    // String, bypassing the SimpleInputStream wrapper and its marks (~4 allocations/cell).
+                    // All guards are required for byte-identical semantics with the stream path:
+                    //   valueLength in (0, 4000] - skip zero-length and overly large values
+                    //   streamType == NONE       - stream getters need the actual InputStream
+                    //   !isAdaptive              - adaptive paths wrap the stream for user code
+                    //   jdbcType.isTextual()     - non-textual targets need convertStringToObject to trim/parse
+                    if (valueLength > 0 && valueLength <= 4000
+                            && StreamType.NONE == streamGetterArgs.streamType
+                            && !streamGetterArgs.isAdaptive
+                            && jdbcType.isTextual()) {
+                        convertedValue = tdsReader.readStringFromBytes(valueLength, typeInfo.getCharset());
+                        break;
+                    }
+                    // Fall through to the stream-based path for large/streaming/non-textual cases.
+                }
+                case TEXT:
                 case NTEXT:
                 case IMAGE:
                 case BINARY:

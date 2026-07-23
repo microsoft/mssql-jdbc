@@ -311,6 +311,20 @@ final class DDC {
         }
     }
 
+    /**
+     * Writes the 3-byte TDS decimal/numeric header (scale, data length including the sign byte, and sign) at the start
+     * of {@code out}. Shared by both encode paths in {@link #convertBigDecimalToBytes} so the header layout cannot
+     * drift between them.
+     *
+     * @return the offset just past the header (always 3)
+     */
+    private static int writeDecimalHeader(byte[] out, int scale, int magnitudeLength, boolean isNegative) {
+        out[0] = (byte) scale;
+        out[1] = (byte) (magnitudeLength + 1); // data length + sign
+        out[2] = (byte) (isNegative ? 0 : 1); // 1 = +ve, 0 = -ve
+        return 3;
+    }
+
     static final byte[] convertBigDecimalToBytes(BigDecimal bigDecimalVal, int scale) {
         byte[] valueBytes;
 
@@ -330,13 +344,25 @@ final class DDC {
             if (isNegative)
                 bi = bi.negate();
 
+            // Fast path: magnitude fits in a long, so emit its bytes directly instead of
+            // allocating an intermediate byte[] via BigInteger.toByteArray().
+            int bitLength = bi.bitLength();
+            if (bitLength < Long.SIZE) {
+                long mag = bi.longValue(); // non-negative and exact since bitLength < 64
+                // Zero magnitude is handled here: bitLength() == 0 -> numMagBytes == 1, emitting a single zero byte,
+                // which matches BigInteger.ZERO.toByteArray() == {0}. Keep the + 1 to preserve this.
+                int numMagBytes = bitLength / 8 + 1; // matches bi.toByteArray().length for non-negative bi
+                valueBytes = new byte[numMagBytes + 3];
+                int k = writeDecimalHeader(valueBytes, bigDecimalVal.scale(), numMagBytes, isNegative);
+                for (int i = 0; i < numMagBytes; i++)
+                    valueBytes[k++] = (byte) (mag >> (8 * i)); // little-endian magnitude
+                return valueBytes;
+            }
+
             byte[] unscaledBytes = bi.toByteArray();
 
             valueBytes = new byte[unscaledBytes.length + 3];
-            int j = 0;
-            valueBytes[j++] = (byte) bigDecimalVal.scale();
-            valueBytes[j++] = (byte) (unscaledBytes.length + 1); // data length + sign
-            valueBytes[j++] = (byte) (isNegative ? 0 : 1); // 1 = +ve, 0 = -ve
+            int j = writeDecimalHeader(valueBytes, bigDecimalVal.scale(), unscaledBytes.length, isNegative);
             for (int i = unscaledBytes.length - 1; i >= 0; i--)
                 valueBytes[j++] = unscaledBytes[i];
         }
