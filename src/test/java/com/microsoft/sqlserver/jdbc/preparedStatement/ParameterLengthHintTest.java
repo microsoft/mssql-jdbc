@@ -1296,6 +1296,123 @@ public class ParameterLengthHintTest extends AbstractTest {
     }
 
     // =========================================================================
+    // java.sql.PreparedStatement interface tests
+    // =========================================================================
+
+    @Nested
+    @DisplayName("setObject via java.sql.PreparedStatement interface")
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    class PreparedStatementInterfaceTests {
+
+        // Verify that setObject(int, Object, int, int) via the standard java.sql.PreparedStatement
+        // interface (without casting to SQLServerPreparedStatement) still produces the correct
+        // type definition and enforces the scaleOrLength constraint.
+
+        Stream<Arguments> interfaceSetObjectCases() {
+            return Stream.of(
+                    Arguments.of("hello", Types.VARCHAR, 50, "vcol", "nvarchar(50)",
+                            "PreparedStatement.setObject VARCHAR scaleOrLength=50"),
+                    Arguments.of("hello", Types.NVARCHAR, 50, "nvcol", "nvarchar(50)",
+                            "PreparedStatement.setObject NVARCHAR scaleOrLength=50"),
+                    Arguments.of("hello", Types.CHAR, 50, "vcol", "nvarchar(50)",
+                            "PreparedStatement.setObject CHAR scaleOrLength=50"),
+                    Arguments.of("hello", Types.NCHAR, 50, "nvcol", "nvarchar(50)",
+                            "PreparedStatement.setObject NCHAR scaleOrLength=50")
+            );
+        }
+
+        @ParameterizedTest(name = "{5}")
+        @MethodSource("interfaceSetObjectCases")
+        void testSetObjectViaInterfaceHonorsScaleOrLength(String value, int sqlType, int scaleOrLength,
+                String column, String expectedTypeDef, String description) throws Exception {
+            // Use java.sql.PreparedStatement reference — no cast to SQLServerPreparedStatement
+            try (PreparedStatement pstmt = connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
+
+                pstmt.setObject(1, value, sqlType, scaleOrLength);
+                pstmt.executeUpdate();
+
+                // Verify wire type definition via reflection (cast only for inspection)
+                assertEquals(expectedTypeDef, getTypeDefinition(pstmt, 1));
+            }
+            if ("nvcol".equals(column)) {
+                assertEquals(value, readLastNvarchar());
+            } else {
+                assertEquals(value, readLastVarchar());
+            }
+        }
+
+        @Test
+        @DisplayName("PreparedStatement.setObject binary scaleOrLength honored")
+        void testSetObjectBinaryViaInterface() throws Exception {
+            byte[] value = {0x01, 0x02, 0x03};
+            try (PreparedStatement pstmt = connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
+
+                pstmt.setObject(1, value, Types.VARBINARY, 50);
+                pstmt.executeUpdate();
+
+                assertEquals("varbinary(50)", getTypeDefinition(pstmt, 1));
+            }
+            assertArrayEquals(value, readLastVarbinary());
+        }
+
+        @Test
+        @DisplayName("PreparedStatement.setObject enforces scaleOrLength constraint")
+        void testSetObjectViaInterfaceRejectsOverLength() throws Exception {
+            // scaleOrLength=5, value="Engineering" (11 chars) — should fail at execution
+            try (PreparedStatement pstmt = connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.setObject(1, "Engineering", Types.VARCHAR, 5);
+                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
+                assertTrue(e.getMessage()
+                        .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
+                        "Unexpected error: " + e.getMessage());
+            }
+        }
+
+        @Test
+        @DisplayName("PreparedStatement.setObject binary enforces scaleOrLength constraint")
+        void testSetObjectBinaryViaInterfaceRejectsOverLength() throws Exception {
+            byte[] value = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
+            try (PreparedStatement pstmt = connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
+
+                pstmt.setObject(1, value, Types.VARBINARY, 3);
+                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
+                assertTrue(e.getMessage()
+                        .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
+                        "Unexpected error: " + e.getMessage());
+            }
+        }
+
+        @Test
+        @DisplayName("PreparedStatement.setObject batch via interface")
+        void testSetObjectBatchViaInterface() throws Exception {
+            int maxIdBefore = getMaxId();
+            try (PreparedStatement pstmt = connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.setObject(1, "row1", Types.VARCHAR, 50);
+                pstmt.addBatch();
+                pstmt.setObject(1, "row2", Types.VARCHAR, 50);
+                pstmt.addBatch();
+                pstmt.setObject(1, "row3", Types.VARCHAR, 50);
+                pstmt.addBatch();
+
+                int[] counts = pstmt.executeBatch();
+                assertEquals(3, counts.length);
+            }
+            assertEquals(3, countRowsSince(maxIdBefore));
+            List<String> stored = readVarcharsSince(maxIdBefore);
+            assertEquals("row1", stored.get(0));
+            assertEquals("row2", stored.get(1));
+            assertEquals("row3", stored.get(2));
+        }
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 
