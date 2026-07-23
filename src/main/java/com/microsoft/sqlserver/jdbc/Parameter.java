@@ -63,27 +63,15 @@ final class Parameter {
 
     private boolean forceEncryption = false;
 
-    // Set to true when defineParameterType() has been called for this parameter.
-    // When true, defineParameterTypeLengthHint holds the caller-supplied max-length hint
-    // and the type definition (e.g. varchar(N)) is built from that hint rather than the
-    // conservative driver default (e.g. varchar(8000) / nvarchar(4000) / varbinary(8000)).
-    // This is intentionally separate from valueLength/userProvidesPrecision, which are used
-    // by DECIMAL/NUMERIC precision logic and would misinterpret a character/binary length
-    // hint as numeric precision.
-    private boolean defineParameterTypeCalled = false;
-
-    // The java.sql.Types value passed to defineParameterType(), used to validate
-    // that the setter's JDBC type family (character vs binary) matches what was declared.
+    // The java.sql.Types value passed to defineParameterType(). Non-zero indicates
+    // defineParameterType() was called for this parameter. Used to validate that the
+    // setter's JDBC type family (character vs binary) matches what was declared.
     private int defineParameterTypeSqlType = 0;
 
     // The maxLength value passed to defineParameterType(). Stored separately from
     // valueLength so it cannot be misinterpreted as numeric precision by the
     // DECIMAL/NUMERIC type-definition logic (which checks userProvidesPrecision).
     private int defineParameterTypeLengthHint = 0;
-
-    void setDefineParameterTypeCalled(boolean value) {
-        this.defineParameterTypeCalled = value;
-    }
 
     void setDefineParameterTypeSqlType(int sqlType) {
         this.defineParameterTypeSqlType = sqlType;
@@ -303,7 +291,6 @@ final class Parameter {
         clonedParam.valueLength = valueLength;
         clonedParam.userProvidesPrecision = userProvidesPrecision;
         clonedParam.userProvidesScale = userProvidesScale;
-        clonedParam.defineParameterTypeCalled = defineParameterTypeCalled;
         clonedParam.defineParameterTypeSqlType = defineParameterTypeSqlType;
         clonedParam.defineParameterTypeLengthHint = defineParameterTypeLengthHint;
         return clonedParam;
@@ -472,7 +459,7 @@ final class Parameter {
         // must be in the same family. This catches mismatches early (e.g. setBytes after declaring VARCHAR)
         // and prevents the defineParameterTypeLengthHint from being misapplied to an incompatible type.
         // Check is done before SSPAU remapping since VARCHAR→NVARCHAR stays in the character family.
-        if (defineParameterTypeCalled) {
+        if (defineParameterTypeSqlType != 0) {
             validateSetterTypeFamily(jdbcType, con);
         }
 
@@ -564,7 +551,7 @@ final class Parameter {
             // 1) defineParameterType(maxLength) — stored in dedicated defineParameterTypeLengthHint field
             // 2) setObject(..., scaleOrLength)
             Integer lengthHint;
-            if (param.defineParameterTypeCalled) {
+            if (param.defineParameterTypeSqlType != 0) {
                 lengthHint = param.defineParameterTypeLengthHint;
             } else {
                 lengthHint = dtv.getScale();

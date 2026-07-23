@@ -330,16 +330,9 @@ Three dedicated fields are added to `Parameter`:
 
 ```java
 // Set to true when defineParameterType() has been called for this parameter.
-// When true, defineParameterTypeLengthHint holds the caller-supplied max-length hint
-// and the type definition (e.g. varchar(N)) is built from that hint rather than the
-// conservative driver default (e.g. varchar(8000) / nvarchar(4000) / varbinary(8000)).
-// This is intentionally separate from valueLength/userProvidesPrecision, which are used
-// by DECIMAL/NUMERIC precision logic and would misinterpret a character/binary length
-// hint as numeric precision.
-private boolean defineParameterTypeCalled = false;
-
-// The java.sql.Types value passed to defineParameterType(), used to validate
-// that the setter's JDBC type family (character vs binary) matches what was declared.
+// The java.sql.Types value passed to defineParameterType(). Non-zero indicates
+// defineParameterType() was called for this parameter. Used to validate that the
+// setter's JDBC type family (character vs binary) matches what was declared.
 private int defineParameterTypeSqlType = 0;
 
 // The maxLength value passed to defineParameterType(). Stored separately from
@@ -348,8 +341,7 @@ private int defineParameterTypeSqlType = 0;
 private int defineParameterTypeLengthHint = 0;
 ```
 
-`defineParameterType` calls `param.setDefineParameterTypeCalled(true)`,
-`param.setDefineParameterTypeSqlType(sqlType)`, and
+`defineParameterType` calls `param.setDefineParameterTypeSqlType(sqlType)` and
 `param.setDefineParameterTypeLengthHint(maxLength)`.
 
 The `sqlType` is stored on the parameter and used **at setter time** to enforce type family
@@ -375,7 +367,7 @@ branch as an `else if`:
 if (param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser)
         && !(null == param.getCryptoMetadata() && param.renewDefinition)) {
     // AE path — exact length from value; untouched
-} else if (param.defineParameterTypeCalled) {
+} else if (param.defineParameterTypeSqlType != 0) {
     // defineParameterType hint: declare the user-specified length directly.
     // Values exceeding maxLength are rejected before execution.
     int hint = param.defineParameterTypeLengthHint;
@@ -421,7 +413,6 @@ public void defineParameterType(int parameterIndex, int sqlType, int maxLength)
                     form.format(new Object[] {sqlType}), null, false);
     }
     Parameter param = setterGetParam(parameterIndex);
-    param.setDefineParameterTypeCalled(true);
     param.setDefineParameterTypeSqlType(sqlType);
     param.setDefineParameterTypeLengthHint(maxLength);
 }
@@ -442,23 +433,22 @@ public void defineParameterType(int parameterIndex, int sqlType, int maxLength)
 
 ### 8.5 `cloneForBatch()` in `Parameter.java`
 
-The flag and hint must survive batch cloning so every row in the batch uses the same
+The fields must survive batch cloning so every row in the batch uses the same
 type declaration:
 
 ```java
-clonedParam.defineParameterTypeCalled    = defineParameterTypeCalled;
 clonedParam.defineParameterTypeSqlType   = defineParameterTypeSqlType;
 clonedParam.defineParameterTypeLengthHint = defineParameterTypeLengthHint;
 ```
 
 ### 8.6 Interaction with AE (Always Encrypted)
 
-The `defineParameterTypeCalled` branch is placed in the `else if` of the AE check, so
+The `defineParameterTypeSqlType != 0` branch is placed in the `else if` of the AE check, so
 it is mutually exclusive with the AE path:
 
 ```
 if (AE active for param)  →  AE path (exact length from value; defines encrypted type)
-else if (defineParameterTypeCalled)  →  hint path
+else if (defineParameterTypeSqlType != 0)  →  hint path
 else  →  conservative default (varchar(8000) etc.)
 
 For supported bounded variable-length types, the hint is validated during parameter type
@@ -475,7 +465,7 @@ AE requires exact type information that must be derived from the actual value.
 
 The `defineParameterTypeSqlType` field stores the declared `java.sql.Types` value.
 Type family enforcement happens **at setter time**: `Parameter.validateSetterTypeFamily()` is
-called from `setValue()` when `defineParameterTypeCalled` is true. This catches mismatches
+called from `setValue()` when `defineParameterTypeSqlType != 0`. This catches mismatches
 immediately when the application calls `setString()`, `setBytes()`, etc. — before SSPAU
 remapping, since VARCHAR→NVARCHAR stays in the character family.
 

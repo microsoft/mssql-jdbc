@@ -253,7 +253,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         form.format(new Object[] {typeName}), null, false);
         }
         Parameter param = setterGetParam(parameterIndex);
-        param.setDefineParameterTypeCalled(true);
         param.setDefineParameterTypeSqlType(sqlType);
         param.setDefineParameterTypeLengthHint(maxLength);
     }

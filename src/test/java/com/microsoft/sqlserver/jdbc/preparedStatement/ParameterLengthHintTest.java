@@ -322,26 +322,27 @@ public class ParameterLengthHintTest extends AbstractTest {
     @TestInstance(TestInstance.Lifecycle.PER_CLASS)
     class BinaryTypeDefinitionTests {
 
+        private final byte[] THREE_BYTES = {0x01, 0x02, 0x03};
+        private final byte[] ONE_BYTE = {0x01};
+
         Stream<Arguments> binaryHintCases() {
 
             // value, sqlType, hintLength, expectedTypeDef, description
             // VARBINARY and BINARY hints are treated the same since both map to VARBINARY on wire.
             // VARBINARY max length is 8000, so hints >8000 promote to varbinary(max).
             // For hints smaller than actual value length, we still declare the hinted length on wire and let the server handle truncation errors as needed.
-            byte[] threeBytes = {0x01, 0x02, 0x03};
-            byte[] oneByte = {0x01};
             return Stream.of(
-                    Arguments.of(threeBytes, Types.VARBINARY, 3, "varbinary(3)", "VARBINARY hint equal to value length"),
-                    Arguments.of(threeBytes, Types.VARBINARY, 100, "varbinary(100)", "VARBINARY hint larger than value"),
-                    Arguments.of(oneByte, Types.VARBINARY, 1, "varbinary(1)", "VARBINARY minimum meaningful hint"),
-                    Arguments.of(threeBytes, Types.VARBINARY, 8000, "varbinary(8000)", "VARBINARY hint=8000 stays bounded"),
-                    Arguments.of(threeBytes, Types.VARBINARY, 8001, "varbinary(max)", "VARBINARY hint>8000 promotes to max"),
+                    Arguments.of(THREE_BYTES, Types.VARBINARY, 3, "varbinary(3)", "VARBINARY hint equal to value length"),
+                    Arguments.of(THREE_BYTES, Types.VARBINARY, 100, "varbinary(100)", "VARBINARY hint larger than value"),
+                    Arguments.of(ONE_BYTE, Types.VARBINARY, 1, "varbinary(1)", "VARBINARY minimum meaningful hint"),
+                    Arguments.of(THREE_BYTES, Types.VARBINARY, 8000, "varbinary(8000)", "VARBINARY hint=8000 stays bounded"),
+                    Arguments.of(THREE_BYTES, Types.VARBINARY, 8001, "varbinary(max)", "VARBINARY hint>8000 promotes to max"),
 
-                    Arguments.of(threeBytes, Types.BINARY, 3, "varbinary(3)", "BINARY hint equal to value length"),
-                    Arguments.of(threeBytes, Types.BINARY, 100, "varbinary(100)", "BINARY hint larger than value"),
-                    Arguments.of(oneByte, Types.BINARY, 1, "varbinary(1)", "BINARY minimum meaningful hint"),
-                    Arguments.of(threeBytes, Types.BINARY, 8000, "varbinary(8000)", "BINARY hint=8000 stays bounded"),
-                    Arguments.of(threeBytes, Types.BINARY, 8001, "varbinary(max)", "BINARY hint>8000 promotes to max")
+                    Arguments.of(THREE_BYTES, Types.BINARY, 3, "varbinary(3)", "BINARY hint equal to value length"),
+                    Arguments.of(THREE_BYTES, Types.BINARY, 100, "varbinary(100)", "BINARY hint larger than value"),
+                    Arguments.of(ONE_BYTE, Types.BINARY, 1, "varbinary(1)", "BINARY minimum meaningful hint"),
+                    Arguments.of(THREE_BYTES, Types.BINARY, 8000, "varbinary(8000)", "BINARY hint=8000 stays bounded"),
+                    Arguments.of(THREE_BYTES, Types.BINARY, 8001, "varbinary(max)", "BINARY hint>8000 promotes to max")
             );
         }
 
@@ -364,11 +365,10 @@ public class ParameterLengthHintTest extends AbstractTest {
 
         Stream<Arguments> setObjectBinaryLengthHintCases() {
             // setObject(..., scaleOrLength) path for binary families.
-            byte[] threeBytes = {0x01, 0x02, 0x03};
             return Stream.of(
-                    Arguments.of(threeBytes, Types.VARBINARY, 40, "varbinary(40)",
+                    Arguments.of(THREE_BYTES, Types.VARBINARY, 40, "varbinary(40)",
                             "setObject VARBINARY scaleOrLength honored"),
-                    Arguments.of(threeBytes, Types.BINARY, 40, "varbinary(40)",
+                    Arguments.of(THREE_BYTES, Types.BINARY, 40, "varbinary(40)",
                             "setObject BINARY scaleOrLength honored"));
         }
 
@@ -390,11 +390,10 @@ public class ParameterLengthHintTest extends AbstractTest {
 
         Stream<Arguments> definePrecedesSetObjectBinaryCases() {
             // Binary precedence counterpart: defineParameterType must win over setObject hints.
-            byte[] threeBytes = {0x01, 0x02, 0x03};
             return Stream.of(
-                    Arguments.of(threeBytes, Types.VARBINARY, "varbinary(5)",
+                    Arguments.of(THREE_BYTES, Types.VARBINARY, "varbinary(5)",
                             "define VARBINARY beats setObject length"),
-                    Arguments.of(threeBytes, Types.BINARY, "varbinary(5)",
+                    Arguments.of(THREE_BYTES, Types.BINARY, "varbinary(5)",
                             "define BINARY beats setObject length"));
         }
 
@@ -1292,6 +1291,56 @@ public class ParameterLengthHintTest extends AbstractTest {
                 assertEquals("vval", rs.getString(1));
                 assertEquals("nval", rs.getString(2));
             }
+        }
+
+        // Verify that defineParameterType persists across multiple executeBatch() cycles
+        // on the same PreparedStatement object (common pattern in long-lived statement reuse).
+        @Test
+        void testDefineParameterTypePersistsAcrossMultipleBatchExecutions() throws Exception {
+            int maxIdBefore = getMaxId();
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.defineParameterType(1, Types.VARCHAR, 50);
+
+                // First batch cycle
+                pstmt.setString(1, "batch1_row1");
+                pstmt.addBatch();
+                pstmt.setString(1, "batch1_row2");
+                pstmt.addBatch();
+                int[] counts1 = pstmt.executeBatch();
+                assertEquals(2, counts1.length);
+                assertEquals("nvarchar(50)", getTypeDefinition(pstmt, 1));
+
+                // Second batch cycle — same statement, no re-call of defineParameterType
+                pstmt.setString(1, "batch2_row1");
+                pstmt.addBatch();
+                pstmt.setString(1, "batch2_row2");
+                pstmt.addBatch();
+                pstmt.setString(1, "batch2_row3");
+                pstmt.addBatch();
+                int[] counts2 = pstmt.executeBatch();
+                assertEquals(3, counts2.length);
+                assertEquals("nvarchar(50)", getTypeDefinition(pstmt, 1));
+
+                // Third batch cycle — after clearParameters(), hint still active
+                pstmt.clearParameters();
+                pstmt.setString(1, "batch3_row1");
+                pstmt.addBatch();
+                int[] counts3 = pstmt.executeBatch();
+                assertEquals(1, counts3.length);
+                assertEquals("nvarchar(50)", getTypeDefinition(pstmt, 1));
+            }
+
+            // Verify all 6 rows were inserted with correct data
+            assertEquals(6, countRowsSince(maxIdBefore));
+            List<String> stored = readVarcharsSince(maxIdBefore);
+            assertEquals("batch1_row1", stored.get(0));
+            assertEquals("batch1_row2", stored.get(1));
+            assertEquals("batch2_row1", stored.get(2));
+            assertEquals("batch2_row2", stored.get(3));
+            assertEquals("batch2_row3", stored.get(4));
+            assertEquals("batch3_row1", stored.get(5));
         }
     }
 
