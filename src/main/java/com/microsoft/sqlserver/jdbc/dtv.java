@@ -134,11 +134,11 @@ final class DTV {
     private DTVImpl impl;
 
     /**
-     * Single reusable {@link ServerDTVImpl} instance for this column. Because there is one {@link DTV} per column, this
-     * instance is created once per column and reused to fetch every row's value for that column, avoiding a fresh
-     * allocation per row on the ResultSet hot path. {@link #clear()} still resets {@link #impl} to {@code null},
-     * preserving the existing initialization and null-state semantics. {@link AppDTVImpl} is excluded because its
-     * update-path lifecycle differs from {@link ServerDTVImpl}.
+     * A single ServerDTVImpl instance reused for this column. There is one DTV per column, so this instance is created
+     * once (lazily, on the first server read) and reused to fetch every subsequent row's value, avoiding a fresh
+     * allocation per row on the ResultSet hot path. It is reset in acquireServerImpl() before each reuse, so it is
+     * always handed out clean. During an active read, impl points at this same instance. AppDTVImpl is not kept here
+     * because its update-path lifecycle is different from ServerDTVImpl.
      */
     private ServerDTVImpl reusableServerImpl;
 
@@ -166,25 +166,23 @@ final class DTV {
         impl.setValue(value, javaType);
     }
 
-    /** Returns the reusable {@link ServerDTVImpl} (already reset) or a fresh instance if none is retained. */
+    /**
+     * Returns this column's reusable ServerDTVImpl, creating it on first use. The instance is reset here, at the single
+     * point of reuse, so it is always handed out clean regardless of the previous row's state.
+     */
     private ServerDTVImpl acquireServerImpl() {
         ServerDTVImpl s = reusableServerImpl;
         if (null != s) {
-            reusableServerImpl = null;
+            s.reset(); // clear the previous row's state before handing it out
             return s;
         }
-        return new ServerDTVImpl();
+        reusableServerImpl = new ServerDTVImpl();
+        return reusableServerImpl;
     }
 
     final void clear() {
-        // Retain the outgoing ServerDTVImpl for reuse on the next read, so we
-        // avoid a fresh allocation per column per row. AppDTVImpl is not retained
-        // (rare update path; would complicate the AppDTV <-> ServerDTV swap).
-        if (impl instanceof ServerDTVImpl) {
-            ServerDTVImpl s = (ServerDTVImpl) impl;
-            s.reset();
-            reusableServerImpl = s;
-        }
+        // Just clear the active impl reference so isInitialized() and the read-side null checks work as before. The
+        // per-column ServerDTVImpl stays in reusableServerImpl and is reset in acquireServerImpl() before the next row.
         impl = null;
     }
 
@@ -297,13 +295,8 @@ final class DTV {
      * Called by DTV implementation instances to change to a different DTV implementation.
      */
     void setImpl(DTVImpl impl) {
-        // Retain an outgoing ServerDTVImpl for reuse when replacing the
-        // current implementation, avoiding a fresh allocation on the next read.
-        if (this.impl instanceof ServerDTVImpl && this.impl != impl) {
-            ServerDTVImpl s = (ServerDTVImpl) this.impl;
-            s.reset();
-            reusableServerImpl = s;
-        }
+        // No need to save the outgoing ServerDTVImpl here: the per-column instance is already kept in
+        // reusableServerImpl (impl points at it during a server read), so it stays available for the next read.
         this.impl = impl;
     }
 
@@ -3355,10 +3348,9 @@ final class ServerDTVImpl extends DTVImpl {
     private SqlVariant internalVariant;
 
     /**
-     * Resets all wire-side state (length, mark, null indicator, SQL_VARIANT context)
-     * so this instance can be reused for the next row's value. Invoked by
-     * {@link DTV#clear()} on the per-row hot path to avoid allocating a fresh
-     * {@code ServerDTVImpl} for every column of every row.
+     * Resets all wire-side state (length, mark, null indicator, SQL_VARIANT context) so this instance can be reused
+     * for the next row's value. Called from DTV.acquireServerImpl() on the per-row hot path to avoid allocating a
+     * fresh ServerDTVImpl for every column of every row.
      */
     final void reset() {
         valueLength = 0;
