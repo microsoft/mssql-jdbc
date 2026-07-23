@@ -94,7 +94,22 @@ import mssql.googlecode.concurrentlinkedhashmap.EvictionListener;
  * SQLServerConnectionPoolProxy
  * 
  */
+
 public class SQLServerConnection implements ISQLServerConnection, java.io.Serializable {
+    
+ /**
+  * This enum is used to represent On and Off values for connection properties that support that. 
+  * It is used instead of a boolean to allow for a third "uninitialized" state, since some connection
+  *  properties have values that are determined
+  * after the connection is established and cannot be determined at connection initialization time 
+  * when the connection  properties are being parsed and set.    
+  */
+    
+    private OnOffOption setNoCount = OnOffOption.OFF;
+
+    final OnOffOption getSetNoCount() {
+        return setNoCount;
+    }
 
     /**
      * Always refresh SerialVersionUID when prompted
@@ -103,6 +118,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * A random netAddress for this process to send during LOGIN7
+     * 
      */
     private static final byte[] netAddress = getRandomNetAddress();
 
@@ -2680,7 +2696,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             if (propsIn != null) {
 
                 activeConnectionProperties = (Properties) propsIn.clone();
+                String sPropValueT = activeConnectionProperties.getProperty(
+                        SQLServerDriverStringProperty.SET_NOCOUNT.toString());
 
+                if (null == sPropValueT) {
+                    sPropValueT = SQLServerDriverStringProperty.SET_NOCOUNT.getDefaultValue();
+                }
+
+                setNoCount = OnOffOption.valueOfString(sPropValueT);
+                activeConnectionProperties.setProperty(
+                        SQLServerDriverStringProperty.SET_NOCOUNT.toString(),
+                        setNoCount.toString());
+                    
                 pooledConnectionParent = pooledConnection;
 
                 String trustStorePassword = activeConnectionProperties
@@ -5242,6 +5269,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             executeCommand(new ConnectionCommand(sql, logContext));
         }
     }
+    
+    /**
+     * Applies the SET NOCOUNT setting to the connection.
+     * 
+     */
+    
+    void applySetNoCount() throws SQLServerException {
+        connectionCommand("SET NOCOUNT " + setNoCount.toString(), "applySetNoCount");
+       }
+    
 
     /**
      * Build the syntax to initialize the connection at the database side.
