@@ -26,8 +26,8 @@ The `.github/instructions/` directory contains comprehensive guides:
 | [architecture.instructions.md](.github/instructions/architecture.instructions.md) | Project structure, package layout, layer architecture |
 | [patterns.instructions.md](.github/instructions/patterns.instructions.md) | Exception handling, logging, resource management, testing patterns |
 | [glossary.instructions.md](.github/instructions/glossary.instructions.md) | Terms, acronyms, authentication modes, data types |
-| [performance-metrics.instructions.md](.github/instructions/performance-metrics.instructions.md) | Performance instrumentation, connection and statement metrics |
-| [state-machine-testing.instructions.md](.github/instructions/state-machine-testing.instructions.md) | Model-based testing framework, seed-based reproducibility |
+| [performance-metrics.md](docs/performance-metrics.md) | Performance instrumentation, connection and statement metrics |
+| [state-machine-testing.md](docs/state-machine-testing.md) | Model-based testing framework, seed-based reproducibility |
 
 ## Workflow Prompts
 

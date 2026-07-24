@@ -77,7 +77,7 @@ Before writing code, produce a brief implementation plan covering:
   - Backward compatibility (existing behavior unchanged)
 - Tag tests requiring external resources with correct group annotations.
 - Do NOT hardcode connection strings — use test config utilities.
-- Consider state machine tests for complex stateful features (see `.github/instructions/state-machine-testing.instructions.md`).
+- Consider state machine tests for complex stateful features (see `docs/state-machine-testing.md`).
 
 ## 5. Add Documentation
 

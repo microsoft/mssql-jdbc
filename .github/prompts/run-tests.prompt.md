@@ -119,7 +119,7 @@ State machine tests use seed-based reproducibility. To replay a failure, find th
 mvn clean test -P<profile> -Dtest="TestClassName#testMethod" -DsmtSeed=<seed>
 ```
 
-See `.github/instructions/state-machine-testing.instructions.md` for details.
+See `docs/state-machine-testing.md` for details.
 
 ---
 

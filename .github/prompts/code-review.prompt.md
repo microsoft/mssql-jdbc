@@ -75,7 +75,7 @@ Check against `Coding_Guidelines.md` and `coding-best-practices.md`:
 - [ ] Tests that require SQL Server are tagged with appropriate JUnit groups
 - [ ] Tests excluded from default runs use correct group annotations (`xSQLv12`, `xSQLv15`, `reqExternalSetup`, `fedAuth`, `kerberos`, etc.)
 - [ ] No flaky patterns (timing-dependent, order-dependent, resource-dependent)
-- [ ] Consider state machine tests for complex state interactions (see `.github/instructions/state-machine-testing.instructions.md`)
+- [ ] Consider state machine tests for complex state interactions (see `docs/state-machine-testing.md`)
 
 ## 6. API Design Review (if public API changed)
 

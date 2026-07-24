@@ -694,18 +694,21 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * This function try to use sp_columns_170 first, fall back to sp_columns_100 if needed.
      * 
      * @param catalog
-     *        a catalog name; "" retrieves those without a catalog; null means that the catalog name should not be used to narrow
-     *        the search
+     *                a catalog name; "" retrieves those without a catalog; null
+     *                means that the catalog name should not be used to narrow
+     *                the search
      * @param schema
-     *        a schema name pattern; "" retrieves those without a schema; null means that the schema name should not be used to narrow
-     *        the search
+     *                a schema name pattern; "" retrieves those without a schema;
+     *                null means that the schema name should not be used to narrow
+     *                the search
      * @param table
-     *        a table name pattern
+     *                a table name pattern
      * @param col
-     *        a column name pattern
+     *                a column name pattern
      * @return ResultSet - each row is a column description
      * @throws SQLException
-    */
+     *                      if a database access error occurs
+     */
     @Override
     public java.sql.ResultSet getColumns(String catalog, String schema, String table, String col) throws SQLException {
 

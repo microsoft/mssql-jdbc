@@ -63,6 +63,95 @@ final class Parameter {
 
     private boolean forceEncryption = false;
 
+    // The java.sql.Types value passed to defineParameterType(). Non-zero indicates
+    // defineParameterType() was called for this parameter. Used to validate that the
+    // setter's JDBC type family (character vs binary) matches what was declared.
+    private int defineParameterTypeSqlType = 0;
+
+    // The maxLength value passed to defineParameterType(). Stored separately from
+    // valueLength so it cannot be misinterpreted as numeric precision by the
+    // DECIMAL/NUMERIC type-definition logic (which checks userProvidesPrecision).
+    private int defineParameterTypeLengthHint = 0;
+
+    void setDefineParameterTypeSqlType(int sqlType) {
+        this.defineParameterTypeSqlType = sqlType;
+    }
+
+    void setDefineParameterTypeLengthHint(int lengthHint) {
+        this.defineParameterTypeLengthHint = lengthHint;
+    }
+
+    /**
+     * Validates that the setter's JDBC type is in the same type family (character or binary)
+     * as the type declared via defineParameterType(). This prevents misuse where, for example,
+     * a parameter declared as VARCHAR(100) is then populated with setBytes (binary family).
+     *
+     * Types outside the character/binary families (e.g. INTEGER, DECIMAL) are allowed through
+     * without error — defineParameterType only constrains character/binary declarations.
+     */
+    private void validateSetterTypeFamily(JDBCType setterJdbcType,
+            SQLServerConnection con) throws SQLServerException {
+        // Determine declared family
+        boolean declaredIsCharacter;
+        boolean declaredIsBinary;
+        switch (defineParameterTypeSqlType) {
+            case java.sql.Types.VARCHAR:
+            case java.sql.Types.CHAR:
+            case java.sql.Types.NVARCHAR:
+            case java.sql.Types.NCHAR:
+                declaredIsCharacter = true;
+                declaredIsBinary = false;
+                break;
+            case java.sql.Types.VARBINARY:
+            case java.sql.Types.BINARY:
+                declaredIsCharacter = false;
+                declaredIsBinary = true;
+                break;
+            default:
+                return; // Not a constrained family
+        }
+
+        // Determine setter family
+        boolean setterIsCharacter;
+        boolean setterIsBinary;
+        switch (setterJdbcType) {
+            case CHAR:
+            case VARCHAR:
+            case NCHAR:
+            case NVARCHAR:
+            case LONGVARCHAR:
+            case LONGNVARCHAR:
+            case CLOB:
+            case NCLOB:
+                setterIsCharacter = true;
+                setterIsBinary = false;
+                break;
+            case BINARY:
+            case VARBINARY:
+            case LONGVARBINARY:
+            case BLOB:
+                setterIsCharacter = false;
+                setterIsBinary = true;
+                break;
+            default:
+                // Setter is neither character nor binary (e.g. setNull with INTEGER).
+                // Allow it — the mismatch will surface at execution time if inappropriate.
+                return;
+        }
+
+        if (declaredIsCharacter && setterIsBinary) {
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_defineParameterTypeTypeMismatch"));
+            Object[] msgArgs = {"binary", "character"};
+            SQLServerException.makeFromDriverError(con, this, form.format(msgArgs), null, false);
+        } else if (declaredIsBinary && setterIsCharacter) {
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_defineParameterTypeTypeMismatch"));
+            Object[] msgArgs = {"character", "binary"};
+            SQLServerException.makeFromDriverError(con, this, form.format(msgArgs), null, false);
+        }
+    }
+
     Parameter(boolean honorAE) {
         shouldHonorAEForParameter = honorAE;
     }
@@ -202,6 +291,8 @@ final class Parameter {
         clonedParam.valueLength = valueLength;
         clonedParam.userProvidesPrecision = userProvidesPrecision;
         clonedParam.userProvidesScale = userProvidesScale;
+        clonedParam.defineParameterTypeSqlType = defineParameterTypeSqlType;
+        clonedParam.defineParameterTypeLengthHint = defineParameterTypeLengthHint;
         return clonedParam;
     }
 
@@ -363,6 +454,15 @@ final class Parameter {
             }
         }
 
+        // Enforce defineParameterType type-family contract at setter time.
+        // If defineParameterType() declared a character or binary family, the setter's JDBC type
+        // must be in the same family. This catches mismatches early (e.g. setBytes after declaring VARCHAR)
+        // and prevents the defineParameterTypeLengthHint from being misapplied to an incompatible type.
+        // Check is done before SSPAU remapping since VARCHAR→NVARCHAR stays in the character family.
+        if (defineParameterTypeSqlType != 0) {
+            validateSetterTypeFamily(jdbcType, con);
+        }
+
         // sendStringParametersAsUnicode
         // If set to true, this connection property tells the driver to send textual parameters
         // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging
@@ -441,7 +541,94 @@ final class Parameter {
             this.con = con;
         }
 
-        private void setTypeDefinition(DTV dtv) {
+        private void throwInvalidParameterLength(int length) throws SQLServerException {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidParameterLength"));
+            SQLServerException.makeFromDriverError(con, param, form.format(new Object[] {length}), null, false);
+        }
+
+        private Integer getApplicationSpecifiedLengthHint(DTV dtv) throws SQLServerException {
+            // Precedence rule for short character/binary families:
+            // 1) defineParameterType(maxLength) — stored in dedicated defineParameterTypeLengthHint field
+            // 2) setObject(..., scaleOrLength)
+            Integer lengthHint;
+            if (param.defineParameterTypeSqlType != 0) {
+                lengthHint = param.defineParameterTypeLengthHint;
+            } else {
+                lengthHint = dtv.getScale();
+            }
+
+            if (null == lengthHint) {
+                return null;
+            }
+
+            switch (dtv.getJdbcType()) {
+                case CHAR:
+                case VARCHAR:
+                case NCHAR:
+                case NVARCHAR:
+                case BINARY:
+                case VARBINARY:
+                    if (lengthHint <= 0) {
+                        throwInvalidParameterLength(lengthHint);
+                    }
+                    return lengthHint;
+                default:
+                    return null;
+            }
+        }
+
+        private Integer getBoundedDeclaredLengthHint(JDBCType jdbcType, int hintLength) {
+            switch (jdbcType) {
+                case CHAR:
+                case VARCHAR:
+                    return (hintLength > DataTypes.SHORT_VARTYPE_MAX_BYTES) ? null : hintLength;
+                case NCHAR:
+                case NVARCHAR:
+                    return (hintLength > DataTypes.SHORT_VARTYPE_MAX_CHARS) ? null : hintLength;
+                case BINARY:
+                case VARBINARY:
+                    return (hintLength > DataTypes.SHORT_VARTYPE_MAX_BYTES) ? null : hintLength;
+                default:
+                    return null;
+            }
+        }
+
+        private void validateApplicationSpecifiedLength(DTV dtv, int applicationLengthHint)
+                throws SQLServerException {
+            if (null == dtv.getSetterValue()) {
+                return;
+            }
+
+            Integer boundedDeclaredLength = getBoundedDeclaredLengthHint(dtv.getJdbcType(), applicationLengthHint);
+            if (null == boundedDeclaredLength) {
+                return;
+            }
+
+            JavaType javaType = dtv.getJavaType();
+            if (JavaType.STRING != javaType && JavaType.BYTEARRAY != javaType) {
+                return;
+            }
+
+            int actualLength = Util.getValueLengthBaseOnJavaType(dtv.getSetterValue(), javaType, null, dtv.getScale(),
+                    dtv.getJdbcType());
+
+            if (actualLength > boundedDeclaredLength) {
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_parameterTypeValueLengthExceedsHint"));
+                Object[] msgArgs = {boundedDeclaredLength, actualLength};
+                SQLServerException.makeFromDriverError(con, param, form.format(msgArgs), null, false);
+            }
+        }
+
+        private void setTypeDefinition(DTV dtv) throws SQLServerException {
+            boolean aeActive = param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser)
+                    && !(null == param.getCryptoMetadata() && param.renewDefinition);
+
+            Integer applicationLengthHint = aeActive ? null : getApplicationSpecifiedLengthHint(dtv);
+            if (null != applicationLengthHint) {
+                validateApplicationSpecifiedLength(dtv, applicationLengthHint);
+            }
+
             switch (dtv.getJdbcType()) {
                 case TINYINT:
                     param.typeDefinition = SSType.TINYINT.toString();
@@ -621,6 +808,15 @@ final class Parameter {
                         if (JDBCType.LONGVARBINARY == jdbcTypeSetByUser) {
                             param.typeDefinition = VARBINARY_MAX;
                         }
+                    } else if (null != applicationLengthHint) {
+                        // Application-provided hint from defineParameterType() or setObject(..., scaleOrLength):
+                        // declare the requested length for VARBINARY/BINARY.
+                        int hint = applicationLengthHint;
+                        if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
+                            param.typeDefinition = VARBINARY_MAX;
+                        } else {
+                            param.typeDefinition = SSType.VARBINARY.toString() + "(" + hint + ")";
+                        }
                     } else
                         param.typeDefinition = VARBINARY_8K;
                     break;
@@ -775,6 +971,15 @@ final class Parameter {
                                 param.typeDefinition = VARCHAR_MAX;
                             }
                         }
+                    } else if (null != applicationLengthHint) {
+                        // Application-provided hint from defineParameterType() or setObject(..., scaleOrLength):
+                        // declare the requested length for VARCHAR/CHAR.
+                        int hint = applicationLengthHint;
+                        if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
+                            param.typeDefinition = VARCHAR_MAX;
+                        } else {
+                            param.typeDefinition = SSType.VARCHAR.toString() + "(" + hint + ")";
+                        }
                     } else
                         param.typeDefinition = VARCHAR_8K;
                     break;
@@ -907,6 +1112,15 @@ final class Parameter {
                             }
                         }
                         break;
+                    } else if (null != applicationLengthHint) {
+                        // Application-provided hint from defineParameterType() or setObject(..., scaleOrLength):
+                        // declare the requested length for NVARCHAR/NCHAR.
+                        int hint = applicationLengthHint;
+                        if (hint > DataTypes.SHORT_VARTYPE_MAX_CHARS) {
+                            param.typeDefinition = NVARCHAR_MAX;
+                        } else {
+                            param.typeDefinition = SSType.NVARCHAR.toString() + "(" + hint + ")";
+                        }
                     } else
                         param.typeDefinition = NVARCHAR_4K;
                     break;
