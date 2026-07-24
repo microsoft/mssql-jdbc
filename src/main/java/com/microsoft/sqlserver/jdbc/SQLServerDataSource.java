@@ -8,8 +8,12 @@ package com.microsoft.sqlserver.jdbc;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -1823,9 +1827,10 @@ public class SQLServerDataSource
                 assert !trustStorePasswordStripped;
                 ref.add(new StringRefAddr(TRUSTSTORE_PASSWORD_STRIPPED, "true"));
             } else {
-                // do not add passwords to the collection. we have normal
-                // password
-                if (!propertyName.contains(SQLServerDriverStringProperty.PASSWORD.toString()))
+                // Do not add any credential-bearing property to the Reference.
+                // A JNDI Reference may be persisted or inspected by code that
+                // should not receive plaintext secrets.
+                if (!isSensitiveReferenceProperty(propertyName))
                     ref.add(new StringRefAddr(propertyName, connectionProps.getProperty(propertyName)));
             }
         }
@@ -1839,6 +1844,36 @@ public class SQLServerDataSource
             ref.add(new StringRefAddr("dataSourceDescription", dataSourceDescription));
 
         return ref;
+    }
+
+    /**
+     * Connection property names (compared case-insensitively) that carry credential material and must never be
+     * serialized into the JNDI {@link Reference} returned by {@link #getReference()}. {@code trustStorePassword} is
+     * handled separately via the stripped-marker mechanism.
+     */
+    private static final Set<String> SENSITIVE_REFERENCE_PROPERTIES;
+    static {
+        Set<String> s = new HashSet<>();
+        s.add(SQLServerDriverStringProperty.PASSWORD.toString().toLowerCase(Locale.ENGLISH));
+        s.add(SQLServerDriverStringProperty.ACCESS_TOKEN.toString().toLowerCase(Locale.ENGLISH));
+        s.add(SQLServerDriverStringProperty.KEY_STORE_SECRET.toString().toLowerCase(Locale.ENGLISH));
+        s.add(SQLServerDriverStringProperty.KEY_VAULT_PROVIDER_CLIENT_KEY.toString().toLowerCase(Locale.ENGLISH));
+        s.add(SQLServerDriverStringProperty.CLIENT_KEY_PASSWORD.toString().toLowerCase(Locale.ENGLISH));
+        s.add(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_SECRET.toString().toLowerCase(Locale.ENGLISH));
+        SENSITIVE_REFERENCE_PROPERTIES = Collections.unmodifiableSet(s);
+    }
+
+    /**
+     * Returns {@code true} if the given connection property name holds sensitive credential material that must be
+     * omitted from a JNDI {@link Reference}. The comparison is case-insensitive and also treats any property name that
+     * ends with {@code "password"} or {@code "secret"} as sensitive so that future properties are covered by default.
+     */
+    private static boolean isSensitiveReferenceProperty(String propertyName) {
+        if (null == propertyName)
+            return false;
+        String lower = propertyName.toLowerCase(Locale.ENGLISH);
+        return SENSITIVE_REFERENCE_PROPERTIES.contains(lower) || lower.endsWith("password")
+                || lower.endsWith("secret");
     }
 
     /**
