@@ -152,6 +152,24 @@ public class EnclaveTest extends AESetup {
     }
 
     /*
+     * Test that a genuine attestation response passes the enclave public key binding check.
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testValidateStatementBindingGenuine(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testValidateStatementBindingGenuine();
+    }
+
+    /*
+     * Test that a response whose report data does not match the enclave public key is rejected.
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testValidateStatementBindingKeySwap(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testValidateStatementBindingKeySwap();
+    }
+
+    /*
      * Negative Test - AEv2 not supported
      */
     @ParameterizedTest

@@ -535,6 +535,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_InvalidHealthCert", "Enclave attestation failed, the health report certificate provided in the enclave was not signed by the HGS - see https://go.microsoft.com/fwlink/?linkid=2160553 for more details."},
         {"R_InvalidSignedStatement", "Enclave attestation failed, the statement bytes were not signed by the health certificate - see https://go.microsoft.com/fwlink/?linkid=2160553 for more details."},
         {"R_InvalidDHKeySignature", "Enclave attestation failed, the DH public key signature can't be verified with the enclave public key - see https://go.microsoft.com/fwlink/?linkid=2157649 for more details."},
+        {"R_InvalidEnclaveStatementBinding", "Enclave attestation failed, the signed report did not bind to the enclave public key used for the session - see https://go.microsoft.com/fwlink/?linkid=2160553 for more details."},
         {"R_AasJWTError", "An error occured when retrieving and validating the JSON web token."},
         {"R_AasEhdError", "aas-ehd claim from JWT did not match enclave public key."},
         {"R_VbsRpDataError", "rp_data claim from JWT did not match client nonce."},
