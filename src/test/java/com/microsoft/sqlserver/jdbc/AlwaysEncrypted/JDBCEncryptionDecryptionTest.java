@@ -371,6 +371,44 @@ public class JDBCEncryptionDecryptionTest extends AESetup {
     }
 
     /**
+     * Guard test confirming Always Encrypted {@code varchar}/{@code nvarchar} columns are unaffected by the
+     * {@code getString()} fast path added to the CHAR/VARCHAR/NCHAR/NVARCHAR case in {@code dtv.java}. Encrypted reads
+     * return from the {@code if (encrypted)} branch in {@code ServerDTVImpl.getValue()} BEFORE the {@code switch} that
+     * contains the fast path, so AE never takes it. This test fills {@code Varchar8000} with 4000 chars (== 4000
+     * bytes) and {@code Nvarchar4000} with 2000 chars (== 4000 bytes) — the same 4000-byte size that would trigger the
+     * fast path on a non-encrypted column — and verifies the decrypted values still decode byte-identically through
+     * the encrypted decode path.
+     *
+     * @throws Exception
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testAeCharBoundarySizeDecodesUnaffectedByFastPath(String serverName, String url,
+            String protocol) throws Exception {
+        setAEConnectionString(serverName, url, protocol);
+
+        try (SQLServerConnection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerStatement stmt = (SQLServerStatement) con.createStatement()) {
+            String[] values = createCharValues(nullable);
+
+            // index 8 == Varchar8000 (1 byte/char -> 4000 chars), index 9 == Nvarchar4000 (2 bytes/char -> 2000 chars).
+            values[8] = makeBoundaryString(4000);
+            values[9] = makeBoundaryString(2000);
+
+            testChars(stmt, cekJks, charTable, values, TestCase.NORMAL, false);
+        }
+    }
+
+    /** Builds a deterministic ASCII string of the given length: char i == 'A' + (i % 26). */
+    private static String makeBoundaryString(int length) {
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append((char) ('A' + (i % 26)));
+        }
+        return sb.toString();
+    }
+
+    /**
      * Junit test case for char set string for string values for AKV
      * 
      * @throws SQLException

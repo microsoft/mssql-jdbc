@@ -7184,6 +7184,12 @@ final class TDSReader implements Serializable {
     }
 
     final int readUnsignedByte() throws SQLServerException {
+        // Fast path for the common case where the current TDS packet still
+        // has payload available; falls back to ensurePayload() at boundaries.
+        if (payloadOffset < currentPacket.payloadLength) {
+            return currentPacket.payload[payloadOffset++] & 0xFF;
+        }
+
         // Ensure that we have a packet to read from.
         if (!ensurePayload())
             throwInvalidTDS();
@@ -7258,6 +7264,7 @@ final class TDSReader implements Serializable {
     }
 
     final void readBytes(byte[] value, int valueOffset, int valueLength) throws SQLServerException {
+        final boolean isLogging = logger.isLoggable(Level.FINEST);
         for (int bytesRead = 0; bytesRead < valueLength;) {
             // Ensure that we have a packet to read from.
             if (!ensurePayload())
@@ -7270,7 +7277,7 @@ final class TDSReader implements Serializable {
                 bytesToCopy = currentPacket.payloadLength - payloadOffset;
 
             // Copy some bytes from the current packet to the destination value.
-            if (logger.isLoggable(Level.FINEST))
+            if (isLogging)
                 logger.finest(toString() + " Reading " + bytesToCopy + " bytes from offset " + payloadOffset);
 
             System.arraycopy(currentPacket.payload, payloadOffset, value, valueOffset + bytesRead, bytesToCopy);
@@ -7286,6 +7293,7 @@ final class TDSReader implements Serializable {
      * @throws SQLServerException
      */
     final void readSkipBytes(int valueLength) throws SQLServerException {
+        final boolean isLogging = logger.isLoggable(Level.FINEST);
         for (int bytesSkipped = 0; bytesSkipped < valueLength;) {
             // Ensure that we have a packet to read from.
             if (!ensurePayload())
@@ -7295,7 +7303,7 @@ final class TDSReader implements Serializable {
             if (bytesToSkip > currentPacket.payloadLength - payloadOffset)
                 bytesToSkip = currentPacket.payloadLength - payloadOffset;
 
-            if (logger.isLoggable(Level.FINEST))
+            if (isLogging)
                 logger.finest(toString() + " Skipping " + bytesToSkip + " bytes from offset " + payloadOffset);
 
             bytesSkipped += bytesToSkip;
@@ -7492,12 +7500,21 @@ final class TDSReader implements Serializable {
     }
 
     private int readDaysIntoCE() throws SQLServerException {
-        byte[] value = new byte[TDS.DAYS_INTO_CE_LENGTH];
-        readBytes(value, 0, value.length);
-
-        int daysIntoCE = 0;
-        for (int i = 0; i < value.length; i++)
-            daysIntoCE |= ((value[i] & 0xFF) << (8 * i));
+        // Fast path: read the 3-byte value directly from the current TDS packet.
+        // Falls back to the existing cross-packet logic when necessary.
+        final int length = TDS.DAYS_INTO_CE_LENGTH;
+        int daysIntoCE;
+        if (payloadOffset + length <= currentPacket.payloadLength) {
+            final byte[] p = currentPacket.payload;
+            final int off = payloadOffset;
+            daysIntoCE = (p[off] & 0xFF) | ((p[off + 1] & 0xFF) << 8) | ((p[off + 2] & 0xFF) << 16);
+            payloadOffset += length;
+        } else {
+            final byte[] value = readWrappedBytes(length);
+            daysIntoCE = 0;
+            for (int i = 0; i < length; i++)
+                daysIntoCE |= ((value[i] & 0xFF) << (8 * i));
+        }
 
         // Theoretically should never encounter a value that is outside of the valid date range
         if (daysIntoCE < 0)

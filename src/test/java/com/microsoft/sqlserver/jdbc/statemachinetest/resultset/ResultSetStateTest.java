@@ -13,11 +13,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.InputStream;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -63,6 +66,13 @@ public class ResultSetStateTest extends AbstractTest {
     private static final StateKey IS_UPDATABLE = () -> "isUpdatable";
     private static final StateKey IS_SCROLLABLE = () -> "isScrollable";
     private static final StateKey ROW_DELETED = () -> "rowDeleted";
+
+    // State keys used by the pooling / stream-aliasing tests (PR #2974 read hot-path).
+    private static final StateKey RETAINED_STREAM = () -> "retainedStream";
+    private static final StateKey RETAINED_EXPECTED = () -> "retainedExpected";
+    // Row on which the single-access LOB column ("b") was last touched, so no two actions read it twice on the same
+    // row (which would throw R_dataAlreadyAccessed on a forward-only adaptive cursor). -1 = not yet touched.
+    private static final StateKey B_ACCESSED_ROW = () -> "bAccessedRow";
 
     @BeforeAll
     static void setupTests() throws Exception {
@@ -127,7 +137,239 @@ public class ResultSetStateTest extends AbstractTest {
         }
     }
 
-    /** Verifies current row data against expected DataCache values. */
+    /**
+     * MBT pooling-reuse across wire types (PR #2974 read hot-path): randomized navigation over a table mixing
+     * VARCHAR, NVARCHAR, DECIMAL and a nullable INT, validating value and wasNull() every row. Catches a pooled
+     * ServerDTVImpl that fails to reset valueLength/isNull between the 1-byte and 2-byte charset fast paths,
+     * decimal decode, and null/non-null cells.
+     */
+    @Test
+    @DisplayName("Randomized Pooling Reuse Across Types and NULLs")
+    void testPoolingReuseAcrossTypesAndNulls() throws SQLException {
+        Assumptions.assumeTrue(connectionString != null, "No database connection configured");
+
+        StateMachineTest sm = new StateMachineTest("PoolingReuse");
+        DataCache cache = sm.getDataCache();
+
+        cache.updateValue(0, CLOSED.key(), false);
+        cache.updateValue(0, ON_VALID_ROW.key(), false);
+        cache.updateValue(0, CURRENT_ROW.key(), 0);
+
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+            stmt.execute("CREATE TABLE " + TABLE_NAME
+                    + " (id INT PRIMARY KEY, name VARCHAR(50), nname NVARCHAR(100), dec DECIMAL(18,4), nval INT NULL)");
+
+            try (PreparedStatement pstmt = connection
+                    .prepareStatement("INSERT INTO " + TABLE_NAME + " VALUES (?, ?, ?, ?, ?)")) {
+                for (int i = 1; i <= 10; i++) {
+                    String name = "Row" + i;
+                    // Non-ASCII char forces the UTF-16 decoder on the NVARCHAR fast path.
+                    String nname = "N\u00e9" + i;
+                    BigDecimal dec = new BigDecimal(i * 100 + ".1234");
+                    // Every third row stores NULL to force NBCROW null-compression and null-bleed reuse.
+                    Integer nval = (i % 3 == 0) ? null : i * 7;
+
+                    pstmt.setInt(1, i);
+                    pstmt.setString(2, name);
+                    pstmt.setNString(3, nname);
+                    pstmt.setBigDecimal(4, dec);
+                    if (nval == null) {
+                        pstmt.setNull(5, java.sql.Types.INTEGER);
+                    } else {
+                        pstmt.setInt(5, nval);
+                    }
+                    pstmt.executeUpdate();
+
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("id", i);
+                    row.put("name", name);
+                    row.put("nname", nname);
+                    row.put("dec", dec);
+                    row.put("nval", nval);
+                    cache.addRow(row);
+                }
+            }
+        }
+
+        try (Connection conn = PrepUtil.getConnection(connectionString);
+                Statement stmt = conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+                ResultSet rs = stmt.executeQuery("SELECT * FROM " + TABLE_NAME + " ORDER BY id")) {
+
+            cache.updateValue(0, RS.key(), rs);
+
+            sm.addAction(new NextAction(10));
+            sm.addAction(new PreviousAction(8));
+            sm.addAction(new FirstAction(5));
+            sm.addAction(new LastAction(5));
+            sm.addAction(new AbsoluteAction(6));
+            sm.addAction(new GetStringColumnAction("name", 8));
+            sm.addAction(new GetStringColumnAction("nname", 8)); // NVARCHAR fast path
+            sm.addAction(new GetBigDecimalColumnAction("dec", 6)); // decimal decode reuse
+            sm.addAction(new GetNullableIntAction("nval", 8)); // null-bleed across pooled reuse
+            sm.addAction(new CloseAction(1));
+
+            Result result = Engine.run(sm).withMaxActions(150).execute();
+
+            System.out.println("Pooling-reuse test: " + result.actionCount + " actions");
+            assertTrue(result.isSuccess(), "Pooling reuse across types/NULLs should complete successfully");
+        }
+    }
+
+    /**
+     * MBT stream-aliasing under pooling (PR #2974): on a forward-only adaptive cursor, randomly retains a binary
+     * stream (partial read, no close), advances so its ServerDTVImpl is pooled and reused, then closes the retained
+     * stream late. The late close must be a harmless no-op; every full read validates the current row against the
+     * DataCache so any aliasing corruption surfaces immediately.
+     */
+    @Test
+    @DisplayName("Randomized Stream Aliasing Under Pooling")
+    void testStreamAliasingUnderPooling() throws SQLException {
+        Assumptions.assumeTrue(connectionString != null, "No database connection configured");
+
+        StateMachineTest sm = new StateMachineTest("StreamAliasing");
+        DataCache cache = sm.getDataCache();
+
+        cache.updateValue(0, CLOSED.key(), false);
+        cache.updateValue(0, ON_VALID_ROW.key(), false);
+        cache.updateValue(0, CURRENT_ROW.key(), 0);
+
+        final int rowCount = 12;
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+            stmt.execute("CREATE TABLE " + TABLE_NAME + " (id INT PRIMARY KEY, name VARCHAR(50), b VARBINARY(MAX))");
+
+            try (PreparedStatement pstmt = connection
+                    .prepareStatement("INSERT INTO " + TABLE_NAME + " VALUES (?, ?, ?)")) {
+                for (int i = 1; i <= rowCount; i++) {
+                    String name = "Row" + i;
+                    byte[] b = makeBytes(i, 3000);
+                    pstmt.setInt(1, i);
+                    pstmt.setString(2, name);
+                    pstmt.setBytes(3, b);
+                    pstmt.executeUpdate();
+
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("id", i);
+                    row.put("name", name);
+                    row.put("b", b);
+                    cache.addRow(row);
+                }
+            }
+        }
+
+        // Forward-only + adaptive response buffering is the configuration that returns adaptive streams whose late
+        // close() mutates the (now pooled) impl - exactly the aliasing path under test.
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";responseBuffering=adaptive;packetSize=512");
+                Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+                ResultSet rs = stmt.executeQuery("SELECT id, name, b FROM " + TABLE_NAME + " ORDER BY id")) {
+
+            cache.updateValue(0, RS.key(), rs);
+            cache.updateValue(0, B_ACCESSED_ROW.key(), -1);
+
+            sm.addAction(new ForwardNextAction(10)); // advance; validates only id + name (leaves the LOB to b-actions)
+            sm.addAction(new RetainBinaryStreamAction("b", 8)); // retain, partial read, DO NOT close
+            sm.addAction(new LateCloseRetainedStreamAction(6)); // close the retained stream late (no-op expected)
+            sm.addAction(new GetStringColumnAction("name", 8)); // synchronous getString on the (possibly reused) impl
+            sm.addAction(new GetBytesColumnAction("b", 6)); // full binary read validates row integrity
+
+            Result result = Engine.run(sm).withMaxActions(150).execute();
+
+            System.out.println("Stream-aliasing test: " + result.actionCount + " actions");
+            assertTrue(result.isSuccess(), "Stream aliasing under pooling should complete successfully");
+        }
+    }
+
+    /**
+     * MBT pooling reuse via the NBCROW null-compression path (PR #2974): a default result set with several nullable
+     * INT columns emits null-compressed rows, so null cells reach the pool through initFromCompressedNull() rather
+     * than a value read. Randomly reads string and nullable-int columns, asserting value and wasNull() every row to
+     * catch a pooled impl leaking a stale isNull across the compressed-null boundary.
+     */
+    @Test
+    @DisplayName("Randomized Pooling Reuse With NBCROW NULLs")
+    void testPoolingReuseWithNbcRowNulls() throws SQLException {
+        Assumptions.assumeTrue(connectionString != null, "No database connection configured");
+
+        StateMachineTest sm = new StateMachineTest("NbcRowPooling");
+        DataCache cache = sm.getDataCache();
+
+        cache.updateValue(0, CLOSED.key(), false);
+        cache.updateValue(0, ON_VALID_ROW.key(), false);
+        cache.updateValue(0, CURRENT_ROW.key(), 0);
+
+        final int rowCount = 20;
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(TABLE_NAME, stmt);
+            stmt.execute("CREATE TABLE " + TABLE_NAME
+                    + " (id INT PRIMARY KEY, name VARCHAR(50), a INT NULL, b INT NULL, c INT NULL)");
+
+            try (PreparedStatement pstmt = connection
+                    .prepareStatement("INSERT INTO " + TABLE_NAME + " VALUES (?, ?, ?, ?, ?)")) {
+                for (int i = 1; i <= rowCount; i++) {
+                    String name = "Row" + i;
+                    // Vary which columns are NULL per row so the null-compression bitmap changes and pooled impls are
+                    // reused across mixed null/non-null cells.
+                    Integer a = (i % 2 == 0) ? null : i;
+                    Integer b = (i % 3 == 0) ? null : i * 2;
+                    Integer c = (i % 4 == 0) ? null : i * 3;
+
+                    pstmt.setInt(1, i);
+                    pstmt.setString(2, name);
+                    setNullableInt(pstmt, 3, a);
+                    setNullableInt(pstmt, 4, b);
+                    setNullableInt(pstmt, 5, c);
+                    pstmt.executeUpdate();
+
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("id", i);
+                    row.put("name", name);
+                    row.put("a", a);
+                    row.put("b", b);
+                    row.put("c", c);
+                    cache.addRow(row);
+                }
+            }
+        }
+
+        // Default result set (no scroll/updatable) -> NBCROW null compression is used.
+        try (Connection conn = PrepUtil.getConnection(connectionString);
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT id, name, a, b, c FROM " + TABLE_NAME + " ORDER BY id")) {
+
+            cache.updateValue(0, RS.key(), rs);
+
+            sm.addAction(new ForwardNextAction(10));
+            sm.addAction(new GetStringColumnAction("name", 6));
+            sm.addAction(new GetNullableIntAction("a", 8));
+            sm.addAction(new GetNullableIntAction("b", 8));
+            sm.addAction(new GetNullableIntAction("c", 8));
+
+            Result result = Engine.run(sm).withMaxActions(200).execute();
+
+            System.out.println("NBCROW-pooling test: " + result.actionCount + " actions");
+            assertTrue(result.isSuccess(), "Pooling reuse with NBCROW NULLs should complete successfully");
+        }
+    }
+
+    private static void setNullableInt(PreparedStatement pstmt, int idx, Integer v) throws SQLException {
+        if (v == null) {
+            pstmt.setNull(idx, java.sql.Types.INTEGER);
+        } else {
+            pstmt.setInt(idx, v);
+        }
+    }
+
+    /** Builds a deterministic byte[] of the given length: byte j == (seed * 31 + j) mod 256. */
+    private static byte[] makeBytes(int seed, int length) {
+        byte[] b = new byte[length];
+        for (int j = 0; j < length; j++) {
+            b[j] = (byte) ((seed * 31 + j) % 256);
+        }
+        return b;
+    }
+
+
     private static void verifyCurrentRow(Action action, ResultSet rs) throws SQLException {
         DataCache cache = action.getDataCache();
         if (cache == null || cache.getRowCount() <= 1) {
@@ -149,8 +391,19 @@ public class ResultSetStateTest extends AbstractTest {
             Object expected = entry.getValue();
             Object actual = rs.getObject(columnName);
 
-            action.assertExpected(actual, expected,
-                    String.format("Row %d column '%s' mismatch", currentRow, columnName));
+            if (expected instanceof byte[] || actual instanceof byte[]) {
+                // byte[] must be compared by content, not reference.
+                action.assertExpected(Arrays.equals((byte[]) expected, (byte[]) actual), true,
+                        String.format("Row %d column '%s' byte[] mismatch", currentRow, columnName));
+            } else if (expected instanceof BigDecimal && actual instanceof BigDecimal) {
+                // Compare decimals scale-insensitively.
+                action.assertExpected(((BigDecimal) expected).compareTo((BigDecimal) actual) == 0, true,
+                        String.format("Row %d column '%s' decimal mismatch: expected %s got %s", currentRow,
+                                columnName, expected, actual));
+            } else {
+                action.assertExpected(actual, expected,
+                        String.format("Row %d column '%s' mismatch", currentRow, columnName));
+            }
         }
     }
 
@@ -444,7 +697,300 @@ public class ResultSetStateTest extends AbstractTest {
         }
     }
 
+    // ==================== PR #2974 read hot-path pooling actions ====================
+
+    /**
+     * Forward-only advance validating only the fixed-length columns (id, name). It leaves the single-access LOB
+     * column to the dedicated stream/getBytes actions so a row's LOB is never accessed twice (which would throw
+     * R_dataAlreadyAccessed on a forward-only adaptive cursor).
+     */
+    private static class ForwardNextAction extends Action {
+
+        ForwardNextAction(int weight) {
+            super("forwardNext", weight);
+        }
+
+        @Override
+        public boolean canRun() {
+            return !isState(CLOSED);
+        }
+
+        @Override
+        public void run() throws SQLException {
+            ResultSet rs = (ResultSet) getState(RS);
+            boolean valid = rs.next();
+            setState(ON_VALID_ROW, valid);
+            setState(CURRENT_ROW, valid ? rs.getRow() : 0);
+            setState(ROW_DELETED, false);
+            System.out.println("forwardNext() -> " + valid + (valid ? " row=" + getStateInt(CURRENT_ROW) : ""));
+        }
+
+        @Override
+        public void validate() throws SQLException {
+            if (!isState(ON_VALID_ROW) || !hasDataCache()) {
+                return;
+            }
+            ResultSet rs = (ResultSet) getState(RS);
+            int currentRow = getStateInt(CURRENT_ROW);
+            if (currentRow >= 1 && currentRow < dataCache.getRowCount()) {
+                assertExpected(rs.getInt("id"), ((Number) dataCache.getValue(currentRow, "id")).intValue(),
+                        String.format("id mismatch at row %d", currentRow));
+                Object expectedName = dataCache.getValue(currentRow, "name");
+                if (expectedName != null) {
+                    assertExpected(rs.getString("name"), expectedName.toString(),
+                            String.format("name mismatch at row %d", currentRow));
+                }
+            }
+        }
+    }
+
+    /** Reads getString(column) and validates against DataCache. Exercises the getString() fast path. */
+    private static class GetStringColumnAction extends Action {
+        private final String column;
+        private String lastValue;
+
+        GetStringColumnAction(String column, int weight) {
+            super("getString[" + column + "]", weight);
+            this.column = column;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !isState(CLOSED) && isState(ON_VALID_ROW) && !isState(ROW_DELETED);
+        }
+
+        @Override
+        public void run() throws SQLException {
+            ResultSet rs = (ResultSet) getState(RS);
+            lastValue = rs.getString(column);
+        }
+
+        @Override
+        public void validate() throws SQLException {
+            if (!hasDataCache())
+                return;
+            int currentRow = getStateInt(CURRENT_ROW);
+            if (currentRow >= 1 && currentRow < dataCache.getRowCount()) {
+                Object expected = dataCache.getValue(currentRow, column);
+                String expectedStr = (expected == null) ? null : expected.toString();
+                assertExpected(lastValue, expectedStr,
+                        String.format("getString('%s') mismatch at row %d", column, currentRow));
+            }
+        }
+    }
+
+    /** Reads getBigDecimal(column) and validates (scale-insensitive) against DataCache. Exercises decimal decode. */
+    private static class GetBigDecimalColumnAction extends Action {
+        private final String column;
+        private BigDecimal lastValue;
+
+        GetBigDecimalColumnAction(String column, int weight) {
+            super("getBigDecimal[" + column + "]", weight);
+            this.column = column;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !isState(CLOSED) && isState(ON_VALID_ROW) && !isState(ROW_DELETED);
+        }
+
+        @Override
+        public void run() throws SQLException {
+            ResultSet rs = (ResultSet) getState(RS);
+            lastValue = rs.getBigDecimal(column);
+        }
+
+        @Override
+        public void validate() throws SQLException {
+            if (!hasDataCache())
+                return;
+            int currentRow = getStateInt(CURRENT_ROW);
+            if (currentRow >= 1 && currentRow < dataCache.getRowCount()) {
+                Object expected = dataCache.getValue(currentRow, column);
+                if (expected == null) {
+                    assertExpected(lastValue, null,
+                            String.format("getBigDecimal('%s') expected NULL at row %d", column, currentRow));
+                } else {
+                    assertTrue(lastValue != null && ((BigDecimal) expected).compareTo(lastValue) == 0,
+                            String.format("getBigDecimal('%s') mismatch at row %d: expected %s got %s", column,
+                                    currentRow, expected, lastValue));
+                }
+            }
+        }
+    }
+
+    /** Reads a nullable INT via getObject and validates value and wasNull(); guards against stale pooled isNull. */
+    private static class GetNullableIntAction extends Action {
+        private final String column;
+        private Object lastValue;
+        private boolean lastWasNull;
+
+        GetNullableIntAction(String column, int weight) {
+            super("getNullableInt[" + column + "]", weight);
+            this.column = column;
+        }
+
+        @Override
+        public boolean canRun() {
+            return !isState(CLOSED) && isState(ON_VALID_ROW) && !isState(ROW_DELETED);
+        }
+
+        @Override
+        public void run() throws SQLException {
+            ResultSet rs = (ResultSet) getState(RS);
+            lastValue = rs.getObject(column);
+            lastWasNull = rs.wasNull();
+        }
+
+        @Override
+        public void validate() throws SQLException {
+            if (!hasDataCache())
+                return;
+            int currentRow = getStateInt(CURRENT_ROW);
+            if (currentRow >= 1 && currentRow < dataCache.getRowCount()) {
+                Object expected = dataCache.getValue(currentRow, column);
+                boolean expectedNull = (expected == null);
+                assertExpected(lastWasNull, expectedNull,
+                        String.format("wasNull('%s') mismatch at row %d (stale pooled isNull?)", column, currentRow));
+                if (expectedNull) {
+                    assertExpected(lastValue, null,
+                            String.format("getObject('%s') expected NULL at row %d", column, currentRow));
+                } else {
+                    assertExpected(((Number) lastValue).intValue(), ((Number) expected).intValue(),
+                            String.format("getObject('%s') mismatch at row %d", column, currentRow));
+                }
+            }
+        }
+    }
+
+    /** Reads getBytes(column) fully and validates against DataCache. Confirms row integrity after pooled reuse. */
+    private static class GetBytesColumnAction extends Action {
+        private final String column;
+
+        GetBytesColumnAction(String column, int weight) {
+            super("getBytes[" + column + "]", weight);
+            this.column = column;
+        }
+
+        @Override
+        public boolean canRun() {
+            if (isState(CLOSED) || !isState(ON_VALID_ROW) || isState(ROW_DELETED)) {
+                return false;
+            }
+            // Do not re-read the single-access LOB column on a row where it was already touched (streamed or read);
+            // that would throw R_dataAlreadyAccessed on a forward-only adaptive cursor.
+            return getStateInt(B_ACCESSED_ROW) != getStateInt(CURRENT_ROW);
+        }
+
+        @Override
+        public void run() throws SQLException {
+            ResultSet rs = (ResultSet) getState(RS);
+            byte[] actual = rs.getBytes(column);
+            setState(B_ACCESSED_ROW, getStateInt(CURRENT_ROW));
+
+            if (hasDataCache()) {
+                int currentRow = getStateInt(CURRENT_ROW);
+                if (currentRow >= 1 && currentRow < dataCache.getRowCount()) {
+                    byte[] expected = (byte[]) dataCache.getValue(currentRow, column);
+                    assertTrue(Arrays.equals(expected, actual),
+                            String.format("getBytes('%s') mismatch at row %d (aliasing corruption?)", column,
+                                    currentRow));
+                }
+            }
+        }
+    }
+
+    /** Obtains a binary stream, partially reads/verifies its prefix, and retains it unclosed for a later late close. */
+    private static class RetainBinaryStreamAction extends Action {
+        private final String column;
+
+        RetainBinaryStreamAction(String column, int weight) {
+            super("retainStream[" + column + "]", weight);
+            this.column = column;
+        }
+
+        @Override
+        public boolean canRun() {
+            // Only one retained stream at a time, on a valid row, and only if the single-access LOB column has not
+            // already been touched on this row.
+            return !isState(CLOSED) && isState(ON_VALID_ROW) && !isState(ROW_DELETED)
+                    && null == getState(RETAINED_STREAM) && getStateInt(B_ACCESSED_ROW) != getStateInt(CURRENT_ROW);
+        }
+
+        @Override
+        public void run() throws Exception {
+            ResultSet rs = (ResultSet) getState(RS);
+            int currentRow = getStateInt(CURRENT_ROW);
+
+            InputStream in = rs.getBinaryStream(column);
+            setState(B_ACCESSED_ROW, currentRow);
+            if (in == null) {
+                return;
+            }
+
+            byte[] expected = hasDataCache() && currentRow >= 1 && currentRow < dataCache.getRowCount()
+                    ? (byte[]) dataCache.getValue(currentRow, column)
+                    : null;
+
+            // Partially consume and verify the prefix, but DO NOT close.
+            byte[] buf = new byte[137];
+            int read = in.read(buf);
+            if (expected != null && read > 0) {
+                for (int i = 0; i < read; i++) {
+                    assertExpected(buf[i], expected[i],
+                            String.format("retained stream byte %d mismatch at row %d", i, currentRow));
+                }
+            }
+
+            setState(RETAINED_STREAM, in);
+            setState(RETAINED_EXPECTED, expected);
+            System.out.println("retainStream(" + column + ") at row " + currentRow + " read=" + read);
+        }
+    }
+
+    /** Closes a retained stream late, after its row was advanced past and its impl pooled/reused; must be a no-op. */
+    private static class LateCloseRetainedStreamAction extends Action {
+
+        LateCloseRetainedStreamAction(int weight) {
+            super("lateCloseStream", weight);
+        }
+
+        @Override
+        public boolean canRun() {
+            return null != getState(RETAINED_STREAM);
+        }
+
+        @Override
+        public void run() throws Exception {
+            InputStream in = (InputStream) getState(RETAINED_STREAM);
+            // Late close must not throw and must not corrupt any pooled/reused impl. Second close must be idempotent.
+            in.close();
+            in.close();
+            setState(RETAINED_STREAM, null);
+            setState(RETAINED_EXPECTED, null);
+            System.out.println("lateCloseStream() - no-op expected");
+        }
+
+        @Override
+        public void validate() throws SQLException {
+            // If still positioned on a valid row, confirm it is intact after the late close.
+            if (isState(CLOSED) || !isState(ON_VALID_ROW) || isState(ROW_DELETED) || !hasDataCache()) {
+                return;
+            }
+            ResultSet rs = (ResultSet) getState(RS);
+            int currentRow = getStateInt(CURRENT_ROW);
+            if (currentRow >= 1 && currentRow < dataCache.getRowCount()) {
+                Object expectedName = dataCache.getValue(currentRow, "name");
+                if (expectedName != null) {
+                    assertExpected(rs.getString("name"), expectedName.toString(),
+                            String.format("row %d corrupted by a late stream close()", currentRow));
+                }
+            }
+        }
+    }
+
     private static void createTestTable(Connection conn, String tableName, int rows) throws SQLException {
+
         try (Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(tableName, stmt);
             stmt.execute("CREATE TABLE " + tableName
