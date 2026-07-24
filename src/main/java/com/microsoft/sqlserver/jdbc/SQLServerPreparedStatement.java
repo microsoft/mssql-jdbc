@@ -517,6 +517,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @return the required data type definitions.
      */
     private String buildParamTypeDefinitions(Parameter[] params, boolean renewDefinition) throws SQLServerException {
+        if (null == params) {
+            // params is set to null during internalClose(). If we get here, the statement (or its
+            // connection) has been closed. Surface the standard "statement is closed" error instead
+            // of letting a raw NullPointerException escape from params.length below.
+            checkClosed();
+            return "";
+        }
+
         int nCols = params.length;
         if (nCols == 0)
             return "";
