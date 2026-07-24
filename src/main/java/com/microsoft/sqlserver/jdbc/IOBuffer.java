@@ -85,7 +85,6 @@ import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification
 import microsoft.sql.Vector;
 
 final class TDS {
-    // application protocol
     static final String PROTOCOL_TDS80 = "tds/8.0"; // TLS-first connections
 
     // TDS versions
@@ -661,6 +660,9 @@ final class TDSChannel implements Serializable {
 
     // Socket for SSL-encrypted communications with SQL Server
     private transient SSLSocket sslSocket;
+
+    // tls-unique channel binding data from the completed TLS handshake.
+    private byte[] channelBindingInfo = null;
 
     /*
      * Socket providing the communications interface to the driver. For SSL-encrypted connections, this is the SSLSocket
@@ -1965,6 +1967,8 @@ final class TDSChannel implements Serializable {
                 con.addWarning(warningMsg);
             }
 
+            setChannelBindingInfo();
+
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " SSL enabled");
 
@@ -2027,6 +2031,85 @@ final class TDSChannel implements Serializable {
             } else {
                 con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs), e);
             }
+        }
+    }
+
+    private void setChannelBindingInfo() {
+        clearChannelBindingInfo();
+        channelBindingInfo = createChannelBindingInfo(null == sslSocket ? null : sslSocket.getSession());
+    }
+
+    byte[] getChannelBindingInfo() {
+        return null == channelBindingInfo ? null : Arrays.copyOf(channelBindingInfo, channelBindingInfo.length);
+    }
+
+    void clearChannelBindingInfo() {
+        if (null != channelBindingInfo) {
+            Arrays.fill(channelBindingInfo, (byte) 0);
+            channelBindingInfo = null;
+        }
+    }
+
+    static byte[] createChannelBindingInfo(javax.net.ssl.SSLSession session) {
+        if (null == session) {
+            return null;
+        }
+
+        byte[] tlsUnique = null;
+        try {
+            Class<?> clazz = Class.forName("javax.net.ssl.ExtendedSSLSession");
+            if (!clazz.isInstance(session)) {
+                return null;
+            }
+
+            // Prefer the client's Finished verify_data for the initiating side.
+            java.lang.reflect.Method method = getTlsUniqueMethod(clazz, "getTlsUniqueClientFirstFinishedVerifyData");
+            if (null == method) {
+                method = getTlsUniqueMethod(clazz, "getTlsUniqueFirstFinishedVerifyData");
+            }
+
+            if (null == method) {
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer("tls-unique channel binding methods are not supported on this platform.");
+                }
+                return null;
+            }
+
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer("Using " + method.getName() + " for tls-unique channel binding.");
+            }
+
+            Object value = method.invoke(session);
+            if (value instanceof byte[]) {
+                tlsUnique = (byte[]) value;
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer("tls-unique verify_data received: " + tlsUnique.length + " bytes.");
+                }
+            } else if (logger.isLoggable(Level.FINER)) {
+                logger.finer("tls-unique verify_data was not available.");
+            }
+        } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer("tls-unique channel binding methods are not supported on this platform.");
+            }
+            return null;
+        }
+
+        if (null == tlsUnique || 0 == tlsUnique.length) {
+            return null;
+        }
+
+        byte[] prefix = "tls-unique:".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] channelBinding = Arrays.copyOf(prefix, prefix.length + tlsUnique.length);
+        System.arraycopy(tlsUnique, 0, channelBinding, prefix.length, tlsUnique.length);
+        return channelBinding;
+    }
+
+    private static java.lang.reflect.Method getTlsUniqueMethod(Class<?> clazz, String methodName) {
+        try {
+            return clazz.getMethod(methodName);
+        } catch (NoSuchMethodException e) {
+            return null;
         }
     }
 
@@ -2274,6 +2357,8 @@ final class TDSChannel implements Serializable {
     }
 
     final void close() {
+        clearChannelBindingInfo();
+
         if (null != sslSocket)
             disableSSL();
 
@@ -6777,6 +6862,7 @@ final class TDSWriter {
             }
         }
     }
+
 }
 
 
