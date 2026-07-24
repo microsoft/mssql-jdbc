@@ -1988,19 +1988,55 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * Breaking Behavioral Change: For character and binary target types (VARCHAR, CHAR,
+     * NVARCHAR, NCHAR, VARBINARY, BINARY), {@code decimals} is now enforced as a
+     * maximum length constraint. Previously, the JDBC 4.3 specification defined
+     * this parameter only for DECIMAL/NUMERIC (as scale) and for InputStream/Reader
+     * (as stream length), so it was ignored for string and binary types. With this change,
+     * if the actual value length exceeds the specified {@code decimals}, execution
+     * will fail with {@code R_parameterTypeValueLengthExceedsHint}. Applications that pass
+     * arbitrary or undersized values for string/binary types must either increase the value
+     * to accommodate their largest payload or use a {@code setObject} overload that omits
+     * the length constraint.
+     *
+     * If {@link #defineParameterType(int, int, int)} has been called for the same
+     * parameter, its {@code maxLength} takes precedence over {@code decimals}.
+     */
     @Override
     public void setObject(String parameterName, Object value, int sqlType, int decimals) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject",
                     new Object[] {parameterName, value, sqlType, decimals});
         checkClosed();
-        setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType), decimals,
+        // decimals - for java.sql.Types.DECIMAL or java.sql.Types.NUMERIC types,
+        // this is the number of digits after the decimal point.
+        // For supported short character/binary SQL types (VARCHAR, CHAR, NVARCHAR, NCHAR,
+        // VARBINARY, BINARY), this is treated as application-provided length hint AND enforced
+        // as a maximum length constraint.
+        // Precedence: defineParameterType() hint (if present) takes priority over this value.
+        // For all other types, this value will be ignored.
+        setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType),
+                (java.sql.Types.NUMERIC == sqlType || java.sql.Types.DECIMAL == sqlType
+                        || java.sql.Types.VARCHAR == sqlType || java.sql.Types.CHAR == sqlType
+                        || java.sql.Types.NVARCHAR == sqlType || java.sql.Types.NCHAR == sqlType
+                        || java.sql.Types.VARBINARY == sqlType || java.sql.Types.BINARY == sqlType) ? decimals : null,
                 null, false, findColumn(parameterName), null);
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "setObject");
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * Breaking Behavioral Change: For character and binary target types (VARCHAR, CHAR,
+     * NVARCHAR, NCHAR, VARBINARY, BINARY), {@code decimals} is now enforced as a
+     * maximum length constraint. See {@link #setObject(String, Object, int, int)} for
+     * full details on this behavioral change.
+     */
     @Override
     public void setObject(String parameterName, Object value, int sqlType, int decimals,
             boolean forceEncrypt) throws SQLServerException {
@@ -2011,9 +2047,16 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
 
         // scale - for java.sql.Types.DECIMAL or java.sql.Types.NUMERIC types,
         // this is the number of digits after the decimal point.
+        // For supported short character/binary SQL types (VARCHAR, CHAR, NVARCHAR, NCHAR,
+        // VARBINARY, BINARY), this is treated as application-provided length hint AND enforced
+        // as a maximum length constraint.
+        // Precedence: defineParameterType() hint (if present) takes priority over this value.
         // For all other types, this value will be ignored.
         setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType),
-                (java.sql.Types.NUMERIC == sqlType || java.sql.Types.DECIMAL == sqlType) ? decimals : null, null,
+                (java.sql.Types.NUMERIC == sqlType || java.sql.Types.DECIMAL == sqlType
+                        || java.sql.Types.VARCHAR == sqlType || java.sql.Types.CHAR == sqlType
+                        || java.sql.Types.NVARCHAR == sqlType || java.sql.Types.NCHAR == sqlType
+                        || java.sql.Types.VARBINARY == sqlType || java.sql.Types.BINARY == sqlType) ? decimals : null, null,
                 forceEncrypt, findColumn(parameterName), null);
 
         if (loggerExternal.isLoggable(Level.FINER)) {

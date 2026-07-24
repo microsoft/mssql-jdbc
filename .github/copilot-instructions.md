@@ -35,7 +35,7 @@ The project includes:
 - Ensure tests are comprehensive and cover edge cases.
 - Do NOT hardcode connection strings — use `AbstractTest` utilities and test config.
 - Tag tests requiring external resources with appropriate group annotations (`xSQLv12`, `xSQLv15`, `reqExternalSetup`, `fedAuth`, `kerberos`, etc.).
-- Consider state machine tests for complex stateful features (see `.github/instructions/state-machine-testing.instructions.md`).
+- Consider state machine tests for complex stateful features (see `docs/state-machine-testing.md`).
 
 ### ⚙️ Automating Workflows
 

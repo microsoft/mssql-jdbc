@@ -219,6 +219,44 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return prepStmtHandle;
     }
 
+    @Override
+    public void defineParameterType(int parameterIndex, int sqlType, int maxLength) throws SQLServerException {
+        checkClosed();
+        // Validate that sqlType is one of the supported character or binary types.
+        // The sqlType identifies the type family (character or binary) and is enforced
+        // at execution time — the setter must produce a type in the same family.
+        // The maxLength hint will take precedence over any scaleOrLength provided via setObject().
+        switch (sqlType) {
+            case java.sql.Types.VARCHAR:
+            case java.sql.Types.CHAR:
+            case java.sql.Types.NVARCHAR:
+            case java.sql.Types.NCHAR:
+            case java.sql.Types.VARBINARY:
+            case java.sql.Types.BINARY:
+                if (maxLength <= 0) {
+                    MessageFormat form = new MessageFormat(
+                            SQLServerException.getErrString("R_invalidParameterLength"));
+                    SQLServerException.makeFromDriverError(connection, this,
+                            form.format(new Object[] {maxLength}), null, false);
+                }
+                break;
+            default:
+                String typeName;
+                try {
+                    typeName = java.sql.JDBCType.valueOf(sqlType).getName() + " (" + sqlType + ")";
+                } catch (IllegalArgumentException e) {
+                    typeName = String.valueOf(sqlType);
+                }
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_unsupportedTypeForDefineParamType"));
+                SQLServerException.makeFromDriverError(connection, this,
+                        form.format(new Object[] {typeName}), null, false);
+        }
+        Parameter param = setterGetParam(parameterIndex);
+        param.setDefineParameterTypeSqlType(sqlType);
+        param.setDefineParameterTypeLengthHint(maxLength);
+    }
+
     /**
      * Returns true if this statement has a server handle.
      * 
@@ -1997,6 +2035,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * Breaking Behavioral Change: For character and binary target types (VARCHAR, CHAR,
+     * NVARCHAR, NCHAR, VARBINARY, BINARY), {@code scaleOrLength} is now enforced as a
+     * maximum length constraint. Previously, the JDBC 4.3 specification defined
+     * {@code scaleOrLength} only for DECIMAL/NUMERIC (as scale) and for InputStream/Reader
+     * (as stream length), so it was ignored for string and binary types. With this change,
+     * if the actual value length exceeds the specified {@code scaleOrLength}, execution
+     * will fail with {@code R_parameterTypeValueLengthExceedsHint}. Applications that pass
+     * arbitrary or undersized {@code scaleOrLength} values for string/binary types must
+     * either increase the value to accommodate their largest payload or use a two-argument
+     * {@code setObject} overload that omits the length constraint.
+     *
+     * If {@link #defineParameterType(int, int, int)} has been called for the same
+     * parameter, its {@code maxLength} takes precedence over {@code scaleOrLength}.
+     */
     @Override
     public final void setObject(int parameterIndex, Object x, int targetSqlType,
             int scaleOrLength) throws SQLServerException {
@@ -2008,19 +2063,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // scaleOrLength - for java.sql.Types.DECIMAL, java.sql.Types.NUMERIC or temporal types,
         // this is the number of digits after the decimal point. For Java Object types
         // InputStream and Reader, this is the length of the data in the stream or reader.
-        // For all other types, this value will be ignored.
+        // For supported short character/binary SQL types, this is treated as an
+        // application-provided length hint AND enforced as a maximum length constraint.
+        // If the actual value exceeds scaleOrLength for these types, execution fails with
+        // R_parameterTypeValueLengthExceedsHint. This is a breaking behavioral change from
+        // prior versions where scaleOrLength was ignored for string/binary types.
+        // Precedence: defineParameterType() hint (if present) takes priority over this value.
 
         Integer precision = null;
         if (microsoft.sql.Types.VECTOR == targetSqlType && x instanceof microsoft.sql.Vector) {
             precision = ((microsoft.sql.Vector) x).getDimensionCount();
         }
 
-        setObject(setterGetParam(parameterIndex), x, JavaType.of(x), JDBCType.of(targetSqlType),
-                (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
-                        || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
-                        || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
-                        || Reader.class.isInstance(x)
-                        || microsoft.sql.Types.VECTOR == targetSqlType) ? scaleOrLength : null,
+        JDBCType targetJDBCType = JDBCType.of(targetSqlType);
+
+        setObject(setterGetParam(parameterIndex), x, JavaType.of(x), targetJDBCType,
+            (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
+                || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
+                || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
+                || Reader.class.isInstance(x) || microsoft.sql.Types.VECTOR == targetSqlType
+                || JDBCType.CHAR == targetJDBCType || JDBCType.VARCHAR == targetJDBCType
+                || JDBCType.NCHAR == targetJDBCType || JDBCType.NVARCHAR == targetJDBCType
+                || JDBCType.BINARY == targetJDBCType || JDBCType.VARBINARY == targetJDBCType)
+                    ? scaleOrLength
+                    : null,
                 precision, false, parameterIndex, null);
 
         if (loggerExternal.isLoggable(Level.FINER)) {

@@ -17,22 +17,28 @@ public interface PerformanceLogCallback {
 
     /**
      * Publish performance log for connection-level activities.
-     * @param activity        The type of activity being logged.
-     * @param connectionId    The ID of the connection.
-     * @param duration        The duration of the operation (milliseconds by default, nanoseconds if
-     *                        {@link #useNanoseconds()} returns true).
-     * @param exception       An exception, if an error occurred.
+     * 
+     * @param activity     The type of activity being logged.
+     * @param connectionId The ID of the connection.
+     * @param duration     The duration of the operation (milliseconds by default,
+     *                     nanoseconds if
+     *                     {@link #useNanoseconds()} returns true).
+     * @param exception    An exception, if an error occurred.
+     * @throws Exception if the callback cannot publish the performance event.
      */
     void publish(PerformanceActivity activity, int connectionId, long duration, Exception exception) throws Exception;
 
     /**
      * Publish performance log for statement-level activities.
-     * @param activity        The type of activity being logged.
-     * @param connectionId    The ID of the connection.
-     * @param statementId     The ID of the statement (if applicable).
-     * @param duration        The duration of the operation (milliseconds by default, nanoseconds if
-     *                        {@link #useNanoseconds()} returns true).
-     * @param exception       An exception, if an error occurred.
+     * 
+     * @param activity     The type of activity being logged.
+     * @param connectionId The ID of the connection.
+     * @param statementId  The ID of the statement (if applicable).
+     * @param duration     The duration of the operation (milliseconds by default,
+     *                     nanoseconds if
+     *                     {@link #useNanoseconds()} returns true).
+     * @param exception    An exception, if an error occurred.
+     * @throws Exception if the callback cannot publish the performance event.
      */
     void publish(PerformanceActivity activity, int connectionId, int statementId, long duration, Exception exception) throws Exception;
 
