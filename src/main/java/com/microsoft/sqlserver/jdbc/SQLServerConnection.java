@@ -6952,8 +6952,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     } catch (Exception e) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_InvalidAccessTokenCallbackClass"));
-                        throw new SQLServerException(form.format(new Object[] { accessTokenCallbackClass }),
-                                e.getCause());
+                        throw new SQLServerException(form.format(new Object[] { accessTokenCallbackClass }), e);
                     }
                 } else if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString())
                         && null != accessTokenCallback) {
