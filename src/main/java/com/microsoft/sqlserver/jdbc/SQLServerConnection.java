@@ -6298,6 +6298,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private void logon(LogonCommand command) throws SQLServerException {
         SSPIAuthentication authentication = null;
+        byte[] channelBindingInfo = null != tdsChannel ? tdsChannel.getChannelBindingInfo() : null;
 
         if (integratedSecurity) {
             if (AuthenticationScheme.NATIVE_AUTHENTICATION == intAuthScheme) {
@@ -6307,10 +6308,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (null != impersonatedUserCred || useDefaultGSSCredential) {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
                             currentConnectPlaceHolder.getPortNumber(), impersonatedUserCred, isUserCreatedCredential,
-                            useDefaultGSSCredential);
+                            useDefaultGSSCredential, channelBindingInfo);
                 } else {
                     authentication = new KerbAuthentication(this, currentConnectPlaceHolder.getServerName(),
-                            currentConnectPlaceHolder.getPortNumber());
+                            currentConnectPlaceHolder.getPortNumber(), channelBindingInfo);
                 }
             } else if (ntlmAuthentication) {
                 if (null == ntlmPasswordHash) {
@@ -6322,8 +6323,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 authentication = new NTLMAuthentication(this,
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.DOMAIN.toString()),
                         activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString()),
-                        ntlmPasswordHash, hostName);
+                        ntlmPasswordHash, hostName, channelBindingInfo);
             }
+        }
+        if (null != channelBindingInfo) {
+            Arrays.fill(channelBindingInfo, (byte) 0);
+        }
+        if (null != tdsChannel) {
+            tdsChannel.clearChannelBindingInfo();
         }
         /*
          * If the workflow being used is Active Directory Password or Active Directory Integrated and server's prelogin

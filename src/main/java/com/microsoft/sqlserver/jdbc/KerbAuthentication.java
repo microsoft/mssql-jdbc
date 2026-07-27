@@ -10,8 +10,10 @@ import java.lang.reflect.Method;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.logging.Level;
 
+import org.ietf.jgss.ChannelBinding;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
@@ -23,7 +25,6 @@ import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
 
-
 /**
  * KerbAuthentication for integrated authentication.
  */
@@ -33,6 +34,7 @@ final class KerbAuthentication extends SSPIAuthentication {
 
     private final SQLServerConnection con;
     private final String spn;
+    private byte[] channelBindingInfo;
 
     private final GSSManager manager = GSSManager.getInstance();
     private LoginContext lc = null;
@@ -65,6 +67,9 @@ final class KerbAuthentication extends SSPIAuthentication {
             if (null != peerCredentials) {
                 peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
                         GSSContext.DEFAULT_LIFETIME);
+                if (null != channelBindingInfo) {
+                    peerContext.setChannelBinding(new ChannelBinding(channelBindingInfo));
+                }
                 peerContext.requestCredDeleg(false);
                 peerContext.requestMutualAuth(true);
                 peerContext.requestInteg(true);
@@ -158,6 +163,10 @@ final class KerbAuthentication extends SSPIAuthentication {
                 }
                 peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
                         GSSContext.DEFAULT_LIFETIME);
+
+                if (null != channelBindingInfo) {
+                    peerContext.setChannelBinding(new ChannelBinding(channelBindingInfo));
+                }
 
                 // The following flags should be inline with our native implementation.
                 peerContext.requestCredDeleg(true);
@@ -324,9 +333,15 @@ final class KerbAuthentication extends SSPIAuthentication {
     }
 
     // Package visible members below.
-    KerbAuthentication(SQLServerConnection con, String address, int port) {
+    KerbAuthentication(SQLServerConnection con, String address, int port, byte[] channelBindingInfo) {
         this.con = con;
         this.spn = null != con ? getSpn(con) : null;
+        this.channelBindingInfo = null == channelBindingInfo ? null : Arrays.copyOf(channelBindingInfo,
+                channelBindingInfo.length);
+    }
+
+    KerbAuthentication(SQLServerConnection con, String address, int port) {
+        this(con, address, port, null);
     }
 
     /**
@@ -337,11 +352,16 @@ final class KerbAuthentication extends SSPIAuthentication {
      * @param impersonatedUserCred
      */
     KerbAuthentication(SQLServerConnection con, String address, int port, GSSCredential impersonatedUserCred,
-            boolean isUserCreated, boolean useDefaultNativeGSSCredential) {
-        this(con, address, port);
+            boolean isUserCreated, boolean useDefaultNativeGSSCredential, byte[] channelBindingInfo) {
+        this(con, address, port, channelBindingInfo);
         this.peerCredentials = impersonatedUserCred;
         this.isUserCreatedCredential = isUserCreated;
         this.useDefaultNativeGSSCredential = useDefaultNativeGSSCredential;
+    }
+
+    KerbAuthentication(SQLServerConnection con, String address, int port, GSSCredential impersonatedUserCred,
+            boolean isUserCreated, boolean useDefaultNativeGSSCredential) {
+        this(con, address, port, impersonatedUserCred, isUserCreated, useDefaultNativeGSSCredential, null);
     }
 
     byte[] generateClientContext(byte[] pin, boolean[] done) throws SQLServerException {
@@ -375,6 +395,11 @@ final class KerbAuthentication extends SSPIAuthentication {
             // to eat previous login errors if caused before which is more useful to the user than the cleanup errors.
             if (authLogger.isLoggable(Level.FINE)) {
                 authLogger.fine(toString() + " Release of the credentials failed GSSException: " + e);
+            }
+        } finally {
+            if (null != channelBindingInfo) {
+                Arrays.fill(channelBindingInfo, (byte) 0);
+                channelBindingInfo = null;
             }
         }
     }

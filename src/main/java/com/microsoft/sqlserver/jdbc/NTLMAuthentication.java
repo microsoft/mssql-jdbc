@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
 import java.time.Instant;
@@ -20,7 +21,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import mssql.security.provider.MD4;
-
 
 /**
  * Provides an implementation of NTLMv2 authentication
@@ -144,6 +144,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * NTLM_AVID_MSVAVTIMESTAMP       FILETIME structure that contains the server local time (ALWAYS present in CHALLENGE_MESSAGE
      * NTLM_AVID_MSVAVSINGLEHOST      Single Host Data structure  (not currently used)
      * NTLM_AVID_MSVAVTARGETNAME      SPN of the target server in unicode (not currently used)
+    * NTLM_AVID_MSVAVCHANNELBINDING  the MD5 hash of the channel binding info
      * </pre>
      */
     private static final short NTLM_AVID_MSVAVEOL = 0x0000;
@@ -156,6 +157,15 @@ final class NTLMAuthentication extends SSPIAuthentication {
     private static final short NTLM_AVID_MSVAVTIMESTAMP = 0x0007;
     private static final short NTLM_AVID_MSVAVSINGLEHOST = 0x0008;
     private static final short NTLM_AVID_MSVAVTARGETNAME = 0x0009;
+    private static final short NTLM_AVID_MSVAVCHANNELBINDING = 0x000a;
+
+    /**
+     * MD5 hashed channel binding info. Null means no channel binding AV_PAIR will
+     * be sent.
+     */
+    private byte[] msvAvChannelBindings = null;
+
+    private byte[] channelBindingInfo = null;
 
     /**
      * Section 2.2.2.1 AV_PAIR
@@ -334,10 +344,18 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *         if error occurs
      */
     NTLMAuthentication(final SQLServerConnection con, final String domainName, final String userName,
-            final byte[] passwordHash, final String workstation) throws SQLServerException {
+            final byte[] passwordHash, final String workstation, final byte[] channelBindingInfo)
+            throws SQLServerException {
+        this.channelBindingInfo = null == channelBindingInfo ? null : Arrays.copyOf(channelBindingInfo,
+                channelBindingInfo.length);
         if (null == context) {
             this.context = new NTLMContext(con, domainName, userName, passwordHash, workstation);
         }
+    }
+
+    NTLMAuthentication(final SQLServerConnection con, final String domainName, final String userName,
+            final byte[] passwordHash, final String workstation) throws SQLServerException {
+        this(con, domainName, userName, passwordHash, workstation, null);
     }
 
     /**
@@ -365,6 +383,14 @@ final class NTLMAuthentication extends SSPIAuthentication {
     @Override
     void releaseClientContext() {
         context = null;
+        if (null != channelBindingInfo) {
+            Arrays.fill(channelBindingInfo, (byte) 0);
+            channelBindingInfo = null;
+        }
+        if (null != msvAvChannelBindings) {
+            Arrays.fill(msvAvChannelBindings, (byte) 0);
+            msvAvChannelBindings = null;
+        }
     }
 
     /**
@@ -532,11 +558,13 @@ final class NTLMAuthentication extends SSPIAuthentication {
      *        client challenge nonce
      * @return client challenge blob
      */
-    private byte[] generateClientChallengeBlob(final byte[] clientNonce) {
+    private byte[] generateClientChallengeBlob(final byte[] clientNonce) throws SQLServerException {
         // timestamp is number of 100 nanosecond ticks since Windows Epoch
         ByteBuffer time = ByteBuffer.allocate(NTLM_TIMESTAMP_LENGTH).order(ByteOrder.LITTLE_ENDIAN);
         time.putLong((TimeUnit.SECONDS.toNanos(Instant.now().getEpochSecond() + WINDOWS_EPOCH_DIFF)) / 100);
         byte[] currentTime = time.array();
+
+        calculateChannelBindingMD5Hash();
 
         // allocate token buffer
         ByteBuffer token = ByteBuffer
@@ -544,7 +572,11 @@ final class NTLMAuthentication extends SSPIAuthentication {
                         + NTLM_CLIENT_CHALLENGE_RESERVED2.length + currentTime.length + NTLM_CLIENT_NONCE_LENGTH
                         + NTLM_CLIENT_CHALLENGE_RESERVED3.length + context.targetInfo.length
                         + /* add MIC */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + NTLM_AVID_MSVAVFLAGS_LEN
-                        + /* add SPN */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + context.spnUbytes.length)
+                + /* add SPN */ NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH + context.spnUbytes.length
+                        + /* add channel binding */ ((null != msvAvChannelBindings)
+                                ? NTLM_AVID_LENGTH + NTLM_AVLEN_LENGTH
+                                        + msvAvChannelBindings.length
+                                : 0))
                 .order(ByteOrder.LITTLE_ENDIAN);
 
         token.put(NTLM_CLIENT_CHALLENGE_RESPONSE_TYPE);
@@ -581,6 +613,13 @@ final class NTLMAuthentication extends SSPIAuthentication {
         token.putShort((short) context.spnUbytes.length);
         token.put(context.spnUbytes, 0, context.spnUbytes.length);
 
+        if (null != msvAvChannelBindings) {
+            // Channel binding
+            token.putShort(NTLM_AVID_MSVAVCHANNELBINDING);
+            token.putShort((short) msvAvChannelBindings.length);
+            token.put(msvAvChannelBindings, 0, msvAvChannelBindings.length);
+        }
+
         // EOL
         token.putShort(NTLM_AVID_MSVAVEOL);
         token.putShort((short) 0);
@@ -605,6 +644,34 @@ final class NTLMAuthentication extends SSPIAuthentication {
         SecretKeySpec keySpec = new SecretKeySpec(key, "HmacMD5"); // CodeQL [SM05136] HmacMD5 is required for NTLM support
         context.mac.init(keySpec);
         return context.mac.doFinal(data);
+    }
+
+    private void calculateChannelBindingMD5Hash() throws SQLServerException {
+        try {
+            // This consumes the per-authentication CBT value, NTLM currently calls it once
+            // per auth exchange.
+            if (null == channelBindingInfo || 0 == channelBindingInfo.length) {
+                msvAvChannelBindings = null;
+                return;
+            }
+
+            MessageDigest md5 = MessageDigest.getInstance("MD5");
+            md5.update(new byte[4]); // Initiator address
+            md5.update(new byte[4]); // Initiator address length
+            md5.update(new byte[4]); // Acceptor address
+            md5.update(new byte[4]); // Acceptor address length
+            md5.update(new byte[] {(byte) channelBindingInfo.length, (byte) 0, (byte) 0, (byte) 0});
+            md5.update(channelBindingInfo);
+
+            msvAvChannelBindings = md5.digest();
+        } catch (NoSuchAlgorithmException e) {
+            throw new SQLServerException("Failed to calculate NTLM channel binding hash.", e);
+        } finally {
+            if (null != channelBindingInfo) {
+                Arrays.fill(channelBindingInfo, (byte) 0);
+                channelBindingInfo = null;
+            }
+        }
     }
 
     /**
@@ -700,7 +767,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @throws InvalidKeyException
      *         if error getting hash due to invalid key
      */
-    private byte[] computeResponse(final byte[] responseKeyNT) throws InvalidKeyException {
+    private byte[] computeResponse(final byte[] responseKeyNT) throws InvalidKeyException, SQLServerException {
         // get random client challenge nonce
         byte[] clientNonce = new byte[NTLM_CLIENT_NONCE_LENGTH];
         ThreadLocalRandom.current().nextBytes(clientNonce);
@@ -724,7 +791,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
      * @throws InvalidKeyException
      *         if error getting hash due to invalid key
      */
-    private byte[] getNtChallengeResp() throws InvalidKeyException {
+    private byte[] getNtChallengeResp() throws InvalidKeyException, SQLServerException {
         byte[] responseKeyNT = ntowfv2();
         return computeResponse(responseKeyNT);
     }
