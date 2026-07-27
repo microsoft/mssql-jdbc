@@ -1891,6 +1891,28 @@ public class SQLServerConnectionTest extends AbstractTest {
                 conn.getAccessTokenCallbackClass(), "Should return null when accessTokenCallbackClass is not set");
     }
 
+    @Test
+    public void testInvalidAccessTokenCallbackClassPreservesCause() throws Exception {
+        SQLServerConnection connection = new SQLServerConnection("test");
+        Properties activeConnectionProperties = new Properties();
+        activeConnectionProperties.setProperty(SQLServerDriverStringProperty.USER.toString(), "user");
+        activeConnectionProperties.setProperty(SQLServerDriverStringProperty.PASSWORD.toString(), "password");
+        connection.activeConnectionProperties = activeConnectionProperties;
+
+        setConnectionField(connection, "authenticationString", SqlAuthentication.NOT_SPECIFIED.toString());
+        setConnectionField(connection, "accessTokenCallbackClass", "Invalid");
+
+        SQLServerConnection.SqlFedAuthInfo fedAuthInfo = connection.new SqlFedAuthInfo();
+        fedAuthInfo.spn = "https://database.windows.net/";
+        fedAuthInfo.stsurl = "https://login.windows.net/tenant";
+
+        SQLServerException exception = assertThrows(SQLServerException.class,
+                () -> connection.onFedAuthInfo(fedAuthInfo, null));
+
+        assertTrue(exception.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidAccessTokenCallbackClass")));
+        assertNotNull(exception.getCause());
+    }
+
     /**
      * Test isAzureMI for coverage.
      * Covers both Azure Managed Instance and non-Azure cases.
@@ -2227,9 +2249,8 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertEquals(Arrays.asList("path3"), result.get("SERVER2\\INSTANCEB"));
     }
 
-    // Helper to set private authenticationString
-    private void setAuthenticationString(SQLServerConnection conn, String value) throws Exception {
-        java.lang.reflect.Field field = SQLServerConnection.class.getDeclaredField("authenticationString");
+    private void setConnectionField(SQLServerConnection conn, String fieldName, Object value) throws Exception {
+        java.lang.reflect.Field field = SQLServerConnection.class.getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(conn, value);
     }
@@ -2248,7 +2269,7 @@ public class SQLServerConnectionTest extends AbstractTest {
     @Tag(Constants.CodeCov)
     public void testConnectActiveDirectoryInteractiveTimeout() throws Exception {
         SQLServerConnection conn = new SQLServerConnection("test");
-        setAuthenticationString(conn, "ActiveDirectoryInteractive");
+        setConnectionField(conn, "authenticationString", "ActiveDirectoryInteractive");
         Properties props = new Properties();
         props.setProperty("loginTimeout", "1");
         // connectInternal will throw, but we want to check the timeout is multiplied
