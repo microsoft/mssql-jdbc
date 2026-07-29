@@ -206,7 +206,36 @@ public class VectorFloat16Test extends VectorTest {
     }
 
     /**
-     * Validates basic vector data insert and retrieve for FLOAT16.
+     * Tests that sending a FLOAT16 vector via TVP is rejected on a v1 connection.
+     * TVP columns bypass Parameter.java's type definition logic, so the version
+     * negotiation check in writeTVPColumnMetaData is the only gating point.
+     */
+    @Test
+    public void testFloat16VectorTVPRejectedOnV1Connection() throws SQLException {
+        String connStr = connectionString + ";vectorTypeSupport=v1";
+        try (SQLServerConnection v1Connection = (SQLServerConnection) DriverManager.getConnection(connStr)) {
+            Assumptions.assumeTrue(v1Connection.getNegotiatedVectorVersion() >= 1,
+                    "Server did not negotiate vector version 1. Skipping test.");
+
+            SQLServerDataTable tvp = new SQLServerDataTable();
+            tvp.addColumnMetadata("c1", microsoft.sql.Types.VECTOR);
+            Float[] data = createTestData(1.0f, 2.0f, 3.0f);
+            tvp.addRow(new Vector(3, VectorDimensionType.FLOAT16, data));
+
+            // Use a dummy INSERT via TVP — the error should occur during TVP metadata writing
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) v1Connection
+                    .prepareStatement("SELECT * FROM ?")) {
+                pstmt.setStructured(1, null, tvp);
+                pstmt.execute();
+                fail("Expected SQLServerException when sending FLOAT16 vector via TVP on v1 connection.");
+            } catch (SQLServerException e) {
+                assertTrue(e.getMessage().contains("FLOAT16 vector type is not supported"),
+                        "Expected FLOAT16 not supported error, but got: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
      * FLOAT16 has reduced precision (10-bit mantissa) so values may differ slightly after round-trip.
      */
     @Test

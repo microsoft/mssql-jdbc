@@ -5688,6 +5688,18 @@ final class TDSWriter {
                     break;
                 
                 case VECTOR:
+                    // TVP columns bypass Parameter.java's type definition logic, so version
+                    // negotiation must be enforced here — this is the only gating point for
+                    // vector columns inside table-valued parameters.
+                    if (con.getNegotiatedVectorVersion() <= 0) {
+                        throw new SQLServerException(
+                                SQLServerException.getErrString("R_vectorNotSupported"), null, 0, null);
+                    }
+                    // scale == 2 means FLOAT16 (2 bytes per dimension); reject when server only supports v1 (FLOAT32)
+                    if (pair.getValue().scale == 2 && con.getNegotiatedVectorVersion() == 1) {
+                        throw new SQLServerException(
+                                SQLServerException.getErrString("R_float16VectorNotSupported"), null, 0, null);
+                    }
                     writeByte(TDSType.VECTOR.byteValue());
                     writeShort((short) (VectorUtils.getVectorLength(pair.getValue().scale,  pair.getValue().precision))); // max length
                     byte scaleByte = (byte) (VectorUtils.getScaleByte(pair.getValue().scale));
