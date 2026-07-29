@@ -217,20 +217,30 @@ public class VectorFloat16Test extends VectorTest {
             Assumptions.assumeTrue(v1Connection.getNegotiatedVectorVersion() >= 1,
                     "Server did not negotiate vector version 1. Skipping test.");
 
-            SQLServerDataTable tvp = new SQLServerDataTable();
-            tvp.addColumnMetadata("c1", microsoft.sql.Types.VECTOR);
-            Float[] data = createTestData(1.0f, 2.0f, 3.0f);
-            tvp.addRow(new Vector(3, VectorDimensionType.FLOAT16, data));
+        String tvpTypeName = RandomUtil.getIdentifier(
+                "Float16VectorTVPType_" + UUID.randomUUID().toString().substring(0, 8));
+        String escapedTvpTypeName = AbstractSQLGenerator.escapeIdentifier(tvpTypeName);
+        try (Statement stmt = v1Connection.createStatement()) {
+            // Use FLOAT32 column definition so the type can be created even when FLOAT16 DDL isn't supported.
+            stmt.executeUpdate("CREATE TYPE " + escapedTvpTypeName + " AS TABLE (c1 VECTOR(3) NULL)");
+        }
 
-            // Use a dummy INSERT via TVP — the error should occur during TVP metadata writing
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) v1Connection
-                    .prepareStatement("SELECT * FROM ?")) {
-                pstmt.setStructured(1, null, tvp);
-                pstmt.execute();
-                fail("Expected SQLServerException when sending FLOAT16 vector via TVP on v1 connection.");
-            } catch (SQLServerException e) {
-                assertTrue(e.getMessage().contains("FLOAT16 vector type is not supported"),
-                        "Expected FLOAT16 not supported error, but got: " + e.getMessage());
+        SQLServerDataTable tvp = new SQLServerDataTable();
+        tvp.addColumnMetadata("c1", microsoft.sql.Types.VECTOR);
+        Float[] data = createTestData(1.0f, 2.0f, 3.0f);
+        tvp.addRow(new Vector(3, VectorDimensionType.FLOAT16, data));
+
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) v1Connection
+                .prepareStatement("SELECT * FROM ?;")) {
+            pstmt.setStructured(1, tvpTypeName, tvp);
+            pstmt.execute();
+            fail("Expected SQLServerException when sending FLOAT16 vector via TVP on v1 connection.");
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().contains("FLOAT16 vector type is not supported"),
+                    "Expected FLOAT16 not supported error, but got: " + e.getMessage());
+        } finally {
+            try (Statement stmt = v1Connection.createStatement()) {
+                TestUtils.dropTypeIfExists(tvpTypeName, stmt);
             }
         }
     }
