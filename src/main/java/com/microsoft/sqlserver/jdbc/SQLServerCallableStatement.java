@@ -2033,6 +2033,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                         || java.sql.Types.NVARCHAR == sqlType || java.sql.Types.NCHAR == sqlType
                         || java.sql.Types.VARBINARY == sqlType || java.sql.Types.BINARY == sqlType) ? decimals : null,
                 precision, false, findColumn(parameterName), null);
+
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "setObject");
         }
