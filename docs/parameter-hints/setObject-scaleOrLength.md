@@ -102,7 +102,11 @@ The same 6 bounded variable-length types are supported:
 | `Types.VARBINARY` | `varbinary(8000)` | `varbinary(N)` | Binary equivalent |
 | `Types.BINARY` | `varbinary(8000)` | `varbinary(N)` | Maps to VARBINARY on wire |
 
-For all other types (INT, DECIMAL, CLOB, etc.), the `scaleOrLength` parameter is ignored per JDBC specification.
+For all other types the `scaleOrLength` parameter is not treated as a length hint. Note that it retains its
+pre-existing JDBC meaning where applicable: it is still the scale for `DECIMAL`/`NUMERIC` and for the temporal
+types (`TIMESTAMP`, `TIME`, `DATETIMEOFFSET`), and the stream length for `InputStream`/`Reader` values. This
+applies equally to the ordinal `SQLServerPreparedStatement.setObject(int, ...)` overloads and the named-parameter
+`SQLServerCallableStatement.setObject(String, ...)` overloads.
 
 ## Behavior and Semantics
 
