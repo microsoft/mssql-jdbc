@@ -2011,6 +2011,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             loggerExternal.entering(getClassNameLogging(), "setObject",
                     new Object[] {parameterName, value, sqlType, decimals});
         checkClosed();
+
         // decimals - for java.sql.Types.DECIMAL, java.sql.Types.NUMERIC or temporal types,
         // this is the number of digits after the decimal point. For Java Object types
         // InputStream and Reader, this is the length of the data in the stream or reader.
@@ -2055,7 +2056,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                     new Object[] {parameterName, value, sqlType, decimals, forceEncrypt});
         checkClosed();
 
-        // scale - for java.sql.Types.DECIMAL, java.sql.Types.NUMERIC or temporal types,
+        // decimals - for java.sql.Types.DECIMAL, java.sql.Types.NUMERIC or temporal types,
         // this is the number of digits after the decimal point. For Java Object types
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For supported short character/binary SQL types (VARCHAR, CHAR, NVARCHAR, NCHAR,
@@ -2063,15 +2064,20 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         // as a maximum length constraint.
         // Precedence: defineParameterType() hint (if present) takes priority over this value.
         // For all other types, this value will be ignored.
+        Integer precision = null;
+        if (microsoft.sql.Types.VECTOR == sqlType && value instanceof Vector) {
+            precision = ((Vector) value).getDimensionCount();
+        }
+
         setObject(setterGetParam(findColumn(parameterName)), value, JavaType.of(value), JDBCType.of(sqlType),
                 (java.sql.Types.NUMERIC == sqlType || java.sql.Types.DECIMAL == sqlType
                         || java.sql.Types.TIMESTAMP == sqlType || java.sql.Types.TIME == sqlType
                         || microsoft.sql.Types.DATETIMEOFFSET == sqlType || InputStream.class.isInstance(value)
-                        || Reader.class.isInstance(value)
+                        || Reader.class.isInstance(value) || microsoft.sql.Types.VECTOR == sqlType
                         || java.sql.Types.VARCHAR == sqlType || java.sql.Types.CHAR == sqlType
                         || java.sql.Types.NVARCHAR == sqlType || java.sql.Types.NCHAR == sqlType
                         || java.sql.Types.VARBINARY == sqlType || java.sql.Types.BINARY == sqlType) ? decimals : null,
-                null, forceEncrypt, findColumn(parameterName), null);
+                precision, forceEncrypt, findColumn(parameterName), null);
 
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "setObject");
