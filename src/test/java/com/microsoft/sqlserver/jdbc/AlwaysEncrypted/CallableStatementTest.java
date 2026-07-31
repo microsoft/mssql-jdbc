@@ -300,6 +300,8 @@ public class CallableStatementTest extends AESetup {
         createMixedProcedureDateScale();
         testMixedProcedureDateScaleInorder("{call " + outputProcedureDateScale + "(?,?,?,?,?,?)}");
         testMixedProcedureDateScaleWithParameterName("{call " + outputProcedureDateScale + "(?,?,?,?,?,?)}");
+        testMixedProcedureDateScaleWithParameterNameSetObject(
+                "{call " + outputProcedureDateScale + "(?,?,?,?,?,?)}");
     }
 
     @ParameterizedTest
@@ -2592,6 +2594,99 @@ public class CallableStatementTest extends AESetup {
 
         } catch (Exception e) {
             fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Verifies that the scale supplied to the named-parameter
+     * {@link SQLServerCallableStatement#setObject(String, Object, int, int)} overload is honored for temporal
+     * types under Always Encrypted. When the scale is dropped, the driver declares the parameter with the
+     * default fractional seconds scale (7) and the server rejects the call with an operand type clash against
+     * the encrypted datetime2(2)/time(2)/datetimeoffset(2) column.
+     */
+    private void testMixedProcedureDateScaleWithParameterNameSetObject(String sql) throws SQLException {
+
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                SQLServerCallableStatement callableStatement = (SQLServerCallableStatement) TestUtils
+                        .getCallableStmt(con, sql, stmtColEncSetting)) {
+
+            callableStatement.registerOutParameter("p1", java.sql.Types.TIMESTAMP, 2);
+            callableStatement.registerOutParameter("p2", java.sql.Types.TIMESTAMP, 2);
+            callableStatement.registerOutParameter("p3", java.sql.Types.TIME, 2);
+            callableStatement.registerOutParameter("p4", java.sql.Types.TIME, 2);
+            callableStatement.registerOutParameter("p5", microsoft.sql.Types.DATETIMEOFFSET, 2);
+            callableStatement.registerOutParameter("p6", microsoft.sql.Types.DATETIMEOFFSET, 2);
+            callableStatement.setObject("p1", dateValues.get(4), java.sql.Types.TIMESTAMP, 2);
+            callableStatement.setObject("p3", dateValues.get(5), java.sql.Types.TIME, 2);
+            callableStatement.setObject("p5", dateValues.get(6), microsoft.sql.Types.DATETIMEOFFSET, 2);
+            callableStatement.execute();
+
+            assertEquals(callableStatement.getTimestamp(1), callableStatement.getTimestamp(2),
+                    TestResource.getResource("R_outputParamFailed"));
+
+            assertEquals(callableStatement.getTime(3), callableStatement.getTime(4),
+                    TestResource.getResource("R_outputParamFailed"));
+
+            assertEquals(callableStatement.getDateTimeOffset(5), callableStatement.getDateTimeOffset(6),
+                    TestResource.getResource("R_outputParamFailed"));
+
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Compares PreparedStatement and CallableStatement behavior for TIMESTAMP (datetime2)
+     * with explicit scale under Always Encrypted. Both paths should honor scale=2 and
+     * produce identical results — validates the fix for the regression where
+     * CallableStatement's named-parameter setObject was dropping the scale.
+     */
+    @Test
+    public void testTimestampScaleWithPreparedVsCallable() throws Exception {
+        String tsTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("tsScaleTest"));
+        String tsProc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("tsScaleProc"));
+
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
+            TestUtils.dropProcedureIfExists(tsProc, stmt);
+            TestUtils.dropTableIfExists(tsTable, stmt);
+
+            stmt.execute("CREATE TABLE " + tsTable + " (id INT IDENTITY, ts datetime2(2))");
+            stmt.execute("CREATE PROCEDURE " + tsProc
+                    + " @ts datetime2(2) AS BEGIN INSERT INTO " + tsTable + " (ts) VALUES (@ts); END");
+
+            Timestamp testValue = Timestamp.valueOf("2025-06-15 10:30:45.12");
+
+            // PreparedStatement path: setObject with scale=2
+            try (PreparedStatement ps = con.prepareStatement("INSERT INTO " + tsTable + " (ts) VALUES (?)")) {
+                ps.setObject(1, testValue, java.sql.Types.TIMESTAMP, 2);
+                ps.execute();
+            }
+
+            // CallableStatement path: setObject(name, value, type, scale)
+            try (SQLServerCallableStatement cs = (SQLServerCallableStatement) con
+                    .prepareCall("{call " + tsProc + "(?)}")) {
+                cs.setObject("@ts", testValue, java.sql.Types.TIMESTAMP, 2);
+                cs.execute();
+            }
+
+            // Verify both rows produce the same value
+            try (ResultSet rs = stmt.executeQuery("SELECT ts FROM " + tsTable + " ORDER BY id")) {
+                assertTrue(rs.next(), "Expected first row (PreparedStatement insert)");
+                Timestamp psResult = rs.getTimestamp(1);
+
+                assertTrue(rs.next(), "Expected second row (CallableStatement insert)");
+                Timestamp csResult = rs.getTimestamp(1);
+
+                assertEquals(psResult, csResult,
+                        "PreparedStatement and CallableStatement should produce identical results");
+            }
+        } finally {
+            try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                    Statement stmt = con.createStatement()) {
+                TestUtils.dropProcedureIfExists(tsProc, stmt);
+                TestUtils.dropTableIfExists(tsTable, stmt);
+            }
         }
     }
 }
