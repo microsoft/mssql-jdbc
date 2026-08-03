@@ -1022,6 +1022,8 @@ final class Util {
     @SuppressWarnings("unchecked")
     static <T> T newInstance(Class<?> returnType, String className, String constructorArg,
             Object[] msgArgs) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
+        validateClassName(className, msgArgs);
+
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         if (classLoader == null) {
             classLoader = Util.class.getClassLoader();
@@ -1036,6 +1038,45 @@ final class Util {
         } else {
             return (T) clazz.getDeclaredConstructor(String.class).newInstance(constructorArg);
         }
+    }
+
+    private static void validateClassName(String className, Object[] msgArgs) {
+        if (isValidJavaBinaryClassName(className)) {
+            return;
+        }
+
+        String propertyName = (null != msgArgs && msgArgs.length > 0 && null != msgArgs[0]) ? msgArgs[0].toString()
+                : "unknown";
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidClassNameForProperty"));
+        throw new IllegalArgumentException(form.format(new Object[] { propertyName, className }));
+    }
+
+    private static boolean isValidJavaBinaryClassName(String className) {
+        if (null == className || className.isEmpty()) {
+            return false;
+        }
+
+        String[] tokens = className.split("\\.", -1);
+        for (String token : tokens) {
+            if (token.isEmpty()) {
+                return false;
+            }
+
+            int cp = token.codePointAt(0);
+            if (!Character.isJavaIdentifierStart(cp)) {
+                return false;
+            }
+
+            for (int i = Character.charCount(cp); i < token.length();) {
+                cp = token.codePointAt(i);
+                if (!Character.isJavaIdentifierPart(cp)) {
+                    return false;
+                }
+                i += Character.charCount(cp);
+            }
+        }
+
+        return true;
     }
 
     /**
