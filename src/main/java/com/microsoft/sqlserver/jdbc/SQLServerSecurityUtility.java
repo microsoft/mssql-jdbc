@@ -383,9 +383,22 @@ class SQLServerSecurityUtility {
 
         SqlAuthenticationToken sqlFedAuthToken = null;
 
-        Optional<AccessToken> accessTokenOptional = mic.getToken(tokenRequestContext).timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS)).blockOptional();
+        Optional<AccessToken> accessTokenOptional;
+        try {
+            accessTokenOptional = mic.getToken(tokenRequestContext)
+                    .timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS))
+                    .blockOptional();
+        } catch (RuntimeException e) {
+            // A transient failure (e.g. Managed Identity endpoint outage or timeout) can leave the cached
+            // credential's internal token state in a failed state, causing every subsequent token request on the
+            // same instance to keep failing. Evict the cached credential so the next attempt builds a fresh
+            // instance and can recover, instead of failing persistently until the process is restarted.
+            removeCredentialFromCache(key, mic);
+            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"), e);
+        }
 
         if (!accessTokenOptional.isPresent()) {
+            removeCredentialFromCache(key, mic);
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
                     null);
         } else {
@@ -467,9 +480,22 @@ class SQLServerSecurityUtility {
 
         SqlAuthenticationToken sqlFedAuthToken = null;
 
-        Optional<AccessToken> accessTokenOptional = dac.getToken(tokenRequestContext).timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS)).blockOptional();
+        Optional<AccessToken> accessTokenOptional;
+        try {
+            accessTokenOptional = dac.getToken(tokenRequestContext)
+                    .timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS))
+                    .blockOptional();
+        } catch (RuntimeException e) {
+            // A transient failure (e.g. Managed Identity endpoint outage or timeout) can leave the cached
+            // credential's internal token state in a failed state, causing every subsequent token request on the
+            // same instance to keep failing. Evict the cached credential so the next attempt builds a fresh
+            // instance and can recover, instead of failing persistently until the process is restarted.
+            removeCredentialFromCache(key, dac);
+            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"), e);
+        }
 
         if (!accessTokenOptional.isPresent()) {
+            removeCredentialFromCache(key, dac);
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
                     null);
         } else {
@@ -499,6 +525,35 @@ class SQLServerSecurityUtility {
         }
 
         return null;
+    }
+
+    /**
+     * Removes a cached credential so that a subsequent token request rebuilds a fresh credential instance.
+     *
+     * This is used to recover from a poisoned credential whose internal token state has been left in a failed state
+     * by a transient error (e.g. a Managed Identity endpoint outage or timeout). Without eviction, every pooled
+     * connection would keep reusing the same failing credential, causing the failure to persist until the process is
+     * restarted.
+     *
+     * The removal is conditional on the currently cached credential still being the same instance that failed. This
+     * avoids discarding a healthy credential that another thread may have already rebuilt and cached under the same
+     * key while this thread was waiting on its (now failed) token request.
+     *
+     * @param key
+     *        the credential cache key
+     * @param expectedCredential
+     *        the credential instance that failed; only evicted if it is still the cached instance
+     */
+    private static void removeCredentialFromCache(String key, Object expectedCredential) {
+        CREDENTIAL_LOCK.lock();
+        try {
+            Credential current = CREDENTIAL_CACHE.get(key);
+            if (null != current && current.tokenCredential == expectedCredential) {
+                CREDENTIAL_CACHE.remove(key);
+            }
+        } finally {
+            CREDENTIAL_LOCK.unlock();
+        }
     }
 
     private static class Credential {

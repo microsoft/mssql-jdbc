@@ -24,10 +24,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -42,6 +44,8 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -74,6 +78,12 @@ import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
+
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.ManagedIdentityCredential;
+
+import reactor.core.publisher.Mono;
 
 
 @RunWith(JUnitPlatform.class)
@@ -1528,6 +1538,118 @@ public class SQLServerConnectionTest extends AbstractTest {
             // test pass
             assertTrue(e.getMessage().contains(SQLServerException.getErrString("R_connectionTimedOut")), "Expected Timeout Exception was not thrown");
         }        
+    }
+
+    /*
+     * Regression tests for issue #2999: a transient Managed Identity credential retrieval failure must not become
+     * permanently cached. The azure-identity credential objects (ManagedIdentityCredential / DefaultAzureCredential)
+     * are stored in a static credential cache and reused across all pooled connections. When a transient failure (e.g.
+     * a Managed Identity endpoint outage that causes a reactive timeout) poisons the cached credential's internal
+     * token state, every subsequent token request on that same instance keeps failing. The fix evicts the poisoned
+     * credential on failure so a subsequent attempt can rebuild a fresh credential and recover. On success, the
+     * credential must remain cached.
+     */
+    private static final String MI_TEST_RESOURCE = "https://database.windows.net/";
+    private static final String MI_TEST_CLIENT_ID = "00000000-0000-0000-0000-000000000001";
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> getCredentialCache() throws Exception {
+        Field cacheField = SQLServerSecurityUtility.class.getDeclaredField("CREDENTIAL_CACHE");
+        cacheField.setAccessible(true);
+        return (Map<String, Object>) cacheField.get(null);
+    }
+
+    private static Object wrapCredential(Object tokenCredential) throws Exception {
+        Class<?> credClass = Class.forName("com.microsoft.sqlserver.jdbc.SQLServerSecurityUtility$Credential");
+        Constructor<?> ctor = credClass.getDeclaredConstructor(Object.class);
+        ctor.setAccessible(true);
+        return ctor.newInstance(tokenCredential);
+    }
+
+    private static String managedIdentityCacheKey() throws SQLServerException {
+        return Util.getHashedSecret(
+                new String[] {MI_TEST_CLIENT_ID, ManagedIdentityCredential.class.getSimpleName()});
+    }
+
+    @Test
+    public void testManagedIdentityTransientFailureEvictsCachedCredential() throws Exception {
+        Map<String, Object> cache = getCredentialCache();
+        String key = managedIdentityCacheKey();
+
+        ManagedIdentityCredential mockCredential = mock(ManagedIdentityCredential.class);
+        when(mockCredential.getToken(any(TokenRequestContext.class)))
+                .thenReturn(Mono.error(new RuntimeException("Simulated transient Managed Identity endpoint outage")));
+
+        cache.put(key, wrapCredential(mockCredential));
+        assertTrue(cache.containsKey(key), "Precondition: credential should be cached before the failing call");
+
+        try {
+            assertThrows(SQLServerException.class, () -> SQLServerSecurityUtility
+                    .getManagedIdentityCredAuthToken(MI_TEST_RESOURCE, MI_TEST_CLIENT_ID, 5000L));
+
+            assertFalse(cache.containsKey(key),
+                    "A credential poisoned by a transient failure must be evicted so a fresh one can be built.");
+        } finally {
+            cache.remove(key);
+        }
+    }
+
+    @Test
+    public void testManagedIdentitySuccessfulTokenKeepsCachedCredential() throws Exception {
+        Map<String, Object> cache = getCredentialCache();
+        String key = managedIdentityCacheKey();
+
+        AccessToken token = new AccessToken("dummy-token", OffsetDateTime.now().plus(Duration.ofHours(1)));
+        ManagedIdentityCredential mockCredential = mock(ManagedIdentityCredential.class);
+        when(mockCredential.getToken(any(TokenRequestContext.class))).thenReturn(Mono.just(token));
+
+        cache.put(key, wrapCredential(mockCredential));
+
+        try {
+            SqlAuthenticationToken result = SQLServerSecurityUtility
+                    .getManagedIdentityCredAuthToken(MI_TEST_RESOURCE, MI_TEST_CLIENT_ID, 5000L);
+
+            assertNotNull(result, "A valid token should be returned on success.");
+            assertEquals("dummy-token", result.getAccessToken(), "Unexpected access token returned.");
+            assertTrue(cache.containsKey(key), "A working credential must remain cached across successful calls.");
+        } finally {
+            cache.remove(key);
+        }
+    }
+
+    /*
+     * Eviction must be identity-checked: a failing credential must only evict itself, never a healthy replacement that
+     * another thread rebuilt under the same key while this thread was waiting on its (now failed) token request. Here a
+     * failing credential is cached, then replaced by a healthy one before the failure is processed; the failing call
+     * must not evict the healthy replacement.
+     */
+    @Test
+    public void testManagedIdentityFailureDoesNotEvictHealthyReplacement() throws Exception {
+        Map<String, Object> cache = getCredentialCache();
+        String key = managedIdentityCacheKey();
+
+        ManagedIdentityCredential failingCredential = mock(ManagedIdentityCredential.class);
+        AccessToken token = new AccessToken("healthy-token", OffsetDateTime.now().plus(Duration.ofHours(1)));
+        // When the failing credential's token request is invoked, simulate another thread having already replaced the
+        // cached entry with a fresh, healthy credential before this failure is handled.
+        when(failingCredential.getToken(any(TokenRequestContext.class))).thenAnswer(invocation -> {
+            ManagedIdentityCredential healthyCredential = mock(ManagedIdentityCredential.class);
+            when(healthyCredential.getToken(any(TokenRequestContext.class))).thenReturn(Mono.just(token));
+            cache.put(key, wrapCredential(healthyCredential));
+            return Mono.error(new RuntimeException("Simulated transient Managed Identity endpoint outage"));
+        });
+
+        cache.put(key, wrapCredential(failingCredential));
+
+        try {
+            assertThrows(SQLServerException.class, () -> SQLServerSecurityUtility
+                    .getManagedIdentityCredAuthToken(MI_TEST_RESOURCE, MI_TEST_CLIENT_ID, 5000L));
+
+            assertTrue(cache.containsKey(key),
+                    "The healthy replacement credential must remain cached; only the failing instance may be evicted.");
+        } finally {
+            cache.remove(key);
+        }
     }
 
     @Test
