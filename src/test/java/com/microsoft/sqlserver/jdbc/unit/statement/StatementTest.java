@@ -1783,6 +1783,49 @@ public class StatementTest extends AbstractTest {
             }
         }
 
+        /**
+         * Tests that getGeneratedKeys() returns an empty ResultSet when the target table has no
+         * generated (identity) keys.
+         *
+         * Per the JDBC specification, if the Statement did not generate any keys, an empty ResultSet
+         * must be returned so that a call to ResultSet.next() returns false.
+         *
+         * Regression test for GitHub issue #3000.
+         *
+         * @throws Exception
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testGetGeneratedKeysNoIdentityColumn() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                // Table intentionally has no identity/generated key column.
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (ID int NOT NULL)");
+
+                // PreparedStatement path
+                try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " (ID) VALUES (?)",
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    pstmt.setInt(1, 123456);
+                    int affectedRows = pstmt.executeUpdate();
+                    assertEquals(1, affectedRows, TestResource.getResource("R_valueNotMatch"));
+
+                    try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                        assertFalse(generatedKeys.next(),
+                                "getGeneratedKeys() should return an empty ResultSet for a table without generated keys");
+                    }
+                }
+
+                // Statement path
+                int affectedRows = stmt.executeUpdate("INSERT INTO " + tableName + " (ID) VALUES (654321)",
+                        Statement.RETURN_GENERATED_KEYS);
+                assertEquals(1, affectedRows, TestResource.getResource("R_valueNotMatch"));
+
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    assertFalse(generatedKeys.next(),
+                            "getGeneratedKeys() should return an empty ResultSet for a table without generated keys");
+                }
+            }
+        }
+
         @AfterEach
         public void terminate() throws SQLException {
             try (Statement stmt = connection.createStatement()) {
