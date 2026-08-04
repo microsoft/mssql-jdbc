@@ -11,10 +11,10 @@ import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Optional;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -54,7 +54,7 @@ class SQLServerSecurityUtility {
     private static final String ADDITIONALLY_ALLOWED_TENANTS = "ADDITIONALLY_ALLOWED_TENANTS";
 
     // Credential Cache for ManagedIdentityCredential and DefaultAzureCredential
-    private static final HashMap<String, Credential> CREDENTIAL_CACHE = new HashMap<>();
+    private static final ConcurrentHashMap<String, Credential> CREDENTIAL_CACHE = new ConcurrentHashMap<>();
 
     private static final Lock CREDENTIAL_LOCK = new ReentrantLock();
 
@@ -394,7 +394,7 @@ class SQLServerSecurityUtility {
             // same instance to keep failing. Evict the cached credential so the next attempt builds a fresh
             // instance and can recover, instead of failing persistently until the process is restarted.
             removeCredentialFromCache(key, mic);
-            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"), e);
+            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionError"), e);
         }
 
         if (!accessTokenOptional.isPresent()) {
@@ -491,7 +491,7 @@ class SQLServerSecurityUtility {
             // same instance to keep failing. Evict the cached credential so the next attempt builds a fresh
             // instance and can recover, instead of failing persistently until the process is restarted.
             removeCredentialFromCache(key, dac);
-            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"), e);
+            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionError"), e);
         }
 
         if (!accessTokenOptional.isPresent()) {
