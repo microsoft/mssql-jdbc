@@ -1100,6 +1100,96 @@ public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
         }
 
         // ================================================================
+        // Cross-Type Bulk Copy CSV Tests (implicit conversion)
+        // ================================================================
+
+        /**
+         * Tests CSV import where data is declared as FLOAT16 (scale=2) but the
+         * destination column is FLOAT32 — implicit server-side conversion.
+         */
+        @Test
+        public void testBulkCopyCrossTypeCSVFloat16ToFloat32() throws SQLException {
+            String dstTable = AbstractSQLGenerator.escapeIdentifier(
+                    RandomUtil.getIdentifier("dstCSVF16toF32_" + mixedUuid.substring(0, 8)));
+            String fileName = csvFilePath + "BulkCopyCSVTestInputCrossTypeVector.csv";
+
+            try (Connection conn = DriverManager.getConnection(getMixedConnectionString());
+                    Statement stmt = conn.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+                    SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(
+                            fileName, null, ",", true)) {
+
+                stmt.executeUpdate("CREATE TABLE " + dstTable + " (v VECTOR(3))");
+
+                // Declare CSV column as FLOAT16 (scale=2), dest is FLOAT32
+                fileRecord.addColumnMetadata(1, "v", microsoft.sql.Types.VECTOR, 3, 2);
+                fileRecord.setEscapeColumnDelimitersCSV(true);
+                bulkCopy.setDestinationTableName(dstTable);
+                bulkCopy.writeToServer(fileRecord);
+
+                try (ResultSet rs = stmt.executeQuery("SELECT v FROM " + dstTable + " ORDER BY v")) {
+                    int rowCount = 0;
+                    while (rs.next()) {
+                        Vector result = rs.getObject("v", Vector.class);
+                        assertNotNull(result, "Row " + (rowCount + 1) + " vector is null.");
+                        assertEquals(VectorDimensionType.FLOAT32, result.getVectorDimensionType());
+                        assertEquals(3, result.getDimensionCount());
+                        rowCount++;
+                    }
+                    assertEquals(3, rowCount, "CSV cross-type row count mismatch.");
+                }
+            } finally {
+                try (Connection conn = DriverManager.getConnection(getMixedConnectionString());
+                        Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+
+        /**
+         * Tests CSV import where data is declared as FLOAT32 (scale=4) but the
+         * destination column is FLOAT16 — implicit server-side conversion.
+         */
+        @Test
+        public void testBulkCopyCrossTypeCSVFloat32ToFloat16() throws SQLException {
+            String dstTable = AbstractSQLGenerator.escapeIdentifier(
+                    RandomUtil.getIdentifier("dstCSVF32toF16_" + mixedUuid.substring(0, 8)));
+            String fileName = csvFilePath + "BulkCopyCSVTestInputCrossTypeVector.csv";
+
+            try (Connection conn = DriverManager.getConnection(getMixedConnectionString());
+                    Statement stmt = conn.createStatement();
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+                    SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(
+                            fileName, null, ",", true)) {
+
+                stmt.executeUpdate("CREATE TABLE " + dstTable + " (v VECTOR(3, float16))");
+
+                // Declare CSV column as FLOAT32 (scale=4), dest is FLOAT16
+                fileRecord.addColumnMetadata(1, "v", microsoft.sql.Types.VECTOR, 3, 4);
+                fileRecord.setEscapeColumnDelimitersCSV(true);
+                bulkCopy.setDestinationTableName(dstTable);
+                bulkCopy.writeToServer(fileRecord);
+
+                try (ResultSet rs = stmt.executeQuery("SELECT v FROM " + dstTable + " ORDER BY v")) {
+                    int rowCount = 0;
+                    while (rs.next()) {
+                        Vector result = rs.getObject("v", Vector.class);
+                        assertNotNull(result, "Row " + (rowCount + 1) + " vector is null.");
+                        assertEquals(VectorDimensionType.FLOAT16, result.getVectorDimensionType());
+                        assertEquals(3, result.getDimensionCount());
+                        rowCount++;
+                    }
+                    assertEquals(3, rowCount, "CSV cross-type row count mismatch.");
+                }
+            } finally {
+                try (Connection conn = DriverManager.getConnection(getMixedConnectionString());
+                        Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(dstTable, stmt);
+                }
+            }
+        }
+
+        // ================================================================
         // Inner Helper Classes for Mixed Bulk Data
         // ================================================================
 
