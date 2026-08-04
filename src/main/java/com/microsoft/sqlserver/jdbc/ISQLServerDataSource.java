@@ -1297,6 +1297,21 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setSendTemporalDataTypesAsStringForBulkCopy(boolean sendTemporalDataTypesAsStringForBulkCopy);
 
     /**
+     * Returns the current flag for value sendGuidAsStringForBulkCopy
+     *
+     * @return 'sendGuidAsStringForBulkCopy' property value.
+     */
+    boolean getSendGuidAsStringForBulkCopy();
+
+    /**
+     * Specifies the flag to send uniqueidentifier values as String for Bulk Copy.
+     *
+     * @param sendGuidAsStringForBulkCopy
+     *        boolean value for 'sendGuidAsStringForBulkCopy'.
+     */
+    void setSendGuidAsStringForBulkCopy(boolean sendGuidAsStringForBulkCopy);
+
+    /**
      * 
      * Returns the value for the connection property 'AADSecurePrincipalId'.
      * 
