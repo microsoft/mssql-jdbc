@@ -218,6 +218,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** sendTemporalDataTypesAsStringForBulkCopy flag */
     private boolean sendTemporalDataTypesAsStringForBulkCopy = true;
 
+    /** sendGuidAsStringForBulkCopy flag */
+    private boolean sendGuidAsStringForBulkCopy = false;
+
     /**
      * https://docs.microsoft.com/sql/t-sql/functions/serverproperty-transact-sql
      */
@@ -1267,6 +1270,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     boolean getSendTemporalDataTypesAsStringForBulkCopy() {
         return sendTemporalDataTypesAsStringForBulkCopy;
+    }
+
+    boolean getSendGuidAsStringForBulkCopy() {
+        return sendGuidAsStringForBulkCopy;
     }
 
     /** Enclave Attestation URL */
@@ -3677,6 +3684,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sPropValue = activeConnectionProperties.getProperty(sPropKey);
                 if (null != sPropValue) {
                     sendTemporalDataTypesAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
+                }
+
+                sPropKey = SQLServerDriverBooleanProperty.SEND_GUID_AS_STRING_FOR_BULK_COPY.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                if (null != sPropValue) {
+                    sendGuidAsStringForBulkCopy = isBooleanPropertyOn(sPropKey, sPropValue);
                 }
 
                 sPropKey = SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString();

@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Added
 
+- **Send uniqueidentifier Columns Natively in Bulk Copy** [#2986](https://github.com/microsoft/mssql-jdbc/issues/2986)
+  - **What was added**: `SQLServerBulkCopy` now declares a source column of type `microsoft.sql.Types.GUID` as `uniqueidentifier` on the wire and sends its value in the native 16 byte representation, instead of declaring it as `CHAR(n)` and sending a character string.
+  - **Who benefits**: Applications bulk copying into `uniqueidentifier` columns, for which the server previously had to run an implicit conversion on every row.
+  - **Impact**: Removes the per-row `CONVERT_IMPLICIT(uniqueidentifier, ...)` and the cardinality estimate warning it produced. Values must be valid GUIDs, either `java.util.UUID` or a string accepted by `UUID.fromString`. The new connection property `sendGuidAsStringForBulkCopy`, when set to `true`, restores the previous character string behavior.
+
 - **Add tls-unique Channel Binding Support for Kerberos and NTLM** [#2977](https://github.com/microsoft/mssql-jdbc/pull/2977)
   - **What was added**: tls-unique channel binding support for Kerberos and NTLM authentication flows.
   - **Who benefits**: Applications using integrated Kerberos or NTLM authentication that require channel binding for enhanced protection against relay attacks.
