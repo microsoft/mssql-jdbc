@@ -1826,6 +1826,243 @@ public class StatementTest extends AbstractTest {
             }
         }
 
+        /**
+         * Tests that an INSERT into a table that has an IDENTITY column still returns a non-empty
+         * generated-keys ResultSet with the correct key value, covering the positive counterpart to
+         * testGetGeneratedKeysNoIdentityColumn.
+         *
+         * Regression guard for GitHub issue #3000.
+         *
+         * @throws Exception
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testGetGeneratedKeysWithIdentityColumn() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.executeUpdate(
+                        "CREATE TABLE " + tableName + " (ID int NOT NULL IDENTITY(1,1) PRIMARY KEY, col2 varchar(32))");
+
+                // PreparedStatement path - must surface the generated identity value.
+                try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " (col2) VALUES (?)",
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    pstmt.setString(1, "a");
+                    assertEquals(1, pstmt.executeUpdate(), TestResource.getResource("R_valueNotMatch"));
+
+                    try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                        assertTrue(generatedKeys.next(),
+                                "getGeneratedKeys() must return a row for a table with an identity column");
+                        assertEquals(1, generatedKeys.getInt(1), "first identity value must be 1");
+                        assertFalse(generatedKeys.next(), "exactly one generated key must be returned");
+                    }
+                }
+
+                // Statement path - must surface the generated identity value.
+                assertEquals(1, stmt.executeUpdate("INSERT INTO " + tableName + " (col2) VALUES ('b')",
+                        Statement.RETURN_GENERATED_KEYS), TestResource.getResource("R_valueNotMatch"));
+
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    assertTrue(generatedKeys.next(),
+                            "getGeneratedKeys() must return a row for a table with an identity column");
+                    assertEquals(2, generatedKeys.getInt(1), "second identity value must be 2");
+                    assertFalse(generatedKeys.next(), "exactly one generated key must be returned");
+                }
+            }
+        }
+
+        /**
+         * Tests that a multi-row INSERT into a table without an identity column returns an empty
+         * generated-keys ResultSet and does not surface a single NULL row.
+         *
+         * Regression guard for GitHub issue #3000.
+         *
+         * @throws Exception
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testGetGeneratedKeysNoIdentityColumnMultiRowInsert() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (ID int NOT NULL)");
+
+                try (PreparedStatement pstmt = con.prepareStatement(
+                        "INSERT INTO " + tableName + " (ID) VALUES (?), (?)", Statement.RETURN_GENERATED_KEYS)) {
+                    pstmt.setInt(1, 1);
+                    pstmt.setInt(2, 2);
+                    assertEquals(2, pstmt.executeUpdate(), TestResource.getResource("R_valueNotMatch"));
+
+                    try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                        assertFalse(generatedKeys.next(),
+                                "multi-row INSERT into a table without generated keys must return an empty ResultSet");
+                    }
+                }
+            }
+        }
+
+        /**
+         * Tests that batched inserts into a table without an identity column execute cleanly and
+         * persist all rows. getGeneratedKeys after executeBatch is not a supported path in this
+         * driver (it throws even for identity tables), so it is not exercised here.
+         *
+         * Regression guard for GitHub issue #3000.
+         *
+         * @throws Exception
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testGetGeneratedKeysNoIdentityColumnBatch() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (ID int NOT NULL)");
+
+                try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " (ID) VALUES (?)",
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    pstmt.setInt(1, 1);
+                    pstmt.addBatch();
+                    pstmt.setInt(1, 2);
+                    pstmt.addBatch();
+                    pstmt.setInt(1, 3);
+                    pstmt.addBatch();
+                    int[] counts = pstmt.executeBatch();
+                    assertEquals(3, counts.length, TestResource.getResource("R_valueNotMatch"));
+                }
+
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
+                    assertTrue(rs.next());
+                    assertEquals(3, rs.getInt(1), TestResource.getResource("R_valueNotMatch"));
+                }
+            }
+        }
+
+        /**
+         * Tests that executeLargeUpdate of an INSERT with RETURN_GENERATED_KEYS into a table without
+         * an identity column returns an empty generated-keys ResultSet.
+         *
+         * Regression guard for GitHub issue #3000.
+         *
+         * @throws Exception
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testGetGeneratedKeysNoIdentityColumnLargeUpdate() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + tableName + " (ID int NOT NULL)");
+
+                assertEquals(1L, stmt.executeLargeUpdate("INSERT INTO " + tableName + " (ID) VALUES (123456)",
+                        Statement.RETURN_GENERATED_KEYS), TestResource.getResource("R_valueNotMatch"));
+
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    assertFalse(generatedKeys.next(),
+                            "executeLargeUpdate() into a table without generated keys must return an empty ResultSet");
+                }
+            }
+        }
+
+        /**
+         * Tests that a table whose only server-generated column is a DEFAULT NEWID() column (not an
+         * identity) returns an empty generated-keys ResultSet.
+         *
+         * Regression guard for GitHub issue #3000.
+         *
+         * @throws Exception
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testGetGeneratedKeysNonIdentityDefaultColumn() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE " + tableName
+                        + " (ID int NOT NULL, guidCol uniqueidentifier NOT NULL DEFAULT NEWID())");
+
+                try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " (ID) VALUES (?)",
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    pstmt.setInt(1, 1);
+                    assertEquals(1, pstmt.executeUpdate(), TestResource.getResource("R_valueNotMatch"));
+
+                    try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                        assertFalse(generatedKeys.next(),
+                                "a DEFAULT NEWID() column is not an identity key - getGeneratedKeys() must be empty");
+                    }
+                }
+            }
+        }
+
+        /**
+         * Tests that a table with a computed column (not an identity) returns an empty
+         * generated-keys ResultSet.
+         *
+         * Regression guard for GitHub issue #3000.
+         *
+         * @throws Exception
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testGetGeneratedKeysNonIdentityComputedColumn() throws Exception {
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                stmt.executeUpdate(
+                        "CREATE TABLE " + tableName + " (ID int NOT NULL, computedCol AS (ID + 1))");
+
+                try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO " + tableName + " (ID) VALUES (?)",
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    pstmt.setInt(1, 10);
+                    assertEquals(1, pstmt.executeUpdate(), TestResource.getResource("R_valueNotMatch"));
+
+                    try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                        assertFalse(generatedKeys.next(),
+                                "a computed column is not an identity key - getGeneratedKeys() must be empty");
+                    }
+                }
+            }
+        }
+
+        /**
+         * Tests the SCOPE_IDENTITY vs @@IDENTITY case: an INSERT into a table without an identity
+         * column whose AFTER INSERT trigger inserts into a different identity table must still return
+         * an empty generated-keys ResultSet, because the driver uses scope-limited SCOPE_IDENTITY
+         * rather than @@IDENTITY.
+         *
+         * Regression guard for GitHub issue #3000.
+         *
+         * @throws Exception
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void testGetGeneratedKeysNoIdentityColumnWithTrigger() throws Exception {
+            String auditTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCStmtGKAudit"));
+            String triggerName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TCStmtGKTrig"));
+            try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(triggerName, stmt);
+                    TestUtils.dropTableIfExists(auditTable, stmt);
+
+                    // Outer table has NO identity column.
+                    stmt.executeUpdate("CREATE TABLE " + tableName + " (ID int NOT NULL)");
+                    // Audit table DOES have an identity column - the trigger writes here in a nested scope.
+                    stmt.executeUpdate("CREATE TABLE " + auditTable
+                            + " (auditId int NOT NULL IDENTITY(1,1) PRIMARY KEY, note varchar(32))");
+                    stmt.executeUpdate("CREATE TRIGGER " + triggerName + " ON " + tableName
+                            + " FOR INSERT AS INSERT INTO " + auditTable + " (note) VALUES ('audited')");
+
+                    try (PreparedStatement pstmt = con.prepareStatement(
+                            "INSERT INTO " + tableName + " (ID) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
+                        pstmt.setInt(1, 123456);
+                        pstmt.executeUpdate();
+
+                        try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                            assertFalse(generatedKeys.next(),
+                                    "SCOPE_IDENTITY() is scope-limited - a trigger's nested identity insert "
+                                            + "must NOT leak into getGeneratedKeys() for the keyless outer table");
+                        }
+                    }
+
+                    // Sanity check: the trigger really did fire and generate an identity in its own scope.
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + auditTable)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1), "trigger must have inserted exactly one audit row");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(triggerName, stmt);
+                    TestUtils.dropTableIfExists(auditTable, stmt);
+                }
+            }
+        }
+
         @AfterEach
         public void terminate() throws SQLException {
             try (Statement stmt = connection.createStatement()) {
