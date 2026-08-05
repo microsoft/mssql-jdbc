@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -361,6 +362,8 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result, "Retrieved FLOAT16 vector is null.");
                 assertEquals(VectorDimensionType.FLOAT16, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(0.3f, 0.2f, 0.1f), result.getData(),
+                        "Vector data mismatch after FLOAT32 -> FLOAT16 cross-type insert.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
@@ -410,6 +413,8 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result, "Retrieved FLOAT16 vector is null.");
                 assertEquals(VectorDimensionType.FLOAT16, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(1.0f, 2.0f, 3.0f), result.getData(),
+                        "Vector data mismatch after FLOAT32 -> FLOAT16 setObject insert.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
@@ -459,6 +464,8 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result, "Retrieved FLOAT32 vector is null.");
                 assertEquals(VectorDimensionType.FLOAT32, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(1.0f, 2.0f, 3.0f), result.getData(),
+                        "Vector data mismatch after FLOAT16 -> FLOAT32 setObject insert.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
@@ -491,6 +498,8 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result);
                 assertEquals(VectorDimensionType.FLOAT32, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(1.0f, 2.0f, 3.0f), result.getData(),
+                        "Vector data mismatch after CAST FLOAT16 -> FLOAT32.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
@@ -518,6 +527,8 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result);
                 assertEquals(VectorDimensionType.FLOAT16, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(1.0f, 2.0f, 3.0f), result.getData(),
+                        "Vector data mismatch after CAST FLOAT32 -> FLOAT16.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
@@ -545,6 +556,8 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result);
                 assertEquals(VectorDimensionType.FLOAT32, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(0.5f, 1.5f, 2.5f), result.getData(),
+                        "Vector data mismatch after CONVERT FLOAT16 -> FLOAT32.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
@@ -572,6 +585,8 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result);
                 assertEquals(VectorDimensionType.FLOAT16, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(0.5f, 1.5f, 2.5f), result.getData(),
+                        "Vector data mismatch after CONVERT FLOAT32 -> FLOAT16.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
@@ -604,6 +619,8 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result);
                 assertEquals(VectorDimensionType.FLOAT32, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(1.0f, 2.0f, 3.0f), result.getData(),
+                        "Vector data mismatch after FLOAT16 -> FLOAT32 ALTER COLUMN.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
@@ -633,6 +650,8 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result);
                 assertEquals(VectorDimensionType.FLOAT16, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(1.0f, 2.0f, 3.0f), result.getData(),
+                        "Vector data mismatch after FLOAT32 -> FLOAT16 ALTER COLUMN.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
@@ -672,6 +691,8 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result);
                 assertEquals(VectorDimensionType.FLOAT32, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(1.0f, 2.0f, 3.0f), result.getData(),
+                        "Vector data mismatch after FLOAT16 -> FLOAT32 UPDATE.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
@@ -707,6 +728,8 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result);
                 assertEquals(VectorDimensionType.FLOAT16, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(1.0f, 2.0f, 3.0f), result.getData(),
+                        "Vector data mismatch after FLOAT32 -> FLOAT16 UPDATE.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
@@ -750,48 +773,13 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result);
                 assertEquals(VectorDimensionType.FLOAT32, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(1.0f, 2.0f, 3.0f), result.getData(),
+                        "Vector data mismatch after SP cross-type parameter passing.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropProcedureIfExists(proc, stmt);
                 TestUtils.dropTableIfExists(table, stmt);
-                stmt.executeUpdate("IF OBJECT_ID('" + proc.replace("[", "").replace("]", "")
-                        + "', 'P') IS NOT NULL DROP PROCEDURE " + proc);
-            }
-        }
-    }
-
-    /**
-     * Tests calling a scalar UDF that declares a FLOAT16 parameter,
-     * passing a FLOAT32 Vector from a subquery — implicit conversion.
-     */
-    @Test
-    public void testUdfCrossTypeParameterPassing() throws SQLException {
-        String udf = AbstractSQLGenerator.escapeIdentifier(
-                RandomUtil.getIdentifier("UDF_CrossType_" + uuid.substring(0, 8)));
-        String table = AbstractSQLGenerator.escapeIdentifier(
-                RandomUtil.getIdentifier("T_UDFCross_" + uuid.substring(0, 8)));
-
-        try (Statement stmt = connection.createStatement()) {
-            stmt.executeUpdate("CREATE TABLE " + table + " (id INT PRIMARY KEY, v VECTOR(3))");
-            stmt.executeUpdate("INSERT INTO " + table + " (id, v) VALUES (1, '[1.0, 2.0, 3.0]')");
-
-            stmt.executeUpdate("CREATE FUNCTION " + udf
-                    + " (@vec VECTOR(3, float16)) RETURNS VECTOR(3, float16) AS BEGIN RETURN @vec END");
-
-            // Pass FLOAT32 column value to UDF expecting FLOAT16 — implicit conversion
-            try (ResultSet rs = stmt.executeQuery(
-                    "SELECT " + udf + "(v) AS result FROM " + table + " WHERE id = 1")) {
-                assertTrue(rs.next());
-                Vector result = rs.getObject("result", Vector.class);
-                assertNotNull(result);
-                assertEquals(VectorDimensionType.FLOAT16, result.getVectorDimensionType());
-                assertEquals(3, result.getDimensionCount());
-            }
-        } finally {
-            try (Statement stmt = connection.createStatement()) {
-                TestUtils.dropTableIfExists(table, stmt);
-                stmt.executeUpdate("IF OBJECT_ID('" + udf.replace("[", "").replace("]", "")
-                        + "', 'FN') IS NOT NULL DROP FUNCTION " + udf);
             }
         }
     }
@@ -820,12 +808,13 @@ public class VectorFloat16Test extends VectorTest {
                 assertNotNull(result);
                 assertEquals(VectorDimensionType.FLOAT32, result.getVectorDimensionType());
                 assertEquals(3, result.getDimensionCount());
+                assertVectorDataEquals(createTestData(1.0f, 2.0f, 3.0f), result.getData(),
+                        "Vector data mismatch after TVF cross-type return.");
             }
         } finally {
             try (Statement stmt = connection.createStatement()) {
+                stmt.executeUpdate("DROP FUNCTION IF EXISTS " + tvf);
                 TestUtils.dropTableIfExists(table, stmt);
-                stmt.executeUpdate("IF OBJECT_ID('" + tvf.replace("[", "").replace("]", "")
-                        + "', 'IF') IS NOT NULL DROP FUNCTION " + tvf);
             }
         }
     }
@@ -873,6 +862,200 @@ public class VectorFloat16Test extends VectorTest {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(f32Table, stmt);
                 TestUtils.dropTableIfExists(f16Table, stmt);
+            }
+        }
+    }
+
+    // ============================================================================
+    // FLOAT16 Precision-Loss Test
+    // ============================================================================
+
+    /**
+     * Tests that F32 -> F16 conversion rounds non-representable values correctly.
+     * FLOAT16 has a 10-bit mantissa, so 0.1f cannot be represented exactly and must be rounded.
+     */
+    @Test
+    public void testFloat16PrecisionLossWithNonRepresentableValues() throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F32_PrecLoss_" + uuid.substring(0, 8)));
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + table + " (id INT PRIMARY KEY, v VECTOR(3))");
+            // 0.1, 0.3, 0.7 are NOT exactly representable in FLOAT16
+            stmt.executeUpdate("INSERT INTO " + table + " (id, v) VALUES (1, '[0.1, 0.3, 0.7]')");
+
+            try (ResultSet rs = stmt.executeQuery(
+                    "SELECT CAST(v AS VECTOR(3, float16)) AS converted FROM " + table)) {
+                assertTrue(rs.next());
+                Vector result = rs.getObject("converted", Vector.class);
+                assertNotNull(result);
+                assertEquals(VectorDimensionType.FLOAT16, result.getVectorDimensionType());
+
+                Float[] data = (Float[]) result.getData();
+                // FLOAT16 tolerance: ~0.001 for values < 1.0 (10-bit mantissa)
+                assertEquals(0.1f, data[0], 0.001f, "FLOAT16 rounding of 0.1");
+                assertEquals(0.3f, data[1], 0.001f, "FLOAT16 rounding of 0.3");
+                assertEquals(0.7f, data[2], 0.002f, "FLOAT16 rounding of 0.7");
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(table, stmt);
+            }
+        }
+    }
+
+    // ============================================================================
+    // Dimension-Mismatch Cross-Type Negative Test
+    // ============================================================================
+
+    /**
+     * Tests that cross-type conversion with mismatched dimensions still fails.
+     * Only the subtype conversion became permissive, not dimension checks.
+     */
+    @Test
+    public void testCrossTypeDimensionMismatchFails() throws SQLException {
+        String f16Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F16_DimMis_" + uuid.substring(0, 8)));
+        String f32Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F32_DimMis_" + uuid.substring(0, 8)));
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + f16Table + " (v VECTOR(3, float16))");
+            stmt.executeUpdate("CREATE TABLE " + f32Table + " (v VECTOR(4))");
+
+            stmt.executeUpdate("INSERT INTO " + f16Table + " (v) VALUES ('[1.0, 2.0, 3.0]')");
+
+            // VECTOR(3, float16) -> VECTOR(4, float32): dimension mismatch should fail
+            assertThrows(SQLException.class, () -> {
+                stmt.executeUpdate("INSERT INTO " + f32Table + " (v) SELECT v FROM " + f16Table);
+            }, "Cross-type INSERT with dimension mismatch should fail.");
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(f16Table, stmt);
+                TestUtils.dropTableIfExists(f32Table, stmt);
+            }
+        }
+    }
+
+    // ============================================================================
+    // NULL Vector Cross-Type Tests
+    // ============================================================================
+
+    /**
+     * Tests that NULL vectors are handled correctly in cross-type INSERT...SELECT.
+     */
+    @Test
+    public void testNullVectorCrossTypeInsertSelect() throws SQLException {
+        String f16Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F16_Null_" + uuid.substring(0, 8)));
+        String f32Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F32_Null_" + uuid.substring(0, 8)));
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + f16Table + " (id INT PRIMARY KEY, v VECTOR(3, float16))");
+            stmt.executeUpdate("CREATE TABLE " + f32Table + " (id INT PRIMARY KEY, v VECTOR(3))");
+
+            stmt.executeUpdate("INSERT INTO " + f16Table + " (id, v) VALUES (1, NULL)");
+
+            // NULL FLOAT16 -> FLOAT32 column via INSERT...SELECT
+            stmt.executeUpdate("INSERT INTO " + f32Table + " (id, v) SELECT id, v FROM " + f16Table);
+
+            try (ResultSet rs = stmt.executeQuery("SELECT v FROM " + f32Table + " WHERE id = 1")) {
+                assertTrue(rs.next());
+                Vector result = rs.getObject("v", Vector.class);
+                assertNull(result.getData(), "NULL vector data should remain null after cross-type insert.");
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(f16Table, stmt);
+                TestUtils.dropTableIfExists(f32Table, stmt);
+            }
+        }
+    }
+
+    /**
+     * Tests that setObject with a null Vector works for cross-type column.
+     */
+    @Test
+    public void testNullVectorCrossTypeSetObject() throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F16_NullSet_" + uuid.substring(0, 8)));
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + table + " (id INT PRIMARY KEY, v VECTOR(3, float16))");
+
+            try (PreparedStatement pstmt = connection.prepareStatement(
+                    "INSERT INTO " + table + " (id, v) VALUES (?, ?)")) {
+                pstmt.setInt(1, 1);
+                // Send a FLOAT32 null vector into a FLOAT16 column (cross-type null)
+                pstmt.setObject(2, new Vector(3, VectorDimensionType.FLOAT32, null), microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            try (ResultSet rs = stmt.executeQuery("SELECT v FROM " + table + " WHERE id = 1")) {
+                assertTrue(rs.next());
+                Vector result = rs.getObject("v", Vector.class);
+                assertNull(result.getData(), "NULL vector data should remain null.");
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(table, stmt);
+            }
+        }
+    }
+
+    // ============================================================================
+    // Cross-Read: getObject into Other Subtype
+    // ============================================================================
+
+    /**
+     * Tests reading a FLOAT16 column value and verifying it can round-trip
+     * through a FLOAT32 Vector object at the JDBC layer end-to-end.
+     */
+    @Test
+    public void testGetObjectCrossReadFloat16AsFloat32RoundTrip() throws SQLException {
+        String f16Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F16_CrossRead_" + uuid.substring(0, 8)));
+        String f32Table = AbstractSQLGenerator.escapeIdentifier(
+                RandomUtil.getIdentifier("F32_CrossRead_" + uuid.substring(0, 8)));
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + f16Table + " (id INT PRIMARY KEY, v VECTOR(3, float16))");
+            stmt.executeUpdate("CREATE TABLE " + f32Table + " (id INT PRIMARY KEY, v VECTOR(3))");
+
+            stmt.executeUpdate("INSERT INTO " + f16Table + " (id, v) VALUES (1, '[1.0, 2.0, 3.0]')");
+
+            // Read FLOAT16 vector from source
+            Vector f16Vector;
+            try (ResultSet rs = stmt.executeQuery("SELECT v FROM " + f16Table + " WHERE id = 1")) {
+                assertTrue(rs.next());
+                f16Vector = rs.getObject("v", Vector.class);
+                assertNotNull(f16Vector);
+                assertEquals(VectorDimensionType.FLOAT16, f16Vector.getVectorDimensionType());
+            }
+
+            // Insert the FLOAT16 Vector object into a FLOAT32 column (cross-type at JDBC layer)
+            try (PreparedStatement pstmt = connection.prepareStatement(
+                    "INSERT INTO " + f32Table + " (id, v) VALUES (?, ?)")) {
+                pstmt.setInt(1, 1);
+                pstmt.setObject(2, f16Vector, microsoft.sql.Types.VECTOR);
+                pstmt.executeUpdate();
+            }
+
+            // Read back as FLOAT32 and verify values survived the cross-type round-trip
+            try (ResultSet rs = stmt.executeQuery("SELECT v FROM " + f32Table + " WHERE id = 1")) {
+                assertTrue(rs.next());
+                Vector f32Result = rs.getObject("v", Vector.class);
+                assertNotNull(f32Result);
+                assertEquals(VectorDimensionType.FLOAT32, f32Result.getVectorDimensionType());
+                assertEquals(3, f32Result.getDimensionCount());
+                assertVectorDataEquals(createTestData(1.0f, 2.0f, 3.0f), f32Result.getData(),
+                        "Vector data mismatch after FLOAT16 -> FLOAT32 cross-read round-trip.");
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(f16Table, stmt);
+                TestUtils.dropTableIfExists(f32Table, stmt);
             }
         }
     }

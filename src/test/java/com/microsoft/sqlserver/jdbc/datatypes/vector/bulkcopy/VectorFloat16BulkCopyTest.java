@@ -776,6 +776,11 @@ public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
                     assertEquals(VectorDimensionType.FLOAT16, dstF16.getVectorDimensionType());
                     assertEquals(3, dstF32.getDimensionCount());
                     assertEquals(3, dstF16.getDimensionCount());
+                    // dstF32 got FLOAT16 source data (swapped), dstF16 got FLOAT32 source data
+                    assertVectorDataEquals(f16Data, dstF32.getData(),
+                            "FLOAT32 dest data mismatch after swapped bulk copy.");
+                    assertVectorDataEquals(f32Data, dstF16.getData(),
+                            "FLOAT16 dest data mismatch after swapped bulk copy.");
                 }
             } finally {
                 try (Connection conn = DriverManager.getConnection(getMixedConnectionString());
@@ -1045,6 +1050,8 @@ public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
                     assertNotNull(result, "Retrieved FLOAT32 vector is null.");
                     assertEquals(VectorDimensionType.FLOAT32, result.getVectorDimensionType());
                     assertEquals(3, result.getDimensionCount());
+                    assertVectorDataEquals(createTestData(0.3f, 0.2f, 0.1f), result.getData(),
+                            "Vector data mismatch after FLOAT16 -> FLOAT32 bulk copy.");
                 }
             } finally {
                 try (Connection conn = DriverManager.getConnection(getMixedConnectionString());
@@ -1089,6 +1096,8 @@ public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
                     assertNotNull(result, "Retrieved FLOAT16 vector is null.");
                     assertEquals(VectorDimensionType.FLOAT16, result.getVectorDimensionType());
                     assertEquals(3, result.getDimensionCount());
+                    assertVectorDataEquals(createTestData(0.3f, 0.2f, 0.1f), result.getData(),
+                            "Vector data mismatch after FLOAT32 -> FLOAT16 bulk copy.");
                 }
             } finally {
                 try (Connection conn = DriverManager.getConnection(getMixedConnectionString());
@@ -1127,13 +1136,18 @@ public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
                 bulkCopy.setDestinationTableName(dstTable);
                 bulkCopy.writeToServer(fileRecord);
 
-                try (ResultSet rs = stmt.executeQuery("SELECT v FROM " + dstTable + " ORDER BY v")) {
+                try (ResultSet rs = stmt.executeQuery("SELECT v FROM " + dstTable)) {
+                    Float[][] expectedRows = {
+                            {1.0f, 2.0f, 3.0f}, {0.5f, 1.5f, 2.5f}, {4.0f, 5.0f, 6.0f}
+                    };
                     int rowCount = 0;
                     while (rs.next()) {
                         Vector result = rs.getObject("v", Vector.class);
                         assertNotNull(result, "Row " + (rowCount + 1) + " vector is null.");
                         assertEquals(VectorDimensionType.FLOAT32, result.getVectorDimensionType());
                         assertEquals(3, result.getDimensionCount());
+                        assertVectorDataEquals(expectedRows[rowCount], result.getData(),
+                                "Row " + (rowCount + 1) + " data mismatch.");
                         rowCount++;
                     }
                     assertEquals(3, rowCount, "CSV cross-type row count mismatch.");
@@ -1170,13 +1184,18 @@ public class VectorFloat16BulkCopyTest extends VectorBulkCopyTest {
                 bulkCopy.setDestinationTableName(dstTable);
                 bulkCopy.writeToServer(fileRecord);
 
-                try (ResultSet rs = stmt.executeQuery("SELECT v FROM " + dstTable + " ORDER BY v")) {
+                try (ResultSet rs = stmt.executeQuery("SELECT v FROM " + dstTable)) {
+                    Float[][] expectedRows = {
+                            {1.0f, 2.0f, 3.0f}, {0.5f, 1.5f, 2.5f}, {4.0f, 5.0f, 6.0f}
+                    };
                     int rowCount = 0;
                     while (rs.next()) {
                         Vector result = rs.getObject("v", Vector.class);
                         assertNotNull(result, "Row " + (rowCount + 1) + " vector is null.");
                         assertEquals(VectorDimensionType.FLOAT16, result.getVectorDimensionType());
                         assertEquals(3, result.getDimensionCount());
+                        assertVectorDataEquals(expectedRows[rowCount], result.getData(),
+                                "Row " + (rowCount + 1) + " data mismatch.");
                         rowCount++;
                     }
                     assertEquals(3, rowCount, "CSV cross-type row count mismatch.");
