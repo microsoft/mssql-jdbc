@@ -1998,6 +1998,305 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                 }
             }
         }
+
+        // -----------------------------------------------------------------------------------------
+        //  Section 5.A — No generated keys on a keyless table
+        // -----------------------------------------------------------------------------------------
+
+        /**
+         * Statement.execute of an INSERT with RETURN_GENERATED_KEYS on a table without an identity
+         * column must still surface the INSERT's update count and return an empty generated-keys
+         * ResultSet (before the fix a single NULL row was surfaced).
+         */
+        @Test
+        public void statementExecuteInsertNoIdentityReturnsEmptyGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0StmtE"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table); // (c1 INT, c2 SMALLINT) - no identity
+
+                    boolean isResultSet = stmt.execute(
+                            "INSERT INTO " + table + " VALUES (1, 1)", Statement.RETURN_GENERATED_KEYS);
+                    assertFalse(isResultSet, "INSERT execute() must return false even with RETURN_GENERATED_KEYS");
+                    assertEquals(1, stmt.getUpdateCount(),
+                            "INSERT update count of 1 must still surface for a keyless table");
+
+                    try (ResultSet keys = stmt.getGeneratedKeys()) {
+                        assertNotNull(keys, "getGeneratedKeys must return a non-null ResultSet");
+                        assertFalse(keys.next(),
+                                "keyless table → getGeneratedKeys() must be EMPTY (no NULL row) per JDBC spec");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /** Statement.executeUpdate of an INSERT with RETURN_GENERATED_KEYS on a keyless table returns an empty generated-keys ResultSet. */
+        @Test
+        public void statementExecuteUpdateInsertNoIdentityReturnsEmptyGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0StmtU"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    int count = stmt.executeUpdate(
+                            "INSERT INTO " + table + " VALUES (1, 1)", Statement.RETURN_GENERATED_KEYS);
+                    assertEquals(1, count, "executeUpdate must return INSERT row count of 1");
+
+                    try (ResultSet keys = stmt.getGeneratedKeys()) {
+                        assertFalse(keys.next(),
+                                "keyless table → getGeneratedKeys() must be EMPTY");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /** PreparedStatement.execute of an INSERT with RETURN_GENERATED_KEYS on a keyless table returns an empty generated-keys ResultSet. */
+        @Test
+        public void preparedStatementExecuteInsertNoIdentityReturnsEmptyGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0PSE"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setInt(1, 1);
+                        ps.setInt(2, 1);
+                        boolean isResultSet = ps.execute();
+                        assertFalse(isResultSet,
+                                "PreparedStatement.execute(INSERT) must return false even with RETURN_GENERATED_KEYS");
+                        assertEquals(1, ps.getUpdateCount(), "INSERT update count must be 1");
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertFalse(keys.next(),
+                                    "keyless table → getGeneratedKeys() must be EMPTY");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /** PreparedStatement.executeUpdate of an INSERT with RETURN_GENERATED_KEYS on a keyless table returns an empty generated-keys ResultSet. */
+        @Test
+        public void preparedStatementExecuteUpdateInsertNoIdentityReturnsEmptyGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0PSU"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setInt(1, 1);
+                        ps.setInt(2, 1);
+                        assertEquals(1, ps.executeUpdate(), "executeUpdate must return INSERT row count of 1");
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertFalse(keys.next(),
+                                    "keyless table → getGeneratedKeys() must be EMPTY");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * A multi-row INSERT into a keyless table via executeUpdate with RETURN_GENERATED_KEYS
+         * returns an empty generated-keys ResultSet and does not surface a single NULL row.
+         */
+        @Test
+        public void preparedStatementExecuteUpdateMultiRowInsertNoIdentityReturnsEmptyGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0Multi"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " VALUES (?, ?), (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setInt(1, 1); ps.setInt(2, 1);
+                        ps.setInt(3, 2); ps.setInt(4, 2);
+                        assertEquals(2, ps.executeUpdate(), "multi-row INSERT must report 2 rows");
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertFalse(keys.next(),
+                                    "multi-row INSERT into a keyless table → getGeneratedKeys() must be EMPTY");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Batched inserts into a keyless table with RETURN_GENERATED_KEYS execute cleanly and
+         * persist all rows. getGeneratedKeys after executeBatch is not a supported path in this driver
+         * (it throws even for identity tables), so it is not exercised here.
+         */
+        @Test
+        public void preparedStatementExecuteBatchInsertNoIdentityReturnsEmptyGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0Batch"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setInt(1, 1); ps.setInt(2, 1); ps.addBatch();
+                        ps.setInt(1, 2); ps.setInt(2, 2); ps.addBatch();
+                        ps.setInt(1, 3); ps.setInt(2, 3); ps.addBatch();
+                        int[] counts = ps.executeBatch();
+                        assertEquals(3, counts.length,
+                                "batched INSERTs into a keyless table with RETURN_GENERATED_KEYS must "
+                                        + "execute cleanly and report one count per item");
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(3, rs.getInt(1), "all 3 batched rows must persist");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * Statement.executeLargeUpdate of an INSERT with RETURN_GENERATED_KEYS on a keyless table
+         * returns an empty generated-keys ResultSet (the large-update path is separate).
+         */
+        @Test
+        public void statementExecuteLargeUpdateInsertNoIdentityReturnsEmptyGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0Large"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    assertEquals(1L, stmt.executeLargeUpdate(
+                            "INSERT INTO " + table + " VALUES (1, 1)", Statement.RETURN_GENERATED_KEYS),
+                            "executeLargeUpdate must return INSERT row count of 1");
+
+                    try (ResultSet keys = stmt.getGeneratedKeys()) {
+                        assertFalse(keys.next(),
+                                "executeLargeUpdate into a keyless table → getGeneratedKeys() must be EMPTY");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * A non-identity DEFAULT NEWID() column is not an identity key, so an INSERT into such a
+         * table returns an empty generated-keys ResultSet.
+         */
+        @Test
+        public void preparedStatementInsertNoIdentityDefaultNewIdReturnsEmptyGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0Newid"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    stmt.executeUpdate("CREATE TABLE " + table
+                            + " (id INT NOT NULL, guidCol UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID())");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " (id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setInt(1, 1);
+                        assertEquals(1, ps.executeUpdate(), "INSERT must report 1 row");
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertFalse(keys.next(),
+                                    "DEFAULT NEWID() is not an identity key → getGeneratedKeys() must be EMPTY");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * A computed column is not an identity key, so an INSERT into a table with a computed column
+         * returns an empty generated-keys ResultSet.
+         */
+        @Test
+        public void preparedStatementInsertNoIdentityComputedColumnReturnsEmptyGeneratedKeys()
+                throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0Comp"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    stmt.executeUpdate("CREATE TABLE " + table + " (id INT NOT NULL, computedCol AS (id + 1))");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + table + " (id) VALUES (?)", Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setInt(1, 10);
+                        assertEquals(1, ps.executeUpdate(), "INSERT must report 1 row");
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertFalse(keys.next(),
+                                    "a computed column is not an identity key → getGeneratedKeys() must be EMPTY");
+                        }
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        /**
+         * SCOPE_IDENTITY vs @@IDENTITY guard: an INSERT into a keyless table whose AFTER INSERT
+         * trigger inserts into a different identity table must still return an empty generated-keys
+         * ResultSet, because the driver uses scope-limited SCOPE_IDENTITY rather than @@IDENTITY.
+         */
+        @Test
+        public void preparedStatementInsertNoIdentityWithTriggerScopeIdentityGuard()
+                throws SQLException {
+            String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0TrA")); // keyless
+            String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0TrB")); // identity
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0Tr"));
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                    createPlainTable(stmt, tableA); // no identity
+                    stmt.executeUpdate("CREATE TABLE " + tableB
+                            + " (id INT NOT NULL IDENTITY(1,1) PRIMARY KEY)");
+                    createInsertTrigger(stmt, trigger, tableA, tableB, false); // trigger inserts into identity tableB
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + tableA + " VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                        ps.setInt(1, 1);
+                        ps.setInt(2, 1);
+                        ps.executeUpdate();
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            assertFalse(keys.next(),
+                                    "SCOPE_IDENTITY() is scope-limited: a trigger's nested identity insert must NOT "
+                                            + "leak into getGeneratedKeys() for the keyless outer table");
+                        }
+                    }
+
+                    // Sanity: trigger fired and generated an identity in its own (nested) scope.
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableB)) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1), "trigger must have inserted exactly one row into the identity table");
+                    }
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(tableB, stmt);
+                    TestUtils.dropTableIfExists(tableA, stmt);
+                }
+            }
+        }
     }
 
     // =========================================================================================
