@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,6 +30,8 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -518,6 +522,53 @@ public class RegressionTest extends AbstractTest {
                     assertEquals("/'", rs.getString("str"));
                 }
             }
+        }
+    }
+
+    /**
+     * Tests that building the parameter type definitions on a closed statement whose internal parameter array has been
+     * released surfaces a {@link SQLServerException} ("The statement is closed") instead of a raw
+     * {@link NullPointerException}.
+     *
+     * Reproduces https://github.com/microsoft/mssql-jdbc/issues/2994 where a concurrent close nulls out the internal
+     * params array while an execution is in flight.
+     *
+     * @throws Exception
+     *         when an unexpected error occurs
+     */
+    @Test
+    public void testBuildParamTypeDefinitionsOnClosedStatement() throws Exception {
+        PreparedStatement pstmt = connection.prepareStatement("SELECT 1 WHERE 1=?");
+        pstmt.setInt(1, 1);
+
+        // Simulate the concurrent-close race: the internal params array is nulled out.
+        Field inOutParamField = SQLServerPreparedStatement.class.getDeclaredField("inOutParam");
+        inOutParamField.setAccessible(true);
+        inOutParamField.set(pstmt, null);
+
+        // Close the statement so the null guard resolves to the "statement is closed" error.
+        pstmt.close();
+
+        // Parameter is package-private, so locate the private method by name and argument count.
+        Method buildParamTypeDefinitions = null;
+        for (Method m : SQLServerPreparedStatement.class.getDeclaredMethods()) {
+            if ("buildParamTypeDefinitions".equals(m.getName()) && m.getParameterCount() == 2) {
+                buildParamTypeDefinitions = m;
+                break;
+            }
+        }
+        assertTrue(buildParamTypeDefinitions != null, "buildParamTypeDefinitions method not found");
+        buildParamTypeDefinitions.setAccessible(true);
+
+        try {
+            buildParamTypeDefinitions.invoke(pstmt, null, false);
+            fail("Expected SQLServerException for a closed statement, but no exception was thrown.");
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            assertTrue(cause instanceof SQLServerException,
+                    "Expected SQLServerException but got " + (cause == null ? "null" : cause.getClass().getName()));
+            assertTrue(cause.getMessage().contains(TestResource.getResource("R_statementClosed")),
+                    "Unexpected message: " + cause.getMessage());
         }
     }
 
