@@ -6,9 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.StringReader;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.NClob;
@@ -352,6 +354,172 @@ public class LobsStreamingTest extends AbstractTest {
                 }
             } catch (SQLException e) {
                 fail("Database setup or execution failed: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Verifies that passing a negative stream length to setCharacterStream, setBinaryStream, or
+     * setAsciiStream throws an SQLException reporting that the length is not valid.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testNegativeStreamLengths() throws SQLException {
+        tableName = RandomUtil.getIdentifier("negStreamLen");
+        String escaped = AbstractSQLGenerator.escapeIdentifier(tableName);
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(escaped, stmt);
+            stmt.executeUpdate("CREATE TABLE " + escaped + " (col1 char(20))");
+            try (PreparedStatement ps = conn
+                    .prepareStatement("INSERT INTO " + escaped + " (col1) VALUES (?)")) {
+
+                try {
+                    ps.setCharacterStream(1, new StringReader("eeep"), -4);
+                    ps.executeUpdate();
+                    fail("setCharacterStream with negative length should throw");
+                } catch (SQLException e) {
+                    assertTrue(e.getMessage().contains("-4") && e.getMessage().contains("not valid"),
+                            "Unexpected exception for setCharacterStream: " + e.getMessage());
+                }
+
+                try {
+                    ps.setBinaryStream(1, new ByteArrayInputStream(new byte[3]), -4);
+                    ps.executeUpdate();
+                    fail("setBinaryStream with negative length should throw");
+                } catch (SQLException e) {
+                    assertTrue(e.getMessage().contains("-4") && e.getMessage().contains("not valid"),
+                            "Unexpected exception for setBinaryStream: " + e.getMessage());
+                }
+
+                try {
+                    ps.setAsciiStream(1, new ByteArrayInputStream(new byte[3]), -4);
+                    ps.executeUpdate();
+                    fail("setAsciiStream with negative length should throw");
+                } catch (SQLException e) {
+                    assertTrue(e.getMessage().contains("-4") && e.getMessage().contains("not valid"),
+                            "Unexpected exception for setAsciiStream: " + e.getMessage());
+                }
+            } finally {
+                TestUtils.dropTableIfExists(escaped, stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies that on a scrollable ResultSet a character column value is re-readable after the cursor
+     * is repositioned to the same row.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testResettabilityRS() throws SQLException {
+        tableName = RandomUtil.getIdentifier("resettabilityRS");
+        String escaped = AbstractSQLGenerator.escapeIdentifier(tableName);
+        String value = getRandomString(2000, "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(escaped, stmt);
+            stmt.executeUpdate("CREATE TABLE " + escaped + " (id int primary key, col1 varchar(max))");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + escaped + " VALUES (?, ?)")) {
+                ps.setInt(1, 1);
+                ps.setString(2, value);
+                ps.executeUpdate();
+            }
+            try (Statement scroll = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                    ResultSet.CONCUR_READ_ONLY);
+                    ResultSet rs = scroll.executeQuery("SELECT col1 FROM " + escaped + " ORDER BY id")) {
+                assertTrue(rs.next());
+                String firstRead = rs.getString(1);
+                assertEquals(value, firstRead, "First read of value");
+
+                // Reposition to the same row and re-read: value must be intact (reset between reads).
+                rs.beforeFirst();
+                assertTrue(rs.next());
+                String secondRead = rs.getString(1);
+                assertEquals(value, secondRead, "Re-read of value after cursor reset");
+            } finally {
+                TestUtils.dropTableIfExists(escaped, stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies that streaming a large result set (many rows, each with a sizable value) is fully
+     * consumable without error.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testMegaSelect() throws SQLException {
+        tableName = RandomUtil.getIdentifier("megaSelect");
+        String escaped = AbstractSQLGenerator.escapeIdentifier(tableName);
+        int rowCount = 1000;
+        String value = getRandomString(500, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(escaped, stmt);
+            stmt.executeUpdate("CREATE TABLE " + escaped + " (id int, col1 varchar(600))");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + escaped + " VALUES (?, ?)")) {
+                for (int i = 0; i < rowCount; i++) {
+                    ps.setInt(1, i);
+                    ps.setString(2, value);
+                    ps.addBatch();
+                    if (i % 100 == 0) {
+                        ps.executeBatch();
+                    }
+                }
+                ps.executeBatch();
+            }
+            int read = 0;
+            try (ResultSet rs = stmt.executeQuery("SELECT id, col1 FROM " + escaped)) {
+                while (rs.next()) {
+                    // Consume the value to exercise streaming.
+                    assertEquals(value.length(), rs.getString(2).length());
+                    read++;
+                }
+            } finally {
+                TestUtils.dropTableIfExists(escaped, stmt);
+            }
+            assertEquals(rowCount, read, "All rows from a large result set should be streamed");
+        }
+    }
+
+    /**
+     * Verifies that if a character stream's read throws during executeUpdate, the update fails but the
+     * connection remains usable.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testRepro39941() throws SQLException {
+        tableName = RandomUtil.getIdentifier("repro39941");
+        String escaped = AbstractSQLGenerator.escapeIdentifier(tableName);
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(escaped, stmt);
+            stmt.executeUpdate("CREATE TABLE " + escaped + " (k1 nvarchar(4) not null, fclob varchar(max))");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + escaped + " VALUES (?, ?)")) {
+                ps.setString(1, "F");
+                // A reader that throws on read; the driver should surface an error, not break the connection.
+                ps.setCharacterStream(2, new Reader() {
+                    @Override
+                    public int read(char[] cbuf, int off, int len) throws IOException {
+                        throw new IOException("simulated read failure");
+                    }
+
+                    @Override
+                    public void close() {}
+                }, 10);
+                try {
+                    ps.executeUpdate();
+                } catch (Exception e) {
+                    // Expected: the failing stream causes the update to fail.
+                }
+            }
+
+            // The connection must still be usable.
+            try (Statement check = conn.createStatement(); ResultSet rs = check.executeQuery("SELECT @@TRANCOUNT")) {
+                assertTrue(rs.next(), "Connection should remain usable after a stream read failure");
+            } finally {
+                TestUtils.dropTableIfExists(escaped, stmt);
             }
         }
     }

@@ -189,4 +189,21 @@ public class TLSProtocolTest extends AbstractTest {
         }
         assertTrue(connected, "Should connect with at least one TLS protocol");
     }
+
+    /**
+     * Verifies that with encrypt=true and trustServerCertificate=false, specifying a
+     * hostNameInCertificate that does not match the server certificate causes the connection to fail
+     * with a certificate hostname-mismatch error.
+     */
+    @Test
+    public void testLongHostName() throws Exception {
+        String wrongHost = "wrong-host-name-that-does-not-match.foo";
+        String url = connectionString + ";encrypt=true;trustServerCertificate=false;hostNameInCertificate="
+                + wrongHost;
+        assertThrows(SQLServerException.class, () -> {
+            try (Connection conn = PrepUtil.getConnection(url)) {
+                assertNotNull(conn);
+            }
+        }, "Connection should fail when hostNameInCertificate does not match the server certificate");
+    }
 }

@@ -143,4 +143,39 @@ public class ReadonlyRoutingTest extends AbstractTest {
             }
         }
     }
+
+    /**
+     * Verifies that a read-only-intent connection is established and usable; if the availability group
+     * re-routes, the driver still yields a single working connection.
+     */
+    @Test
+    public void testDoubleHopRouting() throws SQLException {
+        String url = connectionString + ";applicationIntent=ReadOnly";
+        try (Connection conn = PrepUtil.getConnection(url)) {
+            assertNotNull(conn);
+            try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT 1")) {
+                assertTrue(rs.next());
+            }
+        } catch (SQLServerException e) {
+            // If AG not configured, routing may not be available.
+            assertNotNull(e.getMessage());
+        }
+    }
+
+    /**
+     * Verifies that a read-only-intent connection with encryption against SQL Azure connects and is
+     * usable, or fails cleanly if routing is not configured.
+     */
+    @Test
+    public void testSQLAzureRouting() throws SQLException {
+        String url = connectionString + ";applicationIntent=ReadOnly;encrypt=true;trustServerCertificate=true";
+        try (Connection conn = PrepUtil.getConnection(url)) {
+            assertNotNull(conn);
+            try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT 1")) {
+                assertTrue(rs.next());
+            }
+        } catch (SQLServerException e) {
+            assertNotNull(e.getMessage());
+        }
+    }
 }

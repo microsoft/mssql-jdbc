@@ -15,7 +15,12 @@ import static org.mockito.Mockito.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
@@ -27,6 +32,7 @@ import org.junit.jupiter.api.Tag;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import microsoft.sql.DateTimeOffset;
@@ -986,5 +992,136 @@ public class SQLServerBulkCopyTest extends AbstractTest {
         assertEquals(330, dto.getMinutesOffset()); // 5*60 + 30 = 330 minutes
 
         bulkCopy.close();
+    }
+
+    // ------------------------------------------------------------------------------------------------
+    // Legacy FX bulk copy tests ported from tests/src/bulkCopy/*.
+    // ------------------------------------------------------------------------------------------------
+
+    /**
+     * Verifies that when CheckConstraints is enabled, a bulk copy of a row that violates a CHECK
+     * constraint on the destination table is rejected with a SQLServerException reporting the CHECK
+     * constraint conflict.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    public void testBulkCopyCheckConstraintEnforcement() throws SQLException {
+        String srcName = RandomUtil.getIdentifier("bcSrc");
+        String dstName = RandomUtil.getIdentifier("bcDstCheck");
+        String srcTable = AbstractSQLGenerator.escapeIdentifier(srcName);
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(dstName);
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(srcTable, stmt);
+            TestUtils.dropTableIfExists(dstTable, stmt);
+            stmt.executeUpdate("CREATE TABLE " + srcTable + " (city varchar(30))");
+            stmt.executeUpdate("INSERT INTO " + srcTable + " VALUES ('London')");
+            stmt.executeUpdate("CREATE TABLE " + dstTable
+                    + " (city varchar(30), CONSTRAINT chkCity CHECK(city = 'Paris'))");
+            try {
+                SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+                options.setCheckConstraints(true);
+                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+                        ResultSet rs = stmt.executeQuery("SELECT city FROM " + srcTable)) {
+                    bulkCopy.setBulkCopyOptions(options);
+                    bulkCopy.setDestinationTableName(dstTable);
+                    SQLException ex = null;
+                    try {
+                        bulkCopy.writeToServer(rs);
+                    } catch (SQLException e) {
+                        ex = e;
+                    }
+                    assertNotNull(ex, "Bulk copy should fail on CHECK constraint violation");
+                    assertTrue(ex.getMessage().toUpperCase().contains("CHECK"),
+                            "Exception should mention the CHECK constraint: " + ex.getMessage());
+                }
+            } finally {
+                TestUtils.dropTableIfExists(srcTable, stmt);
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies that a bulk copy performed inside an explicit transaction that is rolled back leaves the
+     * destination table empty, while a committed bulk copy persists the rows.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    public void testBulkCopyTransactionRollbackAndCommit() throws SQLException {
+        String srcTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("bcTxSrc"));
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("bcTxDst"));
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(srcTable, stmt);
+            TestUtils.dropTableIfExists(dstTable, stmt);
+            stmt.executeUpdate("CREATE TABLE " + srcTable + " (col1 int)");
+            stmt.executeUpdate("INSERT INTO " + srcTable + " VALUES (1), (2), (3)");
+            stmt.executeUpdate("CREATE TABLE " + dstTable + " (col1 int)");
+            try {
+                conn.setAutoCommit(false);
+                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+                        ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + srcTable)) {
+                    bulkCopy.setDestinationTableName(dstTable);
+                    bulkCopy.writeToServer(rs);
+                }
+                conn.rollback();
+                assertEquals(0, countRows(conn, dstTable), "Rolled-back bulk copy should leave table empty");
+
+                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+                        ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + srcTable)) {
+                    bulkCopy.setDestinationTableName(dstTable);
+                    bulkCopy.writeToServer(rs);
+                }
+                conn.commit();
+                assertEquals(3, countRows(conn, dstTable), "Committed bulk copy should persist rows");
+                conn.setAutoCommit(true);
+            } finally {
+                TestUtils.dropTableIfExists(srcTable, stmt);
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies that GB18030-encoded string data, including a four-byte character, survives a bulk copy
+     * into an nvarchar column unchanged.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    public void testBulkCopyGB18030Encoding() throws SQLException {
+        String srcTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("bcGbSrc"));
+        String dstTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("bcGbDst"));
+        String gb18030Value = "\u4F60\u597D\u4E16\u754C\u9F98";
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(srcTable, stmt);
+            TestUtils.dropTableIfExists(dstTable, stmt);
+            stmt.executeUpdate("CREATE TABLE " + srcTable + " (col1 nvarchar(50))");
+            stmt.executeUpdate("CREATE TABLE " + dstTable + " (col1 nvarchar(50))");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + srcTable + " VALUES (?)")) {
+                ps.setNString(1, gb18030Value);
+                ps.executeUpdate();
+            }
+            try {
+                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+                        ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + srcTable)) {
+                    bulkCopy.setDestinationTableName(dstTable);
+                    bulkCopy.writeToServer(rs);
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + dstTable)) {
+                    assertTrue(rs.next());
+                    assertEquals(gb18030Value, rs.getNString(1), "GB18030 data should round-trip via bulk copy");
+                }
+            } finally {
+                TestUtils.dropTableIfExists(srcTable, stmt);
+                TestUtils.dropTableIfExists(dstTable, stmt);
+            }
+        }
+    }
+
+    private static int countRows(Connection conn, String escapedTable) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + escapedTable)) {
+            rs.next();
+            return rs.getInt(1);
+        }
     }
 }
