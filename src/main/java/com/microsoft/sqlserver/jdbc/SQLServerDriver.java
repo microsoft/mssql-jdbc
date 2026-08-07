@@ -633,6 +633,7 @@ enum PrepareMethod {
 
 
 enum SQLServerDriverStringProperty {
+    SET_NOCOUNT("set_nocount", OnOffOption.OFF.toString()),
     APPLICATION_INTENT("applicationIntent", ApplicationIntent.READ_WRITE.toString()),
     APPLICATION_NAME("applicationName", SQLServerDriver.DEFAULT_APP_NAME),
     PREPARE_METHOD("prepareMethod", PrepareMethod.PREPEXEC.toString()),
@@ -881,10 +882,18 @@ public final class SQLServerDriver implements java.sql.Driver {
     // }
     
     private static final String[] TRUE_FALSE = {"true", "false"};
+    private static final String[] ON_OFF = {OnOffOption.ON.toString(), OnOffOption.OFF.toString()};
+
 
     private static final SQLServerDriverPropertyInfo[] DRIVER_PROPERTIES = {
             // default required available choices
             // property name value property (if appropriate)
+            new SQLServerDriverPropertyInfo(
+                    SQLServerDriverStringProperty.SET_NOCOUNT.toString(),
+                    SQLServerDriverStringProperty.SET_NOCOUNT.getDefaultValue(),
+                    false,
+                    ON_OFF
+                ),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.APPLICATION_INTENT.toString(),
                     SQLServerDriverStringProperty.APPLICATION_INTENT.getDefaultValue(), false,
                     new String[] {ApplicationIntent.READ_ONLY.toString(), ApplicationIntent.READ_WRITE.toString()}),
