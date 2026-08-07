@@ -61,6 +61,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
+import com.microsoft.sqlserver.testframework.PrepUtil;
 import com.microsoft.sqlserver.testframework.vectorJsonTest;
 
 
@@ -2779,6 +2780,165 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 TestUtils.dropFunctionWithSchemaIfExists(schemaName + "." + func2, stmt);
 
                 TestUtils.dropSchemaIfExists(schemaName, stmt);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------------
+    // Legacy FX DatabaseMetaData tests ported from tests/src/metadata/metadata.java and
+    // tests/src/metadata-unit/fxUnitMetadata.java.
+    // ------------------------------------------------------------------------------------------------
+
+    /**
+     * Verifies getTypeInfo reports the correct DATA_TYPE ids for the temporal types (datetimeoffset =
+     * -155, time = 92, date = 91, datetime2 = 93).
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxMetadata)
+    public void testTemporalTypeInfo() throws SQLException {
+        Map<String, Integer> expected = new HashMap<>();
+        expected.put("datetimeoffset", -155);
+        expected.put("time", 92);
+        expected.put("date", 91);
+        expected.put("datetime2", 93);
+
+        Set<String> seen = new HashSet<>();
+        try (Connection conn = getConnection(); ResultSet rs = conn.getMetaData().getTypeInfo()) {
+            while (rs.next()) {
+                String name = rs.getString("TYPE_NAME");
+                int dataType = rs.getInt("DATA_TYPE");
+                if (expected.containsKey(name)) {
+                    assertEquals(expected.get(name).intValue(), dataType,
+                            "Mismatch in reported DATA_TYPE for " + name);
+                    seen.add(name);
+                }
+            }
+        }
+        assertEquals(expected.keySet(), seen, "Not all temporal types were found in getTypeInfo()");
+    }
+
+    /**
+     * Verifies supportsConvert can be called across the full matrix of common JDBC types without error.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxMetadata)
+    public void testSupportsConvertMatrix() throws SQLException {
+        int[] types = {Types.BINARY, Types.VARBINARY, Types.CHAR, Types.VARCHAR, Types.NUMERIC, Types.DECIMAL,
+                Types.FLOAT, Types.REAL, Types.BIGINT, Types.INTEGER, Types.SMALLINT, Types.TINYINT, Types.BIT,
+                Types.TIMESTAMP, Types.LONGVARBINARY, Types.LONGVARCHAR};
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData dbmd = conn.getMetaData();
+            assertNotNull(dbmd);
+            for (int from : types) {
+                for (int to : types) {
+                    dbmd.supportsConvert(from, to);
+                }
+            }
+        }
+    }
+
+    /**
+     * Verifies getPseudoColumns returns a valid, well-formed result set.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxMetadata)
+    public void testGetPseudoColumns() throws SQLException {
+        try (Connection conn = getConnection();
+                ResultSet rs = conn.getMetaData().getPseudoColumns(null, null, "%", "%")) {
+            assertNotNull(rs, "getPseudoColumns should return a non-null ResultSet");
+            assertNotNull(rs.getMetaData(), "getPseudoColumns ResultSet should have metadata");
+        }
+    }
+
+    /**
+     * Verifies getMaxLogicalLobSize returns a non-negative value.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxMetadata)
+    public void testGetMaxLogicalLobSize() throws SQLException {
+        try (Connection conn = getConnection()) {
+            long maxLobSize = conn.getMetaData().getMaxLogicalLobSize();
+            assertTrue(maxLobSize >= 0, "getMaxLogicalLobSize should be non-negative");
+        }
+    }
+
+    /**
+     * Verifies generatedKeyAlwaysReturned can be invoked without error.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxMetadata)
+    public void testGeneratedKeyAlwaysReturned() throws SQLException {
+        try (Connection conn = getConnection()) {
+            conn.getMetaData().generatedKeyAlwaysReturned();
+        }
+    }
+
+    /**
+     * Verifies the JDBC 4.x UDT-related metadata methods (getUDTs, getSuperTables, getSuperTypes,
+     * getAttributes) can be invoked with null filters and return valid result sets without error.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxMetadata)
+    public void testGetUdtRelatedMetadata() throws SQLException {
+        try (Connection conn = getConnection()) {
+            DatabaseMetaData dbmd = conn.getMetaData();
+            try (ResultSet rs = dbmd.getUDTs(null, null, "%", null)) {
+                assertNotNull(rs, "getUDTs should return a non-null ResultSet");
+            }
+            try (ResultSet rs = dbmd.getSuperTables(null, "%", "%")) {
+                assertNotNull(rs, "getSuperTables should return a non-null ResultSet");
+            }
+            try (ResultSet rs = dbmd.getSuperTypes(null, "%", "%")) {
+                assertNotNull(rs, "getSuperTypes should return a non-null ResultSet");
+            }
+            try (ResultSet rs = dbmd.getAttributes(null, null, "%", "%")) {
+                assertNotNull(rs, "getAttributes should return a non-null ResultSet");
+            }
+        }
+    }
+
+    /**
+     * Verifies supportsRefCursors returns false because SQL Server does not support REF_CURSOR.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxMetadata)
+    public void testSupportsRefCursors() throws SQLException {
+        try (Connection conn = getConnection()) {
+            assertEquals(false, conn.getMetaData().supportsRefCursors(),
+                    "SQL Server should not support REF_CURSOR");
+        }
+    }
+
+    /**
+     * Verifies getSchemas succeeds when the user database collation differs from the master collation
+     * (regression VSTS #532970). Creates a database with a non-default binary collation, connects to
+     * it, and calls getSchemas.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxMetadata)
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
+    public void testSchemaCollation() throws SQLException {
+        String dbName = RandomUtil.getIdentifier("CollationTest");
+        String escapedDbName = AbstractSQLGenerator.escapeIdentifier(dbName);
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("CREATE DATABASE " + escapedDbName + " COLLATE Polish_BIN");
+            try {
+                String userDbConnString = TestUtils.addOrOverrideProperty(connectionString, "databaseName", dbName);
+                try (Connection userConn = PrepUtil.getConnection(userDbConnString);
+                        ResultSet rs = userConn.getMetaData().getSchemas()) {
+                    assertNotNull(rs, "getSchemas() should succeed on a collation-mismatched database");
+                }
+            } finally {
+                stmt.executeUpdate("DROP DATABASE " + escapedDbName);
             }
         }
     }
