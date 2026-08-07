@@ -243,6 +243,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_clientKeyPropertyDescription", "Private key file path for client certificate."},
         {"R_clientKeyPasswordPropertyDescription", "Password for private key if the private key is password protected."},
         {"R_sendTemporalDataTypesAsStringForBulkCopyPropertyDescription", "Flag to indicate whether the driver will send temporal datatypes as String value to the server for bulk copy."},
+        {"R_sendGuidAsStringForBulkCopyPropertyDescription", "Flag to indicate whether the driver will send uniqueidentifier values as String value to the server for bulk copy."},
         {"R_delayLoadingLobsPropertyDescription", "Boolean flag which indicates whether the driver will load LOB datatypes into memory."},
         {"R_AADSecurePrincipalIdPropertyDescription", "The Application Id of a registered application which has been granted permission to the database connected."},
         {"R_AADSecurePrincipalSecretPropertyDescription", "A Secret defined for a registered application which has been granted permission to the database connected."},
