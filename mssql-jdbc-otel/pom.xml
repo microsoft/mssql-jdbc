@@ -37,13 +37,12 @@
         </dependency>
         <dependency>
             <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-sdk-testing</artifactId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
             <version>${opentelemetry.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <artifactId>opentelemetry-sdk-testing</artifactId>
             <version>${opentelemetry.version}</version>
             <scope>test</scope>
         </dependency>

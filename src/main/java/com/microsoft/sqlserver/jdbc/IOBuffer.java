@@ -187,6 +187,9 @@ final class TDS {
     // User agent telemetry support
     static final byte TDS_FEATURE_EXT_USERAGENT = 0x10;
 
+    // Client OpenTelemetry feature: server-driven toggle plus Azure resource context (ARM id / region)
+    static final byte TDS_FEATURE_EXT_CLIENTOPENTELEMETRY = 0x11;
+
     static final int TDS_TVP = 0xF3;
     static final int TVP_ROW = 0x01;
     static final int TVP_NULL_TOKEN = 0xFFFF;
@@ -261,6 +264,8 @@ final class TDS {
                 return "TDS_FEATURE_EXT_JSONSUPPORT (0x0D)";
             case TDS_FEATURE_EXT_USERAGENT:
                 return "TDS_FEATURE_EXT_USERAGENT (0x10)";
+            case TDS_FEATURE_EXT_CLIENTOPENTELEMETRY:
+                return "TDS_FEATURE_EXT_CLIENTOPENTELEMETRY (0x11)";
             case TDS_FEATURE_EXT_ENHANCEDROUTING:
                 return "TDS_FEATURE_EXT_ENHANCEDROUTING (0x0F)";
 

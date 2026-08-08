@@ -126,6 +126,7 @@ class PerformanceLog {
         private SQLServerStatement stmtHandle;
         private String userSql;
         private final Map<String, Object> attributes;
+        private final Map<String, String> authHeaders;
 
         // Constructor for connection-level activities
         public Scope(Logger logger, int connectionId, PerformanceActivity activity, SQLServerConnection connection) {
@@ -139,6 +140,7 @@ class PerformanceLog {
             this.enabled = logger.isLoggable(Level.FINE) || (callback != null);
             this.useNanos = cachedUseNanos;
             this.attributes = buildAttributes(connection);
+            this.authHeaders = resolveAuthHeaders(connection);
 
             if (enabled) {
                 this.logger = logger;
@@ -195,7 +197,7 @@ class PerformanceLog {
 
                     if (bridge != null) {
                         TelemetryEvent event = new TelemetryEvent(activity, connectionId, statementId, duration,
-                                exception, currentUserSql.get(), currentStatementType.get(), Collections.emptyMap(),
+                                exception, currentUserSql.get(), currentStatementType.get(), authHeaders,
                                 null, null, null, null, useNanos ? "ns" : "ms", attributes);
                         bridge.publish(event);
                     }
@@ -235,11 +237,14 @@ class PerformanceLog {
         Map<String, Object> attrs = new LinkedHashMap<>();
         attrs.put("mssql.jdbc.useragent", SQLServerConnection.userAgentStr);
         if (connection != null) {
-            addIfNotEmpty(attrs, "mssql.jdbc.otel.profile", connection.getOtelProfile());
             addIfNotEmpty(attrs, "mssql.jdbc.otel.auth", connection.getOtelAuth());
-            addIfNotEmpty(attrs, "mssql.jdbc.otel.endpoint", connection.getOtelEndpoint());
             addIfNotEmpty(attrs, "mssql.jdbc.otel.access_token_callback_class",
                     connection.getOtelAccessTokenCallbackClass());
+            OpenTelemetryConfig otelConfig = connection.getResolvedOpenTelemetryConfig();
+            if (otelConfig.isEnabled()) {
+                attrs.put("mssql.jdbc.otel.mode", otelConfig.getMode().name());
+                addIfNotEmpty(attrs, "mssql.jdbc.otel.endpoint", otelConfig.getEndpoint());
+            }
         }
         return attrs;
     }
@@ -248,6 +253,16 @@ class PerformanceLog {
         if (value != null && !value.isEmpty()) {
             attrs.put(key, value);
         }
+    }
+
+    private static Map<String, String> resolveAuthHeaders(SQLServerConnection connection) {
+        if (connection != null) {
+            OpenTelemetryConfig otelConfig = connection.getResolvedOpenTelemetryConfig();
+            if (otelConfig.isEnabled()) {
+                return otelConfig.getAuthHeaders();
+            }
+        }
+        return Collections.emptyMap();
     }
 
     // Helper method to derive statement type based on the statement class

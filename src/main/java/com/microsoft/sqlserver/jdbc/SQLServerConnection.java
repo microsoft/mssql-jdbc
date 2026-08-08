@@ -176,6 +176,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** OpenTelemetry access token callback class name */
     private transient String otelAccessTokenCallbackClass = null;
 
+    /** Whether the server negotiated the Client OpenTelemetry feature (toggle ON). */
+    private transient boolean clientOpenTelemetryEnabled = false;
+
+    /** Region supplied by the server in the Client OpenTelemetry feature ack (empty for box/on-prem). */
+    private transient String otelServerRegion = "";
+
+    /** ARM resource id supplied by the server in the Client OpenTelemetry feature ack (empty for box/on-prem). */
+    private transient String otelServerArmResourceId = "";
+
+    /** Lazily resolved OpenTelemetry export configuration (CUSTOM/ARC/PAAS/DISABLED). */
+    private transient OpenTelemetryConfig resolvedOtelConfig = null;
+
     /** Flag that determines whether the accessToken callback class is set **/
     private boolean hasAccessTokenCallbackClass = false;
 
@@ -6219,6 +6231,20 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return len;
     }
 
+    int writeClientOpenTelemetryFeatureRequest(boolean write, /* if false just calculates the length */
+            TDSWriter tdsWriter) throws SQLServerException {
+        int len = 5; // 1byte = featureID, 4bytes = featureData length (0 bytes, no payload)
+        if (write) {
+            if (connectionlogger.isLoggable(Level.FINER)) {
+                connectionlogger.finer(toString() + " Writing Client OpenTelemetry feature request (featureId=0x"
+                        + Integer.toHexString(TDS.TDS_FEATURE_EXT_CLIENTOPENTELEMETRY & 0xFF) + ", payloadLength=0).");
+            }
+            tdsWriter.writeByte(TDS.TDS_FEATURE_EXT_CLIENTOPENTELEMETRY);
+            tdsWriter.writeInt(0); // No payload; server responds in the ack
+        }
+        return len;
+    }
+
     int writeIdleConnectionResiliencyRequest(boolean write, TDSWriter tdsWriter) throws SQLServerException {
         SessionStateTable ssTable = sessionRecovery.getSessionStateTable();
         int len = 1;
@@ -7487,6 +7513,61 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             }
 
+            case TDS.TDS_FEATURE_EXT_CLIENTOPENTELEMETRY: {
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.finer(toString()
+                            + " Received feature extension acknowledgement for Client OpenTelemetry. Raw ack bytes ("
+                            + data.length + "): " + Util.byteToHexDisplayString(data));
+                }
+
+                // Wire format (little-endian, UTF-16LE, no null terminator):
+                // bEnabled BYTE, cbRegion USHORT, region BYTE[cbRegion],
+                // cbArmResourceId USHORT, armResourceId BYTE[cbArmResourceId]
+                int offset = 0;
+                if (data.length < 1) {
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_ClientOpenTelemetryFeatureAckInvalid"), null);
+                }
+                clientOpenTelemetryEnabled = (0 != data[offset]);
+                offset += 1;
+
+                if (offset + 2 > data.length) {
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_ClientOpenTelemetryFeatureAckInvalid"), null);
+                }
+                int cbRegion = (data[offset] & 0xFF) | ((data[offset + 1] & 0xFF) << 8);
+                offset += 2;
+                if (offset + cbRegion > data.length) {
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_ClientOpenTelemetryFeatureAckInvalid"), null);
+                }
+                otelServerRegion = new String(data, offset, cbRegion, java.nio.charset.StandardCharsets.UTF_16LE);
+                offset += cbRegion;
+
+                if (offset + 2 > data.length) {
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_ClientOpenTelemetryFeatureAckInvalid"), null);
+                }
+                int cbArmResourceId = (data[offset] & 0xFF) | ((data[offset + 1] & 0xFF) << 8);
+                offset += 2;
+                if (offset + cbArmResourceId > data.length) {
+                    throw new SQLServerException(
+                            SQLServerException.getErrString("R_ClientOpenTelemetryFeatureAckInvalid"), null);
+                }
+                otelServerArmResourceId = new String(data, offset, cbArmResourceId,
+                        java.nio.charset.StandardCharsets.UTF_16LE);
+                offset += cbArmResourceId;
+
+                if (connectionlogger.isLoggable(Level.FINER)) {
+                    connectionlogger.finer(toString()
+                            + " Client OpenTelemetry negotiation result -> enabled=" + clientOpenTelemetryEnabled
+                            + ", region=[" + otelServerRegion + "] (cbRegion=" + cbRegion + ")"
+                            + ", armResourceId=[" + otelServerArmResourceId + "] (cbArmResourceId=" + cbArmResourceId
+                            + "), bytesConsumed=" + offset + " of " + data.length + ".");
+                }
+                break;
+            }
+
             default: {
                 // Unknown feature ack
                 throw new SQLServerException(SQLServerException.getErrString("R_UnknownFeatureAck"), null);
@@ -7817,6 +7898,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         len += writeJSONSupportFeatureRequest(false, tdsWriter);
         // request Enhanced Routing support (always sent)
         len += writeEnhancedRoutingFeatureRequest(false, tdsWriter);
+        // request Client OpenTelemetry support (always sent)
+        len += writeClientOpenTelemetryFeatureRequest(false, tdsWriter);
 
         len = len + 1; // add 1 to length because of FeatureEx terminator
 
@@ -8020,6 +8103,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         writeVectorSupportFeatureRequest(true, tdsWriter);
         writeJSONSupportFeatureRequest(true, tdsWriter);
         writeEnhancedRoutingFeatureRequest(true, tdsWriter);
+        writeClientOpenTelemetryFeatureRequest(true, tdsWriter);
 
         // Idle Connection Resiliency is requested
         if (connectRetryCount > 0) {
@@ -9447,6 +9531,54 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return null == this.otelAccessTokenCallbackClass
                 ? SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK_CLASS.getDefaultValue()
                 : this.otelAccessTokenCallbackClass;
+    }
+
+    /**
+     * Returns whether the server negotiated the Client OpenTelemetry feature (toggle ON).
+     *
+     * @return true if the server acknowledged the Client OpenTelemetry feature with the toggle enabled
+     */
+    boolean isClientOpenTelemetryEnabled() {
+        return this.clientOpenTelemetryEnabled;
+    }
+
+    /**
+     * Returns the region supplied by the server in the Client OpenTelemetry feature ack.
+     * Empty for box / on-prem SQL Server.
+     *
+     * @return the server-provided region, or an empty string
+     */
+    String getOtelServerRegion() {
+        return this.otelServerRegion;
+    }
+
+    /**
+     * Returns the ARM resource id supplied by the server in the Client OpenTelemetry feature ack.
+     * Empty for box / on-prem SQL Server.
+     *
+     * @return the server-provided ARM resource id, or an empty string
+     */
+    String getOtelServerArmResourceId() {
+        return this.otelServerArmResourceId;
+    }
+
+    /**
+     * Returns the resolved OpenTelemetry export configuration for this connection, computing it once and
+     * caching the result. Resolution follows the CUSTOM / ARC / PAAS / DISABLED precedence.
+     *
+     * @return the resolved configuration (never {@code null})
+     */
+    synchronized OpenTelemetryConfig getResolvedOpenTelemetryConfig() {
+        if (null == this.resolvedOtelConfig) {
+            this.resolvedOtelConfig = OpenTelemetryConfig.resolve(this);
+            if (connectionlogger.isLoggable(Level.FINER)) {
+                connectionlogger.finer(toString() + " Resolved OpenTelemetry configuration -> mode="
+                        + this.resolvedOtelConfig.getMode() + ", enabled=" + this.resolvedOtelConfig.isEnabled()
+                        + ", endpoint=[" + this.resolvedOtelConfig.getEndpoint() + "], authHeaderNames="
+                        + this.resolvedOtelConfig.getAuthHeaders().keySet() + ".");
+            }
+        }
+        return this.resolvedOtelConfig;
     }
 
     /**
