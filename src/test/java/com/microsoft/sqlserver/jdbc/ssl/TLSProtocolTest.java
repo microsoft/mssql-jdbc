@@ -196,7 +196,7 @@ public class TLSProtocolTest extends AbstractTest {
      * with a certificate hostname-mismatch error.
      */
     @Test
-    public void testLongHostName() throws Exception {
+    public void testHostNameInCertificateMismatchRejected() throws Exception {
         String wrongHost = "wrong-host-name-that-does-not-match.foo";
         String url = connectionString + ";encrypt=true;trustServerCertificate=false;hostNameInCertificate="
                 + wrongHost;

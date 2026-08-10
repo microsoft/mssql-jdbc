@@ -157,14 +157,13 @@ public class ReadonlyRoutingTest extends AbstractTest {
                 assertTrue(rs.next());
             }
         } catch (SQLServerException e) {
-            // If AG not configured, routing may not be available.
-            assertNotNull(e.getMessage());
+            fail("Read-only routing test requires an AlwaysOn AG routing configuration: " + e.getMessage());
         }
     }
 
     /**
      * Verifies that a read-only-intent connection with encryption against SQL Azure connects and is
-     * usable, or fails cleanly if routing is not configured.
+     * usable.
      */
     @Test
     public void testSQLAzureRouting() throws SQLException {
@@ -175,7 +174,7 @@ public class ReadonlyRoutingTest extends AbstractTest {
                 assertTrue(rs.next());
             }
         } catch (SQLServerException e) {
-            assertNotNull(e.getMessage());
+            fail("Read-only routing test requires an AlwaysOn AG routing configuration: " + e.getMessage());
         }
     }
 }

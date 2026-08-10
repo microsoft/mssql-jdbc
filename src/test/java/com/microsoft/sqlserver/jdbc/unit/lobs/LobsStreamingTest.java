@@ -3,6 +3,7 @@ package com.microsoft.sqlserver.jdbc.unit.lobs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -508,11 +509,8 @@ public class LobsStreamingTest extends AbstractTest {
                     @Override
                     public void close() {}
                 }, 10);
-                try {
-                    ps.executeUpdate();
-                } catch (Exception e) {
-                    // Expected: the failing stream causes the update to fail.
-                }
+                assertThrows(SQLException.class, () -> ps.executeUpdate(),
+                        "executeUpdate should fail when the character stream throws during read");
             }
 
             // The connection must still be usable.
