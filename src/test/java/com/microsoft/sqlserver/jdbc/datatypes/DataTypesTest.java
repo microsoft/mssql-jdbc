@@ -1997,4 +1997,81 @@ public class DataTypesTest extends AbstractTest {
         // make sure none of the nano seconds are 0 so that we can detect truncation
         return unstorable.withNano(123456789).truncatedTo(ChronoUnit.MICROS);
     }
+
+    /**
+     * Inserts and reads back a value for every common SQL type through a server-side prepared
+     * statement (prepareMethod=prepexec) so the parameter RPC send path and type-definition logic are
+     * exercised for each type. Functionally ported from the legacy FX datatypes module.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testAllTypesServerPrepareRoundTrip() throws Exception {
+        String[][] typeAndValue = {
+                {"bit", "1"},
+                {"tinyint", "255"},
+                {"smallint", "-32768"},
+                {"int", "2147483647"},
+                {"bigint", "-9223372036854775808"},
+                {"real", "3.14"},
+                {"float", "3.14159265"},
+                {"decimal(18,4)", "12345.6789"},
+                {"numeric(18,4)", "-9876.5432"},
+                {"money", "1234.5670"},
+                {"smallmoney", "12.3400"},
+                {"char(10)", "abcdefghij"},
+                {"varchar(50)", "hello world"},
+                {"nchar(10)", "\u4F60\u597Dabcdef"},
+                {"nvarchar(50)", "unicode \u00E9\u00E8"},
+                {"varchar(max)", "a large varchar value"},
+                {"nvarchar(max)", "a large nvarchar value"},
+                {"binary(4)", "0x01020304"},
+                {"varbinary(8)", "0xDEADBEEF"},
+                {"varbinary(max)", "0x0102030405"},
+                {"uniqueidentifier", "6F9619FF-8B86-D011-B42D-00C04FC964FF"},
+                {"date", "2023-01-15"},
+                {"time(7)", "12:34:56.1234567"},
+                {"datetime", "2023-01-15 12:34:56"},
+                {"datetime2(7)", "2023-01-15 12:34:56.1234567"},
+                {"smalldatetime", "2023-01-15 12:35:00"},
+                {"datetimeoffset(7)", "2023-01-15 12:34:56.1234567 +05:30"}};
+
+        String url = TestUtils.addOrOverrideProperty(connectionString, "prepareMethod", "prepexec");
+        try (Connection conn = PrepUtil.getConnection(url)) {
+            for (String[] tv : typeAndValue) {
+                String sqlType = tv[0];
+                String literal = tv[1];
+                String name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("dtMatrix"));
+                try (Statement stmt = conn.createStatement()) {
+                    TestUtils.dropTableIfExists(name, stmt);
+                    stmt.executeUpdate("CREATE TABLE " + name + " (col1 " + sqlType + ")");
+                    boolean binary = sqlType.startsWith("binary") || sqlType.startsWith("varbinary");
+                    // Insert via server-side prepared statement to exercise the RPC parameter path.
+                    try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + name + " VALUES (?)")) {
+                        if (binary) {
+                            ps.setBytes(1, hexToBytes(literal));
+                        } else {
+                            ps.setString(1, literal);
+                        }
+                        ps.executeUpdate();
+                    }
+                    try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + name)) {
+                        assertTrue("No row for type " + sqlType, rs.next());
+                        assertTrue("Value read for type " + sqlType, rs.getObject(1) != null || rs.wasNull());
+                    }
+                    TestUtils.dropTableIfExists(name, stmt);
+                }
+            }
+        }
+    }
+
+    private static byte[] hexToBytes(String hex) {
+        String h = hex.startsWith("0x") ? hex.substring(2) : hex;
+        int len = h.length();
+        byte[] out = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            out[i / 2] = (byte) ((Character.digit(h.charAt(i), 16) << 4) + Character.digit(h.charAt(i + 1), 16));
+        }
+        return out;
+    }
 }

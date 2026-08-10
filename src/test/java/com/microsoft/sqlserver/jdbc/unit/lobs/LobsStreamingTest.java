@@ -10,8 +10,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringReader;
+import java.io.Writer;
+import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.NClob;
@@ -516,6 +519,107 @@ public class LobsStreamingTest extends AbstractTest {
             // The connection must still be usable.
             try (Statement check = conn.createStatement(); ResultSet rs = check.executeQuery("SELECT @@TRANCOUNT")) {
                 assertTrue(rs.next(), "Connection should remain usable after a stream read failure");
+            } finally {
+                TestUtils.dropTableIfExists(escaped, stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies writing a Clob via the setCharacterStream(1) Writer, inserting it, and reading the
+     * value back unchanged. Exercises the Clob output-writer path.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testClobSetCharacterStreamWrite() throws Exception {
+        tableName = RandomUtil.getIdentifier("clobWriter");
+        String escaped = AbstractSQLGenerator.escapeIdentifier(tableName);
+        String value = getRandomString(3000, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(escaped, stmt);
+            stmt.executeUpdate("CREATE TABLE " + escaped + " (col1 varchar(max))");
+            try {
+                Clob clob = conn.createClob();
+                try (Writer w = clob.setCharacterStream(1)) {
+                    w.write(value);
+                }
+                try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + escaped + " VALUES (?)")) {
+                    ps.setClob(1, clob);
+                    ps.executeUpdate();
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + escaped)) {
+                    assertTrue(rs.next());
+                    assertEquals(value, rs.getString(1), "Clob written via character-stream should round-trip");
+                }
+            } finally {
+                TestUtils.dropTableIfExists(escaped, stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies writing a Clob via the setAsciiStream(1) OutputStream, inserting it, and reading the
+     * value back unchanged. Exercises the Clob ASCII output-stream path.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testClobSetAsciiStreamWrite() throws Exception {
+        tableName = RandomUtil.getIdentifier("clobAscii");
+        String escaped = AbstractSQLGenerator.escapeIdentifier(tableName);
+        String value = getRandomString(2000, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(escaped, stmt);
+            stmt.executeUpdate("CREATE TABLE " + escaped + " (col1 varchar(max))");
+            try {
+                Clob clob = conn.createClob();
+                try (OutputStream os = clob.setAsciiStream(1)) {
+                    os.write(value.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+                }
+                try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + escaped + " VALUES (?)")) {
+                    ps.setClob(1, clob);
+                    ps.executeUpdate();
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + escaped)) {
+                    assertTrue(rs.next());
+                    assertEquals(value, rs.getString(1), "Clob written via ASCII-stream should round-trip");
+                }
+            } finally {
+                TestUtils.dropTableIfExists(escaped, stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies writing a Blob via the setBinaryStream(1) OutputStream, inserting it, and reading the
+     * value back unchanged. Exercises the Blob output-stream path.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testBlobSetBinaryStreamWrite() throws Exception {
+        tableName = RandomUtil.getIdentifier("blobStream");
+        String escaped = AbstractSQLGenerator.escapeIdentifier(tableName);
+        byte[] value = new byte[4096];
+        Constants.RANDOM.nextBytes(value);
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(escaped, stmt);
+            stmt.executeUpdate("CREATE TABLE " + escaped + " (col1 varbinary(max))");
+            try {
+                Blob blob = conn.createBlob();
+                try (OutputStream os = blob.setBinaryStream(1)) {
+                    os.write(value);
+                }
+                try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + escaped + " VALUES (?)")) {
+                    ps.setBlob(1, blob);
+                    ps.executeUpdate();
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + escaped)) {
+                    assertTrue(rs.next());
+                    assertTrue(java.util.Arrays.equals(value, rs.getBytes(1)),
+                            "Blob written via binary-stream should round-trip");
+                }
             } finally {
                 TestUtils.dropTableIfExists(escaped, stmt);
             }
