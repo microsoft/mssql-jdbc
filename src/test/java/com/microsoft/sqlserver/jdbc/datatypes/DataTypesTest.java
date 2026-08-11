@@ -28,6 +28,7 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.time.zone.ZoneOffsetTransition;
 import java.time.zone.ZoneRules;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.EnumSet;
 import java.util.Locale;
@@ -2057,13 +2058,55 @@ public class DataTypesTest extends AbstractTest {
                     }
                     try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + name)) {
                         assertTrue("No row for type " + sqlType, rs.next());
-                        assertTrue("Value read for type " + sqlType, rs.getObject(1) != null || rs.wasNull());
+                        assertRoundTripValue(sqlType, literal, binary, rs);
                     }
                     TestUtils.dropTableIfExists(name, stmt);
                 }
             }
         }
     }
+
+    /**
+     * Verifies the value read back for a given SQL type matches the value that was inserted through the
+     * server-side prepared statement, so that corrupted or mistranslated values are detected.
+     */
+    private static void assertRoundTripValue(String sqlType, String literal, boolean binary,
+            ResultSet rs) throws SQLException {
+        if (binary) {
+            assertTrue("Value should not be null for type " + sqlType, rs.getBytes(1) != null);
+            assertTrue("Round-trip byte mismatch for type " + sqlType,
+                    Arrays.equals(hexToBytes(literal), rs.getBytes(1)));
+            return;
+        }
+
+        if (sqlType.equals("bit")) {
+            assertEquals(1, rs.getInt(1), "Round-trip mismatch for type " + sqlType);
+        } else if (sqlType.equals("tinyint") || sqlType.equals("smallint") || sqlType.equals("int")
+                || sqlType.equals("bigint")) {
+            assertEquals(Long.parseLong(literal), rs.getLong(1), "Round-trip mismatch for type " + sqlType);
+        } else if (sqlType.equals("real") || sqlType.equals("float")) {
+            assertEquals(Double.parseDouble(literal), rs.getDouble(1), 1.0E-4,
+                    "Round-trip mismatch for type " + sqlType);
+        } else if (sqlType.startsWith("decimal") || sqlType.startsWith("numeric") || sqlType.equals("money")
+                || sqlType.equals("smallmoney")) {
+            assertEquals(0, new BigDecimal(literal).compareTo(rs.getBigDecimal(1)),
+                    "Round-trip mismatch for type " + sqlType);
+        } else if (sqlType.equals("uniqueidentifier")) {
+            assertTrue("Round-trip mismatch for type " + sqlType, literal.equalsIgnoreCase(rs.getString(1)));
+        } else if (sqlType.startsWith("char") || sqlType.startsWith("nchar")) {
+            // char/nchar are space padded to their declared length.
+            assertEquals(literal, rs.getString(1).trim(), "Round-trip mismatch for type " + sqlType);
+        } else if (sqlType.startsWith("varchar") || sqlType.startsWith("nvarchar")) {
+            assertEquals(literal, rs.getString(1), "Round-trip mismatch for type " + sqlType);
+        } else {
+            // Temporal types (date/time/datetime/datetime2/smalldatetime/datetimeoffset). The string
+            // representation retains the inserted value, possibly with trailing fractional seconds.
+            String actual = rs.getString(1);
+            assertTrue("Round-trip mismatch for type " + sqlType + ": expected to contain '" + literal
+                    + "' but got '" + actual + "'", actual.contains(literal));
+        }
+    }
+
 
     private static byte[] hexToBytes(String hex) {
         String h = hex.startsWith("0x") ? hex.substring(2) : hex;

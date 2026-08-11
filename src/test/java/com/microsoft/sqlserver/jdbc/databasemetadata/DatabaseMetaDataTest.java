@@ -2831,9 +2831,13 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             DatabaseMetaData dbmd = conn.getMetaData();
             assertNotNull(dbmd);
+            // SQL Server supports conversion between all of these types, so both the parameterless and
+            // the from/to overloads must report true for every combination.
+            assertTrue(dbmd.supportsConvert(), "supportsConvert() should return true");
             for (int from : types) {
                 for (int to : types) {
-                    dbmd.supportsConvert(from, to);
+                    assertTrue(dbmd.supportsConvert(from, to),
+                            "supportsConvert(" + from + ", " + to + ") should return true");
                 }
             }
         }
@@ -2846,10 +2850,22 @@ public class DatabaseMetaDataTest extends AbstractTest {
     @Tag(Constants.legacyFx)
     @Tag(Constants.legacyFxMetadata)
     public void testGetPseudoColumns() throws SQLException {
+        String[] expectedColumns = {"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE",
+                "COLUMN_SIZE", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "COLUMN_USAGE", "REMARKS", "CHAR_OCTET_LENGTH",
+                "IS_NULLABLE"};
         try (Connection conn = getConnection();
                 ResultSet rs = conn.getMetaData().getPseudoColumns(null, null, "%", "%")) {
             assertNotNull(rs, "getPseudoColumns should return a non-null ResultSet");
-            assertNotNull(rs.getMetaData(), "getPseudoColumns ResultSet should have metadata");
+            ResultSetMetaData rsmd = rs.getMetaData();
+            assertNotNull(rsmd, "getPseudoColumns ResultSet should have metadata");
+            assertEquals(expectedColumns.length, rsmd.getColumnCount(),
+                    "getPseudoColumns should report the JDBC-specified number of columns");
+            for (int i = 0; i < expectedColumns.length; i++) {
+                assertEquals(expectedColumns[i], rsmd.getColumnName(i + 1),
+                        "Unexpected column name at ordinal " + (i + 1));
+            }
+            // SQL Server does not support pseudo columns, so the result set must be empty.
+            assertFalse(rs.next(), "getPseudoColumns should return an empty ResultSet for SQL Server");
         }
     }
 
@@ -2867,14 +2883,16 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     /**
-     * Verifies generatedKeyAlwaysReturned can be invoked without error.
+     * Verifies generatedKeyAlwaysReturned returns true because the driver always supports retrieving
+     * generated keys.
      */
     @Test
     @Tag(Constants.legacyFx)
     @Tag(Constants.legacyFxMetadata)
     public void testGeneratedKeyAlwaysReturned() throws SQLException {
         try (Connection conn = getConnection()) {
-            conn.getMetaData().generatedKeyAlwaysReturned();
+            assertTrue(conn.getMetaData().generatedKeyAlwaysReturned(),
+                    "generatedKeyAlwaysReturned should return true");
         }
     }
 
@@ -2938,7 +2956,13 @@ public class DatabaseMetaDataTest extends AbstractTest {
                     assertNotNull(rs, "getSchemas() should succeed on a collation-mismatched database");
                 }
             } finally {
-                stmt.executeUpdate("DROP DATABASE " + escapedDbName);
+                // Attempt cleanup but do not let a DROP DATABASE failure mask the original test failure.
+                try {
+                    stmt.executeUpdate("DROP DATABASE " + escapedDbName);
+                } catch (SQLException dropEx) {
+                    // Cleanup failure is best-effort; the afterAll/other cleanup will not run for this
+                    // temp DB, but suppressing here preserves any in-flight assertion failure.
+                }
             }
         }
     }
