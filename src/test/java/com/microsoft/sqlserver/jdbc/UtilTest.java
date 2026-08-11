@@ -67,6 +67,62 @@ public class UtilTest {
         assertEquals(prt.getProperty("password"), "pasS}");
     }
 
+    /**
+     * Tests that the cross-driver connection string aliases (SqlClient / ODBC / OLEDB spellings) are normalized to the
+     * canonical JDBC property names by {@link Util#parseUrl}.
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testConnectionStringAliasNormalization() throws SQLException {
+        java.util.logging.Logger drLogger = java.util.logging.Logger
+                .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost;uid=myUser;trusted_connection=true;app=myApp;connectTimeout=45;"
+                + "columnEncryption=Enabled;quotedId=OFF;";
+        Properties prt = Util.parseUrl(constr, drLogger);
+
+        // Each alias must normalize to its canonical property name and the alias itself must not survive.
+        assertEquals("myUser", prt.getProperty("user"));
+        assertEquals(null, prt.getProperty("uid"));
+
+        assertEquals("true", prt.getProperty("integratedSecurity"));
+        assertEquals(null, prt.getProperty("trusted_connection"));
+
+        assertEquals("myApp", prt.getProperty("applicationName"));
+        assertEquals(null, prt.getProperty("app"));
+
+        assertEquals("45", prt.getProperty("loginTimeout"));
+        assertEquals(null, prt.getProperty("connectTimeout"));
+
+        assertEquals("Enabled", prt.getProperty("columnEncryptionSetting"));
+        assertEquals(null, prt.getProperty("columnEncryption"));
+
+        assertEquals("OFF", prt.getProperty("quotedIdentifier"));
+        assertEquals(null, prt.getProperty("quotedId"));
+    }
+
+    /**
+     * Tests that connection string alias normalization is case-insensitive, matching the behavior of the existing
+     * synonym handling in {@link SQLServerDriver#getNormalizedPropertyName}.
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testConnectionStringAliasCaseInsensitive() throws SQLException {
+        java.util.logging.Logger drLogger = java.util.logging.Logger
+                .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost;UID=myUser;Trusted_Connection=true;APP=myApp;CONNECTTIMEOUT=45;"
+                + "ColumnEncryption=Enabled;QUOTEDID=OFF;";
+        Properties prt = Util.parseUrl(constr, drLogger);
+
+        assertEquals("myUser", prt.getProperty("user"));
+        assertEquals("true", prt.getProperty("integratedSecurity"));
+        assertEquals("myApp", prt.getProperty("applicationName"));
+        assertEquals("45", prt.getProperty("loginTimeout"));
+        assertEquals("Enabled", prt.getProperty("columnEncryptionSetting"));
+        assertEquals("OFF", prt.getProperty("quotedIdentifier"));
+    }
+
     private static String testString = "A ß € 嗨 𝄞 🙂ăѣ𝔠ծềſģȟᎥ𝒋ǩľḿꞑȯ𝘱𝑞𝗋𝘴ȶ𝞄𝜈ψ𝒙𝘆𝚣1234567890!@#$%^&*()-_=+[{]};:'\",<.>/?~𝘈Ḇ𝖢𝕯٤ḞԍНǏ𝙅ƘԸⲘ𝙉০Ρ𝗤Ɍ𝓢ȚЦ𝒱Ѡ𝓧ƳȤѧᖯć𝗱ễ𝑓𝙜Ⴙ𝞲𝑗𝒌ļṃŉо𝞎𝒒ᵲꜱ𝙩ừ𝗏ŵ𝒙𝒚ź1234567890!@#$%^&*()-_=+[{]};:'\",<.>/?~АḂⲤ𝗗𝖤𝗙ꞠꓧȊ𝐉𝜥ꓡ𝑀𝑵Ǭ𝙿𝑄Ŗ𝑆𝒯𝖴𝘝𝘞ꓫŸ𝜡ả𝘢ƀ𝖼ḋếᵮℊ𝙝Ꭵ𝕛кιṃդⱺ𝓅𝘲𝕣𝖘ŧ𝑢ṽẉ𝘅ყž1234567890!@#$%^&*()-_=+[{]};:'\",<.>/?~Ѧ𝙱ƇᗞΣℱԍҤ١𝔍К𝓛𝓜ƝȎ𝚸𝑄Ṛ𝓢ṮṺƲᏔꓫ𝚈𝚭𝜶Ꮟçძ𝑒𝖿𝗀ḧ𝗂𝐣ҝɭḿ𝕟𝐨𝝔𝕢ṛ𝓼тú𝔳ẃ⤬𝝲𝗓1234567890!@#$%^&*()-_=+[{]};:'\",<.>/?~𝖠Β𝒞𝘋𝙴𝓕ĢȞỈ𝕵ꓗʟ𝙼ℕ০𝚸𝗤ՀꓢṰǓⅤ𝔚Ⲭ𝑌𝙕𝘢𝕤";
     private static String testString2 = "ssdfsdflkjh9u0345)*&)(*&%$";
     private static String testString3 = "ss345(*&^%oujdf.';lk2345(*&()*$#~!`1\\]wer><.,/?dfsdflkjh9u0345)*&)(*&%$";

@@ -1151,7 +1151,15 @@ public final class SQLServerDriver implements java.sql.Driver {
             {"userName", SQLServerDriverStringProperty.USER.toString()},
             {"server", SQLServerDriverStringProperty.SERVER_NAME.toString()},
             {"domainName", SQLServerDriverStringProperty.DOMAIN.toString()},
-            {"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}};
+            {"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()},
+            // Cross-driver connection string unification: accept common spellings used by
+            // SqlClient / ODBC / OLEDB so the same connection string works across drivers.
+            {"uid", SQLServerDriverStringProperty.USER.toString()},
+            {"trusted_connection", SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString()},
+            {"app", SQLServerDriverStringProperty.APPLICATION_NAME.toString()},
+            {"connectTimeout", SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString()},
+            {"columnEncryption", SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString()},
+            {"quotedId", SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString()}};
 
     private static final String[][] driverPropertyValuesSynonyms = {
             {"ActiveDirectoryMSI", SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString()}};
