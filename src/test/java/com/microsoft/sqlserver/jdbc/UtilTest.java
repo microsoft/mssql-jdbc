@@ -237,4 +237,21 @@ public class UtilTest {
         assertEquals("[dbo].[My Table]", result);
     }
 
+    @Test
+    public void testSanitizeIdentifierFourPartNameRejected() {
+        try {
+            Util.sanitizeIdentifier("server.db.schema.table");
+            org.junit.jupiter.api.Assertions.fail("Expected exception for 4-part name");
+        } catch (SQLException e) {
+            // Expected: 4-part names are not supported
+        }
+    }
+
+    @Test
+    public void testSanitizeIdentifierThreePartWithDottedBracketedName() throws SQLException {
+        // Bracketed name containing a dot is valid — should NOT be rejected
+        String result = Util.sanitizeIdentifier("[db].[dbo].[my.table]");
+        assertEquals("[db].[dbo].[my.table]", result);
+    }
+
 }

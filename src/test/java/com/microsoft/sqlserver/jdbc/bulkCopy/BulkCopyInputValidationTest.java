@@ -58,10 +58,8 @@ public class BulkCopyInputValidationTest extends AbstractTest {
     }
 
     /**
-     * Demonstrates that a semicolon-based injection payload in setDestinationTableName()
-     * can execute arbitrary SQL via the internal sp_executesql call.
-     * After the fix, this should throw an exception at setDestinationTableName() time
-     * instead of allowing the payload to reach the server.
+     * Tests that a semicolon-based injection payload in setDestinationTableName() is neutralized
+     * via identifier quoting so it cannot execute as SQL.
      */
     @Test
     public void testSemicolonInjectionInDestinationTableName() throws Exception {
@@ -70,15 +68,18 @@ public class BulkCopyInputValidationTest extends AbstractTest {
                 + "SELECT 1 INTO ##bulkcopy_injection_test--";
 
         try (Connection conn = DriverManager.getConnection(connectionString)) {
-            ResultSet sourceData = conn.createStatement().executeQuery("SELECT * FROM " + sourceTable);
-            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
-            bulkCopy.setDestinationTableName(payload);
-            try {
-                bulkCopy.writeToServer(sourceData);
-            } catch (Exception e) {
-                // The metadata query may error after injection executes — that's expected
+            try (Statement srcStmt = conn.createStatement();
+                    ResultSet sourceData = srcStmt.executeQuery("SELECT * FROM " + sourceTable);
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+                bulkCopy.setDestinationTableName(payload);
+                try {
+                    bulkCopy.writeToServer(sourceData);
+                } catch (SQLServerException e) {
+                    // Sanitized name won't resolve to a real table — error is expected
+                    assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
+                            "Expected a meaningful error message from the server");
+                }
             }
-            bulkCopy.close();
 
             // Verify: if injection succeeded, the temp table now exists
             try (ResultSet rs = conn.createStatement().executeQuery(
@@ -100,20 +101,19 @@ public class BulkCopyInputValidationTest extends AbstractTest {
     public void testRcePayloadRejected() throws Exception {
         String payload = "(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'echo pwned'--";
 
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
-            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
             try {
                 bulkCopy.setDestinationTableName(payload);
-                ResultSet sourceData = conn.createStatement().executeQuery("SELECT * FROM " + sourceTable);
-                bulkCopy.writeToServer(sourceData);
+                try (Statement srcStmt = conn.createStatement();
+                        ResultSet sourceData = srcStmt.executeQuery("SELECT * FROM " + sourceTable)) {
+                    bulkCopy.writeToServer(sourceData);
+                }
                 fail("Expected exception for injection payload containing xp_cmdshell");
             } catch (SQLServerException e) {
-                // After fix: should reject the malicious table name
-                assertTrue(e.getMessage() != null, "Should get an error for invalid table name");
-            } catch (Exception e) {
-                // Before fix: the query might error in other ways, but injection still ran
+                assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
+                        "Should get an error for invalid table name");
             }
-            bulkCopy.close();
         }
     }
 
@@ -125,19 +125,19 @@ public class BulkCopyInputValidationTest extends AbstractTest {
         String payload = "(SELECT 1 a) t; SET FMTONLY OFF; "
                 + "CREATE LOGIN [test_injection_user] WITH PASSWORD='Test!123'--";
 
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
-            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
             try {
                 bulkCopy.setDestinationTableName(payload);
-                ResultSet sourceData = conn.createStatement().executeQuery("SELECT * FROM " + sourceTable);
-                bulkCopy.writeToServer(sourceData);
+                try (Statement srcStmt = conn.createStatement();
+                        ResultSet sourceData = srcStmt.executeQuery("SELECT * FROM " + sourceTable)) {
+                    bulkCopy.writeToServer(sourceData);
+                }
                 fail("Expected exception for injection payload containing CREATE LOGIN");
             } catch (SQLServerException e) {
-                assertTrue(e.getMessage() != null, "Should get an error for invalid table name");
-            } catch (Exception e) {
-                // May error differently before fix
+                assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
+                        "Should get an error for invalid table name");
             }
-            bulkCopy.close();
         }
 
         // Verify the login was NOT created
@@ -163,28 +163,28 @@ public class BulkCopyInputValidationTest extends AbstractTest {
                 + "SELECT name, CONVERT(NVARCHAR(4000), password_hash, 1) as hash "
                 + "INTO ##bulkcopy_cred_test FROM sys.sql_logins--";
 
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
-            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+        try (Connection conn = DriverManager.getConnection(connectionString);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
             try {
                 bulkCopy.setDestinationTableName(payload);
-                ResultSet sourceData = conn.createStatement().executeQuery("SELECT * FROM " + sourceTable);
-                bulkCopy.writeToServer(sourceData);
+                try (Statement srcStmt = conn.createStatement();
+                        ResultSet sourceData = srcStmt.executeQuery("SELECT * FROM " + sourceTable)) {
+                    bulkCopy.writeToServer(sourceData);
+                }
                 fail("Expected exception for injection payload containing credential theft");
             } catch (SQLServerException e) {
-                assertTrue(e.getMessage() != null, "Should get an error for invalid table name");
-            } catch (Exception e) {
-                // May error differently before fix
+                assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
+                        "Should get an error for invalid table name");
             }
-            bulkCopy.close();
 
             // Verify: if injection succeeded, the temp table with credentials would exist
-            try (ResultSet rs = conn.createStatement().executeQuery(
-                    "SELECT OBJECT_ID('tempdb..##bulkcopy_cred_test')")) {
+            try (Statement verifyStmt = conn.createStatement();
+                    ResultSet rs = verifyStmt.executeQuery(
+                            "SELECT OBJECT_ID('tempdb..##bulkcopy_cred_test')")) {
                 rs.next();
                 Object objectId = rs.getObject(1);
                 if (objectId != null) {
-                    // Cleanup
-                    conn.createStatement().execute("DROP TABLE ##bulkcopy_cred_test");
+                    verifyStmt.execute("DROP TABLE ##bulkcopy_cred_test");
                     fail("SQL injection succeeded — credential theft payload executed. "
                             + "sys.sql_logins data was exfiltrated into ##bulkcopy_cred_test.");
                 }
@@ -291,7 +291,8 @@ public class BulkCopyInputValidationTest extends AbstractTest {
                 pstmt.addBatch();
                 pstmt.executeBatch();
             } catch (Exception e) {
-                // Expected: the sanitized name won't resolve to a real table
+                assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
+                        "Expected an error because sanitized table name is not a real table");
             }
 
             // Verify the injected temp table was NOT created
@@ -325,8 +326,8 @@ public class BulkCopyInputValidationTest extends AbstractTest {
                 pstmt.executeBatch();
                 fail("Expected exception for injection payload in batch insert table name");
             } catch (Exception e) {
-                // Expected: sanitized name won't be a valid table
-                assertTrue(e.getMessage() != null, "Should get an error for invalid table name");
+                assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
+                        "Should get an error for invalid table name");
             }
         }
     }

@@ -1060,6 +1060,17 @@ final class Util {
         }
 
         ThreePartName parsed = ThreePartName.parse(name);
+
+        // Reject 4+ part names (e.g. server.db.schema.table) — ThreePartName only splits up to 3 parts,
+        // so an undelimited dot in the last part means there were more parts than supported.
+        String procPart = parsed.getProcedurePart();
+        if (procPart != null && !procPart.startsWith("[") && !procPart.startsWith("\"")
+                && procPart.contains(".")
+                && (parsed.getDatabasePart() != null || parsed.getOwnerPart() != null)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDestinationTable"));
+            throw new SQLServerException(form.format(new Object[] {}), null, 0, null);
+        }
+
         StringBuilder result = new StringBuilder();
 
         if (parsed.getDatabasePart() != null) {
