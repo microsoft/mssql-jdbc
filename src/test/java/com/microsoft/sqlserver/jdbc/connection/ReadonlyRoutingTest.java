@@ -157,7 +157,8 @@ public class ReadonlyRoutingTest extends AbstractTest {
                 assertTrue(rs.next());
             }
         } catch (SQLServerException e) {
-            fail("Read-only routing test requires an AlwaysOn AG routing configuration: " + e.getMessage());
+            fail("Connection was expected to be usable with applicationIntent=ReadOnly specified: "
+                    + e.getMessage());
         }
     }
 
@@ -174,7 +175,8 @@ public class ReadonlyRoutingTest extends AbstractTest {
                 assertTrue(rs.next());
             }
         } catch (SQLServerException e) {
-            fail("Read-only routing test requires an AlwaysOn AG routing configuration: " + e.getMessage());
+            fail("Connection was expected to be usable with applicationIntent=ReadOnly specified: "
+                    + e.getMessage());
         }
     }
 }
