@@ -1629,7 +1629,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         List<String> bulkOptions = new ArrayList<>();
         Set<String> destColumns = new HashSet<>();
         String endColumn = " , ";
-        bulkCmd.append("INSERT BULK ").append(destinationTableName).append(" (");
+        bulkCmd.append("INSERT BULK ").append(Util.sanitizeIdentifier(destinationTableName)).append(" (");
 
         for (int i = 0; i < (columnMappings.size()); ++i) {
             if (i == columnMappings.size() - 1) {
@@ -1909,7 +1909,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     SQLServerException.getErrString("R_invalidDestinationTable"), null, false);
         }
 
-        String escapedDestinationTableName = Util.escapeSingleQuotes(destinationTableName);
+        // Bracket-quote each part to prevent SQL injection, then escape single quotes
+        // for safe embedding inside N'...' and OBJECT_ID('...') string literals.
+        String escapedDestinationTableName = Util.escapeSingleQuotes(Util.sanitizeIdentifier(destinationTableName));
         String key = null;
         HashMap<String, Map<Integer, SQLServerBulkCopy.BulkColumnMetaData>> bulkCopyOperationCache = connection.getBulkCopyOperationCache();
         if (connection.getcacheBulkCopyMetadata()) {

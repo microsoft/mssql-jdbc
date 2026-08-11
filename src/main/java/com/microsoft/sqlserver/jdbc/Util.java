@@ -1049,6 +1049,47 @@ final class Util {
         return name.replace("'", "''");
     }
 
+    /**
+     * Parses a multi-part SQL Server identifier using ThreePartName and bracket-quotes each part
+     * to produce a safe identifier string. Prevents SQL injection through identifier concatenation.
+     */
+    static String sanitizeIdentifier(String name) throws SQLServerException {
+        if (name == null || name.trim().isEmpty()) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDestinationTable"));
+            throw new SQLServerException(form.format(new Object[] {}), null, 0, null);
+        }
+
+        ThreePartName parsed = ThreePartName.parse(name);
+        StringBuilder result = new StringBuilder();
+
+        if (parsed.getDatabasePart() != null) {
+            result.append(escapeSQLId(stripBrackets(parsed.getDatabasePart())));
+            result.append('.');
+        }
+        if (parsed.getOwnerPart() != null) {
+            result.append(escapeSQLId(stripBrackets(parsed.getOwnerPart())));
+            result.append('.');
+        }
+        if (parsed.getProcedurePart() != null) {
+            result.append(escapeSQLId(stripBrackets(parsed.getProcedurePart())));
+        }
+
+        return result.toString();
+    }
+
+    /** Strips outer bracket or double-quote delimiters from an identifier part. */
+    private static String stripBrackets(String part) {
+        if (part != null && part.length() >= 2) {
+            if (part.charAt(0) == '[' && part.charAt(part.length() - 1) == ']') {
+                return part.substring(1, part.length() - 1).replace("]]", "]");
+            }
+            if (part.charAt(0) == '"' && part.charAt(part.length() - 1) == '"') {
+                return part.substring(1, part.length() - 1).replace("\"\"", "\"");
+            }
+        }
+        return part;
+    }
+
     static String convertInputStreamToString(java.io.InputStream is) throws IOException {
         java.io.ByteArrayOutputStream result = new java.io.ByteArrayOutputStream();
         byte[] buffer = new byte[1024];

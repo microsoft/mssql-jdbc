@@ -147,4 +147,94 @@ public class UtilTest {
         return valueBytes;
     }
 
+    @Test
+    public void testSanitizeIdentifierSimpleName() throws SQLException {
+        assertEquals("[employees]", Util.sanitizeIdentifier("employees"));
+    }
+
+    @Test
+    public void testSanitizeIdentifierTwoPartName() throws SQLException {
+        assertEquals("[dbo].[employees]", Util.sanitizeIdentifier("dbo.employees"));
+    }
+
+    @Test
+    public void testSanitizeIdentifierThreePartName() throws SQLException {
+        assertEquals("[mydb].[dbo].[employees]", Util.sanitizeIdentifier("mydb.dbo.employees"));
+    }
+
+    @Test
+    public void testSanitizeIdentifierAlreadyBracketed() throws SQLException {
+        assertEquals("[dbo].[My Table]", Util.sanitizeIdentifier("[dbo].[My Table]"));
+    }
+
+    @Test
+    public void testSanitizeIdentifierBracketWithEscapedClose() throws SQLException {
+        assertEquals("[table]]name]", Util.sanitizeIdentifier("[table]]name]"));
+    }
+
+    @Test
+    public void testSanitizeIdentifierInjectionPayloadWrapped() throws SQLException {
+        String payload = "(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'whoami'--";
+        String result = Util.sanitizeIdentifier(payload);
+        // Entire payload should be wrapped in brackets, making it a harmless identifier
+        assertEquals("[(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'whoami'--]", result);
+    }
+
+    @Test
+    public void testSanitizeIdentifierSemicolonPayloadWrapped() throws SQLException {
+        String result = Util.sanitizeIdentifier("; DROP TABLE users--");
+        assertEquals("[; DROP TABLE users--]", result);
+    }
+
+    @Test
+    public void testSanitizeIdentifierTempTable() throws SQLException {
+        assertEquals("[#tempTable]", Util.sanitizeIdentifier("#tempTable"));
+    }
+
+    @Test
+    public void testSanitizeIdentifierNullThrows() {
+        org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, () -> {
+            Util.sanitizeIdentifier(null);
+        });
+    }
+
+    @Test
+    public void testSanitizeIdentifierEmptyThrows() {
+        org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, () -> {
+            Util.sanitizeIdentifier("   ");
+        });
+    }
+
+    @Test
+    public void testSanitizeIdentifierWithSingleQuote() throws SQLException {
+        // Single quote in name must not break out of OBJECT_ID('...') string literal
+        String result = Util.sanitizeIdentifier("O'Brien");
+        assertEquals("[O'Brien]", result);
+        // After escapeSingleQuotes (as used in BulkCopy): [O''Brien] — safe inside '...'
+        assertEquals("[O''Brien]", Util.escapeSingleQuotes(result));
+    }
+
+    @Test
+    public void testSanitizeIdentifierWithClosingBracket() throws SQLException {
+        // ] in name must not break out of [...] bracket quoting
+        String result = Util.sanitizeIdentifier("table]name");
+        assertEquals("[table]]name]", result);
+    }
+
+    @Test
+    public void testSanitizeIdentifierBracketBreakoutAttempt() throws SQLException {
+        // Attacker tries to close the bracket and inject SQL
+        String payload = "t]; DROP TABLE x--";
+        String result = Util.sanitizeIdentifier(payload);
+        // The ] is escaped as ]], so it stays inside the bracket-quoted identifier
+        assertEquals("[t]]; DROP TABLE x--]", result);
+    }
+
+    @Test
+    public void testSanitizeIdentifierDoubleQuoted() throws SQLException {
+        String result = Util.sanitizeIdentifier("\"dbo\".\"My Table\"");
+        // ThreePartName handles double-quote parsing; parts get re-bracket-quoted
+        assertEquals("[dbo].[My Table]", result);
+    }
+
 }

@@ -2680,7 +2680,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             stmtColumnEncriptionSetting);
                             SQLServerResultSet rs = stmt
                                     .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                            + Util.escapeSingleQuotes(bcOperationTableName) + " '")) {
+                                            + Util.escapeSingleQuotes(Util.sanitizeIdentifier(bcOperationTableName)) + " '")) {
                         Map<Integer, Integer> columnMappings = null;
                         if (null != bcOperationColumnList && !bcOperationColumnList.isEmpty()) {
                             if (bcOperationColumnList.size() != bcOperationValueList.size()) {
@@ -2898,7 +2898,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             stmtColumnEncriptionSetting);
                             SQLServerResultSet rs = stmt
                                     .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                            + Util.escapeSingleQuotes(bcOperationTableName) + " '")) {
+                                            + Util.escapeSingleQuotes(Util.sanitizeIdentifier(bcOperationTableName)) + " '")) {
                         if (null != bcOperationColumnList && !bcOperationColumnList.isEmpty()) {
                             if (bcOperationColumnList.size() != bcOperationValueList.size()) {
                                 MessageFormat form = new MessageFormat(
