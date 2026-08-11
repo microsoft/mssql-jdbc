@@ -1372,20 +1372,6 @@ public class SQLServerDataSource
     }
 
     @Override
-    public boolean getSendGuidAsStringForBulkCopy() {
-        return getBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.SEND_GUID_AS_STRING_FOR_BULK_COPY.toString(),
-                SQLServerDriverBooleanProperty.SEND_GUID_AS_STRING_FOR_BULK_COPY.getDefaultValue());
-    }
-
-    @Override
-    public void setSendGuidAsStringForBulkCopy(boolean sendGuidAsStringForBulkCopy) {
-        setBooleanProperty(connectionProps,
-                SQLServerDriverBooleanProperty.SEND_GUID_AS_STRING_FOR_BULK_COPY.toString(),
-                sendGuidAsStringForBulkCopy);
-    }
-
-    @Override
     public String getMaxResultBuffer() {
         return getStringProperty(connectionProps, SQLServerDriverStringProperty.MAX_RESULT_BUFFER.toString(),
                 SQLServerDriverStringProperty.MAX_RESULT_BUFFER.getDefaultValue());
