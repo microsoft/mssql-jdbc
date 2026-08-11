@@ -254,4 +254,84 @@ public class UtilTest {
         assertEquals("[db].[dbo].[my.table]", result);
     }
 
+    @Test
+    public void testSanitizeIdentifierUnicode() throws SQLException {
+        assertEquals("[Tïñés]", Util.sanitizeIdentifier("Tïñés"));
+    }
+
+    @Test
+    public void testSanitizeIdentifierUnicodeChinese() throws SQLException {
+        assertEquals("[数据表]", Util.sanitizeIdentifier("数据表"));
+    }
+
+    @Test
+    public void testSanitizeIdentifierUnicodeMultiPart() throws SQLException {
+        assertEquals("[dbo].[Ñäme]", Util.sanitizeIdentifier("dbo.Ñäme"));
+    }
+
+    @Test
+    public void testSanitizeIdentifierVeryLongName() throws SQLException {
+        // SQL Server allows up to 128 chars; verify no truncation
+        String longName = "a".repeat(128);
+        String result = Util.sanitizeIdentifier(longName);
+        assertEquals("[" + longName + "]", result);
+    }
+
+    @Test
+    public void testSanitizeIdentifierConsecutiveDots() {
+        // dbo..table — empty middle part is invalid
+        org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, () -> {
+            Util.sanitizeIdentifier("dbo..table");
+        });
+    }
+
+    @Test
+    public void testSanitizeIdentifierDoubleQuoteEscaping() throws SQLException {
+        // "my""table" — double-quote escaped identifier
+        String result = Util.sanitizeIdentifier("\"my\"\"table\"");
+        assertEquals("[my\"table]", result);
+    }
+
+    @Test
+    public void testSanitizeIdentifierMultipleEscapedBrackets() throws SQLException {
+        // [a]]b]]c] — multiple escaped brackets within one part
+        String result = Util.sanitizeIdentifier("[a]]b]]c]");
+        assertEquals("[a]]b]]c]", result);
+    }
+
+    @Test
+    public void testSanitizeIdentifierEmptyBrackets() throws SQLException {
+        // [] — empty bracketed identifier
+        String result = Util.sanitizeIdentifier("[]");
+        assertEquals("[]", result);
+    }
+
+    @Test
+    public void testSanitizeIdentifierWhitespaceInBrackets() throws SQLException {
+        // [ ] — whitespace-only bracketed part
+        String result = Util.sanitizeIdentifier("[ ]");
+        assertEquals("[ ]", result);
+    }
+
+    @Test
+    public void testSanitizeIdentifierCommentInjection() throws SQLException {
+        String payload = "table--; DROP TABLE x";
+        String result = Util.sanitizeIdentifier(payload);
+        assertEquals("[table--; DROP TABLE x]", result);
+    }
+
+    @Test
+    public void testSanitizeIdentifierBlockCommentInjection() throws SQLException {
+        String payload = "table /* comment */ ; EXEC xp_cmdshell 'cmd'";
+        String result = Util.sanitizeIdentifier(payload);
+        assertEquals("[table /* comment */ ; EXEC xp_cmdshell 'cmd']", result);
+    }
+
+    @Test
+    public void testSanitizeIdentifierGoSeparator() throws SQLException {
+        String payload = "table GO EXEC xp_cmdshell 'cmd'";
+        String result = Util.sanitizeIdentifier(payload);
+        assertEquals("[table GO EXEC xp_cmdshell 'cmd']", result);
+    }
+
 }
