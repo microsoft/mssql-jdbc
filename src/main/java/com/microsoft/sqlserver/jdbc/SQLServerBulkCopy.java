@@ -1080,7 +1080,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case microsoft.sql.Types.GUID:
             case java.sql.Types.CHAR: // 0xAF
-                if ((SSType.GUID == destSSType) && (isBaseType || sendGuidAsNative(srcJdbcType))) {
+                if ((SSType.GUID == destSSType) && (isBaseType || microsoft.sql.Types.GUID == srcJdbcType)) {
                     tdsWriter.writeByte(TDSType.GUID.byteValue());
                     tdsWriter.writeByte((byte) 0x10);
                 } else {
@@ -1463,7 +1463,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 return SSType.NUMERIC.toString() + "(" + bulkPrecision + ", " + bulkScale + ")";
 
             case microsoft.sql.Types.GUID:
-                if ((SSType.GUID == destSSType) && sendGuidAsNative(bulkJdbcType)) {
+                if (SSType.GUID == destSSType) {
                     return SSType.GUID.toString();
                 }
                 // For char the value has to be between 0 to 8000.
@@ -2260,14 +2260,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     }
 
     /**
-     * Returns true if a source column declared as microsoft.sql.Types.GUID is sent as a native uniqueidentifier, which
-     * the connection property sendGuidAsStringForBulkCopy reverts to sending it as a character string.
-     */
-    private boolean sendGuidAsNative(int srcJdbcType) {
-        return (microsoft.sql.Types.GUID == srcJdbcType) && !connection.getSendGuidAsStringForBulkCopy();
-    }
-
-    /**
      * Writes the value of a uniqueidentifier destination column in the native 16 byte representation, which spares the
      * server a conversion from a character string for every row.
      */
@@ -2552,7 +2544,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.CHAR: // Fixed-length, non-Unicode string data.
                 case java.sql.Types.VARCHAR: // Variable-length, non-Unicode string data.
                 case microsoft.sql.Types.JSON:
-                    if ((SSType.GUID == destSSType) && sendGuidAsNative(bulkJdbcType)) {
+                    if ((SSType.GUID == destSSType) && (microsoft.sql.Types.GUID == bulkJdbcType)) {
                         writeGuidToTdsWriter(tdsWriter, colValue);
                         break;
                     }

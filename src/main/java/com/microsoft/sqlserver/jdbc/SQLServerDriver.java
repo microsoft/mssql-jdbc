@@ -778,7 +778,6 @@ enum SQLServerDriverBooleanProperty {
     BULK_COPY_FOR_BATCH_INSERT_ALLOW_ENCRYPTED_VALUE_MODIFICATIONS("bulkCopyForBatchInsertAllowEncryptedValueModifications", false),
     USE_FMT_ONLY("useFmtOnly", false),
     SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY("sendTemporalDataTypesAsStringForBulkCopy", true),
-    SEND_GUID_AS_STRING_FOR_BULK_COPY("sendGuidAsStringForBulkCopy", false),
     DELAY_LOADING_LOBS("delayLoadingLobs", true),
     IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION("ignoreOffsetOnDateTimeOffsetConversion", false),
     USE_DEFAULT_JAAS_CONFIG("useDefaultJaasConfig", false),
@@ -1113,11 +1112,6 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.SEND_TEMPORAL_DATATYPES_AS_STRING_FOR_BULK_COPY
                             .getDefaultValue()),
-                    false, TRUE_FALSE),
-            new SQLServerDriverPropertyInfo(
-                    SQLServerDriverBooleanProperty.SEND_GUID_AS_STRING_FOR_BULK_COPY.toString(),
-                    Boolean.toString(
-                            SQLServerDriverBooleanProperty.SEND_GUID_AS_STRING_FOR_BULK_COPY.getDefaultValue()),
                     false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.toString(),
                     SQLServerDriverStringProperty.AAD_SECURE_PRINCIPAL_ID.getDefaultValue(), false, null),

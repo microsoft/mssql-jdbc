@@ -6,7 +6,6 @@ package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -50,7 +49,6 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
-import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -444,49 +442,6 @@ public class BulkCopyAllTypesTest extends AbstractTest {
         public boolean next() {
             return ++row < values.size();
         }
-    }
-
-    @Test
-    public void testBulkCopyGuidAsStringSendsCharAgain() throws Exception {
-        String guidTable = RandomUtil.getIdentifier("guidStringDest");
-        String guidDestTable = AbstractSQLGenerator.escapeIdentifier(guidTable);
-        String sessionName = "mssqljdbc_guid_" + UUID.randomUUID().toString().replace("-", "");
-
-        try (Connection conn = PrepUtil.getConnection(connectionString + ";sendGuidAsStringForBulkCopy=true");
-                Statement stmt = conn.createStatement()) {
-            assumeTrue(canCaptureImplicitConversions(stmt, sessionName),
-                    "Requires ALTER ANY EVENT SESSION and VIEW SERVER STATE permissions.");
-
-            stmt.execute("CREATE TABLE " + guidDestTable + " (id uniqueidentifier)");
-            try {
-                SQLServerBulkCSVFileRecord fileRecord = constructGuidFileRecord(UUID.randomUUID().toString());
-                fileRecord.addColumnMetadata(1, "id", microsoft.sql.Types.GUID, 36, 0);
-
-                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
-                    bulkCopy.setDestinationTableName(guidDestTable);
-                    bulkCopy.writeToServer(fileRecord);
-                }
-
-                String conversions = getCapturedConversions(stmt, sessionName, guidDestTable);
-
-                assertTrue(conversions.contains("CONVERT_IMPLICIT(uniqueidentifier"),
-                        "Expected sendGuidAsStringForBulkCopy to keep sending the column as a character string.");
-            } finally {
-                dropEventSession(stmt, sessionName);
-                TestUtils.dropTableIfExists(guidDestTable, stmt);
-            }
-        }
-    }
-
-    @Test
-    public void testSendGuidAsStringForBulkCopyDataSourceProperty() throws Exception {
-        SQLServerDataSource dsLocal = new SQLServerDataSource();
-        assertFalse(dsLocal.getSendGuidAsStringForBulkCopy(),
-                "Expected sendGuidAsStringForBulkCopy to default to false.");
-
-        AbstractTest.updateDataSource(connectionString + ";sendGuidAsStringForBulkCopy=true", dsLocal);
-        assertTrue(dsLocal.getSendGuidAsStringForBulkCopy(),
-                "Expected sendGuidAsStringForBulkCopy to be read from the connection string.");
     }
 
     private SQLServerBulkCSVFileRecord constructGuidFileRecord(String guid) throws Exception {
