@@ -576,10 +576,15 @@ public class RegressionTest extends AbstractTest {
                     pstmt.executeUpdate();
                 }
 
-                try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + vstsTable + " ORDER BY (SELECT NULL)")) {
-                    assertTrue(rs.next());
-                    rs.next();
-                    assertEquals(length, rs.getString(1).length(), "Inserted clob length is incorrect");
+                // Both rows (the setString insert and the re-inserted Clob) must have the correct
+                // length. Verify every row rather than relying on a non-deterministic ORDER BY.
+                try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + vstsTable)) {
+                    int rowCount = 0;
+                    while (rs.next()) {
+                        rowCount++;
+                        assertEquals(length, rs.getString(1).length(), "Inserted clob length is incorrect");
+                    }
+                    assertEquals(2, rowCount, "Expected two inserted rows");
                 }
             } finally {
                 TestUtils.dropTableIfExists(vstsTable, stmt);

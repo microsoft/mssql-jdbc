@@ -1031,8 +1031,13 @@ public class SQLServerBulkCopyTest extends AbstractTest {
                         ex = e;
                     }
                     assertNotNull(ex, "Bulk copy should fail on CHECK constraint violation");
-                    assertTrue(ex.getMessage().toUpperCase().contains("CHECK"),
-                            "Exception should mention the CHECK constraint: " + ex.getMessage());
+                    // SQL Server reports a CHECK constraint conflict as error 547 and names the
+                    // offending constraint (chkCity). Assert on these locale-independent facts rather
+                    // than only the English word "CHECK".
+                    assertEquals(547, ex.getErrorCode(),
+                            "CHECK constraint violation should be SQL error 547: " + ex.getMessage());
+                    assertTrue(ex.getMessage().contains("chkCity"),
+                            "Exception should name the CHECK constraint chkCity: " + ex.getMessage());
                 }
             } finally {
                 TestUtils.dropTableIfExists(srcTable, stmt);
@@ -1073,8 +1078,10 @@ public class SQLServerBulkCopyTest extends AbstractTest {
                 }
                 conn.commit();
                 assertEquals(3, countRows(conn, dstTable), "Committed bulk copy should persist rows");
-                conn.setAutoCommit(true);
             } finally {
+                // Restore autoCommit regardless of success/failure so a mid-test failure does not leave
+                // the connection in a non-default state during cleanup.
+                conn.setAutoCommit(true);
                 TestUtils.dropTableIfExists(srcTable, stmt);
                 TestUtils.dropTableIfExists(dstTable, stmt);
             }

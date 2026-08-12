@@ -2960,8 +2960,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 try {
                     stmt.executeUpdate("DROP DATABASE " + escapedDbName);
                 } catch (SQLException dropEx) {
-                    // Cleanup failure is best-effort; the afterAll/other cleanup will not run for this
-                    // temp DB, but suppressing here preserves any in-flight assertion failure.
+                    // Cleanup failure is best-effort; log it so the leaked temp database is visible
+                    // while still preserving any in-flight assertion failure.
+                    System.out.println("Failed to drop temporary database " + escapedDbName + ": " + dropEx.getMessage());
                 }
             }
         }

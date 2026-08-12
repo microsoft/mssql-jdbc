@@ -2038,6 +2038,9 @@ public class DataTypesTest extends AbstractTest {
                 {"datetimeoffset(7)", "2023-01-15 12:34:56.1234567 +05:30"}};
 
         String url = TestUtils.addOrOverrideProperty(connectionString, "prepareMethod", "prepexec");
+        // Force preparation on the first execution so the prepexec path is actually exercised;
+        // otherwise a single execution would be sent via sp_executesql.
+        url = TestUtils.addOrOverrideProperty(url, "enablePrepareOnFirstPreparedStatementCall", "true");
         try (Connection conn = PrepUtil.getConnection(url)) {
             for (String[] tv : typeAndValue) {
                 String sqlType = tv[0];
@@ -2047,20 +2050,23 @@ public class DataTypesTest extends AbstractTest {
                     TestUtils.dropTableIfExists(name, stmt);
                     stmt.executeUpdate("CREATE TABLE " + name + " (col1 " + sqlType + ")");
                     boolean binary = sqlType.startsWith("binary") || sqlType.startsWith("varbinary");
-                    // Insert via server-side prepared statement to exercise the RPC parameter path.
-                    try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + name + " VALUES (?)")) {
-                        if (binary) {
-                            ps.setBytes(1, hexToBytes(literal));
-                        } else {
-                            ps.setString(1, literal);
+                    try {
+                        // Insert via server-side prepared statement to exercise the RPC parameter path.
+                        try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + name + " VALUES (?)")) {
+                            if (binary) {
+                                ps.setBytes(1, hexToBytes(literal));
+                            } else {
+                                ps.setString(1, literal);
+                            }
+                            ps.executeUpdate();
                         }
-                        ps.executeUpdate();
+                        try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + name)) {
+                            assertTrue("No row for type " + sqlType, rs.next());
+                            assertRoundTripValue(sqlType, literal, binary, rs);
+                        }
+                    } finally {
+                        TestUtils.dropTableIfExists(name, stmt);
                     }
-                    try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + name)) {
-                        assertTrue("No row for type " + sqlType, rs.next());
-                        assertRoundTripValue(sqlType, literal, binary, rs);
-                    }
-                    TestUtils.dropTableIfExists(name, stmt);
                 }
             }
         }

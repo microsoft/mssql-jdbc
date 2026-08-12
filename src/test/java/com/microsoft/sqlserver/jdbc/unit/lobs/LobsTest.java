@@ -1131,7 +1131,10 @@ public class LobsTest extends AbstractTest {
     }
 
     /**
-     * Verifies a materialized server LOB object is not serializable and throws NotSerializableException.
+     * Verifies that an unmaterialized, stream-backed server Blob (delayLoadingLobs=true) cannot be
+     * serialized: it holds a live, non-serializable input stream, so serialization throws
+     * NotSerializableException. Note that a materialized {@link com.microsoft.sqlserver.jdbc.SQLServerBlob}
+     * is itself Serializable, hence delayLoadingLobs is pinned to true to exercise the streaming form.
      */
     @Test
     @Tag(Constants.legacyFx)
@@ -1139,7 +1142,9 @@ public class LobsTest extends AbstractTest {
     public void testSerializeBlobThrows() throws Exception {
         String name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("lobsSerialize"));
         byte[] data = "HELLOWORLD".getBytes(StandardCharsets.US_ASCII);
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+        // Pin delayLoadingLobs=true so getBlob() returns the stream-backed form under test.
+        String streamString = TestUtils.addOrOverrideProperty(connectionString, "delayLoadingLobs", "true");
+        try (Connection conn = DriverManager.getConnection(streamString); Statement stmt = conn.createStatement()) {
             TestUtils.dropTableIfExists(name, stmt);
             stmt.executeUpdate("CREATE TABLE " + name + " (bcol varbinary(max))");
             try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + name + " VALUES (?)")) {
