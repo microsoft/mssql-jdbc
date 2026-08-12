@@ -334,4 +334,28 @@ public class UtilTest {
         assertEquals("[table GO EXEC xp_cmdshell 'cmd']", result);
     }
 
+    @Test
+    public void testSanitizeIdentifierFourPartBracketedSchemaRejected() {
+        // srv.db.[schema].table — 4-part name with bracketed third part must be rejected
+        org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, () -> {
+            Util.sanitizeIdentifier("srv.db.[schema].table");
+        });
+    }
+
+    @Test
+    public void testSanitizeIdentifierFourPartBracketedMiddleRejected() {
+        // a.b.[c].d — 4-part name with bracketed middle part must be rejected
+        org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, () -> {
+            Util.sanitizeIdentifier("a.b.[c].d");
+        });
+    }
+
+    @Test
+    public void testSanitizeIdentifierFourPartAllBracketedRejected() {
+        // [a].[b].[c].[d] — fully bracketed 4-part name must be rejected
+        org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, () -> {
+            Util.sanitizeIdentifier("[a].[b].[c].[d]");
+        });
+    }
+
 }

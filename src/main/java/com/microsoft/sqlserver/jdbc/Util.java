@@ -1050,8 +1050,8 @@ final class Util {
     }
 
     /**
-     * Parses a multi-part SQL Server identifier using ThreePartName and bracket-quotes each part
-     * to produce a safe identifier string. Prevents SQL injection through identifier concatenation.
+     * Splits a multi-part SQL Server identifier into its constituent parts, bracket-quotes each part,
+     * and rejects names with more than 3 parts. Prevents SQL injection through identifier concatenation.
      */
     static String sanitizeIdentifier(String name) throws SQLServerException {
         if (name == null || name.trim().isEmpty()) {
@@ -1059,33 +1059,79 @@ final class Util {
             throw new SQLServerException(form.format(new Object[] {}), null, 0, null);
         }
 
-        ThreePartName parsed = ThreePartName.parse(name);
+        String[] parts = splitIdentifierParts(name);
 
-        // Reject 4+ part names (e.g. server.db.schema.table) — ThreePartName only splits up to 3 parts,
-        // so an undelimited dot in the last part means there were more parts than supported.
-        String procPart = parsed.getProcedurePart();
-        if (procPart != null && !procPart.startsWith("[") && !procPart.startsWith("\"")
-                && procPart.contains(".")
-                && (parsed.getDatabasePart() != null || parsed.getOwnerPart() != null)) {
+        if (parts.length > 3) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDestinationTable"));
             throw new SQLServerException(form.format(new Object[] {}), null, 0, null);
         }
 
-        StringBuilder result = new StringBuilder();
+        for (String part : parts) {
+            if (part == null || part.trim().isEmpty()) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDestinationTable"));
+                throw new SQLServerException(form.format(new Object[] {}), null, 0, null);
+            }
+        }
 
-        if (parsed.getDatabasePart() != null) {
-            result.append(escapeSQLId(stripBrackets(parsed.getDatabasePart())));
-            result.append('.');
-        }
-        if (parsed.getOwnerPart() != null) {
-            result.append(escapeSQLId(stripBrackets(parsed.getOwnerPart())));
-            result.append('.');
-        }
-        if (parsed.getProcedurePart() != null) {
-            result.append(escapeSQLId(stripBrackets(parsed.getProcedurePart())));
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) {
+                result.append('.');
+            }
+            result.append(escapeSQLId(stripBrackets(parts[i])));
         }
 
         return result.toString();
+    }
+
+    /** Splits a potentially multi-part identifier respecting bracket and double-quote delimiters. */
+    private static String[] splitIdentifierParts(String name) {
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        int len = name.length();
+        int partStart = 0;
+        int i = 0;
+
+        while (i < len) {
+            char c = name.charAt(i);
+            if (c == '[') {
+                i++;
+                while (i < len) {
+                    if (name.charAt(i) == ']') {
+                        if (i + 1 < len && name.charAt(i + 1) == ']') {
+                            i += 2;
+                        } else {
+                            i++;
+                            break;
+                        }
+                    } else {
+                        i++;
+                    }
+                }
+            } else if (c == '"') {
+                i++;
+                while (i < len) {
+                    if (name.charAt(i) == '"') {
+                        if (i + 1 < len && name.charAt(i + 1) == '"') {
+                            i += 2;
+                        } else {
+                            i++;
+                            break;
+                        }
+                    } else {
+                        i++;
+                    }
+                }
+            } else if (c == '.') {
+                parts.add(name.substring(partStart, i));
+                partStart = i + 1;
+                i++;
+            } else {
+                i++;
+            }
+        }
+        parts.add(name.substring(partStart, len));
+
+        return parts.toArray(new String[0]);
     }
 
     /** Strips outer bracket or double-quote delimiters from an identifier part. */
