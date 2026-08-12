@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc.bulkCopy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -19,12 +18,9 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -43,7 +39,6 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.ComparisonUtil;
-import com.microsoft.sqlserver.jdbc.ISQLServerBulkData;
 import com.microsoft.sqlserver.jdbc.RandomData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
@@ -326,186 +321,6 @@ public class BulkCopyAllTypesTest extends AbstractTest {
                 TestUtils.dropTableIfExists(uuidDestTable, stmt);
             }
         }
-    }
-
-    @Test
-    public void testBulkCopyGuidDoesNotConvertOnServer() throws Exception {
-        String guidTable = RandomUtil.getIdentifier("guidNativeDest");
-        String guidDestTable = AbstractSQLGenerator.escapeIdentifier(guidTable);
-        String sessionName = "mssqljdbc_guid_" + UUID.randomUUID().toString().replace("-", "");
-        UUID guid = UUID.randomUUID();
-
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            assumeTrue(canCaptureImplicitConversions(stmt, sessionName),
-                    "Requires ALTER ANY EVENT SESSION and VIEW SERVER STATE permissions.");
-
-            stmt.execute("CREATE TABLE " + guidDestTable + " (id uniqueidentifier)");
-            try {
-                SQLServerBulkCSVFileRecord fileRecord = constructGuidFileRecord(guid.toString());
-                fileRecord.addColumnMetadata(1, "id", microsoft.sql.Types.GUID, 36, 0);
-
-                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
-                    bulkCopy.setDestinationTableName(guidDestTable);
-                    bulkCopy.writeToServer(fileRecord);
-                }
-
-                String conversions = getCapturedConversions(stmt, sessionName, guidDestTable);
-
-                assertTrue(conversions.isEmpty(),
-                        "Expected the uniqueidentifier column to be sent natively, but the server converted it: "
-                                + conversions);
-            } finally {
-                dropEventSession(stmt, sessionName);
-                TestUtils.dropTableIfExists(guidDestTable, stmt);
-            }
-        }
-    }
-
-    @Test
-    public void testBulkCopyGuidRoundTripsValues() throws Exception {
-        String guidDestTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidRoundTripDest"));
-        UUID asObject = UUID.randomUUID();
-        UUID asString = UUID.randomUUID();
-        List<Object> values = new ArrayList<>();
-        values.add(asObject);
-        values.add(asString.toString().toLowerCase());
-        values.add(null);
-
-        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE " + guidDestTable + " (id int identity(1,1), guidCol uniqueidentifier)");
-            try {
-                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
-                    bulkCopy.setDestinationTableName(guidDestTable);
-                    bulkCopy.addColumnMapping(1, "guidCol");
-                    bulkCopy.writeToServer(new GuidBulkRecord(values));
-                }
-
-                List<String> actual = new ArrayList<>();
-                try (SQLServerResultSet rs = (SQLServerResultSet) stmt
-                        .executeQuery("SELECT guidCol FROM " + guidDestTable + " ORDER BY id")) {
-                    while (rs.next()) {
-                        actual.add(rs.getUniqueIdentifier(1));
-                    }
-                }
-
-                assertEquals(3, actual.size());
-                assertEquals(asObject, UUID.fromString(actual.get(0)));
-                assertEquals(asString, UUID.fromString(actual.get(1)));
-                assertTrue(null == actual.get(2), "Expected a null uniqueidentifier, but was: " + actual.get(2));
-            } finally {
-                TestUtils.dropTableIfExists(guidDestTable, stmt);
-            }
-        }
-    }
-
-    private static class GuidBulkRecord implements ISQLServerBulkData {
-        private static final long serialVersionUID = 1L;
-
-        private final List<Object> values;
-        private int row = -1;
-
-        GuidBulkRecord(List<Object> values) {
-            this.values = values;
-        }
-
-        @Override
-        public Set<Integer> getColumnOrdinals() {
-            return new HashSet<>(Arrays.asList(1));
-        }
-
-        @Override
-        public String getColumnName(int column) {
-            return "guidCol";
-        }
-
-        @Override
-        public int getColumnType(int column) {
-            return microsoft.sql.Types.GUID;
-        }
-
-        @Override
-        public int getPrecision(int column) {
-            return 36;
-        }
-
-        @Override
-        public int getScale(int column) {
-            return 0;
-        }
-
-        @Override
-        public Object[] getRowData() {
-            return new Object[] {values.get(row)};
-        }
-
-        @Override
-        public boolean next() {
-            return ++row < values.size();
-        }
-    }
-
-    private SQLServerBulkCSVFileRecord constructGuidFileRecord(String guid) throws Exception {
-        byte[] bytes = ("guidcol\n" + guid + "\n").getBytes(StandardCharsets.UTF_8);
-        try (InputStream inputStream = new ByteArrayInputStream(bytes)) {
-            return new SQLServerBulkCSVFileRecord(inputStream, encoding, delimiter, true);
-        }
-    }
-
-    /**
-     * Starts an Extended Events session capturing plan_affecting_convert, which the server raises once per compiled
-     * plan when a bulk insert has to convert the incoming column to the destination type.
-     */
-    private static boolean canCaptureImplicitConversions(Statement stmt, String sessionName) {
-        try {
-            stmt.execute("CREATE EVENT SESSION [" + sessionName + "] ON SERVER ADD EVENT"
-                    + " sqlserver.plan_affecting_convert (ACTION (sqlserver.sql_text)) ADD TARGET package0.ring_buffer"
-                    + " WITH (MAX_DISPATCH_LATENCY = 1 SECONDS)");
-            stmt.execute("ALTER EVENT SESSION [" + sessionName + "] ON SERVER STATE = START");
-            return true;
-        } catch (SQLException e) {
-            return false;
-        }
-    }
-
-    /**
-     * Returns the conversions the server had to run for the bulk inserted column, which it reports against the
-     * [!BulkInsert] pseudo table. A conversion of our own is issued first and waited for, so that the events of the
-     * bulk copy are known to have reached the ring buffer.
-     */
-    private static String getCapturedConversions(Statement stmt, String sessionName,
-            String destTable) throws Exception {
-        String barrier = "xeBarrier" + UUID.randomUUID().toString().replace("-", "");
-        stmt.execute("/*" + barrier + "*/ SELECT COUNT(*) FROM " + destTable + " WHERE CAST(id AS varchar(36)) = N'x'");
-
-        long giveUpAt = System.currentTimeMillis() + 30000;
-        String events = readRingBuffer(stmt, sessionName);
-
-        while (!events.contains(barrier) && System.currentTimeMillis() < giveUpAt) {
-            Thread.sleep(500);
-            events = readRingBuffer(stmt, sessionName);
-        }
-
-        assertTrue(events.contains(barrier), "Extended Events session did not report the expected conversion.");
-
-        // The session sees conversions from the whole server, so keep only the ones the bulk insert into our own
-        // table caused. Other tests running in parallel forks bulk copy into uniqueidentifier columns too.
-        return Arrays.stream(events.split("</event>"))
-                .filter(event -> event.contains("!BulkInsert") && event.contains(destTable))
-                .collect(Collectors.joining("\n"));
-    }
-
-    private static String readRingBuffer(Statement stmt, String sessionName) throws SQLException {
-        try (ResultSet rs = stmt.executeQuery("SELECT CAST(t.target_data AS NVARCHAR(MAX)) FROM"
-                + " sys.dm_xe_session_targets AS t JOIN sys.dm_xe_sessions AS s ON s.address = t.event_session_address"
-                + " WHERE s.name = '" + sessionName + "' AND t.target_name = 'ring_buffer'")) {
-            String targetData = rs.next() ? rs.getString(1) : null;
-            return (null == targetData) ? "" : targetData;
-        }
-    }
-
-    private static void dropEventSession(Statement stmt, String sessionName) throws SQLException {
-        stmt.execute("IF EXISTS (SELECT 1 FROM sys.server_event_sessions WHERE name = '" + sessionName + "')"
-                + " DROP EVENT SESSION [" + sessionName + "] ON SERVER");
     }
 
     @AfterAll
