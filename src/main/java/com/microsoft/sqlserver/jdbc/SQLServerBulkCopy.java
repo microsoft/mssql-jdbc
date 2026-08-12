@@ -2269,10 +2269,34 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             return;
         }
 
-        UUID guidValue = (colValue instanceof UUID) ? (UUID) colValue : UUID.fromString(colValue.toString().trim());
+        UUID guidValue;
+        if (colValue instanceof UUID) {
+            guidValue = (UUID) colValue;
+        } else {
+            try {
+                guidValue = UUID.fromString(stripGuidBraces(colValue.toString()));
+            } catch (IllegalArgumentException ex) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
+                Object[] msgArgs = {"'" + colValue + "'", JDBCType.GUID};
+                throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC,
+                        DriverError.NOT_SET, ex);
+            }
+        }
 
         tdsWriter.writeByte((byte) 0x10);
         tdsWriter.writeBytes(Util.asGuidByteArray(guidValue));
+    }
+
+    /**
+     * Removes the braces of the registry format the server accepts for a character string it converts to
+     * uniqueidentifier, which {@link UUID#fromString} does not accept.
+     */
+    private static String stripGuidBraces(String value) {
+        int end = value.length() - 1;
+        if (end > 0 && '{' == value.charAt(0) && '}' == value.charAt(end)) {
+            return value.substring(1, end);
+        }
+        return value;
     }
 
     private void writeNullToTdsWriter(TDSWriter tdsWriter, int srcJdbcType,
