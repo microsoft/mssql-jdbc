@@ -6,12 +6,21 @@ package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.UUID;
 
+import javax.net.SocketFactory;
+import javax.net.ssl.TrustManager;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -22,6 +31,52 @@ import org.junit.runner.RunWith;
  */
 @RunWith(JUnitPlatform.class)
 public class UtilTest {
+
+    public static final class TestRunnable implements Runnable {
+        @Override
+        public void run() {
+        }
+    }
+
+    @Test
+    public void testNewInstanceUsesUtilClassLoader() throws Exception {
+        Thread currentThread = Thread.currentThread();
+        ClassLoader originalClassLoader = currentThread.getContextClassLoader();
+        currentThread.setContextClassLoader(new ClassLoader(null) {
+        });
+        try {
+            Runnable instance = Util.newInstance(Runnable.class, TestRunnable.class.getName(), null,
+                    new Object[] { "testClass", Runnable.class.getName() });
+
+            assertNotNull(instance);
+        } finally {
+            currentThread.setContextClassLoader(originalClassLoader);
+        }
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = { "", " ", "com..example.Foo", ".com.example.Foo", "com.example.Foo.",
+            "1com.example.Foo", "com.example.Foo Bar", "com/example/Foo", "jar:file:Foo", "http://example/Foo" })
+    public void testNewInstanceRejectsInvalidTrustManagerClassNames(String className) {
+        Object[] msgArgs = { "trustManagerClass", TrustManager.class.getName() };
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> Util.newInstance(TrustManager.class, className, null, msgArgs));
+
+        assertTrue(exception.getMessage().contains("trustManagerClass"));
+    }
+
+    @Test
+    public void testNewInstanceRejectsValidClassNameWithInvalidType() {
+        Object[] msgArgs = { "socketFactoryClass", SocketFactory.class.getName() };
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> Util.newInstance(SocketFactory.class, String.class.getName(), null, msgArgs));
+
+        assertTrue(exception.getMessage().contains("socketFactoryClass"));
+        assertTrue(exception.getMessage().contains(SocketFactory.class.getName()));
+    }
 
     @Test
     public void readGUIDtoUUID() throws SQLException {

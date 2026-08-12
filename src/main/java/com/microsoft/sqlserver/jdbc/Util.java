@@ -25,6 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 
 /**
@@ -46,6 +47,8 @@ final class Util {
     // any vendor or version specific decisions
     static final String SYSTEM_JRE = System.getProperty("java.vendor") + " " + System.getProperty("java.version");
     private static final Lock LOCK = new ReentrantLock();
+    private static final Pattern JAVA_BINARY_CLASS_NAME = Pattern.compile(
+            "\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*(\\.\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*)*");
 
     private static Boolean isIBM = null;
 
@@ -1024,11 +1027,7 @@ final class Util {
             Object[] msgArgs) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
         validateClassName(className, msgArgs);
 
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        if (classLoader == null) {
-            classLoader = Util.class.getClassLoader();
-        }
-        Class<?> clazz = Class.forName(className, false, classLoader);
+        Class<?> clazz = Class.forName(className, false, Util.class.getClassLoader());
         if (!returnType.isAssignableFrom(clazz)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unassignableError"));
             throw new IllegalArgumentException(form.format(msgArgs));
@@ -1052,31 +1051,7 @@ final class Util {
     }
 
     private static boolean isValidJavaBinaryClassName(String className) {
-        if (null == className || className.isEmpty()) {
-            return false;
-        }
-
-        String[] tokens = className.split("\\.", -1);
-        for (String token : tokens) {
-            if (token.isEmpty()) {
-                return false;
-            }
-
-            int cp = token.codePointAt(0);
-            if (!Character.isJavaIdentifierStart(cp)) {
-                return false;
-            }
-
-            for (int i = Character.charCount(cp); i < token.length();) {
-                cp = token.codePointAt(i);
-                if (!Character.isJavaIdentifierPart(cp)) {
-                    return false;
-                }
-                i += Character.charCount(cp);
-            }
-        }
-
-        return true;
+        return null != className && JAVA_BINARY_CLASS_NAME.matcher(className).matches();
     }
 
     /**
