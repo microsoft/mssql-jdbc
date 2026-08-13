@@ -7,13 +7,19 @@ package com.microsoft.sqlserver.jdbc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.logging.Logger;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
+
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 /**
@@ -65,6 +71,92 @@ public class UtilTest {
         assertEquals(prt.getProperty("password"), "pasS}");
     }
 
+    /**
+     * Tests that the cross-driver connection string aliases (SqlClient / ODBC / OLEDB spellings) are normalized to the
+     * canonical JDBC property names by {@link Util#parseUrl}.
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testConnectionStringAliasNormalization() throws SQLException {
+        java.util.logging.Logger drLogger = java.util.logging.Logger
+                .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost;uid=myUser;trusted_connection=true;app=myApp;connectTimeout=45;"
+                + "columnEncryption=Enabled;quotedId=OFF;";
+        Properties prt = Util.parseUrl(constr, drLogger);
+
+        // Each alias must normalize to its canonical property name and the alias itself must not survive.
+        assertEquals("myUser", prt.getProperty("user"));
+        assertEquals(null, prt.getProperty("uid"));
+
+        assertEquals("true", prt.getProperty("integratedSecurity"));
+        assertEquals(null, prt.getProperty("trusted_connection"));
+
+        assertEquals("myApp", prt.getProperty("applicationName"));
+        assertEquals(null, prt.getProperty("app"));
+
+        assertEquals("45", prt.getProperty("loginTimeout"));
+        assertEquals(null, prt.getProperty("connectTimeout"));
+
+        assertEquals("Enabled", prt.getProperty("columnEncryptionSetting"));
+        assertEquals(null, prt.getProperty("columnEncryption"));
+
+        assertEquals("OFF", prt.getProperty("quotedIdentifier"));
+        assertEquals(null, prt.getProperty("quotedId"));
+    }
+
+    /**
+     * Tests that connection string alias normalization is case-insensitive, matching the behavior of the existing
+     * synonym handling in {@link SQLServerDriver#getNormalizedPropertyName}.
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testConnectionStringAliasCaseInsensitive() throws SQLException {
+        java.util.logging.Logger drLogger = java.util.logging.Logger
+                .getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost;UID=myUser;Trusted_Connection=true;APP=myApp;CONNECTTIMEOUT=45;"
+                + "ColumnEncryption=Enabled;QUOTEDID=OFF;";
+        Properties prt = Util.parseUrl(constr, drLogger);
+
+        assertEquals("myUser", prt.getProperty("user"));
+        assertEquals("true", prt.getProperty("integratedSecurity"));
+        assertEquals("myApp", prt.getProperty("applicationName"));
+        assertEquals("45", prt.getProperty("loginTimeout"));
+        assertEquals("Enabled", prt.getProperty("columnEncryptionSetting"));
+        assertEquals("OFF", prt.getProperty("quotedIdentifier"));
+    }
+
+    /**
+     * Verifies a duplicate connection-string keyword does not cause a parse error and the last value
+     * provided wins.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    public void testDuplicateKeywords() throws SQLException {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost;databaseName=first;databaseName=second;user=u1;user=u2;";
+        Properties prt = Util.parseUrl(constr, drLogger);
+        assertEquals("duplicate keyword: last value should win", "second", prt.getProperty("databaseName"));
+        assertEquals("duplicate keyword: last value should win", "u2", prt.getProperty("user"));
+        assertEquals("localhost", prt.getProperty("serverName"));
+    }
+
+    /**
+     * Verifies a connection string with trailing token separators (semicolons and whitespace) parses
+     * without error.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    public void testTokenSeparatorsAtEnd() throws SQLException {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost;databaseName=db;user=u;  ;;  ";
+        Properties prt = Util.parseUrl(constr, drLogger);
+        assertEquals("db", prt.getProperty("databaseName"));
+        assertEquals("u", prt.getProperty("user"));
+        assertEquals("localhost", prt.getProperty("serverName"));
+    }
+
     private static String testString = "A ß € 嗨 𝄞 🙂ăѣ𝔠ծềſģȟᎥ𝒋ǩľḿꞑȯ𝘱𝑞𝗋𝘴ȶ𝞄𝜈ψ𝒙𝘆𝚣1234567890!@#$%^&*()-_=+[{]};:'\",<.>/?~𝘈Ḇ𝖢𝕯٤ḞԍНǏ𝙅ƘԸⲘ𝙉০Ρ𝗤Ɍ𝓢ȚЦ𝒱Ѡ𝓧ƳȤѧᖯć𝗱ễ𝑓𝙜Ⴙ𝞲𝑗𝒌ļṃŉо𝞎𝒒ᵲꜱ𝙩ừ𝗏ŵ𝒙𝒚ź1234567890!@#$%^&*()-_=+[{]};:'\",<.>/?~АḂⲤ𝗗𝖤𝗙ꞠꓧȊ𝐉𝜥ꓡ𝑀𝑵Ǭ𝙿𝑄Ŗ𝑆𝒯𝖴𝘝𝘞ꓫŸ𝜡ả𝘢ƀ𝖼ḋếᵮℊ𝙝Ꭵ𝕛кιṃդⱺ𝓅𝘲𝕣𝖘ŧ𝑢ṽẉ𝘅ყž1234567890!@#$%^&*()-_=+[{]};:'\",<.>/?~Ѧ𝙱ƇᗞΣℱԍҤ١𝔍К𝓛𝓜ƝȎ𝚸𝑄Ṛ𝓢ṮṺƲᏔꓫ𝚈𝚭𝜶Ꮟçძ𝑒𝖿𝗀ḧ𝗂𝐣ҝɭḿ𝕟𝐨𝝔𝕢ṛ𝓼тú𝔳ẃ⤬𝝲𝗓1234567890!@#$%^&*()-_=+[{]};:'\",<.>/?~𝖠Β𝒞𝘋𝙴𝓕ĢȞỈ𝕵ꓗʟ𝙼ℕ০𝚸𝗤ՀꓢṰǓⅤ𝔚Ⲭ𝑌𝙕𝘢𝕤";
     private static String testString2 = "ssdfsdflkjh9u0345)*&)(*&%$";
     private static String testString3 = "ss345(*&^%oujdf.';lk2345(*&()*$#~!`1\\]wer><.,/?dfsdflkjh9u0345)*&)(*&%$";
@@ -99,6 +191,50 @@ public class UtilTest {
         Util.writeLong(valueToTest, buffer, 0);
         long newLong = Util.readLong(buffer, 0);
         assertEquals(valueToTest, newLong);
+    }
+
+    /**
+     * Verifies {@link DDC#convertBigDecimalToBytes} produces the same TDS bytes on its long fast path (magnitude fits
+     * in a long) as the reference {@link java.math.BigInteger}-based encoding, with explicit coverage of the
+     * zero-magnitude corner case (bitLength() == 0 must still emit a single zero magnitude byte).
+     */
+    @Test
+    public void testConvertBigDecimalToBytesFastPath() {
+        // Zero is the fragile corner case: it must encode as one zero magnitude byte, matching BigInteger.ZERO.
+        assertArrayEquals(referenceBigDecimalBytes(BigDecimal.ZERO),
+                DDC.convertBigDecimalToBytes(BigDecimal.ZERO, 0), "zero-magnitude encoding mismatch");
+
+        BigDecimal[] values = {new BigDecimal("0.00"), new BigDecimal("1"), new BigDecimal("-1"),
+                new BigDecimal("127"), new BigDecimal("128"), new BigDecimal("255"), new BigDecimal("256"),
+                new BigDecimal("-128"), new BigDecimal("123.4567"), new BigDecimal("-987654321.0001"),
+                BigDecimal.valueOf(Long.MAX_VALUE, 4), BigDecimal.valueOf(Long.MIN_VALUE, 4),
+                // A magnitude that does not fit in a long -> exercises the slow (BigInteger) path.
+                new BigDecimal(new BigInteger("123456789012345678901234567890"), 4)};
+
+        for (BigDecimal v : values) {
+            assertArrayEquals(referenceBigDecimalBytes(v), DDC.convertBigDecimalToBytes(v, v.scale()),
+                    "encoding mismatch for " + v);
+        }
+    }
+
+    /** Reference TDS decimal encoding using the straightforward BigInteger.toByteArray() path. */
+    private static byte[] referenceBigDecimalBytes(BigDecimal bigDecimalVal) {
+        boolean isNegative = bigDecimalVal.signum() < 0;
+        if (bigDecimalVal.scale() < 0)
+            bigDecimalVal = bigDecimalVal.setScale(0);
+        BigInteger bi = bigDecimalVal.unscaledValue();
+        if (isNegative)
+            bi = bi.negate();
+
+        byte[] unscaledBytes = bi.toByteArray();
+        byte[] valueBytes = new byte[unscaledBytes.length + 3];
+        int j = 0;
+        valueBytes[j++] = (byte) bigDecimalVal.scale();
+        valueBytes[j++] = (byte) (unscaledBytes.length + 1); // data length + sign
+        valueBytes[j++] = (byte) (isNegative ? 0 : 1); // 1 = +ve, 0 = -ve
+        for (int i = unscaledBytes.length - 1; i >= 0; i--)
+            valueBytes[j++] = unscaledBytes[i];
+        return valueBytes;
     }
 
 }

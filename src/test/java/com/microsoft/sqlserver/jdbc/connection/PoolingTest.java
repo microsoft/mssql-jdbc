@@ -302,8 +302,61 @@ public class PoolingTest extends AbstractTest {
     }
 
     /**
+     * Verifies that when a logical connection obtained from a pooled connection is closed with an open
+     * transaction (autoCommit=false), the uncommitted work is rolled back and the pooled connection is
+     * reusable with autoCommit reset to its default. Repeated across several reuse iterations
+     * (regression VSTS #247260).
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.xAzureSQLDW)
+    public void testRollbackTransactionOnPoolCnClose() throws SQLException {
+        String rollbackTable = RandomUtil.getIdentifier("PoolRollbackTable");
+        String escaped = AbstractSQLGenerator.escapeIdentifier(rollbackTable);
+
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(escaped, stmt);
+            stmt.executeUpdate("CREATE TABLE " + escaped + " (col1 int)");
+        }
+
+        try {
+            SQLServerConnectionPoolDataSource pds = new SQLServerConnectionPoolDataSource();
+            pds.setURL(connectionString);
+            PooledConnection pc = pds.getPooledConnection();
+            try {
+                for (int i = 1; i <= 3; i++) {
+                    try (Connection conn = pc.getConnection()) {
+                        // autoCommit should be reset to the default (true) each time the pooled
+                        // connection is handed out again (VSTS #247260).
+                        assertTrue(conn.getAutoCommit(), "Pooled connection should start with autoCommit=true");
+                        conn.setAutoCommit(false);
+                        try (Statement stmt = conn.createStatement()) {
+                            stmt.executeUpdate("INSERT INTO " + escaped + " VALUES (" + i + ")");
+                        }
+                        // Close without committing -> the insert must be rolled back.
+                    }
+
+                    // Verify on a separate connection that the uncommitted insert was rolled back.
+                    try (Connection verify = getConnection(); Statement stmt = verify.createStatement();
+                            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + escaped)) {
+                        assertTrue(rs.next());
+                        assertEquals(0, rs.getInt(1), "Uncommitted insert should have been rolled back on close");
+                    }
+                }
+            } finally {
+                pc.close();
+            }
+        } finally {
+            // Ensure the temp table is cleaned up even if pooled connection creation fails.
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(escaped, stmt);
+            }
+        }
+    }
+
+    /**
      * drop the tables
-     * 
+     *
      * @throws SQLException
      */
     @AfterAll

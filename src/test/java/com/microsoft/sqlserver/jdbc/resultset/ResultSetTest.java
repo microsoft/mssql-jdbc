@@ -3203,5 +3203,225 @@ public class ResultSetTest extends AbstractTest {
             Arrays.fill(chars, c);
             return new String(chars);
         }
+
+        /**
+         * Validates that negative and boundary MONEY/SMALLMONEY values decode correctly: money min/max
+         * (-922337203685477.5808 / 922337203685477.5807), smallmoney min/max (-214748.3648 / 214748.3647),
+         * -0.0001, and zero. Guards against a sign-extension regression that would turn negatives into large positives.
+         */
+        @Test
+        public void testNegativeMoneyDecodeBoundaries() throws SQLException {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+                stmt.execute("CREATE TABLE " + hotPathTable + " (id int PRIMARY KEY, m money, sm smallmoney)");
+                try (PreparedStatement pstmt = conn
+                        .prepareStatement("INSERT INTO " + hotPathTable + " VALUES (?, ?, ?)")) {
+                    insertMoneyRow(pstmt, 1, "-922337203685477.5808", "-214748.3648"); // Long.MIN / Integer.MIN
+                    insertMoneyRow(pstmt, 2, "922337203685477.5807", "214748.3647"); // Long.MAX / Integer.MAX
+                    insertMoneyRow(pstmt, 3, "-0.0001", "-0.0001"); // smallest-magnitude negatives
+                    insertMoneyRow(pstmt, 4, "0.0000", "0.0000"); // zero
+                }
+
+                try (ResultSet rs = stmt.executeQuery("SELECT id, m, sm FROM " + hotPathTable + " ORDER BY id")) {
+                    assertMoneyRow(rs, "-922337203685477.5808", "-214748.3648");
+                    assertMoneyRow(rs, "922337203685477.5807", "214748.3647");
+                    assertMoneyRow(rs, "-0.0001", "-0.0001");
+                    assertMoneyRow(rs, "0.0000", "0.0000");
+                    assertFalse(rs.next());
+                }
+            }
+        }
+
+        private void insertMoneyRow(PreparedStatement pstmt, int id, String money, String smallMoney)
+                throws SQLException {
+            pstmt.setInt(1, id);
+            pstmt.setBigDecimal(2, new BigDecimal(money));
+            pstmt.setBigDecimal(3, new BigDecimal(smallMoney));
+            pstmt.executeUpdate();
+        }
+
+        private void assertMoneyRow(ResultSet rs, String money, String smallMoney) throws SQLException {
+            assertTrue(rs.next());
+            // money/smallmoney always decode at scale 4; compareTo asserts exact magnitude+sign regardless of scale.
+            assertEquals(0, rs.getBigDecimal("m").compareTo(new BigDecimal(money)),
+                    "money decode mismatch (sign-extension?) for " + money);
+            assertEquals(0, rs.getBigDecimal("sm").compareTo(new BigDecimal(smallMoney)),
+                    "smallmoney decode mismatch (sign-extension?) for " + smallMoney);
+        }
+
+        /**
+         * Validates that varchar and nvarchar values decode identically whether they fit the 256-byte scratch buffer
+         * or spill into a right-sized allocation. Straddles the 256-byte split (varchar 255/256/257/300 bytes, nvarchar
+         * 127/128/129/200 chars) with a non-ASCII BMP char and a supplementary character crossing the boundary.
+         */
+        @Test
+        public void testGetStringScratchBufferBoundary() throws SQLException {
+            // varchar byte-length == char-length for single-byte content: 255/256 (scratch), 257/300 (alloc).
+            int[] varcharLengths = {255, 256, 257, 300};
+            // nvarchar is 2 bytes/char: 127->254B, 128->256B (scratch), 129->258B, 200->400B (alloc).
+            int[] nvarcharCharLengths = {127, 128, 129, 200};
+
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+                stmt.execute("CREATE TABLE " + hotPathTable + " (id int PRIMARY KEY, v varchar(400), nv nvarchar(400))");
+
+                String[] varcharVals = new String[varcharLengths.length];
+                String[] nvarcharVals = new String[nvarcharCharLengths.length];
+                try (PreparedStatement pstmt = conn
+                        .prepareStatement("INSERT INTO " + hotPathTable + " VALUES (?, ?, ?)")) {
+                    for (int i = 0; i < varcharLengths.length; i++) {
+                        varcharVals[i] = makeString(varcharLengths[i]);
+                        nvarcharVals[i] = makeUnicodeString(nvarcharCharLengths[i]);
+                        pstmt.setInt(1, i);
+                        pstmt.setString(2, varcharVals[i]);
+                        pstmt.setNString(3, nvarcharVals[i]);
+                        pstmt.executeUpdate();
+                    }
+                }
+
+                try (ResultSet rs = stmt.executeQuery("SELECT id, v, nv FROM " + hotPathTable + " ORDER BY id")) {
+                    int i = 0;
+                    while (rs.next()) {
+                        assertEquals(varcharVals[i], rs.getString(2),
+                                "varchar scratch/alloc boundary mismatch at byte length " + varcharLengths[i]);
+                        assertEquals(nvarcharVals[i], rs.getNString(3),
+                                "nvarchar scratch/alloc boundary mismatch at char length " + nvarcharCharLengths[i]);
+                        i++;
+                    }
+                    assertEquals(varcharLengths.length, i, "row count mismatch");
+                }
+            }
+        }
+
+        /**
+         * Validates that the getString() fast path is bypassed for its excluded cases: an empty string still decodes to
+         * "" (not null), and CLOB/NCLOB targets return a Clob/NClob rather than a String.
+         */
+        @Test
+        public void testGetStringFastPathGuardFallback() throws SQLException {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+                stmt.execute("CREATE TABLE " + hotPathTable
+                        + " (id int PRIMARY KEY, v varchar(50), t varchar(max), nt nvarchar(max))");
+                stmt.executeUpdate("INSERT INTO " + hotPathTable + " VALUES (1, '', 'clob-data', N'nclob-data')");
+
+                try (ResultSet rs = stmt.executeQuery("SELECT id, v, t, nt FROM " + hotPathTable)) {
+                    assertTrue(rs.next());
+
+                    // Empty string: valueLength == 0 fails the (valueLength > 0) guard -> stream path -> "" (not null).
+                    String empty = rs.getString(2);
+                    assertNotNull(empty, "empty varchar should decode to \"\" not null");
+                    assertEquals("", empty, "empty varchar should be the empty string");
+
+                    // CLOB/NCLOB targets are excluded from the fast path and must return Clob/NClob, not String.
+                    Clob clob = rs.getClob(3);
+                    assertNotNull(clob);
+                    assertEquals("clob-data", clob.getSubString(1, (int) clob.length()), "CLOB content mismatch");
+
+                    NClob nclob = rs.getNClob(4);
+                    assertNotNull(nclob);
+                    assertEquals("nclob-data", nclob.getSubString(1, (int) nclob.length()), "NCLOB content mismatch");
+
+                    assertFalse(rs.next());
+                }
+            }
+        }
+
+        /**
+         * Validates NBCROW null handling when columns are read out of order across rows with mixed, inverse, all-null,
+         * and all-non-null patterns: every column must report the correct null state regardless of access order,
+         * confirming the null bitmap is fully read on first access and reset per row.
+         */
+        @Test
+        public void testNbcRowOutOfOrderColumnAccess() throws SQLException {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(hotPathTable, stmt);
+                stmt.execute("CREATE TABLE " + hotPathTable
+                        + " (id int PRIMARY KEY, a int, b varchar(20), c int, d varchar(20), e int)");
+                // Row 1: a,c,e non-null; b,d null. Row 2: inverse. Row 3: all null. Row 4: all non-null.
+                stmt.executeUpdate("INSERT INTO " + hotPathTable + " VALUES (1, 10, NULL, 30, NULL, 50)");
+                stmt.executeUpdate("INSERT INTO " + hotPathTable + " VALUES (2, NULL, 'bb', NULL, 'dd', NULL)");
+                stmt.executeUpdate("INSERT INTO " + hotPathTable + " VALUES (3, NULL, NULL, NULL, NULL, NULL)");
+                stmt.executeUpdate("INSERT INTO " + hotPathTable + " VALUES (4, 11, 'bb4', 33, 'dd4', 55)");
+
+                try (ResultSet rs = stmt
+                        .executeQuery("SELECT id, a, b, c, d, e FROM " + hotPathTable + " ORDER BY id")) {
+                    // Row 1 - access out of order: e(6), b(3), d(5), a(2), c(4).
+                    assertTrue(rs.next());
+                    assertEquals(50, rs.getInt(6));
+                    assertFalse(rs.wasNull(), "e should be non-null on row 1");
+                    assertNull("b should be null on row 1", rs.getString(3));
+                    assertTrue(rs.wasNull());
+                    assertNull("d should be null on row 1", rs.getString(5));
+                    assertTrue(rs.wasNull());
+                    assertEquals(10, rs.getInt(2), "a should be 10 on row 1");
+                    assertFalse(rs.wasNull());
+                    assertEquals(30, rs.getInt(4), "c should be 30 on row 1");
+                    assertFalse(rs.wasNull());
+
+                    // Row 2 - inverse pattern, access order: a(2), d(5), c(4), e(6), b(3).
+                    assertTrue(rs.next());
+                    assertEquals(0, rs.getInt(2));
+                    assertTrue(rs.wasNull(), "a should be null on row 2");
+                    assertEquals("dd", rs.getString(5), "d should be 'dd' on row 2");
+                    assertFalse(rs.wasNull());
+                    assertEquals(0, rs.getInt(4));
+                    assertTrue(rs.wasNull(), "c should be null on row 2");
+                    assertEquals(0, rs.getInt(6));
+                    assertTrue(rs.wasNull(), "e should be null on row 2");
+                    assertEquals("bb", rs.getString(3), "b should be 'bb' on row 2");
+                    assertFalse(rs.wasNull());
+
+                    // Row 3 - all null, access out of order: c(4), a(2), e(6), b(3), d(5).
+                    assertTrue(rs.next());
+                    assertEquals(0, rs.getInt(4));
+                    assertTrue(rs.wasNull(), "c should be null on all-null row 3");
+                    assertEquals(0, rs.getInt(2));
+                    assertTrue(rs.wasNull());
+                    assertEquals(0, rs.getInt(6));
+                    assertTrue(rs.wasNull());
+                    assertNull(rs.getString(3));
+                    assertTrue(rs.wasNull());
+                    assertNull(rs.getString(5));
+                    assertTrue(rs.wasNull());
+
+                    // Row 4 - all non-null, access out of order: e(6), c(4), a(2), d(5), b(3).
+                    assertTrue(rs.next());
+                    assertEquals(55, rs.getInt(6));
+                    assertFalse(rs.wasNull(), "e should be non-null on row 4");
+                    assertEquals(33, rs.getInt(4));
+                    assertFalse(rs.wasNull());
+                    assertEquals(11, rs.getInt(2));
+                    assertFalse(rs.wasNull());
+                    assertEquals("dd4", rs.getString(5));
+                    assertFalse(rs.wasNull());
+                    assertEquals("bb4", rs.getString(3));
+                    assertFalse(rs.wasNull());
+
+                    assertFalse(rs.next());
+                }
+            }
+        }
+
+        /**
+         * Builds a string of the given char length containing a non-ASCII BMP char and a supplementary character
+         * (surrogate pair) up front, padded with ASCII, so multibyte content straddles the scratch-buffer boundary.
+         */
+        private String makeUnicodeString(int charLength) {
+            StringBuilder sb = new StringBuilder(charLength + 2);
+            if (charLength >= 1) {
+                sb.append('\u00e9'); // 1 char, non-ASCII BMP
+            }
+            if (charLength >= 3) {
+                sb.appendCodePoint(0x1F600); // 2 chars (surrogate pair)
+            }
+            while (sb.length() < charLength) {
+                sb.append((char) ('A' + (sb.length() % 26)));
+            }
+            if (sb.length() > charLength) {
+                sb.setLength(charLength); // trim to exact char length if the surrogate pair overshot
+            }
+            return sb.toString();
+        }
     }
 }
