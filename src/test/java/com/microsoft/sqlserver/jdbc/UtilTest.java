@@ -5,15 +5,22 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -147,217 +154,177 @@ public class UtilTest {
         return valueBytes;
     }
 
-    @Test
-    public void testSanitizeIdentifierSimpleName() throws SQLException {
-        assertEquals("[employees]", Util.sanitizeIdentifier("employees"));
+    private static Stream<Arguments> sanitizeIdentifierQuotesArgs() {
+        return Stream.of(
+                // regular names
+                Arguments.of("employees", "[employees]"),
+                Arguments.of("dbo.employees", "[dbo].[employees]"),
+                Arguments.of("mydb.dbo.employees", "[mydb].[dbo].[employees]"),
+                // four-part (linked server) names are supported, matching SqlClient's MultipartIdentifier
+                Arguments.of("srv.mydb.dbo.employees", "[srv].[mydb].[dbo].[employees]"),
+                // an empty qualifier defers to the default schema and has to be preserved
+                Arguments.of("mydb..employees", "[mydb]..[employees]"),
+                Arguments.of("srv..dbo.employees", "[srv]..[dbo].[employees]"),
+                // caller-delimited names are not double-quoted
+                Arguments.of("[dbo].[My Table]", "[dbo].[My Table]"),
+                Arguments.of("[table]]name]", "[table]]name]"),
+                Arguments.of("[a]]b]]c]", "[a]]b]]c]"),
+                Arguments.of("[db].[dbo].[my.table]", "[db].[dbo].[my.table]"),
+                Arguments.of("\"dbo\".\"My Table\"", "[dbo].[My Table]"),
+                Arguments.of("\"my\"\"table\"", "[my\"table]"),
+                // whitespace around a part is not part of the name, whitespace inside a delimited part is
+                Arguments.of("  dbo  .  t  ", "[dbo].[t]"),
+                Arguments.of("[ ]", "[ ]"),
+                Arguments.of("[]", "[]"),
+                // temp tables
+                Arguments.of("#tempTable", "[#tempTable]"),
+                Arguments.of("##globalTemp", "[##globalTemp]"),
+                // characters that must be escaped rather than allowed to close the identifier
+                Arguments.of("table]name", "[table]]name]"),
+                Arguments.of("O'Brien", "[O'Brien]"),
+                // unterminated or mismatched delimiters are ordinary characters, not the start of an identifier
+                Arguments.of("[abc", "[[abc]"),
+                Arguments.of("[abc\"", "[[abc\"]"),
+                Arguments.of("\"abc", "[\"abc]"),
+                // a delimiter that does not start the part is an ordinary character, so later dots still split
+                Arguments.of("a[b].c", "[a[b]]].[c]"),
+                Arguments.of("sch[ema.table", "[sch[ema].[table]"),
+                // unicode
+                Arguments.of("T\u00ef\u00f1\u00e9s", "[T\u00ef\u00f1\u00e9s]"),
+                Arguments.of("\u6570\u636e\u8868", "[\u6570\u636e\u8868]"),
+                Arguments.of("dbo.\u00d1\u00e4me", "[dbo].[\u00d1\u00e4me]"));
     }
 
-    @Test
-    public void testSanitizeIdentifierTwoPartName() throws SQLException {
-        assertEquals("[dbo].[employees]", Util.sanitizeIdentifier("dbo.employees"));
+    /**
+     * Names that are quoted rather than rejected. Every result is a well-formed bracket-quoted identifier, so text
+     * that is not a valid object name names one non-existent object rather than adding SQL.
+     */
+    @ParameterizedTest(name = "sanitizeIdentifier(\"{0}\") = \"{1}\"")
+    @MethodSource("sanitizeIdentifierQuotesArgs")
+    public void testSanitizeIdentifierQuotes(String input, String expected) throws SQLException {
+        assertEquals(expected, Util.sanitizeIdentifier(input));
     }
 
-    @Test
-    public void testSanitizeIdentifierThreePartName() throws SQLException {
-        assertEquals("[mydb].[dbo].[employees]", Util.sanitizeIdentifier("mydb.dbo.employees"));
+    private static Stream<Arguments> sanitizeIdentifierPayloadArgs() {
+        return Stream.of(
+                Arguments.of("(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'whoami'--",
+                        "[(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'whoami'--]"),
+                Arguments.of("; DROP TABLE users--", "[; DROP TABLE users--]"),
+                Arguments.of("t]; DROP TABLE x--", "[t]]; DROP TABLE x--]"),
+                Arguments.of("table--; DROP TABLE x", "[table--; DROP TABLE x]"),
+                Arguments.of("table /* comment */ ; EXEC xp_cmdshell 'cmd'",
+                        "[table /* comment */ ; EXEC xp_cmdshell 'cmd']"),
+                Arguments.of("table GO EXEC xp_cmdshell 'cmd'", "[table GO EXEC xp_cmdshell 'cmd']"),
+                Arguments.of("(SELECT 1 a) t; SET FMTONLY OFF; SELECT name, password_hash INTO ##creds FROM sys.sql_logins--",
+                        "[(SELECT 1 a) t; SET FMTONLY OFF; SELECT name, password_hash INTO ##creds FROM sys].[sql_logins--]"),
+                // starts and ends with brackets but is not a single identifier, so it is escaped whole instead of
+                // being trusted and unwrapped
+                Arguments.of("[a] PRINT 1 --[b]", "[[a]] PRINT 1 --[b]]]"),
+                Arguments.of("[a] SET FMTONLY OFF; SELECT 1 INTO ##x--[b]", "[[a]] SET FMTONLY OFF; SELECT 1 INTO ##x--[b]]]"),
+                // same shape with double quotes
+                Arguments.of("\"a\" PRINT 1 --\"b\"", "[\"a\" PRINT 1 --\"b\"]"));
     }
 
-    @Test
-    public void testSanitizeIdentifierAlreadyBracketed() throws SQLException {
-        assertEquals("[dbo].[My Table]", Util.sanitizeIdentifier("[dbo].[My Table]"));
+    /**
+     * Payloads that try to break out of the identifier and run as SQL. Each is quoted whole, so it names one
+     * non-existent object instead of adding statements.
+     */
+    @ParameterizedTest(name = "sanitizeIdentifier(\"{0}\") = \"{1}\"")
+    @MethodSource("sanitizeIdentifierPayloadArgs")
+    public void testSanitizeIdentifierNeutralizesPayload(String input, String expected) throws SQLException {
+        assertEquals(expected, Util.sanitizeIdentifier(input));
     }
 
-    @Test
-    public void testSanitizeIdentifierBracketWithEscapedClose() throws SQLException {
-        assertEquals("[table]]name]", Util.sanitizeIdentifier("[table]]name]"));
-    }
-
-    @Test
-    public void testSanitizeIdentifierInjectionPayloadWrapped() throws SQLException {
-        String payload = "(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'whoami'--";
-        String result = Util.sanitizeIdentifier(payload);
-        // Entire payload should be wrapped in brackets, making it a harmless identifier
-        assertEquals("[(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'whoami'--]", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierSemicolonPayloadWrapped() throws SQLException {
-        String result = Util.sanitizeIdentifier("; DROP TABLE users--");
-        assertEquals("[; DROP TABLE users--]", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierTempTable() throws SQLException {
-        assertEquals("[#tempTable]", Util.sanitizeIdentifier("#tempTable"));
+    /**
+     * Names that cannot identify an object, rejected up front so the caller gets a clear error instead of an
+     * unrelated server-side one.
+     */
+    @ParameterizedTest(name = "sanitizeIdentifier(\"{0}\") throws")
+    @ValueSource(strings = {"", "   ", "\t",
+            // no object part
+            ".", "dbo.", "dbo..", "  .  ",
+            // more parts than [server].[database].[schema].[object]
+            "a.b.c.d.e", "[a].[b].[c].[d].[e]", "[a].[b].[c].[d].e", "srv.db.schema.tbl.extra"})
+    public void testSanitizeIdentifierRejects(String input) {
+        assertThrows(SQLServerException.class, () -> Util.sanitizeIdentifier(input));
     }
 
     @Test
     public void testSanitizeIdentifierNullThrows() {
-        org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, () -> {
-            Util.sanitizeIdentifier(null);
-        });
+        assertThrows(SQLServerException.class, () -> Util.sanitizeIdentifier(null));
     }
 
-    @Test
-    public void testSanitizeIdentifierEmptyThrows() {
-        org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, () -> {
-            Util.sanitizeIdentifier("   ");
-        });
-    }
-
+    /**
+     * A name containing a single quote survives both steps getDestinationMetadata applies: it is bracket-quoted so it
+     * reads as an object name, and its quotes are doubled so it can sit in the enclosing N'...' literal.
+     */
     @Test
     public void testSanitizeIdentifierWithSingleQuote() throws SQLException {
-        // Single quote in name must not break out of OBJECT_ID('...') string literal
-        String result = Util.sanitizeIdentifier("O'Brien");
-        assertEquals("[O'Brien]", result);
-        // After escapeSingleQuotes (as used in BulkCopy): [O''Brien] — safe inside '...'
-        assertEquals("[O''Brien]", Util.escapeSingleQuotes(result));
+        assertEquals("[O''Brien]", Util.escapeSingleQuotes(Util.sanitizeIdentifier("O'Brien")));
+        assertEquals("[dbo].[O''Brien]", Util.escapeSingleQuotes(Util.sanitizeIdentifier("dbo.O'Brien")));
+        assertEquals("[O''Brien]", Util.escapeSingleQuotes(Util.sanitizeIdentifier("[O'Brien]")));
     }
 
-    @Test
-    public void testSanitizeIdentifierWithClosingBracket() throws SQLException {
-        // ] in name must not break out of [...] bracket quoting
-        String result = Util.sanitizeIdentifier("table]name");
-        assertEquals("[table]]name]", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierBracketBreakoutAttempt() throws SQLException {
-        // Attacker tries to close the bracket and inject SQL
-        String payload = "t]; DROP TABLE x--";
-        String result = Util.sanitizeIdentifier(payload);
-        // The ] is escaped as ]], so it stays inside the bracket-quoted identifier
-        assertEquals("[t]]; DROP TABLE x--]", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierDoubleQuoted() throws SQLException {
-        String result = Util.sanitizeIdentifier("\"dbo\".\"My Table\"");
-        // ThreePartName handles double-quote parsing; parts get re-bracket-quoted
-        assertEquals("[dbo].[My Table]", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierFourPartNameRejected() {
-        try {
-            Util.sanitizeIdentifier("server.db.schema.table");
-            org.junit.jupiter.api.Assertions.fail("Expected exception for 4-part name");
-        } catch (SQLException e) {
-            // Expected: 4-part names are not supported
+    /**
+     * A quoted name is inert inside the N'...' literal the metadata query builds: every remaining quote is doubled,
+     * so the literal cannot be closed early.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"O'Brien", "t'; EXEC xp_cmdshell 'whoami'--",
+            "(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'whoami'--"})
+    public void testSanitizeIdentifierIsInertInStringLiteral(String input) throws SQLException {
+        String escaped = Util.escapeSingleQuotes(Util.sanitizeIdentifier(input));
+        for (int i = 0; i < escaped.length(); i++) {
+            if (escaped.charAt(i) == '\'') {
+                assertTrue("unescaped quote at " + i + " would close the N'...' literal: " + escaped,
+                        i + 1 < escaped.length() && escaped.charAt(i + 1) == '\'');
+                i++;
+            }
         }
     }
 
-    @Test
-    public void testSanitizeIdentifierThreePartWithDottedBracketedName() throws SQLException {
-        // Bracketed name containing a dot is valid — should NOT be rejected
-        String result = Util.sanitizeIdentifier("[db].[dbo].[my.table]");
-        assertEquals("[db].[dbo].[my.table]", result);
+    /**
+     * A quoted name is a single bracketed identifier per part, so no part can close its brackets early and be read
+     * as anything other than an object name.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"employees", "dbo.employees", "srv.mydb.dbo.employees", "mydb..employees",
+            "[dbo].[My Table]", "table]name", "t]; DROP TABLE x--", "[a] PRINT 1 --[b]",
+            "(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'whoami'--"})
+    public void testSanitizeIdentifierIsWellFormed(String input) throws SQLException {
+        String quoted = Util.sanitizeIdentifier(input);
+        int i = 0;
+        while (true) {
+            if (i < quoted.length() && quoted.charAt(i) == '[') {
+                int j = i + 1;
+                while (j < quoted.length()) {
+                    if (quoted.charAt(j) == ']') {
+                        if (j + 1 < quoted.length() && quoted.charAt(j + 1) == ']') {
+                            j += 2;
+                            continue;
+                        }
+                        break;
+                    }
+                    j++;
+                }
+                assertTrue("unterminated identifier in " + quoted, j < quoted.length() && quoted.charAt(j) == ']');
+                i = j + 1;
+            }
+            if (i == quoted.length()) {
+                return;
+            }
+            assertTrue("unexpected text outside an identifier in " + quoted, quoted.charAt(i) == '.');
+            i++;
+        }
     }
 
-    @Test
-    public void testSanitizeIdentifierUnicode() throws SQLException {
-        assertEquals("[Tïñés]", Util.sanitizeIdentifier("Tïñés"));
-    }
-
-    @Test
-    public void testSanitizeIdentifierUnicodeChinese() throws SQLException {
-        assertEquals("[数据表]", Util.sanitizeIdentifier("数据表"));
-    }
-
-    @Test
-    public void testSanitizeIdentifierUnicodeMultiPart() throws SQLException {
-        assertEquals("[dbo].[Ñäme]", Util.sanitizeIdentifier("dbo.Ñäme"));
-    }
-
+    /** SQL Server allows identifiers of up to 128 characters; the name must not be truncated. */
     @Test
     public void testSanitizeIdentifierVeryLongName() throws SQLException {
-        // SQL Server allows up to 128 chars; verify no truncation
         char[] chars = new char[128];
         java.util.Arrays.fill(chars, 'a');
         String longName = new String(chars);
-        String result = Util.sanitizeIdentifier(longName);
-        assertEquals("[" + longName + "]", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierConsecutiveDots() {
-        // dbo..table — empty middle part is invalid
-        org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, () -> {
-            Util.sanitizeIdentifier("dbo..table");
-        });
-    }
-
-    @Test
-    public void testSanitizeIdentifierDoubleQuoteEscaping() throws SQLException {
-        // "my""table" — double-quote escaped identifier
-        String result = Util.sanitizeIdentifier("\"my\"\"table\"");
-        assertEquals("[my\"table]", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierMultipleEscapedBrackets() throws SQLException {
-        // [a]]b]]c] — multiple escaped brackets within one part
-        String result = Util.sanitizeIdentifier("[a]]b]]c]");
-        assertEquals("[a]]b]]c]", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierEmptyBrackets() throws SQLException {
-        // [] — empty bracketed identifier
-        String result = Util.sanitizeIdentifier("[]");
-        assertEquals("[]", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierWhitespaceInBrackets() throws SQLException {
-        // [ ] — whitespace-only bracketed part
-        String result = Util.sanitizeIdentifier("[ ]");
-        assertEquals("[ ]", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierCommentInjection() throws SQLException {
-        String payload = "table--; DROP TABLE x";
-        String result = Util.sanitizeIdentifier(payload);
-        assertEquals("[table--; DROP TABLE x]", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierBlockCommentInjection() throws SQLException {
-        String payload = "table /* comment */ ; EXEC xp_cmdshell 'cmd'";
-        String result = Util.sanitizeIdentifier(payload);
-        assertEquals("[table /* comment */ ; EXEC xp_cmdshell 'cmd']", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierGoSeparator() throws SQLException {
-        String payload = "table GO EXEC xp_cmdshell 'cmd'";
-        String result = Util.sanitizeIdentifier(payload);
-        assertEquals("[table GO EXEC xp_cmdshell 'cmd']", result);
-    }
-
-    @Test
-    public void testSanitizeIdentifierFourPartBracketedSchemaRejected() {
-        // srv.db.[schema].table — 4-part name with bracketed third part must be rejected
-        org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, () -> {
-            Util.sanitizeIdentifier("srv.db.[schema].table");
-        });
-    }
-
-    @Test
-    public void testSanitizeIdentifierFourPartBracketedMiddleRejected() {
-        // a.b.[c].d — 4-part name with bracketed middle part must be rejected
-        org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, () -> {
-            Util.sanitizeIdentifier("a.b.[c].d");
-        });
-    }
-
-    @Test
-    public void testSanitizeIdentifierFourPartAllBracketedRejected() {
-        // [a].[b].[c].[d] — fully bracketed 4-part name must be rejected
-        org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, () -> {
-            Util.sanitizeIdentifier("[a].[b].[c].[d]");
-        });
+        assertEquals("[" + longName + "]", Util.sanitizeIdentifier(longName));
     }
 
 }

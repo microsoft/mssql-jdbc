@@ -5,24 +5,27 @@
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -30,18 +33,26 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
- * Tests that SQLServerBulkCopy.setDestinationTableName() properly validates input
- * and rejects payloads that could lead to unintended SQL execution.
+ * Verifies that the destination table name is treated as an object name on both bulk copy paths, so that a name
+ * carrying extra SQL identifies one non-existent object instead of being executed, and that ordinary multi-part names
+ * keep working.
  */
 @Tag(Constants.bulkCopy)
 public class BulkCopyInputValidationTest extends AbstractTest {
 
+    /** Server error for a name that does not resolve to an object. */
+    private static final int INVALID_OBJECT_NAME = 208;
+
+    private static final String TEMP_MARKER = "##bcInputVal";
+
     private static String sourceTable;
+    private static String catalog;
 
     @BeforeAll
     public static void setUp() throws Exception {
         setConnection();
         sourceTable = "[BulkCopyInputVal_src_" + RandomUtil.getIdentifier("tbl") + "]";
+        catalog = connection.getCatalog();
         try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("CREATE TABLE " + sourceTable + " (id INT)");
             stmt.executeUpdate("INSERT INTO " + sourceTable + " VALUES (1)");
@@ -52,283 +63,232 @@ public class BulkCopyInputValidationTest extends AbstractTest {
     public static void tearDown() throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(sourceTable, stmt);
-            // Clean up any temp tables that injection may have created
-            stmt.execute("IF OBJECT_ID('tempdb..##bulkcopy_injection_test') IS NOT NULL DROP TABLE ##bulkcopy_injection_test");
         }
     }
 
     /**
-     * Tests that a semicolon-based injection payload in setDestinationTableName() is neutralized
-     * via identifier quoting so it cannot execute as SQL.
+     * Payloads that try to run SQL through the destination name. Each one first creates a marker object, so the marker
+     * existing is direct proof the payload executed rather than being read as an object name.
      */
-    @Test
-    public void testSemicolonInjectionInDestinationTableName() throws Exception {
-        // Payload: valid FROM clause + injected statement that creates a temp table
-        String payload = "(SELECT 1 a) t; SET FMTONLY OFF; "
-                + "SELECT 1 INTO ##bulkcopy_injection_test--";
-
-        try (Connection conn = DriverManager.getConnection(connectionString)) {
-            try (Statement srcStmt = conn.createStatement();
-                    ResultSet sourceData = srcStmt.executeQuery("SELECT * FROM " + sourceTable);
-                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
-                bulkCopy.setDestinationTableName(payload);
-                try {
-                    bulkCopy.writeToServer(sourceData);
-                } catch (SQLServerException e) {
-                    // Sanitized name won't resolve to a real table — error is expected
-                    assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
-                            "Expected a meaningful error message from the server");
-                }
-            }
-
-            // Verify: if injection succeeded, the temp table now exists
-            try (ResultSet rs = conn.createStatement().executeQuery(
-                    "SELECT OBJECT_ID('tempdb..##bulkcopy_injection_test')")) {
-                rs.next();
-                Object objectId = rs.getObject(1);
-                if (objectId != null) {
-                    fail("SQL injection succeeded — arbitrary SQL was executed via setDestinationTableName(). "
-                            + "The temp table ##bulkcopy_injection_test was created by the injected payload.");
-                }
-            }
-        }
+    private static Stream<Arguments> injectionPayloads() {
+        return Stream.of(
+                Arguments.of("semicolon", "(SELECT 1 a) t; SET FMTONLY OFF; SELECT 1 INTO " + TEMP_MARKER + "--"),
+                Arguments.of("comment terminated", "dbo.x; SET FMTONLY OFF; SELECT 1 INTO " + TEMP_MARKER + " --"),
+                Arguments.of("closing bracket",
+                        "[dbo].[x]; SET FMTONLY OFF; SELECT 1 INTO " + TEMP_MARKER + "--"),
+                Arguments.of("quoted argument",
+                        "(SELECT 1 a) t; SET FMTONLY OFF; SELECT 'x' INTO " + TEMP_MARKER + "--"),
+                Arguments.of("remote code execution", "(SELECT 1 a) t; SET FMTONLY OFF; SELECT 1 INTO " + TEMP_MARKER
+                        + "; EXEC xp_cmdshell 'echo pwned'--"),
+                Arguments.of("credential theft",
+                        "(SELECT 1 a) t; SET FMTONLY OFF; SELECT name, CONVERT(NVARCHAR(4000), password_hash, 1) h INTO "
+                                + TEMP_MARKER + " FROM sys.sql_logins--"),
+                Arguments.of("privilege escalation", "(SELECT 1 a) t; SET FMTONLY OFF; SELECT 1 INTO " + TEMP_MARKER
+                        + "; CREATE LOGIN [bcInputVal] WITH PASSWORD='Test!123'--"));
     }
 
     /**
-     * Tests that an xp_cmdshell-style RCE payload is rejected.
+     * The payload names one object that does not exist, so bulk copy fails with "invalid object name" and nothing the
+     * payload asked for is executed.
      */
-    @Test
-    public void testRcePayloadRejected() throws Exception {
-        String payload = "(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'echo pwned'--";
-
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("injectionPayloads")
+    public void testDestinationTableNamePayloadIsNotExecuted(String name, String payload) throws Exception {
+        try (Connection conn = PrepUtil.getConnection(connectionString)) {
             try {
-                bulkCopy.setDestinationTableName(payload);
-                try (Statement srcStmt = conn.createStatement();
-                        ResultSet sourceData = srcStmt.executeQuery("SELECT * FROM " + sourceTable)) {
-                    bulkCopy.writeToServer(sourceData);
-                }
-                fail("Expected exception for injection payload containing xp_cmdshell");
-            } catch (SQLServerException e) {
-                assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
-                        "Should get an error for invalid table name");
-            }
-        }
-    }
-
-    /**
-     * Tests that a privilege escalation payload (CREATE LOGIN) is rejected.
-     */
-    @Test
-    public void testPrivilegeEscalationPayloadRejected() throws Exception {
-        String payload = "(SELECT 1 a) t; SET FMTONLY OFF; "
-                + "CREATE LOGIN [test_injection_user] WITH PASSWORD='Test!123'--";
-
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
-            try {
-                bulkCopy.setDestinationTableName(payload);
-                try (Statement srcStmt = conn.createStatement();
-                        ResultSet sourceData = srcStmt.executeQuery("SELECT * FROM " + sourceTable)) {
-                    bulkCopy.writeToServer(sourceData);
-                }
-                fail("Expected exception for injection payload containing CREATE LOGIN");
-            } catch (SQLServerException e) {
-                assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
-                        "Should get an error for invalid table name");
-            }
-        }
-
-        // Verify the login was NOT created
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery(
-                    "SELECT COUNT(*) FROM sys.server_principals WHERE name = 'test_injection_user'");
-            rs.next();
-            assertEquals(0, rs.getInt(1),
-                    "Injection succeeded — backdoor login 'test_injection_user' was created!");
-            // Cleanup just in case
-            stmt.execute("IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name='test_injection_user') "
-                    + "DROP LOGIN [test_injection_user]");
-        }
-    }
-
-    /**
-     * Tests that a credential theft payload (SELECT INTO from sys.sql_logins) is rejected.
-     */
-    @Test
-    public void testCredentialTheftPayloadRejected() throws Exception {
-        String payload = "(SELECT 1 a) t; SET FMTONLY OFF; "
-                + "SELECT name, CONVERT(NVARCHAR(4000), password_hash, 1) as hash "
-                + "INTO ##bulkcopy_cred_test FROM sys.sql_logins--";
-
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
-            try {
-                bulkCopy.setDestinationTableName(payload);
-                try (Statement srcStmt = conn.createStatement();
-                        ResultSet sourceData = srcStmt.executeQuery("SELECT * FROM " + sourceTable)) {
-                    bulkCopy.writeToServer(sourceData);
-                }
-                fail("Expected exception for injection payload containing credential theft");
-            } catch (SQLServerException e) {
-                assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
-                        "Should get an error for invalid table name");
-            }
-
-            // Verify: if injection succeeded, the temp table with credentials would exist
-            try (Statement verifyStmt = conn.createStatement();
-                    ResultSet rs = verifyStmt.executeQuery(
-                            "SELECT OBJECT_ID('tempdb..##bulkcopy_cred_test')")) {
-                rs.next();
-                Object objectId = rs.getObject(1);
-                if (objectId != null) {
-                    verifyStmt.execute("DROP TABLE ##bulkcopy_cred_test");
-                    fail("SQL injection succeeded — credential theft payload executed. "
-                            + "sys.sql_logins data was exfiltrated into ##bulkcopy_cred_test.");
-                }
-            }
-        }
-    }
-
-    /**
-     * Tests that a valid multi-part table name still works after the fix.
-     */
-    @Test
-    public void testValidMultiPartTableNameAccepted() throws Exception {
-        String tableName = "[dbo].[BulkCopyInputVal_valid_" + RandomUtil.getIdentifier("tbl") + "]";
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("CREATE TABLE " + tableName + " (id INT)");
-            try {
-                ResultSet sourceData = stmt.executeQuery("SELECT * FROM " + sourceTable);
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
-                bulkCopy.setDestinationTableName(tableName);
-                bulkCopy.writeToServer(sourceData);
-                bulkCopy.close();
-
-                // Verify data was inserted
-                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName);
-                rs.next();
-                assertEquals(1, rs.getInt(1), "Valid table name should allow bulk copy to succeed");
+                SQLException e = assertThrows(SQLException.class, () -> {
+                    try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+                            Statement srcStmt = conn.createStatement();
+                            ResultSet sourceData = srcStmt.executeQuery("SELECT * FROM " + sourceTable)) {
+                        bulkCopy.setDestinationTableName(payload);
+                        bulkCopy.writeToServer(sourceData);
+                    }
+                });
+                assertInvalidObjectName(e);
+                assertPayloadDidNotRun(conn);
             } finally {
-                TestUtils.dropTableIfExists(tableName, stmt);
+                cleanUpMarkers(conn);
             }
         }
     }
 
     /**
-     * Tests that a simple unquoted table name still works.
+     * Same payloads on the PreparedStatement batch path, where the destination name is parsed out of the INSERT text.
      */
-    @Test
-    public void testValidSimpleTableNameAccepted() throws Exception {
-        String tableName = "BulkCopyInputVal_simple_" + System.currentTimeMillis();
-        String escapedName = "[" + tableName + "]";
-        try (Connection conn = DriverManager.getConnection(connectionString);
-                Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("CREATE TABLE " + escapedName + " (id INT)");
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("injectionPayloads")
+    public void testBatchInsertPayloadIsNotExecuted(String name, String payload) throws Exception {
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
             try {
-                ResultSet sourceData = stmt.executeQuery("SELECT * FROM " + sourceTable);
-                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
-                bulkCopy.setDestinationTableName(tableName);
-                bulkCopy.writeToServer(sourceData);
-                bulkCopy.close();
-
-                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + escapedName);
-                rs.next();
-                assertEquals(1, rs.getInt(1), "Simple table name should allow bulk copy to succeed");
+                assertThrows(SQLException.class, () -> {
+                    try (PreparedStatement pstmt = conn
+                            .prepareStatement("INSERT INTO " + payload + " VALUES (?)")) {
+                        pstmt.setInt(1, 1);
+                        pstmt.addBatch();
+                        pstmt.executeBatch();
+                    }
+                });
+                assertPayloadDidNotRun(conn);
             } finally {
-                TestUtils.dropTableIfExists(escapedName, stmt);
+                cleanUpMarkers(conn);
             }
         }
     }
 
     /**
-     * Tests that the PreparedStatement executeBatch() path with useBulkCopyForBatchInsert=true
-     * sanitizes the table name parsed from the INSERT SQL, preventing injection via sp_executesql.
+     * Names an application may legitimately use. An empty middle part defers to the default schema and has to keep
+     * working, and a name the caller already delimited must not be quoted a second time.
+     */
+    private static Stream<Arguments> validTableNameForms() {
+        return Stream.of(Arguments.of("unquoted"), Arguments.of("delimited"), Arguments.of("schema qualified"),
+                Arguments.of("database qualified"), Arguments.of("default schema"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("validTableNameForms")
+    public void testValidTableNameFormsStillWork(String form) throws Exception {
+        String table = "BulkCopyInputVal_ok_" + RandomUtil.getIdentifier("tbl");
+        String created = "[dbo].[" + table + "]";
+        try (Connection conn = PrepUtil.getConnection(connectionString);
+                Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + created + " (id INT)");
+            try {
+                String destination;
+                switch (form) {
+                    case "unquoted":
+                        destination = table;
+                        break;
+                    case "delimited":
+                        destination = "[dbo].[" + table + "]";
+                        break;
+                    case "schema qualified":
+                        destination = "dbo." + table;
+                        break;
+                    case "database qualified":
+                        destination = "[" + catalog + "].[dbo].[" + table + "]";
+                        break;
+                    // an empty schema part resolves to the default schema, so the separators have to be preserved
+                    case "default schema":
+                        destination = "[" + catalog + "]..[" + table + "]";
+                        break;
+                    default:
+                        throw new IllegalArgumentException(form);
+                }
+
+                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+                        Statement srcStmt = conn.createStatement();
+                        ResultSet sourceData = srcStmt.executeQuery("SELECT * FROM " + sourceTable)) {
+                    bulkCopy.setDestinationTableName(destination);
+                    bulkCopy.writeToServer(sourceData);
+                }
+
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + created)) {
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), form + " destination name should copy one row");
+                }
+            } finally {
+                TestUtils.dropTableIfExists(created, stmt);
+            }
+        }
+    }
+
+    /**
+     * A name whose delimiters are part of the name itself has to survive the round trip, since the driver quotes it
+     * rather than rejecting it.
      */
     @Test
-    public void testBatchInsertInjectionViaPreparedStatement() throws Exception {
-        String tableName = "BulkCopyInputVal_batch_" + RandomUtil.getIdentifier("tbl");
-        String escapedName = "[" + tableName + "]";
+    public void testTableNameContainingDelimiters() throws Exception {
+        String table = "BulkCopyInputVal]weird.name " + RandomUtil.getIdentifier("tbl");
+        String created = "[dbo].[" + table.replace("]", "]]") + "]";
+        try (Connection conn = PrepUtil.getConnection(connectionString);
+                Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE " + created + " (id INT)");
+            try {
+                try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+                        Statement srcStmt = conn.createStatement();
+                        ResultSet sourceData = srcStmt.executeQuery("SELECT * FROM " + sourceTable)) {
+                    bulkCopy.setDestinationTableName(created);
+                    bulkCopy.writeToServer(sourceData);
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + created)) {
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), "delimited name containing ] and . should copy one row");
+                }
+            } finally {
+                stmt.execute("DROP TABLE " + created);
+            }
+        }
+    }
+
+    @Test
+    public void testValidBatchInsertStillWorks() throws Exception {
+        String table = "BulkCopyInputVal_batch_" + RandomUtil.getIdentifier("tbl");
+        String created = "[dbo].[" + table + "]";
         try (Connection conn = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("CREATE TABLE " + escapedName + " (id INT)");
+            stmt.executeUpdate("CREATE TABLE " + created + " (id INT)");
             try {
-                // Valid batch insert should succeed
-                try (PreparedStatement pstmt = conn.prepareStatement(
-                        "INSERT INTO " + escapedName + " VALUES (?)")) {
+                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO " + created + " VALUES (?)")) {
                     pstmt.setInt(1, 42);
                     pstmt.addBatch();
                     pstmt.executeBatch();
                 }
-
-                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + escapedName);
-                rs.next();
-                assertEquals(1, rs.getInt(1),
-                        "Valid table name should allow batch insert to succeed via useBulkCopyForBatchInsert");
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + created)) {
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), "batch insert should still reach the destination table");
+                }
             } finally {
-                TestUtils.dropTableIfExists(escapedName, stmt);
+                TestUtils.dropTableIfExists(created, stmt);
             }
         }
     }
 
     /**
-     * Tests that a semicolon injection payload in the INSERT SQL table name is neutralized
-     * when using useBulkCopyForBatchInsert=true.
+     * A name with more parts than [server].[database].[schema].[object] cannot identify an object, so it is
+     * rejected before anything is sent to the server.
      */
     @Test
-    public void testBatchInsertSemicolonInjectionRejected() throws Exception {
-        // Payload embeds injection in the table name portion of the INSERT SQL
-        String payload = "(SELECT 1 a) t; SET FMTONLY OFF; "
-                + "SELECT 1 INTO ##batch_inject_test--";
+    public void testTooManyPartsRejected() throws Exception {
+        try (Connection conn = PrepUtil.getConnection(connectionString);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+                Statement srcStmt = conn.createStatement();
+                ResultSet sourceData = srcStmt.executeQuery("SELECT * FROM " + sourceTable)) {
+            bulkCopy.setDestinationTableName("a.b.c.d.e");
+            assertThrows(SQLServerException.class, () -> bulkCopy.writeToServer(sourceData));
+        }
+    }
 
-        try (Connection conn = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
-            try (PreparedStatement pstmt = conn.prepareStatement(
-                    "INSERT INTO " + payload + " VALUES (?)")) {
-                pstmt.setInt(1, 1);
-                pstmt.addBatch();
-                pstmt.executeBatch();
-            } catch (Exception e) {
-                assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
-                        "Expected an error because sanitized table name is not a real table");
-            }
-
-            // Verify the injected temp table was NOT created
-            try (Statement stmt = conn.createStatement();
-                    ResultSet rs = stmt.executeQuery(
-                            "SELECT OBJECT_ID('tempdb..##batch_inject_test')")) {
-                rs.next();
-                Object objectId = rs.getObject(1);
-                if (objectId != null) {
-                    stmt.execute("DROP TABLE ##batch_inject_test");
-                    fail("SQL injection succeeded via executeBatch() — "
-                            + "injected SQL created ##batch_inject_test");
+    /** Asserts the failure is the server reporting an unknown object, not some unrelated error. */
+    private static void assertInvalidObjectName(SQLException thrown) {
+        for (Throwable t = thrown; t != null; t = t.getCause()) {
+            if (t instanceof SQLServerException) {
+                SQLServerException e = (SQLServerException) t;
+                if (e.getSQLServerError() != null && INVALID_OBJECT_NAME == e.getSQLServerError().getErrorNumber()) {
+                    return;
                 }
             }
         }
+        fail("expected error " + INVALID_OBJECT_NAME + " (invalid object name) but got: " + thrown);
     }
 
-    /**
-     * Tests that an xp_cmdshell RCE payload in the INSERT SQL table name is neutralized
-     * when using useBulkCopyForBatchInsert=true.
-     */
-    @Test
-    public void testBatchInsertRcePayloadRejected() throws Exception {
-        String payload = "(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'echo pwned'--";
-
-        try (Connection conn = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;")) {
-            try (PreparedStatement pstmt = conn.prepareStatement(
-                    "INSERT INTO " + payload + " VALUES (?)")) {
-                pstmt.setInt(1, 1);
-                pstmt.addBatch();
-                pstmt.executeBatch();
-                fail("Expected exception for injection payload in batch insert table name");
-            } catch (Exception e) {
-                assertTrue(e.getMessage() != null && !e.getMessage().isEmpty(),
-                        "Should get an error for invalid table name");
+    /** The marker object only exists if the payload ran as SQL. */
+    private static void assertPayloadDidNotRun(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT OBJECT_ID('tempdb.." + TEMP_MARKER + "'), "
+                        + "(SELECT COUNT(*) FROM sys.server_principals WHERE name = 'bcInputVal')")) {
+            rs.next();
+            if (rs.getObject(1) != null) {
+                fail("the destination table name executed as SQL: it created " + TEMP_MARKER);
             }
+            assertEquals(0, rs.getInt(2), "the destination table name executed as SQL: it created a login");
+        }
+    }
+
+    private static void cleanUpMarkers(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("IF OBJECT_ID('tempdb.." + TEMP_MARKER + "') IS NOT NULL DROP TABLE " + TEMP_MARKER);
+            stmt.execute("IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = 'bcInputVal') "
+                    + "DROP LOGIN [bcInputVal]");
         }
     }
 }
