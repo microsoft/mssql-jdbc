@@ -43,10 +43,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 import org.junit.Assert;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -2046,6 +2043,92 @@ public class CallableStatementTest extends AbstractTest {
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Tests that calling a stored procedure with and without braces in the call syntax works correctly.
+     *
+     * The previous behavior of the driver was to strip braces from the call syntax, which could lead to issues
+     * when calling procedures. This test ensures that both with and without braces work correctly and return
+     * the expected results.
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testProcedureCallWithBraces() throws SQLException {
+        String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TestBracesProc"));
+
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropProcedureIfExists(procName, stmt);
+            stmt.execute("CREATE PROCEDURE " + procName +
+                " @Param1 NVARCHAR(100), @Param2 NVARCHAR(100) " +
+                "AS BEGIN SELECT @Param1 AS Result1, @Param2 AS Result2 END");
+
+            // Call procedure using braces in the call syntax
+            String procedureWithBraces = "{call " + procName + "(?, ?)}";
+            try (CallableStatement cs = connection.prepareCall(procedureWithBraces)) {
+                cs.setString("Param1", "BraceTest");
+                cs.setString("Param2", "Value3");
+
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    assertEquals("BraceTest", rs.getString("Result1"));
+                    assertEquals("Value3", rs.getString("Result2"));
+                }
+            }
+
+            // Call procedure without braces in the call syntax
+            String procedureWithoutBraces = "call " + procName + "(?, ?)";
+            try (CallableStatement cs = connection.prepareCall(procedureWithoutBraces)) {
+                cs.setString("Param1", "BraceTest");
+                cs.setString("Param2", "Value3");
+
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue("Expected a result row", rs.next());
+                    assertEquals("BraceTest", rs.getString("Result1"));
+                    assertEquals("Value3", rs.getString("Result2"));
+                }
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropProcedureIfExists(procName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Tests that calling a stored procedure with missing braces in the call syntax throw an exception.
+     *
+     * This test ensures that the driver correctly identifies and throws an exception when the call
+     * syntax is malformed, such as missing opening or closing braces.
+     *
+     * exemple: "call TestBadSyntaxProc(?, ?)}" or "{call TestBadSyntaxProc(?, ?)"
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testProcedureCallWithBadQuerySyntax() throws SQLException {
+        String procName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TestBadSyntaxProc"));
+
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropProcedureIfExists(procName, stmt);
+            stmt.execute("CREATE PROCEDURE " + procName +
+                " @Param1 NVARCHAR(100), @Param2 NVARCHAR(100) " +
+                "AS BEGIN SELECT @Param1 AS Result1, @Param2 AS Result2 END");
+
+            // Call procedure with bad syntax (missing closing parenthesis)
+            String badSyntaxCall = "call " + procName + "(?, ?)}";
+            try (CallableStatement cs = connection.prepareCall(badSyntaxCall)) {
+                cs.setString("Param1", "BadSyntax");
+                cs.setString("Param2", "Value4");
+
+                assertThrows(SQLException.class, () -> cs.executeQuery());
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropProcedureIfExists(procName, stmt);
             }
         }
     }

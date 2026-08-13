@@ -3091,7 +3091,7 @@ final class JDBCSyntaxTranslator {
      * (square brackets or double quotes), including escaped escape characters, OR - any contiguous string of
      * non-whitespace characters. - including multipart identifiers
      */
-    private final static String SQL_IDENTIFIER_PART = "(?:(?:\\[(?:[^\\]]|(?:\\]\\]))+?\\])|(?:\"(?:[^\"]|(?:\"\"))+?\")|(?:\\S+?))";
+    private final static String SQL_IDENTIFIER_PART = "(?:(?:\\[(?:[^\\]]|(?:\\]\\]))+?\\])|(?:\"(?:[^\"]|(?:\"\"))+?\")|(?:[^\\s(){}]+))";
 
     private final static String SQL_IDENTIFIER_WITHOUT_GROUPS = "(" + SQL_IDENTIFIER_PART + "(?:\\."
             + SQL_IDENTIFIER_PART + "){0,3}?)";
@@ -3109,8 +3109,8 @@ final class JDBCSyntaxTranslator {
      * procedure_name[(?, ?, ...)]} allowing for arbitrary amounts of whitespace in the obvious places.
      */
     private final static Pattern JDBC_CALL_SYNTAX = Pattern
-            .compile("(?s)\\s*?\\{\\s*?(\\?\\s*?=)?\\s*?[cC][aA][lL][lL]\\s+?" + SQL_IDENTIFIER_WITHOUT_GROUPS
-                    + "(?:\\s*?\\((.*)\\))?\\s*\\}.*+");
+            .compile("(?s)\\s*?\\{?\\s*?(\\?\\s*?=)?\\s*?[cC][aA][lL][lL]\\s+?" + SQL_IDENTIFIER_WITHOUT_GROUPS
+                    + "(?:\\s*?\\((.*)\\))?\\s*\\}?.*+");
 
     /*
      * T-SQL EXECUTE syntax regex EXEC | EXECUTE [@return_result =] procedure_name [parameters] allowing for arbitrary
@@ -3346,6 +3346,13 @@ final class JDBCSyntaxTranslator {
     String translate(String sql) throws SQLServerException {
         Matcher matcher;
 
+        // Before applying the regexes, check that the SQL statement has matching braces. If not, throw an exception.
+        if (!hasMatchingBraces(sql)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+            Object[] msgArgs = {sql};
+            throw new SQLServerException(null, form.format(msgArgs), null, 0, false);
+        }
+
         matcher = JDBC_CALL_SYNTAX.matcher(sql);
         if (matcher.matches()) {
 
@@ -3376,5 +3383,13 @@ final class JDBCSyntaxTranslator {
 
         // 'sql' is modified if CALL or LIMIT escape sequence is present, Otherwise pass it straight through.
         return sql;
+    }
+
+    boolean hasMatchingBraces(String sql) {
+        String trimmedSql = sql.trim();
+        boolean hasOpenBrace = trimmedSql.startsWith("{");
+        boolean hasCloseBrace = trimmedSql.endsWith("}");
+
+        return hasOpenBrace == hasCloseBrace;
     }
 }
