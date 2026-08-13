@@ -807,6 +807,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                         PerformanceLog.perfLoggerStatement,
                         connection.getConnectionID(),
+                        connection.getApplicationName(),
                         getStatementID(),
                         this,
                         userSQL,
@@ -1471,6 +1472,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         try (PerformanceLog.Scope prepareScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
+                connection.getApplicationName(),
                 getStatementID(),
                 this,
                 userSQL,
@@ -3507,6 +3509,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
+                connection.getApplicationName(),
                 getStatementID(),
                 this,
                 userSQL,
@@ -3795,6 +3798,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                     PerformanceLog.perfLoggerStatement,
                     connection.getConnectionID(),
+                    connection.getApplicationName(),
                     getStatementID(),
                     this,
                     userSQL,

@@ -62,17 +62,30 @@ class PerformanceLog {
         private Exception exception;
         private SQLServerStatement stmtHandle;
         private String userSql;
+        private String applicationName;
 
         // Constructor for connection-level activities
         public Scope(Logger logger, int connectionId, PerformanceActivity activity) {
-            this(logger, connectionId, 0, null, null, activity);
+            this(logger, connectionId, null, 0, null, null, activity);
+        }
+
+        // Constructor for connection-level activities with application name
+        public Scope(Logger logger, int connectionId, String applicationName, PerformanceActivity activity) {
+            this(logger, connectionId, applicationName, 0, null, null, activity);
         }
 
         // Constructor for statement-level activities
         public Scope(Logger logger, int connectionId, int statementId,
                      SQLServerStatement stmt, String userSql, PerformanceActivity activity) {
+            this(logger, connectionId, null, statementId, stmt, userSql, activity);
+        }
+
+        // Constructor for statement-level activities with application name
+        public Scope(Logger logger, int connectionId, String applicationName, int statementId,
+                     SQLServerStatement stmt, String userSql, PerformanceActivity activity) {
             this.enabled = logger.isLoggable(Level.FINE) || (callback != null);
             this.useNanos = cachedUseNanos;
+            this.applicationName = applicationName;
 
             if (enabled) {
                 this.logger = logger;
@@ -119,9 +132,9 @@ class PerformanceLog {
                     }
 
                     if (statementId == 0) {
-                        callback.publish(activity, connectionId, duration, exception);
+                        callback.publish(activity, connectionId, applicationName, duration, exception);
                     } else {
-                        callback.publish(activity, connectionId, statementId, duration, exception);
+                        callback.publish(activity, connectionId, applicationName, statementId, duration, exception);
                     }
                 } catch (Exception e) {
                     logger.fine(String.format("Failed to publish performance log: %s", e.getMessage()));
@@ -148,9 +161,20 @@ class PerformanceLog {
         return new Scope(logger, connectionId, activity);
     }
 
+    public static Scope createScope(Logger logger, int connectionId, String applicationName,
+                                    PerformanceActivity activity) {
+        return new Scope(logger, connectionId, applicationName, activity);
+    }
+
     public static Scope createScope(Logger logger, int connectionId, int statementId,
                                     SQLServerStatement stmt, String userSql, PerformanceActivity activity) {
         return new Scope(logger, connectionId, statementId, stmt, userSql, activity);
+    }
+
+    public static Scope createScope(Logger logger, int connectionId, String applicationName,
+                                    int statementId, SQLServerStatement stmt, String userSql,
+                                    PerformanceActivity activity) {
+        return new Scope(logger, connectionId, applicationName, statementId, stmt, userSql, activity);
     }
 
     // Helper method to derive statement type based on the statement class

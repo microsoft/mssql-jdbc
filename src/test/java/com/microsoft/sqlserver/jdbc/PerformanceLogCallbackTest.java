@@ -1309,6 +1309,112 @@ class PerformanceLogCallbackTest extends AbstractTest {
     }
 
     /**
+     * Tests that overriding the new applicationName overloads receives the correct application name
+     * for both connection-level and statement-level activities, while existing implementors
+     * that only override the original methods continue to work (non-breaking).
+     */
+    @Test
+    void testApplicationNameDeliveredToNewOverloads() throws Exception {
+        final String expectedAppName = "pool-1";
+        List<String> connectionAppNames = new ArrayList<>();
+        List<String> statementAppNames = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            // Required abstract methods — old overloads still work
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+                // Not expected to be called when new overloads are overridden
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                // Not expected to be called when new overloads are overridden
+            }
+
+            // New overloads that receive applicationName
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, String applicationName,
+                    long durationMs, Exception exception) {
+                connectionAppNames.add(applicationName);
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, String applicationName,
+                    int statementId, long durationMs, Exception exception) {
+                statementAppNames.add(applicationName);
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        try (Connection con = PrepUtil.getConnection(connectionString + ";applicationName=" + expectedAppName)) {
+            try (Statement stmt = con.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            }
+        }
+
+        assertTrue(connectionAppNames.size() > 0,
+                "New connection-level overload should have been called");
+        assertTrue(statementAppNames.size() > 0,
+                "New statement-level overload should have been called");
+
+        for (String appName : connectionAppNames) {
+            assertEquals(expectedAppName, appName,
+                    "Connection-level publish should receive the correct applicationName");
+        }
+        for (String appName : statementAppNames) {
+            assertEquals(expectedAppName, appName,
+                    "Statement-level publish should receive the correct applicationName");
+        }
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Tests that an existing PerformanceLogCallback implementation that only overrides the original
+     * publish methods (without applicationName) continues to function correctly — non-breaking
+     * behaviour of the default overloads.
+     */
+    @Test
+    void testLegacyCallbackUnchangedByApplicationNameOverloads() throws Exception {
+        List<PerformanceActivity> connectionActivities = new ArrayList<>();
+        List<PerformanceActivity> statementActivities = new ArrayList<>();
+
+        // This callback mirrors MutableCallback — it only overrides the original abstract methods.
+        // It must compile and receive events without any modification.
+        PerformanceLogCallback legacyCallback = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+                connectionActivities.add(activity);
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                statementActivities.add(activity);
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(legacyCallback);
+
+        try (Connection con = getConnection()) {
+            try (Statement stmt = con.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            }
+        }
+
+        assertTrue(connectionActivities.size() > 0,
+                "Legacy callback should still receive connection-level events via default delegation");
+        assertTrue(statementActivities.size() > 0,
+                "Legacy callback should still receive statement-level events via default delegation");
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
      * Helper method to print performance comparison between disabled and enabled logging.
      */
     private void printPerformanceComparison(long disabledDuration, long enabledDuration, int iterations, String description) {

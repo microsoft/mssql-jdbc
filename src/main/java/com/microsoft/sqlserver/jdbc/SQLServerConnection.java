@@ -2001,6 +2001,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return connectionID;
     }
 
+    /** Returns the application name from connection properties, or null if not set. */
+    final String getApplicationName() {
+        if (activeConnectionProperties == null) {
+            return null;
+        }
+        return activeConnectionProperties.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString());
+    }
+
     /** Limit for the size of data (in bytes) returned for value on this connection */
     private int maxFieldSize; // default: 0 --> no limit
 
@@ -2370,7 +2378,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
         try (PerformanceLog.Scope connectScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                connectionID, PerformanceActivity.CONNECTION)) {
+                connectionID,
+                propsIn != null ? propsIn.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString()) : null,
+                PerformanceActivity.CONNECTION)) {
             try {
                 int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
                 if (propsIn != null) {
@@ -3880,7 +3890,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private void login(String primary, String primaryInstanceName, int primaryPortNumber, String mirror,
             FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
         try (PerformanceLog.Scope loginScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                connectionID, PerformanceActivity.LOGIN)) {
+                connectionID, getApplicationName(), PerformanceActivity.LOGIN)) {
             try {
                 // standardLogin would be false only for db mirroring scenarios. It would be
                 // true
@@ -4510,7 +4520,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     void prelogin(String serverName, int portNumber) throws SQLServerException {
         try (PerformanceLog.Scope preLoginScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                connectionID, PerformanceActivity.PRELOGIN)) {
+                connectionID, getApplicationName(), PerformanceActivity.PRELOGIN)) {
             try {
                 // Build a TDS Pre-Login packet to send to the server.
                 if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString()))
@@ -6921,7 +6931,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void onFedAuthInfo(SqlFedAuthInfo fedAuthInfo, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
 
         try (PerformanceLog.Scope fedAuthScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                connectionID, PerformanceActivity.TOKEN_ACQUISITION)) {
+                connectionID, getApplicationName(), PerformanceActivity.TOKEN_ACQUISITION)) {
             try {
                 assert (null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                         && null != activeConnectionProperties
