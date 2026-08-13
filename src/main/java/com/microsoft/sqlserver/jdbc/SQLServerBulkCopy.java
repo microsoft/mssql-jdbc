@@ -1909,8 +1909,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     SQLServerException.getErrString("R_invalidDestinationTable"), null, false);
         }
 
-        // Bracket-quote each part to prevent SQL injection, then escape single quotes
-        // for safe embedding inside N'...' and OBJECT_ID('...') string literals.
+        // The name is bracket-quoted so it can only be read as an object name, then single quotes are doubled so it
+        // can be embedded in the N'...' and OBJECT_ID('...') string literals below.
         String escapedDestinationTableName = Util.escapeSingleQuotes(Util.sanitizeIdentifier(destinationTableName));
         String key = null;
         HashMap<String, Map<Integer, SQLServerBulkCopy.BulkColumnMetaData>> bulkCopyOperationCache = connection.getBulkCopyOperationCache();

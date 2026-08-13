@@ -15,7 +15,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
@@ -1050,101 +1052,160 @@ final class Util {
     }
 
     /**
-     * Splits a multi-part SQL Server identifier into its constituent parts, bracket-quotes each part,
-     * and rejects names with more than 3 parts. Prevents SQL injection through identifier concatenation.
+     * Maximum number of parts in a multi-part identifier, as in [server].[database].[schema].[object]. Matches the
+     * limit applied by SqlClient's MultipartIdentifier.
+     */
+    private static final int MAX_IDENTIFIER_PARTS = 4;
+
+    /**
+     * Parses a possibly multi-part object name such as "table", "schema.table" or "database.schema.table" and
+     * re-emits each part bracket-quoted, so the result is safe to concatenate into query text.
+     * <p>
+     * A part the caller already delimited with [] or "" keeps its identifier and is not double-quoted. Anything else
+     * is escaped whole, so text that is not a valid object name becomes a single (non-existent) identifier rather
+     * than additional SQL. An empty intermediate part is preserved so a name such as "database..table" keeps
+     * deferring to the default schema.
+     *
+     * @param name
+     *        the object name to quote
+     * @return the name with every part bracket-quoted
+     * @throws SQLServerException
+     *         if the name is empty, names no object, or has more than {@link #MAX_IDENTIFIER_PARTS} parts
      */
     static String sanitizeIdentifier(String name) throws SQLServerException {
         if (name == null || name.trim().isEmpty()) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDestinationTable"));
-            throw new SQLServerException(form.format(new Object[] {}), null, 0, null);
+            throw invalidDestinationTable();
         }
 
         String[] parts = splitIdentifierParts(name);
-
-        if (parts.length > 3) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDestinationTable"));
-            throw new SQLServerException(form.format(new Object[] {}), null, 0, null);
+        if (parts.length > MAX_IDENTIFIER_PARTS) {
+            throw invalidDestinationTable();
+        }
+        // Only the object part itself is required. Qualifiers may be empty, as in "database..table".
+        if (parts[parts.length - 1].trim().isEmpty()) {
+            throw invalidDestinationTable();
         }
 
-        for (String part : parts) {
-            if (part == null || part.trim().isEmpty()) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDestinationTable"));
-                throw new SQLServerException(form.format(new Object[] {}), null, 0, null);
-            }
-        }
-
-        StringBuilder result = new StringBuilder();
+        StringBuilder result = new StringBuilder(name.length() + 2 * parts.length);
         for (int i = 0; i < parts.length; i++) {
             if (i > 0) {
                 result.append('.');
             }
-            result.append(escapeSQLId(stripBrackets(parts[i])));
+            String part = parts[i].trim();
+            if (!part.isEmpty()) {
+                result.append(escapeSQLId(stripDelimiters(part)));
+            }
         }
-
         return result.toString();
     }
 
-    /** Splits a potentially multi-part identifier respecting bracket and double-quote delimiters. */
-    private static String[] splitIdentifierParts(String name) {
-        java.util.List<String> parts = new java.util.ArrayList<>();
-        int len = name.length();
-        int partStart = 0;
-        int i = 0;
+    private static SQLServerException invalidDestinationTable() {
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidDestinationTable"));
+        return new SQLServerException(form.format(new Object[] {}), null, 0, null);
+    }
 
-        while (i < len) {
+    /**
+     * Returns the length of the well-formed delimited identifier that starts at <code>from</code>, such as [my part]
+     * or "my part", or 0 when no delimited identifier starts there. A doubled closing delimiter is an escaped literal
+     * rather than the end of the identifier.
+     */
+    private static int delimitedLength(String s, int from) {
+        int len = s.length();
+        if (from >= len - 1) {
+            return 0;
+        }
+        char closer;
+        switch (s.charAt(from)) {
+            case '[':
+                closer = ']';
+                break;
+            case '"':
+                closer = '"';
+                break;
+            default:
+                return 0;
+        }
+        for (int i = from + 1; i < len; i++) {
+            if (s.charAt(i) != closer) {
+                continue;
+            }
+            if (i + 1 < len && s.charAt(i + 1) == closer) {
+                i++;
+                continue;
+            }
+            return i + 1 - from;
+        }
+        return 0;
+    }
+
+    /**
+     * Splits a possibly multi-part identifier on dots, ignoring a dot that appears inside a delimited part such as
+     * [my.part] or "my.part".
+     * <p>
+     * A delimiter only opens a delimited part when it starts that part and has a matching closer. A delimiter
+     * anywhere else is an ordinary character of an undelimited name, so later dots keep splitting and a name such as
+     * "sch[ema.table" still names the object "table" in the schema "sch[ema".
+     */
+    private static String[] splitIdentifierParts(String name) {
+        List<String> parts = new ArrayList<>(MAX_IDENTIFIER_PARTS);
+        StringBuilder part = new StringBuilder(name.length());
+        // Whether the part being read is still empty or holds only leading whitespace, so " [my.part] " is
+        // recognised as delimited too.
+        boolean blank = true;
+
+        for (int i = 0; i < name.length(); i++) {
             char c = name.charAt(i);
-            if (c == '[') {
-                i++;
-                while (i < len) {
-                    if (name.charAt(i) == ']') {
-                        if (i + 1 < len && name.charAt(i + 1) == ']') {
-                            i += 2;
-                        } else {
-                            i++;
-                            break;
-                        }
-                    } else {
-                        i++;
-                    }
+            if (blank) {
+                int n = delimitedLength(name, i);
+                if (n > 0) {
+                    part.append(name, i, i + n);
+                    i += n - 1;
+                    blank = false;
+                    continue;
                 }
-            } else if (c == '"') {
-                i++;
-                while (i < len) {
-                    if (name.charAt(i) == '"') {
-                        if (i + 1 < len && name.charAt(i + 1) == '"') {
-                            i += 2;
-                        } else {
-                            i++;
-                            break;
-                        }
-                    } else {
-                        i++;
-                    }
-                }
-            } else if (c == '.') {
-                parts.add(name.substring(partStart, i));
-                partStart = i + 1;
-                i++;
-            } else {
-                i++;
+            }
+            if (c == '.') {
+                parts.add(part.toString());
+                part.setLength(0);
+                blank = true;
+                continue;
+            }
+            part.append(c);
+            if (!Character.isWhitespace(c)) {
+                blank = false;
             }
         }
-        parts.add(name.substring(partStart, len));
+        parts.add(part.toString());
 
         return parts.toArray(new String[0]);
     }
 
-    /** Strips outer bracket or double-quote delimiters from an identifier part. */
-    private static String stripBrackets(String part) {
-        if (part != null && part.length() >= 2) {
-            if (part.charAt(0) == '[' && part.charAt(part.length() - 1) == ']') {
-                return part.substring(1, part.length() - 1).replace("]]", "]");
-            }
-            if (part.charAt(0) == '"' && part.charAt(part.length() - 1) == '"') {
-                return part.substring(1, part.length() - 1).replace("\"\"", "\"");
-            }
+    /**
+     * Returns the identifier named by a part the caller delimited with [] or "", or the part unchanged when it is not
+     * a single well-formed delimited identifier.
+     * <p>
+     * The part has to be exactly one identifier. A part such as <code>[a] PRINT 1 --[b]</code> starts and ends with
+     * brackets but is not one identifier, so it is returned unchanged and {@link #escapeSQLId} then quotes it whole.
+     * This recognises exactly the parts {@link #splitIdentifierParts} keeps together, because both decide what a
+     * delimited part is with {@link #delimitedLength}.
+     */
+    private static String stripDelimiters(String part) {
+        int n = delimitedLength(part, 0);
+        if (n == 0 || n != part.length()) {
+            return part;
         }
-        return part;
+        char closer = part.charAt(part.length() - 1);
+        String body = part.substring(1, part.length() - 1);
+        StringBuilder name = new StringBuilder(body.length());
+        for (int i = 0; i < body.length(); i++) {
+            // delimitedLength already established that every closer in body is doubled, so the second byte of the
+            // pair is the literal one.
+            if (body.charAt(i) == closer) {
+                i++;
+            }
+            name.append(body.charAt(i));
+        }
+        return name.toString();
     }
 
     static String convertInputStreamToString(java.io.InputStream is) throws IOException {
