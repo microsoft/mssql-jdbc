@@ -377,9 +377,10 @@ public class SQLServerStatement implements ISQLServerStatement {
     final void startCreationToFirstPacketTracking() {
         if (creationToFirstPacketScope == null) {
             creationToFirstPacketScope = PerformanceLog.createScope(
-                PerformanceLog.perfLoggerStatement, 
-                connection.getConnectionID(), 
-                getStatementID(), 
+                PerformanceLog.perfLoggerStatement,
+                connection.getConnectionID(),
+                connection.getApplicationName(),
+                getStatementID(),
                 null,
                 null,
                 PerformanceActivity.STATEMENT_REQUEST_BUILD
@@ -407,6 +408,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             firstPacketToFirstResponseScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
+                connection.getApplicationName(),
                 getStatementID(),
                 null,
                 null,
@@ -1105,6 +1107,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                     PerformanceLog.perfLoggerStatement,
                     connection.getConnectionID(),
+                    connection.getApplicationName(),
                     getStatementID(),
                     this,
                     sql,
@@ -1204,6 +1207,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
+                connection.getApplicationName(),
                 getStatementID(),
                 this,
                 batchStatementString,
@@ -2519,6 +2523,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
                 connection.getConnectionID(),
+                connection.getApplicationName(),
                 getStatementID(),
                 this,
                 sql,
