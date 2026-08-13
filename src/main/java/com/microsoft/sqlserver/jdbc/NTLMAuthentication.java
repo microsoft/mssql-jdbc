@@ -655,7 +655,7 @@ final class NTLMAuthentication extends SSPIAuthentication {
                 return;
             }
 
-            MessageDigest md5 = MessageDigest.getInstance("MD5");
+            MessageDigest md5 = MessageDigest.getInstance("MD5"); // CodeQL [SM05136] MD5 is required by the NTLM protocol (MS-NLMP) for channel binding
             md5.update(new byte[4]); // Initiator address
             md5.update(new byte[4]); // Initiator address length
             md5.update(new byte[4]); // Acceptor address
