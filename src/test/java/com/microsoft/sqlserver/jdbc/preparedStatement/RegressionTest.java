@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -531,6 +532,63 @@ public class RegressionTest extends AbstractTest {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
+        }
+    }
+
+    /**
+     * Verifies that with sendStringParametersAsUnicode=false, a Clob of length between 4000 and 8000
+     * characters can be inserted via setString, read back via getClob, and re-inserted via setClob
+     * with its length preserved (regression VSTS #197731).
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testVSTS197731() throws SQLException {
+        String vstsTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("vsts197731"));
+        int length = 4000 + Constants.RANDOM.nextInt(4000); // 4000 < length < 8000
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append('a');
+        }
+        String value = sb.toString();
+
+        String noUnicodeConnStr = TestUtils.addOrOverrideProperty(connectionString,
+                "sendStringParametersAsUnicode", "false");
+        try (Connection conn = com.microsoft.sqlserver.testframework.PrepUtil.getConnection(noUnicodeConnStr);
+                Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(vstsTable, stmt);
+            stmt.executeUpdate("CREATE TABLE " + vstsTable + " (col1 text)");
+            try {
+                try (PreparedStatement pstmt = conn
+                        .prepareStatement("INSERT INTO " + vstsTable + " VALUES (?)")) {
+                    pstmt.setString(1, value);
+                    pstmt.executeUpdate();
+
+                    Clob clob;
+                    try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + vstsTable)) {
+                        assertTrue(rs.next());
+                        clob = rs.getClob(1);
+                        assertEquals(length, (int) clob.length(), "Incorrect clob length retrieved");
+                    }
+
+                    // Re-insert the retrieved Clob.
+                    pstmt.setClob(1, clob);
+                    pstmt.executeUpdate();
+                }
+
+                // Both rows (the setString insert and the re-inserted Clob) must have the correct
+                // length. Verify every row rather than relying on a non-deterministic ORDER BY.
+                try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + vstsTable)) {
+                    int rowCount = 0;
+                    while (rs.next()) {
+                        rowCount++;
+                        assertEquals(length, rs.getString(1).length(), "Inserted clob length is incorrect");
+                    }
+                    assertEquals(2, rowCount, "Expected two inserted rows");
+                }
+            } finally {
+                TestUtils.dropTableIfExists(vstsTable, stmt);
+            }
         }
     }
 

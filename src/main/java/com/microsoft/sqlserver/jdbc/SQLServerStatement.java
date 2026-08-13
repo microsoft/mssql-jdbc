@@ -78,7 +78,13 @@ public class SQLServerStatement implements ISQLServerStatement {
         return wasResponseBufferingSet;
     }
 
-    final static String IDENTITY_QUERY = " select SCOPE_IDENTITY() AS GENERATED_KEYS";
+    /*
+     * The WHERE clause ensures that when the executed statement did not generate any identity value
+     * (for example, an INSERT into a table without an identity column), SCOPE_IDENTITY() returns NULL
+     * and the query yields zero rows. This produces an empty generated-keys ResultSet, as required by
+     * the JDBC specification for Statement.getGeneratedKeys().
+     */
+    final static String IDENTITY_QUERY = " select SCOPE_IDENTITY() AS GENERATED_KEYS where SCOPE_IDENTITY() is not null";
 
     static final String WINDOWS_KEY_STORE_NAME = "MSSQL_CERTIFICATE_STORE";
 

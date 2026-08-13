@@ -23,6 +23,7 @@ import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
+import java.sql.JDBCType;
 import java.sql.NClob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -2292,5 +2293,46 @@ public class CallableStatementTest extends AbstractTest {
 
         jsonTypeSupported = Boolean.valueOf(supported);
         return supported;
+    }
+
+    /**
+     * Verifies that registering an output parameter as REF_CURSOR (by index or by name, with each
+     * overload) throws a SQLServerException, since SQL Server does not support REF_CURSOR.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    public void testRefCursorException() throws SQLException {
+        String refCursorProc = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("refCursorProc"));
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropProcedureIfExists(refCursorProc, stmt);
+            stmt.executeUpdate(
+                    "CREATE PROCEDURE " + refCursorProc + " (@out1 int output) AS BEGIN SET @out1 = 1 END");
+            try (CallableStatement cstmt = conn.prepareCall("{call " + refCursorProc + " (?)}")) {
+                assertRefCursorNotSupported(() -> cstmt.registerOutParameter(1, Types.REF_CURSOR));
+                assertRefCursorNotSupported(() -> cstmt.registerOutParameter(1, Types.REF_CURSOR, 0));
+                assertRefCursorNotSupported(() -> cstmt.registerOutParameter(1, Types.REF_CURSOR, "dummy_typename"));
+                assertRefCursorNotSupported(() -> cstmt.registerOutParameter(1, JDBCType.REF_CURSOR));
+                assertRefCursorNotSupported(() -> cstmt.registerOutParameter("out1", Types.REF_CURSOR));
+                assertRefCursorNotSupported(() -> cstmt.registerOutParameter("out1", JDBCType.REF_CURSOR));
+            } finally {
+                TestUtils.dropProcedureIfExists(refCursorProc, stmt);
+            }
+        }
+    }
+
+    @FunctionalInterface
+    private interface RegisterCall {
+        void run() throws SQLException;
+    }
+
+    private void assertRefCursorNotSupported(RegisterCall call) {
+        try {
+            call.run();
+            fail("registerOutParameter with REF_CURSOR should throw");
+        } catch (SQLException e) {
+            assertTrue("Unexpected exception message: " + e.getMessage(),
+                    e.getMessage().contains("REF_CURSOR is not supported"));
+        }
     }
 }
