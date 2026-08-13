@@ -272,7 +272,9 @@ public class UtilTest {
     @Test
     public void testSanitizeIdentifierVeryLongName() throws SQLException {
         // SQL Server allows up to 128 chars; verify no truncation
-        String longName = "a".repeat(128);
+        char[] chars = new char[128];
+        java.util.Arrays.fill(chars, 'a');
+        String longName = new String(chars);
         String result = Util.sanitizeIdentifier(longName);
         assertEquals("[" + longName + "]", result);
     }
