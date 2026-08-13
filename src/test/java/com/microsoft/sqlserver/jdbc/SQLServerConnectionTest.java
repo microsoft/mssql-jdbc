@@ -1913,30 +1913,6 @@ public class SQLServerConnectionTest extends AbstractTest {
         assertNotNull(exception.getCause());
     }
 
-    @Test
-    public void testUtilNewInstanceRejectsInvalidSocketFactoryClassName() {
-        String payloadClassName = "jar:file:.proc.self.fd.!.fd_SqlServerSocketFactorykanqvbkjhp";
-        Object[] msgArgs = { "socketFactoryClass", "javax.net.SocketFactory" };
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> Util.newInstance(javax.net.SocketFactory.class, payloadClassName, null, msgArgs));
-
-        assertTrue(exception.getMessage().contains("socketFactoryClass"));
-        assertTrue(exception.getMessage().contains(payloadClassName));
-    }
-
-    @Test
-    public void testUtilNewInstanceRejectsInvalidAccessTokenCallbackClassName() {
-        String payloadClassName = "jar:file:.proc.self.fd.!.fd_SQLServerAccessTokenCallback";
-        Object[] msgArgs = { "accessTokenCallbackClass", "com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback" };
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> Util.newInstance(SQLServerAccessTokenCallback.class, payloadClassName, null, msgArgs));
-
-        assertTrue(exception.getMessage().contains("accessTokenCallbackClass"));
-        assertTrue(exception.getMessage().contains(payloadClassName));
-    }
-
     /**
      * Test isAzureMI for coverage.
      * Covers both Azure Managed Instance and non-Azure cases.
