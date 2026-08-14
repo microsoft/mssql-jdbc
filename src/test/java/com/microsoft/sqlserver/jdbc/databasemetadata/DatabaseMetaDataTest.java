@@ -2059,14 +2059,19 @@ public class DatabaseMetaDataTest extends AbstractTest {
         java.util.logging.Logger metaDataLogger = java.util.logging.Logger
                 .getLogger("com.microsoft.sqlserver.jdbc.internals.DatabaseMetaData");
         java.util.logging.Level originalLevel = metaDataLogger.getLevel();
-        java.util.concurrent.atomic.AtomicInteger fallbackCount = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.atomic.AtomicInteger procedureNotFoundCount = new java.util.concurrent.atomic.AtomicInteger();
 
         java.util.logging.Handler handler = new java.util.logging.Handler() {
             @Override
             public void publish(java.util.logging.LogRecord record) {
                 String message = record.getMessage();
-                if (null != message && message.contains("sp_columns_170 failed, falling back")) {
-                    fallbackCount.incrementAndGet();
+                /*
+                 * Only count the fallback caused by the procedure being absent. Other failures deliberately leave the
+                 * cached state alone, so they are allowed to be retried and must not fail this test.
+                 */
+                if (null != message && message.contains("sp_columns_170 failed, falling back")
+                        && message.contains("procedure not found: true")) {
+                    procedureNotFoundCount.incrementAndGet();
                 }
             }
 
@@ -2094,13 +2099,18 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 }
             }
 
-            assertTrue(fallbackCount.get() <= 1,
+            assertTrue(procedureNotFoundCount.get() <= 1,
                     "sp_columns_170 should be probed at most once per connection, but the driver fell back "
-                            + fallbackCount.get() + " times across " + callCount + " getColumns() calls");
+                            + procedureNotFoundCount.get() + " times across " + callCount + " getColumns() calls");
 
-            // Once the probe has run, the connection must have a decided state rather than remaining undetermined.
-            assertNotNull(getSpColumns170SupportedFlag(sqlServerConnection),
-                    "sp_columns_170 support should be cached on the connection after the first getColumns() call");
+            Boolean supported = getSpColumns170Supported(sqlServerConnection);
+            if (procedureNotFoundCount.get() == 1) {
+                assertEquals(Boolean.FALSE, supported,
+                        "sp_columns_170 should be cached as unsupported once the server reports it is missing");
+            } else {
+                assertEquals(Boolean.TRUE, supported,
+                        "sp_columns_170 should be cached as supported when the probe succeeds");
+            }
         }  finally {
             metaDataLogger.removeHandler(handler);
             metaDataLogger.setLevel(originalLevel);
@@ -2119,7 +2129,7 @@ public class DatabaseMetaDataTest extends AbstractTest {
         try (Connection conn = getConnection()) {
             SQLServerConnection sqlServerConnection = (SQLServerConnection) conn;
 
-            assertNull(getSpColumns170SupportedFlag(sqlServerConnection),
+            assertNull(getSpColumns170Supported(sqlServerConnection),
                     "sp_columns_170 support should be undetermined before the first getColumns() call");
 
             try (ResultSet rs = conn.getMetaData().getColumns(null, null, tableName, "%")) {
@@ -2128,27 +2138,28 @@ public class DatabaseMetaDataTest extends AbstractTest {
                 }
             }
 
-            Boolean supported = getSpColumns170SupportedFlag(sqlServerConnection);
+            Boolean supported = getSpColumns170Supported(sqlServerConnection);
             assertNotNull(supported, "sp_columns_170 support should be cached after the first getColumns() call");
 
             // A separate connection must start from an undetermined state.
             try (Connection otherConn = getConnection()) {
-                assertNull(getSpColumns170SupportedFlag((SQLServerConnection) otherConn),
+                assertNull(getSpColumns170Supported((SQLServerConnection) otherConn),
                         "sp_columns_170 support should not leak across connections");
             }
         }
     }
 
     /**
-     * Reads the tri-state sp_columns_170 support flag cached on the connection.
+     * Reads the tri-state sp_columns_170 support cached on the connection. The accessor is package private on
+     * SQLServerConnection, so it is invoked reflectively from this test package.
      */
-    private static Boolean getSpColumns170SupportedFlag(SQLServerConnection conn) {
+    private static Boolean getSpColumns170Supported(SQLServerConnection conn) {
         try {
-            Field field = SQLServerConnection.class.getDeclaredField("spColumns170Supported");
-            field.setAccessible(true);
-            return (Boolean) field.get(conn);
+            java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("getSpColumns170Supported");
+            method.setAccessible(true);
+            return (Boolean) method.invoke(conn);
         } catch (Exception e) {
-            fail("Unable to read spColumns170Supported: " + e.getMessage());
+            fail("Unable to read sp_columns_170 support: " + e.getMessage());
             return null;
         }
     }

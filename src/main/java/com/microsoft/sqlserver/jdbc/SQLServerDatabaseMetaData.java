@@ -870,16 +870,18 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * Records the outcome of a failed sp_columns_170 attempt on the connection.
      * <p>
      * Support is cached as unsupported only when the server explicitly reports that the procedure does not exist. Any
-     * other failure, such as a timeout or a transient error, leaves the state undetermined so that a single unrelated
-     * failure does not permanently downgrade the connection to sp_columns_100 and silently drop metadata for types
-     * that only sp_columns_170 reports.
+     * other failure, such as a timeout or a transient error, leaves the cached state unchanged so that a single
+     * unrelated failure neither permanently downgrades the connection to sp_columns_100 nor discards support that has
+     * already been proven.
      *
      * @param e
      *        the exception raised by the sp_columns_170 attempt
      */
     private void recordSpColumns170Failure(SQLException e) {
         boolean procedureNotFound = isProcedureNotFound(e);
-        connection.setSpColumns170Supported(procedureNotFound ? Boolean.FALSE : null);
+        if (procedureNotFound) {
+            connection.setSpColumns170Supported(false);
+        }
 
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.finer(SP_COLUMNS_170 + " failed, falling back to " + SP_COLUMNS_100
