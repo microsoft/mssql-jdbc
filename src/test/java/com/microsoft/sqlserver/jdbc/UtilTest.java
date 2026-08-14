@@ -85,6 +85,40 @@ public class UtilTest {
     }
 
     @Test
+    public void testNewInstanceRejectsInvalidSocketFactoryClassName() {
+        String className = "jar:file:.proc.self.fd.!.fd_SqlServerSocketFactorykanqvbkjhp";
+        Object[] msgArgs = { "socketFactoryClass", SocketFactory.class.getName() };
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> Util.newInstance(SocketFactory.class, className, null, msgArgs));
+
+        assertTrue(exception.getMessage().contains("socketFactoryClass"));
+        assertTrue(exception.getMessage().contains(className));
+    }
+
+    @Test
+    public void testNewInstanceRejectsInvalidAccessTokenCallbackClassName() {
+        String className = "jar:file:.proc.self.fd.!.fd_SQLServerAccessTokenCallback";
+        Object[] msgArgs = { "accessTokenCallbackClass", SQLServerAccessTokenCallback.class.getName() };
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> Util.newInstance(SQLServerAccessTokenCallback.class, className, null, msgArgs));
+
+        assertTrue(exception.getMessage().contains("accessTokenCallbackClass"));
+        assertTrue(exception.getMessage().contains(className));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "java.lang.Object", "java.lang.String", "java.lang.Thread",
+            "java.util.ArrayList" })
+    public void testNewInstanceAcceptsValidClassNames(String className) throws Exception {
+        Object instance = Util.newInstance(Object.class, className, null,
+                new Object[] { "testClass", Object.class.getName() });
+
+        assertNotNull(instance);
+    }
+
+    @Test
     public void readGUIDtoUUID() throws SQLException {
         UUID expected = UUID.fromString("6F9619FF-8B86-D011-B42D-00C04FC964FF");
         byte[] guid = new byte[] {-1, 25, -106, 111, -122, -117, 17, -48, -76, 45, 0, -64, 79, -55, 100, -1};
