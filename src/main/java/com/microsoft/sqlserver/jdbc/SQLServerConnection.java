@@ -290,6 +290,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** flag indicating whether server supports transactions */
     private Boolean supportsTransactions = null;
 
+    /**
+     * Tri-state flag indicating whether the server exposes the sp_columns_170 stored procedure, which is only
+     * available on SQL Server 2025 and later. null means the driver has not determined it yet, TRUE means the
+     * procedure exists and FALSE means the procedure does not exist on this server.
+     */
+    private volatile Boolean spColumns170Supported = null;
+
     /** shared timer */
     private SharedTimer sharedTimer;
 
@@ -9673,6 +9680,27 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     boolean isAzureMI() {
         isAzure();
         return isAzureMI;
+    }
+
+    /**
+     * Returns whether the server exposes the sp_columns_170 stored procedure.
+     *
+     * @return TRUE if sp_columns_170 exists, FALSE if it does not exist, null if this has not been determined yet
+     */
+    Boolean getSpColumns170Supported() {
+        return spColumns170Supported;
+    }
+
+    /**
+     * Records whether the server exposes the sp_columns_170 stored procedure. The value is cached for the lifetime of
+     * the physical connection so that DatabaseMetaData.getColumns() probes for the procedure at most once instead of
+     * once per call.
+     *
+     * @param supported
+     *        TRUE if sp_columns_170 exists, FALSE if it does not exist, null to mark the state as undetermined
+     */
+    void setSpColumns170Supported(Boolean supported) {
+        spColumns170Supported = supported;
     }
 
     boolean isAzureSqlServerEndpoint() {

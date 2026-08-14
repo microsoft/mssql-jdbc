@@ -68,6 +68,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     private static final String SP_COLUMNS_170 = "sp_columns_170"; // SQL Server 2025 and later
     private static final String SP_COLUMNS_100 = "sp_columns_100";
 
+    /** SQL Server error raised when a stored procedure does not exist on the server. */
+    private static final int ERROR_PROCEDURE_NOT_FOUND = 2812;
+
     enum CallableHandles {
         SP_COLUMNS("{ call sp_columns(?, ?, ?, ?, ?) }", "{ call sp_columns_170(?, ?, ?, ?, ?, ?) }"),
         SP_COLUMN_PRIVILEGES("{ call sp_column_privileges(?, ?, ?, ?)}", "{ call sp_column_privileges(?, ?, ?, ?)}"),
@@ -691,7 +694,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /**
      * getColumns() method to retrieve a description of table columns available in a catalog.
-     * This function try to use sp_columns_170 first, fall back to sp_columns_100 if needed.
+     * This function tries to use sp_columns_170 first and falls back to sp_columns_100 if the server does not have it.
+     * The outcome is cached on the connection, so sp_columns_170 is probed at most once per connection rather than on
+     * every call.
      * 
      * @param catalog
      *                a catalog name; "" retrieves those without a catalog; null
@@ -734,14 +739,16 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     /**
      * Helper method to get columns for regular SQL Server (non-Azure DW).
-     * Tries sp_columns_170 first, falls back to sp_columns_100 if needed.
+     * <p>
+     * sp_columns_170 is only available on SQL Server 2025 and later. Whether the procedure exists is a property of the
+     * server, so the outcome is cached on the connection and the procedure is probed at most once per connection.
+     * Subsequent calls on a server without sp_columns_170 go directly to sp_columns_100 instead of issuing a failing
+     * request per call.
      */
     private java.sql.ResultSet getColumnsNonAzureDW(String catalog, String schema, String table, String col)
             throws SQLException {
 
         String originalCatalog = switchCatalogs(catalog);
-
-        String spColumnsProcName = SP_COLUMNS_170;
 
         String spColumnsSqlTemplate = "DECLARE @mssqljdbc_temp_sp_columns_result TABLE(TABLE_QUALIFIER SYSNAME, TABLE_OWNER SYSNAME,"
             + "TABLE_NAME SYSNAME, COLUMN_NAME SYSNAME, DATA_TYPE SMALLINT, TYPE_NAME SYSNAME, PRECISION INT,"
@@ -765,61 +772,41 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             + "SS_IS_SPARSE, SS_IS_COLUMN_SET, SS_UDT_CATALOG_NAME, SS_UDT_SCHEMA_NAME, SS_UDT_ASSEMBLY_TYPE_NAME,"
             + "SS_XML_SCHEMACOLLECTION_CATALOG_NAME, SS_XML_SCHEMACOLLECTION_SCHEMA_NAME, SS_XML_SCHEMACOLLECTION_NAME "
             + "FROM @mssqljdbc_temp_sp_columns_result ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION;";
-            
+
         SQLServerResultSet rs = null;
-        PreparedStatement pstmt = null;
 
         try {
-            pstmt = (SQLServerPreparedStatement) this.connection
-                    .prepareStatement(String.format(spColumnsSqlTemplate, spColumnsProcName));
-            pstmt.closeOnCompletion();
+            if (shouldTrySpColumns170()) {
+                try {
+                    rs = executeSpColumns(String.format(spColumnsSqlTemplate, SP_COLUMNS_170), SP_COLUMNS_170, table,
+                            schema, catalog, col);
+                    connection.setSpColumns170Supported(true);
+                } catch (SQLException e) {
+                    // sp_columns_170 does not exist before SQL Server 2025, fall back to sp_columns_100
+                    recordSpColumns170Failure(e);
 
-            setColumnsParameters(pstmt, table, schema, catalog, col);
-
-            try {
-                rs = (SQLServerResultSet) pstmt.executeQuery();
-                if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer("Successfully executed " + spColumnsProcName);
+                    rs = executeSpColumns(String.format(spColumnsSqlTemplate, SP_COLUMNS_100), SP_COLUMNS_100, table,
+                            schema, catalog, col);
                 }
-            } catch (SQLException e) {
-                // If getColumns() fails with sp_columns_170, fall back to sp_columns_100
-
-                if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer(spColumnsProcName + " failed, falling back to sp_columns_100: " + e.getMessage());
-                }
-
-                // fallback to SP_COLUMNS_100
-                pstmt.close();
-                spColumnsProcName = SP_COLUMNS_100;
-
-                pstmt = (SQLServerPreparedStatement) this.connection
-                        .prepareStatement(String.format(spColumnsSqlTemplate, spColumnsProcName));
-                pstmt.closeOnCompletion();
-
-                setColumnsParameters(pstmt, table, schema, catalog, col);
-
-                rs = (SQLServerResultSet) pstmt.executeQuery();
-                if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer("Successfully executed " + spColumnsProcName);
-                }
+            } else {
+                rs = executeSpColumns(String.format(spColumnsSqlTemplate, SP_COLUMNS_100), SP_COLUMNS_100, table, schema,
+                        catalog, col);
             }
 
             // Set filters on relevant columns
-            applyColumnsFilters(rs);     
-
-        } catch (SQLException e) {
-            if (null != pstmt) {
+            try {
+                applyColumnsFilters(rs);
+            } catch (SQLException e) {
                 try {
-                    pstmt.close();
+                    rs.close();
                 } catch (SQLServerException ignore) {
                     if (loggerExternal.isLoggable(Level.FINER)) {
-                        loggerExternal.finer(
-                                "getColumns() threw an exception when attempting to close PreparedStatement");
+                        loggerExternal.finer("getColumns() threw an exception when attempting to close ResultSet");
                     }
                 }
+                throw e;
             }
-            throw e;
-        }  finally {
+        } finally {
             if (originalCatalog != null) {
                 connection.setCatalog(originalCatalog);
             }
@@ -828,8 +815,98 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     }
 
     /**
+     * Prepares and executes the given sp_columns statement.
+     *
+     * @param sql
+     *        the statement text to execute
+     * @param spColumnsProcName
+     *        the stored procedure name being invoked, used for logging
+     * @return the result set produced by the statement
+     * @throws SQLException
+     *         if a database access error occurs
+     */
+    private SQLServerResultSet executeSpColumns(String sql, String spColumnsProcName, String table, String schema,
+            String catalog, String col) throws SQLException {
+        PreparedStatement pstmt = null;
+
+        try {
+            pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(sql);
+            pstmt.closeOnCompletion();
+
+            setColumnsParameters(pstmt, table, schema, catalog, col);
+
+            SQLServerResultSet rs = (SQLServerResultSet) pstmt.executeQuery();
+            if (loggerExternal.isLoggable(Level.FINER)) {
+                loggerExternal.finer("Successfully executed " + spColumnsProcName);
+            }
+            return rs;
+        } catch (SQLException e) {
+            if (null != pstmt) {
+                try {
+                    pstmt.close();
+                } catch (SQLServerException ignore) {
+                    if (loggerExternal.isLoggable(Level.FINER)) {
+                        loggerExternal
+                                .finer("getColumns() threw an exception when attempting to close PreparedStatement");
+                    }
+                }
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Returns whether sp_columns_170 should be attempted on this connection. The procedure is attempted while support
+     * is still undetermined and once it is known to exist. It is skipped only after the server has told us that the
+     * procedure does not exist.
+     *
+     * @return true if sp_columns_170 should be attempted, false to go directly to sp_columns_100
+     */
+    private boolean shouldTrySpColumns170() {
+        return !Boolean.FALSE.equals(connection.getSpColumns170Supported());
+    }
+
+    /**
+     * Records the outcome of a failed sp_columns_170 attempt on the connection.
+     * <p>
+     * Support is cached as unsupported only when the server explicitly reports that the procedure does not exist. Any
+     * other failure, such as a timeout or a transient error, leaves the state undetermined so that a single unrelated
+     * failure does not permanently downgrade the connection to sp_columns_100 and silently drop metadata for types
+     * that only sp_columns_170 reports.
+     *
+     * @param e
+     *        the exception raised by the sp_columns_170 attempt
+     */
+    private void recordSpColumns170Failure(SQLException e) {
+        boolean procedureNotFound = isProcedureNotFound(e);
+        connection.setSpColumns170Supported(procedureNotFound ? Boolean.FALSE : null);
+
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.finer(SP_COLUMNS_170 + " failed, falling back to " + SP_COLUMNS_100
+                    + " (procedure not found: " + procedureNotFound + "): " + e.getMessage());
+        }
+    }
+
+    /**
+     * Returns whether the given exception was raised because the stored procedure does not exist on the server.
+     *
+     * @param e
+     *        the exception to inspect
+     * @return true if the server reported that the procedure could not be found
+     */
+    private static boolean isProcedureNotFound(SQLException e) {
+        if (e instanceof SQLServerException) {
+            SQLServerError error = ((SQLServerException) e).getSQLServerError();
+            return null != error && ERROR_PROCEDURE_NOT_FOUND == error.getErrorNumber();
+        }
+        return false;
+    }
+
+    /**
      * Helper method to get columns for Azure DW.
-     * Tries sp_columns_170 first, falls back to sp_columns_100 if needed.
+     * <p>
+     * sp_columns_170 is only available on SQL Server 2025 and later. Whether the procedure exists is a property of the
+     * server, so the outcome is cached on the connection and the procedure is probed at most once per connection.
      */
     private java.sql.ResultSet getColumnsAzureDW(String catalog, String schema, String table, String col)
             throws SQLException {
@@ -931,40 +1008,69 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             LOCK.unlock();
         }
 
-        String spColumnsProcName = SP_COLUMNS_170;
+        SQLServerResultSet dwResultSet = null;
 
-        try (PreparedStatement storedProcPstmt = this.connection
-                .prepareStatement("EXEC " + spColumnsProcName + " ?,?,?,?,?,?;")) {
+        if (shouldTrySpColumns170()) {
+            ResultSet spColumnsRs = null;
+            try {
+                spColumnsRs = executeSpColumnsAzureDW(SP_COLUMNS_170, table, schema, catalog, col);
+                connection.setSpColumns170Supported(true);
+            } catch (SQLException e) {
+                // sp_columns_170 does not exist before SQL Server 2025, fall back to sp_columns_100
+                recordSpColumns170Failure(e);
+            }
+
+            if (null != spColumnsRs) {
+                try {
+                    return buildAzureDWResultSet(spColumnsRs);
+                } finally {
+                    spColumnsRs.close();
+                }
+            }
+        }
+
+        try (ResultSet spColumnsRs = executeSpColumnsAzureDW(SP_COLUMNS_100, table, schema, catalog, col)) {
+            dwResultSet = buildAzureDWResultSet(spColumnsRs);
+        }
+        return dwResultSet;
+    }
+
+    /**
+     * Prepares and executes the given sp_columns stored procedure on Azure DW.
+     *
+     * @param spColumnsProcName
+     *        the stored procedure name to invoke
+     * @return the result set produced by the stored procedure
+     * @throws SQLException
+     *         if a database access error occurs
+     */
+    private ResultSet executeSpColumnsAzureDW(String spColumnsProcName, String table, String schema, String catalog,
+            String col) throws SQLException {
+        PreparedStatement storedProcPstmt = null;
+
+        try {
+            storedProcPstmt = this.connection.prepareStatement("EXEC " + spColumnsProcName + " ?,?,?,?,?,?;");
+            storedProcPstmt.closeOnCompletion();
 
             setColumnsParameters(storedProcPstmt, table, schema, catalog, col);
 
-            try (ResultSet rs = storedProcPstmt.executeQuery()) {
-                if (loggerExternal.isLoggable(Level.FINER)) {
-                    loggerExternal.finer("Successfully executed " + spColumnsProcName);
-                }
-                return buildAzureDWResultSet(rs);
-            } 
-        } catch (SQLException primaryEx) {
-
-            // If sp_columns_170 fails on Azure DW, fallback to sp_columns_100
+            ResultSet rs = storedProcPstmt.executeQuery();
             if (loggerExternal.isLoggable(Level.FINER)) {
-                loggerExternal.finer(spColumnsProcName + " failed on Azure DW, falling back to sp_columns_100: "
-                        + primaryEx.getMessage());
+                loggerExternal.finer("Successfully executed " + spColumnsProcName);
             }
-
-            spColumnsProcName = SP_COLUMNS_100;
-            try (PreparedStatement storedProcPstmt = this.connection
-                    .prepareStatement("EXEC " + spColumnsProcName + " ?,?,?,?,?,?;")) {
-
-                setColumnsParameters(storedProcPstmt, table, schema, catalog, col);
-                
-                try (ResultSet rs = storedProcPstmt.executeQuery()) {
+            return rs;
+        } catch (SQLException e) {
+            if (null != storedProcPstmt) {
+                try {
+                    storedProcPstmt.close();
+                } catch (SQLServerException ignore) {
                     if (loggerExternal.isLoggable(Level.FINER)) {
-                        loggerExternal.finer("Successfully executed " + spColumnsProcName);
+                        loggerExternal
+                                .finer("getColumns() threw an exception when attempting to close PreparedStatement");
                     }
-                    return buildAzureDWResultSet(rs);
                 }
             }
+            throw e;
         }
     }
 
