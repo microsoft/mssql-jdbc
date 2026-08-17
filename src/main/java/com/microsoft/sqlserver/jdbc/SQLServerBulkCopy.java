@@ -1080,7 +1080,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case microsoft.sql.Types.GUID:
             case java.sql.Types.CHAR: // 0xAF
-                if (isBaseType && (SSType.GUID == destSSType)) {
+                if ((SSType.GUID == destSSType) && (isBaseType || microsoft.sql.Types.GUID == srcJdbcType)) {
                     tdsWriter.writeByte(TDSType.GUID.byteValue());
                     tdsWriter.writeByte((byte) 0x10);
                 } else {
@@ -1463,6 +1463,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 return SSType.NUMERIC.toString() + "(" + bulkPrecision + ", " + bulkScale + ")";
 
             case microsoft.sql.Types.GUID:
+                if (SSType.GUID == destSSType) {
+                    return SSType.GUID.toString();
+                }
                 // For char the value has to be between 0 to 8000.
                 return SSType.CHAR.toString() + "(" + bulkPrecision + ")";
             case java.sql.Types.CHAR:
@@ -2256,6 +2259,46 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
+    /**
+     * Writes the value of a uniqueidentifier destination column in the native 16 byte representation, which spares the
+     * server a conversion from a character string for every row.
+     */
+    private void writeGuidToTdsWriter(TDSWriter tdsWriter, Object colValue) throws SQLServerException {
+        if (null == colValue) {
+            tdsWriter.writeByte((byte) 0);
+            return;
+        }
+
+        UUID guidValue;
+        if (colValue instanceof UUID) {
+            guidValue = (UUID) colValue;
+        } else {
+            try {
+                guidValue = UUID.fromString(stripGuidBraces(colValue.toString()));
+            } catch (IllegalArgumentException ex) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
+                Object[] msgArgs = {"'" + colValue + "'", JDBCType.GUID};
+                throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC,
+                        DriverError.NOT_SET, ex);
+            }
+        }
+
+        tdsWriter.writeByte((byte) 0x10);
+        tdsWriter.writeBytes(Util.asGuidByteArray(guidValue));
+    }
+
+    /**
+     * Removes the braces of the registry format the server accepts for a character string it converts to
+     * uniqueidentifier, which {@link UUID#fromString} does not accept.
+     */
+    private static String stripGuidBraces(String value) {
+        int end = value.length() - 1;
+        if (end > 0 && '{' == value.charAt(0) && '}' == value.charAt(end)) {
+            return value.substring(1, end);
+        }
+        return value;
+    }
+
     private void writeNullToTdsWriter(TDSWriter tdsWriter, int srcJdbcType,
             boolean isStreaming) throws SQLServerException {
 
@@ -2525,6 +2568,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.CHAR: // Fixed-length, non-Unicode string data.
                 case java.sql.Types.VARCHAR: // Variable-length, non-Unicode string data.
                 case microsoft.sql.Types.JSON:
+                    if ((SSType.GUID == destSSType) && (microsoft.sql.Types.GUID == bulkJdbcType)) {
+                        writeGuidToTdsWriter(tdsWriter, colValue);
+                        break;
+                    }
+
                     if (isStreaming) // PLP
                     {
                         // PLP_BODY rule in TDS
