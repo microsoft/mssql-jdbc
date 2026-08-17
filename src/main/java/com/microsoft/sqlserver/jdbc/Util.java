@@ -25,6 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 
 /**
@@ -46,6 +47,8 @@ final class Util {
     // any vendor or version specific decisions
     static final String SYSTEM_JRE = System.getProperty("java.vendor") + " " + System.getProperty("java.version");
     private static final Lock LOCK = new ReentrantLock();
+    private static final Pattern JAVA_BINARY_CLASS_NAME = Pattern.compile(
+            "\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*(\\.\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*)*");
 
     private static Boolean isIBM = null;
 
@@ -1022,11 +1025,9 @@ final class Util {
     @SuppressWarnings("unchecked")
     static <T> T newInstance(Class<?> returnType, String className, String constructorArg,
             Object[] msgArgs) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        if (classLoader == null) {
-            classLoader = Util.class.getClassLoader();
-        }
-        Class<?> clazz = Class.forName(className, false, classLoader);
+        validateClassName(className, msgArgs);
+
+        Class<?> clazz = Class.forName(className, false, Util.class.getClassLoader());
         if (!returnType.isAssignableFrom(clazz)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unassignableError"));
             throw new IllegalArgumentException(form.format(msgArgs));
@@ -1036,6 +1037,21 @@ final class Util {
         } else {
             return (T) clazz.getDeclaredConstructor(String.class).newInstance(constructorArg);
         }
+    }
+
+    private static void validateClassName(String className, Object[] msgArgs) {
+        if (isValidJavaBinaryClassName(className)) {
+            return;
+        }
+
+        String propertyName = (null != msgArgs && msgArgs.length > 0 && null != msgArgs[0]) ? msgArgs[0].toString()
+                : "unknown";
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidClassNameForProperty"));
+        throw new IllegalArgumentException(form.format(new Object[] { propertyName, className }));
+    }
+
+    private static boolean isValidJavaBinaryClassName(String className) {
+        return null != className && JAVA_BINARY_CLASS_NAME.matcher(className).matches();
     }
 
     /**

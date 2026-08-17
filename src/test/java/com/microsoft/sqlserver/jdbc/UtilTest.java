@@ -6,6 +6,9 @@ package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -14,8 +17,14 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+import javax.net.SocketFactory;
+import javax.net.ssl.TrustManager;
+
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -28,6 +37,86 @@ import com.microsoft.sqlserver.testframework.Constants;
  */
 @RunWith(JUnitPlatform.class)
 public class UtilTest {
+
+    public static final class TestRunnable implements Runnable {
+        @Override
+        public void run() {
+        }
+    }
+
+    @Test
+    public void testNewInstanceUsesUtilClassLoader() throws Exception {
+        Thread currentThread = Thread.currentThread();
+        ClassLoader originalClassLoader = currentThread.getContextClassLoader();
+        currentThread.setContextClassLoader(new ClassLoader(null) {
+        });
+        try {
+            Runnable instance = Util.newInstance(Runnable.class, TestRunnable.class.getName(), null,
+                    new Object[] { "testClass", Runnable.class.getName() });
+
+            assertNotNull(instance);
+        } finally {
+            currentThread.setContextClassLoader(originalClassLoader);
+        }
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = { "", " ", "com..example.Foo", ".com.example.Foo", "com.example.Foo.",
+            "1com.example.Foo", "com.example.Foo Bar", "com/example/Foo", "jar:file:Foo", "http://example/Foo" })
+    public void testNewInstanceRejectsInvalidTrustManagerClassNames(String className) {
+        Object[] msgArgs = { "trustManagerClass", TrustManager.class.getName() };
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> Util.newInstance(TrustManager.class, className, null, msgArgs));
+
+        assertTrue(exception.getMessage().contains("trustManagerClass"));
+    }
+
+    @Test
+    public void testNewInstanceRejectsValidClassNameWithInvalidType() {
+        Object[] msgArgs = { "socketFactoryClass", SocketFactory.class.getName() };
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> Util.newInstance(SocketFactory.class, String.class.getName(), null, msgArgs));
+
+        assertTrue(exception.getMessage().contains("socketFactoryClass"));
+        assertTrue(exception.getMessage().contains(SocketFactory.class.getName()));
+    }
+
+    @Test
+    public void testNewInstanceRejectsInvalidSocketFactoryClassName() {
+        String className = "jar:file:.proc.self.fd.!.fd_SqlServerSocketFactorykanqvbkjhp";
+        Object[] msgArgs = { "socketFactoryClass", SocketFactory.class.getName() };
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> Util.newInstance(SocketFactory.class, className, null, msgArgs));
+
+        assertTrue(exception.getMessage().contains("socketFactoryClass"));
+        assertTrue(exception.getMessage().contains(className));
+    }
+
+    @Test
+    public void testNewInstanceRejectsInvalidAccessTokenCallbackClassName() {
+        String className = "jar:file:.proc.self.fd.!.fd_SQLServerAccessTokenCallback";
+        Object[] msgArgs = { "accessTokenCallbackClass", SQLServerAccessTokenCallback.class.getName() };
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> Util.newInstance(SQLServerAccessTokenCallback.class, className, null, msgArgs));
+
+        assertTrue(exception.getMessage().contains("accessTokenCallbackClass"));
+        assertTrue(exception.getMessage().contains(className));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "java.lang.Object", "java.lang.String", "java.lang.Thread",
+            "java.util.ArrayList" })
+    public void testNewInstanceAcceptsValidClassNames(String className) throws Exception {
+        Object instance = Util.newInstance(Object.class, className, null,
+                new Object[] { "testClass", Object.class.getName() });
+
+        assertNotNull(instance);
+    }
 
     @Test
     public void readGUIDtoUUID() throws SQLException {
