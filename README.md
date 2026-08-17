@@ -74,7 +74,7 @@ This driver is documented on [Microsoft Docs](https://docs.microsoft.com/sql/con
 For samples, please see the `src\sample` directory.
 
 ### Download the DLLs
-For some features (e.g. Integrated Authentication), you may need to use the `mssql-jdbc_auth-<version>.<arch>` DLL. It can be found in the package that can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc). `mssql-jdbc_auth-<version>.<arch>` can also be downloaded from [Maven](https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc_auth). For Distributed Transactions (XA), the required extended stored procedures are built into SQL Server 2017 and later and can be enabled by running `EXEC sp_sqljdbc_xa_install` on the server.
+For some features (e.g. Integrated Authentication), you may need to use the `mssql-jdbc_auth-<version>.<arch>` DLL. It can be found in the package that can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc). `mssql-jdbc_auth-<version>.<arch>` can also be downloaded from [Maven](https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc_auth). For Distributed Transactions (XA), the required extended stored procedures are built into SQL Server 2017 CU16 and later and can be enabled by running `EXEC sp_sqljdbc_xa_install` on the server. The standalone `sqljdbc_xa.dll` (previously required only for SQL Server 2016 and earlier) is no longer shipped.
 
 ### Download the driver
 Don't want to compile anything?
