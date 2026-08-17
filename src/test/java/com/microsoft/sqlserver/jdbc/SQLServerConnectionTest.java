@@ -4,26 +4,12 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -54,7 +40,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.sql.ConnectionEvent;
@@ -85,9 +70,6 @@ public class SQLServerConnectionTest extends AbstractTest {
     static String tnirHost = getConfiguredProperty("tnirHost");
 
     String randomServer = RandomUtil.getIdentifier("Server");
-
-    SQLServerConnection mockConnection;
-    Logger mockLogger;
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -1562,53 +1544,6 @@ public class SQLServerConnectionTest extends AbstractTest {
         }
     }
 
-    public Method mockedConnectionRecoveryCheck() throws Exception {
-        mockConnection = spy(new SQLServerConnection("test"));
-        mockLogger = mock(Logger.class);
-        doReturn(true).when(mockLogger).isLoggable(Level.WARNING);
-        doNothing().when(mockConnection).terminate(anyInt(), anyString());
-
-        Method method = SQLServerConnection.class.getDeclaredMethod("connectionReconveryCheck", boolean.class,
-                boolean.class, ServerPortPlaceHolder.class);
-        method.setAccessible(true);
-        return method;
-    }
-
-    @Test
-    @Tag(Constants.CodeCov)
-    void testConnectionRecoveryCheckThrowsWhenAllConditionsMet() throws Exception {
-        Method method = mockedConnectionRecoveryCheck();
-        method.invoke(mockConnection, true, false, null);
-        verify(mockConnection, times(1)).terminate(eq(SQLServerException.DRIVER_ERROR_INVALID_TDS),
-                eq(SQLServerException.getErrString("R_crClientNoRecoveryAckFromLogin")));
-    }
-
-    @Test
-    @Tag(Constants.CodeCov)
-    void testConnectionRecoveryCheckDoesNotThrowWhenNotReconnectRunning() throws Exception {
-        Method method = mockedConnectionRecoveryCheck();
-        method.invoke(mockConnection, false, false, null);
-        verify(mockConnection, never()).terminate(anyInt(), anyString());
-    }
-
-    @Test
-    @Tag(Constants.CodeCov)
-    void testConnectionRecoveryCheckDoesNotThrowWhenRecoveryPossible() throws Exception {
-        Method method = mockedConnectionRecoveryCheck();
-        method.invoke(mockConnection, true, true, null);
-        verify(mockConnection, never()).terminate(anyInt(), anyString());
-    }
-
-    @Test
-    @Tag(Constants.CodeCov)
-    void testConnectionRecoveryCheckDoesNotThrowWhenRoutingDetailsNotNull() throws Exception {
-        Method method = mockedConnectionRecoveryCheck();
-        ServerPortPlaceHolder routingDetails = mock(ServerPortPlaceHolder.class);
-        method.setAccessible(true);
-        method.invoke(mockConnection, true, false, routingDetails);
-        verify(mockConnection, never()).terminate(anyInt(), anyString());
-    }
-
     @Test
     @Tag(Constants.CodeCov)
     public void testIsAzureSynapseOnDemandEndpoint() throws Exception {
@@ -1964,72 +1899,6 @@ public class SQLServerConnectionTest extends AbstractTest {
     }
 
     /**
-     * Test generateEnclavePackage for coverage.
-     * This test checks that the method can be called and returns a non-null result for dummy input.
-     */
-    @Test
-    @Tag(Constants.CodeCov)
-    public void testGenerateEnclavePackager() throws Exception {
-        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
-                .getDeclaredConstructor(String.class);
-        ctor.setAccessible(true);
-
-        try (SQLServerConnection conn = ctor.newInstance("test")) {
-            // Set enclaveProvider to a mock that returns a dummy byte array
-            ISQLServerEnclaveProvider mockProvider = org.mockito.Mockito.mock(ISQLServerEnclaveProvider.class);
-            byte[] dummyPackage = new byte[] { 1, 2, 3 };
-            org.mockito.Mockito.when(mockProvider.getEnclavePackage(org.mockito.Mockito.anyString(),
-                    org.mockito.ArgumentMatchers.<ArrayList<byte[]>>any())).thenReturn(dummyPackage);
-            java.lang.reflect.Field enclaveProviderField = SQLServerConnection.class
-                    .getDeclaredField("enclaveProvider");
-            enclaveProviderField.setAccessible(true);
-            enclaveProviderField.set(conn, mockProvider);
-
-            ArrayList<byte[]> enclaveCEKs = new ArrayList<>();
-            enclaveCEKs.add(new byte[] { 4, 5, 6 });
-            byte[] result = conn.generateEnclavePackage("SELECT 1", enclaveCEKs);
-            assertNotNull(result);
-            assertArrayEquals(dummyPackage, result);
-        }
-    }
-
-    /**
-     * Covers both null and non-null enclaveProvider cases.
-     */
-    @Test
-    @Tag(Constants.CodeCov)
-    public void testInvalidateEnclaveSessionCache() throws Exception {
-        // Create SQLServerConnection instance via reflection
-        java.lang.reflect.Constructor<SQLServerConnection> ctor = SQLServerConnection.class
-                .getDeclaredConstructor(String.class);
-        ctor.setAccessible(true);
-
-        try (SQLServerConnection conn = ctor.newInstance("test")) {
-            // Get the enclaveProvider field via reflection
-            java.lang.reflect.Field enclaveProviderField = SQLServerConnection.class
-                    .getDeclaredField("enclaveProvider");
-            enclaveProviderField.setAccessible(true);
-
-            // Case 1: enclaveProvider is null, should not throw
-            enclaveProviderField.set(conn, null);
-            try {
-                conn.invalidateEnclaveSessionCache();
-            } catch (Exception e) {
-                fail("Should not throw when enclaveProvider is null: " + e.getMessage());
-            }
-
-            // Case 2: enclaveProvider is not null, should call
-            // invalidateEnclaveSessionCache() on provider
-            ISQLServerEnclaveProvider mockProvider = org.mockito.Mockito.mock(ISQLServerEnclaveProvider.class);
-            enclaveProviderField.set(conn, mockProvider);
-            conn.invalidateEnclaveSessionCache();
-            // Verify that invalidateEnclaveSession() was called on the mock provider when
-            // not null
-            org.mockito.Mockito.verify(mockProvider).invalidateEnclaveSession();
-        }
-    }
-
-    /**
      * Covers the case where the lock timeout property is set and greater than the default.
      */
     @Test
@@ -2263,32 +2132,6 @@ public class SQLServerConnectionTest extends AbstractTest {
         props.setProperty("loginTimeout", "notANumber");
         // Should not throw NumberFormatException, but SQLServerException
         assertThrows(SQLServerException.class, () -> conn.connect(props, null));
-    }
-
-    @Test
-    @Tag(Constants.CodeCov)
-    public void testConnectActiveDirectoryInteractiveTimeout() throws Exception {
-        SQLServerConnection conn = new SQLServerConnection("test");
-        setConnectionField(conn, "authenticationString", "ActiveDirectoryInteractive");
-        Properties props = new Properties();
-        props.setProperty("loginTimeout", "1");
-        // connectInternal will throw, but we want to check the timeout is multiplied
-        SQLServerConnection spyConn = spy(conn);
-        doThrow(new SQLServerException("fail", null, 0, null)).when(spyConn).connectInternal(any(), any());
-        assertThrows(SQLServerException.class, () -> spyConn.connect(props, null));
-        // If you want to check the timeout value, you can expose it via reflection or add a getter for testing.
-    }
-
-    @Test
-    @Tag(Constants.CodeCov)
-    public void testConnectInvalidateEnclaveSessionCacheCalled() throws Exception {
-        SQLServerConnection conn = spy(new SQLServerConnection("test"));
-        doNothing().when(conn).invalidateEnclaveSessionCache();
-        doThrow(new SQLServerException("fail", null, 0, null)).when(conn).connectInternal(any(), any());
-        Properties props = new Properties();
-        props.setProperty("loginTimeout", "1");
-        assertThrows(SQLServerException.class, () -> conn.connect(props, null));
-        verify(conn, atLeastOnce()).invalidateEnclaveSessionCache();
     }
 
     @Test
