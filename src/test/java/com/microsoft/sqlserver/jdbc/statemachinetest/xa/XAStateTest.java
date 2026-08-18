@@ -195,11 +195,13 @@ public class XAStateTest extends AbstractTest {
             if ((msg != null && msg.toLowerCase().contains("xp_sqljdbc_xa")) ||
                     (fullMsg != null && fullMsg.toLowerCase().contains("xp_sqljdbc_xa"))) {
                 System.out.println("XA not supported: XA stored procedures not found");
-                System.out.println("  Solution: Run xa_install.sql script on SQL Server");
+                System.out.println("  Solution: Enable XA on SQL Server 2017 CU16+ by running EXEC sp_sqljdbc_xa_install");
                 return true;
             }
 
-            // DLL load errors also indicate XA is not properly installed
+            // Legacy DLL load errors. The standalone sqljdbc_xa.dll is no longer shipped
+            // (XA procedures are built into SQL Server 2017 CU16+). This branch is retained
+            // only to gracefully skip on older servers that may still surface such messages.
             if ((msg != null && (msg.toLowerCase().contains("sqljdbc_xa.dll") ||
                     msg.toLowerCase().contains("xa control connection") ||
                     msg.toLowerCase().contains("could not load the dll"))) ||
@@ -207,7 +209,7 @@ public class XAStateTest extends AbstractTest {
                             fullMsg.toLowerCase().contains("xa control connection") ||
                             fullMsg.toLowerCase().contains("could not load the dll")))) {
                 System.out.println("XA not supported: " + msg);
-                System.out.println("  Solution: Install sqljdbc_xa.dll in SQL Server Binn directory and unblock it");
+                System.out.println("  Solution: Enable XA on SQL Server 2017 CU16+ by running EXEC sp_sqljdbc_xa_install");
                 return true;
             }
 
@@ -270,7 +272,7 @@ public class XAStateTest extends AbstractTest {
         logTestProgress("testRandomizedXATransactions - Checking XA support");
         boolean xaSupported = isXASupported(connectionString);
         Assumptions.assumeTrue(xaSupported, 
-            "XA distributed transactions not supported - install xa_install.sql on SQL Server");
+            "XA distributed transactions not supported - enable XA on SQL Server 2017 CU16+ via EXEC sp_sqljdbc_xa_install");
         logTestProgress("testRandomizedXATransactions - XA support confirmed");
 
         SQLServerXADataSource ds = new SQLServerXADataSource();
