@@ -199,7 +199,9 @@ public class XAStateTest extends AbstractTest {
                 return true;
             }
 
-            // DLL load errors also indicate XA is not properly installed
+            // Legacy DLL load errors. The standalone sqljdbc_xa.dll is no longer shipped
+            // (XA procedures are built into SQL Server 2017 CU16+). This branch is retained
+            // only to gracefully skip on older servers that may still surface such messages.
             if ((msg != null && (msg.toLowerCase().contains("sqljdbc_xa.dll") ||
                     msg.toLowerCase().contains("xa control connection") ||
                     msg.toLowerCase().contains("could not load the dll"))) ||
