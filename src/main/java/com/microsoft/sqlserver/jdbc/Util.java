@@ -574,6 +574,98 @@ final class Util {
     }
 
     /**
+     * Escapes a potentially multi-part SQL identifier (e.g. "dbo.MyTable" or "db..table")
+     * by parsing with ThreePartName and bracket-quoting each unquoted part. Already-quoted
+     * parts are validated and preserved. Empty parts (from "..") are preserved to support
+     * the omitted-schema form (e.g. "tempdb..#table").
+     *
+     * @param identifier
+     *        the multi-part identifier to escape
+     * @return the escaped multi-part identifier, e.g. "[dbo].[MyTable]"
+     */
+    static String escapeMultiPartIdentifier(String identifier) {
+        if (null == identifier || identifier.isEmpty()) {
+            return identifier;
+        }
+
+        ThreePartName threePartName = ThreePartName.parse(identifier);
+        StringBuilder sb = new StringBuilder();
+
+        String databasePart = threePartName.getDatabasePart();
+        String ownerPart = threePartName.getOwnerPart();
+        String procedurePart = threePartName.getProcedurePart();
+
+        // ThreePartName cannot represent empty schema: "db..table" parses as
+        // ownerPart="db", procedurePart=".table". Detect and reconstruct the ".." form.
+        if (procedurePart != null && procedurePart.startsWith(".")) {
+            if (databasePart != null) {
+                sb.append(escapeIdentifierPart(databasePart)).append('.');
+            }
+            sb.append(escapeIdentifierPart(ownerPart)).append("..");
+            sb.append(escapeIdentifierPart(procedurePart.substring(1)));
+            return sb.toString();
+        }
+
+        if (databasePart != null) {
+            sb.append(escapeIdentifierPart(databasePart)).append('.');
+        }
+        if (ownerPart != null) {
+            sb.append(escapeIdentifierPart(ownerPart)).append('.');
+        }
+        if (procedurePart != null) {
+            sb.append(escapeIdentifierPart(procedurePart));
+        } else {
+            sb.append(escapeIdentifierPart(identifier));
+        }
+
+        return sb.toString();
+    }
+
+    private static String escapeIdentifierPart(String part) {
+        if (part.length() >= 2 && part.charAt(0) == '[' && part.charAt(part.length() - 1) == ']') {
+            if (isValidBracketedIdentifier(part)) {
+                return part;
+            }
+            return escapeSQLId(part);
+        }
+        if (part.length() >= 2 && part.charAt(0) == '"' && part.charAt(part.length() - 1) == '"') {
+            if (isValidDoubleQuotedIdentifier(part)) {
+                return part;
+            }
+            return escapeSQLId(part);
+        }
+        return escapeSQLId(part);
+    }
+
+    /** A valid bracketed identifier has every internal ] escaped as ]]. */
+    private static boolean isValidBracketedIdentifier(String part) {
+        for (int i = 1; i < part.length() - 1; i++) {
+            if (part.charAt(i) == ']') {
+                if (i + 1 < part.length() - 1 && part.charAt(i + 1) == ']') {
+                    i++;
+                } else {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /** A valid double-quoted identifier has every internal " escaped as "". */
+    private static boolean isValidDoubleQuotedIdentifier(String part) {
+        for (int i = 1; i < part.length() - 1; i++) {
+            if (part.charAt(i) == '"') {
+                if (i + 1 < part.length() - 1 && part.charAt(i + 1) == '"') {
+                    i++;
+                } else {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
      * Accepts a SQL identifier (such as a column name or table name) and escapes the identifier using SQL Server
      * bracket escaping rules. Assumes that the incoming identifier is unescaped.
      * 
