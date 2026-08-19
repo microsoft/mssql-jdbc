@@ -1629,7 +1629,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         List<String> bulkOptions = new ArrayList<>();
         Set<String> destColumns = new HashSet<>();
         String endColumn = " , ";
-        bulkCmd.append("INSERT BULK ").append(destinationTableName).append(" (");
+        bulkCmd.append("INSERT BULK ").append(Util.escapeMultiPartIdentifier(destinationTableName)).append(" (");
 
         for (int i = 0; i < (columnMappings.size()); ++i) {
             if (i == columnMappings.size() - 1) {
@@ -1909,7 +1909,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     SQLServerException.getErrString("R_invalidDestinationTable"), null, false);
         }
 
-        String escapedDestinationTableName = Util.escapeSingleQuotes(destinationTableName);
+        String escapedDestinationTableName = Util.escapeMultiPartIdentifier(destinationTableName);
         String key = null;
         HashMap<String, Map<Integer, SQLServerBulkCopy.BulkColumnMetaData>> bulkCopyOperationCache = connection.getBulkCopyOperationCache();
         if (connection.getcacheBulkCopyMetadata()) {
@@ -1976,7 +1976,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                 // Get destination metadata
                 rs = stmt.executeQueryInternal(
-                        "sp_executesql N'SET FMTONLY ON SELECT * FROM " + escapedDestinationTableName + " '");
+                        "sp_executesql N'SET FMTONLY ON SELECT * FROM "
+                                + Util.escapeSingleQuotes(escapedDestinationTableName) + " '");
             }
 
             int destColumnMetadataCount = rs.getMetaData().getColumnCount();
@@ -1985,10 +1986,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             if (!connection.getServerSupportsColumnEncryption()) {
                 metaDataQuery = "select collation_name, is_computed from sys.columns where " + "object_id=OBJECT_ID('"
-                        + escapedDestinationTableName + "') " + "order by column_id ASC";
+                        + Util.escapeSingleQuotes(escapedDestinationTableName) + "') " + "order by column_id ASC";
             } else {
                 metaDataQuery = "select collation_name, is_computed, encryption_type from sys.columns where "
-                        + "object_id=OBJECT_ID('" + escapedDestinationTableName + "') " + "order by column_id ASC";
+                        + "object_id=OBJECT_ID('" + Util.escapeSingleQuotes(escapedDestinationTableName) + "') "
+                        + "order by column_id ASC";
             }
 
             try (SQLServerStatement statementMoreMetadata = (SQLServerStatement) connection.createStatement();

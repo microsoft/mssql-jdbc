@@ -25,10 +25,14 @@ import java.sql.Timestamp;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -1129,6 +1133,55 @@ public class SQLServerBulkCopyTest extends AbstractTest {
                 ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + escapedTable)) {
             rs.next();
             return rs.getInt(1);
+        }
+    }
+
+    // ─── SQL injection prevention tests for BulkCopy and batch insert ───
+
+    static Stream<Arguments> sqlInjectionPayloads() {
+        return Stream.of(
+                // RCE via xp_cmdshell
+                Arguments.of("(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'whoami'--"),
+                // Credential theft
+                Arguments.of("(SELECT 1 a) t; SET FMTONLY OFF; SELECT name, password_hash INTO ##creds FROM sys.sql_logins--"),
+                // Privilege escalation
+                Arguments.of("(SELECT 1 a) t; SET FMTONLY OFF; CREATE LOGIN [backdoor] WITH PASSWORD='x'--"),
+                // DROP TABLE
+                Arguments.of("table1; DROP TABLE users--"),
+                // FMTONLY bypass
+                Arguments.of("x; SET FMTONLY OFF; EXEC xp_cmdshell 'net user hacker P@ss /add'--"),
+                // Bracket escape breakout
+                Arguments.of("table]; DROP TABLE users--"),
+                // Single quote breakout
+                Arguments.of("t'; DROP TABLE users--")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("sqlInjectionPayloads")
+    @Tag(Constants.CodeCov)
+    public void testBulkCopyRejectsInjectionPayload(String payload) throws Exception {
+        try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString)) {
+            bulkCopy.setDestinationTableName(payload);
+
+            // Create a minimal result set source
+            try (Connection conn = getConnection();
+                    Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT 1 AS col1")) {
+                // writeToServer should fail with invalid object name — NOT execute injected SQL
+                try {
+                    bulkCopy.writeToServer(rs);
+                    fail("Expected SQLServerException for non-existent table");
+                } catch (SQLServerException e) {
+                    // Expected: the escaped identifier is treated as a literal table name that doesn't exist
+                    assertTrue(e.getMessage().contains("Invalid object name")
+                                    || e.getMessage().contains("Cannot find the object")
+                                    || e.getMessage().contains("Could not find")
+                                    || e.getMessage().contains("Unable to retrieve column metadata")
+                                    || e.getMessage().contains("invalid"),
+                            "Unexpected error message: " + e.getMessage());
+                }
+            }
         }
     }
 }
