@@ -2043,6 +2043,259 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
+    /**
+     * Verifies that {@code getColumns()} probes {@code sp_columns_170} at most once per connection.
+     * <p>
+     * {@code sp_columns_170} only exists on SQL Server 2025 and later. On earlier servers the driver used to attempt
+     * the procedure on every call, producing one failed server request per table. The outcome is now cached on the
+     * connection, so the fallback to {@code sp_columns_100} is logged at most once regardless of how many times
+     * {@code getColumns()} is called.
+     * 
+     * @throws SQLException
+     *         if a database access error occurs
+     */
+    @Test
+    public void testGetColumnsProbesSpColumns170OnlyOnce() throws SQLException {
+        java.util.logging.Logger metaDataLogger = java.util.logging.Logger
+                .getLogger("com.microsoft.sqlserver.jdbc.internals.DatabaseMetaData");
+        java.util.logging.Level originalLevel = metaDataLogger.getLevel();
+        java.util.concurrent.atomic.AtomicInteger procedureNotFoundCount = new java.util.concurrent.atomic.AtomicInteger();
+
+        java.util.logging.Handler handler = new java.util.logging.Handler() {
+            @Override
+            public void publish(java.util.logging.LogRecord record) {
+                String message = record.getMessage();
+                /*
+                 * Only count the fallback caused by the procedure being absent. Other failures deliberately leave the
+                 * cached state alone, so they are allowed to be retried and must not fail this test.
+                 */
+                if (null != message && message.contains("sp_columns_170 failed, falling back")
+                        && message.contains("procedure not found: true")) {
+                    procedureNotFoundCount.incrementAndGet();
+                }
+            }
+
+            @Override
+            public void flush() {}
+
+            @Override
+            public void close() {}
+        };
+
+        metaDataLogger.addHandler(handler);
+        metaDataLogger.setLevel(java.util.logging.Level.FINER);
+
+        try (Connection conn = getConnection()) {
+            SQLServerConnection sqlServerConnection = (SQLServerConnection) conn;
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+
+            int callCount = 5;
+            for (int i = 0; i < callCount; i++) {
+                try (ResultSet rs = databaseMetaData.getColumns(null, null, tableName, "%")) {
+                    assertNotNull(rs, "getColumns() should return a result set");
+                    while (rs.next()) {
+                        assertNotNull(rs.getString(COLUMN_NAME), "COLUMN_NAME should not be null");
+                    }
+                }
+            }
+
+            assertTrue(procedureNotFoundCount.get() <= 1,
+                    "sp_columns_170 should be probed at most once per connection, but the driver fell back "
+                            + procedureNotFoundCount.get() + " times across " + callCount + " getColumns() calls");
+
+            Boolean supported = getSpColumns170Supported(sqlServerConnection);
+            if (procedureNotFoundCount.get() == 1) {
+                assertEquals(Boolean.FALSE, supported,
+                        "sp_columns_170 should be cached as unsupported once the server reports it is missing");
+            } else {
+                assertEquals(Boolean.TRUE, supported,
+                        "sp_columns_170 should be cached as supported when the probe succeeds");
+            }
+        }  finally {
+            metaDataLogger.removeHandler(handler);
+            metaDataLogger.setLevel(originalLevel);
+        }
+    }
+
+    /**
+     * Verifies that the cached {@code sp_columns_170} state is scoped to a single connection and starts out
+     * undetermined on a brand new connection.
+     * 
+     * @throws SQLException
+     *         if a database access error occurs
+     */
+    @Test
+    public void testSpColumns170SupportIsPerConnection() throws SQLException {
+        try (Connection conn = getConnection()) {
+            SQLServerConnection sqlServerConnection = (SQLServerConnection) conn;
+
+            assertNull(getSpColumns170Supported(sqlServerConnection),
+                    "sp_columns_170 support should be undetermined before the first getColumns() call");
+
+            try (ResultSet rs = conn.getMetaData().getColumns(null, null, tableName, "%")) {
+                while (rs.next()) {
+                    // drain the result set
+                }
+            }
+
+            Boolean supported = getSpColumns170Supported(sqlServerConnection);
+            assertNotNull(supported, "sp_columns_170 support should be cached after the first getColumns() call");
+
+            // A separate connection must start from an undetermined state.
+            try (Connection otherConn = getConnection()) {
+                assertNull(getSpColumns170Supported((SQLServerConnection) otherConn),
+                        "sp_columns_170 support should not leak across connections");
+            }
+        }
+    }
+
+    /**
+     * Verifies that once {@code sp_columns_170} is known to be missing, {@code getColumns()} goes straight to
+     * {@code sp_columns_100} without attempting the newer procedure again.
+     * <p>
+     * This is the behaviour that removes the repeated failing server request on servers older than SQL Server 2025.
+     * The cached state is seeded directly so the scenario can be reproduced on any server version.
+     * 
+     * @throws SQLException
+     *         if a database access error occurs
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testGetColumnsSkipsSpColumns170WhenCachedUnsupported() throws SQLException {
+        java.util.logging.Logger metaDataLogger = java.util.logging.Logger
+                .getLogger("com.microsoft.sqlserver.jdbc.internals.DatabaseMetaData");
+        java.util.logging.Level originalLevel = metaDataLogger.getLevel();
+        java.util.concurrent.atomic.AtomicInteger ran170 = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.atomic.AtomicInteger ran100 = new java.util.concurrent.atomic.AtomicInteger();
+
+        java.util.logging.Handler handler = new java.util.logging.Handler() {
+            @Override
+            public void publish(java.util.logging.LogRecord record) {
+                String message = record.getMessage();
+                if (null == message) {
+                    return;
+                }
+                if (message.contains("Successfully executed sp_columns_170")) {
+                    ran170.incrementAndGet();
+                } else if (message.contains("Successfully executed sp_columns_100")) {
+                    ran100.incrementAndGet();
+                }
+            }
+
+            @Override
+            public void flush() {}
+
+            @Override
+            public void close() {}
+        };
+
+        metaDataLogger.addHandler(handler);
+        metaDataLogger.setLevel(java.util.logging.Level.FINER);
+
+        try (Connection conn = getConnection()) {
+            SQLServerConnection sqlServerConnection = (SQLServerConnection) conn;
+
+            // Seed the cached state as if the server had already reported that sp_columns_170 does not exist.
+            setSpColumns170Supported(sqlServerConnection, Boolean.FALSE);
+
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+
+            int callCount = 3;
+            int rowCount = 0;
+            for (int i = 0; i < callCount; i++) {
+                try (ResultSet rs = databaseMetaData.getColumns(null, null, tableName, "%")) {
+                    assertNotNull(rs, "getColumns() should return a result set");
+                    rowCount = 0;
+                    while (rs.next()) {
+                        assertNotNull(rs.getString(COLUMN_NAME), "COLUMN_NAME should not be null");
+                        rowCount++;
+                    }
+                }
+            }
+
+            assertTrue(rowCount > 0, "getColumns() should still return column metadata using sp_columns_100");
+            assertEquals(0, ran170.get(),
+                    "sp_columns_170 must not be attempted once it is known to be unsupported on the connection");
+            assertEquals(callCount, ran100.get(),
+                    "every getColumns() call should go directly to sp_columns_100");
+            assertEquals(Boolean.FALSE, getSpColumns170Supported(sqlServerConnection),
+                    "the cached sp_columns_170 state should remain unsupported");
+        } finally {
+            metaDataLogger.removeHandler(handler);
+            metaDataLogger.setLevel(originalLevel);
+        }
+    }
+
+    /**
+     * Verifies the Azure DW code path also honours the cached {@code sp_columns_170} state and falls through to
+     * {@code sp_columns_100}.
+     * <p>
+     * The connection is made to look like Azure DW through reflection, matching the approach used by the other Azure
+     * DW tests in this class.
+     * 
+     * @throws Exception
+     *         if a database access or reflection error occurs
+     */
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testGetColumnsAzureDWSkipsSpColumns170WhenCachedUnsupported() throws Exception {
+        try (Connection conn = getConnection()) {
+            // Use reflection to simulate an Azure DW connection.
+            Field f1 = SQLServerConnection.class.getDeclaredField("isAzureDW");
+            f1.setAccessible(true);
+            f1.set(conn, true);
+
+            Field f2 = SQLServerConnection.class.getDeclaredField("isAzure");
+            f2.setAccessible(true);
+            f2.set(conn, true);
+
+            SQLServerConnection sqlServerConnection = (SQLServerConnection) conn;
+            setSpColumns170Supported(sqlServerConnection, Boolean.FALSE);
+
+            DatabaseMetaData databaseMetaData = conn.getMetaData();
+
+            try (ResultSet rs = databaseMetaData.getColumns(conn.getCatalog(), "dbo", tableName, null)) {
+                assertNotNull(rs, "ResultSet should not be null on the Azure DW path");
+
+                ResultSetMetaData rsmd = rs.getMetaData();
+                assertTrue(rsmd.getColumnCount() >= 18, "Should have the standard getColumns() metadata shape");
+            }
+
+            assertEquals(Boolean.FALSE, getSpColumns170Supported(sqlServerConnection),
+                    "the cached sp_columns_170 state should remain unsupported on the Azure DW path");
+        }
+    }
+
+    /**
+     * Seeds the tri-state sp_columns_170 support cached on the connection. The mutator is package private on
+     * SQLServerConnection, so it is invoked reflectively from this test package.
+     */
+    private static void setSpColumns170Supported(SQLServerConnection conn, Boolean supported) {
+        try {
+            java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("setSpColumns170Supported",
+                    Boolean.class);
+            method.setAccessible(true);
+            method.invoke(conn, supported);
+        } catch (Exception e) {
+            fail("Unable to seed sp_columns_170 support: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Reads the tri-state sp_columns_170 support cached on the connection. The accessor is package private on
+     * SQLServerConnection, so it is invoked reflectively from this test package.
+     */
+    private static Boolean getSpColumns170Supported(SQLServerConnection conn) {
+        try {
+            java.lang.reflect.Method method = SQLServerConnection.class.getDeclaredMethod("getSpColumns170Supported");
+            method.setAccessible(true);
+            return (Boolean) method.invoke(conn);
+        } catch (Exception e) {
+            fail("Unable to read sp_columns_170 support: " + e.getMessage());
+            return null;
+        }
+    }
+
     @BeforeAll
     public static void setupTable() throws Exception {
         setConnection();
