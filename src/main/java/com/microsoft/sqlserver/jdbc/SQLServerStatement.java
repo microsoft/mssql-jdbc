@@ -378,7 +378,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (creationToFirstPacketScope == null) {
             creationToFirstPacketScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement, 
-                connection.getConnectionID(), 
+                connection,
                 getStatementID(), 
                 null,
                 null,
@@ -406,7 +406,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         if (firstPacketToFirstResponseScope == null) {
             firstPacketToFirstResponseScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
-                connection.getConnectionID(),
+                connection,
                 getStatementID(),
                 null,
                 null,
@@ -1104,7 +1104,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             // Track statement execution time
             try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                     PerformanceLog.perfLoggerStatement,
-                    connection.getConnectionID(),
+                    connection,
                     getStatementID(),
                     this,
                     sql,
@@ -1203,7 +1203,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Track batch execution time
         try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
-                connection.getConnectionID(),
+                connection,
                 getStatementID(),
                 this,
                 batchStatementString,
@@ -2518,7 +2518,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         // Track cursor execution time
         try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
-                connection.getConnectionID(),
+                connection,
                 getStatementID(),
                 this,
                 sql,

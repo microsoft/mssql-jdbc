@@ -77,4 +77,21 @@ public interface PerformanceLogCallback {
         return PerformanceLog.currentStatementType.get();
     }
 
+    /**
+     * Returns the application name of the connection associated with the current performance event.
+     * This is the value of the {@code applicationName} connection property, which defaults to
+     * "Microsoft JDBC Driver for SQL Server" when not set. Applications using a connection pool can
+     * set this property on the pool's data source to identify which pool the event originated from.
+     * Unlike {@link #getCurrentUserSql()}, this value is available for both connection-level and
+     * statement-level activities.
+     * Only valid inside a {@link #publish} callback invocation.
+     * Returns {@code null} when called outside {@code publish()}, or when the connection properties
+     * have not been parsed yet (for example, a connection that fails before the property is resolved).
+     *
+     * @return the application name, or null if not available.
+     */
+    default String getCurrentApplicationName() {
+        return PerformanceLog.currentApplicationName.get();
+    }
+
 }

@@ -114,6 +114,51 @@ These methods are only valid **inside** a `publish()` invocation. Calling them o
 > do not provide SQL or statement type information. Only the top-level execution activities
 > (`STATEMENT_EXECUTE`, `STATEMENT_PREPEXEC`, `STATEMENT_PREPARE`) populate these values.
 
+#### Accessing the Application Name
+
+Inside a `publish()` callback, `getCurrentApplicationName()` returns the value of the
+`applicationName` connection property for the connection that produced the event. This is
+useful when a single callback is registered for the whole JVM and events arrive from several
+connection pools — set `applicationName` on each pool's data source to tell them apart:
+
+```java
+// Each pool sets its own applicationName, e.g. on the pool's data source:
+//   ds.setApplicationName("orders-pool");
+
+SQLServerDriver.registerPerformanceLogCallback(new PerformanceLogCallback() {
+    @Override
+    public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+            Exception exception) {
+        // Connection-level: PRELOGIN, LOGIN, CONNECTION, TOKEN_ACQUISITION
+        metrics.record(getCurrentApplicationName(), activity, durationMs);
+    }
+
+    @Override
+    public void publish(PerformanceActivity activity, int connectionId, int statementId,
+            long durationMs, Exception exception) {
+        // Statement-level: app name available alongside the existing SQL/type accessors
+        metrics.record(getCurrentApplicationName(), activity, getCurrentUserSql(), durationMs);
+    }
+});
+```
+
+For two pools sharing one registered callback, this yields:
+
+```
+[orders-pool]    Connection  120ms
+[orders-pool]    Execute     SELECT * FROM orders WHERE id = ?    5ms
+[reporting-pool] Execute     SELECT COUNT(*) FROM sales           412ms
+```
+
+Unlike `getCurrentUserSql()`, this value is available for **both** connection-level and
+statement-level activities, including `PRELOGIN`, `LOGIN`, and `CONNECTION`. When the
+`applicationName` property is not set, it returns the driver default,
+`"Microsoft JDBC Driver for SQL Server"`.
+
+Like the other context methods, it is only valid **inside** a `publish()` invocation and
+returns `null` when called outside of one. It also returns `null` in the rare case where a
+connection fails before the connection properties have been parsed.
+
 ### 2. Java Logging Configuration
 
 Configure `java.util.logging` for the performance metrics loggers at `FINE` level:
@@ -322,4 +367,4 @@ try {
 - `SQLServerPreparedStatement.java` - Prepared statement activities
 - `PerformanceActivity.java` - Activity enum definitions
 - `PerformanceLog.java` - Logging infrastructure (ThreadLocal context for userSql/statementType)
-- `PerformanceLogCallback.java` - Callback interface (includes `useNanoseconds()`, `getCurrentUserSql()`, `getCurrentStatementType()`)
+- `PerformanceLogCallback.java` - Callback interface (includes `useNanoseconds()`, `getCurrentUserSql()`, `getCurrentStatementType()`, `getCurrentApplicationName()`)

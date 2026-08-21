@@ -1265,6 +1265,197 @@ class PerformanceLogCallbackTest extends AbstractTest {
     }
 
     /**
+     * Test to validate that getCurrentApplicationName() returns the applicationName connection
+     * property for both connection-level and statement-level activities.
+     */
+    @Test
+    void testApplicationNameInCallback() throws Exception {
+        final String appName = "MyPoolName_" + RandomUtil.getIdentifier("pool");
+        List<String> connectionLevelAppNames = new ArrayList<>();
+        List<String> statementLevelAppNames = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+                connectionLevelAppNames.add(getCurrentApplicationName());
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                statementLevelAppNames.add(getCurrentApplicationName());
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        String connStr = TestUtils.addOrOverrideProperty(connectionString, "applicationName", appName);
+        try (Connection con = PrepUtil.getConnection(connStr);
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            rs.next();
+        }
+
+        assertTrue(statementLevelAppNames.size() > 0, "Should have received statement-level callbacks");
+        for (String captured : statementLevelAppNames) {
+            assertEquals(appName, captured,
+                    "getCurrentApplicationName() should return the applicationName for statement activities");
+        }
+
+        // Connection-level activities that run after property parsing must report the app name.
+        assertTrue(connectionLevelAppNames.contains(appName),
+                "getCurrentApplicationName() should return the applicationName for connection activities. Captured: "
+                        + connectionLevelAppNames);
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test to validate that getCurrentApplicationName() falls back to the driver default
+     * when the applicationName connection property is not set.
+     */
+    @Test
+    void testApplicationNameDefaultsWhenNotSet() throws Exception {
+        List<String> capturedAppNames = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                capturedAppNames.add(getCurrentApplicationName());
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        String connStr = TestUtils.removeProperty(connectionString, "applicationName");
+        try (Connection con = PrepUtil.getConnection(connStr);
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            rs.next();
+        }
+
+        assertTrue(capturedAppNames.size() > 0, "Should have received statement-level callbacks");
+        for (String captured : capturedAppNames) {
+            assertEquals(SQLServerDriver.DEFAULT_APP_NAME, captured,
+                    "getCurrentApplicationName() should default to the driver app name when unset");
+        }
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test that connections with different applicationName values report their own name,
+     * simulating multiple connection pools sharing a single registered callback.
+     */
+    @Test
+    void testApplicationNameIsolatedAcrossConnections() throws Exception {
+        final String appNameA = "PoolA_" + RandomUtil.getIdentifier("a");
+        final String appNameB = "PoolB_" + RandomUtil.getIdentifier("b");
+
+        // Maps applicationName -> set of SQL seen under that application name
+        Map<String, Set<String>> sqlByAppName = new ConcurrentHashMap<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                String sql = getCurrentUserSql();
+                String app = getCurrentApplicationName();
+                if (sql != null && app != null) {
+                    sqlByAppName.computeIfAbsent(app, k -> ConcurrentHashMap.newKeySet()).add(sql);
+                }
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        final String sqlA = "SELECT 1 AS pool_a_marker";
+        final String sqlB = "SELECT 2 AS pool_b_marker";
+
+        String connStrA = TestUtils.addOrOverrideProperty(connectionString, "applicationName", appNameA);
+        try (Connection con = PrepUtil.getConnection(connStrA);
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery(sqlA)) {
+            rs.next();
+        }
+
+        String connStrB = TestUtils.addOrOverrideProperty(connectionString, "applicationName", appNameB);
+        try (Connection con = PrepUtil.getConnection(connStrB);
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery(sqlB)) {
+            rs.next();
+        }
+
+        assertTrue(sqlByAppName.containsKey(appNameA), "Should have events for " + appNameA);
+        assertTrue(sqlByAppName.containsKey(appNameB), "Should have events for " + appNameB);
+
+        assertTrue(sqlByAppName.get(appNameA).contains(sqlA),
+                appNameA + " should report its own SQL. Got: " + sqlByAppName.get(appNameA));
+        assertTrue(sqlByAppName.get(appNameB).contains(sqlB),
+                appNameB + " should report its own SQL. Got: " + sqlByAppName.get(appNameB));
+
+        // Ensure no cross-contamination between the two application names
+        assertTrue(!sqlByAppName.get(appNameA).contains(sqlB),
+                appNameA + " should not see SQL from " + appNameB);
+        assertTrue(!sqlByAppName.get(appNameB).contains(sqlA),
+                appNameB + " should not see SQL from " + appNameA);
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test that an existing callback which does not use getCurrentApplicationName() continues
+     * to receive events unchanged, and that the value is not leaked outside publish().
+     */
+    @Test
+    void testApplicationNameNotLeakedOutsidePublish() throws Exception {
+        List<PerformanceActivity> activities = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+                activities.add(activity);
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                activities.add(activity);
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        String connStr = TestUtils.addOrOverrideProperty(connectionString, "applicationName", "LeakCheckPool");
+        try (Connection con = PrepUtil.getConnection(connStr);
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            rs.next();
+        }
+
+        assertTrue(activities.size() > 0, "Legacy-style callback should still receive events");
+
+        // Outside of publish(), the ThreadLocal must have been cleared
+        assertEquals(null, callbackInstance.getCurrentApplicationName(),
+                "getCurrentApplicationName() should return null outside of publish()");
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
      * Helper method to execute Statement and PreparedStatement queries in a loop.
      * Uses a provided connection. Returns the duration in nanoseconds.
      */

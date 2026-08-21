@@ -806,7 +806,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // Track statement execution (PREPEXEC or EXECUTE based on execution path)
                 try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                         PerformanceLog.perfLoggerStatement,
-                        connection.getConnectionID(),
+                        connection,
                         getStatementID(),
                         this,
                         userSQL,
@@ -1470,7 +1470,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Track sp_prepare execution time
         try (PerformanceLog.Scope prepareScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
-                connection.getConnectionID(),
+                connection,
                 getStatementID(),
                 this,
                 userSQL,
@@ -3506,7 +3506,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Performance tracking: track statement execution time for the entire batch
         try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
-                connection.getConnectionID(),
+                connection,
                 getStatementID(),
                 this,
                 userSQL,
@@ -3794,7 +3794,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Track batch execution time
             try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                     PerformanceLog.perfLoggerStatement,
-                    connection.getConnectionID(),
+                    connection,
                     getStatementID(),
                     this,
                     userSQL,
