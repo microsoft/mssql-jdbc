@@ -294,6 +294,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      * Tri-state flag indicating whether the server exposes the sp_columns_170 stored procedure, which is only
      * available on SQL Server 2025 and later. null means the driver has not determined it yet, TRUE means the
      * procedure exists and FALSE means the procedure does not exist on this server.
+     * <p>
+     * The value is scoped to the current TDS session. It survives a pooled logical connection reset, which reuses the
+     * same session against the same server, but is reset to null when idle connection resiliency establishes a new
+     * session, because the driver may then be talking to a different backend.
      */
     private volatile Boolean spColumns170Supported = null;
 
@@ -5078,6 +5082,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                     preparedStatementHandleCache.clear();
                                 }
 
+                                // The reconnect establishes a new session and may land on a different backend, so
+                                // any capability derived from the previous session must be determined again.
+                                spColumns170Supported = null;
+
                                 this.reconnectListeners.forEach(ReconnectListener::beforeReconnect);
 
                                 if (loggerResiliency.isLoggable(Level.FINE)) {
@@ -9693,8 +9701,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Records whether the server exposes the sp_columns_170 stored procedure. The value is cached for the lifetime of
-     * the physical connection so that DatabaseMetaData.getColumns() probes for the procedure at most once instead of
-     * once per call.
+     * the current TDS session so that DatabaseMetaData.getColumns() probes for the procedure at most once instead of
+     * once per call. It is reset to undetermined when a new session is established against the server, since the
+     * driver may then be talking to a different backend.
      *
      * @param supported
      *        TRUE if sp_columns_170 exists, FALSE if it does not exist, null to mark the state as undetermined
