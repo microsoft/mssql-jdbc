@@ -137,6 +137,7 @@ dependencies {
 			'org.osgi:org.osgi.service.jdbc:1.1.0'
 	compileOnly 'com.azure:azure-security-keyvault-keys:4.11.1',
 			'com.azure:azure-identity:1.18.4',
+			'com.azure:azure-core-http-netty:1.16.6',
 			'org.antlr:antlr4-runtime:4.9.1',
 			'com.google.code.gson:gson:2.11.0',
 			'org.bouncycastle:bcprov-jdk18on:1.84',
@@ -159,6 +160,7 @@ dependencies {
 			'org.bouncycastle:bcprov-jdk18on:1.84',
 			'com.azure:azure-security-keyvault-keys:4.11.1',
 			'com.azure:azure-identity:1.18.4',
+			'com.azure:azure-core-http-netty:1.16.6',
 			'com.h2database:h2:2.2.220'
 
 	// Mockito and Byte Buddy dependencies based on JRE version
