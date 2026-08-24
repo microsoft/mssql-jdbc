@@ -118,32 +118,37 @@ public final class OpenTelemetryTelemetryBridge implements TelemetryBridge {
                 span.setStatus(StatusCode.OK);
             }
 
-            AttributesBuilder attributeBuilder = io.opentelemetry.api.common.Attributes.builder()
-                    .put(ACTIVITY_KEY, event.getActivity().name())
-                    .put(CONNECTION_ID_KEY, (long) event.getConnectionId())
-                    .put(STATEMENT_ID_KEY, (long) event.getStatementId())
-                    .put(MEASUREMENT_VALUE_KEY, event.getMeasurementValue())
-                    .put(MEASUREMENT_UNIT_KEY, event.getMeasurementUnit())
-                    .put(STATEMENT_TYPE_KEY, event.getStatementType().name());
-            if (event.getUserSql() != null && !event.getUserSql().isEmpty()) {
-                attributeBuilder.put(SQL_KEY, sanitizeSql(event.getUserSql()));
-            }
-            if (event.getAuthScheme() != null) {
-                attributeBuilder.put(AUTH_SCHEME_KEY, event.getAuthScheme());
-            }
-            if (event.getCorrelationId() != null) {
-                attributeBuilder.put(CORRELATION_ID_KEY, event.getCorrelationId());
-            }
-            if (event.getTraceParent() != null) {
-                attributeBuilder.put(TRACE_PARENT_KEY, event.getTraceParent());
-            }
-            addGenericAttributes(attributeBuilder, event.getAttributes());
+            // Metrics carry ONLY low-cardinality dimensions so the number of time series stays bounded.
+            // High-cardinality fields (connection id, statement id, measurement value/duration, SQL text,
+            // correlation id, trace parent) are intentionally excluded here - they live on the span above,
+            // which is designed for per-event detail. Putting them on metrics would fork a new time series
+            // per event (and, under cumulative temporality, re-export it on every collection cycle).
+            io.opentelemetry.api.common.Attributes metricAttributes = buildMetricAttributes(event);
 
-            target.eventCounter.add(1, attributeBuilder.build());
-            target.durationHistogram.record(event.getMeasurementValue(), attributeBuilder.build());
+            target.eventCounter.add(1, metricAttributes);
+            target.durationHistogram.record(event.getMeasurementValue(), metricAttributes);
         } finally {
             span.end();
         }
+    }
+
+    /**
+     * Builds the bounded, low-cardinality attribute set used for metric datapoints. Only dimensions with a
+     * small, stable value domain are included so metric time-series count does not grow with the number of
+     * connections or statements.
+     */
+    private static io.opentelemetry.api.common.Attributes buildMetricAttributes(TelemetryEvent event) {
+        AttributesBuilder metricBuilder = io.opentelemetry.api.common.Attributes.builder()
+                .put(ACTIVITY_KEY, event.getActivity().name())
+                .put(MEASUREMENT_UNIT_KEY, event.getMeasurementUnit())
+                .put(STATEMENT_TYPE_KEY, event.getStatementType().name());
+        if (event.getAuthScheme() != null) {
+            metricBuilder.put(AUTH_SCHEME_KEY, event.getAuthScheme());
+        }
+        // Generic attributes are driver-supplied configuration values (e.g. otel mode/endpoint/auth) with a
+        // bounded domain, so they are safe to use as metric dimensions.
+        addGenericAttributes(metricBuilder, event.getAttributes());
+        return metricBuilder.build();
     }
 
     /**
