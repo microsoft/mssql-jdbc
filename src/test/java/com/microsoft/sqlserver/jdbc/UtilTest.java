@@ -532,11 +532,12 @@ public class UtilTest {
                 // delimiter not at start of part is an ordinary character
                 Arguments.of("a[b].c", "[a[b]]].[c]"),
                 Arguments.of("sch[ema.table", "[sch[ema].[table]"),
-                // empty schema (omitted-schema form)
+                // empty schema (omitted-schema form: database..table)
                 Arguments.of("tempdb..#table", "[tempdb]..[#table]"),
                 Arguments.of("mydb..employees", "[mydb]..[employees]"),
                 Arguments.of("[db]..[table]", "[db]..[table]"),
                 Arguments.of("[master]..[#temp]", "[master]..[#temp]"),
+                Arguments.of("[cat]..[My]]Tab]", "[cat]..[My]]Tab]"),
                 // unicode
                 Arguments.of("T\u00ef\u00f1\u00e9s", "[T\u00ef\u00f1\u00e9s]"),
                 Arguments.of("\u6570\u636e\u8868", "[\u6570\u636e\u8868]"),
