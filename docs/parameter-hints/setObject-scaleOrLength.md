@@ -4,14 +4,15 @@
 
 The `setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)` JDBC method accepts a `scaleOrLength` parameter. Although the JDBC 4.3 specification states this value is ignored for most types, mssql-jdbc extends this behavior for bounded variable-length types (VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY) to provide an optional length hint on a per-call basis.
 
-**Breaking Behavioral Change:** This is a breaking change from prior driver versions where
-`scaleOrLength` was silently ignored for string and binary types. With this change,
-`scaleOrLength` is now enforced as a maximum length constraint — if the actual value length
-exceeds the specified `scaleOrLength`, execution will fail with
-`R_parameterTypeValueLengthExceedsHint`. Applications that previously passed arbitrary or
-undersized `scaleOrLength` values for string/binary types must either increase the value to
-accommodate their largest payload or use a two-argument `setObject` overload that omits the
-length constraint.
+**The hint is advisory, not a constraint.** It is never enforced. If the actual value is longer
+than `scaleOrLength`, the driver widens the declared parameter length to the actual value length
+rather than failing or truncating. A zero or negative `scaleOrLength` is treated the same as
+omitting the hint. Applications that pass arbitrary or undersized `scaleOrLength` values for
+string and binary types therefore behave exactly as they did before length hints were introduced —
+the only cost of an inaccurate hint is a possible statement re-prepare.
+
+This differs from `defineParameterType()`, which is an explicit declaration and **is** enforced as
+a hard maximum.
 
 ## See Also
 
@@ -29,12 +30,14 @@ This document focuses specifically on the `setObject(..., scaleOrLength)` behavi
  * @param targetSqlType a java.sql.Types constant indicating the SQL type
  * @param scaleOrLength for most types this parameter is ignored; for supported
  *                      variable-length types (VARCHAR, CHAR, NVARCHAR, NCHAR,
- *                      VARBINARY, BINARY), this is treated as the maximum length
- *                      in characters (for string types) or bytes (for binary types).
+ *                      VARBINARY, BINARY), this is treated as an advisory length
+ *                      hint, in bytes for VARCHAR/CHAR/VARBINARY/BINARY and in
+ *                      characters for NVARCHAR/NCHAR.
  *                      When set, mssql-jdbc declares the parameter in TDS using
  *                      this length instead of the default maximum. If a value
- *                      exceeds this length, execution fails with an error to prevent
- *                      silent data truncation.
+ *                      exceeds this length, the declared length is widened to the
+ *                      actual value length; the value is never truncated and no
+ *                      error is raised.
  * @throws SQLException if an error occurs
  */
 public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)
@@ -114,10 +117,33 @@ applies equally to the ordinal `SQLServerPreparedStatement.setObject(int, ...)` 
 
 When `setObject()` is called with `scaleOrLength > 0` for a supported type:
 
-1. The driver uses this value as the maximum length hint
+1. The driver uses this value as an advisory length hint
 2. The TDS TypeInfo for the parameter is declared using this hint instead of the default maximum
 3. The actual value is sent to the server as-is (no client-side truncation)
-4. If the value exceeds the hint, the server may truncate or reject it depending on the declared type and data
+4. If the actual value is longer than the hint, the declared length is widened to the actual value
+   length before the TDS message is built, so the value always fits
+
+### Widening When the Value Does Not Fit
+
+An undersized hint is corrected automatically:
+
+```java
+ps.setObject(1, "this_is_a_very_long_value", Types.VARCHAR, 5);
+ps.executeUpdate();
+// Hint of 5 is too small for a 25-byte value.
+// Wire sends: varchar(25) — the full value is stored, no error, no truncation.
+```
+
+The driver emits a `FINER` log record on the
+`com.microsoft.sqlserver.jdbc.internals.Parameter` logger when it widens a hint, which is useful
+for finding hints that are consistently too small.
+
+Because widening changes the parameter's type definition, it may cause the statement to be
+re-prepared on the server. To avoid that cost, size the hint for the largest value you expect.
+
+For VARCHAR and CHAR the comparison is done on the **encoded byte length** using the database
+collation's charset, not the Java character count, because `varchar(n)` counts bytes on the
+server. NVARCHAR and NCHAR are compared in characters, and binary types in bytes.
 
 ### Per-Call Application
 
@@ -182,27 +208,17 @@ For more details, see **[README.md](README.md#precedence-rule-defineparametertyp
 
 ### Non-Positive Length
 
-Passing a non-positive `scaleOrLength` (`<= 0`) for a supported bounded variable-length type
-is rejected with `R_invalidParameterLength` during parameter type resolution at execution time.
-(Note: for `defineParameterType()`, non-positive values are rejected eagerly at call time.)
+Passing a non-positive `scaleOrLength` (`<= 0`) for a supported bounded variable-length type is
+not an error. The hint is ignored and the parameter length is derived from the actual value, the
+same as if no hint had been supplied.
 
-### Value Exceeds Declared Length
+(Note: for `defineParameterType()`, non-positive values *are* rejected eagerly at call time with
+`R_invalidParameterLength`.)
 
-If a value exceeds the declared length, execution fails with an error to prevent silent data truncation.
-This is a **breaking behavioral change** from prior versions where `scaleOrLength` was ignored
-for string/binary types:
+### Value Exceeds the Hint
 
-```java
-ps.setObject(1, "this_is_a_very_long_value", Types.VARCHAR, 5);
-try {
-    ps.executeUpdate();
-} catch (SQLServerException e) {
-    // Error: R_parameterTypeValueLengthExceedsHint
-    // Actual value (25 chars) exceeds declared length (5 chars)
-}
-```
-
-This error occurs at **execution time**, not at the `setObject()` call, because the driver validates the value only when the TDS message is being prepared.
+This is not an error. The declared length is widened to the actual value length — see
+[Widening When the Value Does Not Fit](#widening-when-the-value-does-not-fit).
 
 ### Invalid Type for Hint
 
@@ -250,6 +266,8 @@ int[] counts = ps.executeBatch();
 | Aspect | `setObject(..., scaleOrLength)` | `defineParameterType()` |
 |---|---|---|
 | **Scope** | Per-call | Persists across calls |
+| **Enforcement** | Advisory — widened to fit if too small | Enforced — value longer than `maxLength` is an error |
+| **Non-positive length** | Ignored, hint dropped | Rejected with `R_invalidParameterLength` |
 | **Batch behavior** | Hint varies per row | Hint is consistent across all rows |
 | **Discoverability** | Less obvious (standard JDBC parameter) | More explicit (dedicated method) |
 | **Best for** | Single executions, non-batch scenarios | Batch inserts, consistent type contracts |
@@ -261,9 +279,12 @@ int[] counts = ps.executeBatch();
 
 The `scaleOrLength` parameter is extracted by `SQLServerPreparedStatement.setObject()` and passed as an integer to the internal parameter setting logic. When the TDS message is prepared, the type definition is computed by checking:
 
-1. **Is `defineParameterType()` called?** If yes, use that hint (takes precedence)
-2. **Is `scaleOrLength` present for a supported type?** If yes, validate that it is `> 0`
-    and then use that hint
+1. **Is `defineParameterType()` called?** If yes, use that hint (takes precedence) and enforce it
+    as a maximum
+2. **Is `scaleOrLength` present for a supported type?** If yes, use it as an advisory hint: honor
+    it when the value fits, widen it to the actual value length when it does not, and drop it
+    when it is non-positive or when the actual length cannot be measured (for example a `null`
+    value or a non-`String`/non-`byte[]` value)
 3. Otherwise, use the default TypeInfo (varchar(8000) / nvarchar(4000) / varbinary(8000))
 
 ### Interaction with Always Encrypted (AE)
@@ -280,7 +301,8 @@ See **[ParameterLengthHintTest.java](../../../../src/test/java/com/microsoft/sql
 
 - **SetObjectLengthHintTests**: Verifies `setObject()` scaleOrLength honored for all 6 supported types
 - **DefinePrecedesSetObjectTests**: Verifies `defineParameterType()` takes precedence over `setObject()` hints
-- **ErrorHandlingTests**: Verifies value-exceeds-hint errors
+- **ErrorHandlingTests**: Verifies `defineParameterType()` value-exceeds-hint errors, and that
+  undersized or non-positive `setObject()` hints widen instead of failing
 - **BatchTests**: Verifies batch behavior with both APIs and precedence
 
 See **[CallableParameterLengthHintTest.java](../../../../src/test/java/com/microsoft/sqlserver/jdbc/callablestatement/CallableParameterLengthHintTest.java)** for callable-statement coverage, including:
@@ -288,7 +310,7 @@ See **[CallableParameterLengthHintTest.java](../../../../src/test/java/com/micro
 - Named-parameter `setObject` scale-only overload behavior across all 6 supported types
 - Precedence (`defineParameterType` over callable `setObject` length hints) for both non-forceEncrypt and forceEncrypt overloads
 - `sendStringParametersAsUnicode` true/false declaration behavior
-- Boundary, NULL/empty, and value-exceeds-hint scenarios
+- Boundary, NULL/empty, and value-exceeds-hint widening scenarios
 - Guard test for callable precision+scale overload semantics
 
 ## Related Classes and Methods

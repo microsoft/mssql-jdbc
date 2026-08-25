@@ -586,21 +586,33 @@ public class ParameterLengthHintTest extends AbstractTest {
             }
         }
 
-        @ParameterizedTest(name = "Non-positive setObject scaleOrLength hint rejected: {1}, hint={2}")
+        // A non-positive setObject scaleOrLength is not an error. The hint is ignored and the
+        // declared length is derived from the actual value instead.
+        @ParameterizedTest(name = "Non-positive setObject scaleOrLength hint ignored: {1}, hint={2}")
         @MethodSource("nonPositiveLengthCases")
-        void testSetObjectNonPositiveHintRejected(int sqlType, String typeName, int hintLength) throws Exception {
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
-                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+        void testSetObjectNonPositiveHintIgnored(int sqlType, String typeName, int hintLength) throws Exception {
+            boolean isBinary = (Types.VARBINARY == sqlType || Types.BINARY == sqlType);
+            String column = isBinary ? "bincol" : "vcol";
 
-                if (sqlType == Types.VARBINARY || sqlType == Types.BINARY) {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
+
+                if (isBinary) {
                     pstmt.setObject(1, new byte[] {0x01}, sqlType, hintLength);
                 } else {
                     pstmt.setObject(1, "a", sqlType, hintLength);
                 }
 
-                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
-                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterLength")),
-                        "Unexpected error: " + e.getMessage());
+                pstmt.executeUpdate();
+
+                assertEquals(isBinary ? "varbinary(1)" : "nvarchar(1)", getTypeDefinition(pstmt, 1),
+                        "Non-positive hint must fall back to the actual value length");
+            }
+
+            if (isBinary) {
+                assertArrayEquals(new byte[] {0x01}, readLastVarbinary());
+            } else {
+                assertEquals("a", readLastVarchar());
             }
         }
 
@@ -778,6 +790,50 @@ public class ParameterLengthHintTest extends AbstractTest {
             }
         }
 
+        // varchar(n) is byte-counted on the server. With sendStringParametersAsUnicode=false a
+        // multi-byte value must be validated against its ENCODED BYTE length, not its Java char
+        // count - otherwise it passes validation and is then silently truncated server-side.
+        @Test
+        @DisplayName("defineParameterType validates VARCHAR against encoded byte length")
+        void testDefineParameterTypeVarcharValidatesByteLength() throws Exception {
+            // 4 characters, but more than 4 bytes in any non-Unicode collation.
+            String value = "caf\u00e9";
+            String connStr = connectionString + ";sendStringParametersAsUnicode=false;";
+
+            try (Connection con = PrepUtil.getConnection(connStr);
+                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                         .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.defineParameterType(1, Types.VARCHAR, value.length());
+                pstmt.setString(1, value);
+
+                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate,
+                        "A value whose encoded byte length exceeds the declared varchar length must be rejected");
+                assertTrue(e.getMessage()
+                        .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
+                        "Unexpected error: " + e.getMessage());
+            }
+        }
+
+        // The same value under the default sendStringParametersAsUnicode=true goes on the wire as
+        // nvarchar(n), which is character-counted, so a char-sized declaration must still pass.
+        @Test
+        @DisplayName("defineParameterType validates NVARCHAR against character length")
+        void testDefineParameterTypeNvarcharValidatesCharLength() throws Exception {
+            String value = "caf\u00e9";
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.defineParameterType(1, Types.VARCHAR, value.length());
+                pstmt.setString(1, value);
+                pstmt.executeUpdate();
+
+                assertEquals("nvarchar(4)", getTypeDefinition(pstmt, 1),
+                        "Unicode parameters are character-counted, so 4 chars fits a length of 4");
+            }
+            assertEquals(value, readLastVarchar(), "Multi-byte value must round-trip intact");
+        }
+
         Stream<Arguments> binaryHintSmallerThanValueCases() {
             byte[] fiveBytes = {0x01, 0x02, 0x03, 0x04, 0x05};
             return Stream.of(
@@ -799,24 +855,25 @@ public class ParameterLengthHintTest extends AbstractTest {
                             "setObject NVARCHAR hint smaller than value"));
         }
 
+        // The setObject scaleOrLength hint is advisory. When it is smaller than the value, the
+        // driver widens the declared length to the actual value length instead of failing, so the
+        // full value is stored untruncated.
         @ParameterizedTest(name = "{3}")
         @MethodSource("setObjectHintSmallerThanValueCases")
-        void testSetObjectHintSmallerThanValueThrowsError(String value, int sqlType, int hintLength,
+        void testSetObjectHintSmallerThanValueWidens(String value, int sqlType, int hintLength,
                 String description) throws Exception {
             String column = Types.NVARCHAR == sqlType ? "nvcol" : "vcol";
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
 
                 pstmt.setObject(1, value, sqlType, hintLength);
-                try {
-                    pstmt.executeUpdate();
-                    fail("Expected SQLServerException for value length exceeding setObject scaleOrLength hint");
-                } catch (SQLServerException e) {
-                    assertTrue(e.getMessage()
-                            .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
-                            "Unexpected error: " + e.getMessage());
-                }
+                pstmt.executeUpdate();
+
+                // sendStringParametersAsUnicode=true (default) routes both cases through NVARCHAR.
+                assertEquals("nvarchar(" + value.length() + ")", getTypeDefinition(pstmt, 1),
+                        "Expected the declared length to widen to the actual value length");
             }
+            assertEquals(value, readLastString(column), "Value must be stored untruncated");
         }
 
         Stream<Arguments> setObjectBinaryHintSmallerThanValueCases() {
@@ -829,21 +886,18 @@ public class ParameterLengthHintTest extends AbstractTest {
 
         @ParameterizedTest(name = "{3}")
         @MethodSource("setObjectBinaryHintSmallerThanValueCases")
-        void testSetObjectBinaryHintSmallerThanValueThrowsError(byte[] value, int sqlType, int hintLength,
+        void testSetObjectBinaryHintSmallerThanValueWidens(byte[] value, int sqlType, int hintLength,
                 String description) throws Exception {
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
 
                 pstmt.setObject(1, value, sqlType, hintLength);
-                try {
-                    pstmt.executeUpdate();
-                    fail("Expected SQLServerException for value length exceeding setObject scaleOrLength hint");
-                } catch (SQLServerException e) {
-                    assertTrue(e.getMessage()
-                            .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
-                            "Unexpected error: " + e.getMessage());
-                }
+                pstmt.executeUpdate();
+
+                assertEquals("varbinary(" + value.length + ")", getTypeDefinition(pstmt, 1),
+                        "Expected the declared length to widen to the actual value length");
             }
+            assertArrayEquals(value, readLastVarbinary(), "Value must be stored untruncated");
         }
 
         // Verify binary data fails execution when the hint is smaller than the byte[] length.
@@ -883,21 +937,18 @@ public class ParameterLengthHintTest extends AbstractTest {
 
         @ParameterizedTest(name = "{4}")
         @MethodSource("setObjectLengthSmallerThanValueCases")
-        void testSetObjectLengthSmallerThanValueThrowsError(String value, int sqlType, int scaleOrLength,
+        void testSetObjectLengthSmallerThanValueWidens(String value, int sqlType, int scaleOrLength,
                 String column, String description) throws Exception {
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
 
                 pstmt.setObject(1, value, sqlType, scaleOrLength);
-                try {
-                    pstmt.executeUpdate();
-                    fail("Expected SQLServerException for setObject value length exceeding scaleOrLength");
-                } catch (SQLServerException e) {
-                    assertTrue(e.getMessage()
-                            .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
-                            "Unexpected error: " + e.getMessage());
-                }
+                pstmt.executeUpdate();
+
+                assertEquals("nvarchar(" + value.length() + ")", getTypeDefinition(pstmt, 1),
+                        "Expected the declared length to widen to the actual value length");
             }
+            assertEquals(value, readLastString(column), "Value must be stored untruncated");
         }
 
         Stream<Arguments> setObjectBinaryLengthSmallerThanValueCases() {
@@ -909,21 +960,18 @@ public class ParameterLengthHintTest extends AbstractTest {
 
         @ParameterizedTest(name = "{3}")
         @MethodSource("setObjectBinaryLengthSmallerThanValueCases")
-        void testSetObjectBinaryLengthSmallerThanValueThrowsError(byte[] value, int sqlType, int scaleOrLength,
+        void testSetObjectBinaryLengthSmallerThanValueWidens(byte[] value, int sqlType, int scaleOrLength,
                 String description) throws Exception {
             try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
 
                 pstmt.setObject(1, value, sqlType, scaleOrLength);
-                try {
-                    pstmt.executeUpdate();
-                    fail("Expected SQLServerException for setObject value length exceeding scaleOrLength");
-                } catch (SQLServerException e) {
-                    assertTrue(e.getMessage()
-                            .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
-                            "Unexpected error: " + e.getMessage());
-                }
+                pstmt.executeUpdate();
+
+                assertEquals("varbinary(" + value.length + ")", getTypeDefinition(pstmt, 1),
+                        "Expected the declared length to widen to the actual value length");
             }
+            assertArrayEquals(value, readLastVarbinary(), "Value must be stored untruncated");
         }
     }
 
@@ -1176,46 +1224,48 @@ public class ParameterLengthHintTest extends AbstractTest {
 
             Stream<Arguments> batchSetObjectHintTooSmallCases() {
                 return Stream.of(
-                    Arguments.of(Types.VARCHAR, "vcol", "0123456789", "Batch setObject VARCHAR over-length error"),
-                    Arguments.of(Types.CHAR, "vcol", "0123456789", "Batch setObject CHAR over-length error"),
-                    Arguments.of(Types.NVARCHAR, "nvcol", "0123456789", "Batch setObject NVARCHAR over-length error"),
-                    Arguments.of(Types.NCHAR, "nvcol", "0123456789", "Batch setObject NCHAR over-length error"),
+                    Arguments.of(Types.VARCHAR, "vcol", "0123456789", "Batch setObject VARCHAR over-length widens"),
+                    Arguments.of(Types.CHAR, "vcol", "0123456789", "Batch setObject CHAR over-length widens"),
+                    Arguments.of(Types.NVARCHAR, "nvcol", "0123456789", "Batch setObject NVARCHAR over-length widens"),
+                    Arguments.of(Types.NCHAR, "nvcol", "0123456789", "Batch setObject NCHAR over-length widens"),
                     Arguments.of(Types.VARBINARY, "bincol", new byte[] {0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
-                        "Batch setObject VARBINARY over-length error"),
+                        "Batch setObject VARBINARY over-length widens"),
                     Arguments.of(Types.BINARY, "bincol", new byte[] {0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
-                        "Batch setObject BINARY over-length error"));
+                        "Batch setObject BINARY over-length widens"));
             }
 
+            // A batch where the first row fits the setObject hint and the second does not. The
+            // second row widens the declared length, which re-prepares the statement mid-batch.
+            // Both rows must be inserted untruncated and no error may be raised.
             @ParameterizedTest(name = "{3}")
             @MethodSource("batchSetObjectHintTooSmallCases")
-            void testBatchSetObjectHintTooSmallThrowsError(int sqlType, String column, Object longValue,
+            void testBatchSetObjectHintTooSmallWidens(int sqlType, String column, Object longValue,
                 String description) throws Exception {
+                int maxIdBefore = getMaxId();
                 try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
                     .prepareStatement("INSERT INTO " + escapedTable + " (" + column + ") VALUES (?)")) {
 
-                if ("bincol".equals(column)) {
-                    pstmt.setObject(1, new byte[] {0x01, 0x02, 0x03}, sqlType, 5);
+                    if ("bincol".equals(column)) {
+                        pstmt.setObject(1, new byte[] {0x01, 0x02, 0x03}, sqlType, 5);
+                    } else {
+                        pstmt.setObject(1, "hi", sqlType, 5);
+                    }
                     pstmt.addBatch();
+
                     pstmt.setObject(1, longValue, sqlType, 5);
                     pstmt.addBatch();
-                } else {
-                    pstmt.setObject(1, "hi", sqlType, 5);
-                    pstmt.addBatch();
-                    pstmt.setObject(1, longValue, sqlType, 5);
+
+                    pstmt.executeBatch();
                 }
 
-                // Validation can throw while adding the over-length row in batch mode.
-                SQLException e = assertThrows(SQLException.class, () -> {
-                    pstmt.addBatch();
-                    pstmt.executeBatch();
-                });
-                String msg = e.getMessage();
-                String causeMsg = (null != e.getCause()) ? e.getCause().getMessage() : null;
-                assertTrue((null != msg
-                    && msg.matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")))
-                    || (null != causeMsg && causeMsg.matches(TestUtils
-                        .formatErrorMsg("R_parameterTypeValueLengthExceedsHint"))),
-                    "Unexpected error: " + e.getMessage());
+                assertEquals(2, countRowsSince(maxIdBefore), "Both batch rows must be inserted");
+
+                if ("bincol".equals(column)) {
+                    assertArrayEquals((byte[]) longValue, readLastVarbinary(),
+                            "Over-length batch row must be stored untruncated");
+                } else {
+                    assertEquals((String) longValue, readLastString(column),
+                            "Over-length batch row must be stored untruncated");
                 }
             }
 
@@ -1407,33 +1457,35 @@ public class ParameterLengthHintTest extends AbstractTest {
         }
 
         @Test
-        @DisplayName("PreparedStatement.setObject enforces scaleOrLength constraint")
-        void testSetObjectViaInterfaceRejectsOverLength() throws Exception {
-            // scaleOrLength=5, value="Engineering" (11 chars) — should fail at execution
+        @DisplayName("PreparedStatement.setObject widens an undersized scaleOrLength")
+        void testSetObjectViaInterfaceWidensOverLength() throws Exception {
+            // scaleOrLength=5, value="Engineering" (11 chars) — hint is advisory, so the declared
+            // length widens to 11 and the full value is stored.
+            String value = "Engineering";
             try (PreparedStatement pstmt = connection
                     .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
 
-                pstmt.setObject(1, "Engineering", Types.VARCHAR, 5);
-                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
-                assertTrue(e.getMessage()
-                        .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
-                        "Unexpected error: " + e.getMessage());
+                pstmt.setObject(1, value, Types.VARCHAR, 5);
+                pstmt.executeUpdate();
+
+                assertEquals("nvarchar(" + value.length() + ")", getTypeDefinition(pstmt, 1));
             }
+            assertEquals(value, readLastVarchar());
         }
 
         @Test
-        @DisplayName("PreparedStatement.setObject binary enforces scaleOrLength constraint")
-        void testSetObjectBinaryViaInterfaceRejectsOverLength() throws Exception {
+        @DisplayName("PreparedStatement.setObject binary widens an undersized scaleOrLength")
+        void testSetObjectBinaryViaInterfaceWidensOverLength() throws Exception {
             byte[] value = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06};
             try (PreparedStatement pstmt = connection
                     .prepareStatement("INSERT INTO " + escapedTable + " (bincol) VALUES (?)")) {
 
                 pstmt.setObject(1, value, Types.VARBINARY, 3);
-                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
-                assertTrue(e.getMessage()
-                        .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
-                        "Unexpected error: " + e.getMessage());
+                pstmt.executeUpdate();
+
+                assertEquals("varbinary(" + value.length + ")", getTypeDefinition(pstmt, 1));
             }
+            assertArrayEquals(value, readLastVarbinary());
         }
 
         @Test
@@ -1458,6 +1510,211 @@ public class ParameterLengthHintTest extends AbstractTest {
             assertEquals("row1", stored.get(0));
             assertEquals("row2", stored.get(1));
             assertEquals("row3", stored.get(2));
+        }
+    }
+
+    // =========================================================================
+    // setObject hint is advisory (widening)
+    // =========================================================================
+
+    @Nested
+    @DisplayName("setObject scaleOrLength is advisory and widens to fit")
+    @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+    class SetObjectAdvisoryHintTests {
+
+        // An accurate hint is still honored exactly - widening must not kick in when the value fits.
+        @Test
+        @DisplayName("Hint larger than the value is honored, not widened")
+        void testHintLargerThanValueIsHonored() throws Exception {
+            String value = "short";
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.setObject(1, value, Types.VARCHAR, 100);
+                pstmt.executeUpdate();
+
+                assertEquals("nvarchar(100)", getTypeDefinition(pstmt, 1),
+                        "A hint that already fits must be used as-is");
+            }
+            assertEquals(value, readLastVarchar());
+        }
+
+        // A value exactly equal to the hint is not over-length and must not widen.
+        @Test
+        @DisplayName("Hint exactly equal to the value length is honored")
+        void testHintEqualToValueLengthIsHonored() throws Exception {
+            String value = "0123456789";
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.setObject(1, value, Types.VARCHAR, value.length());
+                pstmt.executeUpdate();
+
+                assertEquals("nvarchar(10)", getTypeDefinition(pstmt, 1));
+            }
+            assertEquals(value, readLastVarchar());
+        }
+
+        // Widening past the short-type boundary must promote to the corresponding max type
+        // rather than declaring an illegal nvarchar(4001).
+        @Test
+        @DisplayName("Widening past the NVARCHAR boundary promotes to nvarchar(max)")
+        void testWideningPastBoundaryPromotesToMax() throws Exception {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 5000; i++) {
+                sb.append('x');
+            }
+            String value = sb.toString();
+
+            try (Connection con = PrepUtil.getConnection(connectionString);
+                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                         .prepareStatement("SELECT LEN(CAST(? AS NVARCHAR(MAX)))")) {
+
+                pstmt.setObject(1, value, Types.NVARCHAR, 10);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(value.length(), rs.getInt(1),
+                            "The full value must reach the server untruncated");
+                }
+
+                assertEquals("nvarchar(max)", getTypeDefinition(pstmt, 1),
+                        "Widening beyond 4000 characters must promote to nvarchar(max)");
+            }
+        }
+
+        // Widening past the VARBINARY boundary must promote to varbinary(max).
+        @Test
+        @DisplayName("Widening past the VARBINARY boundary promotes to varbinary(max)")
+        void testBinaryWideningPastBoundaryPromotesToMax() throws Exception {
+            byte[] value = new byte[9000];
+            for (int i = 0; i < value.length; i++) {
+                value[i] = (byte) (i % 256);
+            }
+
+            try (Connection con = PrepUtil.getConnection(connectionString);
+                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                         .prepareStatement("SELECT DATALENGTH(CAST(? AS VARBINARY(MAX)))")) {
+
+                pstmt.setObject(1, value, Types.VARBINARY, 10);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(value.length, rs.getInt(1),
+                            "The full value must reach the server untruncated");
+                }
+
+                assertEquals("varbinary(max)", getTypeDefinition(pstmt, 1),
+                        "Widening beyond 8000 bytes must promote to varbinary(max)");
+            }
+        }
+
+        // varchar(n) counts BYTES on the server, but String.length() counts characters. A
+        // multi-byte value must be measured in encoded bytes, otherwise the widened declaration
+        // would still be too small and the server would truncate.
+        @Test
+        @DisplayName("VARCHAR widening measures encoded bytes, not Java chars, when SSPAU=false")
+        void testVarcharWideningUsesByteLength() throws Exception {
+            String value = "caf\u00e9 na\u00efve r\u00e9sum\u00e9";
+            String connStr = connectionString + ";sendStringParametersAsUnicode=false;";
+
+            try (Connection con = PrepUtil.getConnection(connStr);
+                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                         .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                // Hint of 1 is far too small; the declared length must widen to at least the
+                // number of encoded bytes so that nothing is truncated server-side.
+                pstmt.setObject(1, value, Types.VARCHAR, 1);
+                pstmt.executeUpdate();
+
+                String typeDef = getTypeDefinition(pstmt, 1);
+                assertTrue(typeDef.startsWith("varchar("),
+                        "Expected a varchar declaration with SSPAU=false, got: " + typeDef);
+
+                int declared = Integer.parseInt(typeDef.substring("varchar(".length(), typeDef.length() - 1));
+                assertTrue(declared >= value.length(),
+                        "Declared length " + declared + " must cover the encoded byte length of the value");
+            }
+
+            assertEquals(value, readLastVarchar(), "Multi-byte value must be stored untruncated");
+        }
+
+        // A null value has no length to widen against, so a positive hint still shapes the
+        // declaration and execution succeeds.
+        @Test
+        @DisplayName("Null value with an undersized hint still succeeds")
+        void testNullValueWithHint() throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.setObject(1, null, Types.VARCHAR, 5);
+                pstmt.executeUpdate();
+            }
+            assertNull(readLastVarchar(), "Null must round-trip as null");
+        }
+
+        // Repeated executions on the same statement with progressively longer values must each
+        // succeed, re-preparing as the declared length grows.
+        @Test
+        @DisplayName("Successive executions widen progressively without error")
+        void testSuccessiveExecutionsWiden() throws Exception {
+            int maxIdBefore = getMaxId();
+            String[] values = {"a", "abcdefgh", "abcdefghijklmnopqrstuvwxyz"};
+
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                for (String value : values) {
+                    pstmt.setObject(1, value, Types.VARCHAR, 4);
+                    pstmt.executeUpdate();
+                }
+            }
+
+            List<String> stored = readVarcharsSince(maxIdBefore);
+            assertEquals(values.length, stored.size(), "Every execution must insert a row");
+            for (int i = 0; i < values.length; i++) {
+                assertEquals(values[i], stored.get(i), "Value must be stored untruncated");
+            }
+        }
+
+        // A hint on a value that is neither String nor byte[] cannot be measured, so it is
+        // dropped and the driver falls back to its default sizing. This must not fail.
+        @Test
+        @DisplayName("Hint on a non-string, non-binary value is ignored")
+        void testHintOnUnmeasurableValueIsIgnored() throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.setObject(1, 1234567890, Types.VARCHAR, 2);
+                pstmt.executeUpdate();
+            }
+            assertEquals("1234567890", readLastVarchar(),
+                    "Unmeasurable value must be stored untruncated");
+        }
+
+        // defineParameterType() keeps its enforced semantics even though setObject() no longer
+        // enforces. This guards against the two paths being conflated.
+        @Test
+        @DisplayName("defineParameterType still enforces while setObject does not")
+        void testDefineParameterTypeStillEnforces() throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.defineParameterType(1, Types.VARCHAR, 5);
+                pstmt.setString(1, "Engineering");
+
+                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate);
+                assertTrue(e.getMessage()
+                        .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
+                        "Unexpected error: " + e.getMessage());
+            }
+
+            // The same undersized length supplied through setObject widens instead of failing.
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.setObject(1, "Engineering", Types.VARCHAR, 5);
+                pstmt.executeUpdate();
+            }
+            assertEquals("Engineering", readLastVarchar());
         }
     }
 

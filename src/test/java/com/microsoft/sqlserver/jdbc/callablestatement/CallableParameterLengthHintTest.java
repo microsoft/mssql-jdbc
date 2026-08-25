@@ -232,7 +232,7 @@ public class CallableParameterLengthHintTest extends AbstractTest {
     }
 
     private static Stream<Arguments> allSupportedTypeCasesForLengthError() {
-        // Values intentionally exceed small hints to validate deterministic error behavior.
+        // Values intentionally exceed small hints to validate deterministic behavior.
         byte[] binaryValue = new byte[] {0x01, 0x02, 0x03, 0x04, 0x05};
         return Stream.of(
                 Arguments.of(Types.VARCHAR, "@v", "Engineering", false),
@@ -243,23 +243,73 @@ public class CallableParameterLengthHintTest extends AbstractTest {
                 Arguments.of(Types.BINARY, "@b", binaryValue, true));
     }
 
-    @ParameterizedTest(name = "value exceeds length hint throws for type {0}")
+    @ParameterizedTest(name = "value exceeds length hint widens for type {0}")
     @MethodSource("allSupportedTypeCasesForLengthError")
-    public void testCallableSetObjectNamedLengthHintSmallerThanValueThrowsForAllSupportedTypes(int sqlType,
+    public void testCallableSetObjectNamedLengthHintSmallerThanValueWidensForAllSupportedTypes(int sqlType,
             String parameterName, Object value, boolean binaryType) throws Exception {
-        // setObject length hint path should fail fast when value exceeds declared hint.
+        // The callable setObject length hint is advisory: an undersized hint is widened to the
+        // actual value length rather than failing, so the full value is stored untruncated.
         String procName = binaryType ? procVarbinary : procVarchar;
         try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
                 .prepareCall("{call " + procName + "(?)}")) {
 
             cs.setObject(parameterName, value, sqlType, 3);
-            try {
-                cs.execute();
-                fail("Expected SQLServerException for value length exceeding setObject scale hint");
-            } catch (SQLServerException e) {
-                assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
-                        "Unexpected error: " + e.getMessage());
+            cs.execute();
+
+            if (binaryType) {
+                assertEquals("varbinary(" + ((byte[]) value).length + ")", getTypeDefinition(cs, 1),
+                        "Expected the declared length to widen to the actual value length");
+            } else {
+                assertEquals("nvarchar(" + ((String) value).length() + ")", getTypeDefinition(cs, 1),
+                        "Expected the declared length to widen to the actual value length");
             }
+        }
+
+        if (binaryType) {
+            assertArrayEquals((byte[]) value, readLastVarbinary(), "Value must be stored untruncated");
+        } else {
+            assertEquals((String) value, readLastVarchar(), "Value must be stored untruncated");
+        }
+    }
+
+    @ParameterizedTest(name = "forceEncrypt overload widens for type {0}")
+    @MethodSource("allSupportedTypeCasesForLengthError")
+    public void testCallableSetObjectNamedForceEncryptLengthHintWidensForAllSupportedTypes(int sqlType,
+            String parameterName, Object value, boolean binaryType) throws Exception {
+        // Same advisory behavior on the forceEncrypt overload (forceEncrypt=false here, so the
+        // non-AE path is exercised).
+        String procName = binaryType ? procVarbinary : procVarchar;
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
+                .prepareCall("{call " + procName + "(?)}")) {
+
+            cs.setObject(parameterName, value, sqlType, 3, false);
+            cs.execute();
+        }
+
+        if (binaryType) {
+            assertArrayEquals((byte[]) value, readLastVarbinary(), "Value must be stored untruncated");
+        } else {
+            assertEquals((String) value, readLastVarchar(), "Value must be stored untruncated");
+        }
+    }
+
+    @ParameterizedTest(name = "non-positive length hint ignored for type {0}")
+    @MethodSource("allSupportedTypeCasesForLengthError")
+    public void testCallableSetObjectNamedNonPositiveLengthHintIgnored(int sqlType, String parameterName,
+            Object value, boolean binaryType) throws Exception {
+        // A non-positive hint is dropped rather than rejected.
+        String procName = binaryType ? procVarbinary : procVarchar;
+        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
+                .prepareCall("{call " + procName + "(?)}")) {
+
+            cs.setObject(parameterName, value, sqlType, 0);
+            cs.execute();
+        }
+
+        if (binaryType) {
+            assertArrayEquals((byte[]) value, readLastVarbinary(), "Value must be stored untruncated");
+        } else {
+            assertEquals((String) value, readLastVarchar(), "Value must be stored untruncated");
         }
     }
 

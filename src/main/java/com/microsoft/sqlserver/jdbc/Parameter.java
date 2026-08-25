@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.ResultSet;
@@ -23,6 +24,8 @@ import java.time.OffsetTime;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import microsoft.sql.Vector;
 
@@ -33,6 +36,8 @@ import microsoft.sql.Vector;
  */
 
 final class Parameter {
+    private static final Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.Parameter");
+
     // Value type info for OUT parameters (excluding return status)
     private TypeInfo typeInfo;
 
@@ -547,15 +552,18 @@ final class Parameter {
         }
 
         private Integer getApplicationSpecifiedLengthHint(DTV dtv) throws SQLServerException {
-            // Precedence rule for short character/binary families:
-            // 1) defineParameterType(maxLength) — stored in dedicated defineParameterTypeLengthHint field
-            // 2) setObject(..., scaleOrLength)
-            Integer lengthHint;
-            if (param.defineParameterTypeSqlType != 0) {
-                lengthHint = param.defineParameterTypeLengthHint;
-            } else {
-                lengthHint = dtv.getScale();
-            }
+            // Two independent sources can supply a length for short character/binary families:
+            //
+            // 1) defineParameterType(maxLength) - an explicit declaration. It is ENFORCED: a value
+            //    longer than the declared length is an error, because the application has asserted
+            //    a contract that it is violating.
+            // 2) setObject(..., scaleOrLength) - an advisory HINT. It is never enforced. If the
+            //    value does not fit, the declared length is silently widened to the actual value
+            //    length so that nothing is truncated and nothing fails. This preserves the
+            //    pre-existing behavior of setObject(), where scaleOrLength was ignored for
+            //    character and binary types.
+            boolean declaredViaDefineParameterType = param.defineParameterTypeSqlType != 0;
+            Integer lengthHint = declaredViaDefineParameterType ? param.defineParameterTypeLengthHint : dtv.getScale();
 
             if (null == lengthHint) {
                 return null;
@@ -568,13 +576,96 @@ final class Parameter {
                 case NVARCHAR:
                 case BINARY:
                 case VARBINARY:
-                    if (lengthHint <= 0) {
-                        throwInvalidParameterLength(lengthHint);
-                    }
-                    return lengthHint;
+                    break;
                 default:
                     return null;
             }
+
+            if (declaredViaDefineParameterType) {
+                if (lengthHint <= 0) {
+                    throwInvalidParameterLength(lengthHint);
+                }
+                validateApplicationSpecifiedLength(dtv, lengthHint);
+                return lengthHint;
+            }
+
+            return resolveSetObjectLengthHint(dtv, lengthHint);
+        }
+
+        /**
+         * Resolves the effective declared length for a setObject(..., scaleOrLength) hint.
+         *
+         * The hint is advisory only. It is honored when the value fits, widened to the actual
+         * value length when it does not, and dropped entirely when the actual length cannot be
+         * determined safely (in which case the driver falls back to its default sizing).
+         *
+         * @return the length to declare, or null to use the driver's default type definition
+         */
+        private Integer resolveSetObjectLengthHint(DTV dtv, int lengthHint) throws SQLServerException {
+            if (null == dtv.getSetterValue()) {
+                // Nothing to measure against, so there is nothing to widen. A positive hint is
+                // still useful for shaping the type definition of a null value.
+                return (lengthHint > 0) ? lengthHint : null;
+            }
+
+            Integer actualLength = getActualValueLength(dtv);
+            if (null == actualLength) {
+                // The value is not a String or byte[], or the collation needed to measure it is
+                // unavailable. Honoring the hint here could truncate, so fall back to the
+                // driver's default sizing - which is what setObject() did before length hints.
+                return null;
+            }
+
+            if (lengthHint > 0 && actualLength <= lengthHint) {
+                return lengthHint;
+            }
+
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer(param + " setObject length hint " + lengthHint + " is smaller than the actual value length "
+                        + actualLength + " for JDBC type " + dtv.getJdbcType()
+                        + "; widening the declared parameter length to " + actualLength
+                        + ". The statement will be re-prepared if the type definition changed.");
+            }
+
+            // An empty value yields length 0, which is not a legal declared length. Fall back to
+            // the driver's default sizing in that case.
+            return (actualLength > 0) ? actualLength : null;
+        }
+
+        /**
+         * Returns the length of the current setter value in the units the server uses for the
+         * target type, or null if it cannot be determined.
+         *
+         * VARCHAR and CHAR lengths are byte counts on the server, so the value is measured using
+         * the database collation's charset rather than the Java character count. Note that these
+         * JDBC types only reach this point when sendStringParametersAsUnicode=false, because
+         * {@link Parameter#setValue} re-tags character parameters as NVARCHAR otherwise - so the
+         * measurement unit always matches the type that is actually declared on the wire.
+         * NVARCHAR, NCHAR, BINARY and VARBINARY are already measured in the correct units by
+         * {@link Util#getValueLengthBaseOnJavaType}.
+         */
+        private Integer getActualValueLength(DTV dtv) throws SQLServerException {
+            Object setterValue = dtv.getSetterValue();
+            if (null == setterValue) {
+                return null;
+            }
+
+            JavaType javaType = dtv.getJavaType();
+            if (JavaType.STRING != javaType && JavaType.BYTEARRAY != javaType) {
+                return null;
+            }
+
+            JDBCType jdbcType = dtv.getJdbcType();
+            if (JavaType.STRING == javaType && (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType)) {
+                SQLCollation collation = con.getDatabaseCollation();
+                if (null == collation) {
+                    return null;
+                }
+                Charset charset = collation.getCharset();
+                return (null == charset) ? null : ((String) setterValue).getBytes(charset).length;
+            }
+
+            return Util.getValueLengthBaseOnJavaType(setterValue, javaType, null, dtv.getScale(), jdbcType);
         }
 
         private Integer getBoundedDeclaredLengthHint(JDBCType jdbcType, int hintLength) {
@@ -609,8 +700,12 @@ final class Parameter {
                 return;
             }
 
-            int actualLength = Util.getValueLengthBaseOnJavaType(dtv.getSetterValue(), javaType, null, dtv.getScale(),
-                    dtv.getJdbcType());
+            // Measured in the same units the server uses for the target type: bytes for
+            // varchar/char, characters for nvarchar/nchar, bytes for binary/varbinary.
+            Integer actualLength = getActualValueLength(dtv);
+            if (null == actualLength) {
+                return;
+            }
 
             if (actualLength > boundedDeclaredLength) {
                 MessageFormat form = new MessageFormat(
@@ -624,10 +719,9 @@ final class Parameter {
             boolean aeActive = param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser)
                     && !(null == param.getCryptoMetadata() && param.renewDefinition);
 
+            // Resolves the effective declared length from defineParameterType() (enforced) or
+            // setObject(..., scaleOrLength) (advisory, widened to fit the value when necessary).
             Integer applicationLengthHint = aeActive ? null : getApplicationSpecifiedLengthHint(dtv);
-            if (null != applicationLengthHint) {
-                validateApplicationSpecifiedLength(dtv, applicationLengthHint);
-            }
 
             switch (dtv.getJdbcType()) {
                 case TINYINT:
@@ -809,8 +903,8 @@ final class Parameter {
                             param.typeDefinition = VARBINARY_MAX;
                         }
                     } else if (null != applicationLengthHint) {
-                        // Application-provided hint from defineParameterType() or setObject(..., scaleOrLength):
-                        // declare the requested length for VARBINARY/BINARY.
+                        // Application-provided length from defineParameterType() (enforced) or
+                        // setObject(..., scaleOrLength) (advisory, already widened to fit the value).
                         int hint = applicationLengthHint;
                         if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
                             param.typeDefinition = VARBINARY_MAX;
@@ -972,8 +1066,8 @@ final class Parameter {
                             }
                         }
                     } else if (null != applicationLengthHint) {
-                        // Application-provided hint from defineParameterType() or setObject(..., scaleOrLength):
-                        // declare the requested length for VARCHAR/CHAR.
+                        // Application-provided length from defineParameterType() (enforced) or
+                        // setObject(..., scaleOrLength) (advisory, already widened to fit the value).
                         int hint = applicationLengthHint;
                         if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
                             param.typeDefinition = VARCHAR_MAX;
@@ -1113,8 +1207,8 @@ final class Parameter {
                         }
                         break;
                     } else if (null != applicationLengthHint) {
-                        // Application-provided hint from defineParameterType() or setObject(..., scaleOrLength):
-                        // declare the requested length for NVARCHAR/NCHAR.
+                        // Application-provided length from defineParameterType() (enforced) or
+                        // setObject(..., scaleOrLength) (advisory, already widened to fit the value).
                         int hint = applicationLengthHint;
                         if (hint > DataTypes.SHORT_VARTYPE_MAX_CHARS) {
                             param.typeDefinition = NVARCHAR_MAX;
