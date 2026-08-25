@@ -209,8 +209,9 @@ For more details, see **[README.md](README.md#precedence-rule-defineparametertyp
 ### Non-Positive Length
 
 Passing a non-positive `scaleOrLength` (`<= 0`) for a supported bounded variable-length type is
-not an error. The hint is ignored and the parameter length is derived from the actual value, the
-same as if no hint had been supplied.
+not an error. The application-provided hint is dropped; when the actual value length can be
+measured safely, the driver declares that length, otherwise it falls back to the driver's default
+sizing.
 
 (Note: for `defineParameterType()`, non-positive values *are* rejected eagerly at call time with
 `R_invalidParameterLength`.)
