@@ -804,14 +804,25 @@ public class ParameterLengthHintTest extends AbstractTest {
                  SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
                          .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
 
-                pstmt.defineParameterType(1, Types.VARCHAR, value.length());
-                pstmt.setString(1, value);
+            // Compute the server-side byte length under the current database collation so the test is
+            // deterministic across code pages (e.g. Cp1252 vs UTF-8 collations).
+            int byteLen;
+            try (PreparedStatement lenStmt = con.prepareStatement("SELECT DATALENGTH(CAST(? AS VARCHAR(MAX)))")) {
+                lenStmt.setString(1, value);
+                try (ResultSet rs = lenStmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    byteLen = rs.getInt(1);
+                }
+            }
 
-                SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate,
-                        "A value whose encoded byte length exceeds the declared varchar length must be rejected");
-                assertTrue(e.getMessage()
-                        .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
-                        "Unexpected error: " + e.getMessage());
+            pstmt.defineParameterType(1, Types.VARCHAR, byteLen - 1);
+            pstmt.setString(1, value);
+
+            SQLServerException e = assertThrows(SQLServerException.class, pstmt::executeUpdate,
+                    "A value whose encoded byte length exceeds the declared varchar length must be rejected");
+            assertTrue(e.getMessage()
+                    .matches(TestUtils.formatErrorMsg("R_parameterTypeValueLengthExceedsHint")),
+                    "Unexpected error: " + e.getMessage());
             }
         }
 
