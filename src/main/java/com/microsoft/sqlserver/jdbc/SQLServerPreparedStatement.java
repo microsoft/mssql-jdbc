@@ -806,7 +806,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // Track statement execution (PREPEXEC or EXECUTE based on execution path)
                 try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                         PerformanceLog.perfLoggerStatement,
-                        connection.getConnectionID(),
+                        connection,
                         getStatementID(),
                         this,
                         userSQL,
@@ -1470,7 +1470,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Track sp_prepare execution time
         try (PerformanceLog.Scope prepareScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
-                connection.getConnectionID(),
+                connection,
                 getStatementID(),
                 this,
                 userSQL,
@@ -2680,7 +2680,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             stmtColumnEncriptionSetting);
                             SQLServerResultSet rs = stmt
                                     .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                            + Util.escapeSingleQuotes(bcOperationTableName) + " '")) {
+                                            + Util.escapeSingleQuotes(
+                                                    Util.escapeMultiPartIdentifier(bcOperationTableName))
+                                            + " '")) {
                         Map<Integer, Integer> columnMappings = null;
                         if (null != bcOperationColumnList && !bcOperationColumnList.isEmpty()) {
                             if (bcOperationColumnList.size() != bcOperationValueList.size()) {
@@ -2898,7 +2900,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             stmtColumnEncriptionSetting);
                             SQLServerResultSet rs = stmt
                                     .executeQueryInternal("sp_executesql N'SET FMTONLY ON SELECT * FROM "
-                                            + Util.escapeSingleQuotes(bcOperationTableName) + " '")) {
+                                            + Util.escapeSingleQuotes(
+                                                    Util.escapeMultiPartIdentifier(bcOperationTableName))
+                                            + " '")) {
                         if (null != bcOperationColumnList && !bcOperationColumnList.isEmpty()) {
                             if (bcOperationColumnList.size() != bcOperationValueList.size()) {
                                 MessageFormat form = new MessageFormat(
@@ -3506,7 +3510,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Performance tracking: track statement execution time for the entire batch
         try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                 PerformanceLog.perfLoggerStatement,
-                connection.getConnectionID(),
+                connection,
                 getStatementID(),
                 this,
                 userSQL,
@@ -3794,7 +3798,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Track batch execution time
             try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
                     PerformanceLog.perfLoggerStatement,
-                    connection.getConnectionID(),
+                    connection,
                     getStatementID(),
                     this,
                     userSQL,

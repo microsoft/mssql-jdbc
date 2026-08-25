@@ -837,7 +837,10 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
     private Column loadColumn(int index) throws SQLServerException {
         assert 1 <= index && index <= columns.length;
 
-        initializeNullCompressedColumns();
+        // Skip the call once the row's null-compressed columns are initialized. For an NBCROW the
+        // bitmap is read on the first accessed column and the flag is set; the flag is reset per row.
+        if (!areNullCompressedColumnsInitialized)
+            initializeNullCompressedColumns();
 
         // Skip any columns between the last indexed column and the target column,
         // retaining their values so they can be retrieved later.

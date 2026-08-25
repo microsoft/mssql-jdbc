@@ -290,6 +290,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** flag indicating whether server supports transactions */
     private Boolean supportsTransactions = null;
 
+    /**
+     * Tri-state flag indicating whether the server exposes the sp_columns_170 stored procedure, which is only
+     * available on SQL Server 2025 and later. null means the driver has not determined it yet, TRUE means the
+     * procedure exists and FALSE means the procedure does not exist on this server.
+     * <p>
+     * The value is scoped to the current TDS session. It survives a pooled logical connection reset, which reuses the
+     * same session against the same server, but is reset to null when idle connection resiliency establishes a new
+     * session, because the driver may then be talking to a different backend.
+     */
+    private volatile Boolean spColumns170Supported = null;
+
     /** shared timer */
     private SharedTimer sharedTimer;
 
@@ -2001,6 +2012,19 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return connectionID;
     }
 
+    /**
+     * Returns the application name for this connection, used for performance tracking.
+     * Returns null if the connection properties have not been parsed yet, since the
+     * applicationName property is resolved during connectInternal().
+     *
+     * @return the application name, or null if not yet available
+     */
+    final String getApplicationName() {
+        return (null != activeConnectionProperties)
+                ? activeConnectionProperties.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString())
+                : null;
+    }
+
     /** Limit for the size of data (in bytes) returned for value on this connection */
     private int maxFieldSize; // default: 0 --> no limit
 
@@ -2370,7 +2394,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
         try (PerformanceLog.Scope connectScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                connectionID, PerformanceActivity.CONNECTION)) {
+                this, PerformanceActivity.CONNECTION)) {
             try {
                 int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
                 if (propsIn != null) {
@@ -3880,7 +3904,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private void login(String primary, String primaryInstanceName, int primaryPortNumber, String mirror,
             FailoverInfo foActual, int timeout, long timerStart) throws SQLServerException {
         try (PerformanceLog.Scope loginScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                connectionID, PerformanceActivity.LOGIN)) {
+                this, PerformanceActivity.LOGIN)) {
             try {
                 // standardLogin would be false only for db mirroring scenarios. It would be
                 // true
@@ -4510,7 +4534,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     void prelogin(String serverName, int portNumber) throws SQLServerException {
         try (PerformanceLog.Scope preLoginScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                connectionID, PerformanceActivity.PRELOGIN)) {
+                this, PerformanceActivity.PRELOGIN)) {
             try {
                 // Build a TDS Pre-Login packet to send to the server.
                 if ((!authenticationString.equalsIgnoreCase(SqlAuthentication.NOT_SPECIFIED.toString()))
@@ -5070,6 +5094,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 if (null != preparedStatementHandleCache) {
                                     preparedStatementHandleCache.clear();
                                 }
+
+                                // The reconnect establishes a new session and may land on a different backend, so
+                                // any capability derived from the previous session must be determined again.
+                                spColumns170Supported = null;
 
                                 this.reconnectListeners.forEach(ReconnectListener::beforeReconnect);
 
@@ -6921,7 +6949,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     void onFedAuthInfo(SqlFedAuthInfo fedAuthInfo, TDSTokenHandler tdsTokenHandler) throws SQLServerException {
 
         try (PerformanceLog.Scope fedAuthScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                connectionID, PerformanceActivity.TOKEN_ACQUISITION)) {
+                this, PerformanceActivity.TOKEN_ACQUISITION)) {
             try {
                 assert (null != activeConnectionProperties.getProperty(SQLServerDriverStringProperty.USER.toString())
                         && null != activeConnectionProperties
@@ -9673,6 +9701,28 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     boolean isAzureMI() {
         isAzure();
         return isAzureMI;
+    }
+
+    /**
+     * Returns whether the server exposes the sp_columns_170 stored procedure.
+     *
+     * @return TRUE if sp_columns_170 exists, FALSE if it does not exist, null if this has not been determined yet
+     */
+    Boolean getSpColumns170Supported() {
+        return spColumns170Supported;
+    }
+
+    /**
+     * Records whether the server exposes the sp_columns_170 stored procedure. The value is cached for the lifetime of
+     * the current TDS session so that DatabaseMetaData.getColumns() probes for the procedure at most once instead of
+     * once per call. It is reset to undetermined when a new session is established against the server, since the
+     * driver may then be talking to a different backend.
+     *
+     * @param supported
+     *        TRUE if sp_columns_170 exists, FALSE if it does not exist, null to mark the state as undetermined
+     */
+    void setSpColumns170Supported(Boolean supported) {
+        spColumns170Supported = supported;
     }
 
     boolean isAzureSqlServerEndpoint() {

@@ -6,6 +6,8 @@ package com.microsoft.sqlserver.jdbc.unit.lobs;
 
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedInputStream;
@@ -14,7 +16,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.NotSerializableException;
+import java.io.ObjectOutputStream;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
@@ -974,6 +979,191 @@ public class LobsTest extends AbstractTest {
     private static void dropTables(DBTable table, Statement stmt) throws SQLException {
         stmt.executeUpdate("if object_id('" + TestUtils.escapeSingleQuotes(table.getEscapedTableName())
                 + "','U') is not null" + " drop table " + table.getEscapedTableName());
+    }
+
+    // ------------------------------------------------------------------------------------------------
+    // Legacy FX LOB API tests ported from tests/src/largedatatypes/largedatatypetest.java.
+    // ------------------------------------------------------------------------------------------------
+
+    /**
+     * Verifies Blob.position() returns the 1-based index of a byte pattern, returns 1 for an empty
+     * pattern, and returns -1 when the pattern is absent or the search starts past the match.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testBlobPosition() throws Exception {
+        String name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("lobsBlobPosition"));
+        byte[] data = "HELLOWORLD".getBytes(StandardCharsets.US_ASCII);
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(name, stmt);
+            stmt.executeUpdate("CREATE TABLE " + name + " (bcol varbinary(max))");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + name + " VALUES (?)")) {
+                ps.setBytes(1, data);
+                ps.executeUpdate();
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT bcol FROM " + name)) {
+                assertTrue(rs.next());
+                Blob blob = rs.getBlob(1);
+                assertEquals(6L, blob.position("WORLD".getBytes(StandardCharsets.US_ASCII), 1),
+                        "Blob.position(WORLD, 1)");
+                assertEquals(-1L, blob.position("WORLD".getBytes(StandardCharsets.US_ASCII), 7),
+                        "Blob.position(WORLD, 7) should be -1");
+                assertEquals(1L, blob.position(new byte[0], 1), "Blob.position(empty, 1)");
+                assertEquals(-1L, blob.position("XYZ".getBytes(StandardCharsets.US_ASCII), 1),
+                        "Blob.position(missing) should be -1");
+                assertEquals(1L, blob.position("H".getBytes(StandardCharsets.US_ASCII), 1), "Blob.position(H, 1)");
+            } finally {
+                TestUtils.dropTableIfExists(name, stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies Clob.position() performs a 1-based search for a character pattern, mirroring the Blob
+     * behavior for character LOBs.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testClobPosition() throws Exception {
+        String name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("lobsClobPosition"));
+        String data = "HELLOWORLD";
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(name, stmt);
+            stmt.executeUpdate("CREATE TABLE " + name + " (ccol varchar(max))");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + name + " VALUES (?)")) {
+                ps.setString(1, data);
+                ps.executeUpdate();
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT ccol FROM " + name)) {
+                assertTrue(rs.next());
+                Clob clob = rs.getClob(1);
+                assertEquals(6L, clob.position("WORLD", 1), "Clob.position(WORLD, 1)");
+                assertEquals(-1L, clob.position("WORLD", 7), "Clob.position(WORLD, 7) should be -1");
+                assertEquals(1L, clob.position("", 1), "Clob.position(empty, 1)");
+                assertEquals(-1L, clob.position("XYZ", 1), "Clob.position(missing) should be -1");
+                assertEquals(1L, clob.position("H", 1), "Clob.position(H, 1)");
+            } finally {
+                TestUtils.dropTableIfExists(name, stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies Blob.truncate() shortens the value to the given length and throws for a negative length.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testBlobTruncate() throws Exception {
+        String name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("lobsBlobTruncate"));
+        byte[] data = "HELLOWORLD".getBytes(StandardCharsets.US_ASCII);
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(name, stmt);
+            stmt.executeUpdate("CREATE TABLE " + name + " (bcol varbinary(max))");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + name + " VALUES (?)")) {
+                ps.setBytes(1, data);
+                ps.executeUpdate();
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT bcol FROM " + name)) {
+                assertTrue(rs.next());
+                Blob blob = rs.getBlob(1);
+                blob.truncate(5);
+                assertEquals(5L, blob.length(), "Blob length after truncate(5)");
+                assertEquals("HELLO", new String(blob.getBytes(1, 5), StandardCharsets.US_ASCII),
+                        "Blob content after truncate");
+                assertThrows(SQLException.class, () -> blob.truncate(-1), "Blob.truncate(-1) should throw");
+            } finally {
+                TestUtils.dropTableIfExists(name, stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies Clob.truncate() shortens the value to the given length and throws for a negative length.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testClobTruncate() throws Exception {
+        String name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("lobsClobTruncate"));
+        String data = "HELLOWORLD";
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(name, stmt);
+            stmt.executeUpdate("CREATE TABLE " + name + " (ccol varchar(max))");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + name + " VALUES (?)")) {
+                ps.setString(1, data);
+                ps.executeUpdate();
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT ccol FROM " + name)) {
+                assertTrue(rs.next());
+                Clob clob = rs.getClob(1);
+                clob.truncate(5);
+                assertEquals(5L, clob.length(), "Clob length after truncate(5)");
+                assertEquals("HELLO", clob.getSubString(1, 5), "Clob content after truncate");
+                assertThrows(SQLException.class, () -> clob.truncate(-1), "Clob.truncate(-1) should throw");
+            } finally {
+                TestUtils.dropTableIfExists(name, stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies Blob.setBytes writing a sub-range of the source array at an arbitrary (non-1) position.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testBlobSetBytesAtOffset() throws Exception {
+        try (Connection conn = getConnection()) {
+            Blob blob = conn.createBlob();
+            blob.setBytes(1, "AAAAAAAAAA".getBytes(StandardCharsets.US_ASCII));
+
+            byte[] src = "WXYZ".getBytes(StandardCharsets.US_ASCII);
+            int written = blob.setBytes(4, src, 1, 2);
+            assertEquals(2, written, "setBytes should report bytes written");
+
+            byte[] result = blob.getBytes(1, (int) blob.length());
+            assertEquals("AAAXYAAAAA", new String(result, StandardCharsets.US_ASCII),
+                    "Blob content after partial setBytes at offset");
+        }
+    }
+
+    /**
+     * Verifies that an unmaterialized, stream-backed server Blob (delayLoadingLobs=true) cannot be
+     * serialized: it holds a live, non-serializable input stream, so serialization throws
+     * NotSerializableException. Note that a materialized {@link com.microsoft.sqlserver.jdbc.SQLServerBlob}
+     * is itself Serializable, hence delayLoadingLobs is pinned to true to exercise the streaming form.
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testSerializeBlobThrows() throws Exception {
+        String name = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("lobsSerialize"));
+        byte[] data = "HELLOWORLD".getBytes(StandardCharsets.US_ASCII);
+        // Pin delayLoadingLobs=true so getBlob() returns the stream-backed form under test.
+        String streamString = TestUtils.addOrOverrideProperty(connectionString, "delayLoadingLobs", "true");
+        try (Connection conn = DriverManager.getConnection(streamString); Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(name, stmt);
+            stmt.executeUpdate("CREATE TABLE " + name + " (bcol varbinary(max))");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + name + " VALUES (?)")) {
+                ps.setBytes(1, data);
+                ps.executeUpdate();
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT bcol FROM " + name)) {
+                assertTrue(rs.next());
+                Blob blob = rs.getBlob(1);
+                assertNotNull(blob);
+                try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                        ObjectOutputStream oos = new ObjectOutputStream(bos)) {
+                    assertThrows(NotSerializableException.class, () -> oos.writeObject(blob),
+                            "Serializing a Blob should throw NotSerializableException");
+                }
+            } finally {
+                TestUtils.dropTableIfExists(name, stmt);
+            }
+        }
     }
 
 }

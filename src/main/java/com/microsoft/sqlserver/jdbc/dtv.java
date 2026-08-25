@@ -3627,17 +3627,17 @@ final class ServerDTVImpl extends DTVImpl {
                 }
 
             case SMALLMONEY:
-                return DDC.convertMoneyToObject(new BigDecimal(BigInteger.valueOf(Util.readInt(decryptedValue, 4)), 4),
+                return DDC.convertMoneyToObject(BigDecimal.valueOf(Util.readInt(decryptedValue, 4), 4),
                         JDBCType.VARBINARY == jdbcType ? baseSSType.getJDBCType() : jdbcType, // use jdbc type from
                                                                                               // baseTypeInfo if using
                                                                                               // getObject()
                         streamGetterArgs.streamType, 4);
 
             case MONEY:
-                BigInteger bi = BigInteger.valueOf(((long) Util.readInt(decryptedValue, 0) << 32)
-                        | (Util.readInt(decryptedValue, 4) & 0xFFFFFFFFL));
+                long moneyUnscaled = ((long) Util.readInt(decryptedValue, 0) << 32)
+                        | (Util.readInt(decryptedValue, 4) & 0xFFFFFFFFL);
 
-                return DDC.convertMoneyToObject(new BigDecimal(bi, 4),
+                return DDC.convertMoneyToObject(BigDecimal.valueOf(moneyUnscaled, 4),
                         JDBCType.VARBINARY == jdbcType ? baseSSType.getJDBCType() : jdbcType, // use
                                                                                               // jdbc
                                                                                               // type
@@ -3875,26 +3875,22 @@ final class ServerDTVImpl extends DTVImpl {
                 case NCHAR:
                 case NVARCHAR:
                 {
-                    // Fast path: small synchronous rs.getString() reads bytes directly into
-                    // a String, bypassing the SimpleInputStream wrapper and its embedded
-                    // TDSReaderMark / close() machinery (~4 allocations per cell saved).
-                    //
-                    // Guards (all required for byte-identical semantics with the stream path):
-                    //   - valueLength in (0, 4000]  : skips zero-length and overly large values
-                    //   - streamType == NONE        : stream getters need the actual InputStream
-                    //   - !isAdaptive               : adaptive paths wrap the stream for user code
+                    // Fast path: a small synchronous rs.getString() reads the bytes directly into a
+                    // String, bypassing the SimpleInputStream wrapper and its marks (~4 allocations/cell).
+                    // All guards are required for byte-identical semantics with the stream path:
+                    //   valueLength in (0, 4000] - skip zero-length and overly large values
+                    //   streamType == NONE       - stream getters need the actual InputStream
+                    //   !isAdaptive              - adaptive paths wrap the stream for user code
                     //   - jdbcType.isTextual()      : non-textual targets need convertStringToObject
                     //                                 to trim/parse the value
-                    //   - CLOB/NCLOB excluded        : although textual, getClob()/getNClob() must
+                    //   - CLOB/NCLOB excluded       : although textual, getClob()/getNClob() must
                     //                                 return a SQLServerClob/SQLServerNClob, not a String
                     if (valueLength > 0 && valueLength <= 4000
                             && StreamType.NONE == streamGetterArgs.streamType
                             && !streamGetterArgs.isAdaptive
                             && jdbcType.isTextual()
                             && JDBCType.CLOB != jdbcType && JDBCType.NCLOB != jdbcType) {
-                        byte[] bytes = new byte[valueLength];
-                        tdsReader.readBytes(bytes, 0, valueLength);
-                        convertedValue = new String(bytes, typeInfo.getCharset());
+                        convertedValue = tdsReader.readStringFromBytes(valueLength, typeInfo.getCharset());
                         break;
                     }
                     // Fall through to the stream-based path for large/streaming/non-textual cases.

@@ -36,12 +36,16 @@ import java.util.UUID;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -1824,6 +1828,43 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(schemaTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulkString), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulkComputedCols), stmt);
+        }
+    }
+
+    // ─── SQL injection prevention: batch insert with useBulkCopyForBatchInsert ───
+
+    static Stream<Arguments> sqlInjectionPayloads() {
+        return Stream.of(
+                Arguments.of("(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'whoami'--"),
+                Arguments.of("(SELECT 1 a) t; SET FMTONLY OFF; SELECT name, password_hash INTO ##creds FROM sys.sql_logins--"),
+                Arguments.of("(SELECT 1 a) t; SET FMTONLY OFF; CREATE LOGIN [backdoor] WITH PASSWORD='x'--"),
+                Arguments.of("table1; DROP TABLE users--"),
+                Arguments.of("x; SET FMTONLY OFF; EXEC xp_cmdshell 'net user hacker P@ss /add'--"),
+                Arguments.of("table]; DROP TABLE users--"),
+                Arguments.of("t'; DROP TABLE users--")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("sqlInjectionPayloads")
+    public void testBatchInsertRejectsInjectionPayload(String payload) throws Exception {
+        String escapedPayload = AbstractSQLGenerator.escapeIdentifier(payload);
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                PreparedStatement pstmt = conn.prepareStatement(
+                        "INSERT INTO " + escapedPayload + " (c1) VALUES (?)")) {
+            pstmt.setInt(1, 1);
+            pstmt.addBatch();
+            try {
+                pstmt.executeBatch();
+                fail("Expected SQLException for non-existent table");
+            } catch (SQLException e) {
+                // The escaped identifier is treated as a literal name — no SQL injection
+                assertTrue(e.getMessage().contains("Invalid object name")
+                                || e.getMessage().contains("Incorrect syntax")
+                                || e.getMessage().contains("Could not find")
+                                || e.getMessage().contains("invalid"),
+                        "Unexpected error: " + e.getMessage());
+            }
         }
     }
 }
