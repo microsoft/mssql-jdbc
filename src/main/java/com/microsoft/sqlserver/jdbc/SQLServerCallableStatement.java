@@ -1995,8 +1995,9 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
      * BINARY), {@code decimals} is interpreted as an advisory length hint that shapes the
      * parameter's declared type definition. It is never enforced: if the actual value is
      * longer than {@code decimals}, the driver widens the declared length to the actual
-     * value length instead of failing or truncating. Passing a zero or negative value has
-     * the same effect as omitting the hint. This keeps the historical behavior of
+     * value length instead of failing or truncating. Passing a zero or negative value disables the
+     * application-provided hint; in that case the driver derives the declared length from the actual
+     * value when possible, otherwise it falls back to default sizing. This keeps the historical behavior of
      * {@code setObject}, where this parameter was ignored for string and binary types,
      * while allowing applications that supply an accurate hint to get a narrower parameter
      * declaration and better plan reuse.
