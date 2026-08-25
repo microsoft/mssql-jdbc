@@ -563,7 +563,17 @@ final class Parameter {
             //    pre-existing behavior of setObject(), where scaleOrLength was ignored for
             //    character and binary types.
             boolean declaredViaDefineParameterType = param.defineParameterTypeSqlType != 0;
-            Integer lengthHint = declaredViaDefineParameterType ? param.defineParameterTypeLengthHint : dtv.getScale();
+
+            // Assigned in separate branches rather than with a conditional expression on purpose:
+            // defineParameterTypeLengthHint is a primitive int, so mixing it with the Integer
+            // returned by getScale() in a ternary would force the whole expression to int and
+            // auto-unbox a null scale into a NullPointerException.
+            Integer lengthHint;
+            if (declaredViaDefineParameterType) {
+                lengthHint = param.defineParameterTypeLengthHint;
+            } else {
+                lengthHint = dtv.getScale();
+            }
 
             if (null == lengthHint) {
                 return null;
