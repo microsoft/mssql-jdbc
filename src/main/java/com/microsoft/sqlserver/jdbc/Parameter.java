@@ -546,11 +546,6 @@ final class Parameter {
             this.con = con;
         }
 
-        private void throwInvalidParameterLength(int length) throws SQLServerException {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidParameterLength"));
-            SQLServerException.makeFromDriverError(con, param, form.format(new Object[] {length}), null, false);
-        }
-
         private Integer getApplicationSpecifiedLengthHint(DTV dtv) throws SQLServerException {
             // Two independent sources can supply a length for short character/binary families:
             //
@@ -592,9 +587,9 @@ final class Parameter {
             }
 
             if (declaredViaDefineParameterType) {
-                if (lengthHint <= 0) {
-                    throwInvalidParameterLength(lengthHint);
-                }
+                // A non-positive maxLength is rejected eagerly by
+                // SQLServerPreparedStatement.defineParameterType() before the hint is ever stored,
+                // so lengthHint is always positive on this path and needs no re-validation here.
                 validateApplicationSpecifiedLength(dtv, lengthHint);
                 return lengthHint;
             }

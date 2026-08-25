@@ -19,7 +19,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
@@ -1565,6 +1570,46 @@ public class ParameterLengthHintTest extends AbstractTest {
                 assertEquals("nvarchar(10)", getTypeDefinition(pstmt, 1));
             }
             assertEquals(value, readLastVarchar());
+        }
+
+        // The documented FINER diagnostic is the only signal an application has that its hint was
+        // too small, so it is asserted rather than left to manual inspection.
+        @Test
+        @DisplayName("Widening emits a FINER diagnostic naming both lengths")
+        void testWideningEmitsFinerLogMessage() throws Exception {
+            Logger paramLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.Parameter");
+            Level originalLevel = paramLogger.getLevel();
+            List<String> messages = Collections.synchronizedList(new ArrayList<String>());
+            Handler captureHandler = new Handler() {
+                @Override
+                public void publish(LogRecord record) {
+                    messages.add(record.getMessage());
+                }
+
+                @Override
+                public void flush() {}
+
+                @Override
+                public void close() {}
+            };
+            captureHandler.setLevel(Level.FINER);
+            paramLogger.addHandler(captureHandler);
+            paramLogger.setLevel(Level.FINER);
+
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.setObject(1, "0123456789", Types.VARCHAR, 3);
+                pstmt.executeUpdate();
+            } finally {
+                paramLogger.removeHandler(captureHandler);
+                paramLogger.setLevel(originalLevel);
+            }
+
+            assertTrue(messages.stream().anyMatch(m -> m.contains("setObject length hint 3")
+                    && m.contains("actual value length 10")),
+                    "Expected a FINER widening diagnostic naming the hint and the actual length, but got: "
+                            + messages);
         }
 
         // Widening past the short-type boundary must promote to the corresponding max type
