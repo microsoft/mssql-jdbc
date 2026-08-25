@@ -595,17 +595,24 @@ final class Parameter {
         /**
          * Resolves the effective declared length for a setObject(..., scaleOrLength) hint.
          *
-         * The hint is advisory only. It is honored when the value fits, widened to the actual
-         * value length when it does not, and dropped entirely when the actual length cannot be
-         * determined safely (in which case the driver falls back to its default sizing).
+         * The hint is advisory only. A non-positive length is not a usable declaration, so it is
+         * ignored entirely and the driver falls back to its default sizing. A positive length is
+         * honored when the value fits and widened to the actual value length when it does not, so
+         * an undersized hint never truncates and never fails.
          *
          * @return the length to declare, or null to use the driver's default type definition
          */
         private Integer resolveSetObjectLengthHint(DTV dtv, int lengthHint) throws SQLServerException {
+            if (lengthHint <= 0) {
+                // Not a usable length. Ignore the hint and let the driver size the parameter as
+                // it did before length hints existed.
+                return null;
+            }
+
             if (null == dtv.getSetterValue()) {
-                // Nothing to measure against, so there is nothing to widen. A positive hint is
-                // still useful for shaping the type definition of a null value.
-                return (lengthHint > 0) ? lengthHint : null;
+                // Nothing to measure against, so there is nothing to widen. The hint still shapes
+                // the type definition of a null value.
+                return lengthHint;
             }
 
             Integer actualLength = getActualValueLength(dtv);
@@ -616,7 +623,7 @@ final class Parameter {
                 return null;
             }
 
-            if (lengthHint > 0 && actualLength <= lengthHint) {
+            if (actualLength <= lengthHint) {
                 return lengthHint;
             }
 
@@ -627,9 +634,7 @@ final class Parameter {
                         + ". The statement will be re-prepared if the type definition changed.");
             }
 
-            // An empty value yields length 0, which is not a legal declared length. Fall back to
-            // the driver's default sizing in that case.
-            return (actualLength > 0) ? actualLength : null;
+            return actualLength;
         }
 
         /**

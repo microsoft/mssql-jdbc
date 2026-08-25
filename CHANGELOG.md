@@ -17,8 +17,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   - **What was added**: New parameter length hints that can be supplied through `defineParameterType` and `setObject` to inform the driver of expected parameter sizes.
   - **Who benefits**: Applications executing parameterized `varchar`/`nvarchar` statements against the server, particularly under high concurrency or large result sets.
   - **Impact**: Improves performance by reducing server-side memory grants. Without a length hint the driver defaults string parameters to the maximum declared size (4000 for `nvarchar`, 8000 for `varchar`), which inflates the query's memory grant; specifying a sensible length via the new APIs lets the server size the grant to the actual data, reducing memory pressure and improving throughput. Default behavior is unchanged when no length is specified.
-  - **Note**: The `defineParameterType` length is an explicit declaration and is enforced — a value longer than the declared `maxLength` raises an error. The `setObject(..., scaleOrLength)` length is advisory only: if the value does not fit, the driver widens the declared parameter length to the actual value length rather than failing or truncating, so existing `setObject` callers are unaffected.
-  - **Note**: Length validation measures the value in the same units the server uses for the declared type — bytes for `varchar`/`char`, characters for `nvarchar`/`nchar`, and bytes for `binary`/`varbinary`. Previously a `varchar` length was compared against the Java character count, so with `sendStringParametersAsUnicode=false` a multi-byte value could pass validation and then be silently truncated by the server. Such a value is now correctly rejected.
 
 - **Add Nanosecond Granularity Option to PerformanceLogCallback** [#2944](https://github.com/microsoft/mssql-jdbc/pull/2944)
   - **What was added**: An option to report timing in the `PerformanceLogCallback` with nanosecond granularity.
@@ -44,6 +42,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   - **What was added**: Enabled vector(float16) tests to run on Azure SQL Database.
   - **Who benefits**: Contributors and CI validation pipelines.
   - **Impact**: Extends test coverage for vector(float16) scenarios on AzureDB.
+
+### Behavior Changes
+
+- **setObject parameter-length validation now throws instead of truncating silently** [#2960](https://github.com/microsoft/mssql-jdbc/pull/2960)
+  - **What changed**: The `setObject` overload that accepts a parameter length now validates the specified length against the actual parameter length.
+  - **Impact**: If the value exceeds the specified length, the driver now throws an exception instead of silently truncating data.
+  - **Action required**: Applications that relied on implicit truncation must provide a parameter length that is large enough for the actual value.
 
 ### Changed
 

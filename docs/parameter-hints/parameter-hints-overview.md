@@ -135,7 +135,7 @@ The two APIs differ in how strictly they treat the supplied length.
 
 `setObject(..., scaleOrLength)` is an **advisory hint** and never fails because of the hint:
 
-- **Non-positive length**: Ignored; the parameter length is derived from the actual value
+- **Non-positive length**: Ignored; the driver uses its default parameter sizing
 - **Value exceeds the hint**: The declared length is widened to the actual value length
 - **Unsupported JDBC type**: Ignored, as before
 

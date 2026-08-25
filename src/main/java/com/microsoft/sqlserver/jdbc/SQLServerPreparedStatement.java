@@ -2042,9 +2042,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * BINARY), {@code scaleOrLength} is interpreted as an advisory length hint that shapes
      * the parameter's declared type definition. It is never enforced: if the actual value is
      * longer than {@code scaleOrLength}, the driver widens the declared length to the actual
-     * value length instead of failing or truncating. Passing a zero or negative value disables the
-     * application-provided hint; in that case the driver derives the declared length from the actual
-     * value when possible, otherwise it falls back to default sizing. This keeps the historical behavior of
+     * value length instead of failing or truncating. Passing a zero or negative value disables
+     * the application-provided hint entirely, and the driver falls back to its default parameter
+     * sizing. This keeps the historical behavior of
      * {@code setObject}, where {@code scaleOrLength} was ignored for string and binary types
      * per the JDBC 4.3 specification, while allowing applications that supply an accurate
      * hint to get a narrower parameter declaration and better plan reuse.

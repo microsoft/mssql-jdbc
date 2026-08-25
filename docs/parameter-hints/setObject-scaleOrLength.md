@@ -209,9 +209,9 @@ For more details, see **[README.md](README.md#precedence-rule-defineparametertyp
 ### Non-Positive Length
 
 Passing a non-positive `scaleOrLength` (`<= 0`) for a supported bounded variable-length type is
-not an error. The application-provided hint is dropped; when the actual value length can be
-measured safely, the driver declares that length, otherwise it falls back to the driver's default
-sizing.
+not an error. It is not a usable declared length, so the hint is ignored entirely and the driver
+falls back to its default sizing (`varchar(8000)` / `nvarchar(4000)` / `varbinary(8000)`) — the
+same behavior as calling `setObject()` without a length.
 
 (Note: for `defineParameterType()`, non-positive values *are* rejected eagerly at call time with
 `R_invalidParameterLength`.)
@@ -268,7 +268,7 @@ int[] counts = ps.executeBatch();
 |---|---|---|
 | **Scope** | Per-call | Persists across calls |
 | **Enforcement** | Advisory — widened to fit if too small | Enforced — value longer than `maxLength` is an error |
-| **Non-positive length** | Ignored, hint dropped | Rejected with `R_invalidParameterLength` |
+| **Non-positive length** | Ignored, driver default sizing is used | Rejected with `R_invalidParameterLength` |
 | **Batch behavior** | Hint varies per row | Hint is consistent across all rows |
 | **Discoverability** | Less obvious (standard JDBC parameter) | More explicit (dedicated method) |
 | **Best for** | Single executions, non-batch scenarios | Batch inserts, consistent type contracts |
@@ -282,10 +282,10 @@ The `scaleOrLength` parameter is extracted by `SQLServerPreparedStatement.setObj
 
 1. **Is `defineParameterType()` called?** If yes, use that hint (takes precedence) and enforce it
     as a maximum
-2. **Is `scaleOrLength` present for a supported type?** If yes, use it as an advisory hint: honor
-    it when the value fits, widen it to the actual value length when it does not, and drop it
-    when it is non-positive or when the actual length cannot be measured (for example a `null`
-    value or a non-`String`/non-`byte[]` value)
+2. **Is `scaleOrLength` a positive value for a supported type?** If yes, use it as an advisory
+    hint: honor it when the value fits, and widen it to the actual value length when it does not.
+    Drop it when the actual length cannot be measured (for example a non-`String`/non-`byte[]`
+    value). A non-positive `scaleOrLength` is ignored outright.
 3. Otherwise, use the default TypeInfo (varchar(8000) / nvarchar(4000) / varbinary(8000))
 
 ### Interaction with Always Encrypted (AE)
@@ -302,8 +302,9 @@ See **[ParameterLengthHintTest.java](../../../../src/test/java/com/microsoft/sql
 
 - **SetObjectLengthHintTests**: Verifies `setObject()` scaleOrLength honored for all 6 supported types
 - **DefinePrecedesSetObjectTests**: Verifies `defineParameterType()` takes precedence over `setObject()` hints
-- **ErrorHandlingTests**: Verifies `defineParameterType()` value-exceeds-hint errors, and that
-  undersized or non-positive `setObject()` hints widen instead of failing
+- **ErrorHandlingTests**: Verifies `defineParameterType()` value-exceeds-hint errors, that
+  undersized `setObject()` hints widen instead of failing, and that non-positive `setObject()`
+  hints fall back to the driver's default sizing
 - **BatchTests**: Verifies batch behavior with both APIs and precedence
 
 See **[CallableParameterLengthHintTest.java](../../../../src/test/java/com/microsoft/sqlserver/jdbc/callablestatement/CallableParameterLengthHintTest.java)** for callable-statement coverage, including:

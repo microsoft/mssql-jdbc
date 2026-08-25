@@ -460,7 +460,8 @@ non-positive `defineParameterType()` hint (`<= 0`) throws `R_invalidParameterLen
 the call site, and a value longer than the declared length throws
 `R_parameterTypeValueLengthExceedsHint` at execution time. The
 `setObject(..., scaleOrLength)` path never throws for either case: a non-positive hint is
-dropped, and an undersized hint is widened to the actual value length.
+ignored in favour of the driver's default sizing, and an undersized positive hint is widened to
+the actual value length.
 
 Length comparisons use the same units the server uses for the declared type: **bytes** for
 `varchar`/`char`, **characters** for `nvarchar`/`nchar`, and **bytes** for `binary`/`varbinary`.

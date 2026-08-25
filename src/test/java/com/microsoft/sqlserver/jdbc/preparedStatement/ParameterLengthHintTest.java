@@ -32,6 +32,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -605,8 +606,8 @@ public class ParameterLengthHintTest extends AbstractTest {
 
                 pstmt.executeUpdate();
 
-                assertEquals(isBinary ? "varbinary(1)" : "nvarchar(1)", getTypeDefinition(pstmt, 1),
-                        "Non-positive hint must fall back to the actual value length");
+                assertEquals(isBinary ? "varbinary(8000)" : "nvarchar(4000)", getTypeDefinition(pstmt, 1),
+                        "Non-positive hint must be ignored in favour of the driver's default sizing");
             }
 
             if (isBinary) {
@@ -1684,6 +1685,42 @@ public class ParameterLengthHintTest extends AbstractTest {
             for (int i = 0; i < values.length; i++) {
                 assertEquals(values[i], stored.get(i), "Value must be stored untruncated");
             }
+        }
+
+        // A non-positive length is not a usable declaration, so it is ignored outright and the
+        // driver falls back to its default sizing rather than deriving a length from the value.
+        @ParameterizedTest(name = "Non-positive hint {0} falls back to default sizing")
+        @ValueSource(ints = {0, -1, -100})
+        @DisplayName("Non-positive hint falls back to default sizing")
+        void testNonPositiveHintFallsBackToDefault(int hintLength) throws Exception {
+            String value = "abc";
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.setObject(1, value, Types.VARCHAR, hintLength);
+                pstmt.executeUpdate();
+
+                assertEquals("nvarchar(4000)", getTypeDefinition(pstmt, 1),
+                        "A non-positive hint must be ignored, not turned into the value length");
+            }
+            assertEquals(value, readLastVarchar());
+        }
+
+        // An empty value combined with a positive hint must still declare the hint - a declared
+        // length of zero would be illegal.
+        @Test
+        @DisplayName("Empty value with a positive hint declares the hint")
+        void testEmptyValueWithPositiveHint() throws Exception {
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO " + escapedTable + " (vcol) VALUES (?)")) {
+
+                pstmt.setObject(1, "", Types.VARCHAR, 10);
+                pstmt.executeUpdate();
+
+                assertEquals("nvarchar(10)", getTypeDefinition(pstmt, 1),
+                        "An empty value must never produce a zero-length declaration");
+            }
+            assertEquals("", readLastVarchar());
         }
 
         // A hint on a value that is neither String nor byte[] cannot be measured, so it is

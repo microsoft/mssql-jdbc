@@ -297,13 +297,17 @@ public class CallableParameterLengthHintTest extends AbstractTest {
     @MethodSource("allSupportedTypeCasesForLengthError")
     public void testCallableSetObjectNamedNonPositiveLengthHintIgnored(int sqlType, String parameterName,
             Object value, boolean binaryType) throws Exception {
-        // A non-positive hint is dropped rather than rejected.
+        // A non-positive hint is not a usable length, so it is ignored and the driver falls back
+        // to its default parameter sizing rather than being rejected.
         String procName = binaryType ? procVarbinary : procVarchar;
         try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
                 .prepareCall("{call " + procName + "(?)}")) {
 
             cs.setObject(parameterName, value, sqlType, 0);
             cs.execute();
+
+            assertEquals(binaryType ? "varbinary(8000)" : "nvarchar(4000)", getTypeDefinition(cs, 1),
+                    "A non-positive hint must fall back to the driver's default sizing");
         }
 
         if (binaryType) {
