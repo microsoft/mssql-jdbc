@@ -293,30 +293,6 @@ public class CallableParameterLengthHintTest extends AbstractTest {
         }
     }
 
-    @ParameterizedTest(name = "non-positive length hint ignored for type {0}")
-    @MethodSource("allSupportedTypeCasesForLengthError")
-    public void testCallableSetObjectNamedNonPositiveLengthHintIgnored(int sqlType, String parameterName,
-            Object value, boolean binaryType) throws Exception {
-        // A non-positive hint is not a usable length, so it is ignored and the driver falls back
-        // to its default parameter sizing rather than being rejected.
-        String procName = binaryType ? procVarbinary : procVarchar;
-        try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
-                .prepareCall("{call " + procName + "(?)}")) {
-
-            cs.setObject(parameterName, value, sqlType, 0);
-            cs.execute();
-
-            assertEquals(binaryType ? "varbinary(8000)" : "nvarchar(4000)", getTypeDefinition(cs, 1),
-                    "A non-positive hint must fall back to the driver's default sizing");
-        }
-
-        if (binaryType) {
-            assertArrayEquals((byte[]) value, readLastVarbinary(), "Value must be stored untruncated");
-        } else {
-            assertEquals((String) value, readLastVarchar(), "Value must be stored untruncated");
-        }
-    }
-
     @ParameterizedTest(name = "defineParameterType value exceeds hint throws for type {0}")
     @MethodSource("allSupportedTypeCasesForLengthError")
     public void testCallableDefineParameterTypeValueExceedsHintThrowsForAllSupportedTypes(int sqlType,
@@ -463,18 +439,28 @@ public class CallableParameterLengthHintTest extends AbstractTest {
                 Arguments.of(Types.BINARY, "@b", oneByte, true, 0));
     }
 
-    @ParameterizedTest(name = "Callable setObject non-positive hint rejected: type={0}, hint={4}")
+    @ParameterizedTest(name = "Callable setObject non-positive hint ignored: type={0}, hint={4}")
     @MethodSource("nonPositiveHintCases")
-    public void testCallableSetObjectNonPositiveHintRejected(int sqlType, String parameterName, Object value,
+    public void testCallableSetObjectNonPositiveHintIgnored(int sqlType, String parameterName, Object value,
             boolean binaryType, int hintLength) throws Exception {
+        // A non-positive setObject length is not a usable declaration. Unlike defineParameterType,
+        // it is not rejected - the hint is ignored and the driver falls back to its default
+        // parameter sizing, which is how setObject behaved before length hints existed.
         String procName = binaryType ? procVarbinary : procVarchar;
         try (SQLServerCallableStatement cs = (SQLServerCallableStatement) connection
                 .prepareCall("{call " + procName + "(?)}")) {
 
             cs.setObject(parameterName, value, sqlType, hintLength);
-            SQLServerException e = org.junit.jupiter.api.Assertions.assertThrows(SQLServerException.class, cs::execute);
-            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidParameterLength")),
-                    "Unexpected error: " + e.getMessage());
+            cs.execute();
+
+            assertEquals(binaryType ? "varbinary(8000)" : "nvarchar(4000)", getTypeDefinition(cs, 1),
+                    "A non-positive hint must fall back to the driver's default sizing");
+        }
+
+        if (binaryType) {
+            assertArrayEquals((byte[]) value, readLastVarbinary(), "Value must be stored untruncated");
+        } else {
+            assertEquals((String) value, readLastVarchar(), "Value must be stored untruncated");
         }
     }
 
