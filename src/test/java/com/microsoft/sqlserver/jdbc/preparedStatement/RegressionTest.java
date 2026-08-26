@@ -538,37 +538,28 @@ public class RegressionTest extends AbstractTest {
      */
     @Test
     public void testBuildParamTypeDefinitionsOnClosedStatement() throws Exception {
-        PreparedStatement pstmt = connection.prepareStatement("SELECT 1 WHERE 1=?");
-        pstmt.setInt(1, 1);
+        try (PreparedStatement pstmt = connection.prepareStatement("SELECT 1 WHERE 1=?")) {
+            pstmt.setInt(1, 1);
 
-        // Simulate the concurrent-close race: the internal params array is nulled out.
-        Field inOutParamField = SQLServerPreparedStatement.class.getDeclaredField("inOutParam");
-        inOutParamField.setAccessible(true);
-        inOutParamField.set(pstmt, null);
+            Field inOutParamField = SQLServerPreparedStatement.class.getSuperclass().getDeclaredField("inOutParam");
+            inOutParamField.setAccessible(true);
+            inOutParamField.set(pstmt, null);
 
-        // Close the statement so the null guard resolves to the "statement is closed" error.
-        pstmt.close();
+            Method buildParamTypeDefinitions = SQLServerPreparedStatement.class.getDeclaredMethod(
+                    "buildParamTypeDefinitions", inOutParamField.getType(), boolean.class);
+            buildParamTypeDefinitions.setAccessible(true);
 
-        // Parameter is package-private, so locate the private method by name and argument count.
-        Method buildParamTypeDefinitions = null;
-        for (Method m : SQLServerPreparedStatement.class.getDeclaredMethods()) {
-            if ("buildParamTypeDefinitions".equals(m.getName()) && m.getParameterCount() == 2) {
-                buildParamTypeDefinitions = m;
-                break;
+            try {
+                // Simulate observing the released params array before the closed flag during a concurrent close.
+                buildParamTypeDefinitions.invoke(pstmt, null, false);
+                fail("Expected SQLServerException for a closed statement, but no exception was thrown.");
+            } catch (InvocationTargetException e) {
+                Throwable cause = e.getCause();
+                assertTrue(cause instanceof SQLServerException,
+                        "Expected SQLServerException but got " + (cause == null ? "null" : cause.getClass().getName()));
+                assertTrue(cause.getMessage().contains(TestResource.getResource("R_statementClosed")),
+                        "Unexpected message: " + cause.getMessage());
             }
-        }
-        assertTrue(buildParamTypeDefinitions != null, "buildParamTypeDefinitions method not found");
-        buildParamTypeDefinitions.setAccessible(true);
-
-        try {
-            buildParamTypeDefinitions.invoke(pstmt, null, false);
-            fail("Expected SQLServerException for a closed statement, but no exception was thrown.");
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause();
-            assertTrue(cause instanceof SQLServerException,
-                    "Expected SQLServerException but got " + (cause == null ? "null" : cause.getClass().getName()));
-            assertTrue(cause.getMessage().contains(TestResource.getResource("R_statementClosed")),
-                    "Unexpected message: " + cause.getMessage());
         }
     }
 

@@ -518,10 +518,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private String buildParamTypeDefinitions(Parameter[] params, boolean renewDefinition) throws SQLServerException {
         if (null == params) {
-            // params is set to null during internalClose(). If we get here, the statement (or its
-            // connection) has been closed. Surface the standard "statement is closed" error instead
-            // of letting a raw NullPointerException escape from params.length below.
-            checkClosed();
+            // params is set to null during closeInternal(). Treat this as a closed statement even if a concurrent close
+            // is racing and the closed flag has not been observed yet.
+            connection.checkClosed();
+            SQLServerException.makeFromDriverError(connection, this,
+                    SQLServerException.getErrString("R_statementIsClosed"), null, false);
             return "";
         }
 
