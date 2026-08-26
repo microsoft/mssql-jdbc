@@ -30,6 +30,7 @@ mssql-jdbc provides two APIs for parameter length hints:
 - **Primary API** — Set once before a batch loop
 - Hint persists across all `addBatch()` and `setString()` / `setNString()` / `setBytes()` calls
 - More discoverable (explicit method name)
+- **Enforced** — a value longer than `maxLength` raises `R_parameterTypeValueLengthExceedsHint`
 - Returns when using `defineParameterType()`, all parameter hints are not overridden
 
 ### `setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)`
@@ -38,6 +39,8 @@ mssql-jdbc provides two APIs for parameter length hints:
 - Hint is provided inline with the value
 - Less discoverable (standard JDBC parameter)
 - Must be supplied on every `setObject()` call
+- **Advisory only** — if the value does not fit, the declared length is widened to the actual
+  value length instead of raising an error
 
 ### Precedence Rule
 
@@ -451,11 +454,21 @@ if (AE active for param)  →  AE path (exact length from value; defines encrypt
 else if (defineParameterTypeSqlType != 0)  →  hint path
 else  →  conservative default (varchar(8000) etc.)
 
-For supported bounded variable-length types, the hint is validated during parameter type
+For supported bounded variable-length types, the hint is resolved during parameter type
 resolution in `Parameter.GetTypeDefinitionOp.getApplicationSpecifiedLengthHint(...)`. A
-non-positive hint (`<= 0`) throws `R_invalidParameterLength` eagerly at the
-`defineParameterType()` call site. For the `setObject(..., scaleOrLength)` path, non-positive
-hints are validated at execution time since the value isn't known until then.
+non-positive `defineParameterType()` hint (`<= 0`) throws `R_invalidParameterLength` eagerly at
+the call site, and a value longer than the declared length throws
+`R_parameterTypeValueLengthExceedsHint` at execution time. The
+`setObject(..., scaleOrLength)` path never throws for either case: a non-positive hint is
+ignored in favour of the driver's default sizing, and an undersized positive hint is widened to
+the actual value length.
+
+Length comparisons use the same units the server uses for the declared type: **bytes** for
+`varchar`/`char`, **characters** for `nvarchar`/`nchar`, and **bytes** for `binary`/`varbinary`.
+Character values are measured with the database collation's charset. Because `setValue()`
+re-tags character parameters as `NVARCHAR` when `sendStringParametersAsUnicode=true`, a
+parameter that still carries `JDBCType.VARCHAR`/`CHAR` at this point is genuinely sent as
+`varchar` on the wire, so the measurement unit always matches the declared type.
 ```
 
 No AE behaviour changes. The hint is silently ignored when AE is active, which is correct:

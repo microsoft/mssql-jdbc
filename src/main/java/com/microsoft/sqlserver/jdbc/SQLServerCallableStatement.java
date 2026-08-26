@@ -1991,19 +1991,23 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /**
      * {@inheritDoc}
      *
-     * Breaking Behavioral Change: For character and binary target types (VARCHAR, CHAR,
-     * NVARCHAR, NCHAR, VARBINARY, BINARY), {@code decimals} is now enforced as a
-     * maximum length constraint. Previously, the JDBC 4.3 specification defined
-     * this parameter only for DECIMAL/NUMERIC (as scale) and for InputStream/Reader
-     * (as stream length), so it was ignored for string and binary types. With this change,
-     * if the actual value length exceeds the specified {@code decimals}, execution
-     * will fail with {@code R_parameterTypeValueLengthExceedsHint}. Applications that pass
-     * arbitrary or undersized values for string/binary types must either increase the value
-     * to accommodate their largest payload or use a {@code setObject} overload that omits
-     * the length constraint.
+     * For character and binary target types (VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY,
+     * BINARY), {@code decimals} is interpreted as an advisory length hint that shapes the
+     * parameter's declared type definition. It is never enforced: if the actual value is
+     * longer than {@code decimals}, the driver widens the declared length to the actual
+     * value length instead of failing or truncating. Passing a zero or negative value disables
+     * the application-provided hint entirely, and the driver falls back to its default parameter
+     * sizing. This keeps the historical behavior of
+     * {@code setObject}, where this parameter was ignored for string and binary types,
+     * while allowing applications that supply an accurate hint to get a narrower parameter
+     * declaration and better plan reuse.
+     *
+     * Widening changes the parameter's type definition, so it may cause the statement to be
+     * re-prepared. Supply a hint large enough for the largest expected value to avoid this.
      *
      * If {@link #defineParameterType(int, int, int)} has been called for the same
-     * parameter, its {@code maxLength} takes precedence over {@code decimals}.
+     * parameter, its {@code maxLength} takes precedence over {@code decimals} and, unlike
+     * this hint, is enforced as a hard maximum.
      */
     @Override
     public void setObject(String parameterName, Object value, int sqlType, int decimals) throws SQLServerException {
@@ -2016,8 +2020,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         // this is the number of digits after the decimal point. For Java Object types
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For supported short character/binary SQL types (VARCHAR, CHAR, NVARCHAR, NCHAR,
-        // VARBINARY, BINARY), this is treated as application-provided length hint AND enforced
-        // as a maximum length constraint.
+        // VARBINARY, BINARY), this is treated as an advisory length hint that is widened to
+        // the actual value length when the value does not fit. It is never enforced.
         // Precedence: defineParameterType() hint (if present) takes priority over this value.
         // For all other types, this value will be ignored.
         Integer precision = null;
@@ -2043,10 +2047,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     /**
      * {@inheritDoc}
      *
-     * Breaking Behavioral Change: For character and binary target types (VARCHAR, CHAR,
-     * NVARCHAR, NCHAR, VARBINARY, BINARY), {@code decimals} is now enforced as a
-     * maximum length constraint. See {@link #setObject(String, Object, int, int)} for
-     * full details on this behavioral change.
+     * For character and binary target types (VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY,
+     * BINARY), {@code decimals} is an advisory length hint that is widened to the actual
+     * value length when the value does not fit. See
+     * {@link #setObject(String, Object, int, int)} for full details.
      */
     @Override
     public void setObject(String parameterName, Object value, int sqlType, int decimals,
@@ -2060,8 +2064,8 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         // this is the number of digits after the decimal point. For Java Object types
         // InputStream and Reader, this is the length of the data in the stream or reader.
         // For supported short character/binary SQL types (VARCHAR, CHAR, NVARCHAR, NCHAR,
-        // VARBINARY, BINARY), this is treated as application-provided length hint AND enforced
-        // as a maximum length constraint.
+        // VARBINARY, BINARY), this is treated as an advisory length hint that is widened to
+        // the actual value length when the value does not fit. It is never enforced.
         // Precedence: defineParameterType() hint (if present) takes priority over this value.
         // For all other types, this value will be ignored.
         Integer precision = null;

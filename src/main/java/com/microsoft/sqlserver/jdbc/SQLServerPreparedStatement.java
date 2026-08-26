@@ -2038,19 +2038,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * {@inheritDoc}
      *
-     * Breaking Behavioral Change: For character and binary target types (VARCHAR, CHAR,
-     * NVARCHAR, NCHAR, VARBINARY, BINARY), {@code scaleOrLength} is now enforced as a
-     * maximum length constraint. Previously, the JDBC 4.3 specification defined
-     * {@code scaleOrLength} only for DECIMAL/NUMERIC (as scale) and for InputStream/Reader
-     * (as stream length), so it was ignored for string and binary types. With this change,
-     * if the actual value length exceeds the specified {@code scaleOrLength}, execution
-     * will fail with {@code R_parameterTypeValueLengthExceedsHint}. Applications that pass
-     * arbitrary or undersized {@code scaleOrLength} values for string/binary types must
-     * either increase the value to accommodate their largest payload or use a two-argument
-     * {@code setObject} overload that omits the length constraint.
+     * For character and binary target types (VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY,
+     * BINARY), {@code scaleOrLength} is interpreted as an advisory length hint that shapes
+     * the parameter's declared type definition. It is never enforced: if the actual value is
+     * longer than {@code scaleOrLength}, the driver widens the declared length to the actual
+     * value length instead of failing or truncating. Passing a zero or negative value disables
+     * the application-provided hint entirely, and the driver falls back to its default parameter
+     * sizing. This keeps the historical behavior of
+     * {@code setObject}, where {@code scaleOrLength} was ignored for string and binary types
+     * per the JDBC 4.3 specification, while allowing applications that supply an accurate
+     * hint to get a narrower parameter declaration and better plan reuse.
+     *
+     * Widening changes the parameter's type definition, so it may cause the statement to be
+     * re-prepared. Supply a hint large enough for the largest expected value to avoid this.
      *
      * If {@link #defineParameterType(int, int, int)} has been called for the same
-     * parameter, its {@code maxLength} takes precedence over {@code scaleOrLength}.
+     * parameter, its {@code maxLength} takes precedence over {@code scaleOrLength} and,
+     * unlike this hint, is enforced as a hard maximum.
      */
     @Override
     public final void setObject(int parameterIndex, Object x, int targetSqlType,
@@ -2063,11 +2067,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // scaleOrLength - for java.sql.Types.DECIMAL, java.sql.Types.NUMERIC or temporal types,
         // this is the number of digits after the decimal point. For Java Object types
         // InputStream and Reader, this is the length of the data in the stream or reader.
-        // For supported short character/binary SQL types, this is treated as an
-        // application-provided length hint AND enforced as a maximum length constraint.
-        // If the actual value exceeds scaleOrLength for these types, execution fails with
-        // R_parameterTypeValueLengthExceedsHint. This is a breaking behavioral change from
-        // prior versions where scaleOrLength was ignored for string/binary types.
+        // For supported short character/binary SQL types, this is treated as an advisory
+        // application-provided length hint. It is never enforced: if the actual value exceeds
+        // scaleOrLength, the declared parameter length is widened to the actual value length
+        // so that nothing is truncated and execution does not fail.
         // Precedence: defineParameterType() hint (if present) takes priority over this value.
 
         Integer precision = null;
