@@ -17,7 +17,7 @@ plugins {
 }
 
 version = '13.6.0'
-def releaseExt = '-preview'
+def releaseExt = ''
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
 def archivesBaseName = 'mssql-jdbc'

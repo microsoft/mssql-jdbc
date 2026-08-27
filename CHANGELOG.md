@@ -43,17 +43,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   - **Who benefits**: Contributors and API consumers reviewing Javadoc.
   - **Impact**: Improves developer experience by linking to authoritative JDBC specification documentation.
 
-### Behavior Changes
-
-- **setObject parameter-length validation now throws instead of truncating silently** [#2960](https://github.com/microsoft/mssql-jdbc/pull/2960)
-  - **What changed**: The `setObject` overload that accepts a parameter length now validates the specified length against the actual parameter length.
-  - **Impact**: If the value exceeds the specified length, the driver now throws an exception instead of silently truncating data.
-  - **Action required**: Applications that relied on implicit truncation must provide a parameter length that is large enough for the actual value.
-
-- **Provide Advisory Hint When setObject() Lacks Sufficient Type Information** [#3026](https://github.com/microsoft/mssql-jdbc/pull/3026)
-  - **What changed**: The driver now provides a more informative exception message when `setObject()` cannot infer the SQL type due to insufficient type hints.
-  - **Impact**: Improves diagnosability by guiding users toward using `defineParameterType()` for better type inference.
-
 ### Changed
 
 - **Enhance Always Encrypted VSM/HGS Enclave Attestation Validation** [#2993](https://github.com/microsoft/mssql-jdbc/pull/2993)
