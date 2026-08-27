@@ -3,6 +3,241 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [13.6.0] Stable Release
+
+### Added
+
+- **Add tls-unique Channel Binding Support for Kerberos and NTLM** [#2977](https://github.com/microsoft/mssql-jdbc/pull/2977)
+  - **What was added**: tls-unique channel binding support for Kerberos and NTLM authentication flows.
+  - **Who benefits**: Applications using integrated Kerberos or NTLM authentication that require channel binding for enhanced protection against relay attacks.
+  - **Impact**: Strengthens authentication security by binding the authentication exchange to the underlying TLS channel.
+  - **Note**: This feature depends on a JDK API to retrieve the TLS channel binding token that is not yet available in current OpenJDK builds. It will become functional on a future OpenJDK build once that API ships — a change our team is actively contributing upstream to OpenJDK.
+
+- **Introduce Parameter Length Hints via defineParameterType and setObject** [#2960](https://github.com/microsoft/mssql-jdbc/pull/2960)
+  - **What was added**: New parameter length hints that can be supplied through `defineParameterType` and `setObject` to inform the driver of expected parameter sizes.
+  - **Who benefits**: Applications executing parameterized `varchar`/`nvarchar` statements against the server, particularly under high concurrency or large result sets.
+  - **Impact**: Improves performance by reducing server-side memory grants. Without a length hint the driver defaults string parameters to the maximum declared size (4000 for `nvarchar`, 8000 for `varchar`), which inflates the query's memory grant; specifying a sensible length via the new APIs lets the server size the grant to the actual data, reducing memory pressure and improving throughput. Default behavior is unchanged when no length is specified.
+
+- **Add Nanosecond Granularity Option to PerformanceLogCallback** [#2944](https://github.com/microsoft/mssql-jdbc/pull/2944)
+  - **What was added**: An option to report timing in the `PerformanceLogCallback` with nanosecond granularity.
+  - **Who benefits**: Applications and tools performing fine-grained performance instrumentation of driver operations.
+  - **Impact**: Enables higher-resolution performance measurements while preserving existing millisecond behavior by default.
+
+- **Introduce getCurrentUserSql and getCurrentStatementType in PerformanceLogCallback** [#2965](https://github.com/microsoft/mssql-jdbc/pull/2965)
+  - **What was added**: New `getCurrentUserSql()` and `getCurrentStatementType()` accessors on the `PerformanceLogCallback`.
+  - **Who benefits**: Applications correlating performance telemetry with the executing SQL text and statement type.
+  - **Impact**: Provides richer context for performance logging without affecting runtime behavior.
+
+- **Add Cross-Driver Connection String Aliases for Unification** [#3011](https://github.com/microsoft/mssql-jdbc/pull/3011)
+  - **What was added**: Cross-driver connection string aliases enabling ODBC/OLE DB property names to work in JDBC connection strings.
+  - **Who benefits**: Applications migrating from .NET/ODBC to Java or supporting multi-platform configurations.
+  - **Impact**: Improves portability by allowing driver-agnostic connection string configurations.
+
+- **Add getCurrentApplicationName to PerformanceLogCallback** [#3018](https://github.com/microsoft/mssql-jdbc/pull/3018)
+  - **What was added**: New `getCurrentApplicationName()` accessor on the `PerformanceLogCallback`.
+  - **Who benefits**: Applications performing performance instrumentation and correlation.
+  - **Impact**: Provides application name context for performance telemetry without affecting runtime behavior.
+
+- **Add Javadoc External Links for JDBC Specifications** [#3025](https://github.com/microsoft/mssql-jdbc/pull/3025)
+  - **What was added**: External documentation links in Javadoc for JDBC specification classes and interfaces.
+  - **Who benefits**: Contributors and API consumers reviewing Javadoc.
+  - **Impact**: Improves developer experience by linking to authoritative JDBC specification documentation.
+
+### Behavior Changes
+
+- **setObject parameter-length validation now throws instead of truncating silently** [#2960](https://github.com/microsoft/mssql-jdbc/pull/2960)
+  - **What changed**: The `setObject` overload that accepts a parameter length now validates the specified length against the actual parameter length.
+  - **Impact**: If the value exceeds the specified length, the driver now throws an exception instead of silently truncating data.
+  - **Action required**: Applications that relied on implicit truncation must provide a parameter length that is large enough for the actual value.
+
+- **Provide Advisory Hint When setObject() Lacks Sufficient Type Information** [#3026](https://github.com/microsoft/mssql-jdbc/pull/3026)
+  - **What changed**: The driver now provides a more informative exception message when `setObject()` cannot infer the SQL type due to insufficient type hints.
+  - **Impact**: Improves diagnosability by guiding users toward using `defineParameterType()` for better type inference.
+
+### Changed
+
+- **Enhance Always Encrypted VSM/HGS Enclave Attestation Validation** [#2993](https://github.com/microsoft/mssql-jdbc/pull/2993)
+  - **What was changed**: Strengthened attestation validation for VSM/HGS enclaves in the Always Encrypted with secure enclaves flow.
+  - **Who benefits**: Applications using Always Encrypted with secure enclaves and enclave attestation.
+  - **Impact**: Improves the robustness of enclave attestation validation while preserving existing configuration semantics.
+
+- **Harden getReference() to Omit Sensitive Connection Properties from JNDI Reference** [#2992](https://github.com/microsoft/mssql-jdbc/pull/2992)
+  - **What was changed**: `getReference()` no longer includes sensitive connection properties in the emitted JNDI `Reference`.
+  - **Who benefits**: Applications binding `SQLServerDataSource` instances into JNDI.
+  - **Impact**: Reduces the risk of exposing credentials and other sensitive settings through JNDI references.
+
+- **Make Troubleshooting/Debugging custom accessTokenCallbackClass Possible** [#2990](https://github.com/microsoft/mssql-jdbc/pull/2990)
+  - **What was changed**: Preserved the original exception (instead of only its cause) when failures occur in custom `accessTokenCallbackClass` handling.
+  - **Who benefits**: Applications using a custom `accessTokenCallbackClass` and teams diagnosing callback initialization/execution failures.
+  - **Impact**: Improves diagnosability and error visibility for custom token callback failures, without changing authentication flow behavior.
+
+- **Harden ActiveDirectoryInteractive Callback with form_post** [#2956](https://github.com/microsoft/mssql-jdbc/pull/2956)
+  - **What was changed**: The ActiveDirectoryInteractive authentication callback now uses `form_post` response mode.
+  - **Who benefits**: Applications using Active Directory Interactive authentication.
+  - **Impact**: Improves the security of the interactive authentication redirect flow.
+
+- **Improve JAAS Configuration Handling in Kerberos Authentication** [#2961](https://github.com/microsoft/mssql-jdbc/pull/2961)
+  - **What was changed**: Improved handling of JAAS configuration during Kerberos authentication.
+  - **Who benefits**: Applications using Kerberos authentication with custom JAAS configurations.
+  - **Impact**: Provides more predictable JAAS configuration resolution without breaking existing setups.
+
+- **Optimize the ResultSet Read Path and Reduce Allocation Overhead** [#2974](https://github.com/microsoft/mssql-jdbc/pull/2974)
+  - **What was changed**: Reduced allocations along the `ResultSet` read path.
+  - **Who benefits**: Applications reading large result sets.
+  - **Impact**: Lowers memory pressure and improves throughput on the read hot path with no behavioral change.
+
+- **Allocation-Free readBigDecimal() Fast Path for Small DECIMAL/NUMERIC Values** [#2975](https://github.com/microsoft/mssql-jdbc/pull/2975)
+  - **What was changed**: Added an allocation-free fast path for reading small `DECIMAL`/`NUMERIC` values.
+  - **Who benefits**: Applications reading many small decimal/numeric values.
+  - **Impact**: Reduces allocation overhead for common decimal reads while preserving exact values.
+
+- **Guard loggerExternal.entering/exiting with isLoggable(FINER) Across the Driver** [#2955](https://github.com/microsoft/mssql-jdbc/pull/2955)
+  - **What was changed**: Guarded `loggerExternal.entering`/`exiting` calls with `isLoggable(FINER)` throughout the driver.
+  - **Who benefits**: All applications, especially on performance-sensitive paths.
+  - **Impact**: Avoids unnecessary logging work when FINER logging is disabled; no behavior change when logging is enabled.
+
+- **Bump BouncyCastle to 1.84 and Pin azure-core-http-netty to 1.16.6** [#3021](https://github.com/microsoft/mssql-jdbc/pull/3021)
+  - **What was changed**: Upgraded BouncyCastle to version 1.84 and pinned azure-core-http-netty to 1.16.6 to address component governance CVEs.
+  - **Who benefits**: All users, especially those using Always Encrypted with BouncyCastle or Azure authentication.
+  - **Impact**: Brings in upstream security updates while maintaining compatibility.
+
+- **Cache sp_columns_170 Availability Per Connection in getColumns()** [#3019](https://github.com/microsoft/mssql-jdbc/pull/3019)
+  - **What was changed**: Added caching of `sp_columns_170` availability per connection to reduce redundant server compatibility checks.
+  - **Who benefits**: Applications calling `getColumns()` or metadata APIs repeatedly on the same connection.
+  - **Impact**: Reduces server round-trips for metadata discovery without affecting results.
+
+- **Bump azure-identity to 1.18.4 and azure-security-keyvault-keys to 4.11.1** [#2984](https://github.com/microsoft/mssql-jdbc/pull/2984)
+  - **What was changed**: Upgraded the optional `azure-identity` and `azure-security-keyvault-keys` dependencies.
+  - **Who benefits**: Applications using Azure AD authentication and Azure Key Vault features.
+  - **Impact**: Picks up upstream fixes and improvements from the Azure SDK dependencies.
+
+- **Clarify JDBC 4.3 Partial Support in README Build Instructions** [#2967](https://github.com/microsoft/mssql-jdbc/pull/2967)
+  - **What was changed**: Documentation clarifying JDBC 4.3 partial support in the README build instructions.
+  - **Who benefits**: Users building the driver and evaluating JDBC specification support.
+  - **Impact**: Improves documentation clarity; no runtime impact.
+
+### Fixed
+
+- **Fix Managed Identity with User-Assigned Credentials** [#3003](https://github.com/microsoft/mssql-jdbc/pull/3003)
+  - **What was fixed**: Corrected the handling of user-assigned managed identity credentials.
+  - **Who benefits**: Applications using user-assigned managed identities in Azure.
+  - **Impact**: Enables correct authentication flow for user-assigned managed identity scenarios.
+
+- **Fix getGeneratedKeys() Not Returning Inserted Column Values** [#3002](https://github.com/microsoft/mssql-jdbc/pull/3002)
+  - **What was fixed**: Restored the capability to retrieve generated key values via `getGeneratedKeys()` after insert operations.
+  - **Who benefits**: Applications relying on auto-generated key retrieval for database operations.
+  - **Impact**: Corrects regression in generated key handling.
+
+- **Fix NullPointerException in buildParamTypeDefinitions when params is null on Closed Statement** [#2994](https://github.com/microsoft/mssql-jdbc/pull/2994)
+  - **What was fixed**: Prevented a NullPointerException when accessing parameter type definitions on a closed statement.
+  - **Who benefits**: Applications performing operations on closed prepared statements.
+  - **Impact**: Improves error handling and prevents spurious NPE exceptions.
+
+- **Fix Integer Overflow When Reading PLP Chunk Sizes from TDS Stream** [#2916](https://github.com/microsoft/mssql-jdbc/pull/2916)
+  - **What was fixed**: Prevented CWE-190 integer overflow in `readBytesInternal()` when casting unsigned 32-bit PLP chunk sizes from long to int.
+  - **Who benefits**: Applications processing large PLP data streams.
+  - **Impact**: Ensures safe handling of chunk sizes exceeding Integer.MAX_VALUE in the TDS stream reader.
+
+- **Fix Socket Hang When socketTimeout Not Set During Federated Auth Login** [#2927](https://github.com/microsoft/mssql-jdbc/pull/2927)
+  - **What was fixed**: Corrected pre-connection socket timeout computation so that `loginTimeout` properly bounds socket I/O when `socketTimeout` defaults to 0 (unlimited).
+  - **Who benefits**: Applications using federated authentication (Managed Identity, Azure AD) without an explicit `socketTimeout`.
+  - **Impact**: Resolves indefinite connection hangs during federated auth login while preserving post-login unlimited socket timeout semantics.
+
+- **Fix User Agent String in Case of an Exception** [#2926](https://github.com/microsoft/mssql-jdbc/pull/2926)
+  - **What was fixed**: User agent string fields are now populated with "Unknown" when an exception occurs during collection, preventing malformed telemetry data.
+  - **Who benefits**: All users of the driver's user agent telemetry feature.
+  - **Impact**: Ensures robust user agent string generation regardless of runtime environment errors.
+
+- **Fix getIndexInfo() Returning ORDINAL_POSITION=0 for INCLUDE Columns** [#2943](https://github.com/microsoft/mssql-jdbc/pull/2943)
+  - **What was fixed**: Narrowed the supplemental columnstore index query to restrict results to columnstore index types only (`i.type IN (5, 6)`) and replaced `ic.key_ordinal` with `ic.index_column_id` for correct 1-based ordinal positions.
+  - **Who benefits**: Applications querying index metadata on tables with INCLUDE columns or columnstore indexes.
+  - **Impact**: Eliminates JDBC specification violations (ORDINAL_POSITION=0) and prevents downstream IndexOutOfBoundsException errors.
+
+- **Suppress CodeQL [SM05136] False Positive for Protocol-Mandated MD5 in NTLM Channel Binding** [#3014](https://github.com/microsoft/mssql-jdbc/pull/3014)
+  - **What was fixed**: Added CodeQL suppression for protocol-mandated MD5 usage in NTLM channel binding to reduce false positive warnings.
+  - **Who benefits**: Contributors and security scanning pipelines.
+  - **Impact**: Improves signal-to-noise ratio in security scanning without affecting runtime behavior.
+
+- **Fix Reflective Class Validation for Connection Properties** [#3004](https://github.com/microsoft/mssql-jdbc/pull/3004)
+  - **What was fixed**: Improved validation of reflectively loaded classes for connection properties like `trustManagerClass` and `socketFactoryClass`.
+  - **Who benefits**: Applications using custom socket factories or trust managers.
+  - **Impact**: Strengthens security validation for user-supplied class names.
+
+- **Fix Regression: Missing Intermediate Update Counts in Multi-Statement PreparedStatement Execution** [#2941](https://github.com/microsoft/mssql-jdbc/pull/2941)
+  - **What was fixed**: Restored intermediate update counts when executing multi-statement prepared statements.
+  - **Who benefits**: Applications relying on update counts from multi-statement batches.
+  - **Impact**: Corrects a regression in reported update counts without affecting other execution paths.
+
+- **Avoid Extra Whitespace Around Prepared Statement Parameter Markers** [#2958](https://github.com/microsoft/mssql-jdbc/pull/2958)
+  - **What was fixed**: Removed extra whitespace injected around prepared statement parameter markers.
+  - **Who benefits**: Applications sensitive to generated SQL text and prepared statement plan reuse.
+  - **Impact**: Corrects a regression in generated parameter marker formatting.
+
+- **Route Enclave AE CEK Lookup Through SQLServerSymmetricKeyCache** [#2964](https://github.com/microsoft/mssql-jdbc/pull/2964)
+  - **What was fixed**: Routed enclave Always Encrypted CEK lookups through `SQLServerSymmetricKeyCache` (#2957) so repeated enclave queries reuse the cached plaintext CEK instead of resolving it from the key store on every execution.
+  - **Who benefits**: Applications using Always Encrypted with secure enclaves (AE v2), especially with a remote CMK store such as Azure Key Vault.
+  - **Impact**: Significantly reduces per-query latency and key-store round-trips (avoiding AKV throttling / `429 Too Many Requests` under load) by hitting the key store once per CEK within the cache TTL, aligning enclave caching behavior with the non-enclave path.
+
+- **Preserve Original Exception Cause Chain in Socket/IO Error Paths** [#2970](https://github.com/microsoft/mssql-jdbc/pull/2970)
+  - **What was fixed**: Preserved the original exception cause chain in socket/IO error paths (#2969).
+  - **Who benefits**: Applications diagnosing connection and I/O failures.
+  - **Impact**: Improves diagnosability by retaining the underlying cause of socket/IO errors.
+
+- **Prevent Infinite Recursion in SQLServerError Bean Serialization** [#2971](https://github.com/microsoft/mssql-jdbc/pull/2971)
+  - **What was fixed**: Prevented infinite recursion during `SQLServerError` bean serialization (#2968).
+  - **Who benefits**: Applications and frameworks that serialize `SQLServerError` as a bean.
+  - **Impact**: Eliminates a StackOverflowError during serialization.
+
+- **Fix Login TLS Handshake Hangs on Android (Conscrypt)** [#2980](https://github.com/microsoft/mssql-jdbc/pull/2980)
+  - **What was fixed**: Read up to `maxBytes` during the SSL handshake to prevent login TLS handshake hangs on Android (Conscrypt).
+  - **Who benefits**: Applications connecting from Android environments using the Conscrypt security provider.
+  - **Impact**: Resolves connection hangs during the TLS handshake on affected platforms.
+
+- **Enhance Input Validation for Table Names in BulkCopy and PreparedStatement Batch Insert** [#3020](https://github.com/microsoft/mssql-jdbc/pull/3020)
+  - **What was fixed**: Enhanced input validation for table names to prevent invalid identifiers in bulk copy and batch insert operations.
+  - **Who benefits**: Applications using bulk copy or batch insert operations with dynamic table names.
+  - **Impact**: Prevents downstream errors by validating input earlier in the execution flow.
+
+### Deprecated
+
+- **Remove sqljdbc_xa.dll: Drop Legacy XA Extended-Procedure DLL** [#3017](https://github.com/microsoft/mssql-jdbc/pull/3017)
+  - **What was deprecated**: The legacy XA extended-procedure DLL (`sqljdbc_xa.dll`) has been removed.
+  - **Who is affected**: Applications using the legacy XA extended-procedure approach (rare; most use standard XA).
+  - **Impact**: Simplified distribution and reduced maintenance burden; XA functionality continues via standard interfaces.
+  - **Migration path**: Applications should use standard JDBC XA interfaces without the external DLL.
+
+- **Adjust License File to Enable GitHub Detection** [#3010](https://github.com/microsoft/mssql-jdbc/pull/3010)
+  - **What was changed**: Updated license file format to enable GitHub's automatic license detection.
+  - **Who benefits**: Repository users and GitHub dependency scanning.
+  - **Impact**: Improves repository metadata accuracy with no runtime impact.
+
+- **Pin GitHub Actions to Specific Commit SHAs** [#3022](https://github.com/microsoft/mssql-jdbc/pull/3022)
+  - **What was changed**: Pinned all GitHub Actions to specific commit SHAs for supply-chain security.
+  - **Who benefits**: Contributors and CI security posture.
+  - **Impact**: Reduces attack surface from compromised GitHub Actions without affecting functionality.
+
+### Testing & Quality
+
+- **Port FX Non-AE Test Scenarios to JUnit under legacyFx Tag** [#3008](https://github.com/microsoft/mssql-jdbc/pull/3008)
+  - **What was added**: Migrated legacy FX non-AE test scenarios to JUnit 5.
+  - **Who benefits**: Contributors and CI validation pipelines.
+  - **Impact**: Advances FX test retirement with improved test parallelization support.
+
+- **Add Vector float16 Tests for Azure SQL Database** [#2985](https://github.com/microsoft/mssql-jdbc/pull/2985)
+  - **What was added**: Enabled vector(float16) tests to run on Azure SQL Database.
+  - **Who benefits**: Contributors and CI validation pipelines.
+  - **Impact**: Extends test coverage for vector(float16) scenarios on AzureDB.
+
+- **FX-to-JUnit Migration Tests with Parallelization Tags** [#2938](https://github.com/microsoft/mssql-jdbc/pull/2938)
+  - **What was added**: Migrated FX test scenarios to JUnit 5 with parallelization tags.
+  - **Who benefits**: Contributors and CI validation pipelines.
+  - **Impact**: Advances FX test retirement and improves test parallelization.
+
+- **Add Copilot Prompts and AI Agent Guidelines for Developer Workflows** [#2942](https://github.com/microsoft/mssql-jdbc/pull/2942)
+  - **What was added**: Reusable Copilot prompts and AI agent guidelines for common maintainer and contributor workflows.
+  - **Who benefits**: Contributors and maintainers working in the repository.
+  - **Impact**: Improves developer productivity and consistency; no runtime impact.
+
 ## [13.5.1] Preview Release
 
 ### Added

@@ -16,7 +16,7 @@ plugins {
     id 'java'
 }
 
-version = '13.5.1'
+version = '13.6.0'
 def releaseExt = '-preview'
 def jreVersion = ""
 def testOutputDir = file("build/classes/java/test")
