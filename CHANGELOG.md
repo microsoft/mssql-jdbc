@@ -105,6 +105,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   - **Who benefits**: Users building the driver and evaluating JDBC specification support.
   - **Impact**: Improves documentation clarity; no runtime impact.
 
+- **Adjust License File to Enable GitHub Detection** [#3010](https://github.com/microsoft/mssql-jdbc/pull/3010)
+  - **What was changed**: Updated license file format to enable GitHub's automatic license detection.
+  - **Who benefits**: Repository users and GitHub dependency scanning.
+  - **Impact**: Improves repository metadata accuracy with no runtime impact.
+
+- **Pin GitHub Actions to Specific Commit SHAs** [#3022](https://github.com/microsoft/mssql-jdbc/pull/3022)
+  - **What was changed**: Pinned all GitHub Actions to specific commit SHAs for supply-chain security.
+  - **Who benefits**: Contributors and CI security posture.
+  - **Impact**: Reduces attack surface from compromised GitHub Actions without affecting functionality.
+
 ### Fixed
 
 - **Fix Managed Identity with User-Assigned Credentials** [#3003](https://github.com/microsoft/mssql-jdbc/pull/3003)
@@ -187,43 +197,28 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   - **Who benefits**: Applications using bulk copy or batch insert operations with dynamic table names.
   - **Impact**: Prevents downstream errors by validating input earlier in the execution flow.
 
-### Deprecated
-
 - **Remove sqljdbc_xa.dll: Drop Legacy XA Extended-Procedure DLL** [#3017](https://github.com/microsoft/mssql-jdbc/pull/3017)
-  - **What was deprecated**: The legacy XA extended-procedure DLL (`sqljdbc_xa.dll`) has been removed.
-  - **Who is affected**: Applications using the legacy XA extended-procedure approach (rare; most use standard XA).
+  - **What was fixed**: The legacy XA extended-procedure DLL (`sqljdbc_xa.dll`) has been removed.
+  - **Who benefits**: All users; eliminates unused legacy code.
   - **Impact**: Simplified distribution and reduced maintenance burden; XA functionality continues via standard interfaces.
-  - **Migration path**: Applications should use standard JDBC XA interfaces without the external DLL.
-
-- **Adjust License File to Enable GitHub Detection** [#3010](https://github.com/microsoft/mssql-jdbc/pull/3010)
-  - **What was changed**: Updated license file format to enable GitHub's automatic license detection.
-  - **Who benefits**: Repository users and GitHub dependency scanning.
-  - **Impact**: Improves repository metadata accuracy with no runtime impact.
-
-- **Pin GitHub Actions to Specific Commit SHAs** [#3022](https://github.com/microsoft/mssql-jdbc/pull/3022)
-  - **What was changed**: Pinned all GitHub Actions to specific commit SHAs for supply-chain security.
-  - **Who benefits**: Contributors and CI security posture.
-  - **Impact**: Reduces attack surface from compromised GitHub Actions without affecting functionality.
-
-### Testing & Quality
 
 - **Port FX Non-AE Test Scenarios to JUnit under legacyFx Tag** [#3008](https://github.com/microsoft/mssql-jdbc/pull/3008)
-  - **What was added**: Migrated legacy FX non-AE test scenarios to JUnit 5.
+  - **What was fixed**: Migrated legacy FX non-AE test scenarios to JUnit 5.
   - **Who benefits**: Contributors and CI validation pipelines.
   - **Impact**: Advances FX test retirement with improved test parallelization support.
 
 - **Add Vector float16 Tests for Azure SQL Database** [#2985](https://github.com/microsoft/mssql-jdbc/pull/2985)
-  - **What was added**: Enabled vector(float16) tests to run on Azure SQL Database.
+  - **What was fixed**: Enabled vector(float16) tests to run on Azure SQL Database.
   - **Who benefits**: Contributors and CI validation pipelines.
   - **Impact**: Extends test coverage for vector(float16) scenarios on AzureDB.
 
 - **FX-to-JUnit Migration Tests with Parallelization Tags** [#2938](https://github.com/microsoft/mssql-jdbc/pull/2938)
-  - **What was added**: Migrated FX test scenarios to JUnit 5 with parallelization tags.
+  - **What was fixed**: Migrated FX test scenarios to JUnit 5 with parallelization tags.
   - **Who benefits**: Contributors and CI validation pipelines.
   - **Impact**: Advances FX test retirement and improves test parallelization.
 
 - **Add Copilot Prompts and AI Agent Guidelines for Developer Workflows** [#2942](https://github.com/microsoft/mssql-jdbc/pull/2942)
-  - **What was added**: Reusable Copilot prompts and AI agent guidelines for common maintainer and contributor workflows.
+  - **What was fixed**: Added reusable Copilot prompts and AI agent guidelines for common maintainer and contributor workflows.
   - **Who benefits**: Contributors and maintainers working in the repository.
   - **Impact**: Improves developer productivity and consistency; no runtime impact.
 
