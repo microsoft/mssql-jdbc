@@ -751,9 +751,6 @@
 				<configuration>
 					<failOnError>true</failOnError>
 					<excludePackageNames>mssql.*</excludePackageNames>
-					<links>
-						<link>https://docs.oracle.com/javase/8/docs/api/</link>
-					</links>
 				</configuration>
 				<executions>
 					<execution>
