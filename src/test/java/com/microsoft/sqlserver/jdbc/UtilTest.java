@@ -643,4 +643,93 @@ public class UtilTest {
         assertEquals("[" + longName + "]", Util.escapeMultiPartIdentifier(longName));
     }
 
+    // ─── unquoteIdentifierPart: strips [] / "" quoting and collapses doubled escapes ───
+
+    static Stream<Arguments> unquoteIdentifierPartArgs() {
+        return Stream.of(
+                // bare identifiers are returned unchanged
+                Arguments.of("GetEmployee", "GetEmployee"),
+                Arguments.of("dbo", "dbo"),
+                Arguments.of("a", "a"),
+                // bracket-quoted parts are unwrapped
+                Arguments.of("[GetEmployee]", "GetEmployee"),
+                Arguments.of("[Order Details]", "Order Details"),
+                Arguments.of("[]", ""),
+                // doubled ] inside brackets collapses to a single ]
+                Arguments.of("[My]]Proc]", "My]Proc"),
+                Arguments.of("[a]]b]]c]", "a]b]c"),
+                // double-quoted parts are unwrapped
+                Arguments.of("\"GetEmployee\"", "GetEmployee"),
+                Arguments.of("\"My\"\"Proc\"", "My\"Proc"),
+                // null and single-char inputs are returned unchanged
+                Arguments.of(null, null),
+                Arguments.of("[", "["));
+    }
+
+    @ParameterizedTest(name = "unquoteIdentifierPart(\"{0}\") = \"{1}\"")
+    @MethodSource("unquoteIdentifierPartArgs")
+    public void testUnquoteIdentifierPart(String input, String expected) {
+        assertEquals(expected, Util.unquoteIdentifierPart(input));
+    }
+
+    // ─── escapeIdentifierAsStringLiteral: renders a safe N'...' string literal ───
+
+    static Stream<Arguments> escapeIdentifierAsStringLiteralArgs() {
+        return Stream.of(
+                // simple names become plain N'...' literals
+                Arguments.of("GetEmployee", "N'GetEmployee'"),
+                Arguments.of("dbo", "N'dbo'"),
+                // bracketed / double-quoted names are unwrapped before quoting
+                Arguments.of("[GetEmployee]", "N'GetEmployee'"),
+                Arguments.of("[Order Details]", "N'Order Details'"),
+                Arguments.of("\"GetEmployee\"", "N'GetEmployee'"),
+                // embedded single quotes are doubled
+                Arguments.of("O'Brien", "N'O''Brien'"),
+                Arguments.of(
+                        "1;INSERT/**/INTO/**/metadata_probe/**/SELECT/**/FullName+N'|'+SSN/**/FROM/**/employee_pii--",
+                        "N'1;INSERT/**/INTO/**/metadata_probe/**/SELECT/**/FullName+N''|''+SSN/**/FROM/**/employee_pii--'"),
+                // stacked EXEC text is emitted verbatim inside the literal
+                Arguments.of("1; EXEC xp_cmdshell 'whoami'--", "N'1; EXEC xp_cmdshell ''whoami''--'"));
+    }
+
+    @ParameterizedTest(name = "escapeIdentifierAsStringLiteral(\"{0}\") = \"{1}\"")
+    @MethodSource("escapeIdentifierAsStringLiteralArgs")
+    public void testEscapeIdentifierAsStringLiteral(String input, String expected) {
+        assertEquals(expected, Util.escapeIdentifierAsStringLiteral(input));
+    }
+
+    /**
+     * Simulates the sp_sproc_columns @procedure_name argument built by
+     * {@code SQLServerCallableStatement.findColumn} and {@code SQLServerParameterMetaData.parseProcIdentifier}, and
+     * verifies a crafted procedure name is emitted as a single N'...' string literal argument.
+     */
+    @Test
+    public void testSprocColumnsProcedureNameArgumentIsStringLiteral() {
+        String craftedName = "1;INSERT/**/INTO/**/metadata_probe/**/SELECT/**/FullName+N'|'+SSN/**/FROM/**/employee_pii--";
+        String arg = "@procedure_name=" + Util.escapeIdentifierAsStringLiteral(craftedName);
+        assertEquals(
+                "@procedure_name=N'1;INSERT/**/INTO/**/metadata_probe/**/SELECT/**/FullName+N''|''+SSN/**/FROM/**/employee_pii--'",
+                arg);
+    }
+
+    /**
+     * After single-quote escaping, no unescaped single quote remains, so the value always stays inside the N'...'
+     * literal and is treated purely as a string argument.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"O'Brien", "1; EXEC xp_cmdshell 'whoami'--",
+            "1;INSERT/**/INTO/**/t/**/SELECT/**/N'x'/**/FROM/**/sys.objects--"})
+    public void testEscapeIdentifierAsStringLiteralIsInert(String input) {
+        String literal = Util.escapeIdentifierAsStringLiteral(input);
+        // Strip the leading N' and trailing '; every interior quote must be doubled.
+        String body = literal.substring(2, literal.length() - 1);
+        for (int i = 0; i < body.length(); i++) {
+            if (body.charAt(i) == '\'') {
+                assertTrue(i + 1 < body.length() && body.charAt(i + 1) == '\'',
+                        "unescaped quote at " + i + " would close the N'...' literal: " + literal);
+                i++;
+            }
+        }
+    }
+
 }
