@@ -276,6 +276,48 @@ final class Util {
     }
 
     /**
+     * Validates that the port segment parsed from a JDBC URL is a strictly numeric value within the
+     * legal TCP port range (0-65535).
+     *
+     * <p>
+     * This is a defense-in-depth guard against connection-property injection (CWE-88). The URL parser
+     * treats a bare {@code ;} as the boundary into property parsing, so an externally-influenced fragment
+     * concatenated into the URL could otherwise smuggle arbitrary text through the port segment. Enforcing
+     * a numeric port ensures such fragments are rejected instead of silently accepted.
+     *
+     * @param portValue
+     *        the trimmed port string parsed from the URL
+     * @throws SQLServerException
+     *         if the value is empty, non-numeric, or outside the range 0-65535
+     */
+    private static void validatePortNumber(String portValue) throws SQLServerException {
+        boolean valid = null != portValue && !portValue.isEmpty();
+        if (valid) {
+            for (int idx = 0; idx < portValue.length(); idx++) {
+                if (!Character.isDigit(portValue.charAt(idx))) {
+                    valid = false;
+                    break;
+                }
+            }
+        }
+        if (valid) {
+            try {
+                int port = Integer.parseInt(portValue);
+                if (port < 0 || port > 65535) {
+                    valid = false;
+                }
+            } catch (NumberFormatException e) {
+                valid = false;
+            }
+        }
+        if (!valid) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
+            Object[] msgArgs = {portValue};
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
+        }
+    }
+
+    /**
      * Parse a JDBC URL into a set of properties.
      * 
      * @param url
@@ -360,6 +402,11 @@ final class Util {
                 case inPort:
                     if (ch == ';') {
                         String property = result.toString().trim();
+                        // Defense-in-depth against connection-property injection (CWE-88):
+                        // the port segment must be strictly numeric. An externally-influenced
+                        // fragment concatenated into the URL must not be able to smuggle
+                        // additional characters here before the ';' boundary.
+                        validatePortNumber(property);
                         if (logger.isLoggable(Level.FINE)) {
                             logger.fine("Property:portNumber " + "Value:" + property);
                         }
@@ -376,6 +423,16 @@ final class Util {
                     if (ch == ';' || ch == ':') {
                         // non escaped trim the string
                         String property = result.toString().trim();
+                        // Defense-in-depth against connection-property injection (CWE-88):
+                        // an instance name must not contain '=', which would indicate that an
+                        // externally-influenced fragment is attempting to smuggle a
+                        // property=value pair through the server portion of the URL.
+                        if (property.contains("=")) {
+                            MessageFormat form = new MessageFormat(
+                                    SQLServerException.getErrString("R_errorInstanceName"));
+                            Object[] msgArgs = {property};
+                            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
+                        }
                         if (logger.isLoggable(Level.FINE)) {
                             logger.fine("Property:instanceName " + "Value:" + property);
                         }
@@ -526,6 +583,7 @@ final class Util {
                 break;
             case inPort:
                 property = result.toString().trim();
+                validatePortNumber(property);
                 if (logger.isLoggable(Level.FINE)) {
                     logger.fine("Property:portNumber " + "Value:" + property);
                 }
@@ -533,6 +591,11 @@ final class Util {
                 break;
             case inInstanceName:
                 property = result.toString().trim();
+                if (property.contains("=")) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorInstanceName"));
+                    Object[] msgArgs = {property};
+                    SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
+                }
                 if (logger.isLoggable(Level.FINE)) {
                     logger.fine("Property:instanceName " + "Value:" + property);
                 }

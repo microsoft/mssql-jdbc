@@ -164,6 +164,50 @@ public class UtilTest {
     }
 
     /**
+     * Verifies the defense-in-depth guard against connection-property injection (CWE-88): a non-numeric
+     * port segment smuggled via an externally-influenced URL fragment must be rejected instead of being
+     * silently accepted and allowing additional properties to be parsed after a bare ';'.
+     */
+    @Test
+    public void testParseUrlRejectsInjectedPortNumber() {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        // Attacker attempts to smuggle authentication-changing properties through the port segment.
+        String constr = "jdbc:sqlserver://localhost:1433x;integratedSecurity=true;authenticationScheme=JavaKerberos";
+        SQLException e = assertThrows(SQLException.class, () -> Util.parseUrl(constr, drLogger));
+        assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidPortNumber")), e.getMessage());
+
+        // Out-of-range port must also be rejected.
+        String constr2 = "jdbc:sqlserver://localhost:99999;databaseName=db";
+        assertThrows(SQLException.class, () -> Util.parseUrl(constr2, drLogger));
+    }
+
+    /**
+     * Verifies that a valid numeric port continues to parse correctly after the injection hardening.
+     */
+    @Test
+    public void testParseUrlValidPortStillParses() throws SQLException {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost:1433;databaseName=db;";
+        Properties prt = Util.parseUrl(constr, drLogger);
+        assertEquals("localhost", prt.getProperty("serverName"));
+        assertEquals("1433", prt.getProperty("portNumber"));
+        assertEquals("db", prt.getProperty("databaseName"));
+    }
+
+    /**
+     * Verifies the defense-in-depth guard against connection-property injection (CWE-88) for the instance
+     * name segment: an instance name containing '=' indicates an attempt to smuggle a property=value pair
+     * through the server portion of the URL and must be rejected.
+     */
+    @Test
+    public void testParseUrlRejectsInjectedInstanceName() {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost\\inst=x;databaseName=db";
+        SQLException e = assertThrows(SQLException.class, () -> Util.parseUrl(constr, drLogger));
+        assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_errorInstanceName")), e.getMessage());
+    }
+
+    /**
      * Tests that the cross-driver connection string aliases (SqlClient / ODBC / OLEDB spellings) are normalized to the
      * canonical JDBC property names by {@link Util#parseUrl}.
      *
