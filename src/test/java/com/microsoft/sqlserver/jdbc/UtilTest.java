@@ -164,14 +164,13 @@ public class UtilTest {
     }
 
     /**
-     * Verifies the defense-in-depth guard against connection-property injection (CWE-88): a non-numeric
-     * port segment smuggled via an externally-influenced URL fragment must be rejected instead of being
-     * silently accepted and allowing additional properties to be parsed after a bare ';'.
+     * Verifies that a non-numeric or out-of-range port segment is rejected instead of being silently
+     * accepted and allowing additional properties to be parsed after a bare ';'.
      */
     @Test
     public void testParseUrlRejectsInjectedPortNumber() {
         Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
-        // Attacker attempts to smuggle authentication-changing properties through the port segment.
+        // A non-numeric port followed by additional properties must be rejected.
         String constr = "jdbc:sqlserver://localhost:1433x;integratedSecurity=true;authenticationScheme=JavaKerberos";
         SQLException e = assertThrows(SQLException.class, () -> Util.parseUrl(constr, drLogger));
         assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidPortNumber")), e.getMessage());
@@ -182,7 +181,7 @@ public class UtilTest {
     }
 
     /**
-     * Verifies that a valid numeric port continues to parse correctly after the injection hardening.
+     * Verifies that a valid numeric port continues to parse correctly after the stricter validation.
      */
     @Test
     public void testParseUrlValidPortStillParses() throws SQLException {
@@ -195,9 +194,7 @@ public class UtilTest {
     }
 
     /**
-     * Verifies the defense-in-depth guard against connection-property injection (CWE-88) for the instance
-     * name segment: an instance name containing '=' indicates an attempt to smuggle a property=value pair
-     * through the server portion of the URL and must be rejected.
+     * Verifies that an instance name containing '=' is treated as a malformed value and rejected.
      */
     @Test
     public void testParseUrlRejectsInjectedInstanceName() {
