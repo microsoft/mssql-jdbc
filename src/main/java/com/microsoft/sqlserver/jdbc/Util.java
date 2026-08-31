@@ -39,6 +39,9 @@ final class Util {
 
     final static String ACTIVITY_ID_TRACE_PROPERTY = "com.microsoft.sqlserver.jdbc.traceactivity";
 
+    /** Maximum valid TCP port number. */
+    static final int MAX_PORT_NUMBER = 65535;
+
     private Util() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));
     }
@@ -276,33 +279,28 @@ final class Util {
     }
 
     /**
-     * Validates that the port segment parsed from a JDBC URL is a strictly numeric value within the
-     * legal TCP port range (0-65535).
+     * Validates that the port segment parsed from a JDBC URL is a strictly numeric (ASCII digits only)
+     * value within the legal TCP port range (0-65535).
      *
      * @param portValue
      *        the trimmed port string parsed from the URL
      * @throws SQLServerException
-     *         if the value is empty, non-numeric, or outside the range 0-65535
+     *         if the value is empty, non-numeric, or greater than 65535
      */
     private static void validatePortNumber(String portValue) throws SQLServerException {
-        boolean valid = null != portValue && !portValue.isEmpty();
+        // A valid port is 1-5 ASCII digits; anything longer cannot be <= MAX_PORT_NUMBER.
+        boolean valid = null != portValue && !portValue.isEmpty() && portValue.length() <= 5;
         if (valid) {
             for (int idx = 0; idx < portValue.length(); idx++) {
-                if (!Character.isDigit(portValue.charAt(idx))) {
+                char c = portValue.charAt(idx);
+                if (c < '0' || c > '9') {
                     valid = false;
                     break;
                 }
             }
         }
-        if (valid) {
-            try {
-                int port = Integer.parseInt(portValue);
-                if (port < 0 || port > 65535) {
-                    valid = false;
-                }
-            } catch (NumberFormatException e) {
-                valid = false;
-            }
+        if (valid && Integer.parseInt(portValue) > MAX_PORT_NUMBER) {
+            valid = false;
         }
         if (!valid) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
