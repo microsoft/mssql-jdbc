@@ -265,19 +265,21 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     String parseProcIdentifier(String procIdentifier) throws SQLServerException {
         ThreePartName threePartName = ThreePartName.parse(procIdentifier);
         StringBuilder sb = new StringBuilder();
+        // Each part of the procedure name is emitted as a single-quote escaped N'...' string literal so it is always
+        // passed as a string argument to sp_sproc_columns and the generated metadata query stays well-formed.
         if (threePartName.getDatabasePart() != null) {
             sb.append("@procedure_qualifier=");
-            sb.append(threePartName.getDatabasePart());
+            sb.append(Util.escapeIdentifierAsStringLiteral(threePartName.getDatabasePart()));
             sb.append(", ");
         }
         if (threePartName.getOwnerPart() != null) {
             sb.append("@procedure_owner=");
-            sb.append(threePartName.getOwnerPart());
+            sb.append(Util.escapeIdentifierAsStringLiteral(threePartName.getOwnerPart()));
             sb.append(", ");
         }
         if (threePartName.getProcedurePart() != null) {
             sb.append("@procedure_name=");
-            sb.append(threePartName.getProcedurePart());
+            sb.append(Util.escapeIdentifierAsStringLiteral(threePartName.getProcedurePart()));
         } else {
             SQLServerException.makeFromDriverError(con, stmtParent, SQLServerException.getErrString("R_noMetadata"),
                     null, false);
