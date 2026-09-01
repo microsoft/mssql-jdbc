@@ -2837,7 +2837,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         else
                             tdsWriter.writeByte((byte) 0x0A);
 
-                        tdsWriter.writeOffsetDateTimeWithTimezone((OffsetDateTime) colValue, bulkScale);
+                        if (colValue instanceof DateTimeOffset) {
+                            tdsWriter.writeDateTimeOffset(colValue, bulkScale, destSSType);
+                        } else {
+                            tdsWriter.writeOffsetDateTimeWithTimezone((OffsetDateTime) colValue, bulkScale);
+                        }
                     }
                     break;
 
@@ -3234,6 +3238,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return sourceResultSet.getDate(srcColOrdinal);
 
                 case microsoft.sql.Types.DATETIMEOFFSET:
+                    return sourceResultSet.getObject(srcColOrdinal, DateTimeOffset.class);
+
+                case java.sql.Types.TIMESTAMP_WITH_TIMEZONE:
                     return sourceResultSet.getObject(srcColOrdinal, DateTimeOffset.class);
 
                 case microsoft.sql.Types.SQL_VARIANT:
