@@ -3,6 +3,115 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [13.6.0] Stable Release
+
+### Added
+
+- **Add FLOAT16 Vector Version Negotiation to the TVP Write Path** [#2997](https://github.com/microsoft/mssql-jdbc/pull/2997)
+  - **What was added**: Negotiated vector-version validation before writing VECTOR column metadata for table-valued parameters.
+  - **Who benefits**: Applications sending vector columns through table-valued parameters.
+  - **Impact**: Rejects all vectors on version 0 and FLOAT16 vectors on version 1 before data is written to the wire, with a clear driver error.
+
+- **Port Legacy FX Non-AE Test Scenarios to JUnit** [#3008](https://github.com/microsoft/mssql-jdbc/pull/3008)
+  - **What was added**: Forty-eight `legacyFx`-tagged JUnit tests covering previously unported non-Always-Encrypted functional scenarios.
+  - **Who benefits**: Contributors and CI validation pipelines.
+  - **Impact**: Improves regression coverage while advancing retirement of the legacy FX test suite.
+
+- **Add Cross-Driver Connection String Aliases for Unification** [#3011](https://github.com/microsoft/mssql-jdbc/pull/3011)
+  - **What was added**: Case-insensitive aliases for `uid`, `trusted_connection`, `app`, `connectTimeout`, `columnEncryption`, and `quotedId`, mapped to their canonical JDBC properties.
+  - **Who benefits**: Applications sharing connection-string configuration across Microsoft data drivers.
+  - **Impact**: Improves portability while preserving all existing JDBC property names and aliases.
+
+- **Add getCurrentApplicationName to PerformanceLogCallback** [#3018](https://github.com/microsoft/mssql-jdbc/pull/3018)
+  - **What was added**: A default `getCurrentApplicationName()` method that exposes the publishing connection's `applicationName` to performance callbacks.
+  - **Who benefits**: Applications using connection pools and performance-event correlation.
+  - **Impact**: Allows events to be associated with a pool or application without breaking existing callback implementations.
+
+### Changed
+
+- **Optimize MONEY, DECIMAL, and String Processing in the ResultSet Read Path** [#2991](https://github.com/microsoft/mssql-jdbc/pull/2991)
+  - **What was changed**: Removed intermediate allocations from `MONEY`/`SMALLMONEY` decoding, common `BigDecimal` encoding, short synchronous string reads, and NBCROW initialization.
+  - **Who benefits**: Applications reading high-volume or wide result sets.
+  - **Impact**: Reduces garbage-collection pressure and improves throughput while preserving decoded values and existing fallback behavior.
+
+- **Validate Reflective Class Names for Connection Properties** [#3004](https://github.com/microsoft/mssql-jdbc/pull/3004)
+  - **What was changed**: Added Java binary class-name validation before reflectively loading classes specified by properties such as `socketFactoryClass` and `accessTokenCallbackClass`.
+  - **Who benefits**: Applications configuring custom callback, socket-factory, or related reflective classes.
+  - **Impact**: Malformed class names now fail early with a dedicated driver error instead of producing confusing reflective-loading failures.
+
+- **Update Vector Tests for Server-Side FLOAT16/FLOAT32 Conversion** [#3005](https://github.com/microsoft/mssql-jdbc/pull/3005)
+  - **What was changed**: Updated and expanded vector tests for implicit and explicit conversion between FLOAT16 and FLOAT32 vector subtypes.
+  - **Who benefits**: Contributors validating vector interoperability against servers supporting vector version 2.
+  - **Impact**: Covers assignments, casts, conversions, bulk copy, routines, precision loss, nulls, and dimension mismatch behavior.
+
+- **Adjust License File to Enable GitHub Detection** [#3010](https://github.com/microsoft/mssql-jdbc/pull/3010)
+  - **What was changed**: Normalized the MIT license text formatting.
+  - **Who benefits**: Repository users and automated tooling.
+  - **Impact**: Enables GitHub to detect and display the repository license; there is no runtime impact.
+
+- **Suppress CodeQL False Positive for Protocol-Mandated MD5** [#3014](https://github.com/microsoft/mssql-jdbc/pull/3014)
+  - **What was changed**: Documented and suppressed the CodeQL `SM05136` finding for MD5 used by NTLM channel binding as required by MS-NLMP.
+  - **Who benefits**: Contributors and security-scanning pipelines.
+  - **Impact**: Reduces false-positive security findings without changing authentication behavior.
+
+- **Remove the Legacy sqljdbc_xa.dll Distribution** [#3017](https://github.com/microsoft/mssql-jdbc/pull/3017)
+  - **What was changed**: Removed references to and distribution of the legacy server-side `sqljdbc_xa.dll` and updated XA setup guidance.
+  - **Who benefits**: Applications using supported SQL Server versions and maintainers of XA deployments.
+  - **Impact**: XA now relies on the built-in procedures in SQL Server 2017 CU16 and later, enabled with `sp_sqljdbc_xa_install`.
+
+- **Cache sp_columns_170 Availability Per Connection in getColumns()** [#3019](https://github.com/microsoft/mssql-jdbc/pull/3019)
+  - **What was changed**: Cached `sp_columns_170` availability as a per-connection tri-state and refined fallback handling.
+  - **Who benefits**: Applications repeatedly calling `getColumns()`, especially on SQL Server versions earlier than 2025.
+  - **Impact**: Avoids one failed procedure call per metadata request on unsupported servers while retaining `sp_columns_100` fallback behavior.
+
+- **Enhance Table-Name Validation for Bulk Copy and Batch Insert** [#3020](https://github.com/microsoft/mssql-jdbc/pull/3020)
+  - **What was changed**: Added multi-part identifier escaping before destination table names are embedded in Bulk Copy and `useBulkCopyForBatchInsert` SQL.
+  - **Who benefits**: Applications using Bulk Copy or the PreparedStatement bulk-copy batch path.
+  - **Impact**: Valid identifiers remain supported while adversarial or malformed table-name input fails safely.
+
+- **Bump BouncyCastle to 1.84 and Pin azure-core-http-netty to 1.16.6** [#3021](https://github.com/microsoft/mssql-jdbc/pull/3021)
+  - **What was changed**: Upgraded BouncyCastle from 1.79 to 1.84 and pinned `azure-core-http-netty` to 1.16.6.
+  - **Who benefits**: Users of optional BouncyCastle and Azure SDK integrations.
+  - **Impact**: Resolves Component Governance CVEs and selects patched Netty 4.1.137.Final without API or behavior changes.
+
+- **Pin GitHub Actions to Full-Length Commit SHAs** [#3022](https://github.com/microsoft/mssql-jdbc/pull/3022)
+  - **What was changed**: Replaced mutable action tags with full commit SHAs and configured a seven-day Dependabot cooldown for GitHub Actions.
+  - **Who benefits**: Contributors and CI maintainers.
+  - **Impact**: Improves CI supply-chain security and reproducibility without changing action behavior.
+
+- **Make setObject scaleOrLength an Advisory Hint** [#3026](https://github.com/microsoft/mssql-jdbc/pull/3026)
+  - **What was changed**: Character and binary `setObject(..., scaleOrLength)` hints now widen when too small; non-positive hints are ignored. `defineParameterType()` remains enforced.
+  - **Who benefits**: Applications that pass string or binary length values to `setObject()`.
+  - **Impact**: Restores compatibility by preventing hint-related failures or truncation and validates byte-counted `varchar`/`char` lengths in server units.
+
+- **Update GitHub Actions Dependencies** [#3027](https://github.com/microsoft/mssql-jdbc/pull/3027)
+  - **What was changed**: Updated `actions/checkout` from 4.4.0 to 7.0.1 and `github/codeql-action` from 3.37.8 to 4.37.7.
+  - **Who benefits**: Contributors and CI maintainers.
+  - **Impact**: Keeps the repository's GitHub Actions dependencies current.
+
+- **Revert DateTimeOffset Deprecation for GA Compatibility** [#3035](https://github.com/microsoft/mssql-jdbc/pull/3035)
+  - **What was changed**: Restored `microsoft.sql.DateTimeOffset` and the existing `getDateTimeOffset()`, `setDateTimeOffset()`, and `updateDateTimeOffset()` APIs as non-deprecated, and removed the driver-specific `OffsetDateTime` APIs introduced in the 13.5.0 preview.
+  - **Who benefits**: Existing applications that depend on the Microsoft-specific type and established `datetimeoffset` handling in prepared statements, callable statements, result sets, bulk copy, Always Encrypted, and metadata.
+  - **Impact**: Preserves the established public API and prevents GA compatibility changes for applications expecting `microsoft.sql.DateTimeOffset` rather than `OffsetDateTime` or `TIMESTAMP_WITH_TIMEZONE`. Standard JDBC `getObject(..., OffsetDateTime.class)` support and existing conversions remain available.
+  - **Note**: Migration toward `OffsetDateTime` will be reconsidered in the next preview release with a dedicated compatibility and migration plan.
+
+### Fixed
+
+- **Fix Closed-Statement NullPointerException in buildParamTypeDefinitions** [#2995](https://github.com/microsoft/mssql-jdbc/pull/2995)
+  - **What was fixed**: Checked the statement's closed state before accessing a null parameter array in `buildParamTypeDefinitions()`.
+  - **Who benefits**: Applications that invoke parameter-related methods after a prepared or callable statement is closed.
+  - **Impact**: Produces the standard closed-statement `SQLServerException` instead of a `NullPointerException`.
+
+- **Return an Empty ResultSet When No Generated Key Exists** [#3002](https://github.com/microsoft/mssql-jdbc/pull/3002)
+  - **What was fixed**: Filtered the null `SCOPE_IDENTITY()` row returned after inserting into a table without generated keys.
+  - **Who benefits**: Applications calling `getGeneratedKeys()` for inserts into tables without an identity column.
+  - **Impact**: Returns an empty `ResultSet` instead of a one-row result containing `NULL`.
+
+- **Recover from Failed Cached Managed Identity Credentials** [#3003](https://github.com/microsoft/mssql-jdbc/pull/3003)
+  - **What was fixed**: Evicted a failed cached `ManagedIdentityCredential` or `DefaultAzureCredential` after token acquisition errors or empty results.
+  - **Who benefits**: Applications using `ActiveDirectoryManagedIdentity` or `ActiveDirectoryDefault`, especially with connection pools.
+  - **Impact**: Allows subsequent authentication attempts to build a fresh credential and recover without restarting the JVM.
+
 ## [13.5.1] Preview Release
 
 ### Added
