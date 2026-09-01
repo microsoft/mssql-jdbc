@@ -205,11 +205,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Changed
 
-- **Deprecate microsoft.sql.DateTimeOffset in Favor of java.time.OffsetDateTime** [#2920](https://github.com/microsoft/mssql-jdbc/pull/2920)
-**What was changed**: Deprecated the proprietary `microsoft.sql.DateTimeOffset` type and added new `getOffsetDateTime()`, `setOffsetDateTime()`, and `updateOffsetDateTime()` methods to promote `java.time.OffsetDateTime` (JSR-310) as the canonical Java mapping for SQL Server `datetimeoffset` columns.
-**Who benefits**: Applications seeking standards-based, vendor-neutral date/time handling.
-**Impact**: Improves portability and ORM/middleware interoperability while preserving full backward compatibility with existing DateTimeOffset APIs.
-
 - **Improve Class Validation in Util.newInstance() by Deferring Initialization** [#2914](https://github.com/microsoft/mssql-jdbc/pull/2914)
 **What was changed**: Updated `Util.newInstance()` to use `Class.forName(className, false, classLoader)` to defer class initialization until after `isAssignableFrom()` validation completes, with a classloader fallback strategy.
 **Who benefits**: Applications using connection properties such as `trustManagerClass`, `socketFactoryClass`, and `accessTokenCallbackClass`.
