@@ -698,6 +698,44 @@ final class Util {
     }
 
     /**
+     * Unwraps a single quoted SQL identifier part into its raw text. A bracket-quoted ([id]) or double-quoted ("id")
+     * part has its delimiters removed and its doubled escape characters ("]]" or "\"\"") collapsed. Any other value is
+     * returned unchanged.
+     *
+     * @param part
+     *        the identifier part, as produced by {@link ThreePartName}
+     * @return the unquoted identifier text
+     */
+    static String unquoteIdentifierPart(String part) {
+        if (null == part || part.length() < 2) {
+            return part;
+        }
+        char first = part.charAt(0);
+        char last = part.charAt(part.length() - 1);
+        if ('[' == first && ']' == last) {
+            return part.substring(1, part.length() - 1).replace("]]", "]");
+        }
+        if ('"' == first && '"' == last) {
+            return part.substring(1, part.length() - 1).replace("\"\"", "\"");
+        }
+        return part;
+    }
+
+    /**
+     * Renders a parsed SQL identifier part as a safe Unicode string literal (N'...') for use as a string argument to a
+     * system stored procedure such as sp_sproc_columns (e.g. its @procedure_name, @procedure_owner and
+     * @procedure_qualifier arguments). The part is unquoted and single-quote escaped so it is always treated as data,
+     * never as executable SQL.
+     *
+     * @param part
+     *        the identifier part, as produced by {@link ThreePartName}
+     * @return the value as an N'...' string literal
+     */
+    static String escapeIdentifierAsStringLiteral(String part) {
+        return "N'" + escapeSingleQuotes(unquoteIdentifierPart(part)) + "'";
+    }
+
+    /**
      * Checks if duplicate columns exists, in O(n) time.
      * 
      * @param columnName

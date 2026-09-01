@@ -1599,11 +1599,10 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
     private int findColumn(String columnName) throws SQLServerException {
         if (null == parameterNames) {
             try (SQLServerStatement s = (SQLServerStatement) connection.createStatement()) {
-                // Note we are concatenating the information from the passed in sql, not any arguments provided by the
-                // user
-                // if the user can execute the sql, any fragments of it is potentially executed via the meta data call
-                // through injection
-                // is not a security issue.
+                // The procedure name comes from the JDBC {call ...} syntax and may contain characters that are
+                // significant to T-SQL. Each part is emitted below either as a bracket-escaped identifier (the
+                // database prefix) or as a single-quote escaped N'...' string literal (the sp_sproc_columns
+                // arguments), so the generated metadata query is always well-formed.
 
                 ThreePartName threePartName = ThreePartName.parse(procedureName);
                 StringBuilder metaQuery = new StringBuilder("exec ");
@@ -1613,29 +1612,31 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
                 // sys schema, preventing any possibility of name-squatting with a user-defined
                 // sp_sproc_columns procedure.
                 String currentDb = connection.getCatalog();
-                // When using getCatalog(), we need to escape the identifier since it returns
-                // an unescaped database name. The database part from ThreePartName preserves
-                // its original format (may already be bracketed from user input).
-                String targetDb = threePartName.getDatabasePart() != null ? threePartName.getDatabasePart() : Util.escapeSQLId(currentDb);
+                // The database prefix is an identifier position, so it must be bracket-escaped. getCatalog() returns
+                // an unescaped name; the database part from ThreePartName may already be bracketed from user input,
+                // so escapeMultiPartIdentifier is used to handle both forms.
+                String targetDb = threePartName.getDatabasePart() != null
+                        ? Util.escapeMultiPartIdentifier(threePartName.getDatabasePart())
+                        : Util.escapeSQLId(currentDb);
                 metaQuery.append(targetDb);
                 metaQuery.append(".sys.");
                 
                 metaQuery.append("sp_sproc_columns ");
                 if (null != threePartName.getDatabasePart()) {
                     metaQuery.append("@procedure_qualifier=");
-                    metaQuery.append(threePartName.getDatabasePart());
+                    metaQuery.append(Util.escapeIdentifierAsStringLiteral(threePartName.getDatabasePart()));
                     metaQuery.append(", ");
                 }
 
                 if (null != threePartName.getOwnerPart()) {
                     metaQuery.append("@procedure_owner=");
-                    metaQuery.append(threePartName.getOwnerPart());
+                    metaQuery.append(Util.escapeIdentifierAsStringLiteral(threePartName.getOwnerPart()));
                     metaQuery.append(", ");
                 }
                 if (null != threePartName.getProcedurePart()) {
                     // we should always have a procedure name part
                     metaQuery.append("@procedure_name=");
-                    metaQuery.append(threePartName.getProcedurePart());
+                    metaQuery.append(Util.escapeIdentifierAsStringLiteral(threePartName.getProcedurePart()));
                     metaQuery.append(" , @ODBCVer=3, @fUsePattern=0");
                 } else {
                     // This should rarely happen, this will only happen if we can't find the stored procedure name
