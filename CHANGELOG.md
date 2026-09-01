@@ -27,11 +27,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   - **Who benefits**: Applications using connection pools and performance-event correlation.
   - **Impact**: Allows events to be associated with a pool or application without breaking existing callback implementations.
 
-- **Add Java SE API Link to Javadoc Configuration** [#3025](https://github.com/microsoft/mssql-jdbc/pull/3025)
-  - **What was added**: The Java SE 8 API documentation as an external link in the Maven Javadoc configuration.
-  - **Who benefits**: Contributors and API consumers reviewing Javadoc.
-  - **Impact**: Allows generated Javadocs to resolve standard Java types and render their deprecation metadata correctly.
-
 ### Changed
 
 - **Optimize MONEY, DECIMAL, and String Processing in the ResultSet Read Path** [#2991](https://github.com/microsoft/mssql-jdbc/pull/2991)
