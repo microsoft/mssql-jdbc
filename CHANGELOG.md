@@ -94,6 +94,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   - **Who benefits**: Contributors and CI maintainers.
   - **Impact**: Keeps the repository's GitHub Actions dependencies current.
 
+- **Revert DateTimeOffset Deprecation for GA Compatibility** [#3035](https://github.com/microsoft/mssql-jdbc/pull/3035)
+  - **What was changed**: Restored `microsoft.sql.DateTimeOffset` and the existing `getDateTimeOffset()`, `setDateTimeOffset()`, and `updateDateTimeOffset()` APIs as non-deprecated, and removed the driver-specific `OffsetDateTime` APIs introduced in the 13.5.0 preview.
+  - **Who benefits**: Existing applications that depend on the Microsoft-specific type and established `datetimeoffset` handling in prepared statements, callable statements, result sets, bulk copy, Always Encrypted, and metadata.
+  - **Impact**: Preserves the established public API and prevents GA compatibility changes for applications expecting `microsoft.sql.DateTimeOffset` rather than `OffsetDateTime` or `TIMESTAMP_WITH_TIMEZONE`. Standard JDBC `getObject(..., OffsetDateTime.class)` support and existing conversions remain available.
+  - **Note**: Migration toward `OffsetDateTime` will be reconsidered in the next preview release with a dedicated compatibility and migration plan.
+
 ### Fixed
 
 - **Fix Closed-Statement NullPointerException in buildParamTypeDefinitions** [#2995](https://github.com/microsoft/mssql-jdbc/pull/2995)
