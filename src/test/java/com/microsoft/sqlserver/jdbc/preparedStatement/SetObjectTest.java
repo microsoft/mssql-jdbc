@@ -205,18 +205,13 @@ public class SetObjectTest extends AbstractTest {
                         pstmt.setObject(2, dateTimeOffset);
                         pstmt.executeUpdate();
 
-                        // Set OffsetDateTime (new API)
+                        // Set DateTimeOffset
                         pstmt.setInt(1, 4);
-                        pstmt.setOffsetDateTime(2, offsetDateTime);
-                        pstmt.executeUpdate();
-
-                        // Set DateTimeOffset (legacy API)
-                        pstmt.setInt(1, 5);
                         pstmt.setDateTimeOffset(2, dateTimeOffset);
                         pstmt.executeUpdate();
 
                         // Set String
-                        pstmt.setInt(1, 6);
+                        pstmt.setInt(1, 5);
                         pstmt.setString(2, expectedDTOString);
                         pstmt.executeUpdate();
                     }
@@ -224,7 +219,7 @@ public class SetObjectTest extends AbstractTest {
                     String query = "SELECT dto FROM " + AbstractSQLGenerator.escapeIdentifier(tableName);
                     verifyDateTimeOffsetValues(stmt, query, dateTimeOffset, offsetDateTime, expectedDTOString, sqlDto);
 
-                    for (int i = 1; i <= 6; i++) {
+                    for (int i = 1; i <= 5; i++) {
                         query = "SELECT dto FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = "
                                 + i + " AND dto = '" + sqlDto + "'";
                         verifyDateTimeOffsetValues(stmt, query, dateTimeOffset, offsetDateTime, expectedDTOString,
@@ -249,9 +244,6 @@ public class SetObjectTest extends AbstractTest {
 
                 assertEquals(dateTimeOffset, rs.getObject(1, DateTimeOffset.class));
                 assertEquals(expectedDTOString, rs.getObject(1, DateTimeOffset.class).toString());
-
-                assertEquals(offsetDateTime, rs.getOffsetDateTime(1));
-                assertEquals(sqlDto, rs.getOffsetDateTime(1).toString());
 
                 assertEquals(offsetDateTime, rs.getObject(1, OffsetDateTime.class));
                 assertEquals(sqlDto, rs.getObject(1, OffsetDateTime.class).toString());
