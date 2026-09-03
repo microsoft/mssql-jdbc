@@ -1207,6 +1207,20 @@ public class SQLServerDataSource
                 useDefaultJaasConfig);
     }
 
+    @Override
+    public boolean getEnableKerberosCredentialDelegation() {
+        return getBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.ENABLE_KERBEROS_CRED_DELEGATION.toString(),
+                SQLServerDriverBooleanProperty.ENABLE_KERBEROS_CRED_DELEGATION.getDefaultValue());
+    }
+
+    @Override
+    public void setEnableKerberosCredentialDelegation(boolean enableKerberosCredentialDelegation) {
+        setBooleanProperty(connectionProps,
+                SQLServerDriverBooleanProperty.ENABLE_KERBEROS_CRED_DELEGATION.toString(),
+                enableKerberosCredentialDelegation);
+    }
+
     /**
      * @deprecated This method is deprecated. Use {@link SQLServerDataSource#setUser(String user)} instead.
      *

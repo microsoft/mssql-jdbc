@@ -782,6 +782,7 @@ enum SQLServerDriverBooleanProperty {
     IGNORE_OFFSET_ON_DATE_TIME_OFFSET_CONVERSION("ignoreOffsetOnDateTimeOffsetConversion", false),
     USE_DEFAULT_JAAS_CONFIG("useDefaultJaasConfig", false),
     USE_DEFAULT_GSS_CREDENTIAL("useDefaultGSSCredential", false),
+    ENABLE_KERBEROS_CRED_DELEGATION("enableKerberosCredentialDelegation", false),
     CALC_BIG_DECIMAL_PRECISION("calcBigDecimalPrecision", false);
 
     private final String name;
@@ -1058,6 +1059,9 @@ public final class SQLServerDriver implements java.sql.Driver {
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.USE_DEFAULT_JAAS_CONFIG.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.USE_DEFAULT_JAAS_CONFIG.getDefaultValue()), false,
                     TRUE_FALSE),
+            new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.ENABLE_KERBEROS_CRED_DELEGATION.toString(),
+                    Boolean.toString(SQLServerDriverBooleanProperty.ENABLE_KERBEROS_CRED_DELEGATION.getDefaultValue()),
+                    false, TRUE_FALSE),
             new SQLServerDriverPropertyInfo(SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.toString(),
                     Boolean.toString(SQLServerDriverBooleanProperty.CALC_BIG_DECIMAL_PRECISION.getDefaultValue()),
                     false, TRUE_FALSE),
