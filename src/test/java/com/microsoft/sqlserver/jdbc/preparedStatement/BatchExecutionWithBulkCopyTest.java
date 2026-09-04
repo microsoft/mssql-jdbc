@@ -216,6 +216,44 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
+    /**
+     * Verifies that trailing SQL after the VALUES list (for example an OPTION query hint) causes
+     * checkAdditionalQuery to throw, so the driver falls back to the regular batch execution path
+     * instead of silently dropping the clause when using Bulk Copy for batch insert.
+     */
+    @Test
+    public void testCheckAdditionalQuery() throws Exception {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
+            Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
+            f1.setAccessible(true);
+
+            Method method = pstmt.getClass().getDeclaredMethod("checkAdditionalQuery");
+            method.setAccessible(true);
+
+            // Trailing content that cannot be honored by Bulk Copy must trigger a fallback.
+            String[] unsupportedTrailers = {" OPTION (OPTIMIZE FOR UNKNOWN)",
+                    " OPTION (RECOMPILE)", ", (?, ?)", " FROM x"};
+            for (String trailer : unsupportedTrailers) {
+                f1.set(pstmt, trailer);
+                try {
+                    method.invoke(pstmt);
+                    fail("Expected IllegalArgumentException for trailing SQL: " + trailer);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    assertTrue(e.getCause() instanceof IllegalArgumentException);
+                }
+            }
+
+            // Only comments, whitespace and semicolons may remain - these must NOT trigger a fallback.
+            String[] supportedTrailers = {"", "   ", ";", " ; ", "/* trailing comment */",
+                    "-- trailing comment\n", " ;/* c */ ;"};
+            for (String trailer : supportedTrailers) {
+                f1.set(pstmt, trailer);
+                method.invoke(pstmt);
+            }
+        }
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testAll() throws Exception {
