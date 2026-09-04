@@ -2631,9 +2631,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                     if (null == bcOperationValueList) {
                         bcOperationValueList = parseUserSQLForValueListDW(false);
-                    }
 
-                    checkAdditionalQuery();
+                        // Only meaningful right after the statement has been parsed. On subsequent calls the
+                        // parse results are served from the cache above and localUserSQL still holds the full,
+                        // unconsumed statement, which would incorrectly look like trailing content.
+                        checkAdditionalQuery();
+                    }
 
                     try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
                             ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
@@ -2851,9 +2854,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                     if (null == bcOperationValueList) {
                         bcOperationValueList = parseUserSQLForValueListDW(false);
-                    }
 
-                    checkAdditionalQuery();
+                        // Only meaningful right after the statement has been parsed. On subsequent calls the
+                        // parse results are served from the cache above and localUserSQL still holds the full,
+                        // unconsumed statement, which would incorrectly look like trailing content.
+                        checkAdditionalQuery();
+                    }
 
                     try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
                             ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
@@ -3358,9 +3364,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean checkAndRemoveCommentsAndSpace(boolean checkForSemicolon) {
         localUserSQL = localUserSQL.trim();
 
+        // Trim between semicolons as well, so whitespace separated ones such as "; ;" are fully consumed.
         while (checkForSemicolon && null != localUserSQL && localUserSQL.length() > 0
                 && localUserSQL.charAt(0) == ';') {
-            localUserSQL = localUserSQL.substring(1);
+            localUserSQL = localUserSQL.substring(1).trim();
         }
 
         if (null == localUserSQL || localUserSQL.length() < 2) {
