@@ -97,6 +97,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Fixed
 
+- **Fix Silent Drop of Trailing SQL After VALUES in Bulk Copy Batch Insert** [#3037](https://github.com/microsoft/mssql-jdbc/pull/3037)
+  - **What was fixed**: Trailing content after the `VALUES` list, such as an `OPTION (...)` query hint or an extra value tuple, now triggers the existing fallback to the regular batch execution path instead of being discarded.
+  - **Who benefits**: Applications using `useBulkCopyForBatchInsert=true` with batched `INSERT` statements that carry trailing clauses.
+  - **Impact**: The full statement is sent to the server verbatim; statements with only trailing comments, whitespace, or semicolons continue to use Bulk Copy.
+
 - **Fix Closed-Statement NullPointerException in buildParamTypeDefinitions** [#2995](https://github.com/microsoft/mssql-jdbc/pull/2995)
   - **What was fixed**: Checked the statement's closed state before accessing a null parameter array in `buildParamTypeDefinitions()`.
   - **Who benefits**: Applications that invoke parameter-related methods after a prepared or callable statement is closed.

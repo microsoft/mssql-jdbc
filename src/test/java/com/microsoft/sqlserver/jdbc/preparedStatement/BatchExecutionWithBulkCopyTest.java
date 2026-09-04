@@ -34,6 +34,7 @@ import java.util.Calendar;
 import java.util.Random;
 import java.util.UUID;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -245,13 +246,117 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             }
 
             // Only comments, whitespace and semicolons may remain - these must NOT trigger a fallback.
-            String[] supportedTrailers = {"", "   ", ";", " ; ", "/* trailing comment */",
+            String[] supportedTrailers = {"", "   ", ";", " ; ", "; ;", "/* trailing comment */",
                     "-- trailing comment\n", " ;/* c */ ;"};
             for (String trailer : supportedTrailers) {
                 f1.set(pstmt, trailer);
                 method.invoke(pstmt);
             }
         }
+    }
+
+    /**
+     * Verifies that a trailing clause after the VALUES list (an OPTION query hint) makes the driver fall back
+     * to the regular batch execution path, so that the full statement - including the trailing clause - reaches
+     * the server instead of being silently dropped.
+     */
+    @Test
+    public void testTrailingOptionClauseFallsBackAndInserts() throws Exception {
+        String localTableName = RandomUtil.getIdentifier("Table_BulkCopy_TrailingOption");
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(localTableName)
+                + " (Id, Data) VALUES (?, ?) OPTION (RECOMPILE)";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            createTable_SQLFunction(localTableName);
+
+            pstmt.setInt(1, 1);
+            pstmt.setInt(2, 10);
+            pstmt.addBatch();
+            pstmt.setInt(1, 2);
+            pstmt.setInt(2, 20);
+            pstmt.addBatch();
+
+            try (AutoCloseable ignored = enableFineStatementLogging();
+                    FallbackWatcherLogHandler handler = new FallbackWatcherLogHandler()) {
+                pstmt.executeBatch();
+                assertTrue(handler.gotFallbackMessage, "Expected fallback to the regular batch path");
+            }
+
+            try (ResultSet rs = stmt.executeQuery("SELECT Id, Data FROM "
+                    + AbstractSQLGenerator.escapeIdentifier(localTableName) + " ORDER BY Id")) {
+                assertTrue(rs.next(), "Expected first row");
+                assertEquals(1, rs.getInt("Id"));
+                assertEquals(10, rs.getInt("Data"));
+                assertTrue(rs.next(), "Expected second row");
+                assertEquals(2, rs.getInt("Id"));
+                assertEquals(20, rs.getInt("Data"));
+                assertFalse(rs.next());
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(localTableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies that reusing the same PreparedStatement for multiple batches keeps using Bulk Copy. The parsed
+     * table/column/value lists are cached after the first executeBatch, so the leftover-SQL validation must not
+     * run again against the unconsumed statement and wrongly force a fallback on every later batch.
+     */
+    @Test
+    public void testRepeatedBatchesKeepUsingBulkCopy() throws Exception {
+        String localTableName = RandomUtil.getIdentifier("Table_BulkCopy_RepeatedBatch");
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(localTableName)
+                + " (Id, Data) VALUES (?, ?)";
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            createTable_SQLFunction(localTableName);
+
+            try (AutoCloseable ignored = enableFineStatementLogging()) {
+                for (int batch = 0; batch < 3; batch++) {
+                    pstmt.setInt(1, batch * 2 + 1);
+                    pstmt.setInt(2, batch * 2 + 1);
+                    pstmt.addBatch();
+                    pstmt.setInt(1, batch * 2 + 2);
+                    pstmt.setInt(2, batch * 2 + 2);
+                    pstmt.addBatch();
+
+                    try (FallbackWatcherLogHandler handler = new FallbackWatcherLogHandler()) {
+                        pstmt.executeBatch();
+                        assertFalse("Batch " + batch + " unexpectedly fell back to the regular batch path",
+                                handler.gotFallbackMessage);
+                    }
+                }
+            }
+
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM "
+                    + AbstractSQLGenerator.escapeIdentifier(localTableName))) {
+                assertTrue(rs.next());
+                assertEquals(6, rs.getInt(1));
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(localTableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Forces the internal statement logger to FINE so the fallback log message is actually published, making
+     * both positive and negative fallback assertions meaningful regardless of the ambient logging configuration.
+     */
+    private AutoCloseable enableFineStatementLogging() {
+        Logger stmtLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerStatement");
+        Level previousLevel = stmtLogger.getLevel();
+        stmtLogger.setLevel(Level.FINE);
+        return () -> stmtLogger.setLevel(previousLevel);
     }
 
     @SuppressWarnings("unchecked")
