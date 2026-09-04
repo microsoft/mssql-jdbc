@@ -3043,6 +3043,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void checkAdditionalQuery() {
         while (checkAndRemoveCommentsAndSpace(true)) {}
+
+        // Once the VALUES list has been consumed, only comments, whitespace or semicolons may remain.
+        // Any other trailing content (for example an OPTION (...) query hint) cannot be honored by the
+        // Bulk Copy API. Throw so the caller falls back to the regular batch execution path, which sends
+        // the full statement - including the trailing clause - to the server.
+        if (null != localUserSQL && !localUserSQL.trim().isEmpty()) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+            Object[] msgArgs = {localUserSQL};
+            throw new IllegalArgumentException(form.format(msgArgs));
+        }
     }
 
     private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound,
