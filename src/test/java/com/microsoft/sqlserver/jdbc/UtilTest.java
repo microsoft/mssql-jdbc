@@ -164,6 +164,97 @@ public class UtilTest {
     }
 
     /**
+     * Verifies that a non-numeric or out-of-range port segment is rejected instead of being silently
+     * accepted and allowing additional properties to be parsed after a bare ';'.
+     */
+    @Test
+    public void testParseUrlRejectsInjectedPortNumber() {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        // A non-numeric port followed by additional properties must be rejected.
+        String constr = "jdbc:sqlserver://localhost:1433x;integratedSecurity=true;authenticationScheme=JavaKerberos";
+        SQLException e = assertThrows(SQLException.class, () -> Util.parseUrl(constr, drLogger));
+        assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidPortNumber")), e.getMessage());
+
+        // Out-of-range port must also be rejected.
+        String constr2 = "jdbc:sqlserver://localhost:99999;databaseName=db";
+        assertThrows(SQLException.class, () -> Util.parseUrl(constr2, drLogger));
+    }
+
+    /**
+     * Verifies that a valid numeric port continues to parse correctly after the stricter validation.
+     */
+    @Test
+    public void testParseUrlValidPortStillParses() throws SQLException {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost:1433;databaseName=db;";
+        Properties prt = Util.parseUrl(constr, drLogger);
+        assertEquals("localhost", prt.getProperty("serverName"));
+        assertEquals("1433", prt.getProperty("portNumber"));
+        assertEquals("db", prt.getProperty("databaseName"));
+    }
+
+    /**
+     * Verifies that an instance name containing '=' is treated as a malformed value and rejected.
+     */
+    @Test
+    public void testParseUrlRejectsInjectedInstanceName() {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost\\inst=x;databaseName=db";
+        SQLException e = assertThrows(SQLException.class, () -> Util.parseUrl(constr, drLogger));
+        assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_errorInstanceName")), e.getMessage());
+    }
+
+    /**
+     * Verifies that the instance name is normalized to lower case consistently, both when the URL
+     * continues after the instance segment and when the URL ends immediately after it (exit path).
+     */
+    @Test
+    public void testParseUrlInstanceNameLowerCased() throws SQLException {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        // URL continues after the instance name (mid-string path).
+        Properties midStr = Util.parseUrl("jdbc:sqlserver://localhost\\MyInstance;databaseName=db", drLogger);
+        assertEquals("myinstance", midStr.getProperty("instanceName"));
+        // URL ends immediately after the instance name (exit path).
+        Properties exitStr = Util.parseUrl("jdbc:sqlserver://localhost\\MyInstance", drLogger);
+        assertEquals("myinstance", exitStr.getProperty("instanceName"));
+    }
+
+    /**
+     * Verifies that a server name containing '=' is rejected on the exit path (URL ending immediately
+     * after the server segment), consistent with the mid-string server-name handling.
+     */
+    @Test
+    public void testParseUrlRejectsMalformedServerNameOnExit() {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost=x";
+        SQLException e = assertThrows(SQLException.class, () -> Util.parseUrl(constr, drLogger));
+        assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_errorServerName")), e.getMessage());
+    }
+
+    /**
+     * Verifies that an empty port segment is rejected at parse time.
+     */
+    @Test
+    public void testParseUrlRejectsEmptyPort() {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost:;databaseName=db";
+        SQLException e = assertThrows(SQLException.class, () -> Util.parseUrl(constr, drLogger));
+        assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidPortNumber")), e.getMessage());
+    }
+
+    /**
+     * Verifies that a non-ASCII "digit" port (e.g. Arabic-Indic digits) is rejected rather than being
+     * silently accepted and stored as a raw non-ASCII string.
+     */
+    @Test
+    public void testParseUrlRejectsNonAsciiDigitPort() {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        String constr = "jdbc:sqlserver://localhost:\u0661\u0664\u0663\u0663;databaseName=db";
+        SQLException e = assertThrows(SQLException.class, () -> Util.parseUrl(constr, drLogger));
+        assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_invalidPortNumber")), e.getMessage());
+    }
+
+    /**
      * Tests that the cross-driver connection string aliases (SqlClient / ODBC / OLEDB spellings) are normalized to the
      * canonical JDBC property names by {@link Util#parseUrl}.
      *
