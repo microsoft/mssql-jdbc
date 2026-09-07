@@ -2133,6 +2133,63 @@ public class CallableStatementTest extends AbstractTest {
     }
 
     /**
+     * The driver resolves stored-procedure parameter metadata by invoking sp_sproc_columns with the procedure name
+     * taken from the JDBC {call ...} syntax. Each part of that name is now emitted as an escaped N'...' string literal
+     * argument, so a crafted name that packs extra T-SQL statements is treated purely as a string during metadata
+     * resolution - i.e. it never runs, even without the application calling execute(). Both the named-parameter path
+     * (findColumn, triggered by a named setter) and the getParameterMetaData() path are exercised.
+     *
+     * This test drives both paths with a stacked-INSERT procedure name and asserts the probe table stays empty.
+     *
+     * @throws SQLException
+     */
+    @Test
+    public void testProcedureMetadataResolvesCraftedProcedureName() throws SQLException {
+        String proofTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("metadata_probe"));
+
+        try (Statement stmt = connection.createStatement()) {
+            TestUtils.dropTableIfExists(proofTable, stmt);
+            stmt.execute("CREATE TABLE " + proofTable + " (note NVARCHAR(400) NOT NULL)");
+
+            // Whitespace is replaced with /**/ and the trailing metadata args are commented out with -- so the crafted
+            // name matches the driver's {call} identifier grammar (\S+, no parentheses).
+            String craftedName = "1;INSERT/**/INTO/**/" + proofTable + "/**/SELECT/**/N'probe'--";
+
+            // Path 1: getParameterMetaData() must not run the stacked INSERT.
+            try (CallableStatement cs = connection.prepareCall("{call " + craftedName + "}")) {
+                try {
+                    cs.getParameterMetaData();
+                } catch (SQLException e) {
+                    // A metadata lookup failure is acceptable; a side effect is not.
+                }
+            }
+            assertEquals(0, countRows(proofTable), "getParameterMetaData() ran the stacked statement");
+
+            // Path 2: a named setter (findColumn) must not run the stacked INSERT.
+            try (CallableStatement cs = connection.prepareCall("{call " + craftedName + "}")) {
+                try {
+                    cs.setString("p", "x");
+                } catch (SQLException e) {
+                    // An "index out of range" / "parameter not defined" failure is acceptable; a side effect is not.
+                }
+            }
+            assertEquals(0, countRows(proofTable), "A named setter ran the stacked statement");
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(proofTable, stmt);
+            }
+        }
+    }
+
+    private static int countRows(String escapedTableName) throws SQLException {
+        try (Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + escapedTableName)) {
+            rs.next();
+            return rs.getInt(1);
+        }
+    }
+
+    /**
      * Cleanup after test
      * 
      * @throws SQLException
