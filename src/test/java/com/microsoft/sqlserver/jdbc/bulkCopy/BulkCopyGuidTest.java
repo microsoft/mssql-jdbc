@@ -309,7 +309,7 @@ public class BulkCopyGuidTest extends AbstractTest {
     }
 
     private static SQLServerBulkCSVFileRecord guidFileRecord(String guid) throws Exception {
-        byte[] bytes = ("guidcol\n" + guid + "\n").getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = ("id\n" + guid + "\n").getBytes(StandardCharsets.UTF_8);
         try (InputStream inputStream = new ByteArrayInputStream(bytes)) {
             return new SQLServerBulkCSVFileRecord(inputStream, Constants.UTF8, Constants.COMMA, true);
         }
