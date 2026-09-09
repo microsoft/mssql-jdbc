@@ -492,13 +492,7 @@ class AASAttestationResponse extends BaseAttestationResponse {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_AasTokenLifetimeError"), "0", false);
         }
-        try {
-            return Long.parseLong(claim.getAsString());
-        } catch (NumberFormatException e) {
-            SQLServerException.makeFromDriverError(null, this,
-                    SQLServerResource.getResource("R_AasTokenLifetimeError"), "0", false, e);
-            return 0;
-        }
+        return claim.getAsLong();
     }
 
     private String getRequiredStringClaim(JsonObject claims, String claimName,
