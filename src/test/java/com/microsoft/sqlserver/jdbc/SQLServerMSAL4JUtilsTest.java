@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
@@ -43,5 +44,52 @@ public class SQLServerMSAL4JUtilsTest {
         assertEquals(user, params.loginHint(), "loginHint should be propagated from the connection user");
         assertTrue(params.scopes().contains(spn + SQLServerMSAL4JUtils.SLASH_DEFAULT),
                 "scopes must contain the resource SPN with the /.default suffix");
+    }
+
+    /**
+     * The pooled-semaphore gate maps each credential onto a fixed pool slot via its hashed secret.
+     * Every mapping must land inside the pool bounds {@code [0, SEM_POOL_SIZE)} -- including hashed
+     * secrets whose {@link String#hashCode()} is negative, which is why the mapping masks off the
+     * sign bit before the modulo. An out-of-bounds index would throw
+     * {@link ArrayIndexOutOfBoundsException} on the token-acquisition path.
+     */
+    @Test
+    public void testPoolIndexIsAlwaysWithinBounds() {
+        for (int i = 0; i < 10000; i++) {
+            String hashedSecret = UUID.randomUUID().toString();
+            int index = SQLServerMSAL4JUtils.poolIndexForHashedSecret(hashedSecret);
+            assertTrue(index >= 0 && index < SQLServerMSAL4JUtils.SEM_POOL_SIZE,
+                    "pool index " + index + " for '" + hashedSecret + "' must be in [0, SEM_POOL_SIZE)");
+        }
+    }
+
+    /**
+     * Guards the sign-bit masking explicitly: a string whose {@code hashCode()} is negative must
+     * still map to a non-negative slot. Without the {@code & 0x7fffffff} mask the modulo would
+     * yield a negative index.
+     */
+    @Test
+    public void testPoolIndexHandlesNegativeHashCode() {
+        // "polygenelubricants" is a well-known String with hashCode == Integer.MIN_VALUE.
+        String negativeHash = "polygenelubricants";
+        assertTrue(negativeHash.hashCode() < 0, "precondition: this string must hash to a negative value");
+
+        int index = SQLServerMSAL4JUtils.poolIndexForHashedSecret(negativeHash);
+        assertTrue(index >= 0 && index < SQLServerMSAL4JUtils.SEM_POOL_SIZE,
+                "a negative hashCode must still map to a slot in [0, SEM_POOL_SIZE)");
+    }
+
+    /**
+     * The slot mapping must be deterministic: the same credential always resolves to the same pool
+     * slot, so concurrent callers for one service principal serialise on the same semaphore.
+     */
+    @Test
+    public void testPoolIndexIsDeterministic() {
+        String hashedSecret = UUID.randomUUID().toString();
+        int first = SQLServerMSAL4JUtils.poolIndexForHashedSecret(hashedSecret);
+        for (int i = 0; i < 100; i++) {
+            assertEquals(first, SQLServerMSAL4JUtils.poolIndexForHashedSecret(hashedSecret),
+                    "the same hashed secret must always map to the same pool slot");
+        }
     }
 }
