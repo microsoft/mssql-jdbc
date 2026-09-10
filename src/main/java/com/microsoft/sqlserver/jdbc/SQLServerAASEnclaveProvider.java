@@ -387,7 +387,8 @@ class AASAttestationResponse extends BaseAttestationResponse {
                     false);
         } catch (IOException | GeneralSecurityException | URISyntaxException | JsonParseException
                 | IllegalArgumentException | IllegalStateException e) {
-            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false, e);
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasJWTError"), "0",
+                    false, e);
         }
     }
 
