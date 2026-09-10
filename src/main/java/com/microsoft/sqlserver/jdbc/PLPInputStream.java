@@ -130,7 +130,7 @@ class PLPInputStream extends BaseInputStream {
         try {
             close();
         } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
         }
 
         return value;
@@ -191,7 +191,7 @@ class PLPInputStream extends BaseInputStream {
 
             return available;
         } catch (SQLServerException e) {
-            throw new IOException(e.getMessage());
+            throw new IOException(e.getMessage(), e);
         }
 
     }
@@ -285,7 +285,7 @@ class PLPInputStream extends BaseInputStream {
         try {
             return readBytesInternal(b, offset, maxBytes);
         } catch (SQLServerException e) {
-            throw new IOException(e.getMessage());
+            throw new IOException(e.getMessage(), e);
         }
     }
 
@@ -307,12 +307,23 @@ class PLPInputStream extends BaseInputStream {
              * chunk or determine that we have reached the end of the stream.
              */
             if (0 == currentChunkRemain) {
-                currentChunkRemain = (int) tdsReader.readUnsignedInt();
-                assert currentChunkRemain >= 0;
-                if (0 == currentChunkRemain) {
+                long chunkSize = tdsReader.readUnsignedInt();
+                
+                // Check for end of stream
+                if (0 == chunkSize) {
                     currentChunkRemain = PLP_EOS;
                     break;
                 }
+                
+                // Validate chunk size to prevent integer overflow (CWE-190)
+                // A malicious server could send a chunk size > Integer.MAX_VALUE
+                // which would cause silent data truncation or crash when cast to int
+                if (chunkSize > Integer.MAX_VALUE) {
+                    throw new SQLServerException(SQLServerException.getErrString("R_invalidTDS"), null);
+                }
+                
+                currentChunkRemain = (int) chunkSize;
+                assert currentChunkRemain >= 0;
             }
 
             if (bytesRead == maxBytes)
@@ -503,7 +514,7 @@ final class PLPXMLInputStream extends PLPInputStream {
             } else
                 bytesToReturn = valueWithoutBOM;
         } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
         }
 
         return bytesToReturn;

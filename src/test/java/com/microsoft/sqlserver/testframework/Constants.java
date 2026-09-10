@@ -35,6 +35,9 @@ public final class Constants {
      * CodeCov - - - - - - For tests tracked in coverage-only runs
      * legacyFx  - - - - - For tests validating legacy FX regressions
      * vectorFloat16Test - For tests requiring vector(float16) setup
+     * alwaysEncrypted  - - For tests in the AlwaysEncrypted package
+     * bulkCopy - - - - - - For tests in the bulkCopy package
+     * enhancedRouting  - For tests requiring Hyperscale database with HA read replicas
      * </pre>
      */
     public static final String xJDBC42 = "xJDBC42";
@@ -59,8 +62,29 @@ public final class Constants {
     public static final String JSONTest = "JSONTest";
     public static final String CodeCov = "CodeCov";
     public static final String legacyFx = "legacyFx";
+    public static final String alwaysEncrypted = "alwaysEncrypted";
+    public static final String bulkCopy = "bulkCopy";
+    public static final String legacyFxXa = "legacyFx_Xa";
+
+    // LegacyFX parallelization tags
+    public static final String legacyFxSecurity = "LegacyFX_Security";
+    public static final String legacyFxCTS = "LegacyFX_CTS";
+    public static final String legacyFxXA = "LegacyFX_XA";
+    public static final String legacyFxRouting = "LegacyFX_Routing";
+    public static final String legacyFxAE = "LegacyFX_AE";
+    public static final String legacyFxSSL = "LegacyFX_SSL";
+    public static final String legacyFxCursor = "LegacyFX_Cursor";
+    public static final String legacyFxResultSet = "LegacyFX_ResultSet";
+    public static final String legacyFxDataTypes = "LegacyFX_DataTypes";
+    public static final String legacyFxStatement = "LegacyFX_Statement";
+    public static final String legacyFxStress = "LegacyFX_Stress";
+    public static final String legacyFxMetadata = "LegacyFX_Metadata";
+    public static final String legacyFxGlobalization = "LegacyFX_Globalization";
+    public static final String legacyFxTVP = "LegacyFX_TVP";
+    public static final String legacyFxStateMachine = "LegacyFX_StateMachine";
     public static final String PrepareMethodUseTempTableScopeTest = "PrepareMethodUseTempTableScopeTest";
     public static final String vectorFloat16Test = "vectorFloat16Test";
+    public static final String enhancedRouting = "enhancedRouting";
 
     public static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
     public static final Logger LOGGER = Logger.getLogger("AbstractTest");

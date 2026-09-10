@@ -34,6 +34,131 @@ SQLServerDriver.registerPerformanceLogCallback(new PerformanceLogCallback() {
 });
 ```
 
+#### Nanosecond Granularity
+
+By default, the `duration` parameter is reported in **milliseconds**. To receive
+**nanosecond** granularity instead, override `useNanoseconds()` to return `true`:
+
+```java
+SQLServerDriver.registerPerformanceLogCallback(new PerformanceLogCallback() {
+    @Override
+    public boolean useNanoseconds() {
+        return true; // duration values will be in nanoseconds
+    }
+
+    @Override
+    public void publish(PerformanceActivity activity, int connectionId, long durationNs, 
+            Exception exception) {
+        System.out.printf("Activity: %s, Connection: %d, Duration: %d ns%n",
+                activity, connectionId, durationNs);
+    }
+
+    @Override
+    public void publish(PerformanceActivity activity, int connectionId, int statementId, 
+            long durationNs, Exception exception) {
+        System.out.printf("Activity: %s, Connection: %d, Statement: %d, Duration: %d ns%n",
+                activity, connectionId, statementId, durationNs);
+    }
+});
+```
+
+The value of `useNanoseconds()` is captured once at registration time and remains fixed
+for the lifetime of the callback. To change the duration unit, unregister and re-register
+with the new setting.
+
+When `useNanoseconds()` returns `true`:
+- Timing uses `System.nanoTime()` instead of `System.currentTimeMillis()`
+- Log output uses `ns` as the unit suffix instead of `ms`
+- All publish calls (connection-level and statement-level) use nanosecond values
+
+#### Accessing SQL Text and Statement Type
+
+Inside a `publish()` callback, you can retrieve the SQL text and statement type for the
+current performance event using the default methods `getCurrentUserSql()` and
+`getCurrentStatementType()`:
+
+```java
+SQLServerDriver.registerPerformanceLogCallback(new PerformanceLogCallback() {
+    @Override
+    public void publish(PerformanceActivity activity, int connectionId, long durationMs, 
+            Exception exception) {
+        // Connection-level: getCurrentUserSql() returns null here
+    }
+
+    @Override
+    public void publish(PerformanceActivity activity, int connectionId, int statementId, 
+            long durationMs, Exception exception) {
+        // Statement-level: SQL and type available for EXECUTE/PREPEXEC/PREPARE activities
+        String sql = getCurrentUserSql();
+        StatementType type = getCurrentStatementType();
+        System.out.printf("[%s] %s | %s | %d ms%n", type, activity, sql, durationMs);
+    }
+});
+```
+
+**`getCurrentUserSql()`** returns the SQL text submitted by the application:
+- For `Statement`: the SQL string passed to `executeQuery(sql)`, `execute(sql)`, etc.
+- For `PreparedStatement`/`CallableStatement`: the SQL passed to `prepareStatement(sql)` or `prepareCall(sql)`
+- Returns `null` for connection-level activities and sub-activities (REQUEST_BUILD, FIRST_SERVER_RESPONSE)
+
+**`getCurrentStatementType()`** returns a `StatementType` enum value:
+- `StatementType.STATEMENT` — plain `java.sql.Statement`
+- `StatementType.PREPARED_STATEMENT` — `java.sql.PreparedStatement`
+- `StatementType.CALLABLE_STATEMENT` — `java.sql.CallableStatement`
+- `null` — for connection-level activities and sub-activities
+
+These methods are only valid **inside** a `publish()` invocation. Calling them outside
+`publish()` (e.g., from another thread or after `publish()` returns) will return `null`.
+
+> **Note**: Sub-activities like `STATEMENT_REQUEST_BUILD` and `STATEMENT_FIRST_SERVER_RESPONSE`
+> do not provide SQL or statement type information. Only the top-level execution activities
+> (`STATEMENT_EXECUTE`, `STATEMENT_PREPEXEC`, `STATEMENT_PREPARE`) populate these values.
+
+#### Accessing the Application Name
+
+Inside a `publish()` callback, `getCurrentApplicationName()` returns the value of the
+`applicationName` connection property for the connection that produced the event. This is
+useful when a single callback is registered for the whole JVM and events arrive from several
+connection pools — set `applicationName` on each pool's data source to tell them apart:
+
+```java
+// Each pool sets its own applicationName, e.g. on the pool's data source:
+//   ds.setApplicationName("orders-pool");
+
+SQLServerDriver.registerPerformanceLogCallback(new PerformanceLogCallback() {
+    @Override
+    public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+            Exception exception) {
+        // Connection-level: PRELOGIN, LOGIN, CONNECTION, TOKEN_ACQUISITION
+        metrics.record(getCurrentApplicationName(), activity, durationMs);
+    }
+
+    @Override
+    public void publish(PerformanceActivity activity, int connectionId, int statementId,
+            long durationMs, Exception exception) {
+        // Statement-level: app name available alongside the existing SQL/type accessors
+        metrics.record(getCurrentApplicationName(), activity, getCurrentUserSql(), durationMs);
+    }
+});
+```
+
+For two pools sharing one registered callback, this yields:
+
+```
+[orders-pool]    Connection  120ms
+[orders-pool]    Execute     SELECT * FROM orders WHERE id = ?    5ms
+[reporting-pool] Execute     SELECT COUNT(*) FROM sales           412ms
+```
+
+Unlike `getCurrentUserSql()`, this value is available for **both** connection-level and
+statement-level activities, including `PRELOGIN`, `LOGIN`, and `CONNECTION`. When the
+`applicationName` property is not set, it returns the driver default,
+`"Microsoft JDBC Driver for SQL Server"`.
+
+Like the other context methods, it is only valid **inside** a `publish()` invocation and
+returns `null` when called outside of one. It also returns `null` in the rare case where a
+connection fails before the connection properties have been parsed.
+
 ### 2. Java Logging Configuration
 
 Configure `java.util.logging` for the performance metrics loggers at `FINE` level:
@@ -241,4 +366,5 @@ try {
 - `SQLServerStatement.java` - Base statement activities and tracking helper methods
 - `SQLServerPreparedStatement.java` - Prepared statement activities
 - `PerformanceActivity.java` - Activity enum definitions
-- `PerformanceLog.java` - Logging infrastructure
+- `PerformanceLog.java` - Logging infrastructure (ThreadLocal context for userSql/statementType)
+- `PerformanceLogCallback.java` - Callback interface (includes `useNanoseconds()`, `getCurrentUserSql()`, `getCurrentStatementType()`, `getCurrentApplicationName()`)

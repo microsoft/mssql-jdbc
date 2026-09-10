@@ -450,6 +450,35 @@ public class EnclavePackageTest extends AbstractTest {
     }
 
     /*
+     * Test that a genuine attestation response passes the enclave public key binding check.
+     */
+    public static void testValidateStatementBindingGenuine() throws SQLServerException {
+        try {
+            VSMAttestationResponse resp = new VSMAttestationResponse(healthReportCertificate);
+            resp.validateStatementSignature();
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+    }
+
+    /*
+     * Test that a response whose report data does not match the enclave public key is rejected.
+     */
+    public static void testValidateStatementBindingKeySwap() throws SQLServerException {
+        try {
+            VSMAttestationResponse resp = new VSMAttestationResponse(healthReportCertificate);
+            // Substitute a different enclave public key so it no longer matches the signed report.
+            resp.enclavePK = "substituted-enclave-public-key".getBytes();
+            resp.validateStatementSignature();
+            fail(TestResource.getResource("R_expectedExceptionNotThrown"));
+        } catch (SQLServerException e) {
+            assertTrue(e.getMessage().matches(TestUtils.formatErrorMsg("R_InvalidEnclaveStatementBinding")));
+        } catch (Exception e) {
+            fail(TestResource.getResource("R_unexpectedException") + e.getMessage());
+        }
+    }
+
+    /*
      * Negative Test - AEv2 not supported
      */
     public static void testAEv2NotSupported(String serverName, String url, String protocol) throws Exception {

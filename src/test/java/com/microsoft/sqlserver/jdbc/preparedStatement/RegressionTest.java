@@ -9,7 +9,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.sql.BatchUpdateException;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,6 +31,8 @@ import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
+import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -522,6 +527,44 @@ public class RegressionTest extends AbstractTest {
     }
 
     /**
+     * Tests that building the parameter type definitions on a closed statement whose internal parameter array has been
+     * released surfaces a {@link SQLServerException} ("The statement is closed") instead of a raw
+     * {@link NullPointerException}.
+     *
+     * Reproduces https://github.com/microsoft/mssql-jdbc/issues/2994 where a concurrent close nulls out the internal
+     * params array while an execution is in flight.
+     *
+     * @throws Exception
+     *         when an unexpected error occurs
+     */
+    @Test
+    public void testBuildParamTypeDefinitionsOnClosedStatement() throws Exception {
+        try (PreparedStatement pstmt = connection.prepareStatement("SELECT 1 WHERE 1=?")) {
+            pstmt.setInt(1, 1);
+
+            Field inOutParamField = SQLServerPreparedStatement.class.getSuperclass().getDeclaredField("inOutParam");
+            inOutParamField.setAccessible(true);
+            inOutParamField.set(pstmt, null);
+
+            Method buildParamTypeDefinitions = SQLServerPreparedStatement.class.getDeclaredMethod(
+                    "buildParamTypeDefinitions", inOutParamField.getType(), boolean.class);
+            buildParamTypeDefinitions.setAccessible(true);
+
+            try {
+                // Simulate observing the released params array before the closed flag during a concurrent close.
+                buildParamTypeDefinitions.invoke(pstmt, null, false);
+                fail("Expected SQLServerException for a closed statement, but no exception was thrown.");
+            } catch (InvocationTargetException e) {
+                Throwable cause = e.getCause();
+                assertTrue(cause instanceof SQLServerException,
+                        "Expected SQLServerException but got " + (cause == null ? "null" : cause.getClass().getName()));
+                assertTrue(cause.getMessage().contains(TestResource.getResource("R_statementClosed")),
+                        "Unexpected message: " + cause.getMessage());
+            }
+        }
+    }
+
+    /**
      * Cleanup after test
      * 
      * @throws SQLException
@@ -531,6 +574,63 @@ public class RegressionTest extends AbstractTest {
         try (Statement stmt = connection.createStatement()) {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName2), stmt);
+        }
+    }
+
+    /**
+     * Verifies that with sendStringParametersAsUnicode=false, a Clob of length between 4000 and 8000
+     * characters can be inserted via setString, read back via getClob, and re-inserted via setClob
+     * with its length preserved (regression VSTS #197731).
+     */
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxDataTypes)
+    public void testVSTS197731() throws SQLException {
+        String vstsTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("vsts197731"));
+        int length = 4000 + Constants.RANDOM.nextInt(4000); // 4000 < length < 8000
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append('a');
+        }
+        String value = sb.toString();
+
+        String noUnicodeConnStr = TestUtils.addOrOverrideProperty(connectionString,
+                "sendStringParametersAsUnicode", "false");
+        try (Connection conn = com.microsoft.sqlserver.testframework.PrepUtil.getConnection(noUnicodeConnStr);
+                Statement stmt = conn.createStatement()) {
+            TestUtils.dropTableIfExists(vstsTable, stmt);
+            stmt.executeUpdate("CREATE TABLE " + vstsTable + " (col1 text)");
+            try {
+                try (PreparedStatement pstmt = conn
+                        .prepareStatement("INSERT INTO " + vstsTable + " VALUES (?)")) {
+                    pstmt.setString(1, value);
+                    pstmt.executeUpdate();
+
+                    Clob clob;
+                    try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + vstsTable)) {
+                        assertTrue(rs.next());
+                        clob = rs.getClob(1);
+                        assertEquals(length, (int) clob.length(), "Incorrect clob length retrieved");
+                    }
+
+                    // Re-insert the retrieved Clob.
+                    pstmt.setClob(1, clob);
+                    pstmt.executeUpdate();
+                }
+
+                // Both rows (the setString insert and the re-inserted Clob) must have the correct
+                // length. Verify every row rather than relying on a non-deterministic ORDER BY.
+                try (ResultSet rs = stmt.executeQuery("SELECT col1 FROM " + vstsTable)) {
+                    int rowCount = 0;
+                    while (rs.next()) {
+                        rowCount++;
+                        assertEquals(length, rs.getString(1).length(), "Inserted clob length is incorrect");
+                    }
+                    assertEquals(2, rowCount, "Expected two inserted rows");
+                }
+            } finally {
+                TestUtils.dropTableIfExists(vstsTable, stmt);
+            }
         }
     }
 

@@ -205,7 +205,7 @@ final class SimpleInputStream extends BaseInputStream {
         try {
             tdsReader.skip(skipAmount);
         } catch (SQLServerException e) {
-            throw new IOException(e.getMessage());
+            throw new IOException(e.getMessage(), e);
         }
         streamPos += skipAmount;
         if (isReadLimitSet && ((streamPos - markedStreamPos) > readLimit))
@@ -306,7 +306,7 @@ final class SimpleInputStream extends BaseInputStream {
         try {
             tdsReader.readBytes(b, offset, readAmount);
         } catch (SQLServerException e) {
-            throw new IOException(e.getMessage());
+            throw new IOException(e.getMessage(), e);
         }
         streamPos += readAmount;
 
@@ -356,7 +356,7 @@ final class SimpleInputStream extends BaseInputStream {
             read(value);
             close();
         } catch (IOException e) {
-            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true);
+            SQLServerException.makeFromDriverError(null, null, e.getMessage(), null, true, e);
         }
 
         return value;

@@ -359,6 +359,26 @@ public class TimeoutTest extends AbstractTest {
         }
     }
 
+    /**
+     * Verifies that when socketTimeout is not explicitly set (defaults to 0 = unlimited), post-login queries are not
+     * bounded by loginTimeout. A query that exceeds loginTimeout must still complete successfully, confirming that the
+     * default unlimited socket timeout is preserved after the login phase.
+     */
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testDefaultSocketTimeoutUnlimitedAfterLogin() throws Exception {
+        // Connect without setting socketTimeout (defaults to 0 = unlimited).
+        // loginTimeout=15 gives the login phase (prelogin + TLS handshake + LOGIN7 round-trip)
+        // enough headroom to complete on any CI agent, including slow MacOS hosted runners.
+        // After login, the socket timeout should remain 0 (unlimited), so a query that
+        // exceeds loginTimeout (15s) should still succeed.
+        try (Connection con = PrepUtil.getConnection(connectionString + ";loginTimeout=15;");
+                Statement stmt = con.createStatement()) {
+            // 20s exceeds loginTimeout (15s); succeeds only if post-login socketTimeout is still 0.
+            stmt.execute("WAITFOR DELAY '00:00:20';");
+        }
+    }
+
     // Test for detecting Azure server for connection retries
     @Test
     public void testAzureEndpointRetry() {

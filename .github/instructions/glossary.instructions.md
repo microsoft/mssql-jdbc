@@ -480,7 +480,7 @@ All SQL Server types supported by the driver, mapped from the `SSType` enum in `
 | Term | Description |
 |------|-------------|
 | **JDBC 4.2** | Java 8 compatible API. Build profile: `jre8`. |
-| **JDBC 4.3** | Java 9+ compatible API. Build profiles: `jre11`, `jre17`, `jre21`, `jre25`. |
+| **JDBC 4.3** | Java 9+ compatible API. Build profiles: `jre11`, `jre17`, `jre21`, `jre25`, `jre26`. |
 | **TDS 7.2 (YUKON)** | Protocol version for SQL Server 2005+. Constant: `VER_YUKON` (`0x72090002`). |
 | **TDS 7.3B (KATMAI)** | Protocol version for SQL Server 2008+ (adds null-bit compression). Constant: `VER_KATMAI` (`0x730B0003`). |
 | **TDS 7.4 (DENALI)** | Protocol version for SQL Server 2012+. Constant: `VER_DENALI` (`0x74000004`). |

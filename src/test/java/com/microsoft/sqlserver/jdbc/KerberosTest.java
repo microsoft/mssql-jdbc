@@ -133,6 +133,206 @@ public class KerberosTest extends AbstractTest {
     }
 
     /**
+     * Test that assertSafeJaasLoginConfigProperty allows null/empty system property values.
+     * When java.security.auth.login.config is unset, the method should pass without error.
+     */
+    @Test
+    public void testAssertSafeJaasLoginConfigPropertyAllowsNullProperty() throws Exception {
+        withJaasConfigProperty(null, assertMethod -> {
+            // Null property => should pass
+            assertMethod.invoke(null);
+        });
+    }
+
+    /**
+     * Test that assertSafeJaasLoginConfigProperty blocks remote URLs (http, https, ldap).
+     */
+    @Test
+    public void testAssertSafeJaasLoginConfigPropertyRejectsRemoteUrls() throws Exception {
+
+        String[] remoteUrls = {
+                "http://remote.example.com/jaas.conf",
+                "https://remote.example.com/jaas.conf",
+                "ldap://remote.example.com/cn=config",
+                "ftp://remote.example.com/jaas.conf"
+        };
+
+        for (String url : remoteUrls) {
+            withJaasConfigProperty(url, assertMethod -> {
+                try {
+                    assertMethod.invoke(null);
+                    Assertions.fail("Should have thrown for remote URL: " + url);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    Assertions.assertTrue(e.getCause() instanceof SQLServerException,
+                            "Should throw SQLServerException for: " + url);
+                }
+            });
+        }
+    }
+
+    /**
+     * Test that assertSafeJaasLoginConfigProperty allows local file paths and file: URIs.
+     */
+    @Test
+    public void testAssertSafeJaasLoginConfigPropertyAllowsLocalPaths() throws Exception {
+
+        String[] localPaths = {
+                "/etc/jaas.conf",
+                "jaas.conf",
+                "C:\\Users\\me\\jaas.conf",
+                "C:/Users/me/jaas.conf",
+                "file:///etc/jaas.conf",
+                "file:///C:/Users/me/jaas.conf"
+        };
+
+        for (String path : localPaths) {
+            withJaasConfigProperty(path, assertMethod -> {
+                try {
+                    assertMethod.invoke(null);
+                    // Good - local path accepted
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    Assertions.fail("Should NOT have thrown for local path: " + path + " - " + e.getCause());
+                }
+            });
+        }
+    }
+
+    /**
+     * Regression test for MSRC-117029: proves the exact PoC payloads used in the
+     * vulnerability report are now blocked by assertSafeJaasLoginConfigProperty.
+     *
+     * The original PoC sets java.security.auth.login.config to a remote HTTP URL
+     * (with or without the '=' prefix that forces Java to reload the config).
+     * The remote jaas.conf then declares JndiLoginModule with an LDAP/RMI URL,
+     * triggering RCE via JNDI deserialization during lc.login().
+     *
+     * This test verifies the fix rejects such payloads at the property-validation
+     * step, before any network or JNDI activity occurs.
+     */
+    @Test
+    public void testMsrc117029PocPayloadsBlocked() throws Exception {
+
+        // Exact payloads from the MSRC-117029 PoC reproduction scripts
+        String[] pocPayloads = {
+                "http://remote.example.com/evil.jaas",
+                "=http://remote.example.com/evil.jaas",
+                "https://remote.example.com/evil.jaas",
+                "ldap://remote.example.com/cn=Evil",
+                "rmi://remote.example.com/Exploit"
+        };
+
+        for (String payload : pocPayloads) {
+            withJaasConfigProperty(payload, assertMethod -> {
+                try {
+                    assertMethod.invoke(null);
+                    Assertions.fail("MSRC-117029 PoC NOT blocked for payload: " + payload);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    Assertions.assertTrue(e.getCause() instanceof SQLServerException,
+                            "Should throw SQLServerException for PoC payload: " + payload);
+                    Assertions.assertTrue(
+                            e.getCause().getMessage().contains("must be a local file path"),
+                            "Error message should indicate local file requirement for: " + payload);
+                }
+            });
+        }
+    }
+
+    /**
+     * Defense-in-depth test: malformed URIs that would throw URISyntaxException
+     * but still start with a remote scheme prefix must be blocked.
+     * Java's JAAS ConfigFile internally uses java.net.URL which is more lenient
+     * than java.net.URI, so a value like "http://evil.com/path with spaces"
+     * would fail URI parsing but could still be fetched by URL.
+     */
+    @Test
+    public void testAssertSafeJaasLoginConfigPropertyRejectsMalformedRemoteUrls() throws Exception {
+
+        // These are invalid URIs (would throw URISyntaxException) but start with remote schemes
+        String[] malformedRemote = {"http://remote.example.com/path with spaces/evil.jaas",
+                "https://remote.example.com/jaas config.conf", "ldap://remote.example.com/cn=foo bar",
+                "rmi://remote.example.com/ex[ploit", "ftp://remote.example.com/file name.conf",
+                "ldaps://remote.example.com/cn={bad}"};
+
+        for (String payload : malformedRemote) {
+            withJaasConfigProperty(payload, assertMethod -> {
+                try {
+                    assertMethod.invoke(null);
+                    Assertions.fail("Should have blocked malformed remote URL: " + payload);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    Assertions.assertTrue(e.getCause() instanceof SQLServerException,
+                            "Should throw SQLServerException for malformed remote URL: " + payload);
+                }
+            });
+        }
+    }
+
+    /**
+     * Test that assertSafeJaasLoginConfigProperty allows mounted drive paths,
+     * UNC paths, mapped network drives, relative paths, paths with spaces,
+     * and paths using the JAAS '=' prefix syntax.
+     */
+    @Test
+    public void testAssertSafeJaasLoginConfigPropertyAllowsMountedAndPositiveFilePaths() throws Exception {
+
+        String[] validPaths = {
+                // Mounted drive paths
+                "Z:\\shared\\security\\jaas.conf",
+                "E:/mnt/kerberos/login.conf",
+                "\\\\fileserver.domain.com\\security\\jaas.conf",
+                // Positive file paths
+                "../config/jaas.conf",
+                "C:\\Program Files\\Java\\conf\\jaas.conf",
+                "=/etc/jaas.conf",
+                "=C:\\config\\jaas.conf"
+        };
+
+        for (String path : validPaths) {
+            withJaasConfigProperty(path, assertMethod -> {
+                try {
+                    assertMethod.invoke(null);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    Assertions.fail("Should NOT have thrown for valid path: " + path + " - " + e.getCause());
+                }
+            });
+        }
+    }
+
+    /**
+     * Helper method to safely set and restore the java.security.auth.login.config property.
+     * This reduces code duplication across multiple tests.
+     *
+     * @param propertyValue The value to set for java.security.auth.login.config (null to clear)
+     * @param testBlock     The test logic to execute with the property set
+     */
+    private static void withJaasConfigProperty(String propertyValue,
+            PropertyTestBlock testBlock) throws Exception {
+        Class<?> kerbAuthClass = Class.forName("com.microsoft.sqlserver.jdbc.KerbAuthentication");
+        java.lang.reflect.Method assertMethod = kerbAuthClass.getDeclaredMethod("assertSafeJaasLoginConfigProperty");
+        assertMethod.setAccessible(true);
+
+        String original = System.getProperty("java.security.auth.login.config");
+        try {
+            if (propertyValue == null) {
+                System.clearProperty("java.security.auth.login.config");
+            } else {
+                System.setProperty("java.security.auth.login.config", propertyValue);
+            }
+            testBlock.execute(assertMethod);
+        } finally {
+            if (original != null) {
+                System.setProperty("java.security.auth.login.config", original);
+            } else {
+                System.clearProperty("java.security.auth.login.config");
+            }
+        }
+    }
+
+    @FunctionalInterface
+    private interface PropertyTestBlock {
+        void execute(java.lang.reflect.Method assertMethod) throws Exception;
+    }
+
+    /**
      * Overwrites the default JAAS config. Call before making a connection.
      */
     private static void overwriteJaasConfig() {

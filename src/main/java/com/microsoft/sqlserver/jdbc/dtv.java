@@ -133,6 +133,15 @@ final class DTV {
     /** The source (app or server) providing the data for this value. */
     private DTVImpl impl;
 
+    /**
+     * A single ServerDTVImpl instance reused for this column. There is one DTV per column, so this instance is created
+     * once (lazily, on the first server read) and reused to fetch every subsequent row's value, avoiding a fresh
+     * allocation per row on the ResultSet hot path. It is reset in acquireServerImpl() before each reuse, so it is
+     * always handed out clean. During an active read, impl points at this same instance. AppDTVImpl is not kept here
+     * because its update-path lifecycle is different from ServerDTVImpl.
+     */
+    private ServerDTVImpl reusableServerImpl;
+
     CryptoMetadata cryptoMeta = null;
     JDBCType jdbcTypeSetByUser = null;
     int valueLength = 0;
@@ -157,20 +166,36 @@ final class DTV {
         impl.setValue(value, javaType);
     }
 
+    /**
+     * Returns this column's reusable ServerDTVImpl, creating it on first use. The instance is reset here, at the single
+     * point of reuse, so it is always handed out clean regardless of the previous row's state.
+     */
+    private ServerDTVImpl acquireServerImpl() {
+        ServerDTVImpl s = reusableServerImpl;
+        if (null != s) {
+            s.reset(); // clear the previous row's state before handing it out
+            return s;
+        }
+        reusableServerImpl = new ServerDTVImpl();
+        return reusableServerImpl;
+    }
+
     final void clear() {
+        // Just clear the active impl reference so isInitialized() and the read-side null checks work as before. The
+        // per-column ServerDTVImpl stays in reusableServerImpl and is reset in acquireServerImpl() before the next row.
         impl = null;
     }
 
     final void skipValue(TypeInfo type, TDSReader tdsReader, boolean isDiscard) throws SQLServerException {
         if (null == impl)
-            impl = new ServerDTVImpl();
+            impl = acquireServerImpl();
 
         impl.skipValue(type, tdsReader, isDiscard);
     }
 
     final void initFromCompressedNull() {
         if (null == impl)
-            impl = new ServerDTVImpl();
+            impl = acquireServerImpl();
 
         impl.initFromCompressedNull();
     }
@@ -250,7 +275,7 @@ final class DTV {
             TypeInfo typeInfo, CryptoMetadata cryptoMetadata, TDSReader tdsReader,
             SQLServerStatement statement) throws SQLServerException {
         if (null == impl) {
-            impl = new ServerDTVImpl();
+            impl = acquireServerImpl();
         } else if (impl.isNull()) {
             return null;
         }
@@ -270,6 +295,8 @@ final class DTV {
      * Called by DTV implementation instances to change to a different DTV implementation.
      */
     void setImpl(DTVImpl impl) {
+        // No need to save the outgoing ServerDTVImpl here: the per-column instance is already kept in
+        // reusableServerImpl (impl points at it during a server read), so it stays available for the next read.
         this.impl = impl;
     }
 
@@ -318,7 +345,7 @@ final class DTV {
                 clobLength = DataTypes.getCheckedLength(conn, dtv.getJdbcType(), clobValue.length(), false);
                 clobReader = clobValue.getCharacterStream();
             } catch (SQLException e) {
-                SQLServerException.makeFromDriverError(conn, null, e.getMessage(), null, false);
+                SQLServerException.makeFromDriverError(conn, null, e.getMessage(), null, false, e);
             }
 
             // If the Clob value is to be sent as MBCS, then convert the value to an MBCS InputStream
@@ -1396,7 +1423,7 @@ final class DTV {
                 blobLength = DataTypes.getCheckedLength(conn, dtv.getJdbcType(), blobValue.length(), false);
                 blobStream = blobValue.getBinaryStream();
             } catch (SQLException e) {
-                SQLServerException.makeFromDriverError(conn, null, e.getMessage(), null, false);
+                SQLServerException.makeFromDriverError(conn, null, e.getMessage(), null, false, e);
             }
 
             if (null == blobStream) {
@@ -2088,7 +2115,7 @@ final class AppDTVImpl extends DTVImpl {
             try {
                 DataTypes.getCheckedLength(con, dtv.getJdbcType(), clobValue.length(), false);
             } catch (SQLException e) {
-                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
+                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false, e);
             }
         }
 
@@ -2228,7 +2255,7 @@ final class AppDTVImpl extends DTVImpl {
             try {
                 DataTypes.getCheckedLength(con, dtv.getJdbcType(), blobValue.length(), false);
             } catch (SQLException e) {
-                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false);
+                SQLServerException.makeFromDriverError(con, null, e.getMessage(), null, false, e);
             }
         }
 
@@ -3321,6 +3348,18 @@ final class ServerDTVImpl extends DTVImpl {
     private SqlVariant internalVariant;
 
     /**
+     * Resets all wire-side state (length, mark, null indicator, SQL_VARIANT context) so this instance can be reused
+     * for the next row's value. Called from DTV.acquireServerImpl() on the per-row hot path to avoid allocating a
+     * fresh ServerDTVImpl for every column of every row.
+     */
+    final void reset() {
+        valueLength = 0;
+        valueMark = null;
+        isNull = false;
+        internalVariant = null;
+    }
+
+    /**
      * Sets the value of the DTV to an app-specified Java type.
      *
      * Generally, the value cannot be stored back into the TDS byte stream (although this could be done for fixed-length
@@ -3588,17 +3627,17 @@ final class ServerDTVImpl extends DTVImpl {
                 }
 
             case SMALLMONEY:
-                return DDC.convertMoneyToObject(new BigDecimal(BigInteger.valueOf(Util.readInt(decryptedValue, 4)), 4),
+                return DDC.convertMoneyToObject(BigDecimal.valueOf(Util.readInt(decryptedValue, 4), 4),
                         JDBCType.VARBINARY == jdbcType ? baseSSType.getJDBCType() : jdbcType, // use jdbc type from
                                                                                               // baseTypeInfo if using
                                                                                               // getObject()
                         streamGetterArgs.streamType, 4);
 
             case MONEY:
-                BigInteger bi = BigInteger.valueOf(((long) Util.readInt(decryptedValue, 0) << 32)
-                        | (Util.readInt(decryptedValue, 4) & 0xFFFFFFFFL));
+                long moneyUnscaled = ((long) Util.readInt(decryptedValue, 0) << 32)
+                        | (Util.readInt(decryptedValue, 4) & 0xFFFFFFFFL);
 
-                return DDC.convertMoneyToObject(new BigDecimal(bi, 4),
+                return DDC.convertMoneyToObject(BigDecimal.valueOf(moneyUnscaled, 4),
                         JDBCType.VARBINARY == jdbcType ? baseSSType.getJDBCType() : jdbcType, // use
                                                                                               // jdbc
                                                                                               // type
@@ -3833,9 +3872,30 @@ final class ServerDTVImpl extends DTVImpl {
                 // (CHAR/VARCHAR/TEXT/NCHAR/NVARCHAR/NTEXT/BINARY/VARBINARY/IMAGE) -> ANY jdbcType.
                 case CHAR:
                 case VARCHAR:
-                case TEXT:
                 case NCHAR:
                 case NVARCHAR:
+                {
+                    // Fast path: a small synchronous rs.getString() reads the bytes directly into a
+                    // String, bypassing the SimpleInputStream wrapper and its marks (~4 allocations/cell).
+                    // All guards are required for byte-identical semantics with the stream path:
+                    //   valueLength in (0, 4000] - skip zero-length and overly large values
+                    //   streamType == NONE       - stream getters need the actual InputStream
+                    //   !isAdaptive              - adaptive paths wrap the stream for user code
+                    //   - jdbcType.isTextual()      : non-textual targets need convertStringToObject
+                    //                                 to trim/parse the value
+                    //   - CLOB/NCLOB excluded       : although textual, getClob()/getNClob() must
+                    //                                 return a SQLServerClob/SQLServerNClob, not a String
+                    if (valueLength > 0 && valueLength <= 4000
+                            && StreamType.NONE == streamGetterArgs.streamType
+                            && !streamGetterArgs.isAdaptive
+                            && jdbcType.isTextual()
+                            && JDBCType.CLOB != jdbcType && JDBCType.NCLOB != jdbcType) {
+                        convertedValue = tdsReader.readStringFromBytes(valueLength, typeInfo.getCharset());
+                        break;
+                    }
+                    // Fall through to the stream-based path for large/streaming/non-textual cases.
+                }
+                case TEXT:
                 case NTEXT:
                 case IMAGE:
                 case BINARY:

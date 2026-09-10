@@ -53,6 +53,15 @@ final class SQLServerDriverPropertyInfo {
         if (null == propValue)
             propValue = defaultValue;
 
+        if (null != propValue && null != choices) {
+            for (String choice : choices) {
+                if (choice.equalsIgnoreCase(propValue)) {
+                    propValue = choice;
+                    break;
+                }
+            }
+        }
+
         DriverPropertyInfo info = new DriverPropertyInfo(name, propValue);
         info.description = description;
         info.required = required;
@@ -677,7 +686,8 @@ enum SQLServerDriverStringProperty {
     RETRY_CONN("retryConn", ""),
     QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.ON.toString()),
     CONCAT_NULL_YIELDS_NULL("concatNullYieldsNull", OnOffOption.ON.toString()),
-    VECTOR_TYPE_SUPPORT("vectorTypeSupport", VectorTypeSupport.V1.toString());
+    VECTOR_TYPE_SUPPORT("vectorTypeSupport", VectorTypeSupport.V1.toString()),
+    DEFAULT_TRANSACTION_ISOLATION("defaultTransactionIsolation", null);
 
     private final String name;
     private final String defaultValue;
@@ -1115,10 +1125,13 @@ public final class SQLServerDriver implements java.sql.Driver {
                     Integer.toString(SQLServerDriverIntProperty.CONNECT_RETRY_INTERVAL.getDefaultValue()), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString(),
                     SQLServerDriverStringProperty.QUOTED_IDENTIFIER.getDefaultValue(), false,
-                    new String[] {OnOffOption.OFF.toString(), OnOffOption.OFF.toString()}),
+                    new String[] {OnOffOption.ON.toString(), OnOffOption.OFF.toString()}),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.toString(),
                     SQLServerDriverStringProperty.CONCAT_NULL_YIELDS_NULL.getDefaultValue(), false,
-                    new String[] {OnOffOption.OFF.toString(), OnOffOption.OFF.toString()}),};
+                    new String[] {OnOffOption.ON.toString(), OnOffOption.OFF.toString()}),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.toString(),
+                    SQLServerDriverStringProperty.DEFAULT_TRANSACTION_ISOLATION.getDefaultValue(), false,
+                    new String[] {"READ_UNCOMMITTED", "READ_COMMITTED", "REPEATABLE_READ", "SERIALIZABLE", "SNAPSHOT"}),};
 
     /**
      * Properties that can only be set by using Properties. Cannot set in connection string
@@ -1138,7 +1151,15 @@ public final class SQLServerDriver implements java.sql.Driver {
             {"userName", SQLServerDriverStringProperty.USER.toString()},
             {"server", SQLServerDriverStringProperty.SERVER_NAME.toString()},
             {"domainName", SQLServerDriverStringProperty.DOMAIN.toString()},
-            {"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()}};
+            {"port", SQLServerDriverIntProperty.PORT_NUMBER.toString()},
+            // Cross-driver connection string unification: accept common spellings used by
+            // SqlClient / ODBC / OLEDB so the same connection string works across drivers.
+            {"uid", SQLServerDriverStringProperty.USER.toString()},
+            {"trusted_connection", SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString()},
+            {"app", SQLServerDriverStringProperty.APPLICATION_NAME.toString()},
+            {"connectTimeout", SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString()},
+            {"columnEncryption", SQLServerDriverStringProperty.COLUMN_ENCRYPTION.toString()},
+            {"quotedId", SQLServerDriverStringProperty.QUOTED_IDENTIFIER.toString()}};
 
     private static final String[][] driverPropertyValuesSynonyms = {
             {"ActiveDirectoryMSI", SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString()}};
@@ -1424,7 +1445,9 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     @Override
     public java.sql.Connection connect(String url, Properties suppliedProperties) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "connect", "Arguments not traced.");
+        }
         SQLServerConnection result = null;
 
         if (loggerExternal.isLoggable(Level.FINE)) {
@@ -1452,7 +1475,9 @@ public final class SQLServerDriver implements java.sql.Driver {
             // }   
             result.connect(connectProperties, null);
         }
-        loggerExternal.exiting(getClassNameLogging(), "connect", result);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "connect", result);
+        }
         return result;
     }
 
@@ -1483,7 +1508,9 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     @Override
     public boolean acceptsURL(String url) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "acceptsURL", "Arguments not traced.");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "acceptsURL", "Arguments not traced.");
+        }
 
         if (null == url) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_nullConnection"), null, 0, false);
@@ -1496,20 +1523,26 @@ public final class SQLServerDriver implements java.sql.Driver {
             // ignore the exception from the parse URL failure, if we cant parse the URL we do not accept em
             result = false;
         }
-        loggerExternal.exiting(getClassNameLogging(), "acceptsURL", result);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "acceptsURL", result);
+        }
         return result;
     }
 
     @Override
     public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLServerException {
-        loggerExternal.entering(getClassNameLogging(), "getPropertyInfo", "Arguments not traced.");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "getPropertyInfo", "Arguments not traced.");
+        }
 
         Properties connProperties = parseAndMergeProperties(url, info);
         // This means we are not the right driver throw an exception.
         if (null == connProperties)
             throw new SQLServerException(null, SQLServerException.getErrString("R_invalidConnection"), null, 0, false);
         DriverPropertyInfo[] properties = getPropertyInfoFromProperties(connProperties);
-        loggerExternal.exiting(getClassNameLogging(), "getPropertyInfo");
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getPropertyInfo");
+        }
 
         return properties;
     }
@@ -1524,15 +1557,23 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     @Override
     public int getMajorVersion() {
-        loggerExternal.entering(getClassNameLogging(), "getMajorVersion");
-        loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", SQLJdbcVersion.MAJOR);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "getMajorVersion");
+        }
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getMajorVersion", SQLJdbcVersion.MAJOR);
+        }
         return SQLJdbcVersion.MAJOR;
     }
 
     @Override
     public int getMinorVersion() {
-        loggerExternal.entering(getClassNameLogging(), "getMinorVersion");
-        loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", SQLJdbcVersion.MINOR);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "getMinorVersion");
+        }
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "getMinorVersion", SQLJdbcVersion.MINOR);
+        }
         return SQLJdbcVersion.MINOR;
     }
 
@@ -1543,8 +1584,12 @@ public final class SQLServerDriver implements java.sql.Driver {
 
     @Override
     public boolean jdbcCompliant() {
-        loggerExternal.entering(getClassNameLogging(), "jdbcCompliant");
-        loggerExternal.exiting(getClassNameLogging(), "jdbcCompliant", Boolean.TRUE);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.entering(getClassNameLogging(), "jdbcCompliant");
+        }
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "jdbcCompliant", Boolean.TRUE);
+        }
         return true;
     }
 }

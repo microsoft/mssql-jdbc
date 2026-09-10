@@ -24,10 +24,15 @@ final class ServerPortPlaceHolder implements Serializable {
     private final String fullServerName;
     private final int port;
     private final String instanceName;
+    private final String databaseName; // For enhanced routing
     private final boolean checkLink;
     private final transient SQLServerConnectionSecurityManager securityManager;
 
     ServerPortPlaceHolder(String name, int conPort, String instance, boolean fLink) {
+        this(name, conPort, instance, null, fLink);
+    }
+
+    ServerPortPlaceHolder(String name, int conPort, String instance, String database, boolean fLink) {
         serverName = name;
 
         // serverName without named instance
@@ -39,6 +44,7 @@ final class ServerPortPlaceHolder implements Serializable {
 
         port = conPort;
         instanceName = instance;
+        databaseName = database; // For enhanced routing scenarios
         checkLink = fLink;
         securityManager = new SQLServerConnectionSecurityManager(serverName, port);
         doSecurityCheck();
@@ -55,6 +61,10 @@ final class ServerPortPlaceHolder implements Serializable {
 
     String getInstanceName() {
         return instanceName;
+    }
+
+    String getDatabaseName() {
+        return databaseName;
     }
 
     String getParsedServerName() {

@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.3.1</version>
+	<version>13.6.0</version>
 	<packaging>jar</packaging>
 	<name>Microsoft JDBC Driver for SQL Server</name>
 	<description>
@@ -55,16 +55,17 @@
 			Default testing enabled with SQL Server 2019 (SQLv15) -->
 		<excludedGroups>xSQLv12,xSQLv15,NTLM,MSI,reqExternalSetup,clientCertAuth,fedAuth,kerberos,vectorTest,JSONTest,vectorFloat16Test</excludedGroups>
 		<!-- Use -preview for preview release, leave empty for official release. -->
-		<releaseExt>-preview</releaseExt>
+		<releaseExt></releaseExt>
 		<!-- Driver Dependencies -->
 		<org.osgi.core.version>6.0.0</org.osgi.core.version>
-		<azure-security-keyvault-keys.version>4.10.5</azure-security-keyvault-keys.version>
-		<azure-identity.version>1.18.2</azure-identity.version>
+		<azure-security-keyvault-keys.version>4.11.1</azure-security-keyvault-keys.version>
+		<azure-identity.version>1.18.4</azure-identity.version>
+		<azure-core-http-netty.version>1.16.6</azure-core-http-netty.version>
 		<osgi.jdbc.version>1.1.0</osgi.jdbc.version>
 		<antlr-runtime.version>4.9.3</antlr-runtime.version>
 		<com.google.code.gson.version>2.11.0</com.google.code.gson.version>
-		<bcprov-jdk18on.version>1.79</bcprov-jdk18on.version>
-		<bcpkix-jdk18on.version>1.79</bcpkix-jdk18on.version>
+		<bcprov-jdk18on.version>1.84</bcprov-jdk18on.version>
+		<bcpkix-jdk18on.version>1.84</bcpkix-jdk18on.version>
 		<!-- JUnit Test Dependencies -->
 		<junit.platform.version>[1.3.2, 1.11.4]</junit.platform.version>
 		<junit.jupiter.version>5.11.4</junit.jupiter.version>
@@ -96,6 +97,14 @@
 					<artifactId>stax-api</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<!-- Pin azure-core-http-netty (transitive via azure-identity/azure-security-keyvault-keys)
+			to pull in patched Netty 4.1.137.Final and address Component Governance CVEs. -->
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-core-http-netty</artifactId>
+			<version>${azure-core-http-netty.version}</version>
+			<optional>true</optional>
 		</dependency>
 		<!-- dependencies for ANTLR -->
 		<dependency>
@@ -506,9 +515,6 @@
 			<properties>
 				<bundle.version.suffix>${version}.jre25${releaseExt}</bundle.version.suffix>
 			</properties>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
 			<dependencies>
 				<!-- JDK 25 compatible Mockito -->
 				<dependency>
@@ -580,6 +586,66 @@
 								</configuration>
 							</execution>
 						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-jar-plugin</artifactId>
+						<version>3.1.1</version>
+						<configuration>
+							<archive>
+								<manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+								<manifestEntries>
+									<Automatic-Module-Name>com.microsoft.sqlserver.jdbc</Automatic-Module-Name>
+								</manifestEntries>
+							</archive>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>jre26</id>
+			<properties>
+				<bundle.version.suffix>${version}.jre26${releaseExt}</bundle.version.suffix>
+			</properties>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<dependencies>
+				<!-- JDK 26 compatible Mockito -->
+				<dependency>
+					<groupId>org.mockito</groupId>
+					<artifactId>mockito-core</artifactId>
+					<version>5.20.0</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy</artifactId>
+					<version>1.18.2</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>net.bytebuddy</groupId>
+					<artifactId>byte-buddy-agent</artifactId>
+					<version>1.18.2</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
+			<build>
+				<finalName>${project.artifactId}-${project.version}.jre26${releaseExt}</finalName>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.8.0</version>
+						<configuration>
+							<excludes>
+								<exclude>**/com/microsoft/sqlserver/jdbc/SQLServerJdbc42.java</exclude>
+							</excludes>
+							<source>26</source>
+							<target>26</target>
+						</configuration>
 					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>

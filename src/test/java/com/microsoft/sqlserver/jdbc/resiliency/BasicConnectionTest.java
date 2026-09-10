@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc.resiliency;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -157,6 +158,69 @@ public class BasicConnectionTest extends AbstractTest {
             assertEquals(expectedDatabaseName, actualDatabaseName);
         } finally {
             TestUtils.dropDatabaseIfExists(expectedDatabaseName, connectionString);
+        }
+    }
+
+    /**
+     * Verifies that the cached sp_columns_170 capability is discarded when idle connection resiliency establishes a
+     * new session. The reconnect may land on a different backend, so a value derived from the previous session must
+     * not be trusted afterwards, otherwise a stale FALSE would keep the driver on sp_columns_100 indefinitely.
+     */
+    @Test
+    public void testSpColumns170SupportResetOnReconnect() throws SQLException {
+        try (Connection c = ResiliencyUtils.getConnection(connectionString); Statement s = c.createStatement()) {
+            SQLServerConnection sqlServerConnection = (SQLServerConnection) c;
+
+            // Seed the state as though the session before the reconnect had reported sp_columns_170 as missing.
+            setSpColumns170Supported(sqlServerConnection, Boolean.FALSE);
+            assertEquals(Boolean.FALSE, getSpColumns170Supported(sqlServerConnection));
+
+            ResiliencyUtils.killConnection(c, connectionString, 0);
+
+            // Executing on the dead connection drives idle connection resiliency to build a new session.
+            try (ResultSet rs = s.executeQuery("SELECT 1")) {
+                assertTrue("Reconnect should have produced a usable session", rs.next());
+            }
+
+            assertNull("The cached sp_columns_170 capability should be discarded when a new session is established",
+                    getSpColumns170Supported(sqlServerConnection));
+
+            // The connection must still serve column metadata after the capability has been invalidated.
+            try (ResultSet rs = c.getMetaData().getColumns(null, null, "spColumns170NoSuchTable", null)) {
+                assertTrue("getColumns() should return a usable result set after a reconnect",
+                        rs.getMetaData().getColumnCount() >= 18);
+            }
+        }
+    }
+
+    /**
+     * Reads the tri-state sp_columns_170 capability cached on the connection. The accessor is package private on
+     * SQLServerConnection, so it is read reflectively from this test package.
+     */
+    private static Boolean getSpColumns170Supported(SQLServerConnection conn) {
+        try {
+            java.lang.reflect.Method method = SQLServerConnection.class
+                    .getDeclaredMethod("getSpColumns170Supported");
+            method.setAccessible(true);
+            return (Boolean) method.invoke(conn);
+        } catch (Exception e) {
+            fail("Unable to read sp_columns_170 support: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Seeds the tri-state sp_columns_170 capability cached on the connection. The mutator is package private on
+     * SQLServerConnection, so it is invoked reflectively from this test package.
+     */
+    private static void setSpColumns170Supported(SQLServerConnection conn, Boolean supported) {
+        try {
+            java.lang.reflect.Method method = SQLServerConnection.class
+                    .getDeclaredMethod("setSpColumns170Supported", Boolean.class);
+            method.setAccessible(true);
+            method.invoke(conn, supported);
+        } catch (Exception e) {
+            fail("Unable to seed sp_columns_170 support: " + e.getMessage());
         }
     }
 

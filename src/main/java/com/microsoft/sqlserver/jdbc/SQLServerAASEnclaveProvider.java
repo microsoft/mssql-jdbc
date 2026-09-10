@@ -63,7 +63,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             try {
                 aasParams = new AASAttestationParameters(attestationUrl);
             } catch (IOException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
     }
@@ -91,7 +91,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
                 enclaveCache.addEntry(connection.getServerName(), connection.getCatalog(),
                         connection.enclaveAttestationUrl, aasParams, enclaveSession);
             } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
         return b;
@@ -118,7 +118,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
                 hgsResponse.validateToken(attestationUrl, aasParams.getNonce());
                 hgsResponse.validateDHPublicKey(aasParams.getNonce());
             } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
     }
@@ -347,7 +347,7 @@ class AASAttestationResponse extends BaseAttestationResponse {
                         CertificateFactory cf = CertificateFactory.getInstance("X.509");
                         X509Certificate cert = (X509Certificate) cf.generateCertificate(
                                 new ByteArrayInputStream(java.util.Base64.getDecoder().decode(jsonCert.getAsString())));
-                        Signature sig = Signature.getInstance("SHA256withRSA");
+                        Signature sig = Signature.getInstance("SHA256withRSA"); // CodeQL [SM05136] Required for an external standard: Azure Attestation Service JWT attestation tokens are expected to use RS256, which maps to SHA256withRSA in Java; the driver intentionally verifies using this fixed algorithm for AAS tokens (https://learn.microsoft.com/azure/attestation/overview)
                         sig.initVerify(cert.getPublicKey());
                         sig.update(signatureBytes);
                         if (sig.verify(stmtSig)) {
@@ -374,7 +374,7 @@ class AASAttestationResponse extends BaseAttestationResponse {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasJWTError"), "0",
                     false);
         } catch (IOException | GeneralSecurityException e) {
-            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false);
+            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false, e);
         }
     }
 

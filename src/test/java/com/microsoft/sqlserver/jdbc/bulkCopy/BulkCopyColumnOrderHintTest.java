@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("BulkCopy Column Order Hints Test")
+@Tag(Constants.bulkCopy)
 public class BulkCopyColumnOrderHintTest extends BulkCopyTestSetUp {
     private String prcdb = RandomUtil.getIdentifier("BulkCopy_PRC_DB");
 

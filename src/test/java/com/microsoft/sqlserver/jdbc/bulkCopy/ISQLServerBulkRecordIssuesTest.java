@@ -42,6 +42,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 @SuppressWarnings("deprecation")
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.bulkCopy)
 public class ISQLServerBulkRecordIssuesTest extends AbstractTest {
 
     static String query;

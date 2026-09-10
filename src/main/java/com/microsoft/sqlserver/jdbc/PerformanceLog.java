@@ -18,9 +18,18 @@ class PerformanceLog {
 
     private static PerformanceLogCallback callback;
     private static boolean callbackInitialized = false;
+    private static boolean cachedUseNanos = false;
+
+    // ThreadLocal to hold current SQL text and statement type for the duration of a publish callback
+    static final ThreadLocal<String> currentUserSql = new ThreadLocal<>();
+    static final ThreadLocal<StatementType> currentStatementType = new ThreadLocal<>();
+    static final ThreadLocal<String> currentApplicationName = new ThreadLocal<>();
 
     /**
      * Register a callback for performance log events.
+     * The value of {@link PerformanceLogCallback#useNanoseconds()} is captured at registration
+     * time and remains fixed for the lifetime of this callback. To change the duration unit,
+     * unregister and re-register with the new setting.
      *
      * @param cb The callback to register.
      */
@@ -29,6 +38,7 @@ class PerformanceLog {
             throw new IllegalStateException("Callback has already been set");
         }
         callback = cb;
+        cachedUseNanos = cb.useNanoseconds();
         callbackInitialized = true;
     }
 
@@ -37,39 +47,48 @@ class PerformanceLog {
      */
     public static synchronized void unregisterCallback() {
         callback = null;
+        cachedUseNanos = false;
         callbackInitialized = false;
     }
 
-    //TODO
-    //More loggers to be added here e.g. com.microsoft.sqlserver.jdbc.PerformanceMetrics.Statement
-    
     public static class Scope implements AutoCloseable {
         private Logger logger;
+        private SQLServerConnection con;
         private int connectionId;
         private int statementId;
         private PerformanceActivity activity;
         private long startTime;
         private final boolean enabled;
+        private final boolean useNanos;
 
         private Exception exception;
+        private SQLServerStatement stmtHandle;
+        private String userSql;
 
         // Constructor for connection-level activities
-        public Scope(Logger logger, int connectionId, PerformanceActivity activity) {
-            this(logger, connectionId, 0, activity);
+        public Scope(Logger logger, SQLServerConnection con, PerformanceActivity activity) {
+            this(logger, con, 0, null, null, activity);
         }
 
         // Constructor for statement-level activities
-        public Scope(Logger logger, int connectionId, int statementId, PerformanceActivity activity) {
-
-            // Check if logging is enabled
+        public Scope(Logger logger, SQLServerConnection con, int statementId,
+                     SQLServerStatement stmt, String userSql, PerformanceActivity activity) {
             this.enabled = logger.isLoggable(Level.FINE) || (callback != null);
+            this.useNanos = cachedUseNanos;
 
             if (enabled) {
                 this.logger = logger;
-                this.connectionId = connectionId;
+                this.con = con;
+                this.connectionId = (con != null) ? con.getConnectionID() : 0;
                 this.statementId = statementId;
                 this.activity = activity;
-                this.startTime = System.currentTimeMillis();
+                this.startTime = useNanos ? System.nanoTime() : System.currentTimeMillis();
+
+                // If we have a callback and statement info, capture it for use during publish
+                if (callback != null && stmt != null) {
+                    this.stmtHandle = stmt;
+                    this.userSql = userSql;
+                }
             }
         }
 
@@ -84,6 +103,15 @@ class PerformanceLog {
             return "ConnectionID:" + connectionId;
         }
 
+        /**
+         * Resolves the application name lazily, at publish time rather than at scope creation time.
+         * The CONNECTION scope is opened before the connection properties have been parsed, so the
+         * value is not available when the scope is constructed.
+         */
+        private String getApplicationName() {
+            return (con != null) ? con.getApplicationName() : null;
+        }
+
         @Override
         public void close() {
 
@@ -91,42 +119,64 @@ class PerformanceLog {
                 return;
             }
 
-            long endTime = System.currentTimeMillis();
-            long duration = endTime - startTime;
+            long duration = useNanos ? (System.nanoTime() - startTime) : (System.currentTimeMillis() - startTime);
 
             if (callback != null) {
                 try {
-                    
-                    if (statementId == 0) {
-                        // Connection-level activity
-                        callback.publish(activity, connectionId, duration, exception);
-                    } else {
-                        // Statement-level activity
-                        callback.publish(activity, connectionId, statementId, duration, exception);
+                    // Set the current context for the callback to access via ThreadLocal during publish
+                    // Note: we set these before calling publish, and remove them afterward to avoid leaking data across calls
+                    currentApplicationName.set(getApplicationName());
+
+                    if (stmtHandle != null) {
+                        currentUserSql.set(userSql);
+                        currentStatementType.set(deriveStatementType(stmtHandle));
                     }
 
+                    if (statementId == 0) {
+                        callback.publish(activity, connectionId, duration, exception);
+                    } else {
+                        callback.publish(activity, connectionId, statementId, duration, exception);
+                    }
                 } catch (Exception e) {
                     logger.fine(String.format("Failed to publish performance log: %s", e.getMessage()));
+                } finally {
+                    currentApplicationName.remove();
+                    if (stmtHandle != null) {
+                        currentUserSql.remove();
+                        currentStatementType.remove();
+                    }
                 }
             }
 
             if (logger != null && logger.isLoggable(Level.FINE)) {
+                String unit = useNanos ? "ns" : "ms";
                 if (exception != null) {
-                    logger.fine(String.format("%s %s, duration: %dms, exception: %s", getTraceId(), activity, duration, exception.getMessage()));
+                    logger.fine(String.format("%s %s, duration: %d%s, exception: %s", getTraceId(), activity, duration, unit, exception.getMessage()));
                 } else {
-                    logger.fine(String.format("%s %s, duration: %dms", getTraceId(), activity, duration));
+                    logger.fine(String.format("%s %s, duration: %d%s", getTraceId(), activity, duration, unit));
                 }
             }
-
         }
     }
 
-    public static Scope createScope(Logger logger, int connectionId, PerformanceActivity activity) {
-        return new Scope(logger, connectionId, activity);
+    public static Scope createScope(Logger logger, SQLServerConnection con, PerformanceActivity activity) {
+        return new Scope(logger, con, activity);
     }
 
-    public static Scope createScope(Logger logger, int connectionId, Integer statementId, PerformanceActivity activity) {
-        return new Scope(logger, connectionId, statementId, activity);
+    public static Scope createScope(Logger logger, SQLServerConnection con, int statementId,
+                                    SQLServerStatement stmt, String userSql, PerformanceActivity activity) {
+        return new Scope(logger, con, statementId, stmt, userSql, activity);
+    }
+
+    // Helper method to derive statement type based on the statement class
+    private static StatementType deriveStatementType(SQLServerStatement stmt) {
+        if (stmt instanceof SQLServerCallableStatement) {
+            return StatementType.CALLABLE_STATEMENT;
+        }
+        if (stmt instanceof SQLServerPreparedStatement) {
+            return StatementType.PREPARED_STATEMENT;
+        }
+        return StatementType.STATEMENT;
     }
 
 }

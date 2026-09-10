@@ -75,7 +75,7 @@ final class FailoverInfo {
                     // Should not get here as the server should give a proper port number anyway.
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
                     Object[] msgArgs = {instancePort};
-                    SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, false);
+                    SQLServerException.makeFromDriverError(con, null, form.format(msgArgs), null, false, e);
                 }
             } else
                 portNumber = SQLServerConnection.DEFAULTPORT;

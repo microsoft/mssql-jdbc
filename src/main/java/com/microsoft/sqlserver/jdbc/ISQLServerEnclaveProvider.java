@@ -85,7 +85,7 @@ interface ISQLServerEnclaveProvider {
                 enclavePackage.write(algo.encryptData(keys.toByteArray()));
                 return enclavePackage.toByteArray();
             } catch (GeneralSecurityException | SQLServerException | IOException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
         return null;
@@ -224,9 +224,18 @@ interface ISQLServerEnclaveProvider {
                 aev2CekEntry.put(mdVer);
                 aev2CekEntry.putShort((short) keyID);
 
-                SQLServerColumnEncryptionKeyStoreProvider provider = SQLServerSecurityUtility
-                        .getColumnEncryptionKeyStoreProvider(keyStoreName, connection, statement);
-                aev2CekEntry.put(provider.decryptColumnEncryptionKey(keyPath, algo, encryptedKey));
+                // Issue #2957: route the enclave CEK lookup through SQLServerSymmetricKeyCache
+                // (or the local-provider flow for per-connection/per-statement providers) so that
+                // enclave queries don't hit the CMK key store on every call. Mirrors the lookup
+                // SQLServerSecurityUtility.decryptSymmetricKey performs for non-enclave params.
+                EncryptionKeyInfo keyInfo = new EncryptionKeyInfo(encryptedKey, dbID, keyID,
+                        rs.getInt(DescribeParameterEncryptionResultSet1.KEYVERSION.value()), mdVer, keyPath,
+                        keyStoreName, algo);
+                SQLServerSymmetricKey symKey = SQLServerSecurityUtility
+                        .shouldUseInstanceLevelProviderFlow(keyStoreName, connection, statement)
+                                ? SQLServerSecurityUtility.getKeyFromLocalProviders(keyInfo, connection, statement)
+                                : SQLServerSymmetricKeyCache.getInstance().getKey(keyInfo, connection);
+                aev2CekEntry.put(symKey.getRootKey());
                 enclaveRequestedCEKs.add(aev2CekEntry.array());
             }
         }
@@ -383,7 +392,7 @@ abstract class BaseAttestationRequest {
             x = adjustBigInt(w.getAffineX().toByteArray());
             y = adjustBigInt(w.getAffineY().toByteArray());
         } catch (GeneralSecurityException | IOException e) {
-            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
         }
     }
 
@@ -456,7 +465,7 @@ abstract class BaseAttestationResponse {
         RSAPublicKeySpec spec = new RSAPublicKeySpec(new BigInteger(1, modulus), new BigInteger(1, exponent));
         KeyFactory factory = KeyFactory.getInstance("RSA");
         PublicKey pub = factory.generatePublic(spec);
-        Signature sig = Signature.getInstance("SHA256withRSA");
+        Signature sig = Signature.getInstance("SHA256withRSA"); // CodeQL [SM05136] Required for an external standard: Always Encrypted with secure enclaves attestation protocol signs the enclave Diffie-Hellman public key with SHA256withRSA (https://learn.microsoft.com/sql/relational-databases/security/encryption/always-encrypted-enclaves)
         sig.initVerify(pub);
         sig.update(dhPublicKey);
         if (!sig.verify(publicKeySig)) {

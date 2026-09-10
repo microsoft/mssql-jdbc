@@ -24,6 +24,13 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -152,7 +159,8 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
     /**
      * Performance overhead test for connection and statement operations.
-     * Compares execution time with callback/logging disabled vs enabled.
+     * Compares execution time with callback/logging disabled vs enabled (milliseconds)
+     * vs enabled (nanoseconds).
      * For testing purpose - iterations set to 1
      */
     @Test
@@ -170,7 +178,7 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
             long disabledDuration = executeStatementsWithNewConnectionsPerIteration(count);
 
-            // Test with callback/logging ENABLED
+            // Test with callback/logging ENABLED (milliseconds - default)
             PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
                 @Override
                 public void publish(PerformanceActivity activity, int connectionId, long durationMs, 
@@ -190,8 +198,35 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
             long enabledDuration = executeStatementsWithNewConnectionsPerIteration(count);
 
-            // Uncomment below line to print performance comparison for connection overhead test
-            // printPerformanceComparison(disabledDuration, enabledDuration, count, "new connection per iteration");
+            // Test with callback/logging ENABLED (nanoseconds)
+            SQLServerDriver.unregisterPerformanceLogCallback();
+            PerformanceLogCallback nanosCallbackInstance = new PerformanceLogCallback() {
+                @Override
+                public boolean useNanoseconds() {
+                    return true;
+                }
+
+                @Override
+                public void publish(PerformanceActivity activity, int connectionId, long durationNs, 
+                        Exception exception) {
+                    // No-op callback to measure overhead with nanosecond granularity
+                }
+
+                @Override
+                public void publish(PerformanceActivity activity, int connectionId, int statementId, 
+                        long durationNs, Exception exception) {
+                    // No-op callback to measure overhead with nanosecond granularity
+                }
+            };
+            SQLServerDriver.registerPerformanceLogCallback(nanosCallbackInstance);
+            perfLoggerConnection.setLevel(Level.FINE);
+            perfLoggerStatement.setLevel(Level.FINE);
+
+            long enabledNanosDuration = executeStatementsWithNewConnectionsPerIteration(count);
+
+            // Uncomment below lines to print performance comparison for connection overhead test
+            // printPerformanceComparison(disabledDuration, enabledDuration, count, "new connection per iteration (ms mode)");
+            // printPerformanceComparison(disabledDuration, enabledNanosDuration, count, "new connection per iteration (nanos mode)");
 
             // Cleanup for next iteration
             SQLServerDriver.unregisterPerformanceLogCallback();
@@ -200,52 +235,87 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
     /**
      * High-volume statement execution performance test.
-     * Reuses a single connection to test 10000 statement executions efficiently.
-     * Compares performance with logging disabled vs enabled.
+     * Reuses a single connection to test statement executions efficiently.
+     * Compares performance with logging disabled vs enabled (milliseconds)
+     * vs enabled (nanoseconds).
      */
     @Test
     void testHighVolumeStatementPerformance() throws Exception {
-        int iterations = 10; // Set to 10000 for actual high-volume test
+        int[] iterations = {10};
+        // Uncomment below line to run with higher iterations
+        // int[] iterations = {1000, 10000};
 
-        // Test with callback/logging DISABLED
-        SQLServerDriver.unregisterPerformanceLogCallback();
-        perfLoggerConnection.setLevel(Level.OFF);
-        perfLoggerStatement.setLevel(Level.OFF);
+        for (int count : iterations) {
 
-        long disabledDuration;
-        try (Connection con = getConnection()) {
-            disabledDuration = executeStatementsWithTiming(con, iterations);
-        }
+            // Test with callback/logging DISABLED
+            SQLServerDriver.unregisterPerformanceLogCallback();
+            perfLoggerConnection.setLevel(Level.OFF);
+            perfLoggerStatement.setLevel(Level.OFF);
 
-        // Test with callback/logging ENABLED
-        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
-            @Override
-            public void publish(PerformanceActivity activity, int connectionId, long durationMs, 
-                    Exception exception) {
-                // No-op callback
+            long disabledDuration;
+            try (Connection con = getConnection()) {
+                disabledDuration = executeStatementsWithTiming(con, count);
             }
 
-            @Override
-            public void publish(PerformanceActivity activity, int connectionId, int statementId, 
-                    long durationMs, Exception exception) {
-                // No-op callback
+            // Test with callback/logging ENABLED (milliseconds - default)
+            PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+                @Override
+                public void publish(PerformanceActivity activity, int connectionId, long durationMs, 
+                        Exception exception) {
+                    // No-op callback
+                }
+
+                @Override
+                public void publish(PerformanceActivity activity, int connectionId, int statementId, 
+                        long durationMs, Exception exception) {
+                    // No-op callback
+                }
+            };
+            SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+            perfLoggerConnection.setLevel(Level.FINE);
+            perfLoggerStatement.setLevel(Level.FINE);
+
+            long enabledDuration;
+            try (Connection con = getConnection()) {
+                enabledDuration = executeStatementsWithTiming(con, count);
             }
-        };
-        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
-        perfLoggerConnection.setLevel(Level.FINE);
-        perfLoggerStatement.setLevel(Level.FINE);
 
-        long enabledDuration;
-        try (Connection con = getConnection()) {
-            enabledDuration = executeStatementsWithTiming(con, iterations);
+            // Test with callback/logging ENABLED (nanoseconds)
+            SQLServerDriver.unregisterPerformanceLogCallback();
+            PerformanceLogCallback nanosCallbackInstance = new PerformanceLogCallback() {
+                @Override
+                public boolean useNanoseconds() {
+                    return true;
+                }
+
+                @Override
+                public void publish(PerformanceActivity activity, int connectionId, long durationNs, 
+                        Exception exception) {
+                    // No-op callback to measure overhead with nanosecond granularity
+                }
+
+                @Override
+                public void publish(PerformanceActivity activity, int connectionId, int statementId, 
+                        long durationNs, Exception exception) {
+                    // No-op callback to measure overhead with nanosecond granularity
+                }
+            };
+            SQLServerDriver.registerPerformanceLogCallback(nanosCallbackInstance);
+            perfLoggerConnection.setLevel(Level.FINE);
+            perfLoggerStatement.setLevel(Level.FINE);
+
+            long enabledNanosDuration;
+            try (Connection con = getConnection()) {
+                enabledNanosDuration = executeStatementsWithTiming(con, count);
+            }
+
+            // Uncomment below lines to print performance comparison for high-volume test
+            // printPerformanceComparison(disabledDuration, enabledDuration, count, "single connection (ms mode)");
+            // printPerformanceComparison(disabledDuration, enabledNanosDuration, count, "single connection (nanos mode)");
+
+            // Cleanup for next iteration
+            SQLServerDriver.unregisterPerformanceLogCallback();
         }
-
-        // Uncomment below line to print performance comparison for high-volume test
-        // printPerformanceComparison(disabledDuration, enabledDuration, iterations, "single connection");
-
-        // Cleanup
-        SQLServerDriver.unregisterPerformanceLogCallback();
-
     }
 
     /**
@@ -600,6 +670,789 @@ class PerformanceLogCallbackTest extends AbstractTest {
 
         SQLServerDriver.unregisterPerformanceLogCallback();
         
+    }
+
+    /**
+     * Test to validate that when useNanoseconds() returns true,
+     * the duration field in publish() contains nanosecond values.
+     */
+    @Test
+    void testPublishWithNanosecondGranularity() throws Exception {
+        List<Long> connectionDurations = new ArrayList<>();
+        List<Long> statementDurations = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public boolean useNanoseconds() {
+                return true;
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long duration,
+                    Exception exception) {
+                connectionDurations.add(duration);
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long duration, Exception exception) {
+                statementDurations.add(duration);
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        try (Connection con = getConnection()) {
+            try (Statement stmt = con.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            }
+        }
+
+        // Durations should be in nanoseconds (much larger than millisecond values)
+        assertTrue(connectionDurations.size() > 0, "publish should have been called for connection-level activities");
+        for (long duration : connectionDurations) {
+            assertTrue(duration > 1_000, "Duration in nanoseconds should be larger than 1000 (i.e. > 1 microsecond)");
+        }
+
+        assertTrue(statementDurations.size() > 0, "publish should have been called for statement-level activities");
+        for (long duration : statementDurations) {
+            assertTrue(duration >= 0, "Duration should be non-negative");
+        }
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test to validate backward compatibility: when registered without useNanoseconds
+     * (default), the duration field contains millisecond values.
+     */
+    @Test
+    void testPublishDefaultDelegatesToMsOverload() throws Exception {
+        List<Long> connectionMs = new ArrayList<>();
+        List<Long> statementMs = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long duration,
+                    Exception exception) {
+                connectionMs.add(duration);
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long duration, Exception exception) {
+                statementMs.add(duration);
+            }
+        };
+
+        // Register without useNanoseconds (default = milliseconds)
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        try (Connection con = getConnection()) {
+            try (Statement stmt = con.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            }
+        }
+
+        // Durations should be in milliseconds
+        assertTrue(connectionMs.size() > 0,
+                "publish should have been called for connection-level activities");
+        assertTrue(statementMs.size() > 0,
+                "publish should have been called for statement-level activities");
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test to validate that useNanoseconds() is cached at registration time.
+     * Mutating the callback's return value after registration should have no effect.
+     */
+    @Test
+    void testUseNanosecondsCachedAtRegistration() throws Exception {
+        List<Long> durations = new ArrayList<>();
+
+        // Mutable callback whose useNanoseconds() can be flipped at runtime
+        class MutableCallback implements PerformanceLogCallback {
+            volatile boolean nanos = false;
+
+            @Override
+            public boolean useNanoseconds() {
+                return nanos;
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long duration,
+                    Exception exception) {
+                durations.add(duration);
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long duration, Exception exception) {
+                durations.add(duration);
+            }
+        }
+
+        MutableCallback cb = new MutableCallback();
+        cb.nanos = false; // register with milliseconds
+        SQLServerDriver.registerPerformanceLogCallback(cb);
+
+        // Mutate after registration — should have no effect
+        cb.nanos = true;
+
+        try (Connection con = getConnection()) {
+            try (Statement stmt = con.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            }
+        }
+
+        // Durations should still be in milliseconds (small values), not nanoseconds
+        assertTrue(durations.size() > 0, "publish should have been called");
+        for (long duration : durations) {
+            // A millisecond duration for a simple query should be well under 1,000,000
+            // (which would be 1 second). Nanosecond values would typically be > 1,000,000.
+            assertTrue(duration < 1_000_000,
+                    "Duration should be in milliseconds (cached at registration), got: " + duration);
+        }
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test to validate that getCurrentUserSql() captures the batch SQL during executeBatch()
+     * for PreparedStatement batch operations.
+     */
+    @Test
+    void testUserSqlInBatchExecution() throws Exception {
+        List<String> capturedSql = new ArrayList<>();
+        List<StatementType> capturedType = new ArrayList<>();
+        List<PerformanceActivity> capturedActivities = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                String sql = getCurrentUserSql();
+                StatementType type = getCurrentStatementType();
+                if (sql != null) {
+                    capturedSql.add(sql);
+                    capturedType.add(type);
+                    capturedActivities.add(activity);
+                }
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        final String batchInsertSql = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                + " VALUES (?, ?, ?)";
+
+        try (Connection con = getConnection()) {
+            try (Statement stmt = con.createStatement()) {
+                stmt.execute("CREATE TABLE " + AbstractSQLGenerator.escapeIdentifier(tableName)
+                        + " (id INT, name NVARCHAR(100), value INT)");
+            }
+
+            try {
+                // PreparedStatement batch
+                try (PreparedStatement pstmt = con.prepareStatement(batchInsertSql)) {
+                    for (int i = 0; i < 5; i++) {
+                        pstmt.setInt(1, i);
+                        pstmt.setString(2, "Name" + i);
+                        pstmt.setInt(3, i * 10);
+                        pstmt.addBatch();
+                    }
+                    pstmt.executeBatch();
+                }
+            } finally {
+                try (Statement stmt = con.createStatement()) {
+                    TestUtils.dropTableIfExists(tableName, stmt);
+                }
+            }
+        }
+
+        // The batch SQL should appear in captures
+        assertTrue(capturedSql.contains(batchInsertSql),
+                "Should capture batch INSERT SQL. Captured: " + capturedSql);
+
+        int batchIdx = capturedSql.indexOf(batchInsertSql);
+        assertEquals(StatementType.PREPARED_STATEMENT, capturedType.get(batchIdx),
+                "Batch statement should report type 'PreparedStatement'");
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test to validate that getCurrentUserSql() returns the same SQL across multiple
+     * executions of a reused PreparedStatement (sp_executesql → sp_prepexec → sp_execute).
+     */
+    @Test
+    void testUserSqlConsistentAcrossPreparedStatementReuse() throws Exception {
+        List<String> capturedSql = new ArrayList<>();
+        List<PerformanceActivity> capturedActivities = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                String sql = getCurrentUserSql();
+                if (sql != null && (activity == PerformanceActivity.STATEMENT_EXECUTE
+                        || activity == PerformanceActivity.STATEMENT_PREPEXEC)) {
+                    capturedSql.add(sql);
+                    capturedActivities.add(activity);
+                }
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        final String query = "SELECT ? AS reuse_test";
+
+        try (Connection con = getConnection()) {
+            try (PreparedStatement ps = con.prepareStatement(query)) {
+                // 1st call: sp_executesql
+                ps.setInt(1, 1);
+                try (ResultSet rs = ps.executeQuery()) { }
+
+                // 2nd call: sp_prepexec
+                ps.setInt(1, 2);
+                try (ResultSet rs = ps.executeQuery()) { }
+
+                // 3rd call: sp_execute
+                ps.setInt(1, 3);
+                try (ResultSet rs = ps.executeQuery()) { }
+            }
+        }
+
+        // All captures should contain the same SQL string
+        assertEquals(3, capturedSql.size(),
+                "Should capture SQL for all 3 executions. Got: " + capturedSql);
+        for (String sql : capturedSql) {
+            assertEquals(query, sql,
+                    "Every execution should report the same userSql regardless of prepare path");
+        }
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test to validate that getCurrentUserSql() returns null for connection-level activities.
+     */
+    @Test
+    void testUserSqlNullForConnectionLevelActivities() throws Exception {
+        List<String> connectionSql = new ArrayList<>();
+        List<PerformanceActivity> connectionActivities = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+                // These are connection-level — getCurrentUserSql() should return null
+                connectionSql.add(getCurrentUserSql());
+                connectionActivities.add(activity);
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        try (Connection con = getConnection()) {
+            // Just open and close — triggers connection-level activities
+        }
+
+        assertTrue(connectionActivities.size() > 0,
+                "Should have received connection-level activity callbacks");
+
+        for (int i = 0; i < connectionSql.size(); i++) {
+            assertEquals(null, connectionSql.get(i),
+                    "getCurrentUserSql() should return null for connection-level activity: "
+                            + connectionActivities.get(i));
+        }
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test to validate that getCurrentUserSql() returns null for sub-activities
+     * (REQUEST_BUILD, FIRST_SERVER_RESPONSE) where stmt is not passed.
+     */
+    @Test
+    void testUserSqlNullForSubActivities() throws Exception {
+        List<String> subActivitySql = new ArrayList<>();
+        List<PerformanceActivity> subActivities = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                if (activity == PerformanceActivity.STATEMENT_REQUEST_BUILD
+                        || activity == PerformanceActivity.STATEMENT_FIRST_SERVER_RESPONSE) {
+                    subActivitySql.add(getCurrentUserSql());
+                    subActivities.add(activity);
+                }
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        try (Connection con = getConnection()) {
+            try (Statement stmt = con.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            }
+        }
+
+        assertTrue(subActivities.size() > 0,
+                "Should have received sub-activity callbacks (REQUEST_BUILD or FIRST_SERVER_RESPONSE)");
+
+        for (int i = 0; i < subActivitySql.size(); i++) {
+            assertEquals(null, subActivitySql.get(i),
+                    "getCurrentUserSql() should be null for sub-activity: " + subActivities.get(i));
+        }
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test to validate that getCurrentUserSql() and getCurrentStatementType() are available
+     * inside the publish() callback for Statement, PreparedStatement.
+     */
+    @Test
+    void testUserSqlAndStatementTypeInCallback() throws Exception {
+        List<String> capturedSql = new ArrayList<>();
+        List<StatementType> capturedType = new ArrayList<>();
+        List<PerformanceActivity> capturedActivities = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+                // connection-level — userSql/statementType not set here
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                String sql = getCurrentUserSql();
+                StatementType type = getCurrentStatementType();
+                if (sql != null) {
+                    capturedSql.add(sql);
+                    capturedType.add(type);
+                    capturedActivities.add(activity);
+                }
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        final String stmtQuery = "SELECT 1 AS plain_stmt";
+        final String pstmtQuery = "SELECT ? AS prepared_val";
+
+        try (Connection con = getConnection()) {
+            // 1. Regular Statement
+            try (Statement stmt = con.createStatement();
+                 ResultSet rs = stmt.executeQuery(stmtQuery)) {
+            }
+
+            // 2. PreparedStatement
+            try (PreparedStatement pstmt = con.prepareStatement(pstmtQuery)) {
+                pstmt.setInt(1, 42);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                }
+            }
+        }
+
+        // Verify we captured userSql for each statement type
+        assertTrue(capturedSql.size() >= 2,
+                "Should capture userSql for at least 2 executions, got: " + capturedSql.size());
+
+        // Check that the expected SQL strings appear in captured data
+        assertTrue(capturedSql.contains(stmtQuery),
+                "Should capture plain Statement SQL. Captured: " + capturedSql);
+        assertTrue(capturedSql.contains(pstmtQuery),
+                "Should capture PreparedStatement SQL. Captured: " + capturedSql);
+
+        // Check statement types match the SQL
+        int stmtIdx = capturedSql.indexOf(stmtQuery);
+        int pstmtIdx = capturedSql.indexOf(pstmtQuery);
+
+        assertEquals(StatementType.STATEMENT, capturedType.get(stmtIdx),
+                "Plain statement should report type 'Statement'");
+        assertEquals(StatementType.PREPARED_STATEMENT, capturedType.get(pstmtIdx),
+                "Prepared statement should report type 'PreparedStatement'");
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test that 10 connections firing statements simultaneously each receive
+     * the correct SQL in their performance callbacks. Each thread uses a unique
+     * SQL containing its thread ID, and the callback verifies the SQL matches.
+     */
+    @Test
+    void testConcurrentConnectionsReceiveCorrectSql() throws Exception {
+        int threadCount = 10;
+        // Map: expected SQL -> set of thread IDs that produced it
+        Map<String, Set<Long>> capturedSqlByThread = new ConcurrentHashMap<>();
+        List<Throwable> errors = new ArrayList<>();
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                String sql = getCurrentUserSql();
+                if (sql != null && sql.startsWith("SELECT ")) {
+                    capturedSqlByThread.computeIfAbsent(sql, k -> ConcurrentHashMap.newKeySet())
+                            .add(Thread.currentThread().getId());
+                    StatementType type = getCurrentStatementType();
+                    perfLoggerStatement.fine(String.format(
+                            "[ThreadID:%d] %s | ConnID:%d StmtID:%d | %s | SQL: %s | %d ms",
+                            Thread.currentThread().getId(), activity, connectionId, statementId,
+                            type, sql, durationMs));
+                }
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+            final long expectedThreadMarker = i;
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    String sql = "SELECT " + expectedThreadMarker + " AS thread_marker";
+                    try (Connection con = getConnection();
+                         Statement stmt = con.createStatement();
+                         ResultSet rs = stmt.executeQuery(sql)) {
+                        rs.next();
+                    }
+                } catch (Throwable t) {
+                    synchronized (errors) {
+                        errors.add(t);
+                    }
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        // Release all threads simultaneously
+        startLatch.countDown();
+        assertTrue(doneLatch.await(60, TimeUnit.SECONDS), "Threads did not complete in time");
+        executor.shutdown();
+
+        assertTrue(errors.isEmpty(),
+                "Errors during concurrent execution: " + errors);
+
+        // Verify each unique SQL was captured
+        for (int i = 0; i < threadCount; i++) {
+            String expectedSql = "SELECT " + i + " AS thread_marker";
+            assertTrue(capturedSqlByThread.containsKey(expectedSql),
+                    "Callback should have received SQL for thread marker " + i
+                            + ". Captured keys: " + capturedSqlByThread.keySet().size());
+        }
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test that a single connection firing 10 statements from multiple threads
+     * receives the correct SQL for each in the performance callback. Each thread
+     * uses a unique SQL containing its thread ID to verify isolation.
+     */
+    @Test
+    void testSingleConnectionMultipleThreadsReceiveCorrectSql() throws Exception {
+        int threadCount = 10;
+        Map<String, Set<Long>> capturedSqlByThread = new ConcurrentHashMap<>();
+        List<Throwable> errors = new ArrayList<>();
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                String sql = getCurrentUserSql();
+                if (sql != null && sql.startsWith("SELECT ")) {
+                    capturedSqlByThread.computeIfAbsent(sql, k -> ConcurrentHashMap.newKeySet())
+                            .add(Thread.currentThread().getId());
+                    StatementType type = getCurrentStatementType();
+                    perfLoggerStatement.fine(String.format(
+                            "[ThreadID:%d] %s | ConnID:%d StmtID:%d | %s | SQL: %s | %d ms",
+                            Thread.currentThread().getId(), activity, connectionId, statementId,
+                            type, sql, durationMs));
+                }
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+        try (Connection sharedCon = getConnection()) {
+            for (int i = 0; i < threadCount; i++) {
+                final long expectedThreadMarker = i;
+                executor.submit(() -> {
+                    try {
+                        startLatch.await();
+                        String sql = "SELECT " + expectedThreadMarker + " AS thread_marker";
+                        // Each thread creates its own statement on the shared connection
+                        try (Statement stmt = sharedCon.createStatement();
+                             ResultSet rs = stmt.executeQuery(sql)) {
+                            rs.next();
+                        }
+                    } catch (Throwable t) {
+                        synchronized (errors) {
+                            errors.add(t);
+                        }
+                    } finally {
+                        doneLatch.countDown();
+                    }
+                });
+            }
+
+            // Release all threads simultaneously
+            startLatch.countDown();
+            assertTrue(doneLatch.await(60, TimeUnit.SECONDS), "Threads did not complete in time");
+        }
+
+        executor.shutdown();
+
+        assertTrue(errors.isEmpty(),
+                "Errors during concurrent execution: " + errors);
+
+        // Verify each unique SQL was captured in the callback
+        for (int i = 0; i < threadCount; i++) {
+            String expectedSql = "SELECT " + i + " AS thread_marker";
+            assertTrue(capturedSqlByThread.containsKey(expectedSql),
+                    "Callback should have received SQL for thread marker " + i
+                            + ". Captured keys: " + capturedSqlByThread.keySet().size());
+        }
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test to validate that getCurrentApplicationName() returns the applicationName connection
+     * property for both connection-level and statement-level activities.
+     */
+    @Test
+    void testApplicationNameInCallback() throws Exception {
+        final String appName = "MyPoolName_" + RandomUtil.getIdentifier("pool");
+        List<String> connectionLevelAppNames = new ArrayList<>();
+        List<String> statementLevelAppNames = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+                connectionLevelAppNames.add(getCurrentApplicationName());
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                statementLevelAppNames.add(getCurrentApplicationName());
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        String connStr = TestUtils.addOrOverrideProperty(connectionString, "applicationName", appName);
+        try (Connection con = PrepUtil.getConnection(connStr);
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            rs.next();
+        }
+
+        assertTrue(statementLevelAppNames.size() > 0, "Should have received statement-level callbacks");
+        for (String captured : statementLevelAppNames) {
+            assertEquals(appName, captured,
+                    "getCurrentApplicationName() should return the applicationName for statement activities");
+        }
+
+        // Connection-level activities that run after property parsing must report the app name.
+        assertTrue(connectionLevelAppNames.contains(appName),
+                "getCurrentApplicationName() should return the applicationName for connection activities. Captured: "
+                        + connectionLevelAppNames);
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test to validate that getCurrentApplicationName() falls back to the driver default
+     * when the applicationName connection property is not set.
+     */
+    @Test
+    void testApplicationNameDefaultsWhenNotSet() throws Exception {
+        List<String> capturedAppNames = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                capturedAppNames.add(getCurrentApplicationName());
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        String connStr = TestUtils.removeProperty(connectionString, "applicationName");
+        try (Connection con = PrepUtil.getConnection(connStr);
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            rs.next();
+        }
+
+        assertTrue(capturedAppNames.size() > 0, "Should have received statement-level callbacks");
+        for (String captured : capturedAppNames) {
+            assertEquals(SQLServerDriver.DEFAULT_APP_NAME, captured,
+                    "getCurrentApplicationName() should default to the driver app name when unset");
+        }
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test that connections with different applicationName values report their own name,
+     * simulating multiple connection pools sharing a single registered callback.
+     */
+    @Test
+    void testApplicationNameIsolatedAcrossConnections() throws Exception {
+        final String appNameA = "PoolA_" + RandomUtil.getIdentifier("a");
+        final String appNameB = "PoolB_" + RandomUtil.getIdentifier("b");
+
+        // Maps applicationName -> set of SQL seen under that application name
+        Map<String, Set<String>> sqlByAppName = new ConcurrentHashMap<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                String sql = getCurrentUserSql();
+                String app = getCurrentApplicationName();
+                if (sql != null && app != null) {
+                    sqlByAppName.computeIfAbsent(app, k -> ConcurrentHashMap.newKeySet()).add(sql);
+                }
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        final String sqlA = "SELECT 1 AS pool_a_marker";
+        final String sqlB = "SELECT 2 AS pool_b_marker";
+
+        String connStrA = TestUtils.addOrOverrideProperty(connectionString, "applicationName", appNameA);
+        try (Connection con = PrepUtil.getConnection(connStrA);
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery(sqlA)) {
+            rs.next();
+        }
+
+        String connStrB = TestUtils.addOrOverrideProperty(connectionString, "applicationName", appNameB);
+        try (Connection con = PrepUtil.getConnection(connStrB);
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery(sqlB)) {
+            rs.next();
+        }
+
+        assertTrue(sqlByAppName.containsKey(appNameA), "Should have events for " + appNameA);
+        assertTrue(sqlByAppName.containsKey(appNameB), "Should have events for " + appNameB);
+
+        assertTrue(sqlByAppName.get(appNameA).contains(sqlA),
+                appNameA + " should report its own SQL. Got: " + sqlByAppName.get(appNameA));
+        assertTrue(sqlByAppName.get(appNameB).contains(sqlB),
+                appNameB + " should report its own SQL. Got: " + sqlByAppName.get(appNameB));
+
+        // Ensure no cross-contamination between the two application names
+        assertTrue(!sqlByAppName.get(appNameA).contains(sqlB),
+                appNameA + " should not see SQL from " + appNameB);
+        assertTrue(!sqlByAppName.get(appNameB).contains(sqlA),
+                appNameB + " should not see SQL from " + appNameA);
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
+    }
+
+    /**
+     * Test that an existing callback which does not use getCurrentApplicationName() continues
+     * to receive events unchanged, and that the value is not leaked outside publish().
+     */
+    @Test
+    void testApplicationNameNotLeakedOutsidePublish() throws Exception {
+        List<PerformanceActivity> activities = new ArrayList<>();
+
+        PerformanceLogCallback callbackInstance = new PerformanceLogCallback() {
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, long durationMs,
+                    Exception exception) {
+                activities.add(activity);
+            }
+
+            @Override
+            public void publish(PerformanceActivity activity, int connectionId, int statementId,
+                    long durationMs, Exception exception) {
+                activities.add(activity);
+            }
+        };
+
+        SQLServerDriver.registerPerformanceLogCallback(callbackInstance);
+
+        String connStr = TestUtils.addOrOverrideProperty(connectionString, "applicationName", "LeakCheckPool");
+        try (Connection con = PrepUtil.getConnection(connStr);
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT 1")) {
+            rs.next();
+        }
+
+        assertTrue(activities.size() > 0, "Legacy-style callback should still receive events");
+
+        // Outside of publish(), the ThreadLocal must have been cleared
+        assertEquals(null, callbackInstance.getCurrentApplicationName(),
+                "getCurrentApplicationName() should return null outside of publish()");
+
+        SQLServerDriver.unregisterPerformanceLogCallback();
     }
 
     /**

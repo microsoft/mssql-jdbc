@@ -25,6 +25,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 
 /**
@@ -46,6 +47,8 @@ final class Util {
     // any vendor or version specific decisions
     static final String SYSTEM_JRE = System.getProperty("java.vendor") + " " + System.getProperty("java.version");
     private static final Lock LOCK = new ReentrantLock();
+    private static final Pattern JAVA_BINARY_CLASS_NAME = Pattern.compile(
+            "\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*(\\.\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*)*");
 
     private static Boolean isIBM = null;
 
@@ -213,7 +216,23 @@ final class Util {
 
     static BigDecimal readBigDecimal(byte[] valueBytes, int valueLength, int scale) {
         int sign = (0 == valueBytes[0]) ? -1 : 1;
-        byte[] magnitude = new byte[valueLength - 1];
+        int magnitudeLength = valueLength - 1;
+
+        // Fast path for DECIMAL/NUMERIC values whose unscaled magnitude fits in a long.
+        // Assemble the little-endian magnitude directly and create a compact
+        // BigDecimal without allocating an intermediate byte[] or BigInteger.
+        // Values that do not fit fall back to the BigInteger-based path.
+        if (magnitudeLength <= 8) {
+            long magnitude = 0;
+            for (int i = magnitudeLength; i >= 1; i--)
+                magnitude = (magnitude << 8) | (valueBytes[i] & 0xFFL);
+
+            if (magnitude >= 0)
+                return BigDecimal.valueOf(sign * magnitude, scale);
+        }
+
+        // Fallback for larger values: reverse the little-endian magnitude and construct the BigDecimal through BigInteger.
+        byte[] magnitude = new byte[magnitudeLength];
         for (int i = 1; i <= magnitude.length; i++)
             magnitude[magnitude.length - i] = valueBytes[i];
         return new BigDecimal(new BigInteger(sign, magnitude), scale);
@@ -552,6 +571,98 @@ final class Util {
                         SQLServerException.getErrString("R_errorConnectionString"), null, true);
         }
         return p;
+    }
+
+    /**
+     * Escapes a potentially multi-part SQL identifier (e.g. "dbo.MyTable" or "db..table")
+     * by parsing with ThreePartName and bracket-quoting each unquoted part. Already-quoted
+     * parts are validated and preserved. Empty parts (from "..") are preserved to support
+     * the omitted-schema form (e.g. "tempdb..#table").
+     *
+     * @param identifier
+     *        the multi-part identifier to escape
+     * @return the escaped multi-part identifier, e.g. "[dbo].[MyTable]"
+     */
+    static String escapeMultiPartIdentifier(String identifier) {
+        if (null == identifier || identifier.isEmpty()) {
+            return identifier;
+        }
+
+        ThreePartName threePartName = ThreePartName.parse(identifier);
+        StringBuilder sb = new StringBuilder();
+
+        String databasePart = threePartName.getDatabasePart();
+        String ownerPart = threePartName.getOwnerPart();
+        String procedurePart = threePartName.getProcedurePart();
+
+        // ThreePartName cannot represent empty schema: "db..table" parses as
+        // ownerPart="db", procedurePart=".table". Detect and reconstruct the ".." form.
+        if (procedurePart != null && procedurePart.startsWith(".")) {
+            if (databasePart != null) {
+                sb.append(escapeIdentifierPart(databasePart)).append('.');
+            }
+            sb.append(escapeIdentifierPart(ownerPart)).append("..");
+            sb.append(escapeIdentifierPart(procedurePart.substring(1)));
+            return sb.toString();
+        }
+
+        if (databasePart != null) {
+            sb.append(escapeIdentifierPart(databasePart)).append('.');
+        }
+        if (ownerPart != null) {
+            sb.append(escapeIdentifierPart(ownerPart)).append('.');
+        }
+        if (procedurePart != null) {
+            sb.append(escapeIdentifierPart(procedurePart));
+        } else {
+            sb.append(escapeIdentifierPart(identifier));
+        }
+
+        return sb.toString();
+    }
+
+    private static String escapeIdentifierPart(String part) {
+        if (part.length() >= 2 && part.charAt(0) == '[' && part.charAt(part.length() - 1) == ']') {
+            if (isValidBracketedIdentifier(part)) {
+                return part;
+            }
+            return escapeSQLId(part);
+        }
+        if (part.length() >= 2 && part.charAt(0) == '"' && part.charAt(part.length() - 1) == '"') {
+            if (isValidDoubleQuotedIdentifier(part)) {
+                return part;
+            }
+            return escapeSQLId(part);
+        }
+        return escapeSQLId(part);
+    }
+
+    /** A valid bracketed identifier has every internal ] escaped as ]]. */
+    private static boolean isValidBracketedIdentifier(String part) {
+        for (int i = 1; i < part.length() - 1; i++) {
+            if (part.charAt(i) == ']') {
+                if (i + 1 < part.length() - 1 && part.charAt(i + 1) == ']') {
+                    i++;
+                } else {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /** A valid double-quoted identifier has every internal " escaped as "". */
+    private static boolean isValidDoubleQuotedIdentifier(String part) {
+        for (int i = 1; i < part.length() - 1; i++) {
+            if (part.charAt(i) == '"') {
+                if (i + 1 < part.length() - 1 && part.charAt(i + 1) == '"') {
+                    i++;
+                } else {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
@@ -1006,7 +1117,9 @@ final class Util {
     @SuppressWarnings("unchecked")
     static <T> T newInstance(Class<?> returnType, String className, String constructorArg,
             Object[] msgArgs) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
-        Class<?> clazz = Class.forName(className);
+        validateClassName(className, msgArgs);
+
+        Class<?> clazz = Class.forName(className, false, Util.class.getClassLoader());
         if (!returnType.isAssignableFrom(clazz)) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_unassignableError"));
             throw new IllegalArgumentException(form.format(msgArgs));
@@ -1016,6 +1129,21 @@ final class Util {
         } else {
             return (T) clazz.getDeclaredConstructor(String.class).newInstance(constructorArg);
         }
+    }
+
+    private static void validateClassName(String className, Object[] msgArgs) {
+        if (isValidJavaBinaryClassName(className)) {
+            return;
+        }
+
+        String propertyName = (null != msgArgs && msgArgs.length > 0 && null != msgArgs[0]) ? msgArgs[0].toString()
+                : "unknown";
+        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidClassNameForProperty"));
+        throw new IllegalArgumentException(form.format(new Object[] { propertyName, className }));
+    }
+
+    private static boolean isValidJavaBinaryClassName(String className) {
+        return null != className && JAVA_BINARY_CLASS_NAME.matcher(className).matches();
     }
 
     /**

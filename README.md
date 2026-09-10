@@ -41,24 +41,26 @@ What's coming next?  We will look into adding a more comprehensive set of tests,
 ### Build the JAR files
 Maven builds automatically trigger a set of verification tests to run.  For these tests to pass, you will first need to add an environment variable in your system called `mssql_jdbc_test_connection_properties` to provide the [correct connection properties](https://docs.microsoft.com/en-us/sql/connect/jdbc/building-the-connection-url) for your SQL Server or Azure SQL Database instance.
 
-To build the jar files, you must use minimum version of Java 11 with Maven. You may choose to build JDBC 4.3 compliant jar file (for use with JRE 11 or newer JRE versions) and/or a JDBC 4.2 compliant jar file (for use with JRE 8).
+To build the jar files, you must use minimum version of Java 11 with Maven. You may choose to build a jar against the JDBC 4.3 API with partial support (for use with JRE 11 or newer JRE versions) and/or a JDBC 4.2 compliant jar file (for use with JRE 8). See the [support matrix](https://learn.microsoft.com/sql/connect/jdbc/microsoft-jdbc-driver-for-sql-server-support-matrix#java-and-jdbc-specification-support) for the JDBC 4.3 features that are implemented.
 
 * Maven:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\target` directory. 
-        * Run `mvn install -Pjre25`. This creates JRE 25 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 25).
-        * Run `mvn install -Pjre21`. This creates JRE 21 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 21+).
-        * Run `mvn install -Pjre17`. This creates JRE 17 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 17+).
-        * Run `mvn install -Pjre11`. This creates JRE 11 compatible jar in `\target` directory which is JDBC 4.3 compliant (Build with JDK 11+).
+        * Run `mvn install -Pjre26`. This creates JRE 26 compatible jar in `\target` directory built against the JDBC 4.3 API with partial support (see the [support matrix](https://learn.microsoft.com/sql/connect/jdbc/microsoft-jdbc-driver-for-sql-server-support-matrix#java-and-jdbc-specification-support)). Build with JDK 26.
+        * Run `mvn install -Pjre25`. This creates JRE 25 compatible jar in `\target` directory built against the JDBC 4.3 API with partial support (see the [support matrix](https://learn.microsoft.com/sql/connect/jdbc/microsoft-jdbc-driver-for-sql-server-support-matrix#java-and-jdbc-specification-support)). Build with JDK 25.
+        * Run `mvn install -Pjre21`. This creates JRE 21 compatible jar in `\target` directory built against the JDBC 4.3 API with partial support (see the [support matrix](https://learn.microsoft.com/sql/connect/jdbc/microsoft-jdbc-driver-for-sql-server-support-matrix#java-and-jdbc-specification-support)). Build with JDK 21+.
+        * Run `mvn install -Pjre17`. This creates JRE 17 compatible jar in `\target` directory built against the JDBC 4.3 API with partial support (see the [support matrix](https://learn.microsoft.com/sql/connect/jdbc/microsoft-jdbc-driver-for-sql-server-support-matrix#java-and-jdbc-specification-support)). Build with JDK 17+.
+        * Run `mvn install -Pjre11`. This creates JRE 11 compatible jar in `\target` directory built against the JDBC 4.3 API with partial support (see the [support matrix](https://learn.microsoft.com/sql/connect/jdbc/microsoft-jdbc-driver-for-sql-server-support-matrix#java-and-jdbc-specification-support)). Build with JDK 11+.
         * Run `mvn install -Pjre8`. This creates JRE 8 compatible jar in `\target` directory which is JDBC 4.2 compliant (Build with JDK 11+).
 
 * Gradle:
 	1. If you have not already done so, add the environment variable `mssql_jdbc_test_connection_properties` in your system with the connection properties for your SQL Server or SQL DB instance.
 	2. Run one of the commands below to build a JRE 11 and newer versions compatible jar or JRE 8 compatible jar in the `\build\libs` directory. 
-        * Run `gradle build -PbuildProfile=jre25`. This creates JRE 25 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 25).
-        * Run `gradle build -PbuildProfile=jre21`. This creates JRE 21 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 21+).
-        * Run `gradle build -PbuildProfile=jre17`. This creates JRE 17 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 17+).
-        * Run `gradle build -PbuildProfile=jre11`. This creates JRE 11 compatible jar in `\build\libs` directory which is JDBC 4.3 compliant (Build with JDK 11+).
+        * Run `gradle build -PbuildProfile=jre26`. This creates JRE 26 compatible jar in `\build\libs` directory built against the JDBC 4.3 API with partial support (see the [support matrix](https://learn.microsoft.com/sql/connect/jdbc/microsoft-jdbc-driver-for-sql-server-support-matrix#java-and-jdbc-specification-support)). Build with JDK 26.
+        * Run `gradle build -PbuildProfile=jre25`. This creates JRE 25 compatible jar in `\build\libs` directory built against the JDBC 4.3 API with partial support (see the [support matrix](https://learn.microsoft.com/sql/connect/jdbc/microsoft-jdbc-driver-for-sql-server-support-matrix#java-and-jdbc-specification-support)). Build with JDK 25.
+        * Run `gradle build -PbuildProfile=jre21`. This creates JRE 21 compatible jar in `\build\libs` directory built against the JDBC 4.3 API with partial support (see the [support matrix](https://learn.microsoft.com/sql/connect/jdbc/microsoft-jdbc-driver-for-sql-server-support-matrix#java-and-jdbc-specification-support)). Build with JDK 21+.
+        * Run `gradle build -PbuildProfile=jre17`. This creates JRE 17 compatible jar in `\build\libs` directory built against the JDBC 4.3 API with partial support (see the [support matrix](https://learn.microsoft.com/sql/connect/jdbc/microsoft-jdbc-driver-for-sql-server-support-matrix#java-and-jdbc-specification-support)). Build with JDK 17+.
+        * Run `gradle build -PbuildProfile=jre11`. This creates JRE 11 compatible jar in `\build\libs` directory built against the JDBC 4.3 API with partial support (see the [support matrix](https://learn.microsoft.com/sql/connect/jdbc/microsoft-jdbc-driver-for-sql-server-support-matrix#java-and-jdbc-specification-support)). Build with JDK 11+.
         * Run `gradle build -PbuildProfile=jre8`. This creates JRE 8 compatible jar in `\build\libs` directory which is JDBC 4.2 compliant (Build with JDK 11+).
 
 ## Resources
@@ -72,7 +74,7 @@ This driver is documented on [Microsoft Docs](https://docs.microsoft.com/sql/con
 For samples, please see the `src\sample` directory.
 
 ### Download the DLLs
-For some features (e.g. Integrated Authentication and Distributed Transactions), you may need to use the `sqljdbc_xa` and `mssql-jdbc_auth-<version>.<arch>` DLLs. They can be found in the package that can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc). `mssql-jdbc_auth-<version>.<arch>` can also be downloaded from [Maven](https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc_auth).
+For some features (e.g. Integrated Authentication), you may need to use the `mssql-jdbc_auth-<version>.<arch>` DLL. It can be found in the package that can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc). `mssql-jdbc_auth-<version>.<arch>` can also be downloaded from [Maven](https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc_auth). For Distributed Transactions (XA), the required extended stored procedures are built into SQL Server 2017 CU16 and later and can be enabled by running `EXEC sp_sqljdbc_xa_install` on the server. The standalone `sqljdbc_xa.dll` (previously required only for SQL Server 2016 and earlier) is no longer shipped.
 
 ### Download the driver
 Don't want to compile anything?
@@ -83,7 +85,7 @@ We're now on the Maven Central Repository. Add the following to your POM file to
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.3.1.jre11-preview</version>
+	<version>13.6.0.jre11</version>
 </dependency>
 ```
 The driver can be downloaded from [Microsoft](https://aka.ms/downloadmssqljdbc). For driver version 12.1.0 and greater, please use the jre11 version when using Java 11 or greater, and the jre8 version when using Java 8.
@@ -94,7 +96,7 @@ To get the latest version of the driver, add the following to your POM file:
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.3.1.jre11-preview</version>
+	<version>13.6.0.jre11</version>
 </dependency>
 ```
 
@@ -129,7 +131,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.3.1.jre11-preview</version>
+	<version>13.6.0.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -147,7 +149,7 @@ Projects that require either of the two features need to explicitly declare the 
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.3.1.jre11-preview</version>
+	<version>13.6.0.jre11</version>
 	<scope>compile</scope>
 </dependency>
 
@@ -174,7 +176,7 @@ When setting 'useFmtOnly' property to 'true' for establishing a connection or cr
 <dependency>
 	<groupId>com.microsoft.sqlserver</groupId>
 	<artifactId>mssql-jdbc</artifactId>
-	<version>13.3.1.jre11-preview</version>
+	<version>13.6.0.jre11</version>
 </dependency>
 
 <dependency>

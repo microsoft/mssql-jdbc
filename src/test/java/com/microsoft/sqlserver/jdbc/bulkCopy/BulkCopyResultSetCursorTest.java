@@ -36,6 +36,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.xAzureSQLDW)
+@Tag(Constants.bulkCopy)
 public class BulkCopyResultSetCursorTest extends AbstractTest {
 
     static BigDecimal[] expectedBigDecimals = {new BigDecimal("12345.12345"), new BigDecimal("125.123"),

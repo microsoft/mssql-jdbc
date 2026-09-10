@@ -917,4 +917,158 @@ public class LimitEscapeTest extends AbstractTest {
             TestUtils.dropProcedureIfExists(AbstractSQLGenerator.escapeIdentifier(procName), stmt);
         }
     }
+
+    // ------------------------------------------------------------------------------------------------
+    // Legacy FX JDBC escape-syntax scalar and numeric function tests ({fn ...}) ported from
+    // tests/src/cts/escapeSyntaxClient.java.
+    // ------------------------------------------------------------------------------------------------
+
+    private String queryScalarFn(String fnEscape) throws SQLException {
+        try (Statement stmt = connection.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT " + fnEscape)) {
+            assertTrue(rs.next(), "No row returned for: " + fnEscape);
+            return rs.getString(1);
+        }
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnConcat() throws SQLException {
+        assertEquals("HelloWorld", queryScalarFn("{fn CONCAT('Hello', 'World')}"), "{fn CONCAT}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnAscii() throws SQLException {
+        assertEquals("65", queryScalarFn("{fn ASCII('A')}"), "{fn ASCII}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnChar() throws SQLException {
+        assertEquals("A", queryScalarFn("{fn CHAR(65)}"), "{fn CHAR}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnUcaseLcase() throws SQLException {
+        assertEquals("HELLO", queryScalarFn("{fn UCASE('Hello')}"), "{fn UCASE}");
+        assertEquals("hello", queryScalarFn("{fn LCASE('Hello')}"), "{fn LCASE}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnSubstring() throws SQLException {
+        assertEquals("ell", queryScalarFn("{fn SUBSTRING('Hello', 2, 3)}"), "{fn SUBSTRING}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnLocate() throws SQLException {
+        assertEquals("3", queryScalarFn("{fn LOCATE('l', 'Hello')}"), "{fn LOCATE}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnLeftRight() throws SQLException {
+        assertEquals("He", queryScalarFn("{fn LEFT('Hello', 2)}"), "{fn LEFT}");
+        assertEquals("lo", queryScalarFn("{fn RIGHT('Hello', 2)}"), "{fn RIGHT}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnTrim() throws SQLException {
+        assertEquals("Hello ", queryScalarFn("{fn LTRIM('   Hello ')}"), "{fn LTRIM}");
+        assertEquals("  Hello", queryScalarFn("{fn RTRIM('  Hello   ')}"), "{fn RTRIM}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnLength() throws SQLException {
+        assertEquals("5", queryScalarFn("{fn LENGTH('Hello')}"), "{fn LENGTH}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnReplace() throws SQLException {
+        assertEquals("Heyyo", queryScalarFn("{fn REPLACE('Hello', 'll', 'yy')}"), "{fn REPLACE}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnSpaceRepeat() throws SQLException {
+        assertEquals("     ", queryScalarFn("{fn SPACE(5)}"), "{fn SPACE}");
+        assertEquals("ababab", queryScalarFn("{fn REPEAT('ab', 3)}"), "{fn REPEAT}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnSoundex() throws SQLException {
+        assertEquals(queryScalarFn("{fn SOUNDEX('Smith')}"), queryScalarFn("{fn SOUNDEX('Smyth')}"),
+                "{fn SOUNDEX} of similar-sounding names should match");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnAbsSign() throws SQLException {
+        assertEquals("5", queryScalarFn("{fn ABS(-5)}"), "{fn ABS}");
+        assertEquals("-1", queryScalarFn("{fn SIGN(-42)}"), "{fn SIGN}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnPower() throws SQLException {
+        assertEquals("8", queryScalarFn("{fn POWER(2, 3)}"), "{fn POWER}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnSqrt() throws SQLException {
+        assertEquals(3.0, Double.parseDouble(queryScalarFn("{fn SQRT(9)}")), 0.0001, "{fn SQRT}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnFloorCeiling() throws SQLException {
+        assertEquals("3", queryScalarFn("{fn FLOOR(3.7)}"), "{fn FLOOR}");
+        assertEquals("4", queryScalarFn("{fn CEILING(3.2)}"), "{fn CEILING}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnMod() throws SQLException {
+        assertEquals("1", queryScalarFn("{fn MOD(10, 3)}"), "{fn MOD}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnRoundTruncate() throws SQLException {
+        assertEquals(3.14, Double.parseDouble(queryScalarFn("{fn ROUND(3.14159, 2)}")), 0.0001, "{fn ROUND}");
+        assertEquals(3.14, Double.parseDouble(queryScalarFn("{fn TRUNCATE(3.14999, 2)}")), 0.0001, "{fn TRUNCATE}");
+    }
+
+    @Test
+    @Tag(Constants.legacyFx)
+    @Tag(Constants.legacyFxCTS)
+    public void testEscapeFnLog10() throws SQLException {
+        assertEquals(2.0, Double.parseDouble(queryScalarFn("{fn LOG10(100)}")), 0.0001, "{fn LOG10}");
+    }
 }

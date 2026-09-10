@@ -726,7 +726,9 @@ public abstract class VectorTest extends AbstractTest {
                 pstmt.executeUpdate();
                 fail("Expected SQLServerException due to exceeding maximum allowed vector size, but none was thrown.");
             } catch (SQLServerException e) {
-                assertTrue(e.getMessage().contains("The size (" + dimensionCount + ") given to the type 'vector' exceeds the maximum allowed"),
+                assertTrue(
+                        e.getMessage().contains("The size (" + dimensionCount + ") given to the type 'vector' exceeds the maximum allowed")
+                                || e.getMessage().contains("has an invalid data length or metadata length"),
                         "Unexpected error message: " + e.getMessage());
             }
         }

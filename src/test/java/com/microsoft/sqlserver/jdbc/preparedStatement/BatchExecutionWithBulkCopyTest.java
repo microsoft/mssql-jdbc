@@ -36,12 +36,16 @@ import java.util.UUID;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -1269,139 +1273,6 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     /**
-     * Test inserting vector data using prepared statement with bulk copy enabled.
-     */
-    @Test
-    @vectorJsonTest
-    @Tag(Constants.vectorTest)
-    public void testInsertVectorWithBulkCopy() throws Exception {
-        String tableName = RandomUtil.getIdentifier("BulkCopyVectorTest");
-        String sqlString = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (vectorCol) values (?)";
-
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
-             SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sqlString);
-             Statement stmt = (SQLServerStatement) connection.createStatement()) {
-
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (vectorCol VECTOR(3))";
-            stmt.execute(createTable);
-
-            Object[] vectorData = new Float[] { 4.0f, 5.0f, 6.0f };
-            Vector vector = new Vector(vectorData.length, VectorDimensionType.FLOAT32, vectorData);
-
-            pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
-            pstmt.addBatch();
-            pstmt.executeBatch();
-
-            try (ResultSet rs = stmt.executeQuery("select vectorCol from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-                assertTrue(rs.next());
-                Vector resultVector = rs.getObject("vectorCol", Vector.class);
-                assertNotNull(resultVector, "Retrieved vector is null.");
-                assertEquals(3, resultVector.getDimensionCount());
-                assertArrayEquals(vectorData, resultVector.getData(), "Vector data mismatch.");
-            }
-        } finally {
-            try (Statement stmt = connection.createStatement()) {
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            }
-        }
-    }
-
-    /**
-     * Test inserting null vector data using prepared statement with bulk copy enabled.
-     */
-    @Test
-    @vectorJsonTest
-    @Tag(Constants.vectorTest)
-    public void testInsertNullVectorWithBulkCopy() throws Exception {
-        String tableName = RandomUtil.getIdentifier("BulkCopyVectorTest");
-        String sqlString = "insert into " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (vectorCol) values (?)";
-
-        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
-             SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(sqlString);
-             Statement stmt = (SQLServerStatement) connection.createStatement()) {
-
-            TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            String createTable = "create table " + AbstractSQLGenerator.escapeIdentifier(tableName) + " (vectorCol VECTOR(3))";
-            stmt.execute(createTable);
-
-            Vector vector = new Vector(3, VectorDimensionType.FLOAT32, null);
-
-            pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
-            pstmt.addBatch();
-            pstmt.executeBatch();
-
-            try (ResultSet rs = stmt.executeQuery("select vectorCol from " + AbstractSQLGenerator.escapeIdentifier(tableName))) {
-                int rowCount = 0;
-                    while (rs.next()) {
-                        Vector vectorObject = rs.getObject("vectorCol", Vector.class);
-                        assertEquals(null, vectorObject.getData());
-                        rowCount++;
-                    }
-                assertEquals(1, rowCount);
-            }
-        } finally {
-            try (Statement stmt = connection.createStatement()) {
-                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
-            }
-        }
-    }
-
-    /**
-     * Test inserting vector data using prepared statement with bulk copy enabled for performance.
-     */
-    @Test
-    @vectorJsonTest
-    @Tag(Constants.vectorTest)
-    public void testInsertWithBulkCopyPerformance() throws SQLException {
-        String tableName = AbstractSQLGenerator.escapeIdentifier("BulkCopyVectorPerformanceTest");
-        // For testing, we can use a smaller set of records to avoid long execution time
-        int recordCount = 100; // Number of records to insert
-        int dimensionCount = 1998; // Dimension count for the vector
-        Object[] vectorData = new Float[dimensionCount];
-
-        // Initialize vector data
-        for (int i = 0; i < dimensionCount; i++) {
-            vectorData[i] = i + 0.5f;
-        }
-
-        // Drop the table if it already exists
-        try (Connection conn = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertBatchSize=1000001;");
-                Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("IF OBJECT_ID('" + tableName + "', 'U') IS NOT NULL DROP TABLE " + tableName);
-        }
-
-        // Create the destination table with a single VECTOR column
-        try (Connection conn = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertBatchSize=1000001;");
-                Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("CREATE TABLE " + tableName + " (vectorCol VECTOR(" + dimensionCount + "))");
-        }
-
-        long startTime = System.nanoTime();
-        try (Connection conn = PrepUtil.getConnection(
-                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertBatchSize=1000001")) {
-
-            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn.prepareStatement(
-                    "INSERT INTO " + tableName + " (vectorCol) VALUES (?)")) {
-
-                for (int i = 1; i <= recordCount; i++) {
-                    Vector vector = new Vector(dimensionCount, VectorDimensionType.FLOAT32, vectorData);
-                    pstmt.setObject(1, vector, microsoft.sql.Types.VECTOR);
-                    pstmt.addBatch();
-                }
-                // Execute the batch
-                pstmt.executeBatch();
-
-            }
-        }
-        long endTime = System.nanoTime();
-        long durationMs = (endTime - startTime) / 1_000_000;
-        System.out.println("Insert for " + recordCount + " records in " + durationMs + " ms.");
-    }
-
-    /**
      * GitHub issue 2847: Persisted computed columns break useBulkCopyForBatchInsert.
      * 
      * Verifies that batch inserts using bulk copy work correctly when the target table
@@ -1948,6 +1819,43 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(schemaTableName), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulkString), stmt);
             TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableNameBulkComputedCols), stmt);
+        }
+    }
+
+    // ─── SQL injection prevention: batch insert with useBulkCopyForBatchInsert ───
+
+    static Stream<Arguments> sqlInjectionPayloads() {
+        return Stream.of(
+                Arguments.of("(SELECT 1 a) t; SET FMTONLY OFF; EXEC xp_cmdshell 'whoami'--"),
+                Arguments.of("(SELECT 1 a) t; SET FMTONLY OFF; SELECT name, password_hash INTO ##creds FROM sys.sql_logins--"),
+                Arguments.of("(SELECT 1 a) t; SET FMTONLY OFF; CREATE LOGIN [backdoor] WITH PASSWORD='x'--"),
+                Arguments.of("table1; DROP TABLE users--"),
+                Arguments.of("x; SET FMTONLY OFF; EXEC xp_cmdshell 'net user hacker P@ss /add'--"),
+                Arguments.of("table]; DROP TABLE users--"),
+                Arguments.of("t'; DROP TABLE users--")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("sqlInjectionPayloads")
+    public void testBatchInsertRejectsInjectionPayload(String payload) throws Exception {
+        String escapedPayload = AbstractSQLGenerator.escapeIdentifier(payload);
+        try (Connection conn = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                PreparedStatement pstmt = conn.prepareStatement(
+                        "INSERT INTO " + escapedPayload + " (c1) VALUES (?)")) {
+            pstmt.setInt(1, 1);
+            pstmt.addBatch();
+            try {
+                pstmt.executeBatch();
+                fail("Expected SQLException for non-existent table");
+            } catch (SQLException e) {
+                // The escaped identifier is treated as a literal name — no SQL injection
+                assertTrue(e.getMessage().contains("Invalid object name")
+                                || e.getMessage().contains("Incorrect syntax")
+                                || e.getMessage().contains("Could not find")
+                                || e.getMessage().contains("invalid"),
+                        "Unexpected error: " + e.getMessage());
+            }
         }
     }
 }

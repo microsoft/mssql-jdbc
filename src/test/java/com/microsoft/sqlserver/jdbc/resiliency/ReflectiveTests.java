@@ -84,11 +84,14 @@ public class ReflectiveTests extends AbstractTest {
     @Tag(Constants.xAzureSQLDW)
     public void testDefaultRetry() throws SQLException {
         Map<String, String> m = new HashMap<>();
-        m.put("loginTimeout", "5");
+        // loginTimeout bounds both the initial connect and each retry attempt.
+        // 5s is too tight for slow CI agents (MacOS); raise to 15s.
+        m.put("loginTimeout", "15");
 
-        // ensure count is not set to something else as this test assumes exactly just 1 retry
-        // this is only true for non-Azure as retry counts gets auto changed for Azure servers
-        timeoutVariations(m, 6000, Optional.empty());
+        // Default retryCount=1 (non-Azure) => exactly one login attempt.
+        // Bound = retryDelay*(retryCount-1) + loginTimeout*retryCount + slack
+        //       = 0 + 15s + 5s = 20s. Tight enough to catch an accidental extra retry.
+        timeoutVariations(m, 20000, Optional.empty());
     }
 
     /*

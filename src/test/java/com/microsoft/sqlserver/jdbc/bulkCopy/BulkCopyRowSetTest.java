@@ -31,6 +31,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 
 @RunWith(JUnitPlatform.class)
+@Tag(Constants.bulkCopy)
 public class BulkCopyRowSetTest extends AbstractTest {
 
     private static String tableName = AbstractSQLGenerator

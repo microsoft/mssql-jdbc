@@ -74,7 +74,7 @@ public class SQLServerNoneEnclaveProvider implements ISQLServerEnclaveProvider {
                 enclaveCache.addEntry(connection.getServerName(), connection.getCatalog(),
                         connection.enclaveAttestationUrl, noneParams, enclaveSession);
             } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
         return b;

@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Signature;
 import java.security.SignatureException;
@@ -26,6 +27,7 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -85,7 +87,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 enclaveCache.addEntry(connection.getServerName(), connection.getCatalog(),
                         connection.enclaveAttestationUrl, vsmParams, enclaveSession);
             } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
         return b;
@@ -114,7 +116,7 @@ public class SQLServerVSMEnclaveProvider implements ISQLServerEnclaveProvider {
                 hgsResponse.validateStatementSignature();
                 hgsResponse.validateDHPublicKey();
             } catch (IOException | GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
     }
@@ -286,7 +288,7 @@ class VSMAttestationResponse extends BaseAttestationResponse {
         } catch (CertificateException ce) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_HealthCertError"));
             Object[] msgArgs = {ce.getLocalizedMessage()};
-            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true);
+            SQLServerException.makeFromDriverError(null, null, form.format(msgArgs), null, true, ce);
         }
     }
 
@@ -307,7 +309,7 @@ class VSMAttestationResponse extends BaseAttestationResponse {
                     }
                 }
             } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false);
+                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
             }
         }
         SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_InvalidHealthCert"), "0",
@@ -352,14 +354,14 @@ class VSMAttestationResponse extends BaseAttestationResponse {
 
         Signature sig = null;
         try {
-            sig = Signature.getInstance("RSASSA-PSS");
+            sig = Signature.getInstance("RSASSA-PSS"); // CodeQL [SM05136] Required for an external standard: Always Encrypted with VBS secure enclaves attestation reports are signed with RSASSA-PSS using SHA-256/MGF1-SHA256 per the Windows VBS health attestation format (https://learn.microsoft.com/sql/relational-databases/security/encryption/always-encrypted-enclaves)
         } catch (NoSuchAlgorithmException e) {
             /*
              * RSASSA-PSS was added in JDK 11, the user might be using an older version of Java. Use BC as backup.
              * Remove this logic if JDK 8 stops being supported or backports RSASSA-PSS
              */
             SQLServerBouncyCastleLoader.loadBouncyCastle();
-            sig = Signature.getInstance("RSASSA-PSS");
+            sig = Signature.getInstance("RSASSA-PSS"); // CodeQL [SM05136] Required for an external standard: Always Encrypted with VBS secure enclaves attestation reports are signed with RSASSA-PSS using SHA-256/MGF1-SHA256 per the Windows VBS health attestation format (https://learn.microsoft.com/sql/relational-databases/security/encryption/always-encrypted-enclaves)
         }
         PSSParameterSpec pss = new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1);
         sig.setParameter(pss);
@@ -368,6 +370,34 @@ class VSMAttestationResponse extends BaseAttestationResponse {
         if (!sig.verify(signatureBlob)) {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerResource.getResource("R_InvalidSignedStatement"), "0", false);
+        }
+
+        // Signature is verified; now confirm the enclave public key is the one committed to by the signed report.
+        validateEnclavePublicKeyBinding(signedStatement);
+    }
+
+    /*
+     * Verifies that the enclave public key matches the value committed to by the signed report. Genuine VBS enclaves
+     * place SHA-256(enclavePK) in the first 32 bytes of the Enclave Data (report data) field, so the two must match.
+     */
+    void validateEnclavePublicKeyBinding(byte[] signedStatement) throws SQLServerException, GeneralSecurityException {
+        final int enclaveDataOffset = 8; // Report Size (4B) + Report Version (4B)
+        final int reportDataLength = 32; // SHA-256 digest length
+
+        if (null == signedStatement || null == enclavePK
+                || signedStatement.length < enclaveDataOffset + reportDataLength) {
+            SQLServerException.makeFromDriverError(null, this,
+                    SQLServerResource.getResource("R_InvalidEnclaveStatementBinding"), "0", false);
+        }
+
+        byte[] reportData = new byte[reportDataLength];
+        System.arraycopy(signedStatement, enclaveDataOffset, reportData, 0, reportDataLength);
+
+        // Enclave Data must equal SHA-256(enclavePK) for the session key to match the attested enclave.
+        byte[] expectedBinding = MessageDigest.getInstance("SHA-256").digest(enclavePK);
+        if (!Arrays.equals(reportData, expectedBinding)) {
+            SQLServerException.makeFromDriverError(null, this,
+                    SQLServerResource.getResource("R_InvalidEnclaveStatementBinding"), "0", false);
         }
     }
 }

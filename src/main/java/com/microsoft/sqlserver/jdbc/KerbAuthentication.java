@@ -10,10 +10,11 @@ import java.lang.reflect.Method;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.logging.Level;
 
+import org.ietf.jgss.ChannelBinding;
 import javax.security.auth.Subject;
-import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 
@@ -24,7 +25,6 @@ import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
 
-
 /**
  * KerbAuthentication for integrated authentication.
  */
@@ -34,6 +34,7 @@ final class KerbAuthentication extends SSPIAuthentication {
 
     private final SQLServerConnection con;
     private final String spn;
+    private byte[] channelBindingInfo;
 
     private final GSSManager manager = GSSManager.getInstance();
     private LoginContext lc = null;
@@ -66,6 +67,9 @@ final class KerbAuthentication extends SSPIAuthentication {
             if (null != peerCredentials) {
                 peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
                         GSSContext.DEFAULT_LIFETIME);
+                if (null != channelBindingInfo) {
+                    peerContext.setChannelBinding(new ChannelBinding(channelBindingInfo));
+                }
                 peerContext.requestCredDeleg(false);
                 peerContext.requestMutualAuth(true);
                 peerContext.requestInteg(true);
@@ -104,12 +108,20 @@ final class KerbAuthentication extends SSPIAuthentication {
                         Method current = Subject.class.getDeclaredMethod("current");
                         current.setAccessible(true);
                         currentSubject = (Subject) current.invoke(null);
+                        
                     }
-
                     if (null == currentSubject) {
                         if (useDefaultJaas) {
                             lc = new LoginContext(configName, null, callback, new JaasConfiguration(null));
                         } else {
+                            // CVE mitigation: refuse to consult the JVM-wide JAAS Configuration when
+                            // java.security.auth.login.config points at anything that is not a local file.
+                            // A remote jaas.conf (http/https/ldap/jar/rmi/...) can declare arbitrary
+                            // LoginModules (e.g. JndiLoginModule) and trigger JNDI/LDAP lookups during
+                            // lc.login(), leading to RCE. Local filesystem paths and file: URIs
+                            // (including NFS/SMB mounts and UNC paths) continue to work; the
+                            // useDefaultJaasConfig=false semantics are otherwise preserved.
+                            assertSafeJaasLoginConfigProperty();
                             lc = new LoginContext(configName, callback);
                         }
                         lc.login();
@@ -152,6 +164,10 @@ final class KerbAuthentication extends SSPIAuthentication {
                 peerContext = manager.createContext(remotePeerName, kerberos, peerCredentials,
                         GSSContext.DEFAULT_LIFETIME);
 
+                if (null != channelBindingInfo) {
+                    peerContext.setChannelBinding(new ChannelBinding(channelBindingInfo));
+                }
+
                 // The following flags should be inline with our native implementation.
                 peerContext.requestCredDeleg(true);
                 peerContext.requestMutualAuth(true);
@@ -176,6 +192,96 @@ final class KerbAuthentication extends SSPIAuthentication {
             con.terminate(SQLServerException.DRIVER_ERROR_NONE,
                     SQLServerException.getErrString("R_integratedAuthenticationFailed"), ex);
         }
+    }
+
+    /**
+     * Rejects values of the {@code java.security.auth.login.config} system property that do not
+     * resolve to a local filesystem file. Prevents RCE via attacker-controlled JAAS configuration
+     * (e.g. a remote jaas.conf declaring JndiLoginModule, fetched through http/https/ldap/jar/rmi
+     * or any custom URLStreamHandler).
+     *
+     * <p>Allow-list: unset/empty values, anything parseable as a local {@link java.nio.file.Path}
+     * (including Windows drive-letter paths and UNC paths), and {@code file:} URIs that resolve
+     * to a {@code Path}. Everything else is rejected.
+     */
+    private static void assertSafeJaasLoginConfigProperty() throws SQLServerException {
+        String value;
+        try {
+            value = System.getProperty("java.security.auth.login.config");
+        } catch (SecurityException se) {
+            // SecurityManager denies reading the property; the JVM will still resolve it for JAAS,
+            // but we cannot vet it here. Fail closed.
+            throw new SQLServerException(
+                       SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null,
+                       SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, se);
+        }
+        if (null == value || value.isEmpty()) {
+            return;
+        }
+
+        // The '=' prefix is special JAAS syntax: it forces the JVM to use ONLY this URL
+        // as the config source. Strip it before validation so the underlying value is checked.
+        if (value.startsWith("=")) {
+            value = value.substring(1);
+            if (value.isEmpty()) {
+                return;
+            }
+        }
+
+        // If the value parses as a URI with a scheme of more than one character, the only
+        // scheme we accept is file:. Single-letter schemes (e.g. URI parses "C:/foo" with
+        // scheme "C") are Windows drive letters and fall through to the Path check below.
+        String detectedRemoteScheme = null;
+        try {
+            java.net.URI uri = new java.net.URI(value);
+            String scheme = uri.getScheme();
+            if (null != scheme && scheme.length() > 1) {
+                if (!"file".equalsIgnoreCase(scheme)) {
+                    failUnsafeJaasLoginConfig(scheme);
+                }
+                // file: URI — must resolve to a usable Path.
+                java.nio.file.Paths.get(uri);
+                return;
+            }
+        } catch (java.net.URISyntaxException e) {
+            // URI parsing failed. As defense-in-depth, check if the value starts with a known
+            // remote scheme prefix. This catches malformed URLs (e.g., with spaces) that bypass
+            // URI parsing but could still be fetched by java.net.URL (which JAAS ConfigFile uses).
+            String[] remoteSchemes = {"http://", "https://", "ldap://", "ldaps://", "ftp://", "ftps://",
+                    "jar:", "rmi://", "nis://"};
+            for (String scheme : remoteSchemes) {
+                if (value.toLowerCase().startsWith(scheme)) {
+                    detectedRemoteScheme = scheme;
+                    break;
+                }
+            }
+            if (null != detectedRemoteScheme) {
+                failUnsafeJaasLoginConfig(detectedRemoteScheme);
+            }
+            // Otherwise, not a URI (e.g. "C:\foo\jaas.conf" with backslashes). Fall through to Path check.
+        } catch (IllegalArgumentException e) {
+            // file: URI that Paths.get cannot resolve (e.g. opaque or unsupported authority).
+            // Also covers InvalidPathException which is a subclass of IllegalArgumentException.
+            failUnsafeJaasLoginConfig(value);
+        }
+
+        // No URI scheme (or unparseable as URI) => must resolve as a local filesystem path.
+        try {
+            java.nio.file.Paths.get(value);
+        } catch (java.nio.file.InvalidPathException e) {
+            failUnsafeJaasLoginConfig(value);
+        }
+    }
+
+    private static void failUnsafeJaasLoginConfig(String detail) throws SQLServerException {
+        if (authLogger.isLoggable(Level.SEVERE)) {
+            authLogger.severe(
+                    "Refusing Kerberos login: java.security.auth.login.config must be a local file "
+                            + "path or file: URI. Rejected: '" + detail + "'.");
+        }
+        throw new SQLServerException(
+                SQLServerException.getErrString("R_unsafeJaasLoginConfigProperty"), null,
+                SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, null);
     }
 
     // We have to do a privileged action to create the credential of the user in the current context
@@ -227,9 +333,15 @@ final class KerbAuthentication extends SSPIAuthentication {
     }
 
     // Package visible members below.
-    KerbAuthentication(SQLServerConnection con, String address, int port) {
+    KerbAuthentication(SQLServerConnection con, String address, int port, byte[] channelBindingInfo) {
         this.con = con;
         this.spn = null != con ? getSpn(con) : null;
+        this.channelBindingInfo = null == channelBindingInfo ? null : Arrays.copyOf(channelBindingInfo,
+                channelBindingInfo.length);
+    }
+
+    KerbAuthentication(SQLServerConnection con, String address, int port) {
+        this(con, address, port, null);
     }
 
     /**
@@ -240,11 +352,16 @@ final class KerbAuthentication extends SSPIAuthentication {
      * @param impersonatedUserCred
      */
     KerbAuthentication(SQLServerConnection con, String address, int port, GSSCredential impersonatedUserCred,
-            boolean isUserCreated, boolean useDefaultNativeGSSCredential) {
-        this(con, address, port);
+            boolean isUserCreated, boolean useDefaultNativeGSSCredential, byte[] channelBindingInfo) {
+        this(con, address, port, channelBindingInfo);
         this.peerCredentials = impersonatedUserCred;
         this.isUserCreatedCredential = isUserCreated;
         this.useDefaultNativeGSSCredential = useDefaultNativeGSSCredential;
+    }
+
+    KerbAuthentication(SQLServerConnection con, String address, int port, GSSCredential impersonatedUserCred,
+            boolean isUserCreated, boolean useDefaultNativeGSSCredential) {
+        this(con, address, port, impersonatedUserCred, isUserCreated, useDefaultNativeGSSCredential, null);
     }
 
     byte[] generateClientContext(byte[] pin, boolean[] done) throws SQLServerException {
@@ -278,6 +395,11 @@ final class KerbAuthentication extends SSPIAuthentication {
             // to eat previous login errors if caused before which is more useful to the user than the cleanup errors.
             if (authLogger.isLoggable(Level.FINE)) {
                 authLogger.fine(toString() + " Release of the credentials failed GSSException: " + e);
+            }
+        } finally {
+            if (null != channelBindingInfo) {
+                Arrays.fill(channelBindingInfo, (byte) 0);
+                channelBindingInfo = null;
             }
         }
     }

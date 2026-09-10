@@ -450,7 +450,13 @@ public class MessageHandlerTest extends AbstractTest {
             // numOfCalls to the message handler should be: #
             assertEquals(doSqlLoopCount, testMsgHandler.numOfCalls, "Number of message calls to the message handler.");
 
-            // Loop all received messages and check that they are within a second (+-200ms)
+            // The stored procedure emits one feedback message per loop iteration, spaced ~1000 ms
+            // apart by WAITFOR DELAY '00:00:01'. Verify the driver streams them as they arrive
+            // (rather than buffering all of them until the procedure completes). We compare
+            // client-side receipt timestamps, which carry significant jitter (network, GC, thread
+            // scheduling) on loaded CI agents, so the bounds are deliberately generous: historical
+            // CI runs showed legitimate gaps as low as ~466 ms. A buffered/all-at-once regression
+            // would instead produce gaps of only a few milliseconds, which the lower bound catches.
             long prevTime = 0;
             for (Entry<String, Long> entry : testMsgHandler.feedbackMsgTs.entrySet()) {
                 if (prevTime == 0) {
@@ -459,9 +465,9 @@ public class MessageHandlerTest extends AbstractTest {
                 }
 
                 long msDiff = entry.getValue() - prevTime;
-                if (msDiff < 800 || msDiff > 1200) {
-                    fail("Received Messages is to far apart. They should be approx 1000 ms. msDiff=" + msDiff
-                            + " Message=|" + entry.getKey() + "|.");
+                if (msDiff < 300 || msDiff > 2000) {
+                    fail("Received messages were not spaced as expected (~1000 ms; allowed 300-2000 ms). msDiff="
+                            + msDiff + " Message=|" + entry.getKey() + "|.");
                 }
 
                 prevTime = entry.getValue();

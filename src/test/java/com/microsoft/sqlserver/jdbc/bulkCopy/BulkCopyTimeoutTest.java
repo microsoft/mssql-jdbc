@@ -23,6 +23,7 @@ import com.microsoft.sqlserver.testframework.Constants;
  */
 @RunWith(JUnitPlatform.class)
 @DisplayName("BulkCopy Timeout Test")
+@Tag(Constants.bulkCopy)
 public class BulkCopyTimeoutTest extends BulkCopyTestSetUp {
 
     /**

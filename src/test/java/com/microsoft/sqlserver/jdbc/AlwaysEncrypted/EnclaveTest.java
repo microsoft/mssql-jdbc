@@ -45,6 +45,7 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xAzureSQLDB)
 @Tag(Constants.reqExternalSetup)
 @Tag(Constants.requireSecret)
+@Tag(Constants.alwaysEncrypted)
 public class EnclaveTest extends AESetup {
     /**
      * Tests basic connection.
@@ -148,6 +149,24 @@ public class EnclaveTest extends AESetup {
     @MethodSource("enclaveParams")
     public void testBadCertSignature(String serverName, String url, String protocol) throws Exception {
         EnclavePackageTest.testBadCertSignature();
+    }
+
+    /*
+     * Test that a genuine attestation response passes the enclave public key binding check.
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testValidateStatementBindingGenuine(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testValidateStatementBindingGenuine();
+    }
+
+    /*
+     * Test that a response whose report data does not match the enclave public key is rejected.
+     */
+    @ParameterizedTest
+    @MethodSource("enclaveParams")
+    public void testValidateStatementBindingKeySwap(String serverName, String url, String protocol) throws Exception {
+        EnclavePackageTest.testValidateStatementBindingKeySwap();
     }
 
     /*

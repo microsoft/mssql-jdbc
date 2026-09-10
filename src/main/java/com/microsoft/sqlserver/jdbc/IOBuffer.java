@@ -130,7 +130,6 @@ enum BufferMode {
 }
 
 final class TDS {
-    // application protocol
     static final String PROTOCOL_TDS80 = "tds/8.0"; // TLS-first connections
 
     // TDS versions
@@ -214,6 +213,9 @@ final class TDS {
     static final byte TDS_FEATURE_EXT_UTF8SUPPORT = 0x0A;
     static final byte TDS_FEATURE_EXT_AZURESQLDNSCACHING = 0x0B;
     static final byte TDS_FEATURE_EXT_SESSIONRECOVERY = 0x01;
+
+    // Enhanced Routing support
+    static final byte TDS_FEATURE_EXT_ENHANCEDROUTING = 0x0F;
 
     // Vector support
     static final byte TDS_FEATURE_EXT_VECTORSUPPORT = 0x0E;
@@ -303,7 +305,9 @@ final class TDS {
                 return "TDS_FEATURE_EXT_JSONSUPPORT (0x0D)";
             case TDS_FEATURE_EXT_USERAGENT:
                 return "TDS_FEATURE_EXT_USERAGENT (0x10)";
-                
+            case TDS_FEATURE_EXT_ENHANCEDROUTING:
+                return "TDS_FEATURE_EXT_ENHANCEDROUTING (0x0F)";
+
             default:
                 return "unknown token (0x" + Integer.toHexString(tdsTokenType).toUpperCase() + ")";
         }
@@ -714,6 +718,9 @@ final class TDSChannel implements Serializable {
     private transient ByteBuffer sslNetOutBuf; // encrypted bytes ready to write to SocketChannel
     private transient ByteBuffer sslAppInBuf; // decrypted overflow from a single unwrap() call
 
+    // tls-unique channel binding data from the completed TLS handshake.
+    private byte[] channelBindingInfo = null;
+
     /*
      * Socket providing the communications interface to the driver. For SSL-encrypted connections, this is the SSLSocket
      * wrapped around the TCP socket. For unencrypted connections, it is just the TCP socket itself.
@@ -820,9 +827,15 @@ final class TDSChannel implements Serializable {
 
             int socketTimeout = con.getSocketTimeoutMilliseconds();
 
-            // socket timeout should be bounded by loginTimeout before connected
+            // socket timeout should be bounded by loginTimeout before connected.
+            // When socketTimeout is 0 (not explicitly set, meaning "wait forever"), it must
+            // still be bounded by the remaining login timeout; otherwise Math.min(x, 0) == 0
+            // and setSoTimeout(0) leaves the socket with no timeout, causing hangs.
+            // Note: timerRemaining() always returns >= 1 ms (clamped from below), so
+            // loginRemaining can never be 0 and cannot re-introduce an unlimited read timeout.
             if (!con.isConnected()) {
-                socketTimeout = Math.min(con.timerRemaining(con.timerExpire), socketTimeout);
+                int loginRemaining = con.timerRemaining(con.timerExpire);
+                socketTimeout = (socketTimeout == 0) ? loginRemaining : Math.min(loginRemaining, socketTimeout);
             }
 
             tcpSocket.setSoTimeout(socketTimeout);
@@ -1005,7 +1018,7 @@ final class TDSChannel implements Serializable {
                     sslHandshakeOutputStream.endMessage();
                 } catch (SQLServerException e) {
                     logger.finer(logContext + " Ending TDS message threw exception:" + e.getMessage());
-                    throw new IOException(e.getMessage());
+                    throw new IOException(e.getMessage(), e);
                 }
 
                 if (logger.isLoggable(Level.FINEST))
@@ -1015,7 +1028,7 @@ final class TDSChannel implements Serializable {
                     tdsReader.readPacket();
                 } catch (SQLServerException e) {
                     logger.finer(logContext + " Reading response packet threw exception:" + e.getMessage());
-                    throw new IOException(e.getMessage());
+                    throw new IOException(e.getMessage(), e);
                 }
             }
         }
@@ -1037,7 +1050,7 @@ final class TDSChannel implements Serializable {
                 tdsReader.skip((int) n);
             } catch (SQLServerException e) {
                 logger.finer(logContext + " Skipping bytes threw exception:" + e.getMessage());
-                throw new IOException(e.getMessage());
+                throw new IOException(e.getMessage(), e);
             }
 
             return n;
@@ -1072,13 +1085,33 @@ final class TDSChannel implements Serializable {
             ensureSSLPayload();
 
             try {
-                tdsReader.readBytes(b, offset, maxBytes);
+                // Honor the InputStream contract: read UP TO maxBytes, returning the number of
+                // bytes actually read. Previously this blocked until exactly maxBytes were read,
+                // which deadlocks with SSL providers (e.g. Conscrypt on Android) that issue a
+                // single large read for the whole record: the server sends its handshake flight
+                // in fewer bytes and then waits for the client's response, while the driver waits
+                // for more bytes that never come. SunJSSE happened to avoid this by reading in
+                // exact TLS-record-sized chunks.
+                //
+                // ensureSSLPayload() only guarantees a packet was read, not that it carried any
+                // payload. Guard against a zero-length payload packet so we never return 0 for a
+                // non-zero request, which would violate the InputStream.read contract and can make
+                // SSL engines busy-spin. Reading the next packet is bounded: readPacket() blocks
+                // for server data and terminates on premature EOF, so this cannot spin.
+                while (maxBytes > 0 && 0 == tdsReader.available())
+                    ensureSSLPayload();
+
+                int bytesToRead = Math.min(maxBytes, tdsReader.available());
+                if (bytesToRead < maxBytes && logger.isLoggable(Level.FINEST))
+                    logger.finest(logContext + " Returning " + bytesToRead
+                            + " buffered bytes reported by tdsReader.available() instead of the " + maxBytes
+                            + " requested to avoid blocking");
+                tdsReader.readBytes(b, offset, bytesToRead);
+                return bytesToRead;
             } catch (SQLServerException e) {
                 logger.finer(logContext + " Reading bytes threw exception:" + e.getMessage());
-                throw new IOException(e.getMessage());
+                throw new IOException(e.getMessage(), e);
             }
-
-            return maxBytes;
         }
     }
 
@@ -1116,8 +1149,15 @@ final class TDSChannel implements Serializable {
         }
 
         void endMessage() throws SQLServerException {
-            // We should only be asked to end the message if we have started one
-            assert messageStarted;
+            // Nothing to flush if no handshake output has been buffered since the last flush.
+            // With the "read up to maxBytes" behavior in SSLHandshakeInputStream.readInternal, the
+            // input stream may ask us to ensure payload again while reading a handshake response
+            // that spans multiple TDS packets. At that point no new output has been written, so
+            // there is nothing to end. (Previously this method asserted messageStarted, which
+            // failed for multi-packet handshake responses, e.g. large server certificate chains.)
+            if (!messageStarted) {
+                return;
+            }
 
             if (logger.isLoggable(Level.FINEST))
                 logger.finest(logContext + " Finishing TDS message");
@@ -1165,7 +1205,7 @@ final class TDSChannel implements Serializable {
                 tdsWriter.writeBytes(b, off, len);
             } catch (SQLServerException e) {
                 logger.finer(logContext + " Writing bytes threw exception:" + e.getMessage());
-                throw new IOException(e.getMessage());
+                throw new IOException(e.getMessage(), e);
             }
         }
     }
@@ -2276,6 +2316,8 @@ final class TDSChannel implements Serializable {
                 con.addWarning(warningMsg);
             }
 
+            setChannelBindingInfo();
+
             if (logger.isLoggable(Level.FINER))
                 logger.finer(toString() + " SSL enabled");
 
@@ -2338,6 +2380,85 @@ final class TDSChannel implements Serializable {
             } else {
                 con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs), e);
             }
+        }
+    }
+
+    private void setChannelBindingInfo() {
+        clearChannelBindingInfo();
+        channelBindingInfo = createChannelBindingInfo(null == sslSocket ? null : sslSocket.getSession());
+    }
+
+    byte[] getChannelBindingInfo() {
+        return null == channelBindingInfo ? null : Arrays.copyOf(channelBindingInfo, channelBindingInfo.length);
+    }
+
+    void clearChannelBindingInfo() {
+        if (null != channelBindingInfo) {
+            Arrays.fill(channelBindingInfo, (byte) 0);
+            channelBindingInfo = null;
+        }
+    }
+
+    static byte[] createChannelBindingInfo(javax.net.ssl.SSLSession session) {
+        if (null == session) {
+            return null;
+        }
+
+        byte[] tlsUnique = null;
+        try {
+            Class<?> clazz = Class.forName("javax.net.ssl.ExtendedSSLSession");
+            if (!clazz.isInstance(session)) {
+                return null;
+            }
+
+            // Prefer the client's Finished verify_data for the initiating side.
+            java.lang.reflect.Method method = getTlsUniqueMethod(clazz, "getTlsUniqueClientFirstFinishedVerifyData");
+            if (null == method) {
+                method = getTlsUniqueMethod(clazz, "getTlsUniqueFirstFinishedVerifyData");
+            }
+
+            if (null == method) {
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer("tls-unique channel binding methods are not supported on this platform.");
+                }
+                return null;
+            }
+
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer("Using " + method.getName() + " for tls-unique channel binding.");
+            }
+
+            Object value = method.invoke(session);
+            if (value instanceof byte[]) {
+                tlsUnique = (byte[]) value;
+                if (logger.isLoggable(Level.FINER)) {
+                    logger.finer("tls-unique verify_data received: " + tlsUnique.length + " bytes.");
+                }
+            } else if (logger.isLoggable(Level.FINER)) {
+                logger.finer("tls-unique verify_data was not available.");
+            }
+        } catch (ClassNotFoundException | IllegalAccessException | InvocationTargetException e) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.finer("tls-unique channel binding methods are not supported on this platform.");
+            }
+            return null;
+        }
+
+        if (null == tlsUnique || 0 == tlsUnique.length) {
+            return null;
+        }
+
+        byte[] prefix = "tls-unique:".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] channelBinding = Arrays.copyOf(prefix, prefix.length + tlsUnique.length);
+        System.arraycopy(tlsUnique, 0, channelBinding, prefix.length, tlsUnique.length);
+        return channelBinding;
+    }
+
+    private static java.lang.reflect.Method getTlsUniqueMethod(Class<?> clazz, String methodName) {
+        try {
+            return clazz.getMethod(methodName);
+        } catch (NoSuchMethodException e) {
+            return null;
         }
     }
 
@@ -2681,6 +2802,8 @@ final class TDSChannel implements Serializable {
     }
 
     final void close() {
+        clearChannelBindingInfo();
+
         if (null != sslSocket || null != sslEngine)
             disableSSL();
 
@@ -6165,6 +6288,18 @@ final class TDSWriter {
                     break;
                 
                 case VECTOR:
+                    // TVP columns bypass Parameter.java's type definition logic, so version
+                    // negotiation must be enforced here — this is the only gating point for
+                    // vector columns inside table-valued parameters.
+                    if (con.getNegotiatedVectorVersion() <= 0) {
+                        throw new SQLServerException(
+                                SQLServerException.getErrString("R_vectorNotSupported"), null, 0, null);
+                    }
+                    // scale == 2 means FLOAT16 (2 bytes per dimension); reject when server only supports v1 (FLOAT32)
+                    if (pair.getValue().scale == 2 && con.getNegotiatedVectorVersion() == 1) {
+                        throw new SQLServerException(
+                                SQLServerException.getErrString("R_float16VectorNotSupported"), null, 0, null);
+                    }
                     writeByte(TDSType.VECTOR.byteValue());
                     writeShort((short) (VectorUtils.getVectorLength(pair.getValue().scale,  pair.getValue().precision))); // max length
                     byte scaleByte = (byte) (VectorUtils.getScaleByte(pair.getValue().scale));
@@ -7339,6 +7474,7 @@ final class TDSWriter {
             }
         }
     }
+
 }
 
 
@@ -7787,6 +7923,12 @@ final class TDSReader implements Serializable {
     }
 
     final int readUnsignedByte() throws SQLServerException {
+        // Fast path for the common case where the current TDS packet still
+        // has payload available; falls back to ensurePayload() at boundaries.
+        if (payloadOffset < currentPacket.payloadLength) {
+            return currentPacket.payload.get(payloadOffset++) & 0xFF;
+        }
+
         // Ensure that we have a packet to read from.
         if (!ensurePayload())
             throwInvalidTDS();
@@ -7863,6 +8005,7 @@ final class TDSReader implements Serializable {
     }
 
     final void readBytes(byte[] value, int valueOffset, int valueLength) throws SQLServerException {
+        final boolean isLogging = logger.isLoggable(Level.FINEST);
         for (int bytesRead = 0; bytesRead < valueLength;) {
             // Ensure that we have a packet to read from.
             if (!ensurePayload())
@@ -7875,7 +8018,7 @@ final class TDSReader implements Serializable {
                 bytesToCopy = currentPacket.payloadLength - payloadOffset;
 
             // Copy some bytes from the current packet to the destination value.
-            if (logger.isLoggable(Level.FINEST))
+            if (isLogging)
                 logger.finest(toString() + " Reading " + bytesToCopy + " bytes from offset " + payloadOffset);
 
             // Use ByteBuffer.get() for zero-copy when possible
@@ -7894,6 +8037,7 @@ final class TDSReader implements Serializable {
      * @throws SQLServerException
      */
     final void readSkipBytes(int valueLength) throws SQLServerException {
+        final boolean isLogging = logger.isLoggable(Level.FINEST);
         for (int bytesSkipped = 0; bytesSkipped < valueLength;) {
             // Ensure that we have a packet to read from.
             if (!ensurePayload())
@@ -7903,7 +8047,7 @@ final class TDSReader implements Serializable {
             if (bytesToSkip > currentPacket.payloadLength - payloadOffset)
                 bytesToSkip = currentPacket.payloadLength - payloadOffset;
 
-            if (logger.isLoggable(Level.FINEST))
+            if (isLogging)
                 logger.finest(toString() + " Skipping " + bytesToSkip + " bytes from offset " + payloadOffset);
 
             bytesSkipped += bytesToSkip;
@@ -7915,6 +8059,24 @@ final class TDSReader implements Serializable {
         assert valueLength <= valueBytes.length;
         readBytes(valueBytes, 0, valueLength);
         return valueBytes;
+    }
+
+    /**
+     * Reads {@code valueLength} bytes and decodes them into a String using the given charset. Values that fit in the
+     * per-reader scratch buffer ({@code valueBytes}, 256 bytes) are decoded in place to avoid a per-cell byte[]; the
+     * buffer is only read by the String constructor, so it does not escape. Longer values (the caller admits up to
+     * 4000 bytes) allocate a right-sized byte[] instead. Either way the value bypasses the stream-wrapper path, so the
+     * larger allocation-free win (no SimpleInputStream / marks) still applies; only the byte[] reuse is limited to
+     * values &le; 256 bytes.
+     */
+    final String readStringFromBytes(int valueLength, Charset charset) throws SQLServerException {
+        if (valueLength <= valueBytes.length) {
+            readBytes(valueBytes, 0, valueLength);
+            return new String(valueBytes, 0, valueLength, charset);
+        }
+        byte[] bytes = new byte[valueLength];
+        readBytes(bytes, 0, valueLength);
+        return new String(bytes, 0, valueLength, charset);
     }
 
     final Object readDecimal(int valueLength, TypeInfo typeInfo, JDBCType jdbcType,
@@ -7932,7 +8094,7 @@ final class TDSReader implements Serializable {
     }
 
     final Object readMoney(int valueLength, JDBCType jdbcType, StreamType streamType) throws SQLServerException {
-        BigInteger bi;
+        long unscaledValue;
         switch (valueLength) {
             case 8: // money
             {
@@ -7946,7 +8108,7 @@ final class TDSReader implements Serializable {
                     return value;
                 }
 
-                bi = BigInteger.valueOf(((long) intBitsHi << 32) | (intBitsLo & 0xFFFFFFFFL));
+                unscaledValue = ((long) intBitsHi << 32) | (intBitsLo & 0xFFFFFFFFL);
                 break;
             }
 
@@ -7957,7 +8119,7 @@ final class TDSReader implements Serializable {
                     return value;
                 }
 
-                bi = BigInteger.valueOf(readInt());
+                unscaledValue = readInt();
                 break;
 
             default:
@@ -7965,7 +8127,9 @@ final class TDSReader implements Serializable {
                 return null;
         }
 
-        return DDC.convertBigDecimalToObject(new BigDecimal(bi, 4), jdbcType, streamType);
+        // money/smallmoney unscaled magnitude always fits in a long, so build the BigDecimal
+        // directly and skip the intermediate BigInteger.
+        return DDC.convertBigDecimalToObject(BigDecimal.valueOf(unscaledValue, 4), jdbcType, streamType);
     }
 
     final Object readReal(int valueLength, JDBCType jdbcType, StreamType streamType) throws SQLServerException {
@@ -8100,12 +8264,22 @@ final class TDSReader implements Serializable {
     }
 
     private int readDaysIntoCE() throws SQLServerException {
-        byte[] value = new byte[TDS.DAYS_INTO_CE_LENGTH];
-        readBytes(value, 0, value.length);
-
-        int daysIntoCE = 0;
-        for (int i = 0; i < value.length; i++)
-            daysIntoCE |= ((value[i] & 0xFF) << (8 * i));
+        // Fast path: read the 3-byte value directly from the current TDS packet.
+        // Falls back to the existing cross-packet logic when necessary.
+        final int length = TDS.DAYS_INTO_CE_LENGTH;
+        int daysIntoCE;
+        if (payloadOffset + length <= currentPacket.payloadLength) {
+            final int off = payloadOffset;
+            daysIntoCE = (currentPacket.payload.get(off) & 0xFF)
+                    | ((currentPacket.payload.get(off + 1) & 0xFF) << 8)
+                    | ((currentPacket.payload.get(off + 2) & 0xFF) << 16);
+            payloadOffset += length;
+        } else {
+            final byte[] value = readWrappedBytes(length);
+            daysIntoCE = 0;
+            for (int i = 0; i < length; i++)
+                daysIntoCE |= ((value[i] & 0xFF) << (8 * i));
+        }
 
         // Theoretically should never encounter a value that is outside of the valid date range
         if (daysIntoCE < 0)

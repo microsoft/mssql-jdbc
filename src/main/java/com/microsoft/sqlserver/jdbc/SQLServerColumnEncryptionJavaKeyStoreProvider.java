@@ -135,7 +135,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
 
             byte[] dataToVerify = md.digest();
-            Signature sig = Signature.getInstance("SHA256withRSA");
+            Signature sig = Signature.getInstance("SHA256withRSA"); // CodeQL [SM05136] Required for an external standard: Always Encrypted column master key metadata signatures must use SHA256withRSA (RSA PKCS#1 v1.5 with SHA-256) (https://learn.microsoft.com/sql/relational-databases/security/encryption/always-encrypted-cryptography)
 
             sig.initSign((PrivateKey) certificateDetails.privateKey);
             sig.update(dataToVerify);
@@ -195,7 +195,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
             // value of allowEnclaveComputations is always true here
             md.update("true".getBytes(java.nio.charset.StandardCharsets.UTF_16LE));
 
-            Signature sig = Signature.getInstance("SHA256withRSA");
+            Signature sig = Signature.getInstance("SHA256withRSA"); // CodeQL [SM05136] Required for an external standard: Always Encrypted column master key metadata signatures must use SHA256withRSA (RSA PKCS#1 v1.5 with SHA-256) (https://learn.microsoft.com/sql/relational-databases/security/encryption/always-encrypted-cryptography)
             sig.initSign((PrivateKey) certificateDetails.privateKey);
             sig.update(md.digest());
 
@@ -389,7 +389,7 @@ public class SQLServerColumnEncryptionJavaKeyStoreProvider extends SQLServerColu
         byte[] signedHash = null;
 
         try {
-            signature = Signature.getInstance("SHA256withRSA");
+            signature = Signature.getInstance("SHA256withRSA"); // CodeQL [SM05136] Required for an external standard: Always Encrypted column master key metadata signatures must use SHA256withRSA (RSA PKCS#1 v1.5 with SHA-256) (https://learn.microsoft.com/sql/relational-databases/security/encryption/always-encrypted-cryptography)
             signature.initSign((PrivateKey) certificateDetails.privateKey);
             signature.update(dataToSign);
             signedHash = signature.sign();

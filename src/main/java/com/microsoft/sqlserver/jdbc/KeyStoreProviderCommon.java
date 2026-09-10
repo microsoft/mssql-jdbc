@@ -146,7 +146,7 @@ class KeyStoreProviderCommon {
         Signature signVerify;
         boolean verificationSuccess = false;
         try {
-            signVerify = Signature.getInstance("SHA256withRSA");
+            signVerify = Signature.getInstance("SHA256withRSA"); // CodeQL [SM05136] Required for an external standard: Always Encrypted column master key metadata signatures must use SHA256withRSA (RSA PKCS#1 v1.5 with SHA-256) (https://learn.microsoft.com/sql/relational-databases/security/encryption/always-encrypted-cryptography)
             signVerify.initVerify(certificate.getPublicKey());
             signVerify.update(hash);
             verificationSuccess = signVerify.verify(signature);
