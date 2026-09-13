@@ -132,9 +132,9 @@ class SQLServerErrorListener extends BaseErrorListener {
     public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
             String msg, RecognitionException e) {
         if (logger.isLoggable(java.util.logging.Level.FINE)) {
-            logger.fine("Error occured during token parsing: " + msg);
+            logger.fine("Error occurred during token parsing: " + msg);
             logger.fine("line " + line + ":" + charPositionInLine + " token recognition error at: "
                     + offendingSymbol.toString());
         }
     }
-}
+}
