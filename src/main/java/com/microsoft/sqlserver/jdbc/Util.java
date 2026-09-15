@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.CharBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
@@ -1154,7 +1155,23 @@ final class Util {
      * @return Converted object name
      */
     static String escapeSingleQuotes(String name) {
-        return name.replace("'", "''");
+        if (name.indexOf('\'') == -1) {
+            return name;
+        }
+
+        // String.replace allocates regexp Pattern under the hood
+        CharBuffer buffer = CharBuffer.allocate(name.length());
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (c == '\'') {
+                buffer.put('\'');
+                buffer.put('\'');
+            } else {
+                buffer.put(c);
+            }
+        }
+        buffer.rewind();
+        return buffer.toString();
     }
 
     static String convertInputStreamToString(java.io.InputStream is) throws IOException {
