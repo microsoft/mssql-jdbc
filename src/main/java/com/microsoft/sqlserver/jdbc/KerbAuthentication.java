@@ -174,10 +174,7 @@ final class KerbAuthentication extends SSPIAuthentication {
                 // scenario). Because delegation should only be granted to trusted servers, it is
                 // disabled by default and enabled only when the caller explicitly opts in via the
                 // enableKerberosCredentialDelegation connection property.
-                boolean enableCredDelegation = Boolean.parseBoolean(con.activeConnectionProperties.getProperty(
-                        SQLServerDriverBooleanProperty.ENABLE_KERBEROS_CRED_DELEGATION.toString(),
-                        Boolean.toString(
-                                SQLServerDriverBooleanProperty.ENABLE_KERBEROS_CRED_DELEGATION.getDefaultValue())));
+                boolean enableCredDelegation = con.isKerberosCredentialDelegationEnabled();
                 if (enableCredDelegation && authLogger.isLoggable(Level.FINER)) {
                     authLogger.finer(toString() + " Kerberos credential delegation is enabled for SPN: " + spn);
                 }

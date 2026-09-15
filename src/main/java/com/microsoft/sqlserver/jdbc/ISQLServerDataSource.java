@@ -877,7 +877,9 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      *
      * @return enableKerberosCredentialDelegation boolean value
      */
-    boolean getEnableKerberosCredentialDelegation();
+    default boolean getEnableKerberosCredentialDelegation() {
+        return false;
+    }
 
     /**
      * Sets whether Kerberos credential delegation is enabled for {@code authenticationScheme=JavaKerberos}. When
@@ -888,7 +890,9 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * @param enableKerberosCredentialDelegation
      *        boolean property to enable/disable Kerberos credential delegation
      */
-    void setEnableKerberosCredentialDelegation(boolean enableKerberosCredentialDelegation);
+    default void setEnableKerberosCredentialDelegation(boolean enableKerberosCredentialDelegation) {
+        // Retain binary compatibility for third-party implementations of this interface.
+    }
 
     /**
      * Sets whether Fips Mode should be enabled/disabled on the connection. For FIPS enabled JVM this property should be
