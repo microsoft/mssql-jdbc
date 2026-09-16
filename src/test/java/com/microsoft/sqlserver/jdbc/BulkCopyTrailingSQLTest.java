@@ -21,6 +21,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 
+/**
+ * Database-independent checks that rejected trailing SQL stays on the normal batch path after execution fails.
+ */
 class BulkCopyTrailingSQLTest {
     @ParameterizedTest
     @MethodSource("batchModes")
@@ -30,6 +33,7 @@ class BulkCopyTrailingSQLTest {
         when(connection.getPrepareMethod()).thenReturn("prepexec");
         when(connection.getResponseBuffering()).thenReturn("adaptive");
         when(connection.getUseBulkCopyForBatchInsert()).thenReturn(true);
+        // Stop at normal command execution, before any network I/O. Each reuse must reach this same path.
         SQLServerException executionFailure = new SQLServerException("Simulated batch execution failure", null);
         when(connection.executeCommand(any(TDSCommand.class))).thenThrow(executionFailure);
 
@@ -44,6 +48,7 @@ class BulkCopyTrailingSQLTest {
                 assertSame(executionFailure, actual);
                 pstmt.clearBatch();
             }
+            // The Bulk Copy path requests destination metadata through this overload before sending rows.
             verify(connection, never()).createStatement(anyInt(), anyInt(), anyInt(),
                     any(SQLServerStatementColumnEncryptionSetting.class));
         }

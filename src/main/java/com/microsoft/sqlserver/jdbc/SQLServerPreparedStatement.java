@@ -180,7 +180,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private ArrayList<String> bcOperationValueList = null;
 
-    // The SQL text is fixed for this statement, so a rejected trailer remains unsupported across batches.
+    /**
+     * Remembers a rejected SQL trailer for the lifetime of this statement, whose SQL text does not change.
+     * Unlike batch parameters, this decision must survive clearBatch() and execution failures. It is separate
+     * from the configured Bulk Copy option and is not set for database or runtime failures.
+     */
     private boolean bulkCopyHasUnsupportedTrailingSQL;
 
     /** Returns the prepared statement SQL */
@@ -3058,6 +3062,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Bulk Copy API. Throw so the caller falls back to the regular batch execution path, which sends
         // the full statement - including the trailing clause - to the server.
         if (null != localUserSQL && !localUserSQL.trim().isEmpty()) {
+            // Parsed values are already cached. Remember rejection before throwing so later batches cannot
+            // skip this check and use the cached values to execute only the supported prefix of the SQL.
             bulkCopyHasUnsupportedTrailingSQL = true;
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
             Object[] msgArgs = {localUserSQL};
