@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -256,15 +257,18 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     }
 
     /**
-     * Verifies that a trailing clause after the VALUES list (an OPTION query hint) makes the driver fall back
-     * to the regular batch execution path, so that the full statement - including the trailing clause - reaches
-     * the server instead of being silently dropped.
+     * Verifies that trailing SQL is preserved on every batch, including when switching between the two batch APIs.
      */
-    @Test
-    public void testTrailingOptionClauseFallsBackAndInserts() throws Exception {
-        String localTableName = RandomUtil.getIdentifier("Table_BulkCopy_TrailingOption");
+    @ParameterizedTest
+    @MethodSource("trailingSQLBatchModes")
+    public void testTrailingSQLFallsBackOnRepeatedBatches(boolean firstLargeBatch, boolean alternate,
+            boolean multipleTuples) throws Exception {
+        String localTableName = RandomUtil.getIdentifier("Table_BulkCopy_TrailingSQL");
         String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(localTableName)
-                + " (Id, Data) VALUES (?, ?) OPTION (RECOMPILE)";
+                + " (Id, Data) VALUES (?, ?)" + (multipleTuples ? ", (?, ?)" : " OPTION (RECOMPILE)");
+        int rowsPerEntry = multipleTuples ? 2 : 1;
+        Field bulkCopy = SQLServerPreparedStatement.class.getDeclaredField("bcOperation");
+        bulkCopy.setAccessible(true);
 
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
@@ -272,27 +276,36 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             createTable_SQLFunction(localTableName);
 
-            pstmt.setInt(1, 1);
-            pstmt.setInt(2, 10);
-            pstmt.addBatch();
-            pstmt.setInt(1, 2);
-            pstmt.setInt(2, 20);
-            pstmt.addBatch();
-
             try (AutoCloseable ignored = enableFineStatementLogging();
                     FallbackWatcherLogHandler handler = new FallbackWatcherLogHandler()) {
-                pstmt.executeBatch();
-                assertTrue(handler.gotFallbackMessage, "Expected fallback to the regular batch path");
+                for (int batch = 0; batch < 3; batch++) {
+                    boolean largeBatch = alternate && batch % 2 == 1 ? !firstLargeBatch : firstLargeBatch;
+                    for (int entry = 0; entry < 2; entry++) {
+                        for (int tuple = 0; tuple < rowsPerEntry; tuple++) {
+                            int id = (batch * 2 + entry) * rowsPerEntry + tuple + 1;
+                            pstmt.setInt(tuple * 2 + 1, id);
+                            pstmt.setInt(tuple * 2 + 2, id * 10);
+                        }
+                        pstmt.addBatch();
+                    }
+                    if (largeBatch) {
+                        assertArrayEquals(new long[] {rowsPerEntry, rowsPerEntry}, pstmt.executeLargeBatch());
+                    } else {
+                        assertArrayEquals(new int[] {rowsPerEntry, rowsPerEntry}, pstmt.executeBatch());
+                    }
+                    assertNull(bulkCopy.get(pstmt), "Trailing SQL must never use Bulk Copy, batch " + batch);
+                    pstmt.clearBatch();
+                }
+                assertTrue(handler.gotFallbackMessage, "Expected the initial parse to report the fallback");
             }
 
             try (ResultSet rs = stmt.executeQuery("SELECT Id, Data FROM "
                     + AbstractSQLGenerator.escapeIdentifier(localTableName) + " ORDER BY Id")) {
-                assertTrue(rs.next(), "Expected first row");
-                assertEquals(1, rs.getInt("Id"));
-                assertEquals(10, rs.getInt("Data"));
-                assertTrue(rs.next(), "Expected second row");
-                assertEquals(2, rs.getInt("Id"));
-                assertEquals(20, rs.getInt("Data"));
+                for (int id = 1; id <= 6 * rowsPerEntry; id++) {
+                    assertTrue(rs.next(), "Expected row " + id);
+                    assertEquals(id, rs.getInt("Id"));
+                    assertEquals(id * 10, rs.getInt("Data"));
+                }
                 assertFalse(rs.next());
             }
         } finally {
@@ -307,8 +320,9 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * table/column/value lists are cached after the first executeBatch, so the leftover-SQL validation must not
      * run again against the unconsumed statement and wrongly force a fallback on every later batch.
      */
-    @Test
-    public void testRepeatedBatchesKeepUsingBulkCopy() throws Exception {
+    @ParameterizedTest
+    @MethodSource("batchExecutionModes")
+    public void testRepeatedBatchesKeepUsingBulkCopy(boolean firstLargeBatch, boolean alternate) throws Exception {
         String localTableName = RandomUtil.getIdentifier("Table_BulkCopy_RepeatedBatch");
         String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(localTableName)
                 + " (Id, Data) VALUES (?, ?)";
@@ -329,7 +343,12 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     pstmt.addBatch();
 
                     try (FallbackWatcherLogHandler handler = new FallbackWatcherLogHandler()) {
-                        pstmt.executeBatch();
+                        boolean largeBatch = alternate && batch % 2 == 1 ? !firstLargeBatch : firstLargeBatch;
+                        if (largeBatch) {
+                            assertArrayEquals(new long[] {1, 1}, pstmt.executeLargeBatch());
+                        } else {
+                            assertArrayEquals(new int[] {1, 1}, pstmt.executeBatch());
+                        }
                         assertFalse("Batch " + batch + " unexpectedly fell back to the regular batch path",
                                 handler.gotFallbackMessage);
                     }
@@ -346,6 +365,16 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(localTableName), stmt);
             }
         }
+    }
+
+    private static Stream<Arguments> batchExecutionModes() {
+        return Stream.of(Arguments.of(false, false), Arguments.of(true, false), Arguments.of(false, true),
+                Arguments.of(true, true));
+    }
+
+    private static Stream<Arguments> trailingSQLBatchModes() {
+        return batchExecutionModes().flatMap(mode -> Stream.of(Arguments.of(mode.get()[0], mode.get()[1], false),
+                Arguments.of(mode.get()[0], mode.get()[1], true)));
     }
 
     /**
