@@ -180,6 +180,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private ArrayList<String> bcOperationValueList = null;
 
+    // The SQL text is fixed for this statement, so a rejected trailer remains unsupported across batches.
+    private boolean bulkCopyHasUnsupportedTrailingSQL;
+
     /** Returns the prepared statement SQL */
     @Override
     public String toString() {
@@ -2592,7 +2595,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             localUserSQL = userSQL;
 
             try {
-                if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
+                if (this.useBulkCopyForBatchInsert && !bulkCopyHasUnsupportedTrailingSQL && isInsert(localUserSQL)) {
                     if (null == batchParamValues) {
                         updateCounts = new int[0];
                         if (loggerExternal.isLoggable(Level.FINER)) {
@@ -2815,7 +2818,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             localUserSQL = userSQL;
 
             try {
-                if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
+                if (this.useBulkCopyForBatchInsert && !bulkCopyHasUnsupportedTrailingSQL && isInsert(localUserSQL)) {
                     if (null == batchParamValues) {
                         updateCounts = new long[0];
                         if (loggerExternal.isLoggable(Level.FINER)) {
@@ -3055,6 +3058,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Bulk Copy API. Throw so the caller falls back to the regular batch execution path, which sends
         // the full statement - including the trailing clause - to the server.
         if (null != localUserSQL && !localUserSQL.trim().isEmpty()) {
+            bulkCopyHasUnsupportedTrailingSQL = true;
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
             Object[] msgArgs = {localUserSQL};
             throw new IllegalArgumentException(form.format(msgArgs));
