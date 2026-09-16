@@ -293,6 +293,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                     } else {
                         assertArrayEquals(new int[] {rowsPerEntry, rowsPerEntry}, pstmt.executeBatch());
                     }
+                    // Row counts alone cannot detect a discarded OPTION hint. Check the execution path too;
+                    // cached rejection need not publish another fallback log message on each later batch.
                     assertNull(bulkCopy.get(pstmt), "Trailing SQL must never use Bulk Copy, batch " + batch);
                     pstmt.clearBatch();
                 }
