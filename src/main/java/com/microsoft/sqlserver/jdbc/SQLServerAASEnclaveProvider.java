@@ -6,7 +6,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static java.nio.charset.StandardCharsets.UTF_16LE;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -34,9 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
 
 
 /**
@@ -247,7 +244,6 @@ class JWTCertificateEntry {
 @SuppressWarnings("unused")
 class AASAttestationResponse extends BaseAttestationResponse {
 
-    private static final String EXPECTED_JWT_ALGORITHM = "RS256";
     private static final long TOKEN_CLOCK_SKEW_SECONDS = 300;
 
     private byte[] attestationToken;
@@ -303,33 +299,15 @@ class AASAttestationResponse extends BaseAttestationResponse {
             /*
              * 3 parts of our JWT token: Header, Body, and Signature. Broken up via '.'
              */
-            String jwtToken = (new String(attestationToken, UTF_8)).trim();
+            String jwtToken = (new String(attestationToken)).trim();
             if (jwtToken.startsWith("\"") && jwtToken.endsWith("\"")) {
                 jwtToken = jwtToken.substring(1, jwtToken.length() - 1);
             }
-            String[] splitString = jwtToken.split("\\.", -1);
-            if (3 != splitString.length) {
-                SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasJWTError"), "0",
-                        false);
-            }
-
+            String[] splitString = jwtToken.split("\\.");
             java.util.Base64.Decoder decoder = Base64.getUrlDecoder();
-            String header = new String(decoder.decode(splitString[0]), UTF_8);
-            String body = new String(decoder.decode(splitString[1]), UTF_8);
+            String header = new String(decoder.decode(splitString[0]));
+            String body = new String(decoder.decode(splitString[1]));
             byte[] stmtSig = decoder.decode(splitString[2]);
-
-            JsonObject headerJsonObject = JsonParser.parseString(header).getAsJsonObject();
-            if (!EXPECTED_JWT_ALGORITHM.equals(getRequiredStringClaim(headerJsonObject, "alg", "R_AasJWTError"))) {
-                SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasJWTError"), "0",
-                        false);
-            }
-            String keyID = getRequiredStringClaim(headerJsonObject, "kid", "R_AasJWTError");
-
-            URI attestationUri = new URI(attestationUrl);
-            if (!isValidHttpsAuthority(attestationUri)) {
-                SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasJWTError"), "0",
-                        false);
-            }
 
             JsonArray keys = null;
             JWTCertificateEntry cacheEntry = certificateCache.get(attestationUrl);
@@ -340,18 +318,14 @@ class AASAttestationResponse extends BaseAttestationResponse {
             }
 
             if (null == keys) {
-                // Discover keys through the configured provider, never through the token's issuer.
-                URL wellKnownUrl = new URL("https", attestationUri.getHost(), attestationUri.getPort(),
-                        "/.well-known/openid-configuration");
+                // Use the attestation URL to find where our keys are
+                String authorityUrl = new URL(attestationUrl).getAuthority();
+                URL wellKnownUrl = new URL("https://" + authorityUrl + "/.well-known/openid-configuration");
                 URLConnection con = wellKnownUrl.openConnection();
                 String wellKnownUrlJson = Util.convertInputStreamToString(con.getInputStream());
                 JsonObject attestationJson = JsonParser.parseString(wellKnownUrlJson).getAsJsonObject();
                 // Get our Keys
                 URL jwksUrl = new URL(attestationJson.get("jwks_uri").getAsString());
-                if (!"https".equalsIgnoreCase(jwksUrl.getProtocol())) {
-                    SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasJWTError"),
-                            "0", false);
-                }
                 URLConnection jwksCon = jwksUrl.openConnection();
                 String jwksUrlJson = Util.convertInputStreamToString(jwksCon.getInputStream());
                 JsonObject jwksJson = JsonParser.parseString(jwksUrlJson).getAsJsonObject();
@@ -360,14 +334,19 @@ class AASAttestationResponse extends BaseAttestationResponse {
             }
             // Find the specific keyID we need from our header
 
+            JsonObject headerJsonObject = JsonParser.parseString(header).getAsJsonObject();
+            String keyID = headerJsonObject.get("kid").getAsString();
             // Iterate through our list of keys and find the one with the same keyID
             for (JsonElement key : keys) {
                 JsonObject keyObj = key.getAsJsonObject();
                 String kId = keyObj.get("kid").getAsString();
                 if (kId.equals(keyID)) {
                     JsonArray certsFromServer = keyObj.get("x5c").getAsJsonArray();
-                    // The JWT signature covers the original encoded header and payload, separated by a period.
-                    byte[] signatureBytes = (splitString[0] + "." + splitString[1]).getBytes(UTF_8);
+                    /*
+                     * To create the signature part you have to take the encoded header, the encoded payload, a secret,
+                     * the algorithm specified in the header, and sign that.
+                     */
+                    byte[] signatureBytes = (splitString[0] + "." + splitString[1]).getBytes();
                     for (JsonElement jsonCert : certsFromServer) {
                         CertificateFactory cf = CertificateFactory.getInstance("X.509");
                         X509Certificate cert = (X509Certificate) cf.generateCertificate(
@@ -377,7 +356,24 @@ class AASAttestationResponse extends BaseAttestationResponse {
                         sig.update(signatureBytes);
                         if (sig.verify(stmtSig)) {
                             JsonObject bodyJsonObject = JsonParser.parseString(body).getAsJsonObject();
-                            validateTokenClaims(bodyJsonObject, attestationUri, nonce);
+                            // Providers can share signing keys but apply different policies; check the signed issuer.
+                            validateTokenIssuer(bodyJsonObject, attestationUrl);
+                            validateTokenLifetime(bodyJsonObject);
+
+                            // Token is verified, now check the aas-ehd
+                            String aasEhd = bodyJsonObject.get("aas-ehd").getAsString();
+                            if (!Arrays.equals(Base64.getUrlDecoder().decode(aasEhd), enclavePK)) {
+                                SQLServerException.makeFromDriverError(null, this,
+                                        SQLServerResource.getResource("R_AasEhdError"), "0", false);
+                            }
+                            if (this.enclaveType == 1) {
+                                // Verify rp_data claim as well if VBS
+                                String rpData = bodyJsonObject.get("rp_data").getAsString();
+                                if (!Arrays.equals(Base64.getUrlDecoder().decode(rpData), nonce)) {
+                                    SQLServerException.makeFromDriverError(null, this,
+                                            SQLServerResource.getResource("R_VbsRpDataError"), "0", false);
+                                }
+                            }
                             return;
                         }
                     }
@@ -385,52 +381,31 @@ class AASAttestationResponse extends BaseAttestationResponse {
             }
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasJWTError"), "0",
                     false);
-        } catch (IOException | GeneralSecurityException | URISyntaxException | JsonParseException
-                | IllegalArgumentException | IllegalStateException e) {
-            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasJWTError"), "0",
-                    false, e);
+        } catch (IOException | GeneralSecurityException e) {
+            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false, e);
         }
     }
 
-    /**
-     * Validates claims only after signature verification. MAA providers can share signing keys while applying
-     * different policies, so a valid signature alone does not identify the configured provider.
-     */
-    private void validateTokenClaims(JsonObject bodyJsonObject, URI attestationUri,
-            byte[] nonce) throws SQLServerException {
-        String issuer = getRequiredStringClaim(bodyJsonObject, "iss", "R_AasTokenIssuerError");
-        if (!issuerMatchesConfiguredAuthority(issuer, attestationUri)) {
+    private void validateTokenIssuer(JsonObject claims, String attestationUrl) throws SQLServerException {
+        JsonElement issuer = claims.get("iss");
+        if (null == issuer || !issuer.isJsonPrimitive() || !issuer.getAsJsonPrimitive().isString()
+                || !issuerMatchesConfiguredAuthority(issuer.getAsString(), attestationUrl)) {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasTokenIssuerError"),
                     "0", false);
         }
-
-        validateTokenLifetime(bodyJsonObject);
-
-        String aasEhd = getRequiredStringClaim(bodyJsonObject, "aas-ehd", "R_AasEhdError");
-        if (!Arrays.equals(Base64.getUrlDecoder().decode(aasEhd), enclavePK)) {
-            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasEhdError"), "0",
-                    false);
-        }
-
-        if (this.enclaveType == 1) {
-            // VBS tokens bind the attestation response to the nonce generated for this request.
-            String rpData = getRequiredStringClaim(bodyJsonObject, "rp_data", "R_VbsRpDataError");
-            if (!Arrays.equals(Base64.getUrlDecoder().decode(rpData), nonce)) {
-                SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_VbsRpDataError"),
-                        "0", false);
-            }
-        }
     }
 
     /**
-     * Compares the issuer with the already validated configured authority. The configured URL may include an
+     * Compares the issuer with the configured authority. The configured URL may include an
      * attestation API path and query; the issuer must be an HTTPS authority without a path (including a trailing
      * slash), query, fragment, or user information. Host case and an explicit default port do not change the authority.
      */
-    private static boolean issuerMatchesConfiguredAuthority(String issuer, URI configuredUri) {
+    private static boolean issuerMatchesConfiguredAuthority(String issuer, String attestationUrl) {
         try {
             URI issuerUri = new URI(issuer);
-            if (!isValidHttpsAuthority(issuerUri) || null != issuerUri.getQuery() || null != issuerUri.getFragment()
+            URI configuredUri = new URI(attestationUrl);
+            if (!isValidHttpsAuthority(issuerUri) || !isValidHttpsAuthority(configuredUri)
+                    || null != issuerUri.getQuery() || null != issuerUri.getFragment()
                     || (null != issuerUri.getPath() && !issuerUri.getPath().isEmpty())) {
                 return false;
             }
@@ -477,21 +452,11 @@ class AASAttestationResponse extends BaseAttestationResponse {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasTokenLifetimeError"),
                     "0", false);
         }
-        return claim.getAsLong();
-    }
-
-    private String getRequiredStringClaim(JsonObject claims, String claimName,
-            String resourceKey) throws SQLServerException {
-        JsonElement claim = claims.get(claimName);
-        if (null == claim || !claim.isJsonPrimitive()) {
-            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource(resourceKey), "0", false);
+        try {
+            return claim.getAsLong();
+        } catch (NumberFormatException e) {
+            throw new SQLServerException(SQLServerResource.getResource("R_AasTokenLifetimeError"), null, 0, e);
         }
-
-        JsonPrimitive claimValue = claim.getAsJsonPrimitive();
-        if (!claimValue.isString() || claimValue.getAsString().isEmpty()) {
-            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource(resourceKey), "0", false);
-        }
-        return claimValue.getAsString();
     }
 
     void validateDHPublicKey(byte[] nonce) throws SQLServerException, GeneralSecurityException {

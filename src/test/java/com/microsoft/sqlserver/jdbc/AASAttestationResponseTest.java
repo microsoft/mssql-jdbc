@@ -220,17 +220,6 @@ class AASAttestationResponseTest {
         assertTrue(exception.getMessage().matches(TestUtils.formatErrorMsg("R_VbsRpDataError")));
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"aas-ehd", "rp_data"})
-    void malformedBindingClaimIsRejected(String claimName) {
-        JsonObject claims = validClaims();
-        claims.addProperty("rp_data", Base64.getUrlEncoder().encodeToString(NONCE));
-        claims.addProperty(claimName, "not base64!");
-
-        SQLServerException exception = assertThrows(SQLServerException.class, () -> validateSignedClaims(claims, 1));
-        assertTrue(exception.getMessage().matches(TestUtils.formatErrorMsg("R_AasJWTError")));
-    }
-
     @Test
     void modifiedSignedPayloadIsRejected() throws Exception {
         String token = createSignedToken(validClaims());
@@ -242,23 +231,6 @@ class AASAttestationResponseTest {
                 + token.substring(token.lastIndexOf('.'));
 
         assertTokenError(createResponse(2, modifiedToken));
-    }
-
-    @Test
-    void malformedTokenIsRejected() throws SQLServerException {
-        AASAttestationResponse response = createResponse(2, "only.two");
-
-        assertTokenError(response);
-    }
-
-    @Test
-    void unexpectedAlgorithmIsRejected() throws SQLServerException {
-        String header = Base64.getUrlEncoder().withoutPadding()
-                .encodeToString("{\"alg\":\"HS256\",\"kid\":\"key-id\"}".getBytes(StandardCharsets.UTF_8));
-        String body = Base64.getUrlEncoder().withoutPadding().encodeToString("{}".getBytes(StandardCharsets.UTF_8));
-        AASAttestationResponse response = createResponse(2, header + "." + body + ".AA");
-
-        assertTokenError(response);
     }
 
     private static JsonObject validClaims() {
