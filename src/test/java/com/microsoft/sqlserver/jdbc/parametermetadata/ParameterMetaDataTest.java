@@ -396,7 +396,7 @@ public class ParameterMetaDataTest extends AbstractTest {
                     assertEquals(11, rsmd.getColumnCount());
 
                     // Column 1: DATETIMEOFFSET(7)
-                    assertEquals(microsoft.sql.Types.DATETIMEOFFSET, rsmd.getColumnType(1));
+                    assertEquals(java.sql.Types.TIMESTAMP_WITH_TIMEZONE, rsmd.getColumnType(1));
                     assertEquals("datetimeoffset", rsmd.getColumnTypeName(1));
 
                     // Column 2: DATETIME
