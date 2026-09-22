@@ -1,0 +1,62 @@
+[
+  {
+    "id": "prepared-statement-execution",
+    "prompt": "Trace a non-batch SQLServerPreparedStatement execution when no prepared handle is cached and enablePrepareOnFirstPreparedStatementCall is false. Explain the initial TDS packet and server procedure, what changes on reuse, how parameters are sent, and which response-processing methods consume the result.",
+    "retrieval_terms": [
+      "doExecutePreparedStatement doPrepExec buildExecSQLParams buildPrepExecParams buildPrepParams buildExecParams",
+      "sendParamsByRPC ensureExecuteResultsReader startResults getNextResult reuseCachedHandle"
+    ],
+    "criteria": [
+      "Uses TDS.PKT_RPC for prepared mode and TDS.PKT_QUERY only for direct SQL execution",
+      "First execution uses buildExecSQLParams and sp_executesql when prepare-on-first-call is disabled",
+      "Reuse can use a cached handle or prepare through sp_prepexec/sp_prepare followed by sp_execute",
+      "Parameters are written by sendParamsByRPC",
+      "Response path includes ensureExecuteResultsReader, startResults, and getNextResult"
+    ],
+    "references": [
+      "src/main/java/com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement.java",
+      "src/main/java/com/microsoft/sqlserver/jdbc/SQLServerStatement.java",
+      "src/main/java/com/microsoft/sqlserver/jdbc/tdsparser.java"
+    ]
+  },
+  {
+    "id": "always-encrypted-key-cache",
+    "prompt": "Trace how an Always Encrypted CEK is resolved and cached. Explain the roles of SQLServerSecurityUtility, SQLServerSymmetricKeyCache, and SQLServerColumnEncryptionKeyStoreProvider; distinguish system/global providers from connection or statement providers; and name two concrete provider implementations.",
+    "retrieval_terms": [
+      "decryptSymmetricKey shouldUseInstanceLevelProviderFlow getKeyFromLocalProviders getSystemOrGlobalColumnEncryptionKeyStoreProvider",
+      "SQLServerColumnEncryptionJavaKeyStoreProvider SQLServerColumnEncryptionAzureKeyVaultProvider CryptoMetadata EncryptionKeyInfo"
+    ],
+    "criteria": [
+      "SQLServerSecurityUtility.decryptSymmetricKey selects candidate EncryptionKeyInfo values",
+      "System/global providers route through SQLServerSymmetricKeyCache",
+      "Connection or statement providers route through getKeyFromLocalProviders",
+      "The provider decrypts the encrypted CEK and the resulting symmetric key initializes crypto metadata",
+      "Names SQLServerColumnEncryptionJavaKeyStoreProvider and SQLServerColumnEncryptionAzureKeyVaultProvider"
+    ],
+    "references": [
+      "src/main/java/com/microsoft/sqlserver/jdbc/SQLServerSecurityUtility.java",
+      "src/main/java/com/microsoft/sqlserver/jdbc/SQLServerSymmetricKeyCache.java",
+      "src/main/java/com/microsoft/sqlserver/jdbc/SQLServerColumnEncryptionKeyStoreProvider.java"
+    ]
+  },
+  {
+    "id": "idle-connection-resiliency",
+    "prompt": "Trace idle connection recovery from IdleConnectionResiliency.reconnect through ReconnectThread. Explain how retry count and interval are used, when retries stop, how query timeout participates, how session recoverability is tracked, and how the caller receives failure.",
+    "retrieval_terms": [
+      "IdleConnectionResiliency reconnect getReconnectException ReconnectThread connectRetryCount getRetryInterval isFatalError",
+      "SharedTimer TDSTimeoutTask SessionStateTable isSessionRecoverable masterRecoveryDisabled unRecoverableSessionStateCount"
+    ],
+    "criteria": [
+      "reconnect creates and joins ReconnectThread, then stores its exception",
+      "ReconnectThread initializes retry count from SQLServerConnection and calls connect in a loop",
+      "Nonfatal failures wait getRetryInterval between attempts; fatal errors, interruption, timeout, or stop request end retries",
+      "SharedTimer and TDSTimeoutTask enforce command query timeout",
+      "SessionStateTable uses masterRecoveryDisabled and unrecoverable state count; failure is exposed through getReconnectException"
+    ],
+    "references": [
+      "src/main/java/com/microsoft/sqlserver/jdbc/IdleConnectionResiliency.java",
+      "src/main/java/com/microsoft/sqlserver/jdbc/SQLServerConnection.java",
+      "src/main/java/com/microsoft/sqlserver/jdbc/SQLServerResource.java"
+    ]
+  }
+]
