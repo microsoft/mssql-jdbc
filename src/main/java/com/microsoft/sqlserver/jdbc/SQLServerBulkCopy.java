@@ -300,6 +300,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
      */
     private static final int SOURCE_BULK_RECORD_TEMPORAL_MAX_PRECISION = 50;
 
+    private final GregorianCalendar defaultCalendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
+    private final GregorianCalendar utcCalendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
     /**
      * Constructs a SQLServerBulkCopy using the specified open instance of SQLServerConnection.
      * 
@@ -760,6 +762,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         srcColumnMetadata = null;
         destColumnMetadata = null;
         destColumnCount = 0;
+        defaultCalendar.setLenient(true);
+        utcCalendar.setLenient(true);
     }
 
     private void sendBulkLoadBCP() throws SQLServerException {
@@ -3619,8 +3623,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         switch (srcTemporalJdbcType) {
             case DATE:
-                calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
-                calendar.setLenient(true);
+                calendar = defaultCalendar;
                 calendar.clear();
                 calendar.setTimeInMillis(((Date) colValue).getTime());
                 return tdsWriter.writeEncryptedScaledTemporal(calendar, 0, // subsecond nanos (none for a date value)
@@ -3628,8 +3631,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         SSType.DATE, (short) 0, null);
 
             case TIME:
-                calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
-                calendar.setLenient(true);
+                calendar = defaultCalendar;
                 calendar.clear();
                 utcMillis = ((java.sql.Timestamp) colValue).getTime();
                 calendar.setTimeInMillis(utcMillis);
@@ -3645,8 +3647,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         null);
 
             case TIMESTAMP:
-                calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
-                calendar.setLenient(true);
+                calendar = defaultCalendar;
                 calendar.clear();
                 utcMillis = ((java.sql.Timestamp) colValue).getTime();
                 calendar.setTimeInMillis(utcMillis);
@@ -3656,8 +3657,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case DATETIME:
             case SMALLDATETIME:
-                calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
-                calendar.setLenient(true);
+                calendar = defaultCalendar;
                 calendar.clear();
                 utcMillis = ((java.sql.Timestamp) colValue).getTime();
                 calendar.setTimeInMillis(utcMillis);
@@ -3669,15 +3669,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 utcMillis = dtoValue.getTimestamp().getTime();
                 subSecondNanos = dtoValue.getTimestamp().getNanos();
                 int minutesOffset = dtoValue.getMinutesOffset();
-                calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
-                calendar.setLenient(true);
+                calendar = utcCalendar;
                 calendar.clear();
                 calendar.setTimeInMillis(utcMillis);
                 return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.DATETIMEOFFSET,
                         (short) minutesOffset, null);
 
             default:
-
                 MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_UnsupportedDataTypeAE"));
                 Object[] msgArgs = {srcTemporalJdbcType};
                 throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
