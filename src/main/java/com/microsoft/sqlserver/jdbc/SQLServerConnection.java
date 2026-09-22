@@ -1939,6 +1939,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private boolean useDefaultGSSCredential = SQLServerDriverBooleanProperty.USE_DEFAULT_GSS_CREDENTIAL
             .getDefaultValue();
 
+    /** Kerberos credential delegation flag */
+    private boolean enableKerberosCredentialDelegation = SQLServerDriverBooleanProperty.ENABLE_KERBEROS_CRED_DELEGATION
+            .getDefaultValue();
+
     /** impersonated user credential */
     private transient GSSCredential impersonatedUserCred;
 
@@ -2351,6 +2355,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
             return false;
         }
+    }
+
+    boolean isKerberosCredentialDelegationEnabled() {
+        return enableKerberosCredentialDelegation;
     }
 
     /**
@@ -3216,6 +3224,11 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     sPropValue = activeConnectionProperties.getProperty(sPropKey);
                     if (null != sPropValue && isWindows) {
                         useDefaultGSSCredential = isBooleanPropertyOn(sPropKey, sPropValue);
+                    }
+                    sPropKey = SQLServerDriverBooleanProperty.ENABLE_KERBEROS_CRED_DELEGATION.toString();
+                    sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                    if (null != sPropValue) {
+                        enableKerberosCredentialDelegation = isBooleanPropertyOn(sPropKey, sPropValue);
                     }
                 } else if (intAuthScheme == AuthenticationScheme.NTLM) {
                     String sPropKeyDomain = SQLServerDriverStringProperty.DOMAIN.toString();
