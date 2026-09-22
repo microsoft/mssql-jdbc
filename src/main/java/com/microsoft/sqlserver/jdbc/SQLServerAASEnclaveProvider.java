@@ -10,6 +10,8 @@ import static java.nio.charset.StandardCharsets.UTF_16LE;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
@@ -242,6 +244,8 @@ class JWTCertificateEntry {
 @SuppressWarnings("unused")
 class AASAttestationResponse extends BaseAttestationResponse {
 
+    private static final long TOKEN_CLOCK_SKEW_SECONDS = 300;
+
     private byte[] attestationToken;
     private static ConcurrentHashMap<String, JWTCertificateEntry> certificateCache = new ConcurrentHashMap<>();
 
@@ -351,8 +355,12 @@ class AASAttestationResponse extends BaseAttestationResponse {
                         sig.initVerify(cert.getPublicKey());
                         sig.update(signatureBytes);
                         if (sig.verify(stmtSig)) {
-                            // Token is verified, now check the aas-ehd
                             JsonObject bodyJsonObject = JsonParser.parseString(body).getAsJsonObject();
+                            // Providers can share signing keys but apply different policies; check the signed issuer.
+                            validateTokenIssuer(bodyJsonObject, attestationUrl);
+                            validateTokenLifetime(bodyJsonObject);
+
+                            // Token is verified, now check the aas-ehd
                             String aasEhd = bodyJsonObject.get("aas-ehd").getAsString();
                             if (!Arrays.equals(Base64.getUrlDecoder().decode(aasEhd), enclavePK)) {
                                 SQLServerException.makeFromDriverError(null, this,
@@ -375,6 +383,79 @@ class AASAttestationResponse extends BaseAttestationResponse {
                     false);
         } catch (IOException | GeneralSecurityException e) {
             SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false, e);
+        }
+    }
+
+    private void validateTokenIssuer(JsonObject claims, String attestationUrl) throws SQLServerException {
+        JsonElement issuer = claims.get("iss");
+        if (null == issuer || !issuer.isJsonPrimitive() || !issuer.getAsJsonPrimitive().isString()
+                || !issuerMatchesConfiguredAuthority(issuer.getAsString(), attestationUrl)) {
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasTokenIssuerError"),
+                    "0", false);
+        }
+    }
+
+    /**
+     * Compares the issuer with the configured authority. The configured URL may include an
+     * attestation API path and query; the issuer must be an HTTPS authority without a path (including a trailing
+     * slash), query, fragment, or user information. Host case and an explicit default port do not change the authority.
+     */
+    private static boolean issuerMatchesConfiguredAuthority(String issuer, String attestationUrl) {
+        try {
+            URI issuerUri = new URI(issuer);
+            URI configuredUri = new URI(attestationUrl);
+            if (!isValidHttpsAuthority(issuerUri) || !isValidHttpsAuthority(configuredUri)
+                    || null != issuerUri.getQuery() || null != issuerUri.getFragment()
+                    || (null != issuerUri.getPath() && !issuerUri.getPath().isEmpty())) {
+                return false;
+            }
+
+            return issuerUri.getHost().equalsIgnoreCase(configuredUri.getHost())
+                    && effectivePort(issuerUri) == effectivePort(configuredUri);
+        } catch (URISyntaxException e) {
+            return false;
+        }
+    }
+
+    private static boolean isValidHttpsAuthority(URI uri) {
+        return "https".equalsIgnoreCase(uri.getScheme()) && null != uri.getHost() && null == uri.getUserInfo();
+    }
+
+    private static int effectivePort(URI uri) {
+        return -1 == uri.getPort() ? 443 : uri.getPort();
+    }
+
+    /**
+     * Requires expiration and checks not-before when present. A five-minute allowance on either side accommodates
+     * client/provider clock differences; not-before must still precede expiration regardless of that allowance.
+     */
+    private void validateTokenLifetime(JsonObject bodyJsonObject) throws SQLServerException {
+        long expiration = getNumericDate(bodyJsonObject.get("exp"));
+        long now = Instant.now().getEpochSecond();
+        if (expiration <= now - TOKEN_CLOCK_SKEW_SECONDS) {
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasTokenLifetimeError"),
+                    "0", false);
+        }
+
+        JsonElement notBeforeElement = bodyJsonObject.get("nbf");
+        if (null != notBeforeElement) {
+            long notBefore = getNumericDate(notBeforeElement);
+            if (notBefore >= expiration || notBefore > now + TOKEN_CLOCK_SKEW_SECONDS) {
+                SQLServerException.makeFromDriverError(null, this,
+                        SQLServerResource.getResource("R_AasTokenLifetimeError"), "0", false);
+            }
+        }
+    }
+
+    private long getNumericDate(JsonElement claim) throws SQLServerException {
+        if (null == claim || !claim.isJsonPrimitive() || !claim.getAsJsonPrimitive().isNumber()) {
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasTokenLifetimeError"),
+                    "0", false);
+        }
+        try {
+            return claim.getAsLong();
+        } catch (NumberFormatException e) {
+            throw new SQLServerException(SQLServerResource.getResource("R_AasTokenLifetimeError"), null, 0, e);
         }
     }
 
