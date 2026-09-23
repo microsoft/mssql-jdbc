@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc.bulkCopy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -230,6 +231,44 @@ public class BulkCopyGuidTest extends AbstractTest {
 
     private static Stream<Arguments> guidSourceTypes() {
         return Stream.of(Arguments.of(microsoft.sql.Types.GUID, false), Arguments.of(java.sql.Types.CHAR, true));
+    }
+
+    /**
+     * Exercises CSV GUID loading without requiring Extended Events permissions, including the character source
+     * fallback.
+     */
+    @ParameterizedTest
+    @ValueSource(ints = { microsoft.sql.Types.GUID, java.sql.Types.CHAR })
+    public void testBulkCopyGuidCsvRoundTripsValues(int srcJdbcType) throws Exception {
+        String guidDestTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidCsvDest"));
+        String csv = "rowId,guidCol\n1," + GUID + "\n2," + STORED_GUID + "\n3,\n4,{" + GUID + "}\n";
+        String[] expected = { STORED_GUID, STORED_GUID, null, STORED_GUID };
+
+        try {
+            try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
+                    InputStream inputStream = new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8));
+                    SQLServerBulkCSVFileRecord fileRecord = new SQLServerBulkCSVFileRecord(inputStream, Constants.UTF8,
+                            Constants.COMMA, true);
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+                stmt.execute("CREATE TABLE " + guidDestTable + " (rowId int, guidCol uniqueidentifier)");
+                fileRecord.addColumnMetadata(1, "rowId", java.sql.Types.INTEGER, 0, 0);
+                fileRecord.addColumnMetadata(2, "guidCol", srcJdbcType, GUID_TEXT_LENGTH + 2, 0);
+                bulkCopy.setDestinationTableName(guidDestTable);
+                bulkCopy.writeToServer(fileRecord);
+
+                try (SQLServerResultSet rs = (SQLServerResultSet) stmt
+                        .executeQuery("SELECT rowId, guidCol FROM " + guidDestTable + " ORDER BY rowId")) {
+                    for (int i = 0; i < expected.length; i++) {
+                        assertTrue(rs.next());
+                        assertEquals(i + 1, rs.getInt(1));
+                        assertEquals(expected[i], rs.getUniqueIdentifier(2));
+                    }
+                    assertFalse(rs.next());
+                }
+            }
+        } finally {
+            dropTable(guidDestTable);
+        }
     }
 
     /**
