@@ -93,39 +93,51 @@ public class BulkCopyGuidTest extends AbstractTest {
     /**
      * Sending a uniqueidentifier column natively may not change which values the driver accepts. A source column of
      * type CHAR carries the character wire format the driver used for GUID source columns before, so running a value
-     * through both source types shows whether a rendering is still handled the same way. Only precisions that can hold
-     * the rendering are paired with it, since the character format truncates to the declared precision before the
-     * server converts.
+     * through both source types shows whether a rendering is still handled the same way. The complete input must fit
+     * the declared CHAR precision, even when SQL Server ignores a suffix during uniqueidentifier conversion.
      */
     @ParameterizedTest
     @MethodSource("guidRenderings")
-    public void testBulkCopyGuidNativeFormatKeepsCharacterFormatBehavior(String rendering,
-            int declaredPrecision) throws Exception {
+    public void testBulkCopyGuidNativeFormatKeepsCharacterFormatBehavior(String rendering, int declaredPrecision,
+            boolean accepted) throws Exception {
         String viaCharacterFormat = bulkCopyGuidOutcome(rendering, java.sql.Types.CHAR, declaredPrecision);
         String viaNativeFormat = bulkCopyGuidOutcome(rendering, microsoft.sql.Types.GUID, declaredPrecision);
 
+        assertEquals(accepted ? "stored " + STORED_GUID : "rejected", viaCharacterFormat);
         assertEquals(viaCharacterFormat, viaNativeFormat);
     }
 
     private static Stream<Arguments> guidRenderings() {
-        List<String> renderings = Arrays.asList(GUID, GUID.toUpperCase(), "{" + GUID + "}", " " + GUID + " ",
-                GUID.replace("-", ""), "(" + GUID + ")", "urn:uuid:" + GUID, "not-a-guid", "");
-        return renderings.stream().flatMap(rendering -> IntStream.of(GUID_TEXT_LENGTH, GUID_TEXT_LENGTH + 2)
-                .filter(precision -> rendering.length() <= precision)
-                .mapToObj(precision -> Arguments.of(rendering, precision)));
+        List<String> accepted = Arrays.asList(GUID, GUID.toUpperCase(), "{" + GUID + "}", GUID + "suffix", GUID + " ",
+                GUID + "\t", GUID + "}", "{" + GUID + "}suffix", "{" + GUID + "} ");
+        List<String> rejected = Arrays.asList(" " + GUID, "\t" + GUID, GUID.replace("-", ""), "(" + GUID + ")",
+                "urn:uuid:" + GUID, "not-a-guid", "", "1-1-1-1-1", "6f9619ff-8b86-d011-b42d-1",
+                "+f9619ff-8b86-d011-b42d-00c04fc964ff", "6g9619ff-8b86-d011-b42d-00c04fc964ff", "{" + GUID,
+                "{" + GUID + "x", "{" + GUID + " }", "{{" + GUID + "}}");
+        return Stream.concat(accepted.stream(), rejected.stream())
+                .flatMap(rendering -> IntStream.of(1, 35, 36, 37, 38, 50).mapToObj(precision -> Arguments.of(rendering,
+                        precision, accepted.contains(rendering) && rendering.length() <= precision)));
     }
 
-    /**
-     * The one difference the native wire format brings: the character format truncated a value longer than the declared
-     * precision before the server converted it, so the registry format did not fit into the 36 characters a GUID column
-     * is usually declared with. Parsing on the client no longer depends on the declared precision.
-     */
     @Test
-    public void testBulkCopyGuidNativeFormatIgnoresDeclaredPrecision() throws Exception {
-        String braced = "{" + GUID + "}";
+    public void testBulkCopyGuidUuidKeepsDeclaredPrecision() throws Exception {
+        UUID value = UUID.fromString(GUID);
+        assertEquals("rejected", bulkCopyGuidOutcome(value, microsoft.sql.Types.GUID, GUID_TEXT_LENGTH - 1));
+        assertEquals("stored " + STORED_GUID, bulkCopyGuidOutcome(value, microsoft.sql.Types.GUID, GUID_TEXT_LENGTH));
+    }
 
-        assertEquals("rejected", bulkCopyGuidOutcome(braced, java.sql.Types.CHAR, GUID_TEXT_LENGTH));
-        assertEquals("stored " + STORED_GUID, bulkCopyGuidOutcome(braced, microsoft.sql.Types.GUID, GUID_TEXT_LENGTH));
+    @ParameterizedTest
+    @ValueSource(ints = {-1, 0, 8001})
+    public void testBulkCopyGuidRejectsInvalidDeclaredPrecision(int precision) throws Exception {
+        for (Object value : Arrays.asList(GUID, UUID.fromString(GUID), null)) {
+            assertEquals("rejected", bulkCopyGuidOutcome(value, microsoft.sql.Types.GUID, precision));
+        }
+    }
+
+    @Test
+    public void testBulkCopyGuidMaximumDeclaredPrecision() throws Exception {
+        assertEquals("stored " + STORED_GUID, bulkCopyGuidOutcome(GUID, java.sql.Types.CHAR, 8000));
+        assertEquals("stored " + STORED_GUID, bulkCopyGuidOutcome(GUID, microsoft.sql.Types.GUID, 8000));
     }
 
     /**
@@ -137,7 +149,8 @@ public class BulkCopyGuidTest extends AbstractTest {
     @ParameterizedTest
     @ValueSource(strings = {"not-a-guid", "6F9619FF-8B86-D011-B42D", "6f9619ff8b86d011b42d00c04fc964ff", "",
             " 6f9619ff-8b86-d011-b42d-00c04fc964ff ", "(6f9619ff-8b86-d011-b42d-00c04fc964ff)",
-            "urn:uuid:6f9619ff-8b86-d011-b42d-00c04fc964ff"})
+            "urn:uuid:6f9619ff-8b86-d011-b42d-00c04fc964ff", "1-1-1-1-1", "6f9619ff-8b86-d011-b42d-1",
+            "+f9619ff-8b86-d011-b42d-00c04fc964ff"})
     public void testBulkCopyGuidUnparsableValueFailsOnClient(String value) throws Exception {
         String guidDestTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidUnparsableDest"));
 
@@ -241,8 +254,10 @@ public class BulkCopyGuidTest extends AbstractTest {
     @ValueSource(ints = { microsoft.sql.Types.GUID, java.sql.Types.CHAR })
     public void testBulkCopyGuidCsvRoundTripsValues(int srcJdbcType) throws Exception {
         String guidDestTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidCsvDest"));
-        String csv = "rowId,guidCol\n1," + GUID + "\n2," + STORED_GUID + "\n3,\n4,{" + GUID + "}\n";
-        String[] expected = { STORED_GUID, STORED_GUID, null, STORED_GUID };
+        String csv = "rowId,guidCol\n1," + GUID + "\n2," + STORED_GUID + "\n3,\n4,{" + GUID + "}\n5," + GUID
+                + "suffix\n6," + GUID + " \n7,{" + GUID + "}suffix\n8,{" + GUID + "} \n";
+        String[] expected = {STORED_GUID, STORED_GUID, null, STORED_GUID, STORED_GUID, STORED_GUID, STORED_GUID,
+                STORED_GUID};
 
         try {
             try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
@@ -252,7 +267,7 @@ public class BulkCopyGuidTest extends AbstractTest {
                     SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
                 stmt.execute("CREATE TABLE " + guidDestTable + " (rowId int, guidCol uniqueidentifier)");
                 fileRecord.addColumnMetadata(1, "rowId", java.sql.Types.INTEGER, 0, 0);
-                fileRecord.addColumnMetadata(2, "guidCol", srcJdbcType, GUID_TEXT_LENGTH + 2, 0);
+                fileRecord.addColumnMetadata(2, "guidCol", srcJdbcType, 50, 0);
                 bulkCopy.setDestinationTableName(guidDestTable);
                 bulkCopy.writeToServer(fileRecord);
 
@@ -271,12 +286,45 @@ public class BulkCopyGuidTest extends AbstractTest {
         }
     }
 
+    @ParameterizedTest
+    @MethodSource("guidRenderings")
+    public void testBulkCopyGuidCsvKeepsCharacterFormatBehavior(String rendering, int declaredPrecision,
+            boolean accepted) throws Exception {
+        // Empty CSV fields represent SQL NULL, unlike an empty String in ISQLServerBulkData.
+        String expected = rendering.isEmpty() ? "stored null" : accepted ? "stored " + STORED_GUID : "rejected";
+        assertEquals(expected, bulkCopyGuidCsvOutcome(rendering, java.sql.Types.CHAR, declaredPrecision));
+        assertEquals(expected, bulkCopyGuidCsvOutcome(rendering, microsoft.sql.Types.GUID, declaredPrecision));
+    }
+
+    private static String bulkCopyGuidCsvOutcome(String rendering, int srcJdbcType,
+            int declaredPrecision) throws Exception {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidCsvParityDest"));
+        byte[] csv = ("rowId,guidCol\n1," + rendering + "\n").getBytes(StandardCharsets.UTF_8);
+        try {
+            createGuidTable(table);
+            try (Connection conn = getConnection(); InputStream input = new ByteArrayInputStream(csv);
+                    SQLServerBulkCSVFileRecord record = new SQLServerBulkCSVFileRecord(input, Constants.UTF8,
+                            Constants.COMMA, true);
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+                record.addColumnMetadata(2, "guidCol", srcJdbcType, declaredPrecision, 0);
+                bulkCopy.addColumnMapping(2, 1);
+                bulkCopy.setDestinationTableName(table);
+                bulkCopy.writeToServer(record);
+            } catch (SQLServerException e) {
+                return "rejected";
+            }
+            return "stored " + readGuids(table).get(0);
+        } finally {
+            dropTable(table);
+        }
+    }
+
     /**
      * Returns what a single row bulk copy of the value into a uniqueidentifier column did, so that the character and
      * the native wire format can be compared. The messages of a rejection are not comparable, since the character
      * format is rejected by the server and the native one by the driver.
      */
-    private static String bulkCopyGuidOutcome(String rendering, int srcJdbcType,
+    private static String bulkCopyGuidOutcome(Object rendering, int srcJdbcType,
             int declaredPrecision) throws Exception {
         String guidDestTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidParityDest"));
 
