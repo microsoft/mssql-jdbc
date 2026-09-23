@@ -4423,7 +4423,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return "";
         }
         // double single quotes
-        return s.replace("'", "''");
+        return Util.escapeSingleQuotes(s);
     }
 
     private String bytesToHexLiteral(byte[] bytes) {
