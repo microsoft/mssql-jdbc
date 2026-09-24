@@ -27,7 +27,6 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.legacyFx)
 @Tag(Constants.legacyFxAE)
-@Tag(Constants.reqExternalSetup)
 public class CEKCacheTTLTest extends AbstractTest {
 
     // Default CEK cache TTL applied by SQLServerConnection (2 hours).

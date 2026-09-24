@@ -35,7 +35,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.legacyFx)
 @Tag(Constants.legacyFxAE)
-@Tag(Constants.reqExternalSetup)
 public class CMKRotationTest extends AbstractTest {
 
     @BeforeAll

@@ -42,7 +42,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.legacyFx)
 @Tag(Constants.legacyFxAE)
-@Tag(Constants.reqExternalSetup)
 public class AEDataTypeEdgeCaseTest extends AbstractTest {
 
     private static final String tableName = AbstractSQLGenerator

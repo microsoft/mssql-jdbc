@@ -32,7 +32,6 @@ import com.microsoft.sqlserver.testframework.Constants;
 @RunWith(JUnitPlatform.class)
 @Tag(Constants.legacyFx)
 @Tag(Constants.legacyFxAE)
-@Tag(Constants.reqExternalSetup)
 public class TrustedKeyPathTest extends AbstractTest {
 
     @BeforeAll
@@ -53,9 +52,10 @@ public class TrustedKeyPathTest extends AbstractTest {
         Map<String, List<String>> retrievedPaths = SQLServerConnection
                 .getColumnEncryptionTrustedMasterKeyPaths();
         assertNotNull(retrievedPaths);
-        assertTrue(retrievedPaths.containsKey("testServer"));
-        assertTrue(retrievedPaths.get("testServer").contains("testPath1"));
-        assertTrue(retrievedPaths.get("testServer").contains("testPath2"));
+        // The driver stores server names in upper case
+        assertTrue(retrievedPaths.containsKey("TESTSERVER"));
+        assertTrue(retrievedPaths.get("TESTSERVER").contains("testPath1"));
+        assertTrue(retrievedPaths.get("TESTSERVER").contains("testPath2"));
 
         // Cleanup
         SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(new HashMap<>());
@@ -89,8 +89,8 @@ public class TrustedKeyPathTest extends AbstractTest {
 
         Map<String, List<String>> retrievedPaths = SQLServerConnection
                 .getColumnEncryptionTrustedMasterKeyPaths();
-        assertTrue(retrievedPaths.containsKey("server2"));
-        assertFalse(retrievedPaths.containsKey("server1"), "server1 should no longer be present after full overwrite");
+        assertTrue(retrievedPaths.containsKey("SERVER2"));
+        assertFalse(retrievedPaths.containsKey("SERVER1"), "server1 should no longer be present after full overwrite");
 
         // Cleanup
         SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(new HashMap<>());
@@ -112,9 +112,9 @@ public class TrustedKeyPathTest extends AbstractTest {
 
         Map<String, List<String>> retrievedPaths = SQLServerConnection
                 .getColumnEncryptionTrustedMasterKeyPaths();
-        assertTrue(retrievedPaths.containsKey("server1"));
-        assertTrue(retrievedPaths.containsKey("server2"));
-        assertTrue(retrievedPaths.get("server2").size() == 2);
+        assertTrue(retrievedPaths.containsKey("SERVER1"));
+        assertTrue(retrievedPaths.containsKey("SERVER2"));
+        assertTrue(retrievedPaths.get("SERVER2").size() == 2);
 
         // Cleanup
         SQLServerConnection.setColumnEncryptionTrustedMasterKeyPaths(new HashMap<>());

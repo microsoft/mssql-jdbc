@@ -53,7 +53,6 @@ import microsoft.sql.DateTimeOffset;
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xAzureSQLDW)
 @Tag(Constants.xAzureSQLDB)
-@Tag(Constants.reqExternalSetup)
 @Tag(Constants.alwaysEncrypted)
 public class CallableStatementTest extends AESetup {
 

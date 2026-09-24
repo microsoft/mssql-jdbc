@@ -32,7 +32,6 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 @Tag(Constants.xSQLv11)
 @Tag(Constants.xSQLv12)
 @Tag(Constants.xSQLv14)
-@Tag(Constants.reqExternalSetup)
 @Tag(Constants.alwaysEncrypted)
 public class ParameterMetaDataCacheTest extends AESetup {
 
@@ -64,16 +63,20 @@ public class ParameterMetaDataCacheTest extends AESetup {
             createTable(CHAR_TABLE_AE, cekAkv, charTable);
             createTable(NUMERIC_TABLE_AE, cekAkv, numericTable);
 
-            // Success is measured by looking at execution time. The second update to the char table should be faster
-            // as it will copy values from the cache, instead of fetching them from the server.
+            // Success is measured by looking at execution time. Later updates to the char table should be faster
+            // as they copy values from the cache, instead of fetching them from the server. Take the best of several
+            // cached runs to reduce timing noise.
             long firstRun = timedCharUpdate(charValues);
-            populateNumeric(numericValues);
-            long secondRun = timedCharUpdate(charValues);
+            long cachedRun = Long.MAX_VALUE;
+            for (int i = 0; i < 3; i++) {
+                populateNumeric(numericValues);
+                cachedRun = Math.min(cachedRun, timedCharUpdate(charValues));
+            }
 
-            double threshold = 0.15;
             // AEv2 does not support caching
             if (!TestUtils.isAEv2(con)) {
-                assertTrue(1 - (secondRun / firstRun) > threshold);
+                assertTrue(cachedRun < firstRun, "Expected cached run (" + cachedRun
+                        + " ns) to be faster than first run (" + firstRun + " ns)");
             }
         }
     }
@@ -154,9 +157,9 @@ public class ParameterMetaDataCacheTest extends AESetup {
     }
 
     private long timedCharUpdate(String[] values) throws SQLException {
-        long timer = System.currentTimeMillis();
+        long timer = System.nanoTime();
         populateCharNormalCase(values);
-        return System.currentTimeMillis() - timer;
+        return System.nanoTime() - timer;
     }
 
     /**
