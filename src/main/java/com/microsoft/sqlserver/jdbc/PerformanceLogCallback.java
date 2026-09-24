@@ -16,6 +16,27 @@ package com.microsoft.sqlserver.jdbc;
 public interface PerformanceLogCallback {
 
     /**
+     * Publishes the START and END boundaries of an accurately bounded connection activity, independently of JUL
+     * logging level. Use {@link PerformanceLogEvent#getType()} to distinguish the boundaries. The same callback
+     * instance receives both, even if registration changes. Broad legacy LOGIN and TOKEN_ACQUISITION wrappers and
+     * statement activities do not invoke this overload.
+     *
+     * START has zero end time and duration and no failure. END is published once, including for successful activities.
+     * Export filtering and buffering belong to the callback. Times are always nanoseconds, regardless of
+     * {@link #useNanoseconds()}.
+     * Only the originating failure scope carries detailed error attributes; enclosing failed scopes carry a summary.
+     * The default implementation is a no-op for backward compatibility. This overload does not change the legacy
+     * close-time {@code publish} calls or their duration units.
+     *
+     * @param event
+     *        immutable boundary snapshot; the exception is an in-process diagnostic and must not be exported raw
+     * @throws Exception
+     *         if the callback fails; the driver isolates callback failures from SQL operations and still performs
+     *         legacy publication and scope cleanup
+     */
+    default void publish(PerformanceLogEvent event) throws Exception {}
+
+    /**
      * Publish performance log for connection-level activities.
      * 
      * @param activity     The type of activity being logged.

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.microsoft.sqlserver</groupId>
+    <artifactId>mssql-jdbc-otel</artifactId>
+    <version>13.6.0</version>
+    <name>Microsoft JDBC optional OpenTelemetry connection adapter</name>
+    <!-- Deliberately standalone: the driver remains a jar, not a reactor parent. -->
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <jdbc.version>13.6.0</jdbc.version>
+        <otel.version>1.41.0</otel.version>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId><artifactId>mssql-jdbc</artifactId>
+            <version>${jdbc.version}</version><scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId><artifactId>opentelemetry-api</artifactId><version>${otel.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId><artifactId>opentelemetry-sdk-testing</artifactId>
+            <version>${otel.version}</version><scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter-api</artifactId>
+            <version>5.11.4</version><scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter-engine</artifactId>
+            <version>5.11.4</version><scope>test</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.8.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.1.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.0.0-M1</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>

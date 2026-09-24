@@ -1466,14 +1466,11 @@ public final class SQLServerDriver implements java.sql.Driver {
             }
         }
 
-        // Merge connectProperties (from URL) and supplied properties from user.
-        Properties connectProperties = parseAndMergeProperties(url, suppliedProperties);
-        if (connectProperties != null) {
+        // Reject other drivers' URLs without creating a connection or publishing an open operation.
+        // Parse recognized URLs inside the connection's configuration scope, including malformed URLs.
+        if (null == url || url.startsWith("jdbc:sqlserver://")) {
             result = DriverJDBCVersion.getSQLServerConnection(toString());
-            // if (connectProperties.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString()) == null) {
-            //     connectProperties.setProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString(), SQLServerDriver.constructedAppName);
-            // }   
-            result.connect(connectProperties, null);
+            result = (SQLServerConnection) result.connect(url, suppliedProperties, this);
         }
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "connect", result);
@@ -1481,7 +1478,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return result;
     }
 
-    private Properties parseAndMergeProperties(String url, Properties suppliedProperties) throws SQLServerException {
+    Properties parseAndMergeProperties(String url, Properties suppliedProperties) throws SQLServerException {
         if (url == null) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_nullConnection"), null, 0, false);
         }

@@ -434,6 +434,8 @@ The source describes the origin of the observed error, not ultimate responsibili
 | `mssql.timeout.phase` | Applicable failure-phase value above | Phase whose wait expired. |
 | `mssql.timeout.kind` | `login_budget` | Overall connection/login budget expiration is established. |
 | `mssql.timeout.kind` | `socket_read` | Socket read wait expired. |
+| `mssql.timeout.kind` | `socket_connect` | An explicitly observed socket connection deadline expired. |
+| `mssql.timeout.kind` | `socket_selection` | The parallel connection-selection wait expired before any candidate supplied a result; distinct from socket reads. |
 | `mssql.timeout.kind` | `token_request` | Token provider/callback request deadline expired. |
 | `mssql.timeout.kind` | `routing_budget` | Routing transition exhausted its applicable connection budget. |
 | `mssql.timeout.kind` | `unknown` | Timeout is established but the responsible budget cannot be identified. |
@@ -517,7 +519,7 @@ An optional standard **`exception`** event may be recorded on the owning span on
 | `mssql.driver.authentication` | Token/login child | `mssql.authentication.method` (string), `mssql.authentication.token_source` (string when known); never token/user/client-secret values. |
 | `mssql.driver.retry` | Open | `mssql.connection.attempt` (int64: originating attempt index), `mssql.retry.attempt` (int64: next attempt index), `mssql.retry.reason` (bounded string), `mssql.retry.delay` (double seconds), `error.type` (string). Record only an actual retry-scheduling decision; correlate to the failed attempt through trace identity, parent references, and timestamps. A decision event does not imply the next attempt actually began. |
 | `mssql.driver.redirect` | Open | `mssql.connection.attempt` (int64 origin index), `mssql.connection.redirect.index` (int64), `mssql.connection.redirect.type` (string: `tds_routing` or `enhanced_routing`), `mssql.connection.endpoint_role` (string: `redirect_target`). No target hostname, IP, database, or URL. |
-| `mssql.driver.timeout` | Failing phase, or root if no phase | `mssql.timeout.phase` (string), `mssql.timeout.value` (double seconds when known), `mssql.timeout.kind` (string: `login_budget`, `socket_read`, `token_request`, `routing_budget`, `unknown`), `mssql.connection.attempt` (int64 when available), `error.type` (string). Correlate through native trace/span IDs, timestamps, and attempt context. Companion diagnostic event, not another overall failure. |
+| `mssql.driver.timeout` | Failing phase, or root if no phase | `mssql.timeout.phase` (string), `mssql.timeout.value` (double seconds when known), `mssql.timeout.kind` (string: `login_budget`, `socket_connect`, `socket_selection`, `socket_read`, `token_request`, `routing_budget`, `unknown`), `mssql.connection.attempt` (int64 when available), `error.type` (string). Correlate through native trace/span IDs, timestamps, and attempt context. Companion diagnostic event, not another overall failure. |
 
 ### 5. Pooled acquisition and reset — separate extension
 

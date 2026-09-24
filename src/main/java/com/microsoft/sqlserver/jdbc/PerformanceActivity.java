@@ -110,7 +110,29 @@ public enum PerformanceActivity {
      * 
      * For Statement: Full execution time of SQL query.
      */
-    STATEMENT_EXECUTE("Statement execute");
+    STATEMENT_EXECUTE("Statement execute"),
+
+    // Lifecycle-only activities. Appended to preserve existing ordinals; never passed to legacy publish callbacks.
+    /** Validated connection configuration. */
+    CONNECTION_CONFIGURATION("Connection configuration"),
+    /** One endpoint connection attempt, not a parallel socket candidate. */
+    CONNECTION_ATTEMPT("Connection attempt"),
+    /** SQL Browser instance discovery. */
+    INSTANCE_DISCOVERY("Instance discovery"),
+    /** An actual host resolution operation. */
+    DNS("DNS"),
+    /** Socket connection establishment. */
+    SOCKET_CONNECT("Socket connect"),
+    /** TLS negotiation. */
+    TLS("TLS"),
+    /** Narrow TDS login exchange, unlike the legacy LOGIN wrapper. */
+    LOGIN_EXCHANGE("Login exchange"),
+    /** Actual token request, unlike the legacy TOKEN_ACQUISITION wrapper. */
+    TOKEN_REQUEST("Token request"),
+    /** Required post-login connection initialization. */
+    CONNECTION_INITIALIZE("Connection initialize"),
+    /** Processing a server routing transition after the login exchange. */
+    CONNECTION_REDIRECT("Connection redirect");
 
     private final String activity;
 
@@ -120,6 +142,42 @@ public enum PerformanceActivity {
 
     public String activity() {
         return activity;
+    }
+
+    // Deliberately not inferred from display names: old broad wrappers have no lifecycle phase.
+    String connectionPhase() {
+        switch (this) {
+            case CONNECTION:
+                return "connection.open";
+            case PRELOGIN:
+                return "prelogin";
+            case CONNECTION_CONFIGURATION:
+                return "configuration";
+            case CONNECTION_ATTEMPT:
+                return "attempt";
+            case INSTANCE_DISCOVERY:
+                return "instance_discovery";
+            case DNS:
+                return "dns";
+            case SOCKET_CONNECT:
+                return "socket_connect";
+            case TLS:
+                return "tls";
+            case LOGIN_EXCHANGE:
+                return "login";
+            case TOKEN_REQUEST:
+                return "token_acquisition";
+            case CONNECTION_INITIALIZE:
+                return "initialize";
+            case CONNECTION_REDIRECT:
+                return "redirect";
+            default:
+                return null;
+        }
+    }
+
+    boolean isLifecycleOnly() {
+        return this != CONNECTION && this != PRELOGIN && connectionPhase() != null;
     }
 
     @Override
