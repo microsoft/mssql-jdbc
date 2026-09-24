@@ -566,6 +566,34 @@ Retain the physical GUID internally even when successful opens are not exported.
 
 ### 6. Export, privacy, and metrics
 
+#### Fire-and-forget callback boundary
+
+**Protect connection execution from telemetry backpressure.** The OTel callback performs only fixed metadata checks, captures the root caller's span context, removes the raw exception reference through a constant-time snapshot projection, and tries to enqueue the event. It does not construct OTel attributes/spans, assemble trees, scan for expired opens, traverse causes, invoke SDK processors/exporters, or wait for queue capacity or a worker-held lock.
+
+```text
+JDBC thread: capture START/END → callback → try enqueue → return
+										   │
+								  bounded event queue
+										   │
+ingestion worker: validate/filter → assemble bounded trees → discard successes
+										   │
+								  bounded failed-tree queue
+										   │
+export worker: construct OTel spans/events → application SDK/exporter
+```
+
+| Boundary | Implementation behavior |
+|---|---|
+| Raw-event admission | `eventQueueCapacity` defaults to 4,096 waiting snapshots, plus one in-flight ingestion snapshot. Admission uses `tryLock` and `tryAcquire`, never blocking acquisition or a capacity wait. On contention or capacity exhaustion the callback drops telemetry and returns. |
+| Snapshot safety | `PerformanceLogEvent.withoutException()` shares immutable driver-generated metadata and retains only a failure boolean instead of the exception reference. Queued snapshots do not retain the original event's Throwable, connection, caller span object, or full context/baggage. Only the root's `SpanContext` is captured on the caller thread for later parenting. |
+| Background work | Ingestion owns attribute-policy conversion, per-open buffering, diagnostic processing, ancestry repair and completion filtering. A separate worker performs SDK span/metric construction and handoff; a blocked application processor cannot block JDBC callbacks. An independent expiry task bounds incomplete-tree retention. |
+| Lost boundaries | An admission loss advances a loss epoch. Older queued events and pending partial trees are conservatively discarded, including potentially unrelated concurrent opens. This avoids presenting trees with lost boundaries as complete; delivery is deliberately lossy rather than imposing JDBC backpressure. |
+| Loss visibility | `droppedEventCount()` counts rejected/discarded raw boundaries, distinct from `droppedOpenCount()` and per-tree dropped-span/event attributes. These counters are best-effort diagnostics, not proof that every operation was observed. |
+| Metric limitation | Failure/timeout counters require an accepted, complete observed root. Ingress loss can therefore undercount them. Once recognized, pending counter deltas are independent of completed-tree queue drops. No synchronous metric call is made to compensate for an ingress drop. |
+| Drain and close | `awaitIdle()` includes queued/in-flight ingestion and SDK handoff, but does not force-flush the application exporter. `close()` rejects new events and drains within its configured budget; on expiry it drops retained work. Neither should be called per connection, and neither closes the application SDK. |
+
+**Not a zero-cost claim:** driver phase tracking, timestamps, immutable snapshot creation and bounded source-evidence error classification still run in the driver before the callback. Context capture, allocations and queue admission also have a small cost; JVM scheduling/GC can add latency. This design removes telemetry processing/export waits from the callback, not all instrumentation overhead. Measure enabled/disabled overhead and contention/drop rates before setting a performance budget.
+
 #### Privacy across the driver telemetry stream
 
 Apply policy to resources, scope metadata, spans, events, and correlated logs. Prohibit host names, IPs, user names, raw database names/SQL, full connection strings, token/authorization headers, passwords, certificate/key paths, SPNs/authority URLs, exporter endpoint URLs, ARM IDs containing resource names, and unfiltered exception/property/baggage or arbitrary user-agent payloads. Omit `server.address`, `server.port` if not required by the approved schema, `network.peer.address`, `db.namespace`, `db.query.text`, and `azure.resource.id`; exclude automatic `host.name` and IP/endpoint attributes. Hashing an endpoint does not automatically approve it.

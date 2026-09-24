@@ -85,6 +85,13 @@ public final class ConnectionEventFixture {
                 event.getDurationNanos(), event.getException(), null, Collections.emptyMap(), Collections.emptyMap());
     }
 
+    public static PerformanceLogEvent withException(PerformanceLogEvent event, Exception failure) {
+        return new PerformanceLogEvent(event.getType(), event.getScopeId(), event.getParentScopeId(),
+                event.getRootScopeId(), event.getConnectionId(), event.getActivity(), event.getStartEpochNanos(),
+                event.getEndEpochNanos(), event.getDurationNanos(), failure, event.getFailurePhase(),
+                event.getAttributes(), event.getErrorAttributes(), event.getDiagnosticEvents());
+    }
+
     public static PerformanceLogEvent withDiagnostics(PerformanceLogEvent event,
             List<Map<String, Object>> diagnostics) {
         return new PerformanceLogEvent(event.getType(), event.getScopeId(), event.getParentScopeId(),

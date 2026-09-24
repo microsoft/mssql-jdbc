@@ -13,9 +13,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceConfigurationError;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
 
 import com.microsoft.sqlserver.jdbc.PerformanceActivity;
@@ -27,6 +32,7 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
@@ -41,9 +47,13 @@ import io.opentelemetry.context.Context;
  * sampling, processors, exporters and their flush/shutdown lifecycle; this adapter never closes that instance.
  *
  * <p>
- * One daemon worker hands completed failed trees to the application's SDK, with original timestamps and the
- * caller's span context captured at root START. No SDK span/metric operation runs on a JDBC callback thread.
- * Queue overload drops whole trees. Per-open limits evict completed older spans before admitting new branches.
+ * JDBC callbacks only capture the root caller's SpanContext, project immutable exception-free events and attempt
+ * nonblocking admission to a bounded event queue. An ingestion daemon constructs trees and applies attribute policy;
+ * a separate export daemon hands completed failed trees to the application's SDK with original timestamps.
+ * No SDK span/metric operation or tree processing runs on a JDBC callback thread. Admission contention or event
+ * overflow advances a loss epoch: queued older events and pending partial trees are conservatively discarded.
+ * Consequently unrelated concurrent opens may also be lost, but missing boundaries do not fabricate complete trees.
+ * Complete-tree queue overload drops whole trees. Per-open limits evict completed older spans before admitting new branches.
  * Optional counters use two constant-space pending deltas independent of the span queue; SDK instrument construction
  * failures are retried at most once per 100 milliseconds while spans continue to be processed.
  * Active retained ancestors are never evicted to admit descendants. If a path cannot fit, its error is attached to
@@ -61,6 +71,13 @@ import io.opentelemetry.context.Context;
 public final class OpenTelemetryConnectionCallback implements PerformanceLogCallback, AutoCloseable {
     private static final String SCOPE = "com.microsoft.sqlserver.jdbc";
     private final Object lock = new Object();
+    // Producers only try this lock; no consumer processing or application hook runs while holding it.
+    private final ReentrantLock admission = new ReentrantLock();
+    private final ConcurrentLinkedQueue<Envelope> ingress = new ConcurrentLinkedQueue<>();
+    private final Semaphore eventSlots;
+    private final AtomicLong ingressOutstanding = new AtomicLong();
+    private final AtomicLong lossEpoch = new AtomicLong();
+    private final AtomicLong droppedEvents = new AtomicLong();
     private final OpenTelemetry telemetry;
     private final int maxPendingOpens;
     private final int maxSpansPerOpen;
@@ -74,9 +91,12 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
     private final Map<Long, Open> pending = new LinkedHashMap<>();
     private final Deque<Open> queue = new ArrayDeque<>();
     private final Thread worker;
+    private final Thread ingestion;
     private final ScheduledExecutorService expiry;
-    private boolean closed;
+    private volatile boolean closed;
+    private volatile boolean ingestionDone;
     private boolean active;
+    private long observedEpoch;
     private volatile boolean abort;
     private long droppedOpens;
     // Lock-protected constant-space deltas, independent of span queue capacity and application sampling.
@@ -92,16 +112,19 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         maxSpansPerOpen = builder.maxSpansPerOpen;
         maxEventsPerOpen = builder.maxEventsPerOpen;
         queueCapacity = builder.queueCapacity;
+        eventSlots = new Semaphore(builder.eventQueueCapacity);
         maxOpenAgeNanos = builder.maxOpenAge.toNanos();
         closeTimeoutNanos = builder.closeTimeout.toNanos();
         nanoClock = builder.nanoClock;
         approvedUserAgent = builder.approvedUserAgent;
         metricsEnabled = builder.metricsEnabled;
         worker = daemon(this::work, "mssql-jdbc-otel-export");
+        ingestion = daemon(this::ingest, "mssql-jdbc-otel-ingest");
         expiry = Executors.newSingleThreadScheduledExecutor(task -> daemon(task, "mssql-jdbc-otel-expiry"));
         long interval = Math.min(maxOpenAgeNanos, TimeUnit.SECONDS.toNanos(1));
         expiry.scheduleWithFixedDelay(this::expirePending, interval, interval, TimeUnit.NANOSECONDS);
         worker.start();
+        ingestion.start();
     }
 
     private static Thread daemon(Runnable task, String name) {
@@ -130,6 +153,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         private int maxSpansPerOpen = 128;
         private int maxEventsPerOpen = 256;
         private int queueCapacity = 64;
+        private int eventQueueCapacity = 4096;
         private Duration maxOpenAge = Duration.ofMinutes(5);
         private Duration closeTimeout = Duration.ofSeconds(5);
         private boolean metricsEnabled;
@@ -181,6 +205,20 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         }
 
         /**
+         * Sets the raw boundary queue limit, separate from the completed-tree {@link #queueCapacity(int)} limit.
+         * Admission never waits: overflow or concurrent-producer contention can discard events and invalidate
+         * unrelated pending trees. There is no lossless-delivery guarantee.
+         *
+         * @param value
+         *        maximum queued event snapshots, excluding one in-flight ingestion event (default 4096)
+         * @return this builder
+         */
+        public Builder eventQueueCapacity(int value) {
+            eventQueueCapacity = positive(value);
+            return this;
+        }
+
+        /**
          * @param value
          *        positive retention age (default five minutes)
          * @return this builder
@@ -207,7 +245,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
          * trace SDK failures and application sampling. Two bounded pending deltas are drained by the worker, not by
          * JDBC callback threads. Transactional instrument initialization is retried with a bounded frequency without
          * losing pending deltas. These are not total driver failure counts: roots expired/evicted before END and
-         * roots with no observed START are excluded. Close timeout, numeric saturation at Long.MAX_VALUE, or SDK
+         * roots with no observed START or invalidated by event loss are excluded. Close timeout, numeric saturation at Long.MAX_VALUE, or SDK
          * recording failures can undercount. A throwing add is not retried because it may already have recorded the
          * delta. Metrics failures never suppress spans. The supplied SDK remains application-owned.
          * 
@@ -273,14 +311,103 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         if (event == null || event.getPhase() == null || event.getScopeId() <= 0 || event.getRootScopeId() <= 0) {
             return;
         }
-        synchronized (lock) {
-            if (closed) {
+        if (closed) {
+            droppedEvents.incrementAndGet();
+            return;
+        }
+        SpanContext parent = event.getType() == PerformanceLogEvent.Type.START && isRoot(event) ? Span.current()
+                .getSpanContext() : null;
+        PerformanceLogEvent snapshot = event.withoutException();
+        if (!admission.tryLock()) {
+            loseEvent();
+            return;
+        }
+        try {
+            if (closed || !eventSlots.tryAcquire()) {
+                loseEvent();
                 return;
             }
-            expireLocked();
+            ingressOutstanding.incrementAndGet();
+            ingress.offer(new Envelope(snapshot, parent, lossEpoch.get()));
+        } finally {
+            admission.unlock();
+        }
+        LockSupport.unpark(ingestion);
+    }
+
+    private static boolean isRoot(PerformanceLogEvent event) {
+        return event.getActivity() == PerformanceActivity.CONNECTION && event.getScopeId() == event.getRootScopeId()
+                && event.getParentScopeId() == 0;
+    }
+
+    private void loseEvent() {
+        lossEpoch.incrementAndGet();
+        droppedEvents.incrementAndGet();
+        LockSupport.unpark(ingestion);
+    }
+
+    private void ingest() {
+        try {
+            while (!abort) {
+                Envelope envelope = ingress.poll();
+                if (envelope == null) {
+                    synchronized (lock) {
+                        invalidateLostTrees();
+                        lock.notifyAll();
+                    }
+                    if (closed && ingressOutstanding.get() == 0) {
+                        return;
+                    }
+                    LockSupport.park(this);
+                    continue;
+                }
+                eventSlots.release();
+                try {
+                    // Keep user-injected clocks outside every lock, including during expiry and shutdown.
+                    long now = nanoClock.getAsLong();
+                    process(envelope, now);
+                } catch (RuntimeException | LinkageError | ServiceConfigurationError e) {
+                    loseEvent();
+                    synchronized (lock) {
+                        invalidateLostTrees();
+                    }
+                } finally {
+                    ingressOutstanding.decrementAndGet();
+                    synchronized (lock) {
+                        lock.notifyAll();
+                    }
+                }
+            }
+        } finally {
+            synchronized (lock) {
+                droppedOpens += pending.size();
+                pending.clear();
+                ingestionDone = true;
+                lock.notifyAll();
+            }
+        }
+    }
+
+    private void invalidateLostTrees() {
+        long epoch = lossEpoch.get();
+        if (observedEpoch != epoch) {
+            droppedOpens += pending.size();
+            pending.clear();
+            observedEpoch = epoch;
+        }
+    }
+
+    private void process(Envelope envelope, long now) {
+        PerformanceLogEvent event = envelope.event;
+        synchronized (lock) {
+            invalidateLostTrees();
+            if (abort || envelope.epoch != observedEpoch) {
+                droppedEvents.incrementAndGet();
+                return;
+            }
+            expireLocked(now);
             long rootId = event.getRootScopeId();
-            boolean root = event.getActivity() == PerformanceActivity.CONNECTION && event.getScopeId() == rootId
-                    && event.getParentScopeId() == 0;
+            boolean root = isRoot(event);
             Open open = pending.get(rootId);
             if (event.getType() == PerformanceLogEvent.Type.START) {
                 if (root && open == null) {
@@ -290,9 +417,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
                         iterator.remove();
                         droppedOpens++;
                     }
-                    // Capture only trace parent, not arbitrary Context values, baggage or the live application span.
-                    open = new Open(rootId, nanoClock.getAsLong(),
-                            Context.root().with(Span.wrap(Span.current().getSpanContext())));
+                    open = new Open(rootId, now, Context.root().with(Span.wrap(envelope.parent)));
                     pending.put(rootId, open);
                 }
                 if (open != null && !open.nodes.containsKey(event.getScopeId())
@@ -337,6 +462,12 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
                     retainDiagnostics(open, node.id, event);
                     retainError(open, node.id, event);
                     if (root) {
+                        // Loss may occur while policy/diagnostic processing runs. Do not commit that partial tree.
+                        if (envelope.epoch != lossEpoch.get()) {
+                            invalidateLostTrees();
+                            droppedEvents.incrementAndGet();
+                            return;
+                        }
                         pending.remove(rootId);
                         if (node.failed) {
                             if (metricsEnabled) {
@@ -602,13 +733,13 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
 
     /** Removes expired incomplete trees. Also performed automatically, at least once per second. */
     public void expirePending() {
+        long now = nanoClock.getAsLong();
         synchronized (lock) {
-            expireLocked();
+            expireLocked(now);
         }
     }
 
-    private void expireLocked() {
-        long now = nanoClock.getAsLong();
+    private void expireLocked(long now) {
         Iterator<Open> iterator = pending.values().iterator();
         while (iterator.hasNext()) {
             if (now - iterator.next().created >= maxOpenAgeNanos) {
@@ -618,7 +749,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         }
     }
 
-    /** @return incomplete opens currently retained */
+    /** @return incomplete opens already processed by ingestion; excludes queued raw events */
     public int pendingOpenCount() {
         synchronized (lock) {
             return pending.size();
@@ -632,7 +763,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         }
     }
 
-    /** @return opens discarded due to retention/queue limits, close, or SDK handoff failure */
+    /** @return opens discarded due to event loss, retention/queue limits, close, or SDK handoff failure */
     public long droppedOpenCount() {
         synchronized (lock) {
             return droppedOpens;
@@ -640,7 +771,24 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
     }
 
     /**
-     * Waits for SDK handoff of completed trees and pending counter deltas; incomplete opens do not prevent idleness.
+     * Returns raw boundaries rejected on admission (including after close) or discarded after acceptance due to
+     * loss discontinuity, ingestion failure or close timeout. This is distinct from per-tree diagnostic event
+     * truncation and {@link #droppedOpenCount()}; loss may invalidate multiple otherwise unaffected opens.
+     *
+     * @return number of discarded raw event snapshots
+     */
+    public long droppedEventCount() {
+        return droppedEvents.get();
+    }
+
+    // Test seam: wait for ingestion without requiring an application-blocked SDK worker to drain.
+    boolean awaitIngestion(Duration timeout) throws InterruptedException {
+        return awaitIdle(timeout, true);
+    }
+
+    /**
+     * Waits for accepted raw events, in-flight ingestion, SDK handoff of completed trees and pending counter deltas;
+     * incomplete opens do not prevent idleness. Concurrent publishers may add work after idleness is observed.
      * Does not force-flush application-owned processors or exporters.
      * 
      * @param timeout
@@ -650,12 +798,18 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
      *         if interrupted while waiting
      */
     public boolean awaitIdle(Duration timeout) throws InterruptedException {
+        return awaitIdle(timeout, false);
+    }
+
+    private boolean awaitIdle(Duration timeout, boolean ingestionOnly) throws InterruptedException {
         long budget = validateDuration(timeout, true);
         long start = System.nanoTime();
         synchronized (lock) {
-            while (active || !queue.isEmpty() || pendingFailures != 0) {
+            while (ingressOutstanding.get() != 0 || (closed && !ingestionDone)
+                    || (!ingestionDone && observedEpoch != lossEpoch.get())
+                    || (!ingestionOnly && (active || !queue.isEmpty() || pendingFailures != 0))) {
                 long remaining = budget - (System.nanoTime() - start);
-                if (remaining <= 0 || Thread.currentThread() == worker) {
+                if (remaining <= 0 || Thread.currentThread() == worker || Thread.currentThread() == ingestion) {
                     return false;
                 }
                 TimeUnit.NANOSECONDS.timedWait(lock, remaining);
@@ -665,23 +819,25 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
     }
 
     /**
-     * Rejects new events, releases incomplete opens and drains queued work and counter deltas within the configured budget.
-     * On timeout, clears the queue and pending deltas and interrupts the daemon worker. A misbehaving application processor cannot
-     * be forcibly stopped; it can retain at most the one bounded in-flight tree until it returns.
+     * Rejects new events, drains accepted raw events, completed trees and counter deltas within the configured budget,
+     * then releases incomplete opens. On timeout, clears both queues and pending deltas and interrupts the workers.
+     * A misbehaving application processor cannot be forcibly stopped; it can retain at most one bounded in-flight tree
+     * until it returns. A blocked ingestion clock can retain one exception-free event until it returns.
      * Does not unregister another callback or flush/close any application SDK resource. Idempotent.
      */
     @Override
     public void close() {
-        synchronized (lock) {
+        admission.lock();
+        try {
             if (closed) {
                 return;
             }
             closed = true;
-            droppedOpens += pending.size();
-            pending.clear();
-            lock.notifyAll();
+        } finally {
+            admission.unlock();
         }
         expiry.shutdownNow();
+        LockSupport.unpark(ingestion);
         boolean drained = false;
         try {
             drained = awaitIdle(Duration.ofNanos(closeTimeoutNanos));
@@ -689,14 +845,23 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
             Thread.currentThread().interrupt();
         } finally {
             if (!drained) {
+                abort = true;
+                while (ingress.poll() != null) {
+                    eventSlots.release();
+                    droppedEvents.incrementAndGet();
+                    ingressOutstanding.decrementAndGet();
+                }
                 synchronized (lock) {
-                    abort = true;
+                    droppedOpens += pending.size();
+                    pending.clear();
                     droppedOpens += queue.size();
                     queue.clear();
                     pendingFailures = 0;
                     pendingTimeouts = 0;
                     lock.notifyAll();
                 }
+                ingestion.interrupt();
+                LockSupport.unpark(ingestion);
                 worker.interrupt();
             }
         }
@@ -713,7 +878,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
                     if (pendingFailures != 0 && (metricRetryAt == 0 || System.nanoTime() - metricRetryAt >= 0)) {
                         break;
                     }
-                    if (closed && pendingFailures == 0) {
+                    if (ingestionDone && pendingFailures == 0) {
                         return;
                     }
                     try {
@@ -879,6 +1044,18 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         }
     }
 
+    private static final class Envelope {
+        final PerformanceLogEvent event;
+        final SpanContext parent;
+        final long epoch;
+
+        Envelope(PerformanceLogEvent event, SpanContext parent, long epoch) {
+            this.event = event;
+            this.parent = parent;
+            this.epoch = epoch;
+        }
+    }
+
     private static final class RecordedEvent {
         long owner;
         final String name;
@@ -954,7 +1131,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
             // A phase label alone is not evidence that this particular boundary failed.
             Object outcome = event.getAttributes().get("mssql.connection.outcome");
             Object attemptOutcome = event.getAttributes().get("mssql.connection.attempt_outcome");
-            failed = event.getException() != null || event.getAttributes().containsKey("mssql.error.category")
+            failed = event.hasException() || event.getAttributes().containsKey("mssql.error.category")
                     || "failure".equals(attemptOutcome) || "timeout".equals(attemptOutcome)
                     || "canceled".equals(attemptOutcome) || "failure".equals(outcome) || "timeout".equals(outcome)
                     || "canceled".equals(outcome);

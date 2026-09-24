@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import com.microsoft.sqlserver.jdbc.PerformanceLogEvent.Type;
 
+
 class PerformanceLogLifecycleTest {
     static class Collector implements PerformanceLogCallback {
         final List<PerformanceLogEvent> starts = new ArrayList<>();
@@ -93,15 +94,15 @@ class PerformanceLogLifecycleTest {
         assertEquals(3, c.starts.size());
         assertEquals(3, c.ends.size());
         assertEquals(3, c.published.size());
-        assertEquals(Arrays.asList("start:connection.open", "start:dns", "end:dns", "publish:LOGIN",
-            "start:prelogin", "end:prelogin", "publish:PRELOGIN", "end:connection.open", "publish:CONNECTION"),
-            c.order);
+        assertEquals(Arrays.asList("start:connection.open", "start:dns", "end:dns", "publish:LOGIN", "start:prelogin",
+                "end:prelogin", "publish:PRELOGIN", "end:connection.open", "publish:CONNECTION"), c.order);
         PerformanceLogEvent root = c.starts.get(0);
         assertEquals(0, root.getParentScopeId());
         assertEquals(root.getScopeId(), root.getRootScopeId());
         assertEquals(con.getConnectionID(), root.getConnectionId());
         for (PerformanceLogEvent start : c.starts) {
-            PerformanceLogEvent end = c.ends.stream().filter(e -> e.getScopeId() == start.getScopeId()).findFirst().get();
+            PerformanceLogEvent end = c.ends.stream().filter(e -> e.getScopeId() == start.getScopeId()).findFirst()
+                    .get();
             assertEquals(Type.START, start.getType());
             assertEquals(Type.END, end.getType());
             assertNull(start.getException());
@@ -123,10 +124,49 @@ class PerformanceLogLifecycleTest {
     }
 
     @Test
+    void asyncSnapshotSharesImmutableMetadataButNeverRetainsException() {
+        Exception hostile = new RuntimeException("SECRET") {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public synchronized Throwable getCause() {
+                throw new AssertionError("Snapshot must not inspect exceptions");
+            }
+        };
+        for (Exception failure : new Exception[] {null, hostile}) {
+            PerformanceLogEvent original = new PerformanceLogEvent(Type.END, 2, 1, 1, 7, PerformanceActivity.DNS, 10,
+                    30, 20, failure, "dns", Collections.singletonMap("error.type", "unknown"), Collections.emptyMap(),
+                    Collections.singletonList(Collections.singletonMap("name", "mssql.driver.retry")));
+            PerformanceLogEvent snapshot = original.withoutException();
+            assertSame(failure, original.getException());
+            assertNull(snapshot.getException());
+            assertEquals(failure != null, snapshot.hasException());
+            assertEquals(original.hasException(), snapshot.hasException());
+            assertSame(snapshot, snapshot.withoutException());
+            assertSame(original.getAttributes(), snapshot.getAttributes());
+            assertSame(original.getErrorAttributes(), snapshot.getErrorAttributes());
+            assertSame(original.getDiagnosticEvents(), snapshot.getDiagnosticEvents());
+            assertEquals(original.getType(), snapshot.getType());
+            assertEquals(original.getScopeId(), snapshot.getScopeId());
+            assertEquals(original.getParentScopeId(), snapshot.getParentScopeId());
+            assertEquals(original.getRootScopeId(), snapshot.getRootScopeId());
+            assertEquals(original.getConnectionId(), snapshot.getConnectionId());
+            assertEquals(original.getActivity(), snapshot.getActivity());
+            assertEquals(original.getPhase(), snapshot.getPhase());
+            assertEquals(original.getFailurePhase(), snapshot.getFailurePhase());
+            assertEquals(original.getStartEpochNanos(), snapshot.getStartEpochNanos());
+            assertEquals(original.getEndEpochNanos(), snapshot.getEndEpochNanos());
+            assertEquals(original.getDurationNanos(), snapshot.getDurationNanos());
+            assertThrows(UnsupportedOperationException.class, () -> snapshot.getAttributes().clear());
+            assertThrows(UnsupportedOperationException.class, () -> snapshot.getDiagnosticEvents().clear());
+        }
+    }
+
+    @Test
     void explicitEventTypeDoesNotDependOnTimestampsOrException() {
         for (Type type : Type.values()) {
-            PerformanceLogEvent event = new PerformanceLogEvent(type, 1, 0, 1, 0, PerformanceActivity.CONNECTION,
-                    0, 0, 0, null, null, Collections.emptyMap(), Collections.emptyMap());
+            PerformanceLogEvent event = new PerformanceLogEvent(type, 1, 0, 1, 0, PerformanceActivity.CONNECTION, 0, 0,
+                    0, null, null, Collections.emptyMap(), Collections.emptyMap());
             assertEquals(type, event.getType());
             assertEquals(0, event.getEndEpochNanos());
             assertEquals(0, event.getDurationNanos());

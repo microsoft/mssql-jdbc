@@ -37,6 +37,7 @@ public final class PerformanceLogEvent {
     private final long endEpochNanos;
     private final long durationNanos;
     private final Exception exception;
+    private final boolean hasException;
     private final String failurePhase;
     private final Map<String, Object> attributes;
     private final Map<String, Object> errorAttributes;
@@ -65,11 +66,47 @@ public final class PerformanceLogEvent {
         this.endEpochNanos = endEpochNanos;
         this.durationNanos = durationNanos;
         this.exception = exception;
+        this.hasException = exception != null;
         this.failurePhase = failurePhase;
         this.attributes = Collections.unmodifiableMap(new LinkedHashMap<>(attributes));
         this.errorAttributes = Collections.unmodifiableMap(new LinkedHashMap<>(errorAttributes));
         // Entries and their nested attribute maps are already immutable driver-owned snapshots.
         this.diagnosticEvents = Collections.unmodifiableList(new ArrayList<>(diagnosticEvents));
+    }
+
+    private PerformanceLogEvent(PerformanceLogEvent source) {
+        type = source.type;
+        scopeId = source.scopeId;
+        parentScopeId = source.parentScopeId;
+        rootScopeId = source.rootScopeId;
+        connectionId = source.connectionId;
+        activity = source.activity;
+        phase = source.phase;
+        startEpochNanos = source.startEpochNanos;
+        endEpochNanos = source.endEpochNanos;
+        durationNanos = source.durationNanos;
+        exception = null;
+        hasException = source.hasException;
+        failurePhase = source.failurePhase;
+        attributes = source.attributes;
+        errorAttributes = source.errorAttributes;
+        diagnosticEvents = source.diagnosticEvents;
+    }
+
+    /**
+     * Returns an asynchronous-safe projection with no exception reference. This constant-time operation shares the
+     * already immutable metadata, does not inspect the exception or its causes, and preserves {@link #hasException()}.
+     * The original event is unchanged and remains available to trusted synchronous diagnostics.
+     *
+     * @return this event if it already has no exception reference, otherwise an exception-free snapshot
+     */
+    public PerformanceLogEvent withoutException() {
+        return exception == null ? this : new PerformanceLogEvent(this);
+    }
+
+    /** @return whether an exception was captured, including when its reference was removed by projection */
+    public boolean hasException() {
+        return hasException;
     }
 
     /** @return explicit START or END boundary, independent of timestamps and failure state */
@@ -122,7 +159,7 @@ public final class PerformanceLogEvent {
         return durationNanos;
     }
 
-    /** @return original captured failure, or null; never export this reference raw */
+    /** @return original captured failure, or null when absent or projected out; never export this reference raw */
     public Exception getException() {
         return exception;
     }

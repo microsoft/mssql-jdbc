@@ -135,8 +135,250 @@ class OpenTelemetryConnectionCallbackTest {
         return exporter.getFinishedSpanItems();
     }
 
+    private void drainIngestion() throws Exception {
+        assertTrue(adapter.awaitIngestion(WAIT));
+    }
+
     private SpanData named(List<SpanData> spans, String suffix) {
         return spans.stream().filter(s -> s.getName().equals("mssql.driver.connection." + suffix)).findFirst().get();
+    }
+
+    @Test
+    void publisherReturnsWhileIngestionClockIsBlocked() throws Exception {
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicBoolean first = new java.util.concurrent.atomic.AtomicBoolean(true);
+        OpenTelemetryConnectionCallback.Builder builder = setup(Sampler.alwaysOn(), null);
+        builder.nanoClock = () -> {
+            if (!Thread.currentThread().getName().endsWith("-expiry") && first.getAndSet(false)) {
+                entered.countDown();
+                try {
+                    release.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            return System.nanoTime();
+        };
+        adapter = builder.build();
+        ExecutorService publishers = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> start = publishers.submit(() -> rootStart(1));
+            assertTrue(entered.await(10, TimeUnit.SECONDS));
+            Future<?> end = publishers.submit(() -> rootEnd(1, new UnknownHostException()));
+            start.get(10, TimeUnit.SECONDS);
+            end.get(10, TimeUnit.SECONDS);
+            assertFalse(adapter.awaitIdle(Duration.ZERO));
+            assertTrue(exporter.getFinishedSpanItems().isEmpty());
+        } finally {
+            release.countDown();
+            publishers.shutdownNow();
+        }
+        assertEquals(1, spans().size());
+    }
+
+    @Test
+    void queuedProjectionRetainsOnlyFailureFlagAndOriginalSpanContext() throws Exception {
+        BlockingClock clock = new BlockingClock();
+        io.opentelemetry.context.ContextKey<Object> key = io.opentelemetry.context.ContextKey.named("SECRET");
+        SpanProcessor observer = new BlockingProcessor() {
+            @Override
+            public void onStart(Context parent, ReadWriteSpan span) {
+                if (span.getName().startsWith("mssql.driver")) {
+                    assertNull(parent.get(key));
+                    assertTrue(io.opentelemetry.api.baggage.Baggage.fromContext(parent).isEmpty());
+                }
+            }
+        };
+        OpenTelemetryConnectionCallback.Builder builder = setup(Sampler.alwaysOn(), observer);
+        builder.nanoClock = clock;
+        adapter = builder.build();
+        Span parent = sdk.getTracer("app").spanBuilder("app-parent").startSpan();
+        Exception hostile = new SQLException("SECRET") {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public synchronized Throwable getCause() {
+                throw new AssertionError("Producer must not traverse causes");
+            }
+        };
+        PerformanceLogEvent original = ConnectionEventFixture.withException(ConnectionEventFixture.withoutMetadata(
+                event(END, 1, 0, 1, PerformanceActivity.CONNECTION, 0, 100, null, null, false)), hostile);
+        ExecutorService publisher = Executors.newSingleThreadExecutor();
+        clock.arm();
+        try {
+            Context caller = io.opentelemetry.api.baggage.Baggage.builder().put("SECRET", "SECRET").build()
+                    .storeInContext(Context.root().with(parent).with(key, new Object()));
+            try (Scope ignored = caller.makeCurrent()) {
+                rootStart(1);
+            }
+            assertTrue(clock.entered.await(10, TimeUnit.SECONDS));
+            publisher.submit(() -> adapter.publish(original)).get(10, TimeUnit.SECONDS);
+            Object envelope = ((java.util.Queue<?>) field(adapter, "ingress")).peek();
+            assertNotNull(envelope);
+            PerformanceLogEvent projected = (PerformanceLogEvent) field(envelope, "event");
+            assertNotSame(original, projected);
+            assertNull(projected.getException());
+            assertTrue(projected.hasException());
+            assertSame(hostile, original.getException());
+            assertSame(original.getAttributes(), projected.getAttributes());
+            assertSame(original.getDiagnosticEvents(), projected.getDiagnosticEvents());
+            for (java.lang.reflect.Field member : envelope.getClass().getDeclaredFields()) {
+                assertTrue(member.getType() == PerformanceLogEvent.class
+                        || member.getType() == io.opentelemetry.api.trace.SpanContext.class
+                        || member.getType() == long.class);
+            }
+        } finally {
+            clock.release.countDown();
+            publisher.shutdownNow();
+        }
+        SpanData root = named(spans(), "open");
+        assertEquals(parent.getSpanContext().getSpanId(), root.getParentSpanId());
+        assertEquals(parent.getSpanContext().getTraceId(), root.getTraceId());
+        assertEquals(StatusCode.ERROR, root.getStatus().getStatusCode());
+        parent.end();
+    }
+
+    @Test
+    void eventOverflowInvalidatesPartialTreesAndDoesNotCountLostRoots() throws Exception {
+        BlockingClock clock = new BlockingClock();
+        OpenTelemetryConnectionCallback.Builder builder = setup(Sampler.alwaysOn(), null).eventQueueCapacity(1)
+                .metricsEnabled(true);
+        builder.nanoClock = clock;
+        adapter = builder.build();
+        rootStart(1);
+        drainIngestion();
+        clock.arm();
+        try {
+            adapter.publish(event(START, 2, 1, 1, PerformanceActivity.DNS, 10, 0, null, null, false));
+            assertTrue(clock.entered.await(10, TimeUnit.SECONDS));
+            adapter.publish(
+                    event(END, 2, 1, 1, PerformanceActivity.DNS, 10, 20, new UnknownHostException(), "dns", true));
+            rootEnd(1, new SocketTimeoutException()); // dropped END
+            rootStart(20); // dropped START
+            assertEquals(1, ((java.util.Queue<?>) field(adapter, "ingress")).size());
+            assertEquals(2, adapter.droppedEventCount());
+            assertFalse(adapter.awaitIdle(Duration.ZERO));
+        } finally {
+            clock.release.countDown();
+        }
+        drainIngestion();
+        assertEquals(4, adapter.droppedEventCount()); // two rejected and two invalidated accepted boundaries
+        assertEquals(1, adapter.droppedOpenCount());
+        rootEnd(1, new SocketTimeoutException());
+        drainIngestion();
+        rootEnd(20, new SocketTimeoutException());
+        assertTrue(spans().isEmpty());
+        assertTrue(reader.collectAllMetrics().isEmpty());
+        rootStart(30);
+        drainIngestion();
+        rootEnd(30, new SocketTimeoutException());
+        assertEquals(1, spans().size());
+        assertEquals(2, reader.collectAllMetrics().size());
+        for (MetricData metric : reader.collectAllMetrics()) {
+            assertEquals(1L, metric.getLongSumData().getPoints().iterator().next().getValue());
+        }
+    }
+
+    @Test
+    void contendedAdmissionDoesNotWaitAndInvalidatesPendingRoot() throws Exception {
+        adapter = setup(Sampler.alwaysOn(), null).metricsEnabled(true).build();
+        rootStart(1);
+        drainIngestion();
+        java.util.concurrent.locks.ReentrantLock admission = (java.util.concurrent.locks.ReentrantLock) field(adapter,
+                "admission");
+        ExecutorService publisher = Executors.newSingleThreadExecutor();
+        admission.lock();
+        try {
+            publisher.submit(
+                    () -> adapter.publish(event(START, 2, 1, 1, PerformanceActivity.DNS, 10, 0, null, null, false)))
+                    .get(10, TimeUnit.SECONDS);
+            assertEquals(1, adapter.droppedEventCount());
+        } finally {
+            admission.unlock();
+            publisher.shutdownNow();
+        }
+        rootEnd(1, new SocketTimeoutException());
+        assertTrue(spans().isEmpty());
+        assertEquals(1, adapter.droppedOpenCount());
+        assertTrue(reader.collectAllMetrics().isEmpty());
+    }
+
+    @Test
+    void closeIsFiniteWhileIngestionBlockedAndReleasesAcceptedQueue() throws Exception {
+        BlockingClock clock = new BlockingClock();
+        OpenTelemetryConnectionCallback.Builder builder = setup(Sampler.alwaysOn(), null)
+                .closeTimeout(Duration.ofMillis(10));
+        builder.nanoClock = clock;
+        adapter = builder.build();
+        ExecutorService callers = Executors.newFixedThreadPool(3);
+        clock.arm();
+        try {
+            rootStart(1);
+            assertTrue(clock.entered.await(10, TimeUnit.SECONDS));
+            rootEnd(1, new UnknownHostException());
+            Future<?> first = callers.submit(() -> adapter.close());
+            Future<?> second = callers.submit(() -> adapter.close());
+            callers.submit(() -> {
+                for (int i = 10; i < 30; i++) {
+                    rootStart(i);
+                    rootEnd(i, new UnknownHostException());
+                }
+            }).get(10, TimeUnit.SECONDS);
+            first.get(10, TimeUnit.SECONDS);
+            second.get(10, TimeUnit.SECONDS);
+            assertTrue(((java.util.Queue<?>) field(adapter, "ingress")).isEmpty());
+            assertEquals(0, adapter.pendingOpenCount());
+            assertEquals(0, adapter.queuedOpenCount());
+            assertFalse(adapter.awaitIdle(Duration.ZERO)); // clock still owns one in-flight snapshot
+            assertTrue(adapter.droppedEventCount() > 0);
+        } finally {
+            clock.release.countDown();
+            callers.shutdownNow();
+        }
+        assertTrue(spans().isEmpty());
+        for (String name : new String[] {"ingestion", "worker"}) {
+            Thread thread = (Thread) field(adapter, name);
+            thread.join(WAIT.toMillis());
+            assertFalse(thread.isAlive());
+            assertSame(OpenTelemetryConnectionCallback.class.getClassLoader(), thread.getContextClassLoader());
+        }
+    }
+
+    private static Object field(Object target, String name) throws Exception {
+        java.lang.reflect.Field field = target.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        return field.get(target);
+    }
+
+    private static final class BlockingClock implements java.util.function.LongSupplier {
+        final CountDownLatch entered = new CountDownLatch(1);
+        final CountDownLatch release = new CountDownLatch(1);
+        final java.util.concurrent.atomic.AtomicBoolean armed = new java.util.concurrent.atomic.AtomicBoolean();
+
+        void arm() {
+            armed.set(true);
+        }
+
+        @Override
+        public long getAsLong() {
+            if (Thread.currentThread().getName().endsWith("-ingest") && armed.compareAndSet(true, false)) {
+                entered.countDown();
+                boolean interrupted = false;
+                while (true) {
+                    try {
+                        release.await();
+                        break;
+                    } catch (InterruptedException e) {
+                        interrupted = true;
+                    }
+                }
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            return System.nanoTime();
+        }
     }
 
     @Test
@@ -234,8 +476,12 @@ class OpenTelemetryConnectionCallbackTest {
             executor.shutdownNow();
         }
         List<SpanData> spans = spans();
-        assertEquals(64, spans.size());
-        assertEquals(16, spans.stream().map(SpanData::getTraceId).distinct().count());
+        // Contending producers may deliberately lose admission; every exported tree must still be complete.
+        assertEquals(0, spans.size() % 4);
+        assertEquals(spans.size() / 4, spans.stream().map(SpanData::getTraceId).distinct().count());
+        if (adapter.droppedEventCount() == 0) {
+            assertEquals(64, spans.size());
+        }
         assertEquals(0, adapter.pendingOpenCount());
     }
 
@@ -387,13 +633,18 @@ class OpenTelemetryConnectionCallbackTest {
                 "token_acquisition", false));
         List<SpanData> result = spans();
         assertEquals(4, result.size());
-        assertEquals(named(result, "open").getSpanId(), named(result, "attempt").getParentSpanId());
-        assertEquals(named(result, "attempt").getSpanId(), named(result, "login").getParentSpanId());
-        assertEquals(named(result, "login").getSpanId(), named(result, "token_acquisition").getParentSpanId());
-        assertEquals(1, named(result, "token_acquisition").getEvents().size());
-        assertEquals(StatusCode.ERROR, named(result, "token_acquisition").getStatus().getStatusCode());
-        assertEquals(198L,
-                named(result, "open").getAttributes().get(AttributeKey.longKey("mssql.telemetry.dropped_span_count")));
+        SpanData root = named(result, "open");
+        SpanData attempt = named(result, "attempt");
+        SpanData login = named(result, "login");
+        SpanData token = named(result, "token_acquisition");
+        assertEquals(EPOCH + 200, attempt.getStartEpochNanos());
+        assertEquals(root.getSpanId(), attempt.getParentSpanId());
+        assertEquals(attempt.getSpanId(), login.getParentSpanId());
+        assertEquals(login.getSpanId(), token.getParentSpanId());
+        assertEquals(1, token.getEvents().size());
+        assertTrue(root.getEvents().isEmpty());
+        assertEquals(198L, root.getAttributes().get(AttributeKey.longKey("mssql.telemetry.dropped_span_count")));
+        assertEquals(0L, root.getAttributes().get(AttributeKey.longKey("mssql.telemetry.dropped_event_count")));
     }
 
     @Test
@@ -494,7 +745,11 @@ class OpenTelemetryConnectionCallbackTest {
         rootStart(1);
         for (int i = 2; i <= 10000; i++) {
             adapter.publish(event(START, i, i - 1, 1, PerformanceActivity.DNS, i, 0, null, null, false));
+            if (i % 100 == 0) {
+                drainIngestion();
+            }
         }
+        drainIngestion();
         java.lang.reflect.Field pending = OpenTelemetryConnectionCallback.class.getDeclaredField("pending");
         pending.setAccessible(true);
         Object open = ((Map<?, ?>) pending.get(adapter)).get(1L);
@@ -506,6 +761,9 @@ class OpenTelemetryConnectionCallbackTest {
         for (int i = 10000; i >= 2; i--) {
             adapter.publish(event(END, i, i - 1, 1, PerformanceActivity.DNS, i, 20000 - 2 * i,
                     new UnknownHostException("SECRET"), "dns", i == 10000));
+            if (i % 100 == 0) {
+                drainIngestion();
+            }
         }
         adapter.publish(event(END, 1, 0, 1, PerformanceActivity.CONNECTION, 0, 20000, new UnknownHostException(), "dns",
                 false));
@@ -644,6 +902,7 @@ class OpenTelemetryConnectionCallbackTest {
                     rootEnd(i, new SocketTimeoutException()); // duplicate END is not a new observation
                 }
             }).get(10, TimeUnit.SECONDS);
+            drainIngestion();
             assertEquals(1, adapter.queuedOpenCount());
             assertEquals(99, adapter.droppedOpenCount());
         } finally {
@@ -895,12 +1154,14 @@ class OpenTelemetryConnectionCallbackTest {
         attrs.put("mssql.authentication.token_source", "callback");
         attrs.put("mssql.error.message", "SECRET");
         attrs.put("server.address", "SECRET");
+        drainIngestion();
         adapter.recordDiagnostic(1, 2, "mssql.driver.authentication", EPOCH + 20, attrs);
         adapter.publish(event(END, 2, 1, 1, PerformanceActivity.TOKEN_REQUEST, 10, 30, new SocketTimeoutException(),
                 "token_acquisition", true));
         attrs.put("mssql.timeout.phase", "token_acquisition");
         attrs.put("mssql.timeout.kind", "token_request");
         attrs.put("mssql.timeout.value", 2.5);
+        drainIngestion();
         adapter.recordDiagnostic(1, 2, "mssql.driver.timeout", EPOCH + 40, attrs);
         adapter.recordDiagnostic(1, 2, "mssql.driver.SECRET", EPOCH + 41, attrs);
         adapter.publish(event(END, 1, 0, 1, PerformanceActivity.CONNECTION, 0, 100, new SocketTimeoutException(),
@@ -924,6 +1185,7 @@ class OpenTelemetryConnectionCallbackTest {
         rootStart(1);
         adapter.publish(event(START, 2, 1, 1, PerformanceActivity.DNS, 10, 0, null, null, false));
         adapter.publish(event(END, 2, 1, 1, PerformanceActivity.DNS, 10, 20, new UnknownHostException(), "dns", true));
+        drainIngestion();
         adapter.recordDiagnostic(1, 1, "mssql.driver.retry", EPOCH + 40, Collections.emptyMap());
         adapter.publish(
                 event(END, 1, 0, 1, PerformanceActivity.CONNECTION, 0, 100, new UnknownHostException(), "dns", false));
@@ -941,6 +1203,7 @@ class OpenTelemetryConnectionCallbackTest {
             rootStart(root);
             adapter.publish(
                     event(START, root + 1, root, root, PerformanceActivity.LOGIN_EXCHANGE, 10, 0, null, null, false));
+            drainIngestion();
             adapter.recordDiagnostic(root, root + 1, "mssql.driver.retry", EPOCH + 20,
                     Collections.singletonMap("mssql.retry.delay", 0.5));
             adapter.recordDiagnostic(root, root + 1, "mssql.driver.redirect", EPOCH + 21,
@@ -1012,6 +1275,7 @@ class OpenTelemetryConnectionCallbackTest {
         adapter = builder.build();
         rootStart(1);
         rootStart(20); // evicts oldest without retaining a tombstone
+        drainIngestion();
         assertEquals(1, adapter.pendingOpenCount());
         assertEquals(1, adapter.droppedOpenCount());
         clock.set(TimeUnit.SECONDS.toNanos(2));
@@ -1038,6 +1302,7 @@ class OpenTelemetryConnectionCallbackTest {
             rootEnd(20, new UnknownHostException());
             rootStart(40);
             rootEnd(40, new UnknownHostException());
+            drainIngestion();
             assertEquals(1, adapter.queuedOpenCount());
             assertEquals(1, adapter.droppedOpenCount());
         } finally {
@@ -1201,9 +1466,9 @@ class OpenTelemetryConnectionCallbackTest {
         assertEquals(0L,
                 named(result, "open").getAttributes().get(AttributeKey.longKey("mssql.connection.attempt_count")));
         assertEquals(1L, result.stream().flatMap(s -> s.getEvents().stream())
-            .filter(e -> "mssql.driver.error".equals(e.getName())).count());
+                .filter(e -> "mssql.driver.error".equals(e.getName())).count());
         assertEquals(1L, result.stream().flatMap(s -> s.getEvents().stream())
-            .filter(e -> "mssql.driver.connection.retry_decision".equals(e.getName())).count());
+                .filter(e -> "mssql.driver.connection.retry_decision".equals(e.getName())).count());
     }
 
     @Test
@@ -1273,6 +1538,7 @@ class OpenTelemetryConnectionCallbackTest {
         assertThrows(IllegalArgumentException.class, () -> builder.maxEventsPerOpen(0));
         assertThrows(IllegalArgumentException.class, () -> builder.maxPendingOpens(0));
         assertThrows(IllegalArgumentException.class, () -> builder.queueCapacity(0));
+        assertThrows(IllegalArgumentException.class, () -> builder.eventQueueCapacity(0));
         assertThrows(IllegalArgumentException.class, () -> builder.maxOpenAge(Duration.ZERO));
         assertThrows(IllegalArgumentException.class, () -> builder.closeTimeout(Duration.ofSeconds(-1)));
     }
@@ -1348,12 +1614,19 @@ class OpenTelemetryConnectionCallbackTest {
     @Test
     void expirationRunsAutomaticallyEvenWhenExporterIsBlocked() throws Exception {
         BlockingProcessor blocker = new BlockingProcessor();
-        adapter = setup(Sampler.alwaysOn(), blocker).maxOpenAge(Duration.ofMillis(50)).build();
+        AtomicLong clock = new AtomicLong();
+        OpenTelemetryConnectionCallback.Builder builder = setup(Sampler.alwaysOn(), blocker);
+        builder.maxOpenAge(Duration.ofMillis(50));
+        builder.nanoClock = clock::get;
+        adapter = builder.build();
         try {
             rootStart(1);
             rootEnd(1, new UnknownHostException());
             assertTrue(blocker.entered.await(10, TimeUnit.SECONDS));
             rootStart(20);
+            drainIngestion();
+            assertEquals(1, adapter.pendingOpenCount());
+            clock.set(TimeUnit.SECONDS.toNanos(1));
             long deadline = System.nanoTime() + WAIT.toNanos();
             while (adapter.pendingOpenCount() != 0 && System.nanoTime() < deadline) {
                 Thread.sleep(10);
