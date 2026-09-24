@@ -76,6 +76,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     private static final long serialVersionUID = 1989903904654306244L;
 
     private static final String MAX = "(max)";
+    private static final int GUID_TEXT_LENGTH = 36;
+    private static final int BRACED_GUID_TEXT_LENGTH = 38;
+    private static final int BRACED_GUID_CLOSING_BRACE_INDEX = 37;
 
     /**
      * Represents the column mappings between the source and destination table
@@ -2281,7 +2284,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         try {
             if (colValue instanceof UUID) {
                 // UUID objects previously used their 36-character rendering on the CHAR wire path.
-                if (precision < 36) {
+                if (precision < GUID_TEXT_LENGTH) {
                     throw new IllegalArgumentException();
                 }
                 guidValue = (UUID) colValue;
@@ -2301,16 +2304,17 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
     static UUID parseGuid(String value, int precision) {
         // The former CHAR payload had to fit its declared precision before SQL Server converted it.
-        if (value.length() < 36 || value.length() > precision) {
+        if (value.length() < GUID_TEXT_LENGTH || value.length() > precision) {
             throw new IllegalArgumentException();
         }
         int start = '{' == value.charAt(0) ? 1 : 0;
         // SQL Server ignores suffixes after a complete GUID (or {GUID}), but does not trim leading whitespace.
-        if (1 == start && (value.length() < 38 || '}' != value.charAt(37))) {
+        if (1 == start && (value.length() < BRACED_GUID_TEXT_LENGTH
+                || '}' != value.charAt(BRACED_GUID_CLOSING_BRACE_INDEX))) {
             throw new IllegalArgumentException();
         }
         // UUID.fromString accepts short groups and non-ASCII digits on some JDKs; SQL Server requires 8-4-4-4-12.
-        for (int i = 0; i < 36; i++) {
+        for (int i = 0; i < GUID_TEXT_LENGTH; i++) {
             char c = value.charAt(start + i);
             if (8 == i || 13 == i || 18 == i || 23 == i) {
                 if ('-' != c) {
@@ -2320,7 +2324,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 throw new IllegalArgumentException();
             }
         }
-        return UUID.fromString(value.substring(start, start + 36));
+        return UUID.fromString(value.substring(start, start + GUID_TEXT_LENGTH));
     }
 
     private void writeNullToTdsWriter(TDSWriter tdsWriter, int srcJdbcType,
