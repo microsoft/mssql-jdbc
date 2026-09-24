@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,6 +28,7 @@ import com.microsoft.sqlserver.jdbc.ISQLServerBulkData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -51,6 +53,10 @@ public class BulkCopyGuidAETest extends AESetup {
 
     private static final String destTableNameAE = AbstractSQLGenerator
             .escapeIdentifier(RandomUtil.getIdentifier("bulkCopyGuidDestTableAE"));
+    private static final String srcTableNameAE = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("bulkCopyGuidSrcTableAE"));
+    private static final String plainGuidTableName = AbstractSQLGenerator
+            .escapeIdentifier(RandomUtil.getIdentifier("bulkCopyGuidPlainDestTable"));
 
     /**
      * An encrypted uniqueidentifier column is fed with the ciphertext of the value, so it must not be affected by a
@@ -104,6 +110,61 @@ public class BulkCopyGuidAETest extends AESetup {
                         + " the specified target column guidCol.", e.getMessage());
             } finally {
                 TestUtils.dropTableIfExists(destTableNameAE, stmt);
+            }
+        }
+    }
+
+    /**
+     * An encrypted source column is read with its base type, but the driver sends the row data using the destination
+     * type. The column metadata and the row data of a plaintext uniqueidentifier destination must still agree, whether
+     * the base type of the encrypted source is a character type or uniqueidentifier.
+     */
+    @Test
+    public void testBulkCopyEncryptedSourceIntoPlaintextGuidColumn() throws SQLException {
+        for (String srcColumnType : new String[] {"varchar(36) COLLATE Latin1_General_BIN2",
+                "char(36) COLLATE Latin1_General_BIN2", "uniqueidentifier"}) {
+            UUID guid = UUID.randomUUID();
+
+            try (Connection conn = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                    Connection srcConn = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                    Statement stmt = conn.createStatement()) {
+                TestUtils.dropTableIfExists(srcTableNameAE, stmt);
+                TestUtils.dropTableIfExists(plainGuidTableName, stmt);
+                stmt.execute("create table " + srcTableNameAE + " (guidCol " + srcColumnType + " ENCRYPTED WITH"
+                        + " (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256',"
+                        + " COLUMN_ENCRYPTION_KEY = " + cekJks + ") NULL)");
+                stmt.execute("create table " + plainGuidTableName + " (guidCol uniqueidentifier NULL)");
+                try {
+                    try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) conn
+                            .prepareStatement("insert into " + srcTableNameAE + " values (?), (?)")) {
+                        if ("uniqueidentifier".equals(srcColumnType)) {
+                            pstmt.setUniqueIdentifier(1, guid.toString());
+                            pstmt.setUniqueIdentifier(2, null);
+                        } else {
+                            pstmt.setString(1, guid.toString());
+                            pstmt.setString(2, null);
+                        }
+                        pstmt.execute();
+                    }
+
+                    try (Statement srcStmt = srcConn.createStatement();
+                            ResultSet srcRs = srcStmt.executeQuery("select guidCol from " + srcTableNameAE);
+                            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+                        bulkCopy.setDestinationTableName(plainGuidTableName);
+                        bulkCopy.writeToServer(srcRs);
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("select guidCol from " + plainGuidTableName
+                            + " order by case when guidCol is null then 1 else 0 end")) {
+                        assertTrue(rs.next(), srcColumnType);
+                        assertEquals(guid.toString().toUpperCase(), rs.getString(1), srcColumnType);
+                        assertTrue(rs.next(), srcColumnType);
+                        assertNull(rs.getString(1), srcColumnType);
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(srcTableNameAE, stmt);
+                    TestUtils.dropTableIfExists(plainGuidTableName, stmt);
+                }
             }
         }
     }

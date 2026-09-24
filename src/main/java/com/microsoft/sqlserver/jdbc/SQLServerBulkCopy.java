@@ -2596,7 +2596,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.CHAR: // Fixed-length, non-Unicode string data.
                 case java.sql.Types.VARCHAR: // Variable-length, non-Unicode string data.
                 case microsoft.sql.Types.JSON:
-                    if ((SSType.GUID == destSSType) && (microsoft.sql.Types.GUID == bulkJdbcType)) {
+                    // Match writeTypeInfo, which decides on the source type: bulkJdbcType is replaced with the
+                    // destination type for an encrypted source, whose base type may be a character type.
+                    if ((SSType.GUID == destSSType) && (microsoft.sql.Types.GUID == bulkJdbcType)
+                            && (microsoft.sql.Types.GUID == srcColumnMetadata.get(srcColOrdinal).jdbcType)) {
                         writeGuidToTdsWriter(tdsWriter, colValue, bulkPrecision);
                         break;
                     }
