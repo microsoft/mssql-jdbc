@@ -76,6 +76,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     private static final long serialVersionUID = 1989903904654306244L;
 
     private static final String MAX = "(max)";
+    private static final int GUID_TEXT_LENGTH = 36;
+    private static final int BRACED_GUID_TEXT_LENGTH = 38;
+    private static final int BRACED_GUID_CLOSING_BRACE_INDEX = 37;
 
     /**
      * Represents the column mappings between the source and destination table
@@ -1080,7 +1083,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case microsoft.sql.Types.GUID:
             case java.sql.Types.CHAR: // 0xAF
-                if (isBaseType && (SSType.GUID == destSSType)) {
+                if ((SSType.GUID == destSSType) && (isBaseType || microsoft.sql.Types.GUID == srcJdbcType)) {
                     tdsWriter.writeByte(TDSType.GUID.byteValue());
                     tdsWriter.writeByte((byte) 0x10);
                 } else {
@@ -1463,6 +1466,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 return SSType.NUMERIC.toString() + "(" + bulkPrecision + ", " + bulkScale + ")";
 
             case microsoft.sql.Types.GUID:
+                if (SSType.GUID == destSSType) {
+                    // Preserve the former CHAR(n) metadata limits, including for null values.
+                    if (bulkPrecision < 1 || bulkPrecision > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
+                        SQLServerException.makeFromDriverError(connection, this,
+                                form.format(new Object[] {bulkPrecision}), null, false);
+                    }
+                    return SSType.GUID.toString();
+                }
                 // For char the value has to be between 0 to 8000.
                 return SSType.CHAR.toString() + "(" + bulkPrecision + ")";
             case java.sql.Types.CHAR:
@@ -2258,6 +2270,63 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
+    /**
+     * Writes the value of a uniqueidentifier destination column in the native 16 byte representation, which spares the
+     * server a conversion from a character string for every row.
+     */
+    private void writeGuidToTdsWriter(TDSWriter tdsWriter, Object colValue, int precision) throws SQLServerException {
+        if (null == colValue) {
+            tdsWriter.writeByte((byte) 0);
+            return;
+        }
+
+        UUID guidValue;
+        try {
+            if (colValue instanceof UUID) {
+                // UUID objects previously used their 36-character rendering on the CHAR wire path.
+                if (precision < GUID_TEXT_LENGTH) {
+                    throw new IllegalArgumentException();
+                }
+                guidValue = (UUID) colValue;
+            } else {
+                guidValue = parseGuid(colValue.toString(), precision);
+            }
+        } catch (IllegalArgumentException ex) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
+            Object[] msgArgs = {"'" + colValue + "'", JDBCType.GUID};
+            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC,
+                    DriverError.NOT_SET, ex);
+        }
+
+        tdsWriter.writeByte((byte) 0x10);
+        tdsWriter.writeBytes(Util.asGuidByteArray(guidValue));
+    }
+
+    static UUID parseGuid(String value, int precision) {
+        // The former CHAR payload had to fit its declared precision before SQL Server converted it.
+        if (value.length() < GUID_TEXT_LENGTH || value.length() > precision) {
+            throw new IllegalArgumentException();
+        }
+        int start = '{' == value.charAt(0) ? 1 : 0;
+        // SQL Server ignores suffixes after a complete GUID (or {GUID}), but does not trim leading whitespace.
+        if (1 == start && (value.length() < BRACED_GUID_TEXT_LENGTH
+                || '}' != value.charAt(BRACED_GUID_CLOSING_BRACE_INDEX))) {
+            throw new IllegalArgumentException();
+        }
+        // UUID.fromString accepts short groups and non-ASCII digits on some JDKs; SQL Server requires 8-4-4-4-12.
+        for (int i = 0; i < GUID_TEXT_LENGTH; i++) {
+            char c = value.charAt(start + i);
+            if (8 == i || 13 == i || 18 == i || 23 == i) {
+                if ('-' != c) {
+                    throw new IllegalArgumentException();
+                }
+            } else if (!(('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F'))) {
+                throw new IllegalArgumentException();
+            }
+        }
+        return UUID.fromString(value.substring(start, start + GUID_TEXT_LENGTH));
+    }
+
     private void writeNullToTdsWriter(TDSWriter tdsWriter, int srcJdbcType,
             boolean isStreaming) throws SQLServerException {
 
@@ -2527,6 +2596,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.CHAR: // Fixed-length, non-Unicode string data.
                 case java.sql.Types.VARCHAR: // Variable-length, non-Unicode string data.
                 case microsoft.sql.Types.JSON:
+                    // Match writeTypeInfo, which decides on the source type: bulkJdbcType is replaced with the
+                    // destination type for an encrypted source, whose base type may be a character type.
+                    if ((SSType.GUID == destSSType) && (microsoft.sql.Types.GUID == bulkJdbcType)
+                            && (microsoft.sql.Types.GUID == srcColumnMetadata.get(srcColOrdinal).jdbcType)) {
+                        writeGuidToTdsWriter(tdsWriter, colValue, bulkPrecision);
+                        break;
+                    }
+
                     if (isStreaming) // PLP
                     {
                         // PLP_BODY rule in TDS
