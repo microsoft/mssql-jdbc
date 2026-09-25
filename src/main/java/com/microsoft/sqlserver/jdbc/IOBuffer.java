@@ -73,6 +73,8 @@ import java.util.logging.Logger;
 import javax.net.SocketFactory;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
@@ -83,6 +85,58 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.FedAuthTokenCommand;
 import com.microsoft.sqlserver.jdbc.dataclassification.SensitivityClassification;
 
 import microsoft.sql.Vector;
+
+/**
+ * Interface for allocating ByteBuffers with different strategies (Heap, Direct, MemorySegment).
+ */
+interface BufferAllocator {
+    ByteBuffer allocate(int size);
+
+    void cleanup();
+
+    String getDescription();
+}
+
+/**
+ * Buffer allocation mode for TDS I/O operations
+ */
+enum BufferMode {
+    /** Traditional heap-allocated byte[] buffers - SSL compatible, JDK 8+ */
+    HEAP,
+
+    /** Direct ByteBuffer allocation - Zero-copy I/O, SSL compatible, JDK 8+ */
+    DIRECT_BUFFER,
+
+    /**
+     * MemorySegment allocation for reader packets only (JDK 22+). Writer buffers
+     * downgrade to DIRECT_BUFFER (see TDSWriter#determineEffectiveBufferMode) since
+     * benchmarking found no write-side benefit. Read benchmarking over an encrypted
+     * connection showed a large improvement over HEAP.
+     */
+    MEMORY_SEGMENT;
+
+    static BufferMode fromString(String value) {
+        if (value == null || value.isEmpty()) {
+            return HEAP;
+        }
+
+        if ("true".equalsIgnoreCase(value)) {
+            return MEMORY_SEGMENT;
+        } else if ("false".equalsIgnoreCase(value)) {
+            return HEAP;
+        }
+
+        try {
+            return BufferMode.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return HEAP;
+        }
+    }
+
+    static final BufferMode CURRENT = fromString(
+            System.getProperty("mssql.jdbc.bufferMode",
+                    System.getProperty("mssql.jdbc.useMemorySegment", "heap")));
+}
 
 final class TDS {
     static final String PROTOCOL_TDS80 = "tds/8.0"; // TLS-first connections
@@ -661,6 +715,18 @@ final class TDSChannel implements Serializable {
     // Socket for SSL-encrypted communications with SQL Server
     private transient SSLSocket sslSocket;
 
+    // NIO-compatible TLS engine (replaces SSLSocket for the data-transfer phase).
+    // When non-null, read()/write() bypass the InputStream/OutputStream and use
+    // sslEngineRead()/sslEngineWrite() so that SocketChannel.read() can populate
+    // DirectByteBuffers directly from the kernel without an intermediate heap copy.
+    private transient SSLEngine sslEngine;
+
+    // Persistent buffers for SSLEngine I/O. Allocated in enableSSL(), freed in
+    // disableSSL().
+    private transient ByteBuffer sslNetInBuf; // encrypted bytes read from SocketChannel
+    private transient ByteBuffer sslNetOutBuf; // encrypted bytes ready to write to SocketChannel
+    private transient ByteBuffer sslAppInBuf; // decrypted overflow from a single unwrap() call
+
     // tls-unique channel binding data from the completed TLS handshake.
     private byte[] channelBindingInfo = null;
 
@@ -675,6 +741,10 @@ final class TDSChannel implements Serializable {
     // (using the TDSChannel itself) during SSL handshake to raw I/O over
     // the TCP/IP socket.
     private transient ProxySocket proxySocket = null;
+
+    // NIO channel for direct-buffer reads on non-SSL connections (non-null when
+    // socket was created via SocketChannel.open(), giving kernel→native I/O without temp arrays)
+    private transient SocketChannel tcpSocketChannel;
 
     // I/O streams for raw TCP/IP communications with SQL Server
     private transient ProxyInputStream tcpInputStream;
@@ -749,6 +819,10 @@ final class TDSChannel implements Serializable {
         SocketFinder socketFinder = new SocketFinder(traceID, con);
         channelSocket = tcpSocket = socketFinder.findSocket(host, port, timeoutMillis, useParallel, useTnir,
                 isTnirFirstAttempt, timeoutMillisForFullTimeout, iPAddressPreference);
+        // Capture backing SocketChannel when available (created via SocketChannel.open()).
+        // Non-null only for connections without a custom socket factory. Used in read(ByteBuffer)
+        // to bypass InputStream and read directly into DirectByteBuffers (kernel→native, no temp array).
+        tcpSocketChannel = tcpSocket.getChannel();
         try {
             // Set socket options
             tcpSocket.setTcpNoDelay(true);
@@ -811,9 +885,34 @@ final class TDSChannel implements Serializable {
         tdsChannelLock.lock();
         try {
             // Guard in case of disableSSL being called before enableSSL
-            if (proxySocket == null) {
+            if (proxySocket == null && sslEngine == null) {
                 if (logger.isLoggable(Level.INFO))
-                    logger.finer(toString() + " proxySocket is null, exit early");
+                    logger.finer(toString() + " SSL not active, exit early");
+                return;
+            }
+
+            if (sslEngine != null) {
+                // SSLEngine path: release the engine and its buffers.
+                // Send a TLS close_notify to the server (best-effort).
+                try {
+                    sslEngine.closeOutbound();
+                    sslNetOutBuf.clear();
+                    SSLEngineResult res = sslEngine.wrap(ByteBuffer.allocate(0), sslNetOutBuf);
+                    sslNetOutBuf.flip();
+                    if (sslNetOutBuf.hasRemaining() && tcpSocketChannel != null) {
+                        try {
+                            tcpSocketChannel.write(sslNetOutBuf);
+                        } catch (IOException ignored) {
+                            // Ignore I/O errors flushing close_notify
+                        }
+                    }
+                } catch (Exception ignored) {
+                    // Ignore any errors during engine shutdown
+                }
+                sslEngine = null;
+                sslNetInBuf = null;
+                sslNetOutBuf = null;
+                sslAppInBuf = null;
                 return;
             }
 
@@ -1679,6 +1778,257 @@ final class TDSChannel implements Serializable {
         SSL_HANDHSAKE_COMPLETE
     }
 
+    // -------------------------------------------------------------------------
+    // SSLEngine helpers — low-level NIO TLS read / write / handshake
+    // -------------------------------------------------------------------------
+
+    /**
+     * Performs the TLS handshake for non-TDS8 connections.
+     *
+     * SSL handshake bytes are encapsulated inside TDS pre-login packets using the
+     * existing SSLHandshakeOutputStream / SSLHandshakeInputStream infrastructure
+     * (same mechanism as the legacy SSLSocket / ProxySocket path).
+     */
+    private void sslEngineHandshakeNonTDS8(SSLEngine engine,
+            SSLHandshakeOutputStream sslHsOut,
+            SSLHandshakeInputStream sslHsIn) throws IOException {
+        int packetBufSize = engine.getSession().getPacketBufferSize();
+        ByteBuffer netOut = ByteBuffer.allocate(packetBufSize);
+        ByteBuffer appEmpty = ByteBuffer.allocate(0);
+
+        engine.beginHandshake();
+        SSLEngineResult.HandshakeStatus hsStatus = engine.getHandshakeStatus();
+
+        while (hsStatus != SSLEngineResult.HandshakeStatus.FINISHED
+                && hsStatus != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
+            switch (hsStatus) {
+                case NEED_WRAP: {
+                    netOut.clear();
+                    SSLEngineResult res = engine.wrap(appEmpty, netOut);
+                    netOut.flip();
+                    if (netOut.hasRemaining()) {
+                        byte[] outBytes = new byte[netOut.remaining()];
+                        netOut.get(outBytes);
+                        // Write SSL bytes into TDS-framed pre-login packet
+                        sslHsOut.write(outBytes, 0, outBytes.length);
+                    }
+                    hsStatus = res.getHandshakeStatus();
+                    break;
+                }
+                case NEED_UNWRAP: {
+                    // Read exactly one TLS record from the TDS-framed stream.
+                    // SSLHandshakeInputStream.ensureSSLPayload() handles flushing any
+                    // pending TDS pre-login write (endMessage) before reading from the server.
+                    // Do NOT call endMessage() here manually — ensureSSLPayload() does it.
+                    // TLS record header: type(1) + version(2) + length(2, big-endian)
+                    byte[] tlsHeader = new byte[5];
+                    readFully(sslHsIn, tlsHeader, 0, 5);
+                    int recordLen = ((tlsHeader[3] & 0xFF) << 8) | (tlsHeader[4] & 0xFF);
+                    byte[] tlsRecord = new byte[5 + recordLen];
+                    System.arraycopy(tlsHeader, 0, tlsRecord, 0, 5);
+                    readFully(sslHsIn, tlsRecord, 5, recordLen);
+
+                    SSLEngineResult res = engine.unwrap(ByteBuffer.wrap(tlsRecord), appEmpty);
+                    hsStatus = res.getHandshakeStatus();
+                    if (res.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+                        throw new IOException(
+                                "SSLEngine BUFFER_UNDERFLOW reading handshake record of length " + recordLen);
+                    }
+                    break;
+                }
+                case NEED_TASK: {
+                    Runnable task;
+                    while ((task = engine.getDelegatedTask()) != null) {
+                        task.run();
+                    }
+                    hsStatus = engine.getHandshakeStatus();
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Performs the TLS handshake for TDS8 connections directly over the NIO
+     * SocketChannel.
+     * No TDS packet framing — SSL bytes travel over raw TCP.
+     *
+     * sslNetInBuf must already be allocated before calling this method; it is
+     * reused
+     * after the handshake for post-handshake application data reads.
+     */
+    private void sslEngineHandshakeTDS8(SSLEngine engine) throws IOException {
+        int packetBufSize = engine.getSession().getPacketBufferSize();
+        ByteBuffer netOut = ByteBuffer.allocateDirect(packetBufSize);
+        ByteBuffer appEmpty = ByteBuffer.allocate(0);
+
+        engine.beginHandshake();
+        SSLEngineResult.HandshakeStatus hsStatus = engine.getHandshakeStatus();
+
+        while (hsStatus != SSLEngineResult.HandshakeStatus.FINISHED
+                && hsStatus != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) {
+            switch (hsStatus) {
+                case NEED_WRAP: {
+                    netOut.clear();
+                    SSLEngineResult res = engine.wrap(appEmpty, netOut);
+                    netOut.flip();
+                    while (netOut.hasRemaining()) {
+                        tcpSocketChannel.write(netOut);
+                    }
+                    hsStatus = res.getHandshakeStatus();
+                    break;
+                }
+                case NEED_UNWRAP: {
+                    if (sslNetInBuf.position() == 0) {
+                        int n = tcpSocketChannel.read(sslNetInBuf);
+                        if (n < 0)
+                            throw new IOException("Unexpected end of stream during TDS8 SSL handshake");
+                    }
+                    sslNetInBuf.flip();
+                    SSLEngineResult res = engine.unwrap(sslNetInBuf, appEmpty);
+                    sslNetInBuf.compact();
+                    if (res.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
+                        int n = tcpSocketChannel.read(sslNetInBuf);
+                        if (n < 0)
+                            throw new IOException(
+                                    "Unexpected end of stream during TDS8 SSL handshake (underflow)");
+                        sslNetInBuf.flip();
+                        res = engine.unwrap(sslNetInBuf, appEmpty);
+                        sslNetInBuf.compact();
+                    }
+                    hsStatus = res.getHandshakeStatus();
+                    break;
+                }
+                case NEED_TASK: {
+                    Runnable task;
+                    while ((task = engine.getDelegatedTask()) != null) {
+                        task.run();
+                    }
+                    hsStatus = engine.getHandshakeStatus();
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Reads decrypted application data into {@code dst} via SSLEngine + NIO
+     * SocketChannel.
+     *
+     * Leftover decrypted bytes from a previous unwrap() call (held in sslAppInBuf)
+     * are
+     * drained first. Then encrypted bytes are read from the SocketChannel,
+     * unwrapped, and
+     * the result is copied into {@code dst}.
+     *
+     * @return bytes placed into {@code dst}, or -1 on end-of-stream
+     */
+    private int sslEngineRead(ByteBuffer dst) throws IOException {
+        // Drain any decrypted bytes left over from the previous unwrap call
+        if (sslAppInBuf.position() > 0) {
+            return drainSslAppBuf(dst);
+        }
+
+        // Fill the net buffer if it is empty
+        if (sslNetInBuf.position() == 0) {
+            int n = tcpSocketChannel.read(sslNetInBuf);
+            if (n < 0)
+                return -1;
+        }
+
+        // Decrypt loop: keep unwrapping until we produce app-data bytes
+        while (true) {
+            sslNetInBuf.flip();
+            sslAppInBuf.clear();
+            SSLEngineResult res = sslEngine.unwrap(sslNetInBuf, sslAppInBuf);
+            sslNetInBuf.compact();
+
+            switch (res.getStatus()) {
+                case OK:
+                    if (sslAppInBuf.position() > 0) {
+                        return drainSslAppBuf(dst);
+                    }
+                    // 0 bytes produced (e.g., TLS key-update record) — read more
+                    break;
+                case BUFFER_OVERFLOW:
+                    int newAppSize = Math.max(sslAppInBuf.capacity() * 2, sslEngine.getSession().getApplicationBufferSize() * 2);
+                    ByteBuffer newAppBuf = ByteBuffer.allocateDirect(newAppSize);
+                    sslAppInBuf.flip();
+                    newAppBuf.put(sslAppInBuf);
+                    sslAppInBuf = newAppBuf;
+                    break;
+                case BUFFER_UNDERFLOW:
+                    // Partial TLS record: need more encrypted bytes before unwrap can succeed
+                    int more = tcpSocketChannel.read(sslNetInBuf);
+                    if (more < 0)
+                        return -1;
+                    break;
+                case CLOSED:
+                    return -1;
+                default:
+                    throw new IOException("Unexpected SSLEngine status: " + res.getStatus());
+            }
+        }
+    }
+
+    /**
+     * Transfers bytes from sslAppInBuf (write-position = filled bytes) to dst,
+     * updating
+     * both buffers' positions. Unconsumed bytes remain in sslAppInBuf for the next
+     * call.
+     */
+    private int drainSslAppBuf(ByteBuffer dst) {
+        sslAppInBuf.flip();
+        int n = Math.min(sslAppInBuf.remaining(), dst.remaining());
+        int savedLimit = sslAppInBuf.limit();
+        sslAppInBuf.limit(sslAppInBuf.position() + n);
+        dst.put(sslAppInBuf);
+        sslAppInBuf.limit(savedLimit);
+        sslAppInBuf.compact();
+        return n;
+    }
+
+    /**
+     * Encrypts {@code src} via SSLEngine and writes the ciphertext to the NIO
+     * SocketChannel.
+     */
+    private void sslEngineWrite(ByteBuffer src) throws IOException {
+        while (src.hasRemaining()) {
+            sslNetOutBuf.clear();
+            SSLEngineResult res = sslEngine.wrap(src, sslNetOutBuf);
+            if (res.getStatus() == SSLEngineResult.Status.BUFFER_OVERFLOW) {
+                int newSize = Math.max(sslNetOutBuf.capacity() * 2, sslEngine.getSession().getPacketBufferSize() * 2);
+                sslNetOutBuf = ByteBuffer.allocateDirect(newSize);
+                continue;
+            }
+            sslNetOutBuf.flip();
+            while (sslNetOutBuf.hasRemaining()) {
+                tcpSocketChannel.write(sslNetOutBuf);
+            }
+            if (res.getStatus() == SSLEngineResult.Status.CLOSED) {
+                throw new IOException("SSLEngine closed during write");
+            }
+        }
+    }
+
+    /**
+     * Reads exactly {@code len} bytes from {@code is} into {@code buf}, blocking as
+     * needed.
+     */
+    private static void readFully(InputStream is, byte[] buf, int offset, int len) throws IOException {
+        int remaining = len;
+        while (remaining > 0) {
+            int n = is.read(buf, offset + (len - remaining), remaining);
+            if (n < 0)
+                throw new IOException("Unexpected end of SSL handshake stream");
+            remaining -= n;
+        }
+    }
+
     /**
      * Enables SSL Handshake.
      * 
@@ -1890,81 +2240,120 @@ final class TDSChannel implements Serializable {
             // Permissive trust manager allows minimum encryption of credentials even when trusted certificates
             // aren't provisioned on the server.
 
-            // Got the SSL context. Now create an SSL socket over our own proxy socket
-            // which we can toggle between TDS-encapsulated and raw communications.
-            // Initially, the proxy is set to encapsulate the SSL handshake in TDS packets.
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Creating SSL socket");
+            if (tcpSocketChannel != null) {
+                // Got the SSL context. Now create an SSLEngine and perform the TLS handshake.
+                // SSLEngine is NIO-native: reads/writes go through SocketChannel so that
+                // DirectByteBuffers never have to be bridged through a heap byte[] copy.
+                if (logger.isLoggable(Level.FINEST))
+                    logger.finest(toString() + " Creating SSLEngine");
 
-            proxySocket = new ProxySocket(this);
+                // Allocate persistent SSL buffers sized to the maximum TLS record limits.
+                SSLEngine engine = sslContext.createSSLEngine(host, port);
+                engine.setUseClientMode(true);
+                int packetBufSize = engine.getSession().getPacketBufferSize();
+                int appBufSize = engine.getSession().getApplicationBufferSize();
+                sslNetInBuf = ByteBuffer.allocateDirect(packetBufSize * 2); // extra room for partial records
+                sslNetOutBuf = ByteBuffer.allocateDirect(packetBufSize);
+                sslAppInBuf = ByteBuffer.allocateDirect(appBufSize * 2); // extra room for overflow
 
-            if (isTDS8) {
-                sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(channelSocket, host, port, true);
+                if (isTDS8) {
+                    // TDS 8.0: configure ALPN before handshake
+                    SSLParameters sslParam = engine.getSSLParameters();
+                    sslParam.setApplicationProtocols(new String[] {TDS.PROTOCOL_TDS80});
+                    engine.setSSLParameters(sslParam);
+                }
 
-                // set ALPN values
-                SSLParameters sslParam = sslSocket.getSSLParameters();
-                sslParam.setApplicationProtocols(new String[] {TDS.PROTOCOL_TDS80});
-                sslSocket.setSSLParameters(sslParam);
+                // Start the SSL handshake
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer(toString() + " Starting SSL handshake (SSLEngine)");
+
+                handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
+
+                if (isTDS8) {
+                    // TDS8: the handshake writes go directly to tcpSocketChannel
+                    sslEngine = engine;
+                    sslEngineHandshakeTDS8(sslEngine);
+
+                    String negotiatedProtocol = sslEngine.getApplicationProtocol();
+                    if (logger.isLoggable(Level.FINEST)) {
+                        logger.finest(toString() + " Application Protocol negotiated: "
+                                + ((negotiatedProtocol == null) ? "null" : negotiatedProtocol));
+                    }
+                    if (null != negotiatedProtocol && !(negotiatedProtocol.isEmpty())
+                            && negotiatedProtocol.compareToIgnoreCase(TDS.PROTOCOL_TDS80) != 0) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ALPNFailed"));
+                        Object[] msgArgs = {TDS.PROTOCOL_TDS80, negotiatedProtocol};
+                        con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs));
+                    }
+                } else {
+                    // Non-TDS8: SSL handshake bytes are encapsulated in TDS pre-login packets.
+                    SSLHandshakeOutputStream sslHsOut = new SSLHandshakeOutputStream(this);
+                    SSLHandshakeInputStream sslHsIn = new SSLHandshakeInputStream(this, sslHsOut);
+                    sslEngineHandshakeNonTDS8(engine, sslHsOut, sslHsIn);
+                    sslEngine = engine;
+                }
+
+                handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
+
+                // Check the TLS version negotiated
+                String tlsProtocol = sslEngine.getSession().getProtocol();
+                if (SSLProtocol.TLS_V10.toString().equalsIgnoreCase(tlsProtocol)
+                        || SSLProtocol.TLS_V11.toString().equalsIgnoreCase(tlsProtocol)) {
+                    String warningMsg = tlsProtocol
+                            + " was negotiated. Please update server and client to use TLSv1.2 at minimum.";
+                    logger.warning(warningMsg);
+                    con.addWarning(warningMsg);
+                }
             } else {
-                // don't close proxy when SSL socket is closed
-                sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
-            }
+                // SSLSocket fallback for custom SocketFactory / non-NIO sockets
+                if (logger.isLoggable(Level.FINEST))
+                    logger.finest(toString() + " Creating SSL socket (non-NIO fallback)");
 
-            // At long last, start the SSL handshake ...
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(toString() + " Starting SSL handshake");
+                proxySocket = new ProxySocket(this);
 
-            // TLS 1.2 intermittent exception may happen here.
-            handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
-            sslSocket.startHandshake();
-
-            if (isTDS8) {
-                String negotiatedProtocol = sslSocket.getApplicationProtocol();
-
-                if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest(toString() + " Application Protocol negotiated: "
-                            + ((negotiatedProtocol == null) ? "null" : negotiatedProtocol));
+                if (isTDS8) {
+                    sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(channelSocket, host, port, true);
+                    SSLParameters sslParam = sslSocket.getSSLParameters();
+                    sslParam.setApplicationProtocols(new String[] {TDS.PROTOCOL_TDS80});
+                    sslSocket.setSSLParameters(sslParam);
+                } else {
+                    sslSocket = (SSLSocket) sslContext.getSocketFactory().createSocket(proxySocket, host, port, false);
                 }
 
-                // check negotiated ALPN
-                if (null != negotiatedProtocol && !(negotiatedProtocol.isEmpty())
-                        && negotiatedProtocol.compareToIgnoreCase(TDS.PROTOCOL_TDS80) != 0) {
-                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ALPNFailed"));
-                    Object[] msgArgs = {TDS.PROTOCOL_TDS80, negotiatedProtocol};
-                    con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs));
+                if (logger.isLoggable(Level.FINER))
+                    logger.finer(toString() + " Starting SSL handshake (SSLSocket)");
+
+                handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_STARTED;
+                sslSocket.startHandshake();
+
+                if (isTDS8) {
+                    String negotiatedProtocol = sslSocket.getApplicationProtocol();
+                    if (logger.isLoggable(Level.FINEST)) {
+                        logger.finest(toString() + " Application Protocol negotiated: "
+                                + ((negotiatedProtocol == null) ? "null" : negotiatedProtocol));
+                    }
+                    if (null != negotiatedProtocol && !(negotiatedProtocol.isEmpty())
+                            && negotiatedProtocol.compareToIgnoreCase(TDS.PROTOCOL_TDS80) != 0) {
+                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ALPNFailed"));
+                        Object[] msgArgs = {TDS.PROTOCOL_TDS80, negotiatedProtocol};
+                        con.terminate(SQLServerException.DRIVER_ERROR_SSL_FAILED, form.format(msgArgs));
+                    }
                 }
-            }
 
-            handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
+                handshakeState = SSLHandhsakeState.SSL_HANDHSAKE_COMPLETE;
+                proxySocket.setStreams(inputStream, outputStream);
+                inputStream = new ProxyInputStream(sslSocket.getInputStream());
+                outputStream = sslSocket.getOutputStream();
+                channelSocket = sslSocket;
 
-            // After SSL handshake is complete, re-wire proxy socket to use raw TCP/IP streams ...
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Rewiring proxy streams after handshake");
-
-            proxySocket.setStreams(inputStream, outputStream);
-
-            // ... and re-wire TDSChannel to use SSL streams.
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Getting SSL InputStream");
-
-            inputStream = new ProxyInputStream(sslSocket.getInputStream());
-
-            if (logger.isLoggable(Level.FINEST))
-                logger.finest(toString() + " Getting SSL OutputStream");
-
-            outputStream = sslSocket.getOutputStream();
-
-            // SSL is now enabled; switch over the channel socket
-            channelSocket = sslSocket;
-
-            // Check the TLS version
-            String tlsProtocol = sslSocket.getSession().getProtocol();
-            if (SSLProtocol.TLS_V10.toString().equalsIgnoreCase(tlsProtocol)
-                    || SSLProtocol.TLS_V11.toString().equalsIgnoreCase(tlsProtocol)) {
-                String warningMsg = tlsProtocol
-                        + " was negotiated. Please update server and client to use TLSv1.2 at minimum.";
-                logger.warning(warningMsg);
-                con.addWarning(warningMsg);
+                String tlsProtocol = sslSocket.getSession().getProtocol();
+                if (SSLProtocol.TLS_V10.toString().equalsIgnoreCase(tlsProtocol)
+                        || SSLProtocol.TLS_V11.toString().equalsIgnoreCase(tlsProtocol)) {
+                    String warningMsg = tlsProtocol
+                            + " was negotiated. Please update server and client to use TLSv1.2 at minimum.";
+                    logger.warning(warningMsg);
+                    con.addWarning(warningMsg);
+                }
             }
 
             setChannelBindingInfo();
@@ -2036,7 +2425,13 @@ final class TDSChannel implements Serializable {
 
     private void setChannelBindingInfo() {
         clearChannelBindingInfo();
-        channelBindingInfo = createChannelBindingInfo(null == sslSocket ? null : sslSocket.getSession());
+        javax.net.ssl.SSLSession session = null;
+        if (null != sslEngine) {
+            session = sslEngine.getSession();
+        } else if (null != sslSocket) {
+            session = sslSocket.getSession();
+        }
+        channelBindingInfo = createChannelBindingInfo(session);
     }
 
     byte[] getChannelBindingInfo() {
@@ -2309,7 +2704,96 @@ final class TDSChannel implements Serializable {
             inputStreamLock.lock();
             try {
                 con.idleNetworkTracker.markNetworkActivity();
+
+                // SSLEngine path: decrypt via NIO channel — no InputStream involved
+                if (sslEngine != null && tcpSocketChannel != null) {
+                    ByteBuffer tmpBuf = ByteBuffer.wrap(data, offset, length);
+                    int total = 0;
+                    while (tmpBuf.hasRemaining()) {
+                        int n = sslEngineRead(tmpBuf);
+                        if (n < 0) {
+                            return (total > 0) ? total : -1;
+                        }
+                        total += n;
+                    }
+                    return total;
+                }
+
                 return inputStream.read(data, offset, length);
+            } finally {
+                inputStreamLock.unlock();
+            }
+        } catch (IOException e) {
+            if (logger.isLoggable(Level.FINE))
+                logger.fine(toString() + " read failed:" + e.getMessage());
+
+            if (e instanceof SocketTimeoutException) {
+                con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage(), e);
+            } else {
+                con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
+            }
+
+            return 0; // Keep the compiler happy.
+        }
+    }
+
+    /**
+     * Returns true when non-SSL NIO I/O is available for direct-buffer reads.
+     *
+     * True when the underlying TCP socket was created via SocketChannel.open() (no
+     * custom socket factory) and the connection is unencrypted. When true, TDSReader
+     * should allocate DirectByteBuffers so that SocketChannel.read() can transfer
+     * data kernel→native without a temp heap array.
+     */
+    boolean isNioReadAvailable() {
+        return tcpSocketChannel != null && sslSocket == null;
+    }
+
+    /**
+     * Read data directly into ByteBuffer for zero-copy I/O
+     */
+    final int read(ByteBuffer buffer) throws SQLServerException {
+        try {
+            inputStreamLock.lock();
+            try {
+                con.idleNetworkTracker.markNetworkActivity();
+
+                // SSLEngine path: always route through sslEngineRead regardless of buffer type.
+                // drainSslAppBuf uses ByteBuffer.put() which works for both heap and direct buffers.
+                // This MUST be checked before buffer.hasArray() — when SSL is active every read
+                // must go through the SSLEngine so that decrypted bytes buffered in sslAppInBuf
+                // are consumed rather than bypassed.
+                if (sslEngine != null && tcpSocketChannel != null) {
+                    return sslEngineRead(buffer);
+                }
+
+                // Non-SSL path: use SocketChannel for DirectByteBuffers (DIRECT_BUFFER mode)
+                // so that kernel→native transfers avoid a temporary heap copy.
+                // For heap-backed buffers (HEAP mode), fall through to the inputStream path
+                // for consistency with write (outputStream) and to avoid stream/channel mixing.
+                if (tcpSocketChannel != null && sslSocket == null && !buffer.hasArray()) {
+                    return tcpSocketChannel.read(buffer);
+                }
+
+                // Heap-backed buffer or no NIO channel: use inputStream.
+                if (buffer.hasArray()) {
+                    int bytesRead = inputStream.read(buffer.array(),
+                            buffer.arrayOffset() + buffer.position(),
+                            buffer.remaining());
+                    if (bytesRead > 0) {
+                        buffer.position(buffer.position() + bytesRead);
+                    }
+                    return bytesRead;
+                } else {
+                    // No NIO channel and no heap array: bridge via temp array.
+                    int remaining = buffer.remaining();
+                    byte[] temp = new byte[Math.min(remaining, 8192)];
+                    int bytesRead = inputStream.read(temp, 0, temp.length);
+                    if (bytesRead > 0) {
+                        buffer.put(temp, 0, bytesRead);
+                    }
+                    return bytesRead;
+                }
             } finally {
                 inputStreamLock.unlock();
             }
@@ -2332,7 +2816,54 @@ final class TDSChannel implements Serializable {
             outputStreamLock.lock();
             try {
                 con.idleNetworkTracker.markNetworkActivity();
-                outputStream.write(data, offset, length);
+                // SSLEngine path: encrypt and write via NIO SocketChannel
+                if (sslEngine != null) {
+                    if (tcpSocketChannel != null) {
+                        sslEngineWrite(ByteBuffer.wrap(data, offset, length));
+                    } else {
+                        con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, "SSLEngine active without SocketChannel");
+                    }
+                } else {
+                    outputStream.write(data, offset, length);
+                }
+            } finally {
+                outputStreamLock.unlock();
+            }
+        } catch (IOException e) {
+            if (logger.isLoggable(Level.FINER))
+                logger.finer(toString() + " write failed:" + e.getMessage());
+
+            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
+        }
+    }
+
+    final void write(ByteBuffer data) throws SQLServerException {
+        try {
+            outputStreamLock.lock();
+            try {
+                con.idleNetworkTracker.markNetworkActivity();
+                if (sslEngine != null) {
+                    if (tcpSocketChannel != null) {
+                        sslEngineWrite(data);
+                    } else {
+                        con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, "SSLEngine active without SocketChannel");
+                    }
+                } else if (tcpSocketChannel != null && sslSocket == null && !data.hasArray()) {
+                    while (data.hasRemaining()) {
+                        tcpSocketChannel.write(data);
+                    }
+                } else if (data.hasArray()) {
+                    int length = data.remaining();
+                    outputStream.write(data.array(), data.arrayOffset() + data.position(), length);
+                    data.position(data.position() + length);
+                } else {
+                    byte[] temp = new byte[Math.min(data.remaining(), 8192)];
+                    while (data.hasRemaining()) {
+                        int length = Math.min(data.remaining(), temp.length);
+                        data.get(temp, 0, length);
+                        outputStream.write(temp, 0, length);
+                    }
+                }
             } finally {
                 outputStreamLock.unlock();
             }
@@ -2359,7 +2890,7 @@ final class TDSChannel implements Serializable {
     final void close() {
         clearChannelBindingInfo();
 
-        if (null != sslSocket)
+        if (null != sslSocket || null != sslEngine)
             disableSSL();
 
         if (null != inputStream) {
@@ -2396,6 +2927,10 @@ final class TDSChannel implements Serializable {
                 if (logger.isLoggable(Level.FINE))
                     logger.log(Level.FINE, this.toString() + ": Ignored error closing socket", e);
             }
+        }
+
+        if (null != tdsWriter) {
+            tdsWriter.cleanup();
         }
     }
 
@@ -3052,9 +3587,17 @@ final class SocketFinder {
         assert timeoutInMilliSeconds != 0 : "timeout cannot be zero";
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();
-        selectedSocket = getSocketFactory().createSocket();
-        if (!selectedSocket.isConnected()) {
-            selectedSocket.connect(addr, timeoutInMilliSeconds);
+        if (conn.getSocketFactoryClass() == null) {
+            // No custom socket factory: create via SocketChannel so TDSChannel can use
+            // SocketChannel.read(DirectByteBuffer) for kernel→native I/O without a temp array.
+            SocketChannel channel = SocketChannel.open();
+            channel.socket().connect(addr, timeoutInMilliSeconds);
+            selectedSocket = channel.socket();
+        } else {
+            selectedSocket = getSocketFactory().createSocket();
+            if (!selectedSocket.isConnected()) {
+                selectedSocket.connect(addr, timeoutInMilliSeconds);
+            }
         }
         return selectedSocket;
     }
@@ -3535,6 +4078,19 @@ final class TDSWriter {
     private ByteBuffer socketBuffer;
     private ByteBuffer logBuffer;
 
+    // Buffer mode configuration - supports HEAP, DIRECT_BUFFER, or MEMORY_SEGMENT.
+    // Parsed once, shared with TDSReader via BufferMode.CURRENT.
+    private static final BufferMode BUFFER_MODE = BufferMode.CURRENT;
+
+    private boolean usingDirectBuffers = false;
+    private BufferAllocator memorySegmentAllocator;
+
+    // Reusable fill pattern for direct/MemorySegment log-buffer scrubbing (see preparePacket()).
+    private static final byte[] LOG_FILL_BYTES = new byte[4096];
+    static {
+        Arrays.fill(LOG_FILL_BYTES, (byte) 0xFE);
+    }
+
     // Intermediate arrays
     // It is assumed, startMessage is called before use, to alloc arrays
     private char[] streamCharBuffer;
@@ -3546,6 +4102,14 @@ final class TDSWriter {
         this.tdsChannel = tdsChannel;
         this.con = con;
         traceID = "TDSWriter@" + Integer.toHexString(hashCode()) + " (" + con.toString() + ")";
+
+        // Log buffer configuration for debugging
+        if (logger.isLoggable(Level.INFO)) {
+            logger.info("=== MSSQL-JDBC Buffer Configuration ===");
+            logger.info("BUFFER_MODE: " + BUFFER_MODE);
+            logger.info("JDK Version: " + System.getProperty("java.version"));
+            logger.info("======================================");
+        }
     }
 
     /**
@@ -3561,7 +4125,22 @@ final class TDSWriter {
 
     void preparePacket() throws SQLServerException {
         if (tdsChannel.isLoggingPackets()) {
-            Arrays.fill(logBuffer.array(), (byte) 0xFE);
+            if (usingDirectBuffers) {
+                // Direct/MemorySegment buffers have no backing array; fill in bulk via a
+                // shared, reusable fill array instead of one put() call per byte.
+                int savedPos = ((Buffer) logBuffer).position();
+                ((Buffer) logBuffer).position(0);
+                int remaining = logBuffer.capacity();
+                while (remaining > 0) {
+                    int chunk = Math.min(remaining, LOG_FILL_BYTES.length);
+                    logBuffer.put(LOG_FILL_BYTES, 0, chunk);
+                    remaining -= chunk;
+                }
+                ((Buffer) logBuffer).position(savedPos);
+            } else {
+                // For heap buffers, use array() directly
+                Arrays.fill(logBuffer.array(), (byte) 0xFE);
+            }
             ((Buffer) logBuffer).clear();
         }
 
@@ -3608,9 +4187,34 @@ final class TDSWriter {
         // then allocate new buffers that are the correct size.
         int negotiatedPacketSize = con.getTDSPacketSize();
         if (currentPacketSize != negotiatedPacketSize) {
-            socketBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
-            stagingBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
-            logBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
+            // Determine buffer allocation mode based on SSL status and configuration
+            boolean sslActive = con.getNegotiatedEncryptionLevel() != TDS.ENCRYPT_OFF;
+            BufferMode effectiveMode = determineEffectiveBufferMode(BUFFER_MODE, sslActive);
+
+            switch (effectiveMode) {
+                case MEMORY_SEGMENT:
+                    allocateMemorySegmentBuffers(negotiatedPacketSize);
+                    if (logger.isLoggable(Level.INFO))
+                        logger.info(toString() + " Allocated MemorySegment buffers (MEMORY_SEGMENT) - packetSize: "
+                                + negotiatedPacketSize + ", SSL: " + sslActive);
+                    break;
+
+                case DIRECT_BUFFER:
+                    allocateDirectBuffers(negotiatedPacketSize);
+                    if (logger.isLoggable(Level.INFO))
+                        logger.info(toString() + " Allocated direct ByteBuffers (DIRECT_BUFFER) - packetSize: "
+                                + negotiatedPacketSize + ", SSL: " + sslActive);
+                    break;
+
+                case HEAP:
+                default:
+                    allocateHeapBuffers(negotiatedPacketSize);
+                    if (logger.isLoggable(Level.INFO))
+                        logger.info(toString() + " Allocated heap buffers (HEAP) - packetSize: " + negotiatedPacketSize
+                                + ", SSL: " + sslActive);
+                    break;
+            }
+
             currentPacketSize = negotiatedPacketSize;
             streamCharBuffer = new char[2 * currentPacketSize];
             streamByteBuffer = new byte[4 * currentPacketSize];
@@ -3621,6 +4225,59 @@ final class TDSWriter {
 
         preparePacket();
         writeMessageHeader();
+    }
+
+    static BufferMode determineEffectiveBufferMode(BufferMode requestedMode, boolean sslActive) {
+        return requestedMode;
+    }
+
+    /**
+     * Allocate MemorySegment ByteBuffers (JDK 22+).
+     * Falls back to direct ByteBuffers if MemorySegment allocation is unavailable.
+     */
+    private void allocateMemorySegmentBuffers(int packetSize) {
+        BufferAllocator allocator = TDSReader.createPacketAllocator(BufferMode.MEMORY_SEGMENT);
+        if (null == allocator) {
+            allocateDirectBuffers(packetSize);
+            return;
+        }
+
+        if (null != memorySegmentAllocator) {
+            memorySegmentAllocator.cleanup();
+        }
+        memorySegmentAllocator = allocator;
+
+        socketBuffer = allocator.allocate(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        stagingBuffer = allocator.allocate(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        logBuffer = allocator.allocate(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        usingDirectBuffers = true;
+    }
+
+    void cleanup() {
+        if (null != memorySegmentAllocator) {
+            memorySegmentAllocator.cleanup();
+            memorySegmentAllocator = null;
+        }
+    }
+
+    /**
+     * Allocate direct ByteBuffers (JDK 8+, SSL compatible)
+     */
+    private void allocateDirectBuffers(int packetSize) {
+        socketBuffer = ByteBuffer.allocateDirect(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        stagingBuffer = ByteBuffer.allocateDirect(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        logBuffer = ByteBuffer.allocateDirect(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        usingDirectBuffers = true;
+    }
+
+    /**
+     * Allocate heap ByteBuffers (JDK 8+, SSL compatible)
+     */
+    private void allocateHeapBuffers(int packetSize) {
+        socketBuffer = ByteBuffer.allocate(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        stagingBuffer = ByteBuffer.allocate(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        logBuffer = ByteBuffer.allocate(packetSize).order(ByteOrder.LITTLE_ENDIAN);
+        usingDirectBuffers = false;
     }
 
     final void endMessage() throws SQLServerException {
@@ -4675,7 +5332,13 @@ final class TDSWriter {
 
     void flush(boolean atEOM) throws SQLServerException {
         // First, flush any data left in the socket buffer.
-        tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+        // Handle both heap and direct buffers
+        if (usingDirectBuffers) {
+            tdsChannel.write(socketBuffer);
+        } else {
+            // For heap buffers, use array() directly
+            tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+        }
         ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
 
         // If there is data in the staging buffer that needs to be written
@@ -4699,8 +5362,20 @@ final class TDSWriter {
             // If we are logging TDS packets then log the packet we're about
             // to send over the wire now.
             if (tdsChannel.isLoggingPackets()) {
-                tdsChannel.logPacket(logBuffer.array(), 0, ((Buffer) socketBuffer).limit(),
-                        this.toString() + " sending packet (" + ((Buffer) socketBuffer).limit() + " bytes)");
+                if (usingDirectBuffers) {
+                    // For direct buffers, copy to temporary array for logging
+                    byte[] tempLogBuffer = new byte[((Buffer) socketBuffer).limit()];
+                    int savedPos = ((Buffer) logBuffer).position();
+                    ((Buffer) logBuffer).position(0);
+                    logBuffer.get(tempLogBuffer, 0, ((Buffer) socketBuffer).limit());
+                    ((Buffer) logBuffer).position(savedPos);
+                    tdsChannel.logPacket(tempLogBuffer, 0, ((Buffer) socketBuffer).limit(),
+                            this.toString() + " sending packet (" + ((Buffer) socketBuffer).limit() + " bytes)");
+                } else {
+                    // For heap buffers, use array() directly
+                    tdsChannel.logPacket(logBuffer.array(), 0, ((Buffer) socketBuffer).limit(),
+                            this.toString() + " sending packet (" + ((Buffer) socketBuffer).limit() + " bytes)");
+                }
             }
 
             // Prepare for the next packet
@@ -4708,7 +5383,12 @@ final class TDSWriter {
                 preparePacket();
 
             // Finally, start sending data from the new socket buffer.
-            tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+            if (usingDirectBuffers) {
+                tdsChannel.write(socketBuffer);
+            } else {
+                // For heap buffers, use array() directly
+                tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+            }
             ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
         }
     }
@@ -6888,9 +7568,14 @@ final class TDSWriter {
  */
 final class TDSPacket {
     final byte[] header = new byte[TDS.PACKET_HEADER_SIZE];
-    final byte[] payload;
+    final ByteBuffer payload; // Changed from byte[] to ByteBuffer for zero-copy read operations
     int payloadLength;
     volatile TDSPacket next;
+
+    // Set only when payload was allocated from a per-packet BufferAllocator (e.g. MemorySegment).
+    // Lets the owning TDSReader release this packet's native memory as soon as it is unlinked
+    // from the response chain instead of retaining it for the life of the whole response.
+    private final BufferAllocator allocator;
 
     final public String toString() {
         return "TDSPacket(SPID:" + Util.readUnsignedShortBigEndian(header, TDS.PACKET_HEADER_SPID) + " Seq:"
@@ -6898,9 +7583,41 @@ final class TDSPacket {
     }
 
     TDSPacket(int size) {
-        payload = new byte[size];
+        this(size, BufferMode.HEAP);
+    }
+
+    TDSPacket(int size, BufferMode mode) {
+        allocator = null;
+        switch (mode) {
+            case MEMORY_SEGMENT:
+            case DIRECT_BUFFER:
+                payload = ByteBuffer.allocateDirect(size).order(ByteOrder.LITTLE_ENDIAN);
+                break;
+            case HEAP:
+            default:
+                payload = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN);
+                break;
+        }
         payloadLength = 0;
         next = null;
+    }
+
+    TDSPacket(int size, BufferAllocator allocator) {
+        this.allocator = allocator;
+        payload = allocator.allocate(size);
+        payloadLength = 0;
+        next = null;
+    }
+
+    /**
+     * Releases this packet's own native memory. No-op unless the payload came from a per-packet
+     * allocator. Only safe to call once this packet is unreachable from the reader's chain (see
+     * TDSReader#nextPacket() and TDSReader#cleanup()).
+     */
+    final void releaseNativeMemory() {
+        if (null != allocator) {
+            allocator.cleanup();
+        }
     }
 
     final boolean isEOM() {
@@ -6947,6 +7664,16 @@ final class TDSReader implements Serializable {
         return traceID;
     }
 
+    // Buffer mode configuration - parsed once by BufferMode.CURRENT, shared with
+    // TDSWriter
+    private static final BufferMode BUFFER_MODE = BufferMode.CURRENT;
+
+    // True when this JVM can construct MemorySegmentBufferAllocator instances (JDK
+    // 22+ and the class is present). Checked once per response rather than once per
+    // packet; each packet that needs one still gets its own allocator/arena (see
+    // readPacket()).
+    private final transient boolean memorySegmentAllocationAvailable;
+
     private final TDSChannel tdsChannel;
     private final SQLServerConnection con;
 
@@ -6961,10 +7688,11 @@ final class TDSReader implements Serializable {
         return con;
     }
 
-    private transient TDSPacket currentPacket = new TDSPacket(0);
+    private transient TDSPacket currentPacket = new TDSPacket(0, BufferMode.HEAP);
     private transient TDSPacket lastPacket = currentPacket;
     private int payloadOffset = 0;
     private int packetNum = 0;
+    private boolean loggedMemorySegmentUse = false;
 
     private boolean isStreaming = true;
     private boolean useColumnEncryption = false;
@@ -6987,6 +7715,7 @@ final class TDSReader implements Serializable {
         this.tdsChannel = tdsChannel;
         this.con = con;
         this.command = command; // may be null
+        this.memorySegmentAllocationAvailable = null != command && null != createPacketAllocator(BUFFER_MODE);
         // if the logging level is not detailed than fine or more we will not have proper reader IDs.
         if (logger.isLoggable(Level.FINE))
             traceID = "TDSReader@" + nextReaderID() + " (" + con.toString() + ")";
@@ -6998,6 +7727,52 @@ final class TDSReader implements Serializable {
         serverSupportsColumnEncryption = con.getServerSupportsColumnEncryption();
         serverSupportsDataClassification = con.getServerSupportsDataClassification();
         serverSupportedDataClassificationVersion = con.getServerSupportedDataClassificationVersion();
+    }
+
+    // Resolved lazily and cached so that repeated per-packet allocator creation
+    // (see readPacket()) does not repeat the constructor lookup for every packet.
+    private static volatile java.lang.reflect.Constructor<?> memorySegmentAllocatorCtor;
+
+    static BufferAllocator createPacketAllocator(BufferMode mode) {
+        if (BufferMode.MEMORY_SEGMENT != mode) {
+            return null;
+        }
+
+        try {
+            java.lang.reflect.Constructor<?> ctor = memorySegmentAllocatorCtor;
+            if (null == ctor) {
+                Class<?> allocatorClass = Class.forName("com.microsoft.sqlserver.jdbc.MemorySegmentBufferAllocator");
+                ctor = allocatorClass.getDeclaredConstructor();
+                ctor.setAccessible(true);
+                memorySegmentAllocatorCtor = ctor;
+            }
+            return (BufferAllocator) ctor.newInstance();
+        } catch (ReflectiveOperationException | LinkageError e) {
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(Level.FINE, "MemorySegment packet allocation is unavailable; using direct buffers.", e);
+            }
+            return null;
+        }
+    }
+
+    static BufferMode determineReadBufferMode(BufferMode requestedMode, boolean sslActive) {
+        // MemorySegment.asByteBuffer() is a direct ByteBuffer, which SSLEngine can populate.
+        return requestedMode;
+    }
+
+    /**
+     * Releases native memory for every packet still linked in the response chain.
+     *
+     * Packets consumed during streaming already released their own memory as they were
+     * unlinked (see nextPacket()). This covers the packets that were never unlinked: the
+     * tail of a streamed response, and every packet of a fully-buffered (marked) response.
+     */
+    final void cleanup() {
+        TDSPacket packet = currentPacket;
+        while (null != packet) {
+            packet.releaseNativeMemory();
+            packet = packet.next;
+        }
     }
 
     final boolean isColumnEncryptionSettingEnabled() {
@@ -7078,6 +7853,10 @@ final class TDSReader implements Serializable {
                 logger.finest(toString() + " Moving to next packet -- unlinking consumed packet");
 
             consumedPacket.next = null;
+            // Safe here specifically because isStreaming implies no TDSReaderMark can
+            // still reference consumedPacket (taking a mark always sets isStreaming =
+            // false).
+            consumedPacket.releaseNativeMemory();
         }
         currentPacket = nextPacket;
         payloadOffset = 0;
@@ -7102,7 +7881,32 @@ final class TDSReader implements Serializable {
             assert tdsChannel.numMsgsRcvd < tdsChannel.numMsgsSent : "numMsgsRcvd:" + tdsChannel.numMsgsRcvd
                     + " should be less than numMsgsSent:" + tdsChannel.numMsgsSent;
 
-            TDSPacket newPacket = new TDSPacket(con.getTDSPacketSize());
+            // Determine buffer mode for read packets.
+            // IMPORTANT: mixing inputStream.read() (header) with tcpSocketChannel.read()
+            // (payload) on the same socket causes hangs on JDK 15+ (tested on JDK 25).
+            // Only activate the DIRECT_BUFFER path when the user explicitly requested it
+            // via bufferMode=direct_buffer, which enables true kernel→native I/O
+            // (SocketChannel.read into off-heap memory).
+            // Always fall back to HEAP (inputStream path) for safety unless the user opts in.
+            boolean sslActive = con.getNegotiatedEncryptionLevel() != TDS.ENCRYPT_OFF;
+            BufferMode readBufferMode = determineReadBufferMode(BUFFER_MODE, sslActive);
+
+            // Each MemorySegment-backed packet gets its own allocator/arena (instead of
+            // sharing one arena for the whole response) so that unlinking a consumed packet
+            // in nextPacket() can deterministically free that packet's native memory. This
+            // keeps native-memory growth bounded during large streamed reads instead of
+            // retaining every packet's memory for the life of the response.
+            BufferAllocator perPacketAllocator = BufferMode.MEMORY_SEGMENT == readBufferMode
+                    && memorySegmentAllocationAvailable ? createPacketAllocator(BufferMode.MEMORY_SEGMENT) : null;
+            if (null != perPacketAllocator && !loggedMemorySegmentUse) {
+                loggedMemorySegmentUse = true;
+                if (logger.isLoggable(Level.INFO))
+                    logger.info(toString() + " Allocated MemorySegment packet buffer (MEMORY_SEGMENT) - packetSize: "
+                            + con.getTDSPacketSize() + ", SSL: " + sslActive);
+            }
+            TDSPacket newPacket = null != perPacketAllocator
+                    ? new TDSPacket(con.getTDSPacketSize(), perPacketAllocator)
+                    : new TDSPacket(con.getTDSPacketSize(), readBufferMode);
             if ((null != command) &&
             // if cancelQueryTimeout is set, we should wait for the total amount of
             // queryTimeout + cancelQueryTimeout to
@@ -7173,25 +7977,32 @@ final class TDSReader implements Serializable {
                 command.getCounter().increaseCounter(packetLength);
             }
 
-            // Now for the payload...
+            // Now for the payload - read directly into ByteBuffer
+            newPacket.payload.clear();
+            newPacket.payload.limit(newPacket.payloadLength);
+
             for (int payloadBytesRead = 0; payloadBytesRead < newPacket.payloadLength;) {
-                int bytesRead = tdsChannel.read(newPacket.payload, payloadBytesRead,
-                        newPacket.payloadLength - payloadBytesRead);
-                if (bytesRead < 0)
+                int bytesRead = tdsChannel.read(newPacket.payload);
+                if (bytesRead < 0) {
                     con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
                             SQLServerException.getErrString("R_truncatedServerResponse"));
-
+                }
                 payloadBytesRead += bytesRead;
             }
+
+            // Prepare buffer for reading
+            newPacket.payload.flip();
 
             ++packetNum;
 
             lastPacket.next = newPacket;
             lastPacket = newPacket;
 
-            // When logging, append the payload to the log buffer and write out the whole thing.
+            // When logging, copy data to log buffer
             if (tdsChannel.isLoggingPackets() && logBuffer != null) {
-                System.arraycopy(newPacket.payload, 0, logBuffer, TDS.PACKET_HEADER_SIZE, newPacket.payloadLength);
+                newPacket.payload.position(0);
+                newPacket.payload.get(logBuffer, TDS.PACKET_HEADER_SIZE, newPacket.payloadLength);
+                newPacket.payload.position(0);
                 tdsChannel.logPacket(logBuffer, 0, packetLength,
                         this.toString() + " received Packet:" + packetNum + " (" + newPacket.payloadLength + " bytes)");
             }
@@ -7269,13 +8080,13 @@ final class TDSReader implements Serializable {
             return -1;
 
         // Peek at the current byte (don't increment payloadOffset!)
-        return currentPacket.payload[payloadOffset] & 0xFF;
+        return currentPacket.payload.get(payloadOffset) & 0xFF;
     }
 
     final short peekStatusFlag() {
         // skip the current packet(i.e, TDS packet type) and peek into the status flag (USHORT)
         if (payloadOffset + 3 <= currentPacket.payloadLength) {
-            return Util.readShort(currentPacket.payload, payloadOffset + 1);
+            return currentPacket.payload.getShort(payloadOffset + 1);
         }
 
         return 0;
@@ -7285,19 +8096,19 @@ final class TDSReader implements Serializable {
         // Fast path for the common case where the current TDS packet still
         // has payload available; falls back to ensurePayload() at boundaries.
         if (payloadOffset < currentPacket.payloadLength) {
-            return currentPacket.payload[payloadOffset++] & 0xFF;
+            return currentPacket.payload.get(payloadOffset++) & 0xFF;
         }
 
         // Ensure that we have a packet to read from.
         if (!ensurePayload())
             throwInvalidTDS();
 
-        return currentPacket.payload[payloadOffset++] & 0xFF;
+        return currentPacket.payload.get(payloadOffset++) & 0xFF;
     }
 
     final short readShort() throws SQLServerException {
         if (payloadOffset + 2 <= currentPacket.payloadLength) {
-            short value = Util.readShort(currentPacket.payload, payloadOffset);
+            short value = currentPacket.payload.getShort(payloadOffset);
             payloadOffset += 2;
             return value;
         }
@@ -7307,7 +8118,7 @@ final class TDSReader implements Serializable {
 
     final int readUnsignedShort() throws SQLServerException {
         if (payloadOffset + 2 <= currentPacket.payloadLength) {
-            int value = Util.readUnsignedShort(currentPacket.payload, payloadOffset);
+            int value = currentPacket.payload.getShort(payloadOffset) & 0xFFFF;
             payloadOffset += 2;
             return value;
         }
@@ -7329,7 +8140,7 @@ final class TDSReader implements Serializable {
 
     final int readInt() throws SQLServerException {
         if (payloadOffset + 4 <= currentPacket.payloadLength) {
-            int value = Util.readInt(currentPacket.payload, payloadOffset);
+            int value = currentPacket.payload.getInt(payloadOffset);
             payloadOffset += 4;
             return value;
         }
@@ -7339,7 +8150,9 @@ final class TDSReader implements Serializable {
 
     final int readIntBigEndian() throws SQLServerException {
         if (payloadOffset + 4 <= currentPacket.payloadLength) {
-            int value = Util.readIntBigEndian(currentPacket.payload, payloadOffset);
+            // ByteBuffer is already in LITTLE_ENDIAN, need to convert
+            int value = currentPacket.payload.getInt(payloadOffset);
+            value = Integer.reverseBytes(value); // Convert to big-endian
             payloadOffset += 4;
             return value;
         }
@@ -7353,7 +8166,7 @@ final class TDSReader implements Serializable {
 
     final long readLong() throws SQLServerException {
         if (payloadOffset + 8 <= currentPacket.payloadLength) {
-            long value = Util.readLong(currentPacket.payload, payloadOffset);
+            long value = currentPacket.payload.getLong(payloadOffset);
             payloadOffset += 8;
             return value;
         }
@@ -7378,7 +8191,10 @@ final class TDSReader implements Serializable {
             if (isLogging)
                 logger.finest(toString() + " Reading " + bytesToCopy + " bytes from offset " + payloadOffset);
 
-            System.arraycopy(currentPacket.payload, payloadOffset, value, valueOffset + bytesRead, bytesToCopy);
+            // Use ByteBuffer.get() for zero-copy when possible
+            currentPacket.payload.position(payloadOffset);
+            currentPacket.payload.get(value, valueOffset + bytesRead, bytesToCopy);
+
             bytesRead += bytesToCopy;
             payloadOffset += bytesToCopy;
         }
@@ -7623,9 +8439,10 @@ final class TDSReader implements Serializable {
         final int length = TDS.DAYS_INTO_CE_LENGTH;
         int daysIntoCE;
         if (payloadOffset + length <= currentPacket.payloadLength) {
-            final byte[] p = currentPacket.payload;
             final int off = payloadOffset;
-            daysIntoCE = (p[off] & 0xFF) | ((p[off + 1] & 0xFF) << 8) | ((p[off + 2] & 0xFF) << 16);
+            daysIntoCE = (currentPacket.payload.get(off) & 0xFF)
+                    | ((currentPacket.payload.get(off + 1) & 0xFF) << 8)
+                    | ((currentPacket.payload.get(off + 2) & 0xFF) << 16);
             payloadOffset += length;
         } else {
             final byte[] value = readWrappedBytes(length);
@@ -8126,6 +8943,7 @@ abstract class TDSCommand implements Serializable {
         // Response has been processed and there is no attention pending -- the command is closed.
         // Of course the connection may be closed too, but the command is done regardless...
         assert processedResponse && !attentionPending;
+        tdsReader.cleanup();
     }
 
     /**
