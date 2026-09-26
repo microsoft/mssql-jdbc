@@ -1,0 +1,31 @@
+{
+  "Version": "1",
+  "AzureAd": {
+    "Instance": "https://login.microsoftonline.com/",
+    "ClientId": "",
+    "TenantId": "",
+    "Audience": "",
+    "SendX5C": true,
+    "ClientCredentials": [
+      {
+        "SourceType": "Path",
+        "CertificateDiskPath": "/mise/authorization.pfx",
+        "CertificatePassword": ""
+      }
+    ],
+    "ShowPII": false,
+    "MinimumDataClassificationCategory": "SystemMetadata",
+    "Logging": { "LogLevel": "Warning" },
+    "Modules": {
+      "TrV2": { "ModuleType": "TrV2Module", "Enabled": true },
+      "AzureAuthorization": { "ModuleType": "AzureAuthorizationModule", "Enabled": true }
+    },
+    "DataProviders": {
+      "AzureAuthorization": { "DataProviderType": "AzureAuthorizationDataProvider", "Region": "" }
+    }
+  },
+  "AllowedHosts": "*",
+  "Logging": {
+    "LogLevel": { "Default": "Warning", "Microsoft": "Warning", "Microsoft.Hosting.Lifetime": "Warning" }
+  }
+}

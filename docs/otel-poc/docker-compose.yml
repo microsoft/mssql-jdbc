@@ -1,0 +1,105 @@
+name: mssql-jdbc-connection-poc
+
+services:
+  evidence-init:
+    image: busybox:1.37.0
+    user: "0:0"
+    network_mode: none
+    volumes:
+      - evidence:/evidence
+    command: ["sh", "-c", "chown 10001:10001 /evidence && chmod 0700 /evidence"]
+    restart: "no"
+
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:0.123.0
+    user: "10001:10001"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./collector/otelcol.yaml:/etc/otelcol/config.yaml:ro
+      - evidence:/evidence
+    depends_on:
+      evidence-init:
+        condition: service_completed_successfully
+      aspire-dashboard:
+        condition: service_started
+    networks: [ingress, monitor]
+    # No host OTLP ports; Java reaches HTTP through the private Docker network.
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  aspire-dashboard:
+    # Retained from the pinned fork, for demo compatibility, not a production baseline.
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:8.0
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    ports:
+      - "127.0.0.1:18888:18888"
+    networks: [monitor]
+
+  app:
+    profiles: [tools]
+    build:
+      context: ../..
+      dockerfile: docs/otel-poc/Dockerfile
+    image: mssql-jdbc-connection-poc:local
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otelcol:4318
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-mssql-jdbc-connection-demo}
+      OTEL_AUTH_MODE: ${OTEL_AUTH_MODE:-none}
+      OTEL_ACCESS_TOKEN_SCOPE: ${OTEL_ACCESS_TOKEN_SCOPE:-}
+      OTEL_TOKEN_AUTHORITY: ${OTEL_TOKEN_AUTHORITY:-}
+      OTEL_BEARER_TOKEN:
+      OTEL_ARM_RESOURCE_ID: ${OTEL_ARM_RESOURCE_ID:-}
+      OTEL_ALLOW_INSECURE_DEVELOPMENT_ENDPOINT: "true"
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      DEMO_SCENARIOS: ${DEMO_SCENARIOS:-config,dns}
+      DEMO_REPEAT: ${DEMO_REPEAT:-1}
+      DEMO_PAUSE_SECONDS: ${DEMO_PAUSE_SECONDS:-1}
+      JDBC_CONNECTION_STRING:
+      DEMO_LOGIN_USER:
+      DEMO_LOGIN_PASSWORD:
+      DEMO_DISCOVERY_CONNECTION_STRING:
+      OTEL_DISCOVERY_ALLOWED_HOST:
+      AZURE_CLIENT_ID:
+      AZURE_TENANT_ID:
+      AZURE_CLIENT_SECRET:
+      AZURE_AUTHORITY_HOST:
+      IDENTITY_ENDPOINT:
+      IDENTITY_HEADER:
+    depends_on:
+      otelcol:
+        condition: service_started
+    networks: [ingress, outbound]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  verify:
+    profiles: [tools]
+    image: node:22.14.0-alpine3.21
+    user: "10001:10001"
+    networks: [ingress]
+    environment:
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-mssql-jdbc-connection-demo}
+      DEMO_SCENARIOS: ${DEMO_SCENARIOS:-config,dns}
+      DEMO_REPEAT: ${DEMO_REPEAT:-1}
+    volumes:
+      - evidence:/evidence:ro
+      - ./.scripts/verify-traces.mjs:/verify-traces.mjs:ro
+    entrypoint: ["node", "/verify-traces.mjs"]
+    command: ["/evidence/traces.json"]
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+networks:
+  ingress:
+    internal: true
+  monitor:
+    internal: true
+  outbound: {}
+
+volumes:
+  evidence: {}

@@ -1,0 +1,82 @@
+# Optional authenticated trace pipeline + the fork's OTAP Delta/Event Hub exporter.
+extensions:
+  misecontainerauth:
+    first_party_app_ids: []
+    first_party_tenant_ids: []
+    first_party_subscriptions: ["${env:MISE_FIRST_PARTY_SUBSCRIPTION}"]
+    authz_check_access:
+      enabled: true
+      arm_resource_id_header: x-ms-arm-resource-id
+      decision_cache_max_size: 10000
+      decision_cache_ttl_sec: 0
+    http:
+      mise_service_endpoint: http://mise:5000/ValidateRequest
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        include_metadata: true
+        auth:
+          authenticator: misecontainerauth
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+  batch:
+    timeout: 1s
+    send_batch_size: 128
+
+exporters:
+  otlphttp/evidence:
+    endpoint: http://evidence:4318
+  deltalake/otap:
+    storage_url: "https://${env:STORAGE_ACCOUNT}.dfs.core.windows.net"
+    container: "${env:STORAGE_CONTAINER}"
+    root_path: "${env:ROOT_PATH}"
+    auth:
+      authentication_method: SystemManagedIdentity
+    delta_bulk_loader:
+      storage_account_csharp_named_auth_type: ManagedIdentityCredential
+      event_hub:
+        enabled: true
+        namespace: "${env:EVENT_HUB_NAMESPACE}"
+        name: "${env:EVENT_HUB_NAME}"
+        tenant_id: "${env:AZURE_TENANT_ID}"
+        publish_timeout: 30s
+        auth:
+          authentication_method: SystemManagedIdentity
+    parquet:
+      compression: zstd
+      row_group_target_rows: 1000000
+      page_buffer_size: 524288
+      data_page_size_bytes: 2097152
+    buffer:
+      max_buffer_rows: 1000
+      flush_timeout: 60s
+      flush_check_interval: 5s
+      max_memory_usage_in_mega_bytes: 256
+    partition:
+      default:
+        time: event_year_date_hour
+        data_columns: [application]
+    sending_queue:
+      enabled: false
+    timeout: 60s
+    marshaler: otap_parquet
+
+service:
+  extensions: [misecontainerauth]
+  telemetry:
+    metrics:
+      level: none
+    logs:
+      level: warn
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/evidence, deltalake/otap]

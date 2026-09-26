@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+*.key
+*.jks
+*.crt
+*.cer
+*.log
+evidence/
+secrets/
+internal/portainer/
+internal/mise/*.local.json
+internal/delta-bulk-loader/*.local.json

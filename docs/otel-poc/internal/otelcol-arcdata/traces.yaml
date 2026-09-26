@@ -1,0 +1,49 @@
+# Adapted from fork 9d46cd4a6c6f4ed9bb6e50fe774fe08acc675144.
+# MISE HTTP AuthN + CheckAccess AuthZ; no alternate unauthenticated gRPC path.
+extensions:
+  misecontainerauth:
+    first_party_app_ids: []
+    first_party_tenant_ids: []
+    first_party_subscriptions: ["${env:MISE_FIRST_PARTY_SUBSCRIPTION}"]
+    authz_check_access:
+      enabled: true
+      arm_resource_id_header: x-ms-arm-resource-id
+      decision_cache_max_size: 10000
+      decision_cache_ttl_sec: 0
+    http:
+      mise_service_endpoint: http://mise:5000/ValidateRequest
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        include_metadata: true
+        auth:
+          authenticator: misecontainerauth
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+    spike_limit_mib: 64
+  batch:
+    timeout: 1s
+    send_batch_size: 128
+
+exporters:
+  otlphttp/evidence:
+    endpoint: http://evidence:4318
+
+service:
+  extensions: [misecontainerauth]
+  telemetry:
+    metrics:
+      level: none
+    logs:
+      level: warn
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/evidence]

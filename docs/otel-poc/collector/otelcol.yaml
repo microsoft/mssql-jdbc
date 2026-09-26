@@ -1,0 +1,39 @@
+# Only traces are accepted/exported. There is no metrics/logs pipeline or gRPC receiver.
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 128
+    spike_limit_mib: 32
+  batch:
+    timeout: 1s
+    send_batch_size: 128
+
+exporters:
+  file/evidence:
+    path: /evidence/traces.json
+    flush_interval: 1s
+    rotation:
+      max_megabytes: 10
+      max_backups: 2
+  otlp/aspire:
+    endpoint: aspire-dashboard:18889
+    tls:
+      insecure: true
+
+service:
+  telemetry:
+    metrics:
+      level: none
+    logs:
+      level: warn
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [file/evidence, otlp/aspire]

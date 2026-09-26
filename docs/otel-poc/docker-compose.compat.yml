@@ -1,0 +1,79 @@
+# Last overlay after base + internal + delta + sql; selected by dev.sh compat.
+# Runtime-only delegation of an already authorized CLI session, NOT real Managed Identity.
+services:
+  token-server:
+    build:
+      context: ./internal/token-server
+    image: mssql-jdbc-token-server:local
+    user: "${DEMO_UID:-10001}:${DEMO_GID:-10001}"
+    environment:
+      IDENTITY_HEADER: ${IDENTITY_HEADER:?Supply a per-session random secret of at least 32 characters}
+      TOKEN_ALLOWED_RESOURCES: ${TOKEN_ALLOWED_RESOURCES:-https://storage.azure.com/,https://eventhubs.azure.net/}
+      AZURE_CONFIG_DIR: /run/azure/session
+      HOME: /run/azure
+    volumes:
+      - type: bind
+        source: ${AZURE_HOST_PATH:?Set an existing authorized Linux-compatible CLI cache directory}
+        target: /host/.azure
+        read_only: true
+        bind:
+          create_host_path: false
+      - ./.scripts/azure-session.sh:/app/azure-session.sh:ro
+    tmpfs:
+      - /run/azure:rw,noexec,nosuid,nodev,mode=0700,uid=${DEMO_UID:-10001},gid=${DEMO_GID:-10001},size=64m
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    # No published ports. The outbound network permits Entra refresh, not host ingress.
+    networks: [identity, outbound]
+
+  otelcol:
+    depends_on:
+      token-server:
+        condition: service_healthy
+    networks:
+      ingress:
+        aliases: [otelcol-arcdata]
+      identity: {}
+
+  delta-bulk-loader:
+    depends_on:
+      token-server:
+        condition: service_healthy
+    networks: [identity]
+
+  app:
+    build:
+      target: azure-cli
+    image: mssql-jdbc-connection-poc:azure-cli
+    user: "${DEMO_UID:-10001}:${DEMO_GID:-10001}"
+    entrypoint: ["/bin/bash", "/app/compat-app.sh"]
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${DEMO_LOCAL_OTEL_ENDPOINT:-http://otelcol-arcdata:4318}
+      AZURE_CONFIG_DIR: /run/azure/session
+      HOME: /run/azure
+      # Driver uses AzureCliCredential independently, never the storage/Event Hub broker.
+      IDENTITY_ENDPOINT: ""
+      IDENTITY_HEADER: ""
+    volumes:
+      - type: bind
+        source: ${AZURE_HOST_PATH:?Set an existing authorized Linux-compatible CLI cache directory}
+        target: /host/.azure
+        read_only: true
+        bind:
+          create_host_path: false
+      - ./.scripts/azure-session.sh:/app/azure-session.sh:ro
+      - ./.scripts/compat-app.sh:/app/compat-app.sh:ro
+    tmpfs:
+      - /run/azure:rw,noexec,nosuid,nodev,mode=0700,uid=${DEMO_UID:-10001},gid=${DEMO_GID:-10001},size=64m
+
+networks:
+  identity:
+    internal: true

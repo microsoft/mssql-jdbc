@@ -1,0 +1,30 @@
+# Optional last overlay, ONLY with compat (our private sandbox SQL container).
+# A trusted HTTPS receiver/ingress routing back to this evidence pipeline is required.
+services:
+  sqlserver-init:
+    profiles: [tools]
+    image: ${SQL_SERVER_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}
+    entrypoint: ["/bin/bash", "/init/seed.sh"]
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Supply the sandbox SQL password}
+      AZURE_RESOURCE_ID: ${OTEL_ARM_RESOURCE_ID:?Supply the operator-owned sandbox ARM resource}
+      DEMO_LOCAL_OTEL_ENDPOINT: ${DEMO_LOCAL_OTEL_ENDPOINT:?Supply an approved HTTPS trace receiver}
+      AZURE_REGION: ${AZURE_REGION:?Supply the metadata region}
+      OTEL_DISCOVERY_ALLOWED_HOST: ${OTEL_DISCOVERY_ALLOWED_HOST:?Supply the exact approved hostname}
+    volumes:
+      - ./internal/sqlserver-init/seed.sh:/init/seed.sh:ro
+    networks: [sql]
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  app:
+    environment:
+      DEMO_ENDPOINT_MODE: discovery
+      OTEL_EXPORTER_OTLP_ENDPOINT: ""
+      OTEL_ARM_RESOURCE_ID: ""
+      OTEL_DISCOVERY_ALLOWED_HOST: ${OTEL_DISCOVERY_ALLOWED_HOST:?Supply the exact approved hostname}

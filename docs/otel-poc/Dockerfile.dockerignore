@@ -1,0 +1,38 @@
+# Dockerfile-specific ignore file, interpreted relative to the REPOSITORY ROOT.
+# Deny by default. No .git, .m2, scratch, root test credentials or host outputs.
+**
+!pom.xml
+!LICENSE
+!maven-version-rules.xml
+!mssql-jdbc-checkstyle.xml
+!mssql-jdbc_formatter.xml
+!META-INF/
+!META-INF/services/
+!META-INF/services/java.sql.Driver
+!src/
+!src/main/
+!src/main/java/
+!src/main/java/**/
+!src/main/java/**/*.java
+!mssql-jdbc-otel/
+!mssql-jdbc-otel/pom.xml
+!mssql-jdbc-otel/src/
+!mssql-jdbc-otel/src/**/
+!mssql-jdbc-otel/src/**/*.java
+!docs/
+!docs/otel-poc/
+!docs/otel-poc/settings.xml
+!docs/otel-poc/Dockerfile
+!docs/otel-poc/Dockerfile.dockerignore
+# Do not include the unrelated untracked scratch producer in the core package.
+src/main/java/com/microsoft/sqlserver/jdbc/Main.java
+**/target/**
+**/.git/**
+**/.env*
+**/*.pem
+**/*.pfx
+**/*.p12
+**/*.jks
+**/*.key
+**/*.crt
+**/*.cer

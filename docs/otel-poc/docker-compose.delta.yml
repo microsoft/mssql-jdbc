@@ -1,0 +1,38 @@
+# Optional third overlay, AFTER internal. Requires provisioned Azure resources
+# and a real reachable platform identity endpoint. Does not impersonate MI with az.
+services:
+  otelcol:
+    environment:
+      IDENTITY_ENDPOINT: ${IDENTITY_ENDPOINT:?Supply a reachable approved platform identity endpoint}
+      IDENTITY_HEADER: ${IDENTITY_HEADER:?Supply the platform identity header secret; no shared default}
+      STORAGE_ACCOUNT: ${STORAGE_ACCOUNT:?Set a storage account}
+      STORAGE_CONTAINER: ${STORAGE_CONTAINER:?Set a storage container}
+      ROOT_PATH: ${ROOT_PATH:?Set an isolated demo prefix}
+      EVENT_HUB_NAMESPACE: ${EVENT_HUB_NAMESPACE:?Set the Event Hub namespace FQDN}
+      EVENT_HUB_NAME: ${EVENT_HUB_NAME:?Set the Event Hub name}
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID:?Set the resource tenant}
+    volumes:
+      - ./internal/otelcol-arcdata/deltalake-e2e.yaml:/etc/otelcol/config.yaml:ro
+
+  delta-bulk-loader:
+    image: ${DELTA_BULK_LOADER_IMAGE:?Supply an approved pinned bulk-loader image; do not use latest}
+    entrypoint: ["/usr/bin/dotnet", "/app/Dataplane.StreamProcessing.MirrorMaker.dll"]
+    environment:
+      IDENTITY_ENDPOINT: ${IDENTITY_ENDPOINT:?Supply a reachable approved platform identity endpoint}
+      IDENTITY_HEADER: ${IDENTITY_HEADER:?Supply the platform identity header secret}
+      TOKEN_CREDENTIAL_MODE_OVERRIDE: ManagedIdentityCredential
+      AddLogsOtlpExporter: "false"
+      AddMetricsOtlpExporter: "false"
+      AddTracingOtlpExporter: "false"
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__SourceEventHubConfiguration__Namespace: ${EVENT_HUB_NAMESPACE:?Set the Event Hub namespace FQDN}
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__SourceEventHubConfiguration__Name: ${EVENT_HUB_NAME:?Set the Event Hub name}
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__SourceEventHubConfiguration__EventHubTenantId: ${AZURE_TENANT_ID:?Set the resource tenant}
+      # Use a newly provisioned, unique demo group with no existing checkpoints.
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__SourceEventHubConfiguration__ConsumerGroupName: ${EVENT_HUB_CONSUMER_GROUP:?Set a fresh dedicated demo consumer group; never use $Default}
+      # Known fork key; verify Earliest handling with the selected private loader.
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__SourceEventHubConfiguration__IngestionConfiguration__EventHubDefaultOffset: Earliest
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__BlobCheckpointConfiguration__StorageAccountName: ${CHECKPOINT_STORAGE_ACCOUNT:?Set the checkpoint storage account}
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__BlobCheckpointConfiguration__StorageContainerName: ${CHECKPOINT_STORAGE_CONTAINER:?Set a dedicated checkpoint container}
+    volumes:
+      - ./internal/delta-bulk-loader/appsettings.json:/app/appsettings.json:ro
+    networks: [outbound]

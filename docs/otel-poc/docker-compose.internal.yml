@@ -1,0 +1,70 @@
+# Opt-in overlay: -f docker-compose.yml -f docker-compose.internal.yml
+# No registry login, certificate download or token acquisition is performed by dev.sh.
+services:
+  otelcol:
+    image: ${OTELCOL_ARCDATA_IMAGE:?Set an approved pinned private collector image}
+    user: ""
+    command: []
+    environment:
+      CONFIG: /etc/otelcol/config.yaml
+      MISE_FIRST_PARTY_SUBSCRIPTION: ${MISE_FIRST_PARTY_SUBSCRIPTION:?Set the collector-owner-approved allowlist value}
+    volumes:
+      - ./internal/otelcol-arcdata/traces.yaml:/etc/otelcol/config.yaml:ro
+    depends_on:
+      mise:
+        condition: service_healthy
+      evidence:
+        condition: service_started
+    networks: [ingress, monitor, auth, outbound]
+
+  mise:
+    image: ${MISE_IMAGE:?Set an approved pinned MISE image}
+    environment:
+      MISE_APPSETTINGS_LOCATION: /mise/mise.appsettings.json
+      AzureAd__TenantId: ${MISE_TENANT_ID:?Set the MISE tenant}
+      AzureAd__ClientId: ${MISE_CLIENT_ID:?Set the onboarded MISE application}
+      AzureAd__Audience: ${MISE_AUDIENCE:?Set the exact validator audience}
+      AzureAd__ShowPII: "false"
+      AzureAd__DataProviders__AzureAuthorization__Region: ${MISE_REGION:?Set the authorization-service region}
+      AzureAd__ClientCredentials__0__CertificatePassword: ${MISE_CERT_PASSWORD-}
+    volumes:
+      - ./internal/mise/mise.appsettings.json:/mise/mise.appsettings.json:ro
+      - type: bind
+        source: ${MISE_CERT_PATH:?Set an existing approved PFX path}
+        target: /mise/authorization.pfx
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 18
+      start_period: 10s
+    networks: [auth, outbound]
+
+  # The private collector forwards ONLY accepted traces here. This public sidecar
+  # records actual OTLP and forwards it to Aspire, without needing a custom file exporter.
+  evidence:
+    image: otel/opentelemetry-collector-contrib:0.123.0
+    user: "10001:10001"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./collector/otelcol.yaml:/etc/otelcol/config.yaml:ro
+      - evidence:/evidence
+    depends_on:
+      evidence-init:
+        condition: service_completed_successfully
+    networks: [monitor]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  app:
+    environment:
+      OTEL_AUTH_MODE: ${OTEL_AUTH_MODE:?Select static, managed_identity, default or host azure_cli explicitly}
+      OTEL_ACCESS_TOKEN_SCOPE: ${OTEL_ACCESS_TOKEN_SCOPE:?Supply the exact approved scope; no inferred SQL or ARM scope}
+      OTEL_ARM_RESOURCE_ID: ${OTEL_ARM_RESOURCE_ID:?Supply the exact resource authorized by MISE}
+
+networks:
+  auth:
+    internal: true

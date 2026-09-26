@@ -1,0 +1,50 @@
+# Opt-in, last overlay in any mode. Isolated local SQL only; never publish its port.
+services:
+  sqlserver:
+    # Same SQL Server major/version tag as the fork; select an approved digest if needed.
+    image: ${SQL_SERVER_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Supply a strong local demo SA password externally; no default}
+    volumes:
+      - sql-data:/var/opt/mssql
+    networks: [sql]
+    healthcheck:
+      # SQLCMDPASSWORD is read from the environment, never a -P command argument.
+      # Suppress diagnostics as well as result output; no secret interpolation by Compose.
+      test:
+        - CMD-SHELL
+        - >-
+          export SQLCMDPASSWORD="$$MSSQL_SA_PASSWORD";
+          for sqlcmd in /opt/mssql-tools18/bin/sqlcmd /opt/mssql-tools/bin/sqlcmd; do
+            if [ -x "$$sqlcmd" ]; then
+              "$$sqlcmd" -C -S localhost -U sa -l 5 -Q 'SELECT 1' -b >/dev/null 2>&1;
+              exit $$?;
+            fi;
+          done;
+          exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 24
+      start_period: 20s
+
+  app:
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Supply a strong local demo SA password externally; no default}
+      DEMO_LOGIN_USER: ${DEMO_LOGIN_USER:-jdbc_demo_deliberately_nonexistent_login}
+    # Construct JDBC only at runtime, escaping the password as a JDBC braced value.
+    entrypoint: ["/bin/bash", "/app/sql-app.sh"]
+    volumes:
+      - ./.scripts/sql-app.sh:/app/sql-app.sh:ro
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks: [sql]
+
+networks:
+  sql:
+    internal: true
+
+volumes:
+  sql-data: {}

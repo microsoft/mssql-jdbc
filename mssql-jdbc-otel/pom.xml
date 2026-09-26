@@ -23,6 +23,12 @@
             <groupId>io.opentelemetry</groupId><artifactId>opentelemetry-api</artifactId><version>${otel.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.opentelemetry</groupId><artifactId>opentelemetry-sdk</artifactId><version>${otel.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId><artifactId>opentelemetry-exporter-otlp</artifactId><version>${otel.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.opentelemetry</groupId><artifactId>opentelemetry-sdk-testing</artifactId>
             <version>${otel.version}</version><scope>test</scope>
         </dependency>
@@ -33,6 +39,11 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter-engine</artifactId>
             <version>5.11.4</version><scope>test</scope>
+        </dependency>
+        <!-- Demo-only credentials; never a dependency of the optional runtime adapter. -->
+        <dependency>
+            <groupId>com.azure</groupId><artifactId>azure-identity</artifactId>
+            <version>1.18.6</version><scope>test</scope>
         </dependency>
     </dependencies>
     <build>
