@@ -347,7 +347,7 @@ public class BulkCopyGuidTest extends AbstractTest {
     }
 
     private static Stream<Arguments> guidResultSetConversions() {
-        return Stream.of("uniqueidentifier", "char(36)", "varchar(36)")
+        return Stream.of("uniqueidentifier", "char(36)", "varchar(36)", "varchar(max)")
                 .flatMap(source -> Stream.of("uniqueidentifier", "char(36)", "varchar(36)", "nchar(36)", "nvarchar(36)")
                         .flatMap(destination -> IntStream
                                 .of(ResultSet.TYPE_FORWARD_ONLY, ResultSet.TYPE_SCROLL_INSENSITIVE)

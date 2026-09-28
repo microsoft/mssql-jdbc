@@ -259,7 +259,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         // update the cryptoMeta of source when reading from forward only resultset
         BulkColumnMetaData(BulkColumnMetaData bulkColumnMetaData, CryptoMetadata cryptoMeta) {
             this.columnName = bulkColumnMetaData.columnName;
-            this.ssType = bulkColumnMetaData.ssType;
             this.isNullable = bulkColumnMetaData.isNullable;
             this.precision = bulkColumnMetaData.precision;
             this.scale = bulkColumnMetaData.scale;
@@ -708,8 +707,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             throw new SQLServerException(null, e.getMessage(), null, 0, false);
         }
 
-        // A new ResultSet can expose different native types behind the same public JDBC metadata.
-        srcColumnMetadata = null;
         sourceResultSet = sourceData;
 
         serverBulkData = null;
@@ -746,9 +743,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             throwInvalidArgument("sourceData");
         }
 
-        if (null != sourceResultSet) {
-            srcColumnMetadata = null;
-        }
         serverBulkData = sourceData;
         sourceResultSet = null;
 
@@ -882,7 +876,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
         tdsWriter.writeBytes(flags);
 
-        bulkJdbcType = getSourceJdbcType(srcColumnIndex, destColumnIndex);
+        bulkJdbcType = srcColumnMetadata.get(srcColumnIndex).jdbcType;
         bulkPrecision = srcColumnMetadata.get(srcColumnIndex).precision;
         bulkScale = srcColumnMetadata.get(srcColumnIndex).scale;
         srcNullable = srcColumnMetadata.get(srcColumnIndex).isNullable;
@@ -945,6 +939,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 tdsWriter.writeByte((byte) ((SSType.BINARY == destSSType) ? 0xAD : 0xA5));
             }
             tdsWriter.writeShort((short) (bulkPrecision));
+        } else if (isNativeGuid(srcColumnIndex, destColumnIndex)) {
+            tdsWriter.writeByte(TDSType.GUID.byteValue());
+            tdsWriter.writeByte((byte) 0x10);
         } else {
             writeTypeInfo(tdsWriter, bulkJdbcType, bulkScale, bulkPrecision, destSSType, collation, isStreaming,
                     srcNullable, false);
@@ -1093,7 +1090,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case microsoft.sql.Types.GUID:
             case java.sql.Types.CHAR: // 0xAF
-                if ((SSType.GUID == destSSType) && (isBaseType || microsoft.sql.Types.GUID == srcJdbcType)) {
+                if (isBaseType && (SSType.GUID == destSSType)) {
                     tdsWriter.writeByte(TDSType.GUID.byteValue());
                     tdsWriter.writeByte((byte) 0x10);
                 } else {
@@ -1366,7 +1363,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         int bulkJdbcType, bulkPrecision, bulkScale;
         int srcPrecision;
 
-        bulkJdbcType = getSourceJdbcType(srcColIndx, destColIndx);
+        bulkJdbcType = srcColumnMetadata.get(srcColIndx).jdbcType;
 
         // For char/varchar precision is the size.
         bulkPrecision = srcPrecision = srcColumnMetadata.get(srcColIndx).precision;
@@ -1404,6 +1401,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             return "varbinary(" + bulkPrecision + ")";
         }
         bulkPrecision = validateSourcePrecision(srcPrecision, bulkJdbcType, destPrecision);
+
+        if (isNativeGuid(srcColIndx, destColIndx)) {
+            // Preserve the former CHAR(n) metadata limits, including for null values.
+            if (bulkPrecision < 1 || bulkPrecision > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
+                SQLServerException.makeFromDriverError(connection, this, form.format(new Object[] {bulkPrecision}),
+                        null, false);
+            }
+            return SSType.GUID.toString();
+        }
 
         if ((java.sql.Types.NCHAR == bulkJdbcType) || (java.sql.Types.NVARCHAR == bulkJdbcType)
                 || (java.sql.Types.LONGNVARCHAR == bulkJdbcType)) {
@@ -1476,15 +1483,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 return SSType.NUMERIC.toString() + "(" + bulkPrecision + ", " + bulkScale + ")";
 
             case microsoft.sql.Types.GUID:
-                if (SSType.GUID == destSSType) {
-                    // Preserve the former CHAR(n) metadata limits, including for null values.
-                    if (bulkPrecision < 1 || bulkPrecision > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
-                        MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
-                        SQLServerException.makeFromDriverError(connection, this,
-                                form.format(new Object[] {bulkPrecision}), null, false);
-                    }
-                    return SSType.GUID.toString();
-                }
                 // For char the value has to be between 0 to 8000.
                 return SSType.CHAR.toString() + "(" + bulkPrecision + ")";
             case java.sql.Types.CHAR:
@@ -2063,10 +2061,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                         (ResultSetMetaData.columnNoNulls != sourceResultSetMetaData.isNullable(i)),
                                         sourceResultSetMetaData.getPrecision(i), sourceResultSetMetaData.getScale(i),
                                         sourceResultSetMetaData.getColumnType(i), null));
-                        if (sourceResultSet instanceof SQLServerResultSet) {
-                            srcColumnMetadata.get(i).ssType = ((SQLServerResultSet) sourceResultSet).getColumn(i)
-                                    .getTypeInfo().getSSType();
-                        }
                     }
                 } catch (SQLException e) {
                     // Unable to retrieve meta data for destination
@@ -2095,17 +2089,18 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
-    private int getSourceJdbcType(int srcColOrdinal, int destColOrdinal) {
-        BulkColumnMetaData source = srcColumnMetadata.get(srcColOrdinal);
+    private boolean isNativeGuid(int srcColOrdinal, int destColOrdinal) throws SQLServerException {
         BulkColumnMetaData destination = destColumnMetadata.get(destColOrdinal);
-        // Public ResultSet metadata exposes GUID as CHAR. Recover the native type only for plaintext GUID-to-GUID
-        // transfers; other destinations and encrypted sources retain their existing conversion paths.
-        if (SSType.GUID == source.ssType && null == source.cryptoMeta && SSType.GUID == destination.ssType
-                && null == destination.cryptoMeta && null == destination.encryptionType
-                && !copyOptions.isAllowEncryptedValueModifications()) {
-            return microsoft.sql.Types.GUID;
+        if (SSType.GUID != destination.ssType || null != destination.cryptoMeta || null != destination.encryptionType
+                || copyOptions.isAllowEncryptedValueModifications()) {
+            return false;
         }
-        return source.jdbcType;
+        if (sourceResultSet instanceof SQLServerResultSet) {
+            // Inspect the current source without changing its cached/public JDBC type (GUID is exposed as CHAR).
+            Column column = ((SQLServerResultSet) sourceResultSet).getColumn(srcColOrdinal);
+            return null == column.getCryptoMetadata() && SSType.GUID == column.getTypeInfo().getSSType();
+        }
+        return microsoft.sql.Types.GUID == srcColumnMetadata.get(srcColOrdinal).jdbcType;
     }
 
     /**
@@ -2625,14 +2620,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case java.sql.Types.CHAR: // Fixed-length, non-Unicode string data.
                 case java.sql.Types.VARCHAR: // Variable-length, non-Unicode string data.
                 case microsoft.sql.Types.JSON:
-                    // An encrypted source can replace bulkJdbcType with the destination type. Use the same source
-                    // type as the column declaration and writeTypeInfo before selecting native GUID row encoding.
-                    if ((SSType.GUID == destSSType) && (microsoft.sql.Types.GUID == bulkJdbcType)
-                            && (microsoft.sql.Types.GUID == getSourceJdbcType(srcColOrdinal, destColOrdinal))) {
-                        writeGuidToTdsWriter(tdsWriter, colValue, bulkPrecision);
-                        break;
-                    }
-
                     if (isStreaming) // PLP
                     {
                         // PLP_BODY rule in TDS
@@ -3367,7 +3354,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         boolean isStreaming, srcNullable;
         srcPrecision = srcColumnMetadata.get(srcColOrdinal).precision;
         srcScale = srcColumnMetadata.get(srcColOrdinal).scale;
-        srcJdbcType = getSourceJdbcType(srcColOrdinal, destColOrdinal);
+        srcJdbcType = srcColumnMetadata.get(srcColOrdinal).jdbcType;
         srcNullable = srcColumnMetadata.get(srcColOrdinal).isNullable;
 
         destPrecision = destColumnMetadata.get(destColOrdinal).precision;
@@ -3386,6 +3373,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         if (null != destCryptoMeta) {
             destSSType = destCryptoMeta.baseTypeInfo.getSSType();
         }
+
+        // Inspect metadata before opening a source stream: getColumn can close an active ResultSet stream.
+        boolean nativeGuid = isNativeGuid(srcColOrdinal, destColOrdinal);
 
         // Get the cell from the source result set if we are copying from result set.
         // If we are copying from a bulk reader colValue will be passed as the argument.
@@ -3482,8 +3472,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         destCryptoMeta, connection, null);
             }
         }
-        writeColumnToTdsWriter(tdsWriter, srcPrecision, srcScale, srcJdbcType, srcNullable, srcColOrdinal,
-                destColOrdinal, isStreaming, colValue, cal);
+        if (nativeGuid) {
+            writeGuidToTdsWriter(tdsWriter, colValue, srcPrecision);
+        } else {
+            writeColumnToTdsWriter(tdsWriter, srcPrecision, srcScale, srcJdbcType, srcNullable, srcColOrdinal,
+                    destColOrdinal, isStreaming, colValue, cal);
+        }
     }
 
     /**
