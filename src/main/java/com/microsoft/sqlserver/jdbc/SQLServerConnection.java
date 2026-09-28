@@ -8700,12 +8700,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         boolean isValid = true;
         int originalNetworkTimeout = 0;
         boolean networkTimeoutChanged = false;
+        TDSChannel validationChannel = tdsChannel;
         try {
             if (0 != timeout) {
-                originalNetworkTimeout = tdsChannel.getNetworkTimeout();
+                originalNetworkTimeout = validationChannel.getNetworkTimeout();
                 int validationTimeout = (int) Math.min(TimeUnit.SECONDS.toMillis(timeout), Integer.MAX_VALUE);
                 if (0 == originalNetworkTimeout || validationTimeout < originalNetworkTimeout) {
-                    tdsChannel.setNetworkTimeout(validationTimeout);
+                    validationChannel.setNetworkTimeout(validationTimeout);
                     networkTimeoutChanged = true;
                 }
             }
@@ -8738,9 +8739,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 connectionlogger.fine(toString() + " Exception checking connection validity: " + e.getMessage());
             }
         } finally {
-            if (networkTimeoutChanged) {
+            if (networkTimeoutChanged && validationChannel == tdsChannel && !isSessionUnAvailable()) {
                 try {
-                    tdsChannel.setNetworkTimeout(originalNetworkTimeout);
+                    validationChannel.setNetworkTimeout(originalNetworkTimeout);
                 } catch (IOException e) {
                     isValid = false;
                     if (connectionlogger.isLoggable(Level.FINE)) {
