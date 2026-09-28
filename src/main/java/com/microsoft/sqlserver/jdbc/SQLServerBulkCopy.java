@@ -2100,6 +2100,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             Column column = ((SQLServerResultSet) sourceResultSet).getColumn(srcColOrdinal);
             return null == column.getCryptoMetadata() && SSType.GUID == column.getTypeInfo().getSSType();
         }
+        if (null == sourceResultSet && null != serverBulkData) {
+            return microsoft.sql.Types.GUID == serverBulkData.getColumnType(srcColOrdinal);
+        }
         return microsoft.sql.Types.GUID == srcColumnMetadata.get(srcColOrdinal).jdbcType;
     }
 
