@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -39,10 +40,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.BulkCopyCommandCapture;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCopyOptions;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -112,8 +115,9 @@ public class BulkCopyGuidTest extends AbstractTest {
                 GUID + "\t", GUID + "}", "{" + GUID + "}suffix", "{" + GUID + "} ");
         List<String> rejected = Arrays.asList(" " + GUID, "\t" + GUID, GUID.replace("-", ""), "(" + GUID + ")",
                 "urn:uuid:" + GUID, "not-a-guid", "", "1-1-1-1-1", "6f9619ff-8b86-d011-b42d-1",
-                "+f9619ff-8b86-d011-b42d-00c04fc964ff", "6g9619ff-8b86-d011-b42d-00c04fc964ff", "{" + GUID,
-                "{" + GUID + "x", "{" + GUID + " }", "{{" + GUID + "}}");
+                "06f9619ff-8b8-d011-b42d-00c04fc964ff", "+f9619ff-8b86-d011-b42d-00c04fc964ff",
+                "6g9619ff-8b86-d011-b42d-00c04fc964ff", "{" + GUID, "{" + GUID + "x", "{" + GUID + " }",
+                "{{" + GUID + "}}");
         return Stream.concat(accepted.stream(), rejected.stream())
                 .flatMap(rendering -> IntStream.of(1, 35, 36, 37, 38, 50).mapToObj(precision -> Arguments.of(rendering,
                         precision, accepted.contains(rendering) && rendering.length() <= precision)));
@@ -244,6 +248,171 @@ public class BulkCopyGuidTest extends AbstractTest {
 
     private static Stream<Arguments> guidSourceTypes() {
         return Stream.of(Arguments.of(microsoft.sql.Types.GUID, false), Arguments.of(java.sql.Types.CHAR, true));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"uniqueidentifier", "char(36)", "varchar(36)"})
+    public void testBulkCopyGuidResultSetConversionOnServer(String sourceType) throws Exception {
+        String sourceTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidResultSetSource"));
+        String destTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidResultSetDest"));
+        try (Connection conn = getConnection(); Connection sourceConn = getConnection();
+                Statement stmt = conn.createStatement(); Statement sourceStmt = sourceConn.createStatement()) {
+            assumeTrue(canCaptureImplicitConversions(stmt), "Requires server scoped Extended Events permissions.");
+            try (ImplicitConversionCapture capture = new ImplicitConversionCapture(conn, stmt)) {
+                stmt.execute("CREATE TABLE " + sourceTable + " (id " + sourceType + ")");
+                stmt.execute("CREATE TABLE " + destTable + " (id uniqueidentifier)");
+                try {
+                    stmt.execute("INSERT INTO " + sourceTable + " VALUES ('" + GUID + "'), (NULL)");
+                    try (ResultSet rs = sourceStmt.executeQuery("SELECT id FROM " + sourceTable);
+                            SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+                        bulkCopy.setDestinationTableName(destTable);
+                        bulkCopy.writeToServer(rs);
+                    }
+                    assertEquals(!"uniqueidentifier".equals(sourceType), !capture.conversionsFor(destTable).isEmpty());
+                } finally {
+                    TestUtils.dropTableIfExists(destTable, stmt);
+                    TestUtils.dropTableIfExists(sourceTable, stmt);
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("guidResultSetConversions")
+    @ResourceLock(BulkCopyCommandCapture.LOGGER_NAME)
+    public void testBulkCopyGuidResultSetRoundTrip(String sourceType, String destinationType,
+            int resultSetType) throws Exception {
+        String sourceTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidMappedSource"));
+        String destTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidMappedDest"));
+        String[] values = {null, STORED_GUID, "00112233-4455-6677-8899-AABBCCDDEEFF", STORED_GUID, null};
+        try (Connection conn = getConnection(); Connection sourceConn = getConnection();
+                Statement stmt = conn.createStatement();
+                Statement sourceStmt = sourceConn.createStatement(resultSetType, ResultSet.CONCUR_READ_ONLY)) {
+            try {
+                stmt.execute(
+                        "CREATE TABLE " + sourceTable + " (rowId int, guidCol " + sourceType + ", marker varchar(20))");
+                stmt.execute("CREATE TABLE " + destTable + " (marker varchar(20), guidCol " + destinationType
+                        + ", rowId int)");
+                try (PreparedStatement insert = conn
+                        .prepareStatement("INSERT INTO " + sourceTable + " VALUES (?, ?, ?)")) {
+                    for (int i = 0; i < values.length; i++) {
+                        insert.setInt(1, i);
+                        insert.setString(2, values[i]);
+                        insert.setString(3, "row-" + i);
+                        insert.executeUpdate();
+                    }
+                }
+                try (ResultSet rs = sourceStmt
+                        .executeQuery("SELECT rowId, guidCol, marker FROM " + sourceTable + " ORDER BY rowId");
+                        SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn);
+                        BulkCopyCommandCapture capture = new BulkCopyCommandCapture(destTable)) {
+                    if ("uniqueidentifier".equals(sourceType)) {
+                        assertEquals(java.sql.Types.CHAR, rs.getMetaData().getColumnType(2));
+                        assertEquals(GUID_TEXT_LENGTH, rs.getMetaData().getPrecision(2));
+                    }
+                    SQLServerBulkCopyOptions options = new SQLServerBulkCopyOptions();
+                    options.setBatchSize(2);
+                    options.setKeepNulls(true);
+                    bulkCopy.setBulkCopyOptions(options);
+                    bulkCopy.setDestinationTableName(destTable);
+                    bulkCopy.addColumnMapping("marker", "marker");
+                    bulkCopy.addColumnMapping("guidCol", "guidCol");
+                    bulkCopy.addColumnMapping("rowId", "rowId");
+                    bulkCopy.writeToServer(rs);
+                    boolean nativeGuid = "uniqueidentifier".equals(sourceType)
+                            && "uniqueidentifier".equals(destinationType);
+                    assertFalse(capture.getCommands().isEmpty());
+                    for (String command : capture.getCommands()) {
+                        assertEquals(nativeGuid, command.contains("[guidCol] UNIQUEIDENTIFIER"), command);
+                    }
+                    if ("uniqueidentifier".equals(sourceType)) {
+                        assertEquals(java.sql.Types.CHAR, rs.getMetaData().getColumnType(2));
+                    }
+                }
+                try (ResultSet rs = stmt
+                        .executeQuery("SELECT rowId, guidCol, marker FROM " + destTable + " ORDER BY rowId")) {
+                    for (int i = 0; i < values.length; i++) {
+                        assertTrue(rs.next());
+                        assertEquals(i, rs.getInt(1));
+                        assertEquals(values[i], rs.getString(2));
+                        assertEquals("row-" + i, rs.getString(3));
+                    }
+                    assertFalse(rs.next());
+                }
+            } finally {
+                TestUtils.dropTableIfExists(destTable, stmt);
+                TestUtils.dropTableIfExists(sourceTable, stmt);
+            }
+        }
+    }
+
+    private static Stream<Arguments> guidResultSetConversions() {
+        return Stream.of("uniqueidentifier", "char(36)", "varchar(36)")
+                .flatMap(source -> Stream.of("uniqueidentifier", "char(36)", "varchar(36)", "nchar(36)", "nvarchar(36)")
+                        .flatMap(destination -> IntStream
+                                .of(ResultSet.TYPE_FORWARD_ONLY, ResultSet.TYPE_SCROLL_INSENSITIVE)
+                                .mapToObj(type -> Arguments.of(source, destination, type))));
+    }
+
+    @Test
+    public void testBulkCopyGuidResultSetMappedToGuidAndCharacter() throws Exception {
+        String destTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidDuplicateMapping"));
+        try (Connection conn = getConnection(); Connection sourceConn = getConnection();
+                Statement stmt = conn.createStatement(); Statement sourceStmt = sourceConn.createStatement()) {
+            try {
+                stmt.execute("CREATE TABLE " + destTable + " (nativeGuid uniqueidentifier, textGuid varchar(36))");
+                try (ResultSet rs = sourceStmt.executeQuery("SELECT CAST('" + GUID
+                        + "' AS uniqueidentifier) AS id UNION ALL SELECT CAST(NULL AS uniqueidentifier)");
+                        SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+                    bulkCopy.setDestinationTableName(destTable);
+                    bulkCopy.addColumnMapping(1, 1);
+                    bulkCopy.addColumnMapping(1, 2);
+                    bulkCopy.writeToServer(rs);
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT nativeGuid, textGuid FROM " + destTable
+                        + " ORDER BY CASE WHEN nativeGuid IS NULL THEN 1 ELSE 0 END")) {
+                    assertTrue(rs.next());
+                    assertEquals(STORED_GUID, rs.getString(1));
+                    assertEquals(STORED_GUID, rs.getString(2));
+                    assertTrue(rs.next());
+                    assertNull(rs.getString(1));
+                    assertNull(rs.getString(2));
+                    assertFalse(rs.next());
+                }
+            } finally {
+                TestUtils.dropTableIfExists(destTable, stmt);
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testBulkCopyGuidResultSetDoesNotLeakNativeTypeToNextSource(boolean bulkRecord) throws Exception {
+        String destTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidReusedCopy"));
+        try (Connection conn = getConnection(); Connection sourceConn = getConnection();
+                Statement stmt = conn.createStatement(); Statement sourceStmt = sourceConn.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+            try {
+                stmt.execute("CREATE TABLE " + destTable + " (guidCol uniqueidentifier)");
+                bulkCopy.setDestinationTableName(destTable);
+                try (ResultSet rs = sourceStmt
+                        .executeQuery("SELECT CAST('" + GUID + "' AS uniqueidentifier) AS guidCol")) {
+                    bulkCopy.writeToServer(rs);
+                }
+                SQLServerException error;
+                if (bulkRecord) {
+                    error = assertThrows(SQLServerException.class, () -> bulkCopy
+                            .writeToServer(new GuidBulkRecord(java.sql.Types.CHAR, 36, Arrays.asList("not-a-guid"))));
+                } else {
+                    try (ResultSet rs = sourceStmt.executeQuery("SELECT CAST('not-a-guid' AS char(36)) AS guidCol")) {
+                        error = assertThrows(SQLServerException.class, () -> bulkCopy.writeToServer(rs));
+                    }
+                }
+                assertEquals(8169, error.getErrorCode(), "A character source must still be converted by SQL Server.");
+            } finally {
+                TestUtils.dropTableIfExists(destTable, stmt);
+            }
+        }
     }
 
     /**
