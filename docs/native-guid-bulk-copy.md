@@ -2,7 +2,8 @@
 
 This document explains the implementation in
 [PR #3041](https://github.com/microsoft/mssql-jdbc/pull/3041), as of commit
-`d29209bc`.
+`d29209bc`, with the subsequent current-bulk-data eligibility correction described
+below.
 
 The code change modifies one production file, `SQLServerBulkCopy.java`, and adds
 six test/helper files. It sends eligible GUID values using SQL Server's native
@@ -53,7 +54,8 @@ It then checks the source:
 | Source | Eligibility check |
 | --- | --- |
 | `SQLServerResultSet` | Inspect the current column's internal metadata. Require the actual SQL Server type to be GUID and the source to be unencrypted. |
-| Other sources | Use the existing declared JDBC metadata. Require `microsoft.sql.Types.GUID`. |
+| `ISQLServerBulkData`, including custom records and CSV | Read `getColumnType()` from the current source. Require `microsoft.sql.Types.GUID`, rather than trusting the previous source's cached type. |
+| Other ResultSets / RowSets | Use the existing declared JDBC metadata. Require `microsoft.sql.Types.GUID`. |
 
 This distinction matters because SQL Server's public ResultSet metadata exposes
 GUID as JDBC CHAR. The internal check recognizes a genuine GUID column without
@@ -72,6 +74,12 @@ column containing GUID-looking text remains a VARCHAR source.
 
 Eligibility is evaluated per destination. The same GUID source column can
 therefore map to both a GUID destination and a character destination.
+
+When reusing a bulk-copy object with custom records or CSV, GUID-to-CHAR and
+CHAR-to-GUID source changes now use the current source's declared type. The check
+does not consult an old bulk-data object when a ResultSet is active. This is a
+targeted native-eligibility correction, not a refresh of cached precision, names,
+scale, or other source metadata.
 
 ## 3. Three places use the same eligibility decision
 
@@ -276,17 +284,23 @@ retained fallbacks.
 
 ## 8. Validation
 
-The latest targeted suite passed 443 cases per profile under `jre11` and `jre8`,
+The latest targeted suite passed 449 cases per profile under `jre11` and `jre8`,
 both running on JDK 21, with zero failures, errors, or skips.
 
 | Test class | Executed cases per profile |
 | --- | ---: |
 | `BulkCopyGuidParserTest` | 33 |
-| `BulkCopyGuidMetadataTest` | 9 |
-| `BulkCopyGuidTest` | 371 |
+| `BulkCopyGuidMetadataTest` | 11 |
+| `BulkCopyGuidTest` | 375 |
 | `BulkCopyGuidBatchInsertTest` | 26 |
 | Existing `BulkCopyAllTypesTest` | 4 |
-| **Total** | **443** |
+| **Total** | **449** |
+
+The source-reuse follow-up adds two unit cases and four integration cases. All
+six failed before the correction. They cover conflicting cached/current types,
+an active ResultSet ignoring stale bulk data, and custom-record/CSV reuse in both
+GUID-to-CHAR and CHAR-to-GUID order. Integration assertions check declarations,
+stored GUIDs, and whether malformed input fails in the driver or on the server.
 
 Commands:
 

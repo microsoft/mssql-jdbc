@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 
 public class BulkCopyGuidMetadataTest {
@@ -72,6 +73,37 @@ public class BulkCopyGuidMetadataTest {
                 Arguments.of(SSType.CHAR, character, SSType.GUID, false, false, false),
                 Arguments.of(null, character, SSType.GUID, false, false, false),
                 Arguments.of(null, guid, SSType.GUID, false, false, true));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testNativeGuidEligibilityUsesCurrentBulkData(boolean currentGuid) throws Exception {
+        int currentType = currentGuid ? microsoft.sql.Types.GUID : java.sql.Types.CHAR;
+        int cachedType = currentGuid ? java.sql.Types.CHAR : microsoft.sql.Types.GUID;
+        try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(mock(SQLServerConnection.class))) {
+            Map<Integer, SQLServerBulkCopy.BulkColumnMetaData> sources = new HashMap<>();
+            sources.put(1, bulkCopy.new BulkColumnMetaData("id", true, 36, 0, cachedType, null));
+            SQLServerBulkCopy.BulkColumnMetaData destination = bulkCopy.new BulkColumnMetaData("id", true, 36, 0,
+                    microsoft.sql.Types.GUID, null);
+            destination.ssType = SSType.GUID;
+            Map<Integer, SQLServerBulkCopy.BulkColumnMetaData> destinations = new HashMap<>();
+            destinations.put(1, destination);
+            setField(bulkCopy, "srcColumnMetadata", sources);
+            setField(bulkCopy, "destColumnMetadata", destinations);
+            ISQLServerBulkData current = mock(ISQLServerBulkData.class);
+            when(current.getColumnType(1)).thenReturn(currentType);
+            setField(bulkCopy, "serverBulkData", current);
+
+            Method method = SQLServerBulkCopy.class.getDeclaredMethod("isNativeGuid", int.class, int.class);
+            method.setAccessible(true);
+            assertEquals(currentGuid, method.invoke(bulkCopy, 1, 1));
+            verify(current).getColumnType(1);
+            assertEquals(cachedType, sources.get(1).jdbcType);
+
+            setField(bulkCopy, "sourceResultSet", mock(java.sql.ResultSet.class));
+            assertEquals(!currentGuid, method.invoke(bulkCopy, 1, 1));
+            verifyNoMoreInteractions(current);
+        }
     }
 
     @Test

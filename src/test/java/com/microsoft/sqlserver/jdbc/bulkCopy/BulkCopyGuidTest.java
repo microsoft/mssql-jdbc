@@ -415,6 +415,61 @@ public class BulkCopyGuidTest extends AbstractTest {
         }
     }
 
+    @ParameterizedTest
+    @MethodSource("reusedBulkDataTypes")
+    @ResourceLock(BulkCopyCommandCapture.LOGGER_NAME)
+    public void testBulkCopyGuidBulkDataUsesCurrentSourceType(boolean csv, boolean firstGuid) throws Exception {
+        String destTable = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("guidReusedBulkData"));
+        int firstType = firstGuid ? microsoft.sql.Types.GUID : java.sql.Types.CHAR;
+        int secondType = firstGuid ? java.sql.Types.CHAR : microsoft.sql.Types.GUID;
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement();
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+            try {
+                stmt.execute("CREATE TABLE " + destTable + " (id uniqueidentifier)");
+                bulkCopy.setDestinationTableName(destTable);
+                writeReusedGuidSource(bulkCopy, csv, firstType, GUID);
+                try (BulkCopyCommandCapture capture = new BulkCopyCommandCapture(destTable)) {
+                    writeReusedGuidSource(bulkCopy, csv, secondType, GUID);
+                    assertFalse(capture.getCommands().isEmpty());
+                    for (String command : capture.getCommands()) {
+                        assertEquals(!firstGuid, command.contains("[id] UNIQUEIDENTIFIER"), command);
+                        assertEquals(firstGuid, command.contains("[id] CHAR(36)"), command);
+                    }
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT id FROM " + destTable)) {
+                    for (int i = 0; i < 2; i++) {
+                        assertTrue(rs.next());
+                        assertEquals(STORED_GUID, rs.getString(1));
+                    }
+                    assertFalse(rs.next());
+                }
+                SQLServerException error = assertThrows(SQLServerException.class,
+                        () -> writeReusedGuidSource(bulkCopy, csv, secondType, "not-a-guid"));
+                assertEquals(firstGuid ? 8169 : 0, error.getErrorCode(),
+                        "Only character sources should fail conversion on the server.");
+            } finally {
+                TestUtils.dropTableIfExists(destTable, stmt);
+            }
+        }
+    }
+
+    private static Stream<Arguments> reusedBulkDataTypes() {
+        return Stream.of(Arguments.of(false, false), Arguments.of(false, true), Arguments.of(true, false),
+                Arguments.of(true, true));
+    }
+
+    private static void writeReusedGuidSource(SQLServerBulkCopy bulkCopy, boolean csv, int jdbcType,
+            String value) throws Exception {
+        if (csv) {
+            try (SQLServerBulkCSVFileRecord record = guidFileRecord(value)) {
+                record.addColumnMetadata(1, "id", jdbcType, GUID_TEXT_LENGTH, 0);
+                bulkCopy.writeToServer(record);
+            }
+        } else {
+            bulkCopy.writeToServer(new GuidBulkRecord(jdbcType, GUID_TEXT_LENGTH, Arrays.asList(value)));
+        }
+    }
+
     /**
      * Exercises CSV GUID loading without requiring Extended Events permissions, including the character source
      * fallback.
