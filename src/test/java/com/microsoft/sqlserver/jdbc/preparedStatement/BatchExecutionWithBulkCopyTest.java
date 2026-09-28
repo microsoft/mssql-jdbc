@@ -412,6 +412,72 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
+    /**
+     * Normal fallback must end a terminal line comment before combining the next batch entry.
+     * Verify stored rows as well as update counts so a commented-out entry cannot pass unnoticed.
+     */
+    @ParameterizedTest
+    @MethodSource("lineCommentBatchModes")
+    public void testLineCommentsPreserveBatchEntries(boolean firstLargeBatch, boolean alternate, String prepareMethod,
+            String trailer, boolean useBulkCopy) throws Exception {
+        String prefix = "scopeTempTablesToConnection".equals(prepareMethod) ? "#BulkCopy_LineComment"
+                                                                            : "BulkCopy_LineComment";
+        String localTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier(prefix));
+        Field bulkCopy = SQLServerPreparedStatement.class.getDeclaredField("bcOperation");
+        bulkCopy.setAccessible(true);
+
+        try (Connection con = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=" + useBulkCopy
+                + ";prepareMethod=" + prepareMethod + ";"); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE " + localTableName + " (Id INT, Data INT)");
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                    .prepareStatement("INSERT INTO " + localTableName + " (Id, Data) VALUES (?, ?)" + trailer)) {
+                for (int batch = 0; batch < 3; batch++) {
+                    for (int entry = 0; entry < 2; entry++) {
+                        int id = batch * 2 + entry + 1;
+                        pstmt.setInt(1, id);
+                        pstmt.setInt(2, id * 10);
+                        pstmt.addBatch();
+                    }
+                    boolean largeBatch = alternate && batch % 2 == 1 ? !firstLargeBatch : firstLargeBatch;
+                    if (largeBatch) {
+                        assertArrayEquals(new long[] {1, 1}, pstmt.executeLargeBatch());
+                    } else {
+                        assertArrayEquals(new int[] {1, 1}, pstmt.executeBatch());
+                    }
+                    if (useBulkCopy && !trailer.contains("OPTION")) {
+                        assertNotNull(bulkCopy.get(pstmt), "Supported inserts should retain Bulk Copy");
+                    } else {
+                        assertNull(bulkCopy.get(pstmt), "The original SQL must execute on the normal batch path");
+                    }
+                    try (ResultSet rs = stmt.executeQuery("SELECT Id, Data FROM " + localTableName + " ORDER BY Id")) {
+                        for (int id = 1; id <= (batch + 1) * 2; id++) {
+                            assertTrue(rs.next(), "Missing row " + id + " after batch " + batch);
+                            assertEquals(id, rs.getInt(1));
+                            assertEquals(id * 10, rs.getInt(2));
+                        }
+                        assertFalse(rs.next());
+                    }
+                    pstmt.clearBatch();
+                    pstmt.clearParameters();
+                }
+            } finally {
+                TestUtils.dropTableIfExists(localTableName, stmt);
+            }
+        }
+    }
+
+    private static Stream<Arguments> lineCommentBatchModes() {
+        Stream<Arguments> bulkCopyModes = Stream.of("none", "prepexec", "scopeTempTablesToConnection")
+                .flatMap(prepareMethod -> Stream.of("", " -- application comment",
+                        " OPTION (RECOMPILE) -- application comment", " OPTION (RECOMPILE) -- application comment\n",
+                        " OPTION (RECOMPILE) -- application comment\r\n", " OPTION (RECOMPILE); -- application comment")
+                        .flatMap(trailer -> batchExecutionModes().map(
+                                mode -> Arguments.of(mode.get()[0], mode.get()[1], prepareMethod, trailer, true))));
+        Stream<Arguments> normalModes = batchExecutionModes().map(mode -> Arguments.of(mode.get()[0], mode.get()[1],
+                "none", " OPTION (RECOMPILE) -- application comment", false));
+        return Stream.concat(bulkCopyModes, normalModes);
+    }
+
     private static Stream<Arguments> batchExecutionModes() {
         return Stream.of(Arguments.of(false, false), Arguments.of(true, false), Arguments.of(false, true),
                 Arguments.of(true, true));

@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -22,6 +24,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 
 
 /**
@@ -83,6 +86,56 @@ class BulkCopyTrailingSQLTest {
                     any(SQLServerStatementColumnEncryptionSetting.class));
             verify(connection, never()).executeCommand(any(TDSCommand.class));
         }
+    }
+
+    @ParameterizedTest
+    @MethodSource("combinedBatchModes")
+    void testCombinedBatchSeparatesLineComments(boolean firstLargeBatch, boolean alternate,
+            String trailer) throws Exception {
+        SQLServerConnection connection = mockConnection();
+        when(connection.getPrepareMethod()).thenReturn("none");
+        TDSWriter writer = mock(TDSWriter.class);
+        TDSReader reader = mock(TDSReader.class);
+        SQLServerConnection closedConnection = mock(SQLServerConnection.class);
+        when(reader.getConnection()).thenReturn(closedConnection);
+        when(closedConnection.isClosed()).thenReturn(true);
+        when(reader.peekTokenType()).thenReturn(-1);
+        // Capture the complete script at the wire boundary without sending it to a server.
+        SQLServerException writeFailure = new SQLServerException("Simulated script write failure", null);
+        doThrow(writeFailure).when(writer).writeString(anyString());
+        when(connection.executeCommand(any(TDSCommand.class))).thenAnswer(invocation -> {
+            TDSCommand command = invocation.getArgument(0);
+            when(reader.getCommand()).thenReturn(command);
+            return command.execute(writer, reader);
+        });
+        String sql = "INSERT INTO t (v) VALUES (1) OPTION (RECOMPILE)" + trailer;
+
+        try (SQLServerPreparedStatement pstmt = new SQLServerPreparedStatement(connection, sql,
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                SQLServerStatementColumnEncryptionSetting.USE_CONNECTION_SETTING)) {
+            for (int batch = 0; batch < 3; batch++) {
+                pstmt.addBatch();
+                pstmt.addBatch();
+                boolean largeBatch = alternate && batch % 2 == 1 ? !firstLargeBatch : firstLargeBatch;
+                SQLServerException actual = largeBatch ? assertThrows(SQLServerException.class,
+                        pstmt::executeLargeBatch) : assertThrows(SQLServerException.class, pstmt::executeBatch);
+                assertEquals(writeFailure.getMessage(), actual.getMessage());
+                pstmt.clearBatch();
+                pstmt.clearParameters();
+            }
+            ArgumentCaptor<String> scripts = ArgumentCaptor.forClass(String.class);
+            verify(writer, times(3)).writeString(scripts.capture());
+            for (String script : scripts.getAllValues()) {
+                assertEquals(sql + "\n;" + sql, script);
+            }
+        }
+    }
+
+    private static Stream<Arguments> combinedBatchModes() {
+        return Stream
+                .of("", " -- application comment", " -- application comment\n", " -- application comment\r\n",
+                        "; -- application comment", " /* block comment */")
+                .flatMap(BulkCopyTrailingSQLTest::executionModes);
     }
 
     private static SQLServerConnection mockConnection() {

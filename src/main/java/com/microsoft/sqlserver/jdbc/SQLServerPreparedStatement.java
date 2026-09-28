@@ -3786,9 +3786,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 sqlScript.append(expandedSQL);
 
-                // Add semicolon between batches
+                // End any trailing line comment before the separator and the next batch entry.
                 if (batchIdx < numBatches - 1) {
-                    sqlScript.append(";");
+                    sqlScript.append("\n;");
                 }
             }
 
