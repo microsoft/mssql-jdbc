@@ -10,6 +10,7 @@ import static java.nio.charset.StandardCharsets.UTF_16LE;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -447,13 +448,23 @@ class AASAttestationResponse extends BaseAttestationResponse {
         }
     }
 
+    /**
+     * Checks the full NumericDate against the long bounds before preserving the existing truncation of fractional
+     * seconds toward zero. Fractional values outside those bounds must not become valid through truncation.
+     */
     private long getNumericDate(JsonElement claim) throws SQLServerException {
         if (null == claim || !claim.isJsonPrimitive() || !claim.getAsJsonPrimitive().isNumber()) {
             SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasTokenLifetimeError"),
                     "0", false);
         }
         try {
-            return claim.getAsLong();
+            BigDecimal numericDate = new BigDecimal(claim.getAsString());
+            if (numericDate.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0
+                    || numericDate.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0) {
+                SQLServerException.makeFromDriverError(null, this,
+                        SQLServerResource.getResource("R_AasTokenLifetimeError"), "0", false);
+            }
+            return numericDate.longValue();
         } catch (NumberFormatException e) {
             throw new SQLServerException(SQLServerResource.getResource("R_AasTokenLifetimeError"), null, 0, e);
         }

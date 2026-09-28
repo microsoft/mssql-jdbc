@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -165,6 +166,51 @@ class AASAttestationResponseTest {
         JsonObject claims = validClaims();
         claims.addProperty("exp", "not-a-number");
         assertClaimError(claims, "R_AasTokenLifetimeError");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"9223372036854775808", "-9223372036854775809", "9223372036854775807.1",
+            "-9223372036854775808.1", "1e30", "-1e30"})
+    void outOfRangeNumericDatesAreRejected(String numericDate) {
+        for (String claim : new String[] {"exp", "nbf"}) {
+            JsonObject claims = validClaims();
+            claims.addProperty(claim, new BigDecimal(numericDate));
+
+            assertClaimError(claims, "R_AasTokenLifetimeError");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"18446744073709551616", "-18446744073709551616"})
+    void numericDatesThatWrapToValidTimestampsAreRejected(String offset) {
+        for (String claim : new String[] {"exp", "nbf"}) {
+            JsonObject claims = validClaims();
+            BigDecimal validTimestamp = new BigDecimal(claims.get(claim).getAsString());
+            claims.addProperty(claim, validTimestamp.add(new BigDecimal(offset)));
+
+            assertClaimError(claims, "R_AasTokenLifetimeError");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "0.0", "0.25", "0.9999999999", "1e-30"})
+    void inRangeFractionalNumericDatesAreAccepted(String fraction) {
+        JsonObject claims = validClaims();
+        for (String claim : new String[] {"exp", "nbf"}) {
+            BigDecimal validTimestamp = new BigDecimal(claims.get(claim).getAsString());
+            claims.addProperty(claim, validTimestamp.add(new BigDecimal(fraction)));
+        }
+
+        assertDoesNotThrow(() -> validateSignedClaims(claims, 2));
+    }
+
+    @Test
+    void numericDatesAtLongBoundsAreAccepted() {
+        JsonObject claims = validClaims();
+        claims.addProperty("exp", new BigDecimal("9223372036854775807.0"));
+        claims.addProperty("nbf", new BigDecimal("-9.223372036854775808e18"));
+
+        assertDoesNotThrow(() -> validateSignedClaims(claims, 2));
     }
 
     @Test
