@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -25,12 +26,20 @@ import org.junit.jupiter.params.provider.MethodSource;
 public class BulkCopyGuidMetadataTest {
     @ParameterizedTest
     @MethodSource("sourceTypes")
-    public void testEffectiveSourceType(SSType nativeSourceType, int jdbcType, SSType destinationType,
-            boolean encryptedDestination, boolean allowEncryptedValueModifications, int expected) throws Exception {
+    public void testNativeGuidEligibility(SSType nativeSourceType, int jdbcType, SSType destinationType,
+            boolean encryptedDestination, boolean allowEncryptedValueModifications, boolean expected) throws Exception {
         try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(mock(SQLServerConnection.class))) {
             SQLServerBulkCopy.BulkColumnMetaData source = bulkCopy.new BulkColumnMetaData("id", true, 36, 0, jdbcType,
                     null);
-            source.ssType = nativeSourceType;
+            if (null != nativeSourceType) {
+                SQLServerResultSet resultSet = mock(SQLServerResultSet.class);
+                Column column = mock(Column.class);
+                TypeInfo typeInfo = mock(TypeInfo.class);
+                when(resultSet.getColumn(1)).thenReturn(column);
+                when(column.getTypeInfo()).thenReturn(typeInfo);
+                when(typeInfo.getSSType()).thenReturn(nativeSourceType);
+                setField(bulkCopy, "sourceResultSet", resultSet);
+            }
             SQLServerBulkCopy.BulkColumnMetaData destination = bulkCopy.new BulkColumnMetaData("id", true, 36, 0,
                     destinationType.getJDBCType().asJavaSqlType(), null);
             destination.ssType = destinationType;
@@ -45,7 +54,7 @@ public class BulkCopyGuidMetadataTest {
             options.setAllowEncryptedValueModifications(allowEncryptedValueModifications);
             bulkCopy.setBulkCopyOptions(options);
 
-            Method method = SQLServerBulkCopy.class.getDeclaredMethod("getSourceJdbcType", int.class, int.class);
+            Method method = SQLServerBulkCopy.class.getDeclaredMethod("isNativeGuid", int.class, int.class);
             method.setAccessible(true);
             assertEquals(expected, method.invoke(bulkCopy, 1, 1));
             assertEquals(jdbcType, source.jdbcType, "Resolving one mapping must not change other mappings.");
@@ -55,14 +64,14 @@ public class BulkCopyGuidMetadataTest {
     private static Stream<Arguments> sourceTypes() {
         int character = java.sql.Types.CHAR;
         int guid = microsoft.sql.Types.GUID;
-        return Stream.of(Arguments.of(SSType.GUID, character, SSType.GUID, false, false, guid),
-                Arguments.of(SSType.GUID, character, SSType.VARCHAR, false, false, character),
-                Arguments.of(SSType.GUID, character, SSType.GUID, true, false, character),
-                Arguments.of(SSType.GUID, character, SSType.GUID, false, true, character),
-                Arguments.of(SSType.VARBINARY, character, SSType.GUID, false, false, character),
-                Arguments.of(SSType.CHAR, character, SSType.GUID, false, false, character),
-                Arguments.of(null, character, SSType.GUID, false, false, character),
-                Arguments.of(null, guid, SSType.GUID, false, false, guid));
+        return Stream.of(Arguments.of(SSType.GUID, character, SSType.GUID, false, false, true),
+                Arguments.of(SSType.GUID, character, SSType.VARCHAR, false, false, false),
+                Arguments.of(SSType.GUID, character, SSType.GUID, true, false, false),
+                Arguments.of(SSType.GUID, character, SSType.GUID, false, true, false),
+                Arguments.of(SSType.VARBINARY, character, SSType.GUID, false, false, false),
+                Arguments.of(SSType.CHAR, character, SSType.GUID, false, false, false),
+                Arguments.of(null, character, SSType.GUID, false, false, false),
+                Arguments.of(null, guid, SSType.GUID, false, false, true));
     }
 
     @Test
