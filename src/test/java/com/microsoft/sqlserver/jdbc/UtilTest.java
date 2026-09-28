@@ -193,6 +193,15 @@ public class UtilTest {
         assertEquals("db", prt.getProperty("databaseName"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = { "jdbc:sqlserver://localhost:001433",
+            "jdbc:sqlserver://localhost:001433;databaseName=db" })
+    public void testParseUrlAcceptsZeroPaddedPort(String connectionString) throws SQLException {
+        Logger drLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerDriver");
+        Properties properties = Util.parseUrl(connectionString, drLogger);
+        assertEquals("001433", properties.getProperty("portNumber"));
+    }
+
     /**
      * Verifies that an instance name containing '=' is treated as a malformed value and rejected.
      */

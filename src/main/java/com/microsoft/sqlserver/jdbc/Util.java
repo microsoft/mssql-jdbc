@@ -288,8 +288,8 @@ final class Util {
      *         if the value is empty, non-numeric, or greater than 65535
      */
     private static void validatePortNumber(String portValue) throws SQLServerException {
-        // A valid port is 1-5 ASCII digits; anything longer cannot be <= MAX_PORT_NUMBER.
-        boolean valid = null != portValue && !portValue.isEmpty() && portValue.length() <= 5;
+        boolean valid = null != portValue && !portValue.isEmpty();
+        int portNumber = 0;
         if (valid) {
             for (int idx = 0; idx < portValue.length(); idx++) {
                 char c = portValue.charAt(idx);
@@ -297,10 +297,13 @@ final class Util {
                     valid = false;
                     break;
                 }
+                int digit = c - '0';
+                if (portNumber > (MAX_PORT_NUMBER - digit) / 10) {
+                    valid = false;
+                    break;
+                }
+                portNumber = portNumber * 10 + digit;
             }
-        }
-        if (valid && Integer.parseInt(portValue) > MAX_PORT_NUMBER) {
-            valid = false;
         }
         if (!valid) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
