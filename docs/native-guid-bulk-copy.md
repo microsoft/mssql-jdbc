@@ -161,14 +161,55 @@ It:
 This allows valid braces and suffixes while rejecting malformed GUIDs that Java
 might otherwise normalize.
 
-| Input | Handling |
-| --- | --- |
-| Canonical uppercase/lowercase GUID | Accepted when it fits. |
-| `{GUID}` | Accepted when precision permits all 38 characters. |
-| `GUIDsuffix` | Accepted when the complete input fits; the suffix is ignored during conversion. |
-| Leading whitespace | Rejected. |
-| Wrong group lengths, leading signs, invalid hex | Rejected. |
-| Text longer than declared precision | Rejected. |
+### `UUID.fromString()` versus our parser
+
+Let `G` mean the valid GUID `6f9619ff-8b86-d011-b42d-00c04fc964ff`.
+The Java behavior below refers to JDK 21; parser leniency can vary across JDK
+versions.
+
+| Validation / input | `UUID.fromString()` | Our `parseGuid()` | Why the difference matters |
+| --- | --- | --- | --- |
+| Canonical GUID: `G` | Accepts | Accepts when precision >= 36 | Standard supported input |
+| Uppercase or lowercase hex | Accepts both | Accepts both | No difference |
+| Short groups: `1-1-1-1-1` | Accepts and zero-pads groups | Rejects | Enforces the required **8-4-4-4-12** layout |
+| Exactly 36 characters, wrong groups: `06f9619ff-8b8-d011-b42d-00c04fc964ff` | Accepts despite **9-3-4-4-12** layout | Rejects | **Length checking alone is insufficient** |
+| Exactly 36 characters, leading `+`: `+f9619ff-8b86-d011-b42d-00c04fc964ff` | Accepts | Rejects | Requires hexadecimal characters, not signed numeric components |
+| Non-ASCII digits | Can accept some through numeric parsing | Rejects | Explicitly permits only `0-9`, `a-f`, and `A-F` |
+| Invalid hex, such as `g` inside the GUID | Rejects | Rejects | Both reject invalid hexadecimal content |
+| Braced GUID: `{G}` | Rejects | Accepts when precision >= 38 | Preserves supported legacy SQL Server conversion behavior |
+| Trailing text: `Gxyz` | Rejects | Accepts when precision >= 39; ignores `xyz` | Preserves legacy conversion of a complete GUID followed by a suffix |
+| Braced GUID with suffix: `{G}xyz` | Rejects | Accepts when precision >= 41 | Requires the closing brace immediately after the GUID, then ignores the suffix |
+| Leading whitespace: `" " + G` | Rejects | Rejects | Our parser does not trim leading whitespace |
+| Canonical GUID with source precision 35 | Accepts; has no precision parameter | Rejects | Preserves the former character-payload length restriction |
+| `{G}` with source precision 36 | Rejects because of braces | Rejects because all 38 characters exceed precision | Precision applies to the **original input**, not just the extracted GUID |
+| UUID version / variant restrictions | Does not enforce a particular version or variant | Does not add such restrictions | Neither is a UUID-generation-policy validator |
+| Conversion result | Returns a `UUID` | Returns a `UUID` by calling `UUID.fromString()` on the validated 36-character portion | We reuse Java's conversion rather than implement binary parsing |
+
+### Why validation moves into the driver
+
+The malformed GUID cases were already failing before this PR, usually when SQL
+Server converted the text to `uniqueidentifier`. But valid braced GUIDs and GUIDs
+with suffixes could succeed. Our parser is intended to preserve that distinction.
+
+**Before this PR, the affected flow was:**
+
+```text
+Source value -> CHAR text sent by bulk copy -> SQL Server validates/converts -> uniqueidentifier
+```
+
+**With the native path:**
+
+```text
+Source value -> driver validates/parses -> 16-byte GUID sent -> uniqueidentifier
+```
+
+Because SQL Server now receives binary GUID data, it no longer sees the original
+text and cannot reject malformed text that Java silently accepted or normalized.
+Preserving accepted and rejected inputs does not establish identical error or
+transaction behavior; see the unresolved transaction compatibility issue in
+section 9.
+
+### Shared precision validation
 
 Checking only `length == 36` before calling `UUID.fromString()` is insufficient.
 For example, Java can accept the 36-character input
