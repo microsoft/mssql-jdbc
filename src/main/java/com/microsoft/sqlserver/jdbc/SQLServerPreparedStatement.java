@@ -3385,13 +3385,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if ("/*".equalsIgnoreCase(localUserSQL.substring(0, 2))) {
-            int temp = localUserSQL.indexOf("*/") + 2;
-            if (temp <= 0) {
-                localUserSQL = "";
-                return false;
+            // T-SQL permits nested block comments. Stop only at the outer terminator so comment text
+            // cannot be mistaken for trailing SQL and permanently disable Bulk Copy.
+            int depth = 1;
+            int offset = 2;
+            while (offset + 1 < localUserSQL.length()) {
+                char current = localUserSQL.charAt(offset);
+                char next = localUserSQL.charAt(offset + 1);
+                if ('/' == current && '*' == next) {
+                    depth++;
+                    offset += 2;
+                } else if ('*' == current && '/' == next) {
+                    depth--;
+                    offset += 2;
+                    if (0 == depth) {
+                        localUserSQL = localUserSQL.substring(offset);
+                        return true;
+                    }
+                } else {
+                    offset++;
+                }
             }
-            localUserSQL = localUserSQL.substring(temp);
-            return true;
+            // Leave an unterminated comment intact for SQL validation. In particular, trailing-SQL
+            // validation must remember rejection even when the VALUES list has already been cached.
+            return false;
         }
 
         if ("--".equalsIgnoreCase(localUserSQL.substring(0, 2))) {

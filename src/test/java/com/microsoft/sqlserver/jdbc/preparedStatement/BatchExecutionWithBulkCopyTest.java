@@ -262,10 +262,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
     @ParameterizedTest
     @MethodSource("trailingSQLBatchModes")
     public void testTrailingSQLFallsBackOnRepeatedBatches(boolean firstLargeBatch, boolean alternate,
-            boolean multipleTuples) throws Exception {
+            boolean multipleTuples, String comment) throws Exception {
         String localTableName = RandomUtil.getIdentifier("Table_BulkCopy_TrailingSQL");
         String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(localTableName)
-                + " (Id, Data) VALUES (?, ?)" + (multipleTuples ? ", (?, ?)" : " OPTION (RECOMPILE)");
+                + " (Id, Data) VALUES (?, ?)" + comment + (multipleTuples ? ", (?, ?)" : " OPTION (RECOMPILE)");
         int rowsPerEntry = multipleTuples ? 2 : 1;
         Field bulkCopy = SQLServerPreparedStatement.class.getDeclaredField("bcOperation");
         bulkCopy.setAccessible(true);
@@ -323,11 +323,14 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
      * run again against the unconsumed statement and wrongly force a fallback on every later batch.
      */
     @ParameterizedTest
-    @MethodSource("batchExecutionModes")
-    public void testRepeatedBatchesKeepUsingBulkCopy(boolean firstLargeBatch, boolean alternate) throws Exception {
+    @MethodSource("supportedSQLBatchModes")
+    public void testRepeatedBatchesKeepUsingBulkCopy(boolean firstLargeBatch, boolean alternate,
+            String trailer) throws Exception {
         String localTableName = RandomUtil.getIdentifier("Table_BulkCopy_RepeatedBatch");
         String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(localTableName)
-                + " (Id, Data) VALUES (?, ?)";
+                + " (Id, Data) VALUES (?, ?)" + trailer;
+        Field bulkCopy = SQLServerPreparedStatement.class.getDeclaredField("bcOperation");
+        bulkCopy.setAccessible(true);
 
         try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
                 SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
@@ -353,7 +356,10 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                         }
                         assertFalse("Batch " + batch + " unexpectedly fell back to the regular batch path",
                                 handler.gotFallbackMessage);
+                        assertNotNull(bulkCopy.get(pstmt), "Comment-only trailers must retain Bulk Copy");
                     }
+                    pstmt.clearBatch();
+                    pstmt.clearParameters();
                 }
             }
 
@@ -369,14 +375,61 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
         }
     }
 
+    /**
+     * A nested comment must not disable Bulk Copy's KeepIdentity option: normal INSERT execution would
+     * reject the supplied identity values while IDENTITY_INSERT is off.
+     */
+    @Test
+    public void testNestedCommentsPreserveKeepIdentity() throws Exception {
+        String localTableName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("Table_BulkCopy_NestedComment_Identity"));
+        try (Connection con = PrepUtil.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertKeepIdentity=true;");
+                Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE " + localTableName + " (Id INT IDENTITY(1,1), Data INT)");
+            try (PreparedStatement pstmt = con.prepareStatement(
+                    "INSERT INTO " + localTableName + " (Id, Data) VALUES (?, ?) /* outer /* inner */ outer */")) {
+                for (int batch = 0; batch < 3; batch++) {
+                    int id = 100 + batch;
+                    pstmt.setInt(1, id);
+                    pstmt.setInt(2, id * 10);
+                    pstmt.addBatch();
+                    assertArrayEquals(new long[] {1}, pstmt.executeLargeBatch());
+                    pstmt.clearBatch();
+                    pstmt.clearParameters();
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT Id, Data FROM " + localTableName + " ORDER BY Id")) {
+                    for (int id = 100; id < 103; id++) {
+                        assertTrue(rs.next());
+                        assertEquals(id, rs.getInt(1));
+                        assertEquals(id * 10, rs.getInt(2));
+                    }
+                    assertFalse(rs.next());
+                }
+            } finally {
+                TestUtils.dropTableIfExists(localTableName, stmt);
+            }
+        }
+    }
+
     private static Stream<Arguments> batchExecutionModes() {
         return Stream.of(Arguments.of(false, false), Arguments.of(true, false), Arguments.of(false, true),
                 Arguments.of(true, true));
     }
 
     private static Stream<Arguments> trailingSQLBatchModes() {
-        return batchExecutionModes().flatMap(mode -> Stream.of(Arguments.of(mode.get()[0], mode.get()[1], false),
-                Arguments.of(mode.get()[0], mode.get()[1], true)));
+        return Stream.of("", " /* outer /* inner */ outer */")
+                .flatMap(comment -> batchExecutionModes()
+                        .flatMap(mode -> Stream.of(Arguments.of(mode.get()[0], mode.get()[1], false, comment),
+                                Arguments.of(mode.get()[0], mode.get()[1], true, comment))));
+    }
+
+    private static Stream<Arguments> supportedSQLBatchModes() {
+        return Stream
+                .of("", " /* outer /* inner */ outer */",
+                        " ; /* level 1 /* level 2 /* level 3 */ */ */ ; /* next */ -- end\n ;")
+                .flatMap(trailer -> batchExecutionModes()
+                        .map(mode -> Arguments.of(mode.get()[0], mode.get()[1], trailer)));
     }
 
     /**
