@@ -39,11 +39,11 @@ public class BulkCopyGuidParserTest {
 
     private static Stream<String> rejectedRenderings() {
         return Stream.of("", "1-1-1-1-1", "6f9619ff-8b86-d011-b42d-1", GUID.substring(0, 35),
-                "6f9619fff-8b86-d011-b42d-00c04fc964ff", "+f9619ff-8b86-d011-b42d-00c04fc964ff",
-                "6g9619ff-8b86-d011-b42d-00c04fc964ff", GUID.replace('-', '_'), GUID.replace("-", ""), " " + GUID,
-                "\t" + GUID, "\n" + GUID, "(" + GUID + ")", "urn:uuid:" + GUID, "{" + GUID, "{" + GUID + "x",
-                "{" + GUID + " }", "{{" + GUID + "}}", "\u0666f9619ff-8b86-d011-b42d-00c04fc964ff",
-                "\uff16f9619ff-8b86-d011-b42d-00c04fc964ff");
+                "06f9619ff-8b8-d011-b42d-00c04fc964ff", "6f9619fff-8b86-d011-b42d-00c04fc964ff",
+                "+f9619ff-8b86-d011-b42d-00c04fc964ff", "6g9619ff-8b86-d011-b42d-00c04fc964ff", GUID.replace('-', '_'),
+                GUID.replace("-", ""), " " + GUID, "\t" + GUID, "\n" + GUID, "(" + GUID + ")", "urn:uuid:" + GUID,
+                "{" + GUID, "{" + GUID + "x", "{" + GUID + " }", "{{" + GUID + "}}",
+                "\u0666f9619ff-8b86-d011-b42d-00c04fc964ff", "\uff16f9619ff-8b86-d011-b42d-00c04fc964ff");
     }
 
     @Test
