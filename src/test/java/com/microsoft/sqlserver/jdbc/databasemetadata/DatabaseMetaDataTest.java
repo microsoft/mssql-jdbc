@@ -185,6 +185,9 @@ public class DatabaseMetaDataTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLMI)
     public void testDatabaseCompatibilityLevelWithQuotedCatalog() throws SQLException {
         String databaseName = "DBMetadata'Catalog" + uuid;
         TestUtils.dropDatabaseIfExists(databaseName, connectionString);
