@@ -3390,7 +3390,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     String strPort = activeConnectionProperties.getProperty(sPropKey);
                     if (null != strPort) {
                         nPort = Integer.parseInt(strPort);
-                        if ((nPort < 0) || (nPort > 65535)) {
+                        if ((nPort < 0) || (nPort > Util.MAX_PORT_NUMBER)) {
                             MessageFormat form = new MessageFormat(
                                     SQLServerException.getErrString("R_invalidPortNumber"));
                             Object[] msgArgs = {Integer.toString(nPort)};
