@@ -4731,6 +4731,11 @@ final class TDSWriter {
             ByteBuffer swapBuffer = stagingBuffer;
             stagingBuffer = socketBuffer;
             socketBuffer = swapBuffer;
+            // Keep heapStagingBuffer in sync with the buffer swap above. Without this, heapStagingBuffer keeps
+            // referencing the pre-swap object, which after this point is actually serving as socketBuffer. If
+            // enableMemorySegment(false) runs later (e.g. on a subsequent TDS message on this connection), it would
+            // copy data into that stale, in-use buffer instead of the current stagingBuffer, corrupting the stream.
+            heapStagingBuffer = stagingBuffer;
 
             // ... and prepare to send data from the from the new socket
             // buffer (the old staging buffer).
