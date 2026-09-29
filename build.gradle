@@ -133,10 +133,6 @@ repositories {
 }
 
 dependencies {
-	constraints {
-		compileOnly 'io.netty:netty-codec-dns:4.1.137.Final'
-		testImplementation 'io.netty:netty-codec-dns:4.1.137.Final'
-	}
     implementation 'org.osgi:org.osgi.core:6.0.0',
 			'org.osgi:org.osgi.service.jdbc:1.1.0'
 	compileOnly 'com.azure:azure-security-keyvault-keys:4.11.1',
