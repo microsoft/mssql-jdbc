@@ -17,7 +17,7 @@ public class SQLServerBulkCopyOptions implements Serializable {
     /**
      * Update serialVersionUID when making changes to this file
      */
-    private static final long serialVersionUID = 711570696894155194L;
+    private static final long serialVersionUID = 711570696894155195L;
 
     /**
      * Number of rows in each batch.
@@ -90,6 +90,33 @@ public class SQLServerBulkCopyOptions implements Serializable {
     private boolean allowEncryptedValueModifications;
 
     /**
+     * Use MemorySegment off-heap staging when running on Java 22 or later.
+     *
+     * Default: true. Earlier Java versions automatically use the on-heap ByteBuffer implementation.
+     */
+    private boolean useMemorySegment;
+
+    /**
+     * Enables or disables MemorySegment off-heap staging for bulk copy serialization. MemorySegment staging requires
+     * Java 22 or later; earlier Java versions use the on-heap ByteBuffer implementation.
+     *
+     * @param useMemorySegment
+     *        true to prefer MemorySegment off-heap staging; false for standard on-heap ByteBuffer.
+     */
+    public void setUseMemorySegment(boolean useMemorySegment) {
+        this.useMemorySegment = useMemorySegment;
+    }
+
+    /**
+     * Returns whether MemorySegment off-heap staging is enabled.
+     *
+     * @return true if MemorySegment staging is preferred, false otherwise.
+     */
+    public boolean isUseMemorySegment() {
+        return useMemorySegment;
+    }
+
+    /**
      * Constructs a SQLServerBulkCopySettings class using defaults for all of the settings.
      */
     public SQLServerBulkCopyOptions() {
@@ -102,6 +129,7 @@ public class SQLServerBulkCopyOptions implements Serializable {
         tableLock = false;
         useInternalTransaction = false;
         allowEncryptedValueModifications = false;
+        useMemorySegment = true;
     }
     
     /**
@@ -115,6 +143,7 @@ public class SQLServerBulkCopyOptions implements Serializable {
         keepNulls = conn.getBulkCopyForBatchInsertKeepNulls();
         tableLock = conn.getBulkCopyForBatchInsertTableLock();
         allowEncryptedValueModifications = conn.getBulkCopyForBatchInsertAllowEncryptedValueModifications();
+        useMemorySegment = true;
     }
     
 

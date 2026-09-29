@@ -1764,44 +1764,49 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         boolean moreDataAvailable = false;
 
         try {
-            if (!insertRowByRow) {
-                tdsWriter = sendBulkCopyCommand(command);
-            }
-
             try {
-                // Write all ROW tokens in the stream.
-                moreDataAvailable = writeBatchData(tdsWriter, command, insertRowByRow);
+                if (!insertRowByRow) {
+                    tdsWriter = sendBulkCopyCommand(command);
+                }
+
+                try {
+                    // Write all ROW tokens in the stream.
+                    moreDataAvailable = writeBatchData(tdsWriter, command, insertRowByRow);
+                } finally {
+                    tdsWriter = command.getTDSWriter();
+                }
             } finally {
-                tdsWriter = command.getTDSWriter();
+                if (null == tdsWriter) {
+                    tdsWriter = command.getTDSWriter();
+                }
+
+                // reset the cryptoMeta in IOBuffer
+                tdsWriter.setCryptoMetaData(null);
             }
+
+            if (!insertRowByRow) {
+                // Write the DONE token in the stream. We may have to append the DONE token with every packet that is
+                // sent. For the current packets the driver does not generate a DONE token, but the BulkLoadBCP stream
+                // needs a DONE token after every packet. For now add it manually here for one packet.
+                // Note: This may break if more than one packet is sent.
+                // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
+                writePacketDataDone(tdsWriter);
+
+                // Send to the server and read response.
+                TDSParser.parse(command.startResponse(), command.getLogContext());
+            }
+
+            if (copyOptions.isUseInternalTransaction()) {
+                // Commit the transaction for this batch.
+                connection.commit();
+            }
+
+            return moreDataAvailable;
         } finally {
-            if (null == tdsWriter) {
-                tdsWriter = command.getTDSWriter();
+            if (null != tdsWriter) {
+                tdsWriter.enableMemorySegment(false);
             }
-
-            // reset the cryptoMeta in IOBuffer
-            tdsWriter.setCryptoMetaData(null);
         }
-
-        if (!insertRowByRow) {
-            // Write the DONE token in the stream. We may have to append the DONE token with every packet that is sent.
-            // For the current packets the driver does not generate a DONE token, but the BulkLoadBCP stream needs a
-            // DONE token
-            // after every packet. For now add it manually here for one packet.
-            // Note: This may break if more than one packet is sent.
-            // This is an example from https://msdn.microsoft.com/en-us/library/dd340549.aspx
-            writePacketDataDone(tdsWriter);
-
-            // Send to the server and read response.
-            TDSParser.parse(command.startResponse(), command.getLogContext());
-        }
-
-        if (copyOptions.isUseInternalTransaction()) {
-            // Commit the transaction for this batch.
-            connection.commit();
-        }
-
-        return moreDataAvailable;
     }
 
     private TDSWriter sendBulkCopyCommand(TDSCommand command) throws SQLServerException {
@@ -1814,6 +1819,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
         // Send the bulk data. This is the BulkLoadBCP TDS stream.
         tdsWriter = command.startRequest(TDS.PKT_BULK);
+        tdsWriter.enableMemorySegment(copyOptions.isUseMemorySegment());
         // Write the COLUMNMETADATA token in the stream.
 
         writeColumnMetaData(tdsWriter);

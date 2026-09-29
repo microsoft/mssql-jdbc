@@ -325,6 +325,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
         assertFalse(options.isTableLock());
         assertFalse(options.isUseInternalTransaction());
         assertFalse(options.isAllowEncryptedValueModifications());
+        assertTrue(options.isUseMemorySegment());
 
         // Test setting new options
         SQLServerBulkCopyOptions newOptions = new SQLServerBulkCopyOptions();
@@ -337,6 +338,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
         newOptions.setTableLock(true);
         newOptions.setUseInternalTransaction(true);
         newOptions.setAllowEncryptedValueModifications(true);
+        newOptions.setUseMemorySegment(false);
 
         bulkCopy.setBulkCopyOptions(newOptions);
         SQLServerBulkCopyOptions retrievedOptions = bulkCopy.getBulkCopyOptions();
@@ -349,6 +351,7 @@ public class SQLServerBulkCopyTest extends AbstractTest {
         assertTrue(retrievedOptions.isTableLock());
         assertTrue(retrievedOptions.isUseInternalTransaction());
         assertTrue(retrievedOptions.isAllowEncryptedValueModifications());
+        assertFalse(retrievedOptions.isUseMemorySegment());
 
         bulkCopy.close();
     }

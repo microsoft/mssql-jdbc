@@ -3532,8 +3532,32 @@ final class TDSWriter {
 
     // Packet data buffers
     private ByteBuffer stagingBuffer;
+    private ByteBuffer heapStagingBuffer;
     private ByteBuffer socketBuffer;
     private ByteBuffer logBuffer;
+    private TDSMemorySegmentStaging memorySegmentStaging = null;
+
+    void enableMemorySegment(boolean enable) {
+        enable = enable && TDSMemorySegmentStaging.isSupported();
+        if (enable && null == memorySegmentStaging) {
+            memorySegmentStaging = new TDSMemorySegmentStaging(currentPacketSize);
+            ByteBuffer memorySegmentBuffer = memorySegmentStaging.buffer();
+            ((Buffer) stagingBuffer).flip();
+            memorySegmentBuffer.put(stagingBuffer);
+            stagingBuffer = memorySegmentBuffer;
+        } else if (!enable && null != memorySegmentStaging) {
+            ((Buffer) stagingBuffer).flip();
+            ((Buffer) heapStagingBuffer).clear();
+            heapStagingBuffer.put(stagingBuffer);
+            stagingBuffer = heapStagingBuffer;
+            memorySegmentStaging.close();
+            memorySegmentStaging = null;
+        }
+    }
+
+    boolean isMemorySegmentEnabled() {
+        return null != memorySegmentStaging;
+    }
 
     // Intermediate arrays
     // It is assumed, startMessage is called before use, to alloc arrays
@@ -3597,6 +3621,7 @@ final class TDSWriter {
      *        The TDS message type (PKT_QUERY, PKT_RPC, etc.)
      */
     void startMessage(TDSCommand command, byte tdsMessageType) throws SQLServerException {
+        enableMemorySegment(false);
         this.command = command;
         this.tdsMessageType = tdsMessageType;
         this.packetNum = 0;
@@ -3609,7 +3634,8 @@ final class TDSWriter {
         int negotiatedPacketSize = con.getTDSPacketSize();
         if (currentPacketSize != negotiatedPacketSize) {
             socketBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
-            stagingBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
+            heapStagingBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
+            stagingBuffer = heapStagingBuffer;
             logBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
             currentPacketSize = negotiatedPacketSize;
             streamCharBuffer = new char[2 * currentPacketSize];
@@ -3618,7 +3644,6 @@ final class TDSWriter {
 
         ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
         ((Buffer) stagingBuffer).clear();
-
         preparePacket();
         writeMessageHeader();
     }
@@ -4682,6 +4707,26 @@ final class TDSWriter {
         // to the socket, the socket buffer is now empty, so swap buffers
         // and start writing data from the staging buffer.
         if (((Buffer) stagingBuffer).position() >= TDS_PACKET_HEADER_SIZE) {
+            if (null != memorySegmentStaging) {
+                ((Buffer) stagingBuffer).flip();
+                ((Buffer) socketBuffer).clear();
+                socketBuffer.put(stagingBuffer);
+                ((Buffer) socketBuffer).flip();
+                ((Buffer) stagingBuffer).clear();
+
+                if (tdsChannel.isLoggingPackets()) {
+                    tdsChannel.logPacket(logBuffer.array(), 0, ((Buffer) socketBuffer).limit(),
+                            this.toString() + " sending packet (" + ((Buffer) socketBuffer).limit() + " bytes)");
+                }
+
+                if (!atEOM)
+                    preparePacket();
+
+                tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+                ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
+                return;
+            }
+
             // Swap the packet buffers ...
             ByteBuffer swapBuffer = stagingBuffer;
             stagingBuffer = socketBuffer;
@@ -4695,7 +4740,6 @@ final class TDSWriter {
             // packet, which may be shorter than the other packets.
             ((Buffer) socketBuffer).flip();
             ((Buffer) stagingBuffer).clear();
-
             // If we are logging TDS packets then log the packet we're about
             // to send over the wire now.
             if (tdsChannel.isLoggingPackets()) {
