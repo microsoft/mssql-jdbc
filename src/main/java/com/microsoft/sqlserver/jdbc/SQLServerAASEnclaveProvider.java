@@ -75,29 +75,36 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
     public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
-        // Check if the session exists in our cache
-        StringBuilder keyLookup = new StringBuilder(connection.getServerName()).append(connection.getCatalog())
-                .append(attestationUrl);
-        EnclaveCacheEntry entry = enclaveCache.getSession(keyLookup.toString());
-        if (null != entry) {
-            this.enclaveSession = entry.getEnclaveSession();
-            this.aasParams = (AASAttestationParameters) entry.getBaseAttestationRequest();
-        }
-        ArrayList<byte[]> b = describeParameterEncryption(connection, statement, userSql, preparedTypeDefinitions,
-                params, parameterNames);
-        if (connection.enclaveEstablished()) {
-            return b;
-        } else if (null != hgsResponse && !connection.enclaveEstablished()) {
-            try {
-                enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
-                        aasParams.createSessionSecret(hgsResponse.getDHpublicKey()));
-                enclaveCache.addEntry(connection.getServerName(), connection.getCatalog(),
-                        connection.enclaveAttestationUrl, aasParams, enclaveSession);
-            } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false, e);
+        // Pending responses belong to one attempt; only established sessions may be reused.
+        hgsResponse = null;
+        try {
+            // Check if the session exists in our cache
+            StringBuilder keyLookup = new StringBuilder(connection.getServerName()).append(connection.getCatalog())
+                    .append(attestationUrl);
+            EnclaveCacheEntry entry = enclaveCache.getSession(keyLookup.toString());
+            if (null != entry) {
+                this.enclaveSession = entry.getEnclaveSession();
+                this.aasParams = (AASAttestationParameters) entry.getBaseAttestationRequest();
             }
+            ArrayList<byte[]> b = describeParameterEncryption(connection, statement, userSql, preparedTypeDefinitions,
+                    params, parameterNames);
+            if (connection.enclaveEstablished()) {
+                return b;
+            } else if (null != hgsResponse && !connection.enclaveEstablished()) {
+                try {
+                    enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
+                            aasParams.createSessionSecret(hgsResponse.getDHpublicKey()));
+                    enclaveCache.addEntry(connection.getServerName(), connection.getCatalog(),
+                            connection.enclaveAttestationUrl, aasParams, enclaveSession);
+                } catch (GeneralSecurityException e) {
+                    SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false, e);
+                }
+            }
+            return b;
+        } finally {
+            // Discard even validated candidates if later transport or session-key derivation fails.
+            hgsResponse = null;
         }
-        return b;
     }
 
     @Override
@@ -106,6 +113,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             enclaveCache.removeEntry(enclaveSession);
         }
         enclaveSession = null;
+        hgsResponse = null;
         aasParams = null;
         attestationUrl = null;
     }
@@ -115,14 +123,12 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
         return enclaveSession;
     }
 
-    private void validateAttestationResponse() throws SQLServerException {
-        if (null != hgsResponse) {
-            try {
-                hgsResponse.validateToken(attestationUrl, aasParams.getNonce());
-                hgsResponse.validateDHPublicKey(aasParams.getNonce());
-            } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
-            }
+    private void validateAttestationResponse(AASAttestationResponse response) throws SQLServerException {
+        try {
+            response.validateToken(attestationUrl, aasParams.getNonce());
+            response.validateDHPublicKey(aasParams.getNonce());
+        } catch (GeneralSecurityException e) {
+            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
         }
     }
 
@@ -138,8 +144,10 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
 
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
-            // Check the cache for metadata for Always Encrypted versions 1 and 3, when there are parameters to check.
-            if (connection.getServerColumnEncryptionVersion() == ColumnEncryptionVersion.AE_V2 || params == null
+            // AE v3 can cache metadata before attestation fails. Metadata must not skip fresh attestation
+            // until a validated session exists; established sessions retain the existing metadata-cache behavior.
+            if (!connection.enclaveEstablished()
+                    || connection.getServerColumnEncryptionVersion() == ColumnEncryptionVersion.AE_V2 || params == null
                     || params.length == 0 || !ParameterMetaDataCache.getQueryMetadata(params, parameterNames,
                             connection, statement, userSql)) {
                 try (ResultSet rs = connection.enclaveEstablished() ? executeSDPEv1(stmt, userSql,
@@ -155,9 +163,10 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
                     if (connection.isAEv2() && stmt.getMoreResults()) {
                         try (ResultSet hgsRs = (SQLServerResultSet) stmt.getResultSet()) {
                             if (hgsRs.next()) {
-                                hgsResponse = new AASAttestationResponse(hgsRs.getBytes(1));
-                                // This validates and establishes the enclave session if valid
-                                validateAttestationResponse();
+                                AASAttestationResponse response = new AASAttestationResponse(hgsRs.getBytes(1));
+                                // Only retain a session candidate after both token and DH signature checks succeed.
+                                validateAttestationResponse(response);
+                                hgsResponse = response;
                             } else {
                                 SQLServerException.makeFromDriverError(null, this,
                                         SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), "0",
