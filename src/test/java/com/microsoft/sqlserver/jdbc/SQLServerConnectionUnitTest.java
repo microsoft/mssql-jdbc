@@ -530,4 +530,19 @@ public class SQLServerConnectionUnitTest {
         assertThrows(SQLServerException.class, () -> conn.connect(props, null));
         verify(conn, atLeastOnce()).invalidateEnclaveSessionCache();
     }
+
+    @Test
+    @Tag(Constants.CodeCov)
+    public void testInvalidKerberosCredentialDelegationValue() throws Exception {
+        SQLServerConnection conn = new SQLServerConnection("test");
+        Properties props = new Properties();
+        props.setProperty(SQLServerDriverBooleanProperty.INTEGRATED_SECURITY.toString(), "true");
+        props.setProperty(SQLServerDriverStringProperty.AUTHENTICATION_SCHEME.toString(), "JavaKerberos");
+        props.setProperty(SQLServerDriverBooleanProperty.ENABLE_KERBEROS_CRED_DELEGATION.toString(), "yes");
+
+        SQLServerException exception = assertThrows(SQLServerException.class, () -> conn.connectInternal(props, null));
+
+        assertTrue(exception.getMessage()
+                .contains(SQLServerDriverBooleanProperty.ENABLE_KERBEROS_CRED_DELEGATION.toString()));
+    }
 }

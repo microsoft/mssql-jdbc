@@ -169,7 +169,16 @@ final class KerbAuthentication extends SSPIAuthentication {
                 }
 
                 // The following flags should be inline with our native implementation.
-                peerContext.requestCredDeleg(true);
+                // Kerberos credential delegation forwards the client's (potentially forwardable) TGT
+                // to the target SPN so the server can act on the client's behalf (the "double-hop"
+                // scenario). Because delegation should only be granted to trusted servers, it is
+                // disabled by default and enabled only when the caller explicitly opts in via the
+                // enableKerberosCredentialDelegation connection property.
+                boolean enableCredDelegation = con.isKerberosCredentialDelegationEnabled();
+                if (enableCredDelegation && authLogger.isLoggable(Level.FINER)) {
+                    authLogger.finer(toString() + " Kerberos credential delegation is enabled for SPN: " + spn);
+                }
+                peerContext.requestCredDeleg(enableCredDelegation);
                 peerContext.requestMutualAuth(true);
                 peerContext.requestInteg(true);
             }

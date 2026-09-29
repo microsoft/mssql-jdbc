@@ -873,6 +873,28 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     void setUseDefaultJaasConfig(boolean useDefaultJaasConfig);
 
     /**
+     * Returns whether Kerberos credential delegation is enabled for {@code authenticationScheme=JavaKerberos}.
+     *
+     * @return enableKerberosCredentialDelegation boolean value
+     */
+    default boolean getEnableKerberosCredentialDelegation() {
+        return false;
+    }
+
+    /**
+     * Sets whether Kerberos credential delegation is enabled for {@code authenticationScheme=JavaKerberos}. When
+     * enabled, the client's (forwardable) Kerberos ticket is delegated to the target server SPN, allowing the server
+     * to act on the client's behalf (the "double-hop" scenario). Delegation is disabled by default and should only be
+     * enabled when connecting to trusted servers that legitimately require it.
+     *
+     * @param enableKerberosCredentialDelegation
+     *        boolean property to enable/disable Kerberos credential delegation
+     */
+    default void setEnableKerberosCredentialDelegation(boolean enableKerberosCredentialDelegation) {
+        // Retain binary compatibility for third-party implementations of this interface.
+    }
+
+    /**
      * Sets whether Fips Mode should be enabled/disabled on the connection. For FIPS enabled JVM this property should be
      * true.
      * 
