@@ -688,6 +688,7 @@ final class TDSChannel implements Serializable {
     private final transient Lock inputStreamLock = new ReentrantLock();
     private transient OutputStream outputStream;
     private final transient Lock outputStreamLock = new ReentrantLock();
+    private final byte[] channelDirectTransferChunk = new byte[8192];
 
     /** TDS packet payload logger */
     private static Logger packetLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.DATA");
@@ -2360,12 +2361,11 @@ final class TDSChannel implements Serializable {
             outputStreamLock.lock();
             try {
                 con.idleNetworkTracker.markNetworkActivity();
-                // Send chunks to outputStream directly
-                byte[] tempChunk = new byte[Math.min(buffer.remaining(), 8192)];
+                // Send chunks to outputStream directly using pre-allocated transfer buffer (zero allocation)
                 while (buffer.hasRemaining()) {
-                    int chunkLen = Math.min(buffer.remaining(), tempChunk.length);
-                    buffer.get(tempChunk, 0, chunkLen);
-                    outputStream.write(tempChunk, 0, chunkLen);
+                    int chunkLen = Math.min(buffer.remaining(), channelDirectTransferChunk.length);
+                    buffer.get(channelDirectTransferChunk, 0, chunkLen);
+                    outputStream.write(channelDirectTransferChunk, 0, chunkLen);
                 }
             } finally {
                 outputStreamLock.unlock();
