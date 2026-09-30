@@ -117,6 +117,8 @@ public class SQLServerDriverTest extends AbstractTest {
         SQLServerDriver driver = new SQLServerDriver();
         assert (driver.acceptsURL(connectionString));
         assert (!driver.acceptsURL("jdbc:somethingelse"));
+        assertFalse(driver.acceptsURL("jdbc:sqlserver://localhost;applicationName=App;licationName"));
+        assertFalse(driver.acceptsURL("jdbc:sqlserver://localhost:not-a-port"));
         try {
             driver.acceptsURL(null);
             fail();
