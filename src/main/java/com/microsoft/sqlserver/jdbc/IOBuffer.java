@@ -2344,6 +2344,40 @@ final class TDSChannel implements Serializable {
         }
     }
 
+    final void write(ByteBuffer buffer) throws SQLServerException {
+        if (!buffer.hasRemaining()) {
+            return;
+        }
+
+        if (buffer.hasArray()) {
+            write(buffer.array(), ((Buffer) buffer).position(), buffer.remaining());
+            ((Buffer) buffer).position(((Buffer) buffer).limit());
+            return;
+        }
+
+        // Direct / Off-heap buffer path without creating persistent heap arrays
+        try {
+            outputStreamLock.lock();
+            try {
+                con.idleNetworkTracker.markNetworkActivity();
+                // Send chunks to outputStream directly
+                byte[] tempChunk = new byte[Math.min(buffer.remaining(), 8192)];
+                while (buffer.hasRemaining()) {
+                    int chunkLen = Math.min(buffer.remaining(), tempChunk.length);
+                    buffer.get(tempChunk, 0, chunkLen);
+                    outputStream.write(tempChunk, 0, chunkLen);
+                }
+            } finally {
+                outputStreamLock.unlock();
+            }
+        } catch (IOException e) {
+            if (logger.isLoggable(Level.FINER))
+                logger.finer(toString() + " write buffer failed:" + e.getMessage());
+
+            con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
+        }
+    }
+
     final void flush() throws SQLServerException {
         try {
             con.idleNetworkTracker.markNetworkActivity();
@@ -3534,6 +3568,7 @@ final class TDSWriter {
     private ByteBuffer stagingBuffer;
     private ByteBuffer heapStagingBuffer;
     private ByteBuffer socketBuffer;
+    private ByteBuffer heapSocketBuffer;
     private ByteBuffer logBuffer;
     private TDSMemorySegmentStaging memorySegmentStaging = null;
 
@@ -3541,15 +3576,24 @@ final class TDSWriter {
         enable = enable && TDSMemorySegmentStaging.isSupported();
         if (enable && null == memorySegmentStaging) {
             memorySegmentStaging = new TDSMemorySegmentStaging(currentPacketSize);
-            ByteBuffer memorySegmentBuffer = memorySegmentStaging.buffer();
+            ByteBuffer offHeapStaging = memorySegmentStaging.stagingBuffer();
+            ByteBuffer offHeapSocket = memorySegmentStaging.socketBuffer();
+
+            // Migrate active staging state to off-heap staging buffer
             ((Buffer) stagingBuffer).flip();
-            memorySegmentBuffer.put(stagingBuffer);
-            stagingBuffer = memorySegmentBuffer;
+            offHeapStaging.put(stagingBuffer);
+            stagingBuffer = offHeapStaging;
+
+            // Point socketBuffer to off-heap socket buffer
+            ((Buffer) offHeapSocket).position(((Buffer) offHeapSocket).limit());
+            socketBuffer = offHeapSocket;
         } else if (!enable && null != memorySegmentStaging) {
             ((Buffer) stagingBuffer).flip();
             ((Buffer) heapStagingBuffer).clear();
             heapStagingBuffer.put(stagingBuffer);
             stagingBuffer = heapStagingBuffer;
+            socketBuffer = heapSocketBuffer;
+
             memorySegmentStaging.close();
             memorySegmentStaging = null;
         }
@@ -3633,7 +3677,8 @@ final class TDSWriter {
         // then allocate new buffers that are the correct size.
         int negotiatedPacketSize = con.getTDSPacketSize();
         if (currentPacketSize != negotiatedPacketSize) {
-            socketBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
+            heapSocketBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
+            socketBuffer = heapSocketBuffer;
             heapStagingBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
             stagingBuffer = heapStagingBuffer;
             logBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
@@ -4700,53 +4745,33 @@ final class TDSWriter {
 
     void flush(boolean atEOM) throws SQLServerException {
         // First, flush any data left in the socket buffer.
-        tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+        tdsChannel.write(socketBuffer);
         ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
 
         // If there is data in the staging buffer that needs to be written
         // to the socket, the socket buffer is now empty, so swap buffers
         // and start writing data from the staging buffer.
         if (((Buffer) stagingBuffer).position() >= TDS_PACKET_HEADER_SIZE) {
-            if (null != memorySegmentStaging) {
-                ((Buffer) stagingBuffer).flip();
-                ((Buffer) socketBuffer).clear();
-                socketBuffer.put(stagingBuffer);
-                ((Buffer) socketBuffer).flip();
-                ((Buffer) stagingBuffer).clear();
-
-                if (tdsChannel.isLoggingPackets()) {
-                    tdsChannel.logPacket(logBuffer.array(), 0, ((Buffer) socketBuffer).limit(),
-                            this.toString() + " sending packet (" + ((Buffer) socketBuffer).limit() + " bytes)");
-                }
-
-                if (!atEOM)
-                    preparePacket();
-
-                tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
-                ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
-                return;
-            }
-
-            // Swap the packet buffers ...
+            // Swap staging and socket buffer references without memory-to-memory copying
             ByteBuffer swapBuffer = stagingBuffer;
             stagingBuffer = socketBuffer;
             socketBuffer = swapBuffer;
-            // Keep heapStagingBuffer in sync with the buffer swap above. Without this, heapStagingBuffer keeps
-            // referencing the pre-swap object, which after this point is actually serving as socketBuffer. If
-            // enableMemorySegment(false) runs later (e.g. on a subsequent TDS message on this connection), it would
-            // copy data into that stale, in-use buffer instead of the current stagingBuffer, corrupting the stream.
-            heapStagingBuffer = stagingBuffer;
 
-            // ... and prepare to send data from the from the new socket
-            // buffer (the old staging buffer).
-            //
-            // We need to use flip() rather than rewind() here so that
-            // the socket buffer's limit is properly set for the last
-            // packet, which may be shorter than the other packets.
+            if (null == memorySegmentStaging) {
+                // Keep both heap buffer fields in sync with this swap. heapSocketBuffer must track socketBuffer
+                // the same way heapStagingBuffer tracks stagingBuffer; otherwise, after an odd number of swaps,
+                // heapSocketBuffer goes stale and aliases the same object as heapStagingBuffer. A later
+                // enableMemorySegment(false) restoring "socketBuffer = heapSocketBuffer" would then collapse
+                // stagingBuffer and socketBuffer into the same object, corrupting the TDS stream.
+                heapStagingBuffer = stagingBuffer;
+                heapSocketBuffer = socketBuffer;
+            }
+
+            // ... and prepare to send data from the new socket buffer (the old staging buffer).
             ((Buffer) socketBuffer).flip();
             ((Buffer) stagingBuffer).clear();
-            // If we are logging TDS packets then log the packet we're about
-            // to send over the wire now.
+
+            // If we are logging TDS packets then log the packet we're about to send over the wire now.
             if (tdsChannel.isLoggingPackets()) {
                 tdsChannel.logPacket(logBuffer.array(), 0, ((Buffer) socketBuffer).limit(),
                         this.toString() + " sending packet (" + ((Buffer) socketBuffer).limit() + " bytes)");
@@ -4756,8 +4781,8 @@ final class TDSWriter {
             if (!atEOM)
                 preparePacket();
 
-            // Finally, start sending data from the new socket buffer.
-            tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+            // Finally, send data from the new socket buffer directly over the channel.
+            tdsChannel.write(socketBuffer);
             ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
         }
     }

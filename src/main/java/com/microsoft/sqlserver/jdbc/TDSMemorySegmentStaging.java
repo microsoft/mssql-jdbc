@@ -17,20 +17,25 @@ final class TDSMemorySegmentStaging implements AutoCloseable {
     private static final int MINIMUM_SUPPORTED_JAVA_VERSION = 22;
 
     private final AutoCloseable arena;
-    private final ByteBuffer buffer;
+    private final ByteBuffer stagingBuffer;
+    private final ByteBuffer socketBuffer;
 
     TDSMemorySegmentStaging(int capacity) {
         try {
             Class<?> arenaClass = Class.forName("java.lang.foreign.Arena");
             Object arenaInstance = arenaClass.getMethod("ofShared").invoke(null);
-            Object segment = arenaClass.getMethod("allocate", long.class).invoke(arenaInstance, (long) capacity);
             Class<?> memorySegmentClass = Class.forName("java.lang.foreign.MemorySegment");
+            java.lang.reflect.Method allocateMethod = arenaClass.getMethod("allocate", long.class);
+            java.lang.reflect.Method asByteBufferMethod = memorySegmentClass.getMethod("asByteBuffer");
+
+            Object segment1 = allocateMethod.invoke(arenaInstance, (long) capacity);
+            Object segment2 = allocateMethod.invoke(arenaInstance, (long) capacity);
 
             arena = (AutoCloseable) arenaInstance;
-            buffer = ((ByteBuffer) memorySegmentClass.getMethod("asByteBuffer").invoke(segment))
-                    .order(ByteOrder.LITTLE_ENDIAN);
+            stagingBuffer = ((ByteBuffer) asByteBufferMethod.invoke(segment1)).order(ByteOrder.LITTLE_ENDIAN);
+            socketBuffer = ((ByteBuffer) asByteBufferMethod.invoke(segment2)).order(ByteOrder.LITTLE_ENDIAN);
         } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            throw new IllegalStateException("Unable to allocate a MemorySegment staging buffer.", e);
+            throw new IllegalStateException("Unable to allocate MemorySegment staging buffers.", e);
         }
     }
 
@@ -50,7 +55,15 @@ final class TDSMemorySegmentStaging implements AutoCloseable {
     }
 
     ByteBuffer buffer() {
-        return buffer;
+        return stagingBuffer;
+    }
+
+    ByteBuffer stagingBuffer() {
+        return stagingBuffer;
+    }
+
+    ByteBuffer socketBuffer() {
+        return socketBuffer;
     }
 
     @Override
