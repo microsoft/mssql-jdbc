@@ -2057,7 +2057,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             logger.fine(toString() + " schema query (" + s + ")");
         }
         SQLServerResultSet rs;
-        if (!hasCatalog && null == schemaPattern) {
+        boolean hasQueryParameters = hasCatalog || null != schemaPattern;
+        if (!hasQueryParameters) {
             rs = getResultSetFromInternalQueries(null, s);
         } else {
 
