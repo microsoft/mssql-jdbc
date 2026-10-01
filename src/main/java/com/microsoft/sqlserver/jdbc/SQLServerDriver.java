@@ -1524,10 +1524,8 @@ public final class SQLServerDriver implements java.sql.Driver {
         try {
             result = (Util.parseUrl(url, drLogger) != null);
         } catch (SQLServerException e) {
-            // A parse failure means the URL is one of ours but malformed, so accept it here
-            // and let connect() report the specific error. Only a null result (prefix
-            // mismatch) means the URL is not ours.
-            result = true;
+            // Ignore parse failures; if the URL cannot be parsed, the driver does not accept it.
+            result = false;
         }
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "acceptsURL", result);
