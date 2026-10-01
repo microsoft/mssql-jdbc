@@ -139,25 +139,25 @@ final class DDC {
                     case BIT:
                     case TINYINT:
                         bytesToReturnLength = 1;
-                        bytesToReturn = new byte[bytesToReturnLength];
+                        bytesToReturn = MemoryUtil.newArray(bytesToReturnLength);
                         System.arraycopy(convertedBytes, convertedBytes.length - bytesToReturnLength, bytesToReturn, 0,
                                 bytesToReturnLength);
                         return bytesToReturn;
                     case SMALLINT:
                         bytesToReturnLength = 2;
-                        bytesToReturn = new byte[bytesToReturnLength];
+                        bytesToReturn = MemoryUtil.newArray(bytesToReturnLength);
                         System.arraycopy(convertedBytes, convertedBytes.length - bytesToReturnLength, bytesToReturn, 0,
                                 bytesToReturnLength);
                         return bytesToReturn;
                     case INTEGER:
                         bytesToReturnLength = 4;
-                        bytesToReturn = new byte[bytesToReturnLength];
+                        bytesToReturn = MemoryUtil.newArray(bytesToReturnLength);
                         System.arraycopy(convertedBytes, convertedBytes.length - bytesToReturnLength, bytesToReturn, 0,
                                 bytesToReturnLength);
                         return bytesToReturn;
                     case BIGINT:
                         bytesToReturnLength = 8;
-                        bytesToReturn = new byte[bytesToReturnLength];
+                        bytesToReturn = MemoryUtil.newArray(bytesToReturnLength);
                         System.arraycopy(convertedBytes, convertedBytes.length - bytesToReturnLength, bytesToReturn, 0,
                                 bytesToReturnLength);
                         return bytesToReturn;
@@ -205,7 +205,7 @@ final class DDC {
      * @return the byte array containing the big-endian encoded value.
      */
     static final byte[] convertIntToBytes(int intValue, int valueLength) {
-        byte[] bytes = new byte[valueLength];
+        byte[] bytes = MemoryUtil.newArray(valueLength);
         for (int i = valueLength; i-- > 0;) {
             bytes[i] = (byte) (intValue & 0xFF);
             intValue >>= 8;
@@ -262,7 +262,7 @@ final class DDC {
      * @return the byte array containing the big-endian encoded value.
      */
     static final byte[] convertLongToBytes(long longValue) {
-        byte[] bytes = new byte[8];
+        byte[] bytes = MemoryUtil.newArray(8);
         for (int i = 8; i-- > 0;) {
             bytes[i] = (byte) (longValue & 0xFF);
             longValue >>= 8;
@@ -329,7 +329,7 @@ final class DDC {
         byte[] valueBytes;
 
         if (bigDecimalVal == null) {
-            valueBytes = new byte[2];
+            valueBytes = MemoryUtil.newArray(2);
             valueBytes[0] = (byte) scale;
             valueBytes[1] = 0; // data length
         } else {
@@ -352,7 +352,7 @@ final class DDC {
                 // Zero magnitude is handled here: bitLength() == 0 -> numMagBytes == 1, emitting a single zero byte,
                 // which matches BigInteger.ZERO.toByteArray() == {0}. Keep the + 1 to preserve this.
                 int numMagBytes = bitLength / 8 + 1; // matches bi.toByteArray().length for non-negative bi
-                valueBytes = new byte[numMagBytes + 3];
+                valueBytes = MemoryUtil.newArray(numMagBytes + 3);
                 int k = writeDecimalHeader(valueBytes, bigDecimalVal.scale(), numMagBytes, isNegative);
                 for (int i = 0; i < numMagBytes; i++)
                     valueBytes[k++] = (byte) (mag >> (8 * i)); // little-endian magnitude
@@ -361,7 +361,7 @@ final class DDC {
 
             byte[] unscaledBytes = bi.toByteArray();
 
-            valueBytes = new byte[unscaledBytes.length + 3];
+            valueBytes = MemoryUtil.newArray(unscaledBytes.length + 3);
             int j = writeDecimalHeader(valueBytes, bigDecimalVal.scale(), unscaledBytes.length, isNegative);
             for (int i = unscaledBytes.length - 1; i >= 0; i--)
                 valueBytes[j++] = unscaledBytes[i];
@@ -371,14 +371,14 @@ final class DDC {
     }
 
     static final byte[] convertMoneyToBytes(BigDecimal bigDecimalVal, int bLength) throws SQLServerException {
-        byte[] valueBytes = new byte[bLength];
+        byte[] valueBytes = MemoryUtil.newArray(bLength);
 
         BigInteger bi = bigDecimalVal.unscaledValue();
 
         if (bLength == 8) {
             // money
             Util.validateMoneyRange(bigDecimalVal, JDBCType.MONEY);
-            byte[] longbArray = new byte[bLength];
+            byte[] longbArray = MemoryUtil.newArray(bLength);
             Util.writeLong(bi.longValue(), longbArray, 0);
             /*
              * TDS 2.2.5.5.1.4 Fixed-Point Numbers Money is represented as a 8 byte signed integer, with one 4-byte
@@ -490,7 +490,7 @@ final class DDC {
 
         byte[] unscaledBytes = bigInt.toByteArray();
 
-        byte[] ret = new byte[numBytes];
+        byte[] ret = MemoryUtil.newArray(numBytes);
         if (unscaledBytes.length < numBytes) {
             for (int i = 0; i < numBytes - unscaledBytes.length; ++i) {
                 ret[i] = (byte) (isNeg ? -1 : 0);
@@ -536,7 +536,7 @@ final class DDC {
             case LONGVARBINARY:
                 if ((SSType.BINARY == baseTypeInfo.getSSType()) && (bytesValue.length < baseTypeInfo.getPrecision())) {
 
-                    byte[] newBytes = new byte[baseTypeInfo.getPrecision()];
+                    byte[] newBytes = MemoryUtil.newArray(baseTypeInfo.getPrecision());
                     System.arraycopy(bytesValue, 0, newBytes, 0, bytesValue.length);
                     return newBytes;
                 }
@@ -1446,8 +1446,8 @@ final class DDC {
             // Set up the buffer into which blocks of characters are read from the Reader. This buffer
             // should be no larger than the Reader value's size (if known). For known very large values,
             // limit the buffer's size to reduce this function's memory requirements.
-            char[] charArray = new char[(DataTypes.UNKNOWN_STREAM_LENGTH != readerLength
-                    && readerLength < 4000) ? readerLength : 4000];
+            char[] charArray = MemoryUtil.newCharArray((DataTypes.UNKNOWN_STREAM_LENGTH != readerLength
+                    && readerLength < 4000) ? readerLength : 4000);
 
             // Loop and read characters, chunk into StringBuilder until EOS.
             int readChars;
@@ -1487,7 +1487,7 @@ final class AsciiFilteredInputStream extends InputStream {
     private final static byte[] ASCII_FILTER;
 
     static {
-        ASCII_FILTER = new byte[256];
+        ASCII_FILTER = MemoryUtil.newArray(256);
 
         // First 128 entries map ASCII values in to ASCII values out
         for (int i = 0; i < 128; i++)
@@ -1615,7 +1615,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
         return 0;
     }
 
-    private final byte[] bSingleByte = new byte[1];
+    private final byte[] bSingleByte = MemoryUtil.newArray(1);
 
     @Override
     public int read() throws IOException {
@@ -1630,7 +1630,7 @@ final class AsciiFilteredUnicodeInputStream extends InputStream {
 
     @Override
     public int read(byte[] b, int offset, int maxBytes) throws IOException {
-        char[] tempBufferToHoldCharDataForConversion = new char[maxBytes];
+        char[] tempBufferToHoldCharDataForConversion = MemoryUtil.newCharArray(maxBytes);
         int charsRead = containedReader.read(tempBufferToHoldCharDataForConversion);
 
         if (charsRead > 0) {

@@ -827,7 +827,7 @@ final class TDSChannel implements Serializable {
              */
 
             // Create a couple of cheap closed streams
-            InputStream is = new ByteArrayInputStream(new byte[0]);
+            InputStream is = new ByteArrayInputStream(MemoryUtil.newArray(0));
             try {
                 is.close();
             } catch (IOException e) {
@@ -955,7 +955,7 @@ final class TDSChannel implements Serializable {
             return n;
         }
 
-        private final byte[] oneByte = new byte[1];
+        private final byte[] oneByte = MemoryUtil.newArray(1);
 
         @Override
         public int read() throws IOException {
@@ -1068,7 +1068,7 @@ final class TDSChannel implements Serializable {
             messageStarted = false;
         }
 
-        private final byte[] singleByte = new byte[1];
+        private final byte[] singleByte = MemoryUtil.newArray(1);
 
         @Override
         public void write(int b) throws IOException {
@@ -1232,7 +1232,7 @@ final class TDSChannel implements Serializable {
             return bytesAvailable;
         }
 
-        private final byte[] oneByte = new byte[1];
+        private final byte[] oneByte = MemoryUtil.newArray(1);
 
         @Override
         public int read() throws IOException {
@@ -1277,13 +1277,13 @@ final class TDSChannel implements Serializable {
                         getOneFromCache();
                     }
 
-                    byte[] bytesFromCache = new byte[Math.min(maxBytes, cachedLength)];
+                    byte[] bytesFromCache = MemoryUtil.newArray(Math.min(maxBytes, cachedLength));
                     for (int i = 0; i < bytesFromCache.length; i++) {
                         bytesFromCache[i] = (byte) getOneFromCache();
                     }
 
                     try {
-                        byte[] bytesFromStream = new byte[maxBytes - bytesFromCache.length];
+                        byte[] bytesFromStream = MemoryUtil.newArray(maxBytes - bytesFromCache.length);
                         int bytesReadFromStream = filteredStream.read(bytesFromStream,
                                 offset - offsetBytesToSkipInCache, maxBytes - bytesFromCache.length);
                         bytesRead = bytesFromCache.length + bytesReadFromStream;
@@ -1387,7 +1387,7 @@ final class TDSChannel implements Serializable {
             filteredStream.flush();
         }
 
-        private final byte[] singleByte = new byte[1];
+        private final byte[] singleByte = MemoryUtil.newArray(1);
 
         @Override
         public void write(int b) throws IOException {
@@ -2443,7 +2443,7 @@ final class TDSChannel implements Serializable {
 
                 '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.'};
 
-        char[] logLine = new char[lineTemplate.length];
+        char[] logLine = MemoryUtil.newCharArray(lineTemplate.length);
         System.arraycopy(lineTemplate, 0, logLine, 0, lineTemplate.length);
 
         // Logging builds up a string buffer for the entire log trace
@@ -3507,12 +3507,12 @@ final class TDSWriter {
     // byte packet
     // byte window
     private final static int TDS_PACKET_HEADER_SIZE = 8;
-    private final static byte[] placeholderHeader = new byte[TDS_PACKET_HEADER_SIZE];
+    private final static byte[] placeholderHeader = MemoryUtil.newArray(TDS_PACKET_HEADER_SIZE);
 
     // Intermediate array used to convert typically "small" values such as fixed-length types
     // (byte, int, long, etc.) and Strings from their native form to bytes for sending to
     // the channel buffers.
-    private byte[] valueBytes = new byte[256];
+    private byte[] valueBytes = MemoryUtil.newArray(256);
 
     // Monotonically increasing packet number associated with the current message
     private int packetNum = 0;
@@ -3608,12 +3608,15 @@ final class TDSWriter {
         // then allocate new buffers that are the correct size.
         int negotiatedPacketSize = con.getTDSPacketSize();
         if (currentPacketSize != negotiatedPacketSize) {
-            socketBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
-            stagingBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
-            logBuffer = ByteBuffer.allocate(negotiatedPacketSize).order(ByteOrder.LITTLE_ENDIAN);
+            socketBuffer = MemoryUtil.newChannelBuffer(negotiatedPacketSize, ByteOrder.LITTLE_ENDIAN);
+            stagingBuffer = MemoryUtil.newChannelBuffer(negotiatedPacketSize, ByteOrder.LITTLE_ENDIAN);
+            // logBuffer is a diagnostic/trace buffer only (dumped via Arrays.fill/.array() when packet
+            // logging is enabled) - it never touches the socket, so it stays heap-only regardless of
+            // MemoryUtil.CURRENT.
+            logBuffer = MemoryUtil.newByteBuffer(negotiatedPacketSize, ByteOrder.LITTLE_ENDIAN);
             currentPacketSize = negotiatedPacketSize;
-            streamCharBuffer = new char[2 * currentPacketSize];
-            streamByteBuffer = new byte[4 * currentPacketSize];
+            streamCharBuffer = MemoryUtil.newCharArray(2 * currentPacketSize);
+            streamByteBuffer = MemoryUtil.newArray(4 * currentPacketSize);
         }
 
         ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
@@ -3793,7 +3796,7 @@ final class TDSWriter {
         writeByte((byte) (bLength));
 
         // Byte array to hold all the data and padding bytes.
-        byte[] bytes = new byte[bLength];
+        byte[] bytes = MemoryUtil.newArray(bLength);
 
         byte[] val = DDC.convertBigDecimalToBytes(bigDecimalVal, scale);
         // removing the precision and scale information from the valueBytes array
@@ -3862,7 +3865,7 @@ final class TDSWriter {
         }
 
         // Byte array to hold all the reversed and padding bytes.
-        byte[] bytes = new byte[bLength];
+        byte[] bytes = MemoryUtil.newArray(bLength);
 
         // We need to fill up the rest of the array with zeros, as unscaledBytes may have less bytes
         // than the required size for TDS.
@@ -4348,7 +4351,7 @@ final class TDSWriter {
         assert DataTypes.UNKNOWN_STREAM_LENGTH == advertisedLength || advertisedLength >= 0;
 
         long actualLength = 0;
-        final byte[] buff = new byte[4 * currentPacketSize];
+        final byte[] buff = MemoryUtil.newArray(4 * currentPacketSize);
         int bytesRead = 0;
         int bytesToWrite;
         do {
@@ -4673,9 +4676,30 @@ final class TDSWriter {
         }
     }
 
+    /**
+     * Writes {@code length} bytes from {@code buffer}, starting at {@code position}, to the TDS
+     * channel. {@code TDSChannel.write} is {@code OutputStream}-based and has no {@link ByteBuffer}
+     * overload, so for a heap buffer this hands over its backing array directly (no copy); for a
+     * direct/MemorySegment buffer (no accessible backing array) it copies into a short-lived heap
+     * array first - unavoidable at this boundary, but still avoids any copy for the default HEAP
+     * strategy.
+     */
+    private static void writeChannelBuffer(TDSChannel tdsChannel, ByteBuffer buffer, int position,
+            int length) throws SQLServerException {
+        if (buffer.hasArray()) {
+            tdsChannel.write(buffer.array(), buffer.arrayOffset() + position, length);
+            return;
+        }
+        byte[] temp = MemoryUtil.newArray(length);
+        ByteBuffer duplicate = buffer.duplicate();
+        ((Buffer) duplicate).position(position);
+        duplicate.get(temp, 0, length);
+        tdsChannel.write(temp, 0, length);
+    }
+
     void flush(boolean atEOM) throws SQLServerException {
         // First, flush any data left in the socket buffer.
-        tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+        writeChannelBuffer(tdsChannel, socketBuffer, ((Buffer) socketBuffer).position(), socketBuffer.remaining());
         ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
 
         // If there is data in the staging buffer that needs to be written
@@ -4708,7 +4732,7 @@ final class TDSWriter {
                 preparePacket();
 
             // Finally, start sending data from the new socket buffer.
-            tdsChannel.write(socketBuffer.array(), ((Buffer) socketBuffer).position(), socketBuffer.remaining());
+            writeChannelBuffer(tdsChannel, socketBuffer, ((Buffer) socketBuffer).position(), socketBuffer.remaining());
             ((Buffer) socketBuffer).position(((Buffer) socketBuffer).limit());
         }
     }
@@ -5162,8 +5186,12 @@ final class TDSWriter {
                 int resultSetServerCursorId = sourceResultSet.getServerCursorId();
 
                 if (con.equals(srcStmt.getConnection()) && 0 != resultSetServerCursorId) {
-                    cachedTVPHeaders = ByteBuffer.allocate(stagingBuffer.capacity()).order(stagingBuffer.order());
-                    cachedTVPHeaders.put(stagingBuffer.array(), 0, ((Buffer) stagingBuffer).position());
+                    cachedTVPHeaders = MemoryUtil.newByteBuffer(stagingBuffer.capacity(), stagingBuffer.order());
+                    // Use a relative bulk put (instead of stagingBuffer.array()) so this works
+                    // regardless of whether stagingBuffer is heap, direct, or MemorySegment-backed.
+                    ByteBuffer stagingSnapshot = stagingBuffer.duplicate();
+                    ((Buffer) stagingSnapshot).flip();
+                    cachedTVPHeaders.put(stagingSnapshot);
 
                     cachedCommand = this.command;
 
@@ -5350,7 +5378,7 @@ final class TDSWriter {
                     byte[] val = DDC.convertBigDecimalToBytes(bdValue, bdValue.scale());
 
                     // 1-byte for sign and 16-byte for integer
-                    byte[] byteValue = new byte[17];
+                    byte[] byteValue = MemoryUtil.newArray(17);
 
                     // removing the precision and scale information from the valueBytes array
                     System.arraycopy(val, 2, byteValue, 0, val.length - 2);
@@ -5473,7 +5501,7 @@ final class TDSWriter {
                             writeInt(col.getCollationInfo());
                             writeByte((byte) col.getCollationSortID());
                             int stringLength = currentColumnStringValue.length();
-                            byte[] typevarlen = new byte[2];
+                            byte[] typevarlen = MemoryUtil.newArray(2);
                             typevarlen[0] = (byte) (2 * stringLength & 0xFF);
                             typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
                             writeBytes(typevarlen);
@@ -6163,12 +6191,12 @@ final class TDSWriter {
                         DriverError.NOT_SET, null);
             }
 
-            ByteBuffer days = ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN);
+            ByteBuffer days = MemoryUtil.newByteBuffer(2, ByteOrder.LITTLE_ENDIAN);
             days.putShort((short) daysSinceSQLBaseDate);
-            ByteBuffer seconds = ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN);
+            ByteBuffer seconds = MemoryUtil.newByteBuffer(2, ByteOrder.LITTLE_ENDIAN);
             seconds.putShort((short) minutesSinceMidnight);
 
-            byte[] value = new byte[4];
+            byte[] value = MemoryUtil.newArray(4);
             System.arraycopy(days.array(), 0, value, 0, 2);
             System.arraycopy(seconds.array(), 0, value, 2, 2);
             return SQLServerSecurityUtility.encryptWithKey(value, cryptoMeta, con, statement);
@@ -6189,12 +6217,12 @@ final class TDSWriter {
             }
 
             // Number of days since the SQL Server Base Date (January 1, 1900)
-            ByteBuffer days = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN);
+            ByteBuffer days = MemoryUtil.newByteBuffer(4, ByteOrder.LITTLE_ENDIAN);
             days.putInt(daysSinceSQLBaseDate);
-            ByteBuffer seconds = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN);
+            ByteBuffer seconds = MemoryUtil.newByteBuffer(4, ByteOrder.LITTLE_ENDIAN);
             seconds.putInt((3 * millisSinceMidnight + 5) / 10);
 
-            byte[] value = new byte[8];
+            byte[] value = MemoryUtil.newArray(8);
             System.arraycopy(days.array(), 0, value, 0, 4);
             System.arraycopy(seconds.array(), 0, value, 4, 4);
             return SQLServerSecurityUtility.encryptWithKey(value, cryptoMeta, con, statement);
@@ -6406,7 +6434,7 @@ final class TDSWriter {
                         DriverError.NOT_SET, null);
             }
 
-            byte[] encodedBytes = new byte[3];
+            byte[] encodedBytes = MemoryUtil.newArray(3);
             encodedBytes[0] = (byte) ((daysIntoCE >> 0) & 0xFF);
             encodedBytes[1] = (byte) ((daysIntoCE >> 8) & 0xFF);
             encodedBytes[2] = (byte) ((daysIntoCE >> 16) & 0xFF);
@@ -6519,11 +6547,11 @@ final class TDSWriter {
                 return SQLServerSecurityUtility.encryptWithKey(encodedBytes, cryptoMeta, con, statement);
             } else if (SSType.DATETIME2 == ssType) {
                 // for DATETIME2 sends both date and time part together for encryption
-                encodedBytesForEncryption = new byte[encodedLength + 3];
+                encodedBytesForEncryption = MemoryUtil.newArray(encodedLength + 3);
                 System.arraycopy(encodedBytes, 0, encodedBytesForEncryption, 0, encodedBytes.length);
             } else if (SSType.DATETIMEOFFSET == ssType) {
                 // for DATETIMEOFFSET sends date, time and offset part together for encryption
-                encodedBytesForEncryption = new byte[encodedLength + 5];
+                encodedBytesForEncryption = MemoryUtil.newArray(encodedLength + 5);
                 System.arraycopy(encodedBytes, 0, encodedBytesForEncryption, 0, encodedBytes.length);
             }
         }
@@ -6565,7 +6593,7 @@ final class TDSWriter {
                         DriverError.NOT_SET, null);
             }
 
-            byte[] encodedBytes = new byte[3];
+            byte[] encodedBytes = MemoryUtil.newArray(3);
             encodedBytes[0] = (byte) ((daysIntoCE >> 0) & 0xFF);
             encodedBytes[1] = (byte) ((daysIntoCE >> 8) & 0xFF);
             encodedBytes[2] = (byte) ((daysIntoCE >> 16) & 0xFF);
@@ -6585,7 +6613,7 @@ final class TDSWriter {
                     byte[] encodedNanoBytes = scaledNanosToEncodedBytes(scaledNanos, encodedLength);
 
                     // for DATETIME2 sends both date and time part together for encryption
-                    encodedBytesForEncryption = new byte[encodedLength + 3];
+                    encodedBytesForEncryption = MemoryUtil.newArray(encodedLength + 3);
                     System.arraycopy(encodedNanoBytes, 0, encodedBytesForEncryption, 0, encodedNanoBytes.length);
                 }
 
@@ -6612,7 +6640,7 @@ final class TDSWriter {
                     byte[] encodedNanoBytes = scaledNanosToEncodedBytes(scaledNanos, encodedLength);
 
                     // for DATETIMEOFFSET sends date, time and offset part together for encryption
-                    encodedBytesForEncryption = new byte[encodedLength + 5];
+                    encodedBytesForEncryption = MemoryUtil.newArray(encodedLength + 5);
                     System.arraycopy(encodedNanoBytes, 0, encodedBytesForEncryption, 0, encodedNanoBytes.length);
                 }
 
@@ -6626,7 +6654,7 @@ final class TDSWriter {
                 System.arraycopy(encodedBytes, 0, encodedBytesForEncryption, (encodedBytesForEncryption.length - 5), 3);
                 // Copy the 2 byte minutesOffset value
                 System.arraycopy(
-                        ByteBuffer.allocate(Short.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN)
+                        MemoryUtil.newByteBuffer(Short.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN)
                                 .putShort(minutesOffset).array(),
                         0, encodedBytesForEncryption, (encodedBytesForEncryption.length - 2), 2);
 
@@ -6645,7 +6673,7 @@ final class TDSWriter {
     }
 
     private byte[] scaledNanosToEncodedBytes(long scaledNanos, int encodedLength) {
-        byte[] encodedBytes = new byte[encodedLength];
+        byte[] encodedBytes = MemoryUtil.newArray(encodedLength);
         for (int i = 0; i < encodedLength; i++)
             encodedBytes[i] = (byte) ((scaledNanos >> (8 * i)) & 0xFF);
         return encodedBytes;
@@ -6701,7 +6729,7 @@ final class TDSWriter {
                 long maxStreamLength = 65535L * con.getTDSPacketSize();
 
                 try {
-                    byte[] buff = new byte[8000];
+                    byte[] buff = MemoryUtil.newArray(8000);
                     int bytesRead;
 
                     while (streamLength < maxStreamLength && -1 != (bytesRead = stream.read(buff, 0, buff.length))) {
@@ -6887,8 +6915,8 @@ final class TDSWriter {
  * the packet, and any linked unmarked packets, can be reclaimed by GC.
  */
 final class TDSPacket {
-    final byte[] header = new byte[TDS.PACKET_HEADER_SIZE];
-    final byte[] payload;
+    final byte[] header = MemoryUtil.newArray(TDS.PACKET_HEADER_SIZE);
+    final ByteBuffer payload;
     int payloadLength;
     volatile TDSPacket next;
 
@@ -6898,7 +6926,12 @@ final class TDSPacket {
     }
 
     TDSPacket(int size) {
-        payload = new byte[size];
+        // Each packet gets its own buffer (rather than reusing one shared buffer, as TDSWriter
+        // does for its outbound socket/staging buffers): response packets form a linked chain
+        // (see "next" below) that may all be referenced at once - by TDSReaderMarks, by
+        // adaptive-buffering lookahead, or by full-response buffering - so each one must own its
+        // memory for as long as something still references it.
+        payload = MemoryUtil.newChannelBuffer(size, ByteOrder.LITTLE_ENDIAN);
         payloadLength = 0;
         next = null;
     }
@@ -6973,7 +7006,7 @@ final class TDSReader implements Serializable {
     private byte serverSupportedDataClassificationVersion = TDS.DATA_CLASSIFICATION_NOT_ENABLED;
     private final transient Lock tdsReaderLock = new ReentrantLock();
 
-    private final byte[] valueBytes = new byte[256];
+    private final byte[] valueBytes = MemoryUtil.newArray(256);
 
     protected transient SensitivityClassification sensitivityClassification;
 
@@ -7085,6 +7118,28 @@ final class TDSReader implements Serializable {
     }
 
     /**
+     * Reads up to {@code length} bytes of {@code payload}'s backing storage, starting at
+     * {@code offset}, from the socket. {@code TDSChannel.read} is {@code InputStream}-based and
+     * has no {@link ByteBuffer} overload, so for a heap buffer this reads directly into its
+     * backing array (no copy - same as before this buffer became strategy-aware); for a
+     * direct/MemorySegment buffer it reads into a short-lived heap array first and bulk-copies
+     * the result in, mirroring {@code TDSWriter.writeChannelBuffer}'s approach on the write side.
+     */
+    private static int readIntoPayload(TDSChannel tdsChannel, ByteBuffer payload, int offset,
+            int length) throws SQLServerException {
+        if (payload.hasArray()) {
+            return tdsChannel.read(payload.array(), payload.arrayOffset() + offset, length);
+        }
+        byte[] scratch = MemoryUtil.newArray(length);
+        int bytesRead = tdsChannel.read(scratch, 0, length);
+        if (bytesRead > 0) {
+            ((Buffer) payload).position(offset);
+            payload.put(scratch, 0, bytesRead);
+        }
+        return bytesRead;
+    }
+
+    /**
      * Reads the next packet of the TDS channel.
      *
      * This method is synchronized to guard against simultaneously reading packets from one thread that is processing
@@ -7159,7 +7214,7 @@ final class TDSReader implements Serializable {
             // When logging, copy the packet header to the log buffer.
             byte[] logBuffer = null;
             if (tdsChannel.isLoggingPackets()) {
-                logBuffer = new byte[packetLength];
+                logBuffer = MemoryUtil.newArray(packetLength);
                 System.arraycopy(newPacket.header, 0, logBuffer, 0, TDS.PACKET_HEADER_SIZE);
             }
 
@@ -7175,7 +7230,7 @@ final class TDSReader implements Serializable {
 
             // Now for the payload...
             for (int payloadBytesRead = 0; payloadBytesRead < newPacket.payloadLength;) {
-                int bytesRead = tdsChannel.read(newPacket.payload, payloadBytesRead,
+                int bytesRead = readIntoPayload(tdsChannel, newPacket.payload, payloadBytesRead,
                         newPacket.payloadLength - payloadBytesRead);
                 if (bytesRead < 0)
                     con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED,
@@ -7191,7 +7246,8 @@ final class TDSReader implements Serializable {
 
             // When logging, append the payload to the log buffer and write out the whole thing.
             if (tdsChannel.isLoggingPackets() && logBuffer != null) {
-                System.arraycopy(newPacket.payload, 0, logBuffer, TDS.PACKET_HEADER_SIZE, newPacket.payloadLength);
+                ((Buffer) newPacket.payload).position(0);
+                newPacket.payload.get(logBuffer, TDS.PACKET_HEADER_SIZE, newPacket.payloadLength);
                 tdsChannel.logPacket(logBuffer, 0, packetLength,
                         this.toString() + " received Packet:" + packetNum + " (" + newPacket.payloadLength + " bytes)");
             }
@@ -7269,13 +7325,13 @@ final class TDSReader implements Serializable {
             return -1;
 
         // Peek at the current byte (don't increment payloadOffset!)
-        return currentPacket.payload[payloadOffset] & 0xFF;
+        return currentPacket.payload.get(payloadOffset) & 0xFF;
     }
 
     final short peekStatusFlag() {
         // skip the current packet(i.e, TDS packet type) and peek into the status flag (USHORT)
         if (payloadOffset + 3 <= currentPacket.payloadLength) {
-            return Util.readShort(currentPacket.payload, payloadOffset + 1);
+            return currentPacket.payload.getShort(payloadOffset + 1);
         }
 
         return 0;
@@ -7285,19 +7341,19 @@ final class TDSReader implements Serializable {
         // Fast path for the common case where the current TDS packet still
         // has payload available; falls back to ensurePayload() at boundaries.
         if (payloadOffset < currentPacket.payloadLength) {
-            return currentPacket.payload[payloadOffset++] & 0xFF;
+            return currentPacket.payload.get(payloadOffset++) & 0xFF;
         }
 
         // Ensure that we have a packet to read from.
         if (!ensurePayload())
             throwInvalidTDS();
 
-        return currentPacket.payload[payloadOffset++] & 0xFF;
+        return currentPacket.payload.get(payloadOffset++) & 0xFF;
     }
 
     final short readShort() throws SQLServerException {
         if (payloadOffset + 2 <= currentPacket.payloadLength) {
-            short value = Util.readShort(currentPacket.payload, payloadOffset);
+            short value = currentPacket.payload.getShort(payloadOffset);
             payloadOffset += 2;
             return value;
         }
@@ -7307,7 +7363,7 @@ final class TDSReader implements Serializable {
 
     final int readUnsignedShort() throws SQLServerException {
         if (payloadOffset + 2 <= currentPacket.payloadLength) {
-            int value = Util.readUnsignedShort(currentPacket.payload, payloadOffset);
+            int value = currentPacket.payload.getShort(payloadOffset) & 0xFFFF;
             payloadOffset += 2;
             return value;
         }
@@ -7317,7 +7373,7 @@ final class TDSReader implements Serializable {
 
     final String readUnicodeString(int length) throws SQLServerException {
         int byteLength = 2 * length;
-        byte[] bytes = new byte[byteLength];
+        byte[] bytes = MemoryUtil.newArray(byteLength);
         readBytes(bytes, 0, byteLength);
         return Util.readUnicodeString(bytes, 0, byteLength, con);
 
@@ -7329,7 +7385,7 @@ final class TDSReader implements Serializable {
 
     final int readInt() throws SQLServerException {
         if (payloadOffset + 4 <= currentPacket.payloadLength) {
-            int value = Util.readInt(currentPacket.payload, payloadOffset);
+            int value = currentPacket.payload.getInt(payloadOffset);
             payloadOffset += 4;
             return value;
         }
@@ -7339,7 +7395,13 @@ final class TDSReader implements Serializable {
 
     final int readIntBigEndian() throws SQLServerException {
         if (payloadOffset + 4 <= currentPacket.payloadLength) {
-            int value = Util.readIntBigEndian(currentPacket.payload, payloadOffset);
+            // currentPacket.payload is always LITTLE_ENDIAN-ordered (matches the wire format for
+            // every other field), so this one big-endian field is assembled manually from
+            // individual (order-independent) byte reads rather than via payload.getInt(...).
+            ByteBuffer p = currentPacket.payload;
+            int off = payloadOffset;
+            int value = ((p.get(off + 3) & 0xFF)) | ((p.get(off + 2) & 0xFF) << 8) | ((p.get(off + 1) & 0xFF) << 16)
+                    | ((p.get(off) & 0xFF) << 24);
             payloadOffset += 4;
             return value;
         }
@@ -7353,7 +7415,7 @@ final class TDSReader implements Serializable {
 
     final long readLong() throws SQLServerException {
         if (payloadOffset + 8 <= currentPacket.payloadLength) {
-            long value = Util.readLong(currentPacket.payload, payloadOffset);
+            long value = currentPacket.payload.getLong(payloadOffset);
             payloadOffset += 8;
             return value;
         }
@@ -7378,7 +7440,8 @@ final class TDSReader implements Serializable {
             if (isLogging)
                 logger.finest(toString() + " Reading " + bytesToCopy + " bytes from offset " + payloadOffset);
 
-            System.arraycopy(currentPacket.payload, payloadOffset, value, valueOffset + bytesRead, bytesToCopy);
+            ((Buffer) currentPacket.payload).position(payloadOffset);
+            currentPacket.payload.get(value, valueOffset + bytesRead, bytesToCopy);
             bytesRead += bytesToCopy;
             payloadOffset += bytesToCopy;
         }
@@ -7428,7 +7491,7 @@ final class TDSReader implements Serializable {
             readBytes(valueBytes, 0, valueLength);
             return new String(valueBytes, 0, valueLength, charset);
         }
-        byte[] bytes = new byte[valueLength];
+        byte[] bytes = MemoryUtil.newArray(valueLength);
         readBytes(bytes, 0, valueLength);
         return new String(bytes, 0, valueLength, charset);
     }
@@ -7456,7 +7519,7 @@ final class TDSReader implements Serializable {
                 int intBitsLo = readInt();
 
                 if (JDBCType.BINARY == jdbcType) {
-                    byte[] value = new byte[8];
+                    byte[] value = MemoryUtil.newArray(8);
                     Util.writeIntBigEndian(intBitsHi, value, 0);
                     Util.writeIntBigEndian(intBitsLo, value, 4);
                     return value;
@@ -7468,7 +7531,7 @@ final class TDSReader implements Serializable {
 
             case 4: // smallmoney
                 if (JDBCType.BINARY == jdbcType) {
-                    byte[] value = new byte[4];
+                    byte[] value = MemoryUtil.newArray(4);
                     Util.writeIntBigEndian(readInt(), value, 0);
                     return value;
                 }
@@ -7517,7 +7580,7 @@ final class TDSReader implements Serializable {
                 ticksSinceMidnight = readInt();
 
                 if (JDBCType.BINARY == jdbcType) {
-                    byte[] value = new byte[8];
+                    byte[] value = MemoryUtil.newArray(8);
                     Util.writeIntBigEndian(daysSinceSQLBaseDate, value, 0);
                     Util.writeIntBigEndian(ticksSinceMidnight, value, 4);
                     return value;
@@ -7535,7 +7598,7 @@ final class TDSReader implements Serializable {
                 ticksSinceMidnight = readUnsignedShort();
 
                 if (JDBCType.BINARY == jdbcType) {
-                    byte[] value = new byte[4];
+                    byte[] value = MemoryUtil.newArray(4);
                     Util.writeShortBigEndian((short) daysSinceSQLBaseDate, value, 0);
                     Util.writeShortBigEndian((short) ticksSinceMidnight, value, 2);
                     return value;
@@ -7623,9 +7686,9 @@ final class TDSReader implements Serializable {
         final int length = TDS.DAYS_INTO_CE_LENGTH;
         int daysIntoCE;
         if (payloadOffset + length <= currentPacket.payloadLength) {
-            final byte[] p = currentPacket.payload;
+            final ByteBuffer p = currentPacket.payload;
             final int off = payloadOffset;
-            daysIntoCE = (p[off] & 0xFF) | ((p[off + 1] & 0xFF) << 8) | ((p[off + 2] & 0xFF) << 16);
+            daysIntoCE = (p.get(off) & 0xFF) | ((p.get(off + 1) & 0xFF) << 8) | ((p.get(off + 2) & 0xFF) << 16);
             payloadOffset += length;
         } else {
             final byte[] value = readWrappedBytes(length);
@@ -7649,7 +7712,7 @@ final class TDSReader implements Serializable {
     private long readNanosSinceMidnight(int scale) throws SQLServerException {
         assert 0 <= scale && scale <= TDS.MAX_FRACTIONAL_SECONDS_SCALE;
 
-        byte[] value = new byte[TDS.nanosSinceMidnightLength(scale)];
+        byte[] value = MemoryUtil.newArray(TDS.nanosSinceMidnightLength(scale));
         readBytes(value, 0, value.length);
 
         long hundredNanosSinceMidnight = 0;
@@ -7672,7 +7735,7 @@ final class TDSReader implements Serializable {
             throwInvalidTDS();
 
         // Read in the GUID's binary value
-        byte[] guid = new byte[16];
+        byte[] guid = MemoryUtil.newArray(16);
         readBytes(guid, 0, 16);
 
         switch (jdbcType) {

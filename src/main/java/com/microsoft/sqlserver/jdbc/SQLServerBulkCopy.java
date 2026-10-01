@@ -212,7 +212,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         int jdbcType;
         int precision, scale;
         SQLCollation collation;
-        byte[] flags = new byte[2];
+        byte[] flags = MemoryUtil.newArray(2);
         boolean isIdentity = false;
         boolean isNullable;
         String collationName;
@@ -836,7 +836,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
          * UserType USHORT/ULONG; (Changed to ULONG in TDS 7.2) The user type ID of the data type of the column. The
          * value will be 0x0000 with the exceptions of TIMESTAMP (0x0050) and alias types (greater than 0x00FF)
          */
-        byte[] userType = new byte[4];
+        byte[] userType = MemoryUtil.newArray(4);
         userType[0] = (byte) 0x00;
         userType[1] = (byte) 0x00;
         userType[2] = (byte) 0x00;
@@ -965,7 +965,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
          */
         int destColNameLen = columnMappings.get(idx).destinationColumnName.length();
         String destColName = columnMappings.get(idx).destinationColumnName;
-        byte[] colName = new byte[2 * destColNameLen];
+        byte[] colName = MemoryUtil.newArray(2 * destColNameLen);
 
         for (int i = 0; i < destColNameLen; ++i) {
             int c = destColName.charAt(i);
@@ -1305,7 +1305,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
          * Count token: The count of columns. Should be USHORT. Not Supported in Java. Remedy:
          * tdsWriter.writeShort((short)columnMappings.size());
          */
-        byte[] count = new byte[2];
+        byte[] count = MemoryUtil.newArray(2);
         count[0] = (byte) (columnMappings.size() & 0xFF);
         count[1] = (byte) ((columnMappings.size() >> 8) & 0xFF);
         tdsWriter.writeBytes(count);
@@ -2580,7 +2580,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                             if (unicodeConversionRequired(bulkJdbcType, destSSType)) {
                                 int stringLength = colValueStr.length();
-                                byte[] typevarlen = new byte[2];
+                                byte[] typevarlen = MemoryUtil.newArray(2);
                                 typevarlen[0] = (byte) (2 * stringLength & 0xFF);
                                 typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
                                 tdsWriter.writeBytes(typevarlen);
@@ -2657,7 +2657,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
                             int stringLength = colValue.toString().length();
-                            byte[] typevarlen = new byte[2];
+                            byte[] typevarlen = MemoryUtil.newArray(2);
                             typevarlen[0] = (byte) (2 * stringLength & 0xFF);
                             typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
                             tdsWriter.writeBytes(typevarlen);
@@ -3032,7 +3032,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 writeBulkCopySqlVariantHeader(9 + length, TDSType.NCHAR.byteValue(), (byte) 7, tdsWriter);
                 tdsWriter.writeCollationForSqlVariant(variantType); // writes collation info and sortID
                 int stringLength = colValue.toString().length();
-                byte[] typevarlen = new byte[2];
+                byte[] typevarlen = MemoryUtil.newArray(2);
                 typevarlen[0] = (byte) (2 * stringLength & 0xFF);
                 typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
                 tdsWriter.writeBytes(typevarlen);
@@ -3044,7 +3044,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 writeBulkCopySqlVariantHeader(9 + length, TDSType.NVARCHAR.byteValue(), (byte) 7, tdsWriter);
                 tdsWriter.writeCollationForSqlVariant(variantType); // writes collation info and sortID
                 stringLength = colValue.toString().length();
-                typevarlen = new byte[2];
+                typevarlen = MemoryUtil.newArray(2);
                 typevarlen[0] = (byte) (2 * stringLength & 0xFF);
                 typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
                 tdsWriter.writeBytes(typevarlen);
@@ -3694,7 +3694,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             switch (destJdbcType) {
                 case BIT:
                     longValue = (long) ((Boolean) value ? 1 : 0);
-                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue)
+                    return MemoryUtil.newByteBuffer(Long.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN).putLong(longValue)
                             .array();
 
                 case TINYINT:
@@ -3712,7 +3712,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 longValue = (long) (short) value;
 
                     }
-                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue)
+                    return MemoryUtil.newByteBuffer(Long.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN).putLong(longValue)
                             .array();
 
                 case INTEGER:
@@ -3727,7 +3727,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         default:
                             longValue = Long.valueOf((Integer) value);
                     }
-                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue)
+                    return MemoryUtil.newByteBuffer(Long.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN).putLong(longValue)
                             .array();
 
                 case BIGINT:
@@ -3745,7 +3745,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         default:
                             longValue = (long) value;
                     }
-                    return ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN).putLong(longValue)
+                    return MemoryUtil.newByteBuffer(Long.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN).putLong(longValue)
                             .array();
 
                 case BINARY:
@@ -3800,14 +3800,14 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                 case REAL:
                     Float floatValue = (value instanceof String) ? Float.parseFloat((String) value) : (Float) value;
-                    return ByteBuffer.allocate((Float.SIZE / Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN)
+                    return MemoryUtil.newByteBuffer(Float.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN)
                             .putFloat(floatValue).array();
 
                 case FLOAT:
                 case DOUBLE:
                     Double doubleValue = (value instanceof String) ? Double.parseDouble((String) value)
                                                                    : (Double) value;
-                    return ByteBuffer.allocate((Double.SIZE / Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN)
+                    return MemoryUtil.newByteBuffer(Double.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN)
                             .putDouble(doubleValue).array();
 
                 case NUMERIC:
@@ -3824,7 +3824,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         bigDataValue = bigDataValue.setScale(destScale);
 
                     byteValue = DDC.convertBigDecimalToBytes(bigDataValue, bigDataValue.scale());
-                    byte[] decimalbyteValue = new byte[16];
+                    byte[] decimalbyteValue = MemoryUtil.newArray(16);
                     // removing the precision and scale information from the decimalToByte array
                     System.arraycopy(byteValue, 2, decimalbyteValue, 0, byteValue.length - 2);
                     return decimalbyteValue;
@@ -3844,7 +3844,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
                     long moneyVal = ((BigDecimal) value).multiply(new BigDecimal(10000),
                             new java.math.MathContext(digitCount, java.math.RoundingMode.HALF_UP)).longValue();
-                    ByteBuffer bbuf = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
+                    ByteBuffer bbuf = MemoryUtil.newByteBuffer(8, ByteOrder.LITTLE_ENDIAN);
                     bbuf.putInt((int) (moneyVal >> 32)).array();
                     bbuf.putInt((int) moneyVal).array();
                     return bbuf.array();

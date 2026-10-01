@@ -23,14 +23,14 @@ class PLPInputStream extends BaseInputStream {
     static final long PLP_NULL = 0xFFFFFFFFFFFFFFFFL;
     static final long UNKNOWN_PLP_LEN = 0xFFFFFFFFFFFFFFFEL;
 
-    private static final byte[] EMPTY_PLP_BYTES = new byte[0];
+    private static final byte[] EMPTY_PLP_BYTES = MemoryUtil.newArray(0);
     private static final int PLP_EOS = -1;
 
     private int currentChunkRemain;
     private int markedChunkRemain;
     private int leftOverReadLimit = 0;
 
-    private byte[] oneByteArray = new byte[1];
+    private byte[] oneByteArray = MemoryUtil.newArray(1);
 
     /**
      * Non-destructive method for checking whether a PLP value at the current TDSReader location is null.
@@ -110,14 +110,14 @@ class PLPInputStream extends BaseInputStream {
             // If the PLP payload length is known, allocate the final byte array now.
             // Otherwise, start with the size of the first chunk. Additional chunks
             // will cause the array to be reallocated & copied.
-            value = new byte[(-1 != payloadLength) ? payloadLength : currentChunkRemain];
+            value = MemoryUtil.newArray((-1 != payloadLength) ? payloadLength : currentChunkRemain);
 
             int bytesRead = 0;
             while (PLP_EOS != currentChunkRemain) {
                 // If the current byte array isn't large enough to hold
                 // the contents of the current chunk, then make it larger.
                 if (value.length == bytesRead) {
-                    byte[] newValue = new byte[bytesRead + currentChunkRemain];
+                    byte[] newValue = MemoryUtil.newArray(bytesRead + currentChunkRemain);
                     System.arraycopy(value, 0, newValue, 0, bytesRead);
                     value = newValue;
                 }
@@ -498,7 +498,7 @@ final class PLPXMLInputStream extends PLPInputStream {
     @Override
     byte[] getBytes() throws SQLServerException {
         // Look to see if the BOM has been read
-        byte[] bom = new byte[2];
+        byte[] bom = MemoryUtil.newArray(2);
         byte[] bytesToReturn = null;
 
         try {
@@ -507,7 +507,7 @@ final class PLPXMLInputStream extends PLPInputStream {
 
             if (bytesread > 0) {
                 assert 2 == bytesread;
-                byte[] valueWithBOM = new byte[valueWithoutBOM.length + bytesread];
+                byte[] valueWithBOM = MemoryUtil.newArray(valueWithoutBOM.length + bytesread);
                 System.arraycopy(bom, 0, valueWithBOM, 0, bytesread);
                 System.arraycopy(valueWithoutBOM, 0, valueWithBOM, bytesread, valueWithoutBOM.length);
                 bytesToReturn = valueWithBOM;

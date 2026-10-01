@@ -1694,7 +1694,7 @@ final class DTV {
 
                 case INTEGER:
                     if (null != cryptoMeta) {
-                        byteValue = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN)
+                        byteValue = MemoryUtil.newByteBuffer(Long.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN)
                                 .putLong(((Integer) value).longValue()).array();
                         op.execute(this, byteValue);
                     } else
@@ -1765,7 +1765,7 @@ final class DTV {
                             throw new SQLServerException(form.format(new Object[] {jdbcType}), null, 0, null);
                         }
 
-                        byteValue = ByteBuffer.allocate((Float.SIZE / Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN)
+                        byteValue = MemoryUtil.newByteBuffer(Float.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN)
                                 .putFloat((Float) value).array();
                         op.execute(this, byteValue);
                     } else
@@ -1797,14 +1797,14 @@ final class DTV {
                             long moneyVal = ((BigDecimal) value)
                                     .multiply(new BigDecimal(10000), new MathContext(digitCount, RoundingMode.HALF_UP))
                                     .longValue();
-                            ByteBuffer bbuf = ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN);
+                            ByteBuffer bbuf = MemoryUtil.newByteBuffer(8, ByteOrder.LITTLE_ENDIAN);
                             bbuf.putInt((int) (moneyVal >> 32)).array();
                             bbuf.putInt((int) moneyVal).array();
                             op.execute(this, bbuf.array());
                         } else {
                             BigDecimal bigDecimalVal = (BigDecimal) value;
                             byte[] decimalToByte = DDC.convertBigDecimalToBytes(bigDecimalVal, bigDecimalVal.scale());
-                            byteValue = new byte[16];
+                            byteValue = MemoryUtil.newArray(16);
                             // removing the precision and scale information from the decimalToByte array
                             System.arraycopy(decimalToByte, 2, byteValue, 0, decimalToByte.length - 2);
                             this.setScale(bigDecimalVal.scale());
@@ -1859,7 +1859,7 @@ final class DTV {
                 case BYTE:
                     // for tinyint
                     if (null != cryptoMeta) {
-                        byteValue = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN)
+                        byteValue = MemoryUtil.newByteBuffer(Long.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN)
                                 .putLong((byte) value & 0xFF).array();
                         op.execute(this, byteValue);
                     } else
@@ -1868,7 +1868,7 @@ final class DTV {
 
                 case LONG:
                     if (null != cryptoMeta) {
-                        byteValue = ByteBuffer.allocate((Long.SIZE / Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN)
+                        byteValue = MemoryUtil.newByteBuffer(Long.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN)
                                 .putLong((Long) value).array();
                         op.execute(this, byteValue);
                     } else
@@ -1886,7 +1886,7 @@ final class DTV {
                                     SQLServerException.getErrString("R_valueOutOfRange"));
                             throw new SQLServerException(form.format(new Object[] {jdbcType}), null, 0, null);
                         }
-                        byteValue = ByteBuffer.allocate((Double.SIZE / Byte.SIZE)).order(ByteOrder.LITTLE_ENDIAN)
+                        byteValue = MemoryUtil.newByteBuffer(Double.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN)
                                 .putDouble((Double) value).array();
                         op.execute(this, byteValue);
                     } else
@@ -1895,7 +1895,7 @@ final class DTV {
 
                 case SHORT:
                     if (null != cryptoMeta) {
-                        byteValue = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN)
+                        byteValue = MemoryUtil.newByteBuffer(Long.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN)
                                 .putLong((short) value).array();
                         op.execute(this, byteValue);
                     } else
@@ -1904,7 +1904,7 @@ final class DTV {
 
                 case BOOLEAN:
                     if (null != cryptoMeta) {
-                        byteValue = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).order(ByteOrder.LITTLE_ENDIAN)
+                        byteValue = MemoryUtil.newByteBuffer(Long.SIZE / Byte.SIZE, ByteOrder.LITTLE_ENDIAN)
                                 .putLong((Boolean) value ? 1 : 0).array();
                         op.execute(this, byteValue);
                     } else
@@ -2549,7 +2549,7 @@ final class TypeInfo implements Serializable {
     }
 
     byte[] getFlags() {
-        byte[] f = new byte[2];
+        byte[] f = MemoryUtil.newArray(2);
         f[0] = (byte) (flags & 0xFF);
         f[1] = (byte) ((flags >> 8) & 0xFF);
         return f;
@@ -3692,8 +3692,8 @@ final class ServerDTVImpl extends DTVImpl {
 
                 // Last three bytes are for date and remaining for time
                 int dateOffset = decryptedValue.length - 3;
-                byte[] timePortion = new byte[dateOffset];
-                byte[] datePortion = new byte[3];
+                byte[] timePortion = MemoryUtil.newArray(dateOffset);
+                byte[] datePortion = MemoryUtil.newArray(3);
                 System.arraycopy(decryptedValue, 0, timePortion, 0, dateOffset);
                 System.arraycopy(decryptedValue, dateOffset, datePortion, 0, 3);
                 long localNanosSinceMidnight2 = readNanosSinceMidnightAE(timePortion, baseTypeInfo.getScale(),
@@ -3735,9 +3735,9 @@ final class ServerDTVImpl extends DTVImpl {
             case DATETIMEOFFSET:
                 // Last 5 bytes are for date and offset
                 int dateOffset2 = decryptedValue.length - 5;
-                byte[] timePortion2 = new byte[dateOffset2];
-                byte[] datePortion2 = new byte[3];
-                byte[] offsetPortion2 = new byte[2];
+                byte[] timePortion2 = MemoryUtil.newArray(dateOffset2);
+                byte[] datePortion2 = MemoryUtil.newArray(3);
+                byte[] offsetPortion2 = MemoryUtil.newArray(2);
                 System.arraycopy(decryptedValue, 0, timePortion2, 0, dateOffset2);
                 System.arraycopy(decryptedValue, dateOffset2, datePortion2, 0, 3);
                 System.arraycopy(decryptedValue, dateOffset2 + 3, offsetPortion2, 0, 2);

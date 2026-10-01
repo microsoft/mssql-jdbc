@@ -235,7 +235,7 @@ final class Util {
         }
 
         // Fallback for larger values: reverse the little-endian magnitude and construct the BigDecimal through BigInteger.
-        byte[] magnitude = new byte[magnitudeLength];
+        byte[] magnitude = MemoryUtil.newArray(magnitudeLength);
         for (int i = 1; i <= magnitude.length; i++)
             magnitude[magnitude.length - i] = valueBytes[i];
         return new BigDecimal(new BigInteger(sign, magnitude), scale);
@@ -908,7 +908,7 @@ final class Util {
     static final byte[] asGuidByteArray(UUID aId) {
         long msb = aId.getMostSignificantBits();
         long lsb = aId.getLeastSignificantBits();
-        byte[] buffer = new byte[16];
+        byte[] buffer = MemoryUtil.newArray(16);
         Util.writeLongBigEndian(msb, buffer, 0);
         Util.writeLongBigEndian(lsb, buffer, 8);
 
@@ -1255,7 +1255,7 @@ final class Util {
 
     static String convertInputStreamToString(java.io.InputStream is) throws IOException {
         java.io.ByteArrayOutputStream result = new java.io.ByteArrayOutputStream();
-        byte[] buffer = new byte[1024];
+        byte[] buffer = MemoryUtil.newArray(1024);
         int length;
         while ((length = is.read(buffer)) != -1) {
             result.write(buffer, 0, length);
@@ -1270,7 +1270,7 @@ final class Util {
     static byte[] charsToBytes(char[] chars) {
         if (chars == null)
             return null;
-        byte[] bytes = new byte[chars.length * 2];
+        byte[] bytes = MemoryUtil.newArray(chars.length * 2);
         for (int i = 0; i < chars.length; i++) {
             bytes[i * 2] = (byte) (0xff & (chars[i] >> 8));
             bytes[i * 2 + 1] = (byte) (0xff & (chars[i]));
@@ -1281,7 +1281,7 @@ final class Util {
     static char[] bytesToChars(byte[] bytes) {
         if (bytes == null)
             return null;
-        char[] chars = new char[bytes.length / 2];
+        char[] chars = MemoryUtil.newCharArray(bytes.length / 2);
         for (int i = 0; i < chars.length; i++) {
             chars[i] = (char) (((0xFF & (bytes[i * 2])) << 8) | (0xFF & bytes[i * 2 + 1]));
         }
