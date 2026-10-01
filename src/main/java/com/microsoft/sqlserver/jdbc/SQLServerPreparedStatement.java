@@ -180,6 +180,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private ArrayList<String> bcOperationValueList = null;
 
+    /**
+     * Remembers a rejected SQL trailer for the lifetime of this statement, whose SQL text does not change.
+     * Unlike batch parameters, this decision must survive clearBatch() and execution failures. It is separate
+     * from the configured Bulk Copy option and is not set for database or runtime failures.
+     */
+    private boolean bulkCopyHasUnsupportedTrailingSQL;
+
     /** Returns the prepared statement SQL */
     @Override
     public String toString() {
@@ -2592,7 +2599,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             localUserSQL = userSQL;
 
             try {
-                if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
+                if (this.useBulkCopyForBatchInsert && !bulkCopyHasUnsupportedTrailingSQL && isInsert(localUserSQL)) {
                     if (null == batchParamValues) {
                         updateCounts = new int[0];
                         if (loggerExternal.isLoggable(Level.FINER)) {
@@ -2631,9 +2638,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                     if (null == bcOperationValueList) {
                         bcOperationValueList = parseUserSQLForValueListDW(false);
-                    }
 
-                    checkAdditionalQuery();
+                        // Only meaningful right after the statement has been parsed. On subsequent calls the
+                        // parse results are served from the cache above and localUserSQL still holds the full,
+                        // unconsumed statement, which would incorrectly look like trailing content.
+                        checkAdditionalQuery();
+                    }
 
                     try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
                             ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
@@ -2812,7 +2822,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             localUserSQL = userSQL;
 
             try {
-                if (this.useBulkCopyForBatchInsert && isInsert(localUserSQL)) {
+                if (this.useBulkCopyForBatchInsert && !bulkCopyHasUnsupportedTrailingSQL && isInsert(localUserSQL)) {
                     if (null == batchParamValues) {
                         updateCounts = new long[0];
                         if (loggerExternal.isLoggable(Level.FINER)) {
@@ -2851,9 +2861,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                     if (null == bcOperationValueList) {
                         bcOperationValueList = parseUserSQLForValueListDW(false);
-                    }
 
-                    checkAdditionalQuery();
+                        // Only meaningful right after the statement has been parsed. On subsequent calls the
+                        // parse results are served from the cache above and localUserSQL still holds the full,
+                        // unconsumed statement, which would incorrectly look like trailing content.
+                        checkAdditionalQuery();
+                    }
 
                     try (SQLServerStatement stmt = (SQLServerStatement) connection.createStatement(
                             ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, connection.getHoldability(),
@@ -3043,6 +3056,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void checkAdditionalQuery() {
         while (checkAndRemoveCommentsAndSpace(true)) {}
+
+        // Once the VALUES list has been consumed, only comments, whitespace or semicolons may remain.
+        // Any other trailing content (for example an OPTION (...) query hint) cannot be honored by the
+        // Bulk Copy API. Throw so the caller falls back to the regular batch execution path, which sends
+        // the full statement - including the trailing clause - to the server.
+        if (null != localUserSQL && !localUserSQL.trim().isEmpty()) {
+            // Parsed values are already cached. Remember rejection before throwing so later batches cannot
+            // skip this check and use the cached values to execute only the supported prefix of the SQL.
+            bulkCopyHasUnsupportedTrailingSQL = true;
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
+            Object[] msgArgs = {localUserSQL};
+            throw new IllegalArgumentException(form.format(msgArgs));
+        }
     }
 
     private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound,
@@ -3348,9 +3374,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean checkAndRemoveCommentsAndSpace(boolean checkForSemicolon) {
         localUserSQL = localUserSQL.trim();
 
+        // Trim between semicolons as well, so whitespace separated ones such as "; ;" are fully consumed.
         while (checkForSemicolon && null != localUserSQL && localUserSQL.length() > 0
                 && localUserSQL.charAt(0) == ';') {
-            localUserSQL = localUserSQL.substring(1);
+            localUserSQL = localUserSQL.substring(1).trim();
         }
 
         if (null == localUserSQL || localUserSQL.length() < 2) {
@@ -3358,13 +3385,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         if ("/*".equalsIgnoreCase(localUserSQL.substring(0, 2))) {
-            int temp = localUserSQL.indexOf("*/") + 2;
-            if (temp <= 0) {
-                localUserSQL = "";
-                return false;
+            // T-SQL permits nested block comments. Stop only at the outer terminator so comment text
+            // cannot be mistaken for trailing SQL and permanently disable Bulk Copy.
+            int depth = 1;
+            int offset = 2;
+            while (offset + 1 < localUserSQL.length()) {
+                char current = localUserSQL.charAt(offset);
+                char next = localUserSQL.charAt(offset + 1);
+                if ('/' == current && '*' == next) {
+                    depth++;
+                    offset += 2;
+                } else if ('*' == current && '/' == next) {
+                    depth--;
+                    offset += 2;
+                    if (0 == depth) {
+                        localUserSQL = localUserSQL.substring(offset);
+                        return true;
+                    }
+                } else {
+                    offset++;
+                }
             }
-            localUserSQL = localUserSQL.substring(temp);
-            return true;
+            // Leave an unterminated comment intact for SQL validation. In particular, trailing-SQL
+            // validation must remember rejection even when the VALUES list has already been cached.
+            return false;
         }
 
         if ("--".equalsIgnoreCase(localUserSQL.substring(0, 2))) {
@@ -3742,9 +3786,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 sqlScript.append(expandedSQL);
 
-                // Add semicolon between batches
+                // End any trailing line comment before the separator and the next batch entry.
                 if (batchIdx < numBatches - 1) {
-                    sqlScript.append(";");
+                    sqlScript.append("\n;");
                 }
             }
 

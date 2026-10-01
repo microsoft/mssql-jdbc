@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -34,6 +35,7 @@ import java.util.Calendar;
 import java.util.Random;
 import java.util.UUID;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -214,6 +216,297 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
             assertEquals("\"Bulk\"\"\"\"Table\"", (String) method.invoke(pstmt, false, false, false, false));
         }
+    }
+
+    /**
+     * Verifies that trailing SQL after the VALUES list (for example an OPTION query hint) causes
+     * checkAdditionalQuery to throw, so the driver falls back to the regular batch execution path
+     * instead of silently dropping the clause when using Bulk Copy for batch insert.
+     */
+    @Test
+    public void testCheckAdditionalQuery() throws Exception {
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                PreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement("");) {
+            Field f1 = pstmt.getClass().getDeclaredField("localUserSQL");
+            f1.setAccessible(true);
+
+            Method method = pstmt.getClass().getDeclaredMethod("checkAdditionalQuery");
+            method.setAccessible(true);
+
+            // Trailing content that cannot be honored by Bulk Copy must trigger a fallback.
+            String[] unsupportedTrailers = {" OPTION (OPTIMIZE FOR UNKNOWN)",
+                    " OPTION (RECOMPILE)", ", (?, ?)", " FROM x"};
+            for (String trailer : unsupportedTrailers) {
+                f1.set(pstmt, trailer);
+                try {
+                    method.invoke(pstmt);
+                    fail("Expected IllegalArgumentException for trailing SQL: " + trailer);
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    assertTrue(e.getCause() instanceof IllegalArgumentException);
+                }
+            }
+
+            // Only comments, whitespace and semicolons may remain - these must NOT trigger a fallback.
+            String[] supportedTrailers = {"", "   ", ";", " ; ", "; ;", "/* trailing comment */",
+                    "-- trailing comment\n", " ;/* c */ ;"};
+            for (String trailer : supportedTrailers) {
+                f1.set(pstmt, trailer);
+                method.invoke(pstmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies that trailing SQL is preserved on every batch, including when switching between the two batch APIs.
+     */
+    @ParameterizedTest
+    @MethodSource("trailingSQLBatchModes")
+    public void testTrailingSQLFallsBackOnRepeatedBatches(boolean firstLargeBatch, boolean alternate,
+            boolean multipleTuples, String comment) throws Exception {
+        String localTableName = RandomUtil.getIdentifier("Table_BulkCopy_TrailingSQL");
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(localTableName)
+                + " (Id, Data) VALUES (?, ?)" + comment + (multipleTuples ? ", (?, ?)" : " OPTION (RECOMPILE)");
+        int rowsPerEntry = multipleTuples ? 2 : 1;
+        Field bulkCopy = SQLServerPreparedStatement.class.getDeclaredField("bcOperation");
+        bulkCopy.setAccessible(true);
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            createTable_SQLFunction(localTableName);
+
+            try (AutoCloseable ignored = enableFineStatementLogging();
+                    FallbackWatcherLogHandler handler = new FallbackWatcherLogHandler()) {
+                for (int batch = 0; batch < 3; batch++) {
+                    boolean largeBatch = alternate && batch % 2 == 1 ? !firstLargeBatch : firstLargeBatch;
+                    for (int entry = 0; entry < 2; entry++) {
+                        for (int tuple = 0; tuple < rowsPerEntry; tuple++) {
+                            int id = (batch * 2 + entry) * rowsPerEntry + tuple + 1;
+                            pstmt.setInt(tuple * 2 + 1, id);
+                            pstmt.setInt(tuple * 2 + 2, id * 10);
+                        }
+                        pstmt.addBatch();
+                    }
+                    if (largeBatch) {
+                        assertArrayEquals(new long[] {rowsPerEntry, rowsPerEntry}, pstmt.executeLargeBatch());
+                    } else {
+                        assertArrayEquals(new int[] {rowsPerEntry, rowsPerEntry}, pstmt.executeBatch());
+                    }
+                    // Row counts alone cannot detect a discarded OPTION hint. Check the execution path too;
+                    // cached rejection need not publish another fallback log message on each later batch.
+                    assertNull(bulkCopy.get(pstmt), "Trailing SQL must never use Bulk Copy, batch " + batch);
+                    pstmt.clearBatch();
+                }
+                assertTrue(handler.gotFallbackMessage, "Expected the initial parse to report the fallback");
+            }
+
+            try (ResultSet rs = stmt.executeQuery("SELECT Id, Data FROM "
+                    + AbstractSQLGenerator.escapeIdentifier(localTableName) + " ORDER BY Id")) {
+                for (int id = 1; id <= 6 * rowsPerEntry; id++) {
+                    assertTrue(rs.next(), "Expected row " + id);
+                    assertEquals(id, rs.getInt("Id"));
+                    assertEquals(id * 10, rs.getInt("Data"));
+                }
+                assertFalse(rs.next());
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(localTableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * Verifies that reusing the same PreparedStatement for multiple batches keeps using Bulk Copy. The parsed
+     * table/column/value lists are cached after the first executeBatch, so the leftover-SQL validation must not
+     * run again against the unconsumed statement and wrongly force a fallback on every later batch.
+     */
+    @ParameterizedTest
+    @MethodSource("supportedSQLBatchModes")
+    public void testRepeatedBatchesKeepUsingBulkCopy(boolean firstLargeBatch, boolean alternate,
+            String trailer) throws Exception {
+        String localTableName = RandomUtil.getIdentifier("Table_BulkCopy_RepeatedBatch");
+        String insertSQL = "INSERT INTO " + AbstractSQLGenerator.escapeIdentifier(localTableName)
+                + " (Id, Data) VALUES (?, ?)" + trailer;
+        Field bulkCopy = SQLServerPreparedStatement.class.getDeclaredField("bcOperation");
+        bulkCopy.setAccessible(true);
+
+        try (Connection connection = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=true;");
+                SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) connection.prepareStatement(insertSQL);
+                Statement stmt = (SQLServerStatement) connection.createStatement()) {
+
+            createTable_SQLFunction(localTableName);
+
+            try (AutoCloseable ignored = enableFineStatementLogging()) {
+                for (int batch = 0; batch < 3; batch++) {
+                    pstmt.setInt(1, batch * 2 + 1);
+                    pstmt.setInt(2, batch * 2 + 1);
+                    pstmt.addBatch();
+                    pstmt.setInt(1, batch * 2 + 2);
+                    pstmt.setInt(2, batch * 2 + 2);
+                    pstmt.addBatch();
+
+                    try (FallbackWatcherLogHandler handler = new FallbackWatcherLogHandler()) {
+                        boolean largeBatch = alternate && batch % 2 == 1 ? !firstLargeBatch : firstLargeBatch;
+                        if (largeBatch) {
+                            assertArrayEquals(new long[] {1, 1}, pstmt.executeLargeBatch());
+                        } else {
+                            assertArrayEquals(new int[] {1, 1}, pstmt.executeBatch());
+                        }
+                        assertFalse("Batch " + batch + " unexpectedly fell back to the regular batch path",
+                                handler.gotFallbackMessage);
+                        assertNotNull(bulkCopy.get(pstmt), "Comment-only trailers must retain Bulk Copy");
+                    }
+                    pstmt.clearBatch();
+                    pstmt.clearParameters();
+                }
+            }
+
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM "
+                    + AbstractSQLGenerator.escapeIdentifier(localTableName))) {
+                assertTrue(rs.next());
+                assertEquals(6, rs.getInt(1));
+            }
+        } finally {
+            try (Statement stmt = connection.createStatement()) {
+                TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(localTableName), stmt);
+            }
+        }
+    }
+
+    /**
+     * A nested comment must not disable Bulk Copy's KeepIdentity option: normal INSERT execution would
+     * reject the supplied identity values while IDENTITY_INSERT is off.
+     */
+    @Test
+    public void testNestedCommentsPreserveKeepIdentity() throws Exception {
+        String localTableName = AbstractSQLGenerator
+                .escapeIdentifier(RandomUtil.getIdentifier("Table_BulkCopy_NestedComment_Identity"));
+        try (Connection con = PrepUtil.getConnection(
+                connectionString + ";useBulkCopyForBatchInsert=true;bulkCopyForBatchInsertKeepIdentity=true;");
+                Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE " + localTableName + " (Id INT IDENTITY(1,1), Data INT)");
+            try (PreparedStatement pstmt = con.prepareStatement(
+                    "INSERT INTO " + localTableName + " (Id, Data) VALUES (?, ?) /* outer /* inner */ outer */")) {
+                for (int batch = 0; batch < 3; batch++) {
+                    int id = 100 + batch;
+                    pstmt.setInt(1, id);
+                    pstmt.setInt(2, id * 10);
+                    pstmt.addBatch();
+                    assertArrayEquals(new long[] {1}, pstmt.executeLargeBatch());
+                    pstmt.clearBatch();
+                    pstmt.clearParameters();
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT Id, Data FROM " + localTableName + " ORDER BY Id")) {
+                    for (int id = 100; id < 103; id++) {
+                        assertTrue(rs.next());
+                        assertEquals(id, rs.getInt(1));
+                        assertEquals(id * 10, rs.getInt(2));
+                    }
+                    assertFalse(rs.next());
+                }
+            } finally {
+                TestUtils.dropTableIfExists(localTableName, stmt);
+            }
+        }
+    }
+
+    /**
+     * Normal fallback must end a terminal line comment before combining the next batch entry.
+     * Verify stored rows as well as update counts so a commented-out entry cannot pass unnoticed.
+     */
+    @ParameterizedTest
+    @MethodSource("lineCommentBatchModes")
+    public void testLineCommentsPreserveBatchEntries(boolean firstLargeBatch, boolean alternate, String prepareMethod,
+            String trailer, boolean useBulkCopy) throws Exception {
+        String prefix = "scopeTempTablesToConnection".equals(prepareMethod) ? "#BulkCopy_LineComment"
+                                                                            : "BulkCopy_LineComment";
+        String localTableName = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier(prefix));
+        Field bulkCopy = SQLServerPreparedStatement.class.getDeclaredField("bcOperation");
+        bulkCopy.setAccessible(true);
+
+        try (Connection con = PrepUtil.getConnection(connectionString + ";useBulkCopyForBatchInsert=" + useBulkCopy
+                + ";prepareMethod=" + prepareMethod + ";"); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE " + localTableName + " (Id INT, Data INT)");
+            try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con
+                    .prepareStatement("INSERT INTO " + localTableName + " (Id, Data) VALUES (?, ?)" + trailer)) {
+                for (int batch = 0; batch < 3; batch++) {
+                    for (int entry = 0; entry < 2; entry++) {
+                        int id = batch * 2 + entry + 1;
+                        pstmt.setInt(1, id);
+                        pstmt.setInt(2, id * 10);
+                        pstmt.addBatch();
+                    }
+                    boolean largeBatch = alternate && batch % 2 == 1 ? !firstLargeBatch : firstLargeBatch;
+                    if (largeBatch) {
+                        assertArrayEquals(new long[] {1, 1}, pstmt.executeLargeBatch());
+                    } else {
+                        assertArrayEquals(new int[] {1, 1}, pstmt.executeBatch());
+                    }
+                    if (useBulkCopy && !trailer.contains("OPTION")) {
+                        assertNotNull(bulkCopy.get(pstmt), "Supported inserts should retain Bulk Copy");
+                    } else {
+                        assertNull(bulkCopy.get(pstmt), "The original SQL must execute on the normal batch path");
+                    }
+                    try (ResultSet rs = stmt.executeQuery("SELECT Id, Data FROM " + localTableName + " ORDER BY Id")) {
+                        for (int id = 1; id <= (batch + 1) * 2; id++) {
+                            assertTrue(rs.next(), "Missing row " + id + " after batch " + batch);
+                            assertEquals(id, rs.getInt(1));
+                            assertEquals(id * 10, rs.getInt(2));
+                        }
+                        assertFalse(rs.next());
+                    }
+                    pstmt.clearBatch();
+                    pstmt.clearParameters();
+                }
+            } finally {
+                TestUtils.dropTableIfExists(localTableName, stmt);
+            }
+        }
+    }
+
+    private static Stream<Arguments> lineCommentBatchModes() {
+        Stream<Arguments> bulkCopyModes = Stream.of("none", "prepexec", "scopeTempTablesToConnection")
+                .flatMap(prepareMethod -> Stream.of("", " -- application comment",
+                        " OPTION (RECOMPILE) -- application comment", " OPTION (RECOMPILE) -- application comment\n",
+                        " OPTION (RECOMPILE) -- application comment\r\n", " OPTION (RECOMPILE); -- application comment")
+                        .flatMap(trailer -> batchExecutionModes().map(
+                                mode -> Arguments.of(mode.get()[0], mode.get()[1], prepareMethod, trailer, true))));
+        Stream<Arguments> normalModes = batchExecutionModes().map(mode -> Arguments.of(mode.get()[0], mode.get()[1],
+                "none", " OPTION (RECOMPILE) -- application comment", false));
+        return Stream.concat(bulkCopyModes, normalModes);
+    }
+
+    private static Stream<Arguments> batchExecutionModes() {
+        return Stream.of(Arguments.of(false, false), Arguments.of(true, false), Arguments.of(false, true),
+                Arguments.of(true, true));
+    }
+
+    private static Stream<Arguments> trailingSQLBatchModes() {
+        return Stream.of("", " /* outer /* inner */ outer */")
+                .flatMap(comment -> batchExecutionModes()
+                        .flatMap(mode -> Stream.of(Arguments.of(mode.get()[0], mode.get()[1], false, comment),
+                                Arguments.of(mode.get()[0], mode.get()[1], true, comment))));
+    }
+
+    private static Stream<Arguments> supportedSQLBatchModes() {
+        return Stream
+                .of("", " /* outer /* inner */ outer */",
+                        " ; /* level 1 /* level 2 /* level 3 */ */ */ ; /* next */ -- end\n ;")
+                .flatMap(trailer -> batchExecutionModes()
+                        .map(mode -> Arguments.of(mode.get()[0], mode.get()[1], trailer)));
+    }
+
+    /**
+     * Forces the internal statement logger to FINE so the fallback log message is actually published, making
+     * both positive and negative fallback assertions meaningful regardless of the ambient logging configuration.
+     */
+    private AutoCloseable enableFineStatementLogging() {
+        Logger stmtLogger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerStatement");
+        Level previousLevel = stmtLogger.getLevel();
+        stmtLogger.setLevel(Level.FINE);
+        return () -> stmtLogger.setLevel(previousLevel);
     }
 
     @SuppressWarnings("unchecked")
