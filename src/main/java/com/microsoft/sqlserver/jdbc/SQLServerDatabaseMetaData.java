@@ -3156,12 +3156,16 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
     public int getDatabaseCompatibilityLevel() throws SQLException {
         checkClosed();
         String database = connection.getCatalog();
-        SQLServerResultSet rs = getResultSetFromInternalQueries(null,
-                "select name, compatibility_level from sys.databases where name = '" + database + "'");
-        if (!rs.next()) {
-            return 0;
+        try (PreparedStatement statement = connection
+                .prepareStatement("select compatibility_level from sys.databases where name = ?")) {
+            statement.setString(1, database);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) {
+                    return 0;
+                }
+                return rs.getInt("compatibility_level");
+            }
         }
-        return rs.getInt("compatibility_level");
     }
 }
 

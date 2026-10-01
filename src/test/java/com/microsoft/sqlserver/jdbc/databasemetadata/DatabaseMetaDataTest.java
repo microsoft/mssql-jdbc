@@ -184,6 +184,25 @@ public class DatabaseMetaDataTest extends AbstractTest {
         }
     }
 
+    @Test
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLMI)
+    public void testDatabaseCompatibilityLevelWithQuotedCatalog() throws SQLException {
+        String databaseName = "DBMetadata'Catalog" + uuid;
+        TestUtils.dropDatabaseIfExists(databaseName, connectionString);
+
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE DATABASE " + AbstractSQLGenerator.escapeIdentifier(databaseName));
+            conn.setCatalog(databaseName);
+
+            SQLServerDatabaseMetaData dbmData = (SQLServerDatabaseMetaData) conn.getMetaData();
+            assertTrue(dbmData.getDatabaseCompatibilityLevel() > 0);
+        } finally {
+            TestUtils.dropDatabaseIfExists(databaseName, connectionString);
+        }
+    }
+
     /**
      * Your password should not be in getURL method.
      * 
