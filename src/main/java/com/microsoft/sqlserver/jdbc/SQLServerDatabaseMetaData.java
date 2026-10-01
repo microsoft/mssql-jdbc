@@ -2013,7 +2013,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
         String schema = "sys.schemas";
         String schemaName = "sys.schemas.name";
-        if (null != catalog && catalog.length() != 0) {
+        boolean hasCatalog = null != catalog && catalog.length() != 0;
+        if (hasCatalog) {
             final String catalogId = Util.escapeSQLId(catalog);
             schema = catalogId + "." + schema;
             schemaName = catalogId + "." + schemaName;
@@ -2029,8 +2030,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         if (null != catalog && catalog.length() == 0) {
             s += "null 'TABLE_CATALOG' ";
         } else {
-            if (null != catalog && catalog.length() != 0) {
-                s += "'" + catalog + "' 'TABLE_CATALOG' ";
+            if (hasCatalog) {
+                s += "? 'TABLE_CATALOG' ";
             } else {
                 s += " DB_NAME() 'TABLE_CATALOG' ";
             }
@@ -2047,7 +2048,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             s += schemaName + " in " + constSchemas;
         } else if (null != schemaPattern) {
             s += " where " + schemaName + " like ?  ";
-        } else if (null != catalog && catalog.length() != 0) {
+        } else if (hasCatalog) {
             s += " where " + schemaName + " not in " + constSchemas;
         }
 
@@ -2056,9 +2057,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             logger.fine(toString() + " schema query (" + s + ")");
         }
         SQLServerResultSet rs;
-        if (null == schemaPattern) {
-            catalog = null;
-            rs = getResultSetFromInternalQueries(catalog, s);
+        boolean hasQueryParameters = hasCatalog || null != schemaPattern;
+        if (!hasQueryParameters) {
+            rs = getResultSetFromInternalQueries(null, s);
         } else {
 
             // The prepared statement is not closed after execution.
@@ -2066,7 +2067,13 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             // as the prepared statement will close as the resultset 'rs' is closed
             SQLServerPreparedStatement ps = (SQLServerPreparedStatement) connection.prepareStatement(s);
             ps.closeOnCompletion();
-            ps.setString(1, schemaPattern);
+            int parameterIndex = 1;
+            if (hasCatalog) {
+                ps.setString(parameterIndex++, catalog);
+            }
+            if (null != schemaPattern) {
+                ps.setString(parameterIndex, schemaPattern);
+            }
             rs = (SQLServerResultSet) ps.executeQueryInternal();
         }
         return rs;
