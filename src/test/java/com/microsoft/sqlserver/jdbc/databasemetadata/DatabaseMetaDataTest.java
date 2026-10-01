@@ -29,11 +29,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -316,18 +318,23 @@ public class DatabaseMetaDataTest extends AbstractTest {
             conn.setCatalog(testCatalog);
             stmt.execute("CREATE SCHEMA schemaAlpha");
             stmt.execute("CREATE SCHEMA schemaBeta");
+            stmt.execute("CREATE SCHEMA schemaExtra");
             conn.setCatalog(originalCatalog);
 
             Statement metadataStatement;
             try (ResultSet rs = conn.getMetaData().getSchemas(testCatalog, schemaPattern)) {
                 metadataStatement = rs.getStatement();
                 assertFalse(metadataStatement.isClosed());
-                for (String expectedSchema : Arrays.asList("schemaAlpha", "schemaBeta")) {
-                    assertTrue(rs.next());
-                    assertEquals(expectedSchema, rs.getString("TABLE_SCHEM"));
+                List<String> expectedSchemas = Arrays.asList("schemaAlpha", "schemaBeta");
+                List<String> matchingSchemas = new ArrayList<>();
+                while (rs.next()) {
                     assertEquals(testCatalog, rs.getString("TABLE_CATALOG"));
+                    String schemaName = rs.getString("TABLE_SCHEM");
+                    if (expectedSchemas.contains(schemaName)) {
+                        matchingSchemas.add(schemaName);
+                    }
                 }
-                assertFalse(rs.next());
+                assertEquals(expectedSchemas, matchingSchemas);
             }
             assertTrue(metadataStatement.isClosed());
             assertEquals(originalCatalog, conn.getCatalog());
