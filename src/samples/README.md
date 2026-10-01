@@ -1,6 +1,9 @@
 
 # Running Sample Applications
 
+The [querynotification](querynotification/README.md) sample explains how to register and consume low-level SQL Server
+Query Notifications using Service Broker.
+
 The Microsoft JDBC Driver for SQL Server sample applications demonstrate various features of the JDBC driver. Additionally, they demonstrate good programming practices that you can follow when using the JDBC driver with SQL Server or Azure SQL Database.
 
 All the sample applications are contained in *.java code files that can be compiled and run on your local computer. These code samples are based on the ones found in [Microsoft Docs](https://docs.microsoft.com/en-us/sql/connect/jdbc/sample-jdbc-driver-applications), where you can find additional content with more detailed descriptions.
