@@ -47,6 +47,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -315,6 +318,40 @@ public class DatabaseMetaDataTest extends AbstractTest {
             }
         } catch (Exception e) {
             fail(TestResource.getResource("R_unexpectedErrorMessage") + e.getMessage());
+        }
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"schema%"})
+    @Tag(Constants.xAzureSQLDB)
+    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLMI)
+    public void testDBSchemasForQuotedCatalogName(String schemaPattern) throws SQLException {
+        String testCatalog = "DBMetadata'Schemas" + uuid;
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            String originalCatalog = conn.getCatalog();
+            stmt.execute("CREATE DATABASE " + AbstractSQLGenerator.escapeIdentifier(testCatalog));
+            conn.setCatalog(testCatalog);
+            stmt.execute("CREATE SCHEMA schemaAlpha");
+            stmt.execute("CREATE SCHEMA schemaBeta");
+            conn.setCatalog(originalCatalog);
+
+            Statement metadataStatement;
+            try (ResultSet rs = conn.getMetaData().getSchemas(testCatalog, schemaPattern)) {
+                metadataStatement = rs.getStatement();
+                assertFalse(metadataStatement.isClosed());
+                for (String expectedSchema : Arrays.asList("schemaAlpha", "schemaBeta")) {
+                    assertTrue(rs.next());
+                    assertEquals(expectedSchema, rs.getString("TABLE_SCHEM"));
+                    assertEquals(testCatalog, rs.getString("TABLE_CATALOG"));
+                }
+                assertFalse(rs.next());
+            }
+            assertTrue(metadataStatement.isClosed());
+            assertEquals(originalCatalog, conn.getCatalog());
+        } finally {
+            TestUtils.dropDatabaseIfExists(testCatalog, connectionString);
         }
     }
 
