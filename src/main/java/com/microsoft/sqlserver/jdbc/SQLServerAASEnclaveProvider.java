@@ -10,6 +10,9 @@ import static java.nio.charset.StandardCharsets.UTF_16LE;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
@@ -72,29 +75,36 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
     public ArrayList<byte[]> createEnclaveSession(SQLServerConnection connection, SQLServerStatement statement,
             String userSql, String preparedTypeDefinitions, Parameter[] params,
             ArrayList<String> parameterNames) throws SQLServerException {
-        // Check if the session exists in our cache
-        StringBuilder keyLookup = new StringBuilder(connection.getServerName()).append(connection.getCatalog())
-                .append(attestationUrl);
-        EnclaveCacheEntry entry = enclaveCache.getSession(keyLookup.toString());
-        if (null != entry) {
-            this.enclaveSession = entry.getEnclaveSession();
-            this.aasParams = (AASAttestationParameters) entry.getBaseAttestationRequest();
-        }
-        ArrayList<byte[]> b = describeParameterEncryption(connection, statement, userSql, preparedTypeDefinitions,
-                params, parameterNames);
-        if (connection.enclaveEstablished()) {
-            return b;
-        } else if (null != hgsResponse && !connection.enclaveEstablished()) {
-            try {
-                enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
-                        aasParams.createSessionSecret(hgsResponse.getDHpublicKey()));
-                enclaveCache.addEntry(connection.getServerName(), connection.getCatalog(),
-                        connection.enclaveAttestationUrl, aasParams, enclaveSession);
-            } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false, e);
+        // Pending responses belong to one attempt; only established sessions may be reused.
+        hgsResponse = null;
+        try {
+            // Check if the session exists in our cache
+            StringBuilder keyLookup = new StringBuilder(connection.getServerName()).append(connection.getCatalog())
+                    .append(attestationUrl);
+            EnclaveCacheEntry entry = enclaveCache.getSession(keyLookup.toString());
+            if (null != entry) {
+                this.enclaveSession = entry.getEnclaveSession();
+                this.aasParams = (AASAttestationParameters) entry.getBaseAttestationRequest();
             }
+            ArrayList<byte[]> b = describeParameterEncryption(connection, statement, userSql, preparedTypeDefinitions,
+                    params, parameterNames);
+            if (connection.enclaveEstablished()) {
+                return b;
+            } else if (null != hgsResponse && !connection.enclaveEstablished()) {
+                try {
+                    enclaveSession = new EnclaveSession(hgsResponse.getSessionID(),
+                            aasParams.createSessionSecret(hgsResponse.getDHpublicKey()));
+                    enclaveCache.addEntry(connection.getServerName(), connection.getCatalog(),
+                            connection.enclaveAttestationUrl, aasParams, enclaveSession);
+                } catch (GeneralSecurityException e) {
+                    SQLServerException.makeFromDriverError(connection, this, e.getLocalizedMessage(), "0", false, e);
+                }
+            }
+            return b;
+        } finally {
+            // Discard even validated candidates if later transport or session-key derivation fails.
+            hgsResponse = null;
         }
-        return b;
     }
 
     @Override
@@ -103,6 +113,7 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
             enclaveCache.removeEntry(enclaveSession);
         }
         enclaveSession = null;
+        hgsResponse = null;
         aasParams = null;
         attestationUrl = null;
     }
@@ -112,14 +123,12 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
         return enclaveSession;
     }
 
-    private void validateAttestationResponse() throws SQLServerException {
-        if (null != hgsResponse) {
-            try {
-                hgsResponse.validateToken(attestationUrl, aasParams.getNonce());
-                hgsResponse.validateDHPublicKey(aasParams.getNonce());
-            } catch (GeneralSecurityException e) {
-                SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
-            }
+    private void validateAttestationResponse(AASAttestationResponse response) throws SQLServerException {
+        try {
+            response.validateToken(attestationUrl, aasParams.getNonce());
+            response.validateDHPublicKey(aasParams.getNonce());
+        } catch (GeneralSecurityException e) {
+            SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "0", false, e);
         }
     }
 
@@ -135,8 +144,10 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
 
         ArrayList<byte[]> enclaveRequestedCEKs = new ArrayList<>();
         try (PreparedStatement stmt = connection.prepareStatement(connection.enclaveEstablished() ? SDPE1 : SDPE2)) {
-            // Check the cache for metadata for Always Encrypted versions 1 and 3, when there are parameters to check.
-            if (connection.getServerColumnEncryptionVersion() == ColumnEncryptionVersion.AE_V2 || params == null
+            // AE v3 can cache metadata before attestation fails. Metadata must not skip fresh attestation
+            // until a validated session exists; established sessions retain the existing metadata-cache behavior.
+            if (!connection.enclaveEstablished()
+                    || connection.getServerColumnEncryptionVersion() == ColumnEncryptionVersion.AE_V2 || params == null
                     || params.length == 0 || !ParameterMetaDataCache.getQueryMetadata(params, parameterNames,
                             connection, statement, userSql)) {
                 try (ResultSet rs = connection.enclaveEstablished() ? executeSDPEv1(stmt, userSql,
@@ -152,9 +163,10 @@ public class SQLServerAASEnclaveProvider implements ISQLServerEnclaveProvider {
                     if (connection.isAEv2() && stmt.getMoreResults()) {
                         try (ResultSet hgsRs = (SQLServerResultSet) stmt.getResultSet()) {
                             if (hgsRs.next()) {
-                                hgsResponse = new AASAttestationResponse(hgsRs.getBytes(1));
-                                // This validates and establishes the enclave session if valid
-                                validateAttestationResponse();
+                                AASAttestationResponse response = new AASAttestationResponse(hgsRs.getBytes(1));
+                                // Only retain a session candidate after both token and DH signature checks succeed.
+                                validateAttestationResponse(response);
+                                hgsResponse = response;
                             } else {
                                 SQLServerException.makeFromDriverError(null, this,
                                         SQLServerException.getErrString("R_UnableRetrieveParameterMetadata"), "0",
@@ -241,6 +253,8 @@ class JWTCertificateEntry {
 
 @SuppressWarnings("unused")
 class AASAttestationResponse extends BaseAttestationResponse {
+
+    private static final long TOKEN_CLOCK_SKEW_SECONDS = 300;
 
     private byte[] attestationToken;
     private static ConcurrentHashMap<String, JWTCertificateEntry> certificateCache = new ConcurrentHashMap<>();
@@ -351,8 +365,12 @@ class AASAttestationResponse extends BaseAttestationResponse {
                         sig.initVerify(cert.getPublicKey());
                         sig.update(signatureBytes);
                         if (sig.verify(stmtSig)) {
-                            // Token is verified, now check the aas-ehd
                             JsonObject bodyJsonObject = JsonParser.parseString(body).getAsJsonObject();
+                            // Providers can share signing keys but apply different policies; check the signed issuer.
+                            validateTokenIssuer(bodyJsonObject, attestationUrl);
+                            validateTokenLifetime(bodyJsonObject);
+
+                            // Token is verified, now check the aas-ehd
                             String aasEhd = bodyJsonObject.get("aas-ehd").getAsString();
                             if (!Arrays.equals(Base64.getUrlDecoder().decode(aasEhd), enclavePK)) {
                                 SQLServerException.makeFromDriverError(null, this,
@@ -375,6 +393,89 @@ class AASAttestationResponse extends BaseAttestationResponse {
                     false);
         } catch (IOException | GeneralSecurityException e) {
             SQLServerException.makeFromDriverError(null, this, e.getLocalizedMessage(), "", false, e);
+        }
+    }
+
+    private void validateTokenIssuer(JsonObject claims, String attestationUrl) throws SQLServerException {
+        JsonElement issuer = claims.get("iss");
+        if (null == issuer || !issuer.isJsonPrimitive() || !issuer.getAsJsonPrimitive().isString()
+                || !issuerMatchesConfiguredAuthority(issuer.getAsString(), attestationUrl)) {
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasTokenIssuerError"),
+                    "0", false);
+        }
+    }
+
+    /**
+     * Compares the issuer with the configured authority. The configured URL may include an
+     * attestation API path and query; the issuer must be an HTTPS authority without a path (including a trailing
+     * slash), query, fragment, or user information. Host case and an explicit default port do not change the authority.
+     */
+    private static boolean issuerMatchesConfiguredAuthority(String issuer, String attestationUrl) {
+        try {
+            URI issuerUri = new URI(issuer);
+            URI configuredUri = new URI(attestationUrl);
+            if (!isValidHttpsAuthority(issuerUri) || !isValidHttpsAuthority(configuredUri)
+                    || null != issuerUri.getQuery() || null != issuerUri.getFragment()
+                    || (null != issuerUri.getPath() && !issuerUri.getPath().isEmpty())) {
+                return false;
+            }
+
+            return issuerUri.getHost().equalsIgnoreCase(configuredUri.getHost())
+                    && effectivePort(issuerUri) == effectivePort(configuredUri);
+        } catch (URISyntaxException e) {
+            return false;
+        }
+    }
+
+    private static boolean isValidHttpsAuthority(URI uri) {
+        return "https".equalsIgnoreCase(uri.getScheme()) && null != uri.getHost() && null == uri.getUserInfo();
+    }
+
+    private static int effectivePort(URI uri) {
+        return -1 == uri.getPort() ? 443 : uri.getPort();
+    }
+
+    /**
+     * Requires expiration and checks not-before when present. A five-minute allowance on either side accommodates
+     * client/provider clock differences; not-before must still precede expiration regardless of that allowance.
+     */
+    private void validateTokenLifetime(JsonObject bodyJsonObject) throws SQLServerException {
+        long expiration = getNumericDate(bodyJsonObject.get("exp"));
+        long now = Instant.now().getEpochSecond();
+        if (expiration <= now - TOKEN_CLOCK_SKEW_SECONDS) {
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasTokenLifetimeError"),
+                    "0", false);
+        }
+
+        JsonElement notBeforeElement = bodyJsonObject.get("nbf");
+        if (null != notBeforeElement) {
+            long notBefore = getNumericDate(notBeforeElement);
+            if (notBefore >= expiration || notBefore > now + TOKEN_CLOCK_SKEW_SECONDS) {
+                SQLServerException.makeFromDriverError(null, this,
+                        SQLServerResource.getResource("R_AasTokenLifetimeError"), "0", false);
+            }
+        }
+    }
+
+    /**
+     * Checks the full NumericDate against the long bounds before preserving the existing truncation of fractional
+     * seconds toward zero. Fractional values outside those bounds must not become valid through truncation.
+     */
+    private long getNumericDate(JsonElement claim) throws SQLServerException {
+        if (null == claim || !claim.isJsonPrimitive() || !claim.getAsJsonPrimitive().isNumber()) {
+            SQLServerException.makeFromDriverError(null, this, SQLServerResource.getResource("R_AasTokenLifetimeError"),
+                    "0", false);
+        }
+        try {
+            BigDecimal numericDate = new BigDecimal(claim.getAsString());
+            if (numericDate.compareTo(BigDecimal.valueOf(Long.MIN_VALUE)) < 0
+                    || numericDate.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0) {
+                SQLServerException.makeFromDriverError(null, this,
+                        SQLServerResource.getResource("R_AasTokenLifetimeError"), "0", false);
+            }
+            return numericDate.longValue();
+        } catch (NumberFormatException e) {
+            throw new SQLServerException(SQLServerResource.getResource("R_AasTokenLifetimeError"), null, 0, e);
         }
     }
 
