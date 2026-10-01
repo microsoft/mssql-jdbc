@@ -19,11 +19,9 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.text.MessageFormat;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
@@ -2357,6 +2355,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             }
         }
 
+        String colValueStr;
         try {
             // We are sending the data using JDBCType and not using SSType as SQL Server will automatically do the
             // conversion.
@@ -2569,7 +2568,6 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
 
-                            String colValueStr;
                             if (colValue instanceof LocalDateTime) {
                                 colValueStr = ((LocalDateTime) colValue).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
                             } else if (colValue instanceof LocalTime) {
@@ -2601,8 +2599,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                     SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
 
                                     if (null != destCollation) {
-                                        byte[] value = colValueStr.getBytes(
-                                                destColumnMetadata.get(destColOrdinal).collation.getCharset());
+                                        byte[] value = colValueStr.getBytes(destCollation.getCharset());
                                         tdsWriter.writeShort((short) value.length);
                                         tdsWriter.writeBytes(value);
                                     } else {
@@ -2656,12 +2653,13 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         if (null == colValue) {
                             writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                         } else {
-                            int stringLength = colValue.toString().length();
+                            colValueStr = colValue.toString();
+                            int stringLength = colValueStr.length();
                             byte[] typevarlen = new byte[2];
                             typevarlen[0] = (byte) (2 * stringLength & 0xFF);
                             typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
                             tdsWriter.writeBytes(typevarlen);
-                            tdsWriter.writeString(colValue.toString());
+                            tdsWriter.writeString(colValueStr);
                         }
                     }
                     break;
@@ -2730,17 +2728,22 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             case SMALLDATETIME:
                                 if (bulkNullable)
                                     tdsWriter.writeByte((byte) 0x04);
-                                tdsWriter.writeSmalldatetime(colValue.toString());
+
+                                if (!(colValue instanceof java.sql.Timestamp)) {
+                                    // data coming from CSV
+                                    colValue = java.sql.Timestamp.valueOf(colValue.toString());
+                                }
+                                tdsWriter.writeSmalldatetime((java.sql.Timestamp) colValue);
                                 break;
                             case DATETIME:
                                 if (bulkNullable)
                                     tdsWriter.writeByte((byte) 0x08);
 
-                                if (colValue instanceof java.sql.Timestamp) {
-                                    tdsWriter.writeDatetime((java.sql.Timestamp) colValue);
-                                } else {
-                                    tdsWriter.writeDatetime(java.sql.Timestamp.valueOf(colValue.toString()));
+                                if (!(colValue instanceof java.sql.Timestamp)) {
+                                    // data coming from CSV
+                                    colValue = java.sql.Timestamp.valueOf(colValue.toString());
                                 }
+                                tdsWriter.writeDatetime((java.sql.Timestamp) colValue);
                                 break;
                             default: // DATETIME2
                                 if (2 >= bulkScale)
@@ -2750,11 +2753,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                                 else
                                     tdsWriter.writeByte((byte) 0x08);
 
-                                Timestamp ts;
+                                java.sql.Timestamp ts;
                                 if (colValue instanceof java.sql.Timestamp) {
-                                    ts = (Timestamp) colValue;
+                                    ts = (java.sql.Timestamp) colValue;
                                 } else {
-                                    ts = Timestamp.valueOf(colValue.toString());
+                                    // data is coming from CSV
+                                    ts = java.sql.Timestamp.valueOf(colValue.toString());
                                 }
 
                                 tdsWriter.writeTime(ts, bulkScale, cal);
@@ -2769,7 +2773,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         writeNullToTdsWriter(tdsWriter, bulkJdbcType, isStreaming);
                     } else {
                         tdsWriter.writeByte((byte) 0x03);
-                        tdsWriter.writeDate(colValue.toString());
+                        if (!(colValue instanceof java.sql.Date)) {
+                            // data coming from CSV
+                            colValue = java.sql.Date.valueOf(colValue.toString());
+                        }
+                        tdsWriter.writeDate((java.sql.Date) colValue);
                     }
                     break;
 
@@ -2795,14 +2803,15 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                              * as the timestamp's time. Then, add the nanoseconds (optional, 0 if not provided) to the
                              * timestamp value. Finally, provide the timestamp value to writeTime method.
                              */
+                            colValueStr = (String) colValue;
                             java.sql.Timestamp ts = new java.sql.Timestamp(0);
                             int nanos = 0;
-                            int decimalIndex = ((String) colValue).indexOf('.');
+                            int decimalIndex = colValueStr.indexOf('.');
                             if (decimalIndex != -1) {
-                                nanos = Integer.parseInt(((String) colValue).substring(decimalIndex + 1));
-                                colValue = ((String) colValue).substring(0, decimalIndex);
+                                nanos = Integer.parseInt(colValueStr.substring(decimalIndex + 1));
+                                colValueStr = colValueStr.substring(0, decimalIndex);
                             }
-                            ts.setTime(java.sql.Time.valueOf(colValue.toString()).getTime());
+                            ts.setTime(java.sql.Time.valueOf(colValueStr).getTime());
                             ts.setNanos(nanos);
                             tdsWriter.writeTime(ts, bulkScale);
                         } else {
@@ -2854,7 +2863,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         else
                             tdsWriter.writeByte((byte) 0x0A);
 
-                        tdsWriter.writeDateTimeOffset(colValue, bulkScale, destSSType);
+                        if (colValue instanceof microsoft.sql.DateTimeOffset) {
+                            tdsWriter.writeDateTimeOffset((microsoft.sql.DateTimeOffset) colValue, bulkScale, destSSType);
+                        } else {
+                            // The value is coming from a CSV file
+                            tdsWriter.writeDateTimeOffset(colValue.toString(), bulkScale, destSSType);
+                        }
                     }
                     break;
                 case microsoft.sql.Types.SQL_VARIANT:
@@ -2901,6 +2915,8 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         SqlVariant variantType = ((SQLServerResultSet) sourceResultSet).getVariantInternalType(srcColOrdinal);
         int baseType = variantType.getBaseType();
         byte[] srcBytes;
+        String colValueStr;
+        SQLCollation destCollation;
         // for sql variant we normally should return the colvalue for time as time string. but for
         // bulkcopy we need it to be a timestamp. so we have to retrieve it again once we are in bulkcopy
         // and make sure that the base type is time.
@@ -2912,32 +2928,56 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         switch (TDSType.valueOf(baseType)) {
             case INT8:
                 writeBulkCopySqlVariantHeader(10, TDSType.INT8.byteValue(), (byte) 0, tdsWriter);
-                tdsWriter.writeLong(Long.valueOf(colValue.toString()));
+                if (!(colValue instanceof Long)) {
+                    // The value is coming from a CSV file
+                    colValue = Long.valueOf(colValue.toString());
+                }
+                tdsWriter.writeDouble((Long) colValue);
                 break;
 
             case INT4:
                 writeBulkCopySqlVariantHeader(6, TDSType.INT4.byteValue(), (byte) 0, tdsWriter);
-                tdsWriter.writeInt(Integer.valueOf(colValue.toString()));
+                if (!(colValue instanceof Integer)) {
+                    // The value is coming from a CSV file
+                    colValue = Integer.valueOf(colValue.toString());
+                }
+                tdsWriter.writeDouble((Integer) colValue);
                 break;
 
             case INT2:
                 writeBulkCopySqlVariantHeader(4, TDSType.INT2.byteValue(), (byte) 0, tdsWriter);
-                tdsWriter.writeShort(Short.valueOf(colValue.toString()));
+                if (!(colValue instanceof Short)) {
+                    // The value is coming from a CSV file
+                    colValue = Short.valueOf(colValue.toString());
+                }
+                tdsWriter.writeDouble((Short) colValue);
                 break;
 
             case INT1:
                 writeBulkCopySqlVariantHeader(3, TDSType.INT1.byteValue(), (byte) 0, tdsWriter);
-                tdsWriter.writeByte(Byte.valueOf(colValue.toString()));
+                if (!(colValue instanceof Byte)) {
+                    // The value is coming from a CSV file
+                    colValue = Byte.valueOf(colValue.toString());
+                }
+                tdsWriter.writeDouble((Byte) colValue);
                 break;
 
             case FLOAT8:
                 writeBulkCopySqlVariantHeader(10, TDSType.FLOAT8.byteValue(), (byte) 0, tdsWriter);
-                tdsWriter.writeDouble(Double.valueOf(colValue.toString()));
+                if (!(colValue instanceof Double)) {
+                    // The value is coming from a CSV file
+                    colValue = Double.valueOf(colValue.toString());
+                }
+                tdsWriter.writeDouble((Double) colValue);
                 break;
 
             case FLOAT4:
                 writeBulkCopySqlVariantHeader(6, TDSType.FLOAT4.byteValue(), (byte) 0, tdsWriter);
-                tdsWriter.writeReal(Float.valueOf(colValue.toString()));
+                if (!(colValue instanceof Float)) {
+                    // The value is coming from a CSV file
+                    colValue = Float.valueOf(colValue.toString());
+                }
+                tdsWriter.writeReal((Float) colValue);
                 break;
 
             case MONEY4:
@@ -2957,7 +2997,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case DATEN:
                 writeBulkCopySqlVariantHeader(5, TDSType.DATEN.byteValue(), (byte) 0, tdsWriter);
-                tdsWriter.writeDate(colValue.toString());
+                if (!(colValue instanceof java.sql.Date)) {
+                    // data coming from CSV
+                    colValue = java.sql.Date.valueOf(colValue.toString());
+                }
+                tdsWriter.writeDate((java.sql.Date) colValue);
                 break;
 
             case TIMEN:
@@ -2980,79 +3024,87 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // when the type is ambiguous, we write to bigger type
             case DATETIME8:
                 writeBulkCopySqlVariantHeader(10, TDSType.DATETIME8.byteValue(), (byte) 0, tdsWriter);
-                if (colValue instanceof java.sql.Timestamp) {
-                    tdsWriter.writeDatetime((java.sql.Timestamp) colValue);
-                } else {
-                    tdsWriter.writeDatetime(java.sql.Timestamp.valueOf(colValue.toString()));
+                if (!(colValue instanceof java.sql.Timestamp)) {
+                    // data coming from CSV
+                    colValue = java.sql.Timestamp.valueOf(colValue.toString());
                 }
+                tdsWriter.writeDatetime((java.sql.Timestamp) colValue);
                 break;
 
             case DATETIME2N:
+                if (!(colValue instanceof java.sql.Timestamp)) {
+                    // data coming from CSV
+                    colValue = java.sql.Timestamp.valueOf(colValue.toString());
+                }
                 // 1 if probbytes for time
                 writeBulkCopySqlVariantHeader(10, TDSType.DATETIME2N.byteValue(), (byte) 1, tdsWriter);
                 tdsWriter.writeByte((byte) 0x03);
-                String timeStampValue = colValue.toString();
                 // datetime2 in sql_variant has up to scale 3 support
-                tdsWriter.writeTime(java.sql.Timestamp.valueOf(timeStampValue), 0x03);
+                tdsWriter.writeTime((java.sql.Timestamp) colValue, 0x03);
                 // Send only the date part
-                tdsWriter.writeDate(timeStampValue.substring(0, timeStampValue.lastIndexOf(' ')));
+                long milliseconds = ((java.sql.Timestamp) colValue).getTime();
+                long datePart = milliseconds - (milliseconds % 86_400_000L);
+                tdsWriter.writeDate(new java.sql.Date(datePart));
                 break;
 
             case BIGCHAR:
-                int length = colValue.toString().length();
+                colValueStr = colValue.toString();
+                int length = colValueStr.length();
                 writeBulkCopySqlVariantHeader(9 + length, TDSType.BIGCHAR.byteValue(), (byte) 7, tdsWriter);
                 tdsWriter.writeCollationForSqlVariant(variantType); // writes collation info and sortID
                 tdsWriter.writeShort((short) (length));
-                SQLCollation destCollation = destColumnMetadata.get(destColOrdinal).collation;
+                destCollation = destColumnMetadata.get(destColOrdinal).collation;
                 if (null != destCollation) {
-                    tdsWriter.writeBytes(colValue.toString()
-                            .getBytes(destColumnMetadata.get(destColOrdinal).collation.getCharset()));
+                    tdsWriter.writeBytes(colValueStr.getBytes(destCollation.getCharset()));
                 } else {
-                    tdsWriter.writeBytes(colValue.toString().getBytes());
+                    tdsWriter.writeBytes(colValueStr.getBytes());
                 }
                 break;
 
             case BIGVARCHAR:
-                length = colValue.toString().length();
+                colValueStr = colValue.toString();
+                length = colValueStr.length();
                 writeBulkCopySqlVariantHeader(9 + length, TDSType.BIGVARCHAR.byteValue(), (byte) 7, tdsWriter);
                 tdsWriter.writeCollationForSqlVariant(variantType); // writes collation info and sortID
                 tdsWriter.writeShort((short) (length));
 
                 destCollation = destColumnMetadata.get(destColOrdinal).collation;
                 if (null != destCollation) {
-                    tdsWriter.writeBytes(colValue.toString()
-                            .getBytes(destColumnMetadata.get(destColOrdinal).collation.getCharset()));
+                    tdsWriter.writeBytes(colValueStr.getBytes(destCollation.getCharset()));
                 } else {
-                    tdsWriter.writeBytes(colValue.toString().getBytes());
+                    tdsWriter.writeBytes(colValueStr.getBytes());
                 }
                 break;
 
             case NCHAR:
-                length = colValue.toString().length() * 2;
+                colValueStr = colValue.toString();
+                length = colValueStr.length() * 2;
                 writeBulkCopySqlVariantHeader(9 + length, TDSType.NCHAR.byteValue(), (byte) 7, tdsWriter);
                 tdsWriter.writeCollationForSqlVariant(variantType); // writes collation info and sortID
-                int stringLength = colValue.toString().length();
+                int stringLength = colValueStr.length();
                 byte[] typevarlen = new byte[2];
                 typevarlen[0] = (byte) (2 * stringLength & 0xFF);
                 typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
                 tdsWriter.writeBytes(typevarlen);
-                tdsWriter.writeString(colValue.toString());
+                tdsWriter.writeString(colValueStr);
                 break;
 
             case NVARCHAR:
-                length = colValue.toString().length() * 2;
+                colValueStr = colValue.toString();
+                length = colValueStr.length() * 2;
                 writeBulkCopySqlVariantHeader(9 + length, TDSType.NVARCHAR.byteValue(), (byte) 7, tdsWriter);
                 tdsWriter.writeCollationForSqlVariant(variantType); // writes collation info and sortID
-                stringLength = colValue.toString().length();
+                stringLength = colValueStr.length();
                 typevarlen = new byte[2];
                 typevarlen[0] = (byte) (2 * stringLength & 0xFF);
                 typevarlen[1] = (byte) ((2 * stringLength >> 8) & 0xFF);
                 tdsWriter.writeBytes(typevarlen);
-                tdsWriter.writeString(colValue.toString());
+                tdsWriter.writeString(colValueStr);
                 break;
 
             case GUID:
-                length = colValue.toString().length();
+                colValueStr = colValue.toString();
+                length = colValueStr.length();
                 writeBulkCopySqlVariantHeader(9 + length, TDSType.BIGCHAR.byteValue(), (byte) 7, tdsWriter);
                 // since while reading collation from sourceMetaData in GUID we don't read collation, because we are
                 // reading binary, but in writing it we are using char, so we need to get the collation.
@@ -3064,44 +3116,25 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 // converting string into destination collation using Charset
                 destCollation = destColumnMetadata.get(destColOrdinal).collation;
                 if (null != destCollation) {
-                    tdsWriter.writeBytes(colValue.toString()
-                            .getBytes(destColumnMetadata.get(destColOrdinal).collation.getCharset()));
+                    tdsWriter.writeBytes(colValueStr.getBytes(destCollation.getCharset()));
                 } else {
-                    tdsWriter.writeBytes(colValue.toString().getBytes());
+                    tdsWriter.writeBytes(colValueStr.getBytes());
                 }
                 break;
 
             case BIGBINARY:
-                byte[] b = (byte[]) colValue;
-                length = b.length;
-                writeBulkCopySqlVariantHeader(4 + length, TDSType.BIGVARBINARY.byteValue(), (byte) 2, tdsWriter);
+                srcBytes = (byte[]) colValue;
+                length = srcBytes.length;
+                writeBulkCopySqlVariantHeader(4 + length, TDSType.BIGBINARY.byteValue(), (byte) 2, tdsWriter);
                 tdsWriter.writeShort((short) (variantType.getMaxLength())); // length
-                if (colValue instanceof byte[]) {
-                    srcBytes = (byte[]) colValue;
-                } else {
-                    try {
-                        srcBytes = ParameterUtils.hexToBin(colValue.toString());
-                    } catch (SQLServerException e) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
-                    }
-                }
                 tdsWriter.writeBytes(srcBytes);
                 break;
 
             case BIGVARBINARY:
-                b = (byte[]) colValue;
-                length = b.length;
+                srcBytes = (byte[]) colValue;
+                length = srcBytes.length;
                 writeBulkCopySqlVariantHeader(4 + length, TDSType.BIGVARBINARY.byteValue(), (byte) 2, tdsWriter);
                 tdsWriter.writeShort((short) (variantType.getMaxLength())); // length
-                if (colValue instanceof byte[]) {
-                    srcBytes = (byte[]) colValue;
-                } else {
-                    try {
-                        srcBytes = ParameterUtils.hexToBin(colValue.toString());
-                    } catch (SQLServerException e) {
-                        throw new SQLServerException(SQLServerException.getErrString("R_unableRetrieveSourceData"), e);
-                    }
-                }
                 tdsWriter.writeBytes(srcBytes);
                 break;
 
@@ -3431,7 +3464,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             int fractionalSecondsLength = Integer.toString(taNano).length();
             for (int i = 0; i < (9 - fractionalSecondsLength); i++)
                 taNano *= 10;
-            Timestamp ts = new Timestamp(cal.getTimeInMillis());
+            java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
             ts.setNanos(taNano);
 
             switch (srcJdbcType) {
@@ -3506,7 +3539,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             switch (srcJdbcType) {
                 case java.sql.Types.TIMESTAMP:
                     // For CSV, value will be of String type.
-                    return Timestamp.valueOf(valueStr);
+                    return java.sql.Timestamp.valueOf(valueStr);
 
                 case java.sql.Types.TIME: {
                     String time = connection.baseYear() + "-01-01 " + valueStr;
@@ -3595,7 +3628,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     for (int i = 0; i < (9 - fractionalSecondsLength); i++)
                         fractionalSeconds *= 10;
 
-                    Timestamp ts = new Timestamp(cal.getTimeInMillis());
+                    java.sql.Timestamp ts = new java.sql.Timestamp(cal.getTimeInMillis());
                     ts.setNanos(fractionalSeconds);
                     return microsoft.sql.DateTimeOffset.valueOf(ts, totalOffset);
                 default:
@@ -3622,46 +3655,42 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
                 calendar.setLenient(true);
                 calendar.clear();
-                calendar.setTimeInMillis(((Date) colValue).getTime());
+                calendar.setTimeInMillis(((java.sql.Date) colValue).getTime());
                 return tdsWriter.writeEncryptedScaledTemporal(calendar, 0, // subsecond nanos (none for a date value)
                         0, // scale (dates are not scaled)
                         SSType.DATE, (short) 0, null);
 
             case TIME:
+                java.sql.Timestamp timeValue = (java.sql.Timestamp) colValue;
                 calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
                 calendar.setLenient(true);
                 calendar.clear();
-                utcMillis = ((java.sql.Timestamp) colValue).getTime();
+                utcMillis = timeValue.getTime();
                 calendar.setTimeInMillis(utcMillis);
-                int subSecondNanos;
-                if (colValue instanceof java.sql.Timestamp) {
-                    subSecondNanos = ((java.sql.Timestamp) colValue).getNanos();
-                } else {
-                    subSecondNanos = Nanos.PER_MILLISECOND * (int) (utcMillis % 1000);
-                    if (subSecondNanos < 0)
-                        subSecondNanos += Nanos.PER_SECOND;
-                }
+                int subSecondNanos = timeValue.getNanos();
                 return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME, (short) 0,
                         null);
 
             case TIMESTAMP:
+                java.sql.Timestamp timestampValue = (java.sql.Timestamp) colValue;
                 calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
                 calendar.setLenient(true);
                 calendar.clear();
-                utcMillis = ((java.sql.Timestamp) colValue).getTime();
+                utcMillis = timestampValue.getTime();
                 calendar.setTimeInMillis(utcMillis);
-                subSecondNanos = ((java.sql.Timestamp) colValue).getNanos();
+                subSecondNanos = timestampValue.getNanos();
                 return tdsWriter.writeEncryptedScaledTemporal(calendar, subSecondNanos, scale, SSType.DATETIME2,
                         (short) 0, null);
 
             case DATETIME:
             case SMALLDATETIME:
+                java.sql.Timestamp datetimeValue = (java.sql.Timestamp) colValue;
                 calendar = new GregorianCalendar(java.util.TimeZone.getDefault(), java.util.Locale.US);
                 calendar.setLenient(true);
                 calendar.clear();
-                utcMillis = ((java.sql.Timestamp) colValue).getTime();
+                utcMillis = datetimeValue.getTime();
                 calendar.setTimeInMillis(utcMillis);
-                subSecondNanos = ((java.sql.Timestamp) colValue).getNanos();
+                subSecondNanos = datetimeValue.getNanos();
                 return tdsWriter.getEncryptedDateTimeAsBytes(calendar, subSecondNanos, srcTemporalJdbcType, null);
 
             case DATETIMEOFFSET:
@@ -3948,7 +3977,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     Object rowObject = rowObjects[columnMapping.sourceColumnOrdinal - 1];
                     Calendar cal = null;
 
-                    if (rowObject instanceof Timestamp && params != null) {
+                    if (rowObject instanceof java.sql.Timestamp && params != null) {
                         cal = params[columnMapping.sourceColumnOrdinal - 1].getInputDTV().getCalendar();
                     }
 
