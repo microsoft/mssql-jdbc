@@ -125,6 +125,9 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
 
         JDBCType jdbcType = typeInfo.getSSType().getJDBCType();
         SSType sqlType = typeInfo.getSSType();
+        if (SSType.DATETIMEOFFSET == sqlType) {
+            jdbcType = JDBCType.TIMESTAMP_WITH_TIMEZONE;
+        }
         // in bulkcopy for instance, we need to return the real jdbc type which is sql variant and not the default Char
         // one.
         if (SSType.SQL_VARIANT == sqlType) {
@@ -331,11 +334,15 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
 
     @Override
     public String getColumnClassName(int column) throws SQLServerException {
+        SSType sqlType;
         CryptoMetadata cryptoMetadata = rs.getColumn(column).getCryptoMetadata();
         if (null != cryptoMetadata) {
-            return cryptoMetadata.getBaseTypeInfo().getSSType().getJDBCType().className();
+            sqlType = cryptoMetadata.getBaseTypeInfo().getSSType();
+        } else {
+            sqlType = rs.getColumn(column).getTypeInfo().getSSType();
         }
 
-        return rs.getColumn(column).getTypeInfo().getSSType().getJDBCType().className();
+        return (SSType.DATETIMEOFFSET == sqlType) ? JDBCType.TIMESTAMP_WITH_TIMEZONE.className()
+                : sqlType.getJDBCType().className();
     }
 }
