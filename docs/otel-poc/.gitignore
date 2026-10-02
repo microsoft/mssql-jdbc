@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+!.env.cloud.example
 *.pfx
 *.p12
 *.pem
@@ -10,6 +11,7 @@
 *.cer
 *.log
 evidence/
+.cloud/
 secrets/
 internal/portainer/
 internal/mise/*.local.json

@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: JDBC connection errors
+    orgId: 1
+    folder: JDBC connection errors
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /etc/grafana/dashboards

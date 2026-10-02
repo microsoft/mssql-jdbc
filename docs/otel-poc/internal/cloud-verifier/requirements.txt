@@ -1,0 +1,5 @@
+azure-identity==1.25.3
+azure-kusto-data==5.0.5
+deltalake==0.24.0
+pyarrow==18.1.0
+requests==2.32.5

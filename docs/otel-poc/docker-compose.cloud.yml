@@ -1,0 +1,209 @@
+services:
+  evidence:
+    image: otel/opentelemetry-collector-contrib:0.123.0
+    user: "10001:10001"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - "${CLOUD_ARTIFACT_DIR:?Generate cloud artifacts first}/evidence.yaml:/etc/otelcol/config.yaml:ro"
+      - evidence:/evidence
+    depends_on:
+      evidence-init:
+        condition: service_completed_successfully
+    networks: [ingress]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  token-server:
+    build:
+      context: ./internal/token-server
+    image: mssql-jdbc-token-server:local
+    user: "${DEMO_UID:-10001}:${DEMO_GID:-10001}"
+    environment:
+      IDENTITY_HEADER: ${IDENTITY_HEADER:?Supply a per-session random secret of at least 32 characters}
+      TOKEN_ALLOWED_RESOURCES: "https://storage.azure.com,https://storage.azure.com/,https://eventhubs.azure.net,https://eventhubs.azure.net/,https://management.core.windows.net,https://management.core.windows.net/,https://management.azure.com,https://management.azure.com/,https://kusto.kusto.windows.net,https://kusto.kusto.windows.net/,${KUSTO_CLUSTER_URI:?Set the dedicated Kusto cluster URI},${KUSTO_CLUSTER_URI}/"
+      KUSTO_CLUSTER_URI: ${KUSTO_CLUSTER_URI}
+      AZURE_CONFIG_DIR: /run/azure/session
+      HOME: /run/azure
+    volumes:
+      - type: bind
+        source: ${AZURE_HOST_PATH:?Set an existing authorized Linux-compatible CLI cache directory}
+        target: /host/.azure
+        read_only: true
+        bind:
+          create_host_path: false
+      - ./.scripts/azure-session.sh:/app/azure-session.sh:ro
+    tmpfs:
+      - /run/azure:rw,noexec,nosuid,nodev,mode=0700,uid=${DEMO_UID:-10001},gid=${DEMO_GID:-10001},size=64m
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks: [identity, outbound]
+
+  otelcol:
+    image: ${OTELCOL_ARCDATA_IMAGE:?Set an approved digest-pinned collector image}
+    user: ""
+    command: []
+    environment:
+      CONFIG: /etc/otelcol/config.yaml
+      IDENTITY_ENDPOINT: http://token-server:8080/metadata/identity/oauth2/token
+      IDENTITY_HEADER: ${IDENTITY_HEADER}
+      KUSTO_CLUSTER_URI: ${KUSTO_CLUSTER_URI}
+      KUSTO_DATABASE: ${KUSTO_DATABASE}
+      STORAGE_ACCOUNT: ${STORAGE_ACCOUNT}
+      STORAGE_CONTAINER: ${STORAGE_CONTAINER}
+      ROOT_PATH: ${ROOT_PATH}
+      EVENT_HUB_NAMESPACE: ${EVENT_HUB_NAMESPACE}
+      EVENT_HUB_NAME: ${EVENT_HUB_NAME}
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID}
+    volumes:
+      - "${CLOUD_ARTIFACT_DIR}/otelcol.yaml:/etc/otelcol/config.yaml:ro"
+    depends_on:
+      evidence:
+        condition: service_started
+      token-server:
+        condition: service_healthy
+    networks: [ingress, identity, outbound]
+
+  delta-bulk-loader:
+    image: ${DELTA_BULK_LOADER_IMAGE:?Set an approved digest-pinned bulk-loader image}
+    entrypoint: ["/usr/bin/dotnet", "/app/Dataplane.StreamProcessing.MirrorMaker.dll"]
+    environment:
+      IDENTITY_ENDPOINT: http://token-server:8080/metadata/identity/oauth2/token
+      IDENTITY_HEADER: ${IDENTITY_HEADER}
+      TOKEN_CREDENTIAL_MODE_OVERRIDE: ManagedIdentityCredential
+      AddLogsOtlpExporter: "false"
+      AddMetricsOtlpExporter: "false"
+      AddTracingOtlpExporter: "false"
+      # The pinned loader validates this setting during startup even when its
+      # three external exporters are disabled. Keep it loopback-only so loader
+      # self-telemetry cannot contaminate the JDBC evidence stream.
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://127.0.0.1:4317
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__SourceEventHubConfiguration__Namespace: ${EVENT_HUB_NAMESPACE}
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__SourceEventHubConfiguration__Name: ${EVENT_HUB_NAME}
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__SourceEventHubConfiguration__EventHubTenantId: ${AZURE_TENANT_ID}
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__SourceEventHubConfiguration__ConsumerGroupName: ${EVENT_HUB_CONSUMER_GROUP}
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__SourceEventHubConfiguration__IngestionConfiguration__EventHubDefaultOffset: Earliest
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__BlobCheckpointConfiguration__StorageAccountName: ${CHECKPOINT_STORAGE_ACCOUNT}
+      EventHubReplicationConfiguration__ReplicationConfiguration__0__BlobCheckpointConfiguration__StorageContainerName: ${CHECKPOINT_STORAGE_CONTAINER}
+    volumes:
+      - ./internal/delta-bulk-loader/appsettings.json:/app/appsettings.json:ro
+    depends_on:
+      token-server:
+        condition: service_healthy
+    networks: [identity, outbound]
+
+  app:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otelcol:4318
+      OTEL_SERVICE_NAME: ${CLOUD_SERVICE_NAME}
+      OTEL_AUTH_MODE: none
+      OTEL_ALLOW_INSECURE_DEVELOPMENT_ENDPOINT: "true"
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    depends_on:
+      otelcol:
+        condition: service_started
+      sqlserver:
+        condition: service_healthy
+    networks: [ingress, outbound, sql]
+
+  verify:
+    environment:
+      DEMO_EXPECTED_FAILURE_COUNTS: ${DEMO_EXPECTED_FAILURE_COUNTS}
+
+  grafana-token-server:
+    extends: token-server
+    environment:
+      IDENTITY_HEADER: ${IDENTITY_HEADER}
+      TOKEN_ALLOWED_RESOURCES: "https://kusto.kusto.windows.net,https://kusto.kusto.windows.net/,https://management.azure.com,https://management.azure.com/,${KUSTO_CLUSTER_URI},${KUSTO_CLUSTER_URI}/"
+      KUSTO_CLUSTER_URI: ${KUSTO_CLUSTER_URI}
+      AZURE_CONFIG_DIR: /run/azure/grafana
+      HOME: /run/azure
+    networks: [identity, outbound]
+
+  grafana:
+    build:
+      context: ./internal/grafana
+      args:
+        GRAFANA_IMAGE: ${GRAFANA_IMAGE:?Set an approved digest-pinned Grafana image}
+    image: mssql-jdbc-connection-grafana:local
+    user: "472:0"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_USERS_VIEWERS_CAN_EDIT: "false"
+      GF_SECURITY_ALLOW_EMBEDDING: "false"
+      GF_AZURE_MANAGED_IDENTITY_ENABLED: "true"
+      GRAFANA_ADX_CLUSTER_URL: ${KUSTO_CLUSTER_URI}
+      GRAFANA_ADX_DATABASE: ${KUSTO_DATABASE}
+      IDENTITY_ENDPOINT: http://grafana-token-server:8080/metadata/identity/oauth2/token
+      IDENTITY_HEADER: ${IDENTITY_HEADER}
+    volumes:
+      - "${CLOUD_ARTIFACT_DIR}/dashboard.json:/etc/grafana/dashboards/jdbc-connection-errors.json:ro"
+    depends_on:
+      grafana-token-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/api/health | grep -q '\"database\": *\"ok\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    ports:
+      - "127.0.0.1:3001:3000"
+    networks: [identity, outbound]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  cloud-verifier:
+    profiles: [tools]
+    build:
+      context: ./internal/cloud-verifier
+    image: mssql-jdbc-cloud-verifier:local
+    user: "${DEMO_UID:-10001}:${DEMO_GID:-10001}"
+    environment:
+      AZURE_CONFIG_DIR: /run/azure/session
+      HOME: /run/azure
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID}
+      KUSTO_CLUSTER_URI: ${KUSTO_CLUSTER_URI}
+      KUSTO_DATABASE: ${KUSTO_DATABASE}
+      STORAGE_ACCOUNT: ${STORAGE_ACCOUNT}
+      STORAGE_CONTAINER: ${STORAGE_CONTAINER}
+      ROOT_PATH: ${ROOT_PATH}
+      GRAFANA_URL: http://grafana:3000
+      GRAFANA_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - type: bind
+        source: ${AZURE_HOST_PATH}
+        target: /host/.azure
+        read_only: true
+        bind:
+          create_host_path: false
+      - ./.scripts/azure-session.sh:/app/azure-session.sh:ro
+      - "${CLOUD_ARTIFACT_DIR}:/artifacts:rw"
+    tmpfs:
+      - /run/azure:rw,noexec,nosuid,nodev,mode=0700,uid=${DEMO_UID:-10001},gid=${DEMO_GID:-10001},size=64m
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    depends_on:
+      grafana:
+        condition: service_healthy
+      delta-bulk-loader:
+        condition: service_started
+    networks: [identity, outbound]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+networks:
+  identity:
+    internal: true
+

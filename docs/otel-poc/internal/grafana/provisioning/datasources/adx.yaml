@@ -1,0 +1,21 @@
+apiVersion: 1
+datasources:
+  - name: ADX JDBC Connection Errors
+    uid: adx-jdbc-errors
+    type: grafana-azure-data-explorer-datasource
+    access: proxy
+    isDefault: true
+    editable: false
+    jsonData:
+      clusterUrl: ${GRAFANA_ADX_CLUSTER_URL}
+      defaultDatabase: ${GRAFANA_ADX_DATABASE}
+      azureCredentials:
+        authType: msi
+      defaultEditorMode: raw
+      dataConsistency: strongconsistency
+      dynamicCaching: false
+      useSchemaMapping: false
+      enableUserTracking: false
+      application: mssql-jdbc-connection-error-demo
+      queryTimeout: 120s
+      timeout: 120s

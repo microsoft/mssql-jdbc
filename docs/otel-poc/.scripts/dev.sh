@@ -7,6 +7,10 @@ POC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$POC_DIR"
 # Prevent Git Bash rewriting Docker/Linux paths on Windows.
 export MSYS_NO_PATHCONV=1
+if [[ "${1:-}" == cloud ]]; then
+  shift
+  exec bash .scripts/cloud.sh "$@"
+fi
 compat=false
 if [[ "${1:-}" == compat ]]; then
   compat=true
@@ -143,6 +147,7 @@ case "${1:-help}" in
     ;;
   help)
     echo 'Usage: bash .scripts/dev.sh config|build|up|gate|run|status|logs [service]|down|clean'
+    echo '       bash .scripts/dev.sh cloud ENV_FILE config|up|status|logs [service]|down|clean'
     echo 'DEMO_STACK=local (default), internal, or delta. up preserves existing volumes.'
     echo 'DEMO_WITH_SQL=true adds isolated local SQL in any mode; supply its password externally.'
     echo 'compat up|config|build|gate|run|status|logs|down|clean opts into SQL + MISE + Delta + CLI broker.'

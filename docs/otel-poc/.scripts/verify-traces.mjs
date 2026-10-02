@@ -20,16 +20,24 @@ function privateFields(value) {
   for (const child of Object.values(value)) privateFields(child);
 }
 
-export function verify(batches, { service, scenarios, repeat }) {
+export function verify(batches, { service, scenarios, repeat, expectedCounts }) {
   const selected = scenarios.split(',');
   if (!service || !/^[1-9][0-9]*$/.test(String(repeat)) || Number(repeat) > 1000
       || new Set(selected).size !== selected.length
       || selected.some(s => !['config', 'dns', 'login', 'success'].includes(s))) fail();
   const phases = { config: 'configuration', dns: 'dns', login: 'login' };
   const categories = { configuration: 'configuration', dns: 'name_resolution', login: 'authentication' };
-  const expected = new Map(selected.filter(s => s !== 'success').map(s => [phases[s], Number(repeat)]));
+  const configuredCounts = expectedCounts;
+  const expected = configuredCounts
+    ? new Map(configuredCounts.split(',').map(item => {
+        const [phase, count] = item.split(':');
+        if (!['configuration', 'dns', 'login'].includes(phase) || !/^(?:0|[1-9][0-9]{0,2}|1000)$/.test(count ?? '')) fail();
+        return [phase, Number(count)];
+      }))
+    : new Map(selected.filter(s => s !== 'success').map(s => [phases[s], Number(repeat)]));
+  for (const phase of ['configuration', 'dns', 'login']) if (!expected.has(phase)) expected.set(phase, 0);
   // Absence by itself could mean a dead exporter. Always require a positive control.
-  if (!expected.size) fail();
+  if (![...expected.values()].some(count => count > 0)) fail();
   const spans = new Map();
   for (const batch of batches) {
     if (batch.resourceMetrics || batch.resourceLogs) fail();
@@ -40,6 +48,7 @@ export function verify(batches, { service, scenarios, repeat }) {
         if (scope.scope?.name !== 'com.microsoft.sqlserver.jdbc') fail();
         for (const input of scope.spans ?? []) {
           const span = { ...input };
+          if ((span.events ?? []).some(event => !['mssql.driver.error', 'mssql.driver.connection.retry_decision'].includes(event.name))) fail();
           if (!/^mssql\.driver\.connection\.(open|attempt|configuration|instance_discovery|dns|socket_connect|prelogin|tls|login|token_acquisition|redirect|initialize|unknown)$/.test(span.name)
               || !validId(span.traceId, 32) || !validId(span.spanId, 16)
               || (!noParent(span.parentSpanId) && !validId(span.parentSpanId, 16))) fail();
@@ -112,7 +121,8 @@ async function main() {
   const options = {
     service: process.env.OTEL_SERVICE_NAME,
     scenarios: process.env.DEMO_SCENARIOS || 'config,dns',
-    repeat: process.env.DEMO_REPEAT || '1'
+    repeat: process.env.DEMO_REPEAT || '1',
+    expectedCounts: process.env.DEMO_EXPECTED_FAILURE_COUNTS
   };
   // Allow batching and file flush; require five consecutive matching snapshots.
   let stable = 0;

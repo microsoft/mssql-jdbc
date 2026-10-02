@@ -14,21 +14,43 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlsplit
 
 
-ALLOWED_RESOURCES = frozenset((
+BASE_ALLOWED_RESOURCES = frozenset((
+    "https://storage.azure.com",
     "https://storage.azure.com/",
+    "https://eventhubs.azure.net",
     "https://eventhubs.azure.net/",
+    "https://management.core.windows.net",
+    "https://management.core.windows.net/",
+    "https://management.azure.com",
     "https://management.azure.com/",
+    "https://kusto.kusto.windows.net",
+    "https://kusto.kusto.windows.net/",
 ))
 DEFAULT_RESOURCES = "https://storage.azure.com/,https://eventhubs.azure.net/"
 TOKEN_PATH = "/metadata/identity/oauth2/token"
 
 
+def allowed_resources():
+    resources = set(BASE_ALLOWED_RESOURCES)
+    cluster = os.environ.get("KUSTO_CLUSTER_URI", "")
+    if cluster:
+        parsed = urlsplit(cluster)
+        if (parsed.scheme != "https" or parsed.username or parsed.password
+                or parsed.query or parsed.fragment or parsed.path not in ("", "/")
+                or not parsed.hostname or not parsed.hostname.endswith(".kusto.windows.net")):
+            raise ValueError("Invalid Kusto cluster resource")
+        resources.add(f"https://{parsed.hostname}")
+        resources.add(f"https://{parsed.hostname}/")
+    return frozenset(resources)
+
+
 class TokenBroker:
     def __init__(self, secret, resources):
         selected = frozenset(resources.split(","))
+        supported = allowed_resources()
         if (len(secret) < 32 or len(secret) > 256 or not secret.isascii()
                 or any(ord(char) < 33 or ord(char) > 126 for char in secret)
-                or not selected or not selected.issubset(ALLOWED_RESOURCES)):
+                or not selected or not selected.issubset(supported)):
             raise ValueError("Invalid broker configuration")
         self.secret = secret.encode("ascii")
         self.resources = selected
