@@ -37,6 +37,7 @@ public final class Vector implements java.io.Serializable {
     private int dimensionCount;
 
     private Object[] data;
+    private float[] floatData;
 
     /**
      * Constructor for Vector with dimension count and vector type.
@@ -65,12 +66,54 @@ public final class Vector implements java.io.Serializable {
     }
 
     /**
+     * Internal constructor for driver deserialization without boxing overhead.
+     * 
+     * @param dimensionCount The number of dimensions in the vector.
+     * @param vectorType     The type of the vector.
+     * @param floatData      The vector data as primitive {@code float[]}.
+     * @param internal       Discriminator flag for internal use.
+     */
+    public Vector(int dimensionCount, VectorDimensionType vectorType, float[] floatData, boolean internal) {
+        validateVectorParameters(dimensionCount, vectorType, floatData);
+
+        this.dimensionCount = dimensionCount;
+        this.vectorType = vectorType;
+        this.floatData = floatData;
+    }
+
+    /**
      * Returns the data of the vector.
      * 
      * @return The vector data as {@code Float[]}, or {@code null}.
      */
     public Object[] getData() {
+        if (data == null && floatData != null) {
+            Float[] boxed = new Float[dimensionCount];
+            for (int i = 0; i < dimensionCount; i++) {
+                boxed[i] = floatData[i];
+            }
+            data = boxed;
+        }
         return data;
+    }
+
+    /**
+     * Internal accessor for driver serialization without unboxing overhead.
+     * 
+     * @return primitive float array, synchronized with Object[] data if mutated.
+     */
+    public float[] getFloatDataInternal() {
+        if (data != null) {
+            float[] primitive = (floatData != null && floatData.length == dimensionCount)
+                    ? floatData
+                    : new float[dimensionCount];
+            for (int i = 0; i < dimensionCount; i++) {
+                primitive[i] = data[i] != null ? ((Number) data[i]).floatValue() : 0.0f;
+            }
+            floatData = primitive;
+            return floatData;
+        }
+        return floatData;
     }
 
     /**
@@ -98,7 +141,8 @@ public final class Vector implements java.io.Serializable {
      */
     @Override
     public String toString() {
-        return "VECTOR(" + vectorType + ", " + dimensionCount + ") : " + Arrays.toString(data);
+        return "VECTOR(" + vectorType + ", " + dimensionCount + ") : "
+                + (floatData != null && data == null ? Arrays.toString(floatData) : Arrays.toString(data));
     }
 
     private static void validateVectorParameters(int dimensionCount, VectorDimensionType vectorType, Object[] data) {
@@ -115,6 +159,18 @@ public final class Vector implements java.io.Serializable {
             if (!(data instanceof Float[])) {
                 throw vectorException("R_VectorDataTypeMismatch");
             }
+        }
+    }
+
+    private static void validateVectorParameters(int dimensionCount, VectorDimensionType vectorType, float[] floatData) {
+        if (dimensionCount <= 0) {
+            throw vectorException("R_InvalidVectorDimensionCount");
+        }
+        if (vectorType == null) {
+            throw vectorException("R_VectorDimensionTypeCannotBeNull");
+        }
+        if (floatData != null && floatData.length != dimensionCount) {
+            throw vectorException("R_VectorDimensionCountMismatch");
         }
     }
 
