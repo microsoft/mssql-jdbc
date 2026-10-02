@@ -76,6 +76,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     private static final long serialVersionUID = 1989903904654306244L;
 
     private static final String MAX = "(max)";
+    private static final int GUID_TEXT_LENGTH = 36;
+    private static final int BRACED_GUID_TEXT_LENGTH = 38;
+    private static final int BRACED_GUID_CLOSING_BRACE_INDEX = 37;
 
     /**
      * Represents the column mappings between the source and destination table
@@ -640,6 +643,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
     /**
      * Copies all rows in the supplied ResultSet to a destination table specified by the destinationTableName property
      * of the SQLServerBulkCopy object.
+     * <p>
+     * Plaintext uniqueidentifier columns from a {@link SQLServerResultSet} are sent in native GUID format when the
+     * destination column is also a plaintext uniqueidentifier. This does not change the source's public JDBC metadata.
+     * Character source columns retain server-side conversion, and encrypted columns retain their existing handling.
      * 
      * @param sourceData
      *        ResultSet to read data rows from.
@@ -932,6 +939,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 tdsWriter.writeByte((byte) ((SSType.BINARY == destSSType) ? 0xAD : 0xA5));
             }
             tdsWriter.writeShort((short) (bulkPrecision));
+        } else if (isNativeGuid(srcColumnIndex, destColumnIndex)) {
+            tdsWriter.writeByte(TDSType.GUID.byteValue());
+            tdsWriter.writeByte((byte) 0x10);
         } else {
             writeTypeInfo(tdsWriter, bulkJdbcType, bulkScale, bulkPrecision, destSSType, collation, isStreaming,
                     srcNullable, false);
@@ -1391,6 +1401,16 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             return "varbinary(" + bulkPrecision + ")";
         }
         bulkPrecision = validateSourcePrecision(srcPrecision, bulkJdbcType, destPrecision);
+
+        if (isNativeGuid(srcColIndx, destColIndx)) {
+            // Preserve the former CHAR(n) metadata limits, including for null values.
+            if (bulkPrecision < 1 || bulkPrecision > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
+                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidLength"));
+                SQLServerException.makeFromDriverError(connection, this, form.format(new Object[] {bulkPrecision}),
+                        null, false);
+            }
+            return SSType.GUID.toString();
+        }
 
         if ((java.sql.Types.NCHAR == bulkJdbcType) || (java.sql.Types.NVARCHAR == bulkJdbcType)
                 || (java.sql.Types.LONGNVARCHAR == bulkJdbcType)) {
@@ -2069,6 +2089,23 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
     }
 
+    private boolean isNativeGuid(int srcColOrdinal, int destColOrdinal) throws SQLServerException {
+        BulkColumnMetaData destination = destColumnMetadata.get(destColOrdinal);
+        if (SSType.GUID != destination.ssType || null != destination.cryptoMeta || null != destination.encryptionType
+                || copyOptions.isAllowEncryptedValueModifications()) {
+            return false;
+        }
+        if (sourceResultSet instanceof SQLServerResultSet) {
+            // Inspect the current source without changing its cached/public JDBC type (GUID is exposed as CHAR).
+            Column column = ((SQLServerResultSet) sourceResultSet).getColumn(srcColOrdinal);
+            return null == column.getCryptoMetadata() && SSType.GUID == column.getTypeInfo().getSSType();
+        }
+        if (null == sourceResultSet && null != serverBulkData) {
+            return microsoft.sql.Types.GUID == serverBulkData.getColumnType(srcColOrdinal);
+        }
+        return microsoft.sql.Types.GUID == srcColumnMetadata.get(srcColOrdinal).jdbcType;
+    }
+
     /**
      * Oracle 12c database returns precision = 0 for char/varchar data types.
      */
@@ -2255,6 +2292,65 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         if (columnMappings.isEmpty()) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_BulkColumnMappingsIsEmpty"), null, 0,
                     false);
+        }
+    }
+
+    /**
+     * Writes the value of a uniqueidentifier destination column in the native 16 byte representation, which spares the
+     * server a conversion from a character string for every row.
+     */
+    private void writeGuidToTdsWriter(TDSWriter tdsWriter, Object colValue, int precision) throws SQLServerException {
+        if (null == colValue) {
+            tdsWriter.writeByte((byte) 0);
+            return;
+        }
+
+        UUID guidValue;
+        try {
+            if (colValue instanceof UUID) {
+                // UUID objects previously used their 36-character rendering on the CHAR wire path.
+                validateGuidLength(GUID_TEXT_LENGTH, precision);
+                guidValue = (UUID) colValue;
+            } else {
+                guidValue = parseGuid(colValue.toString(), precision);
+            }
+        } catch (IllegalArgumentException ex) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
+            Object[] msgArgs = {"'" + colValue + "'", JDBCType.GUID};
+            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_NOT_SPECIFIC,
+                    DriverError.NOT_SET, ex);
+        }
+
+        tdsWriter.writeByte((byte) 0x10);
+        tdsWriter.writeBytes(Util.asGuidByteArray(guidValue));
+    }
+
+    static UUID parseGuid(String value, int precision) {
+        // The former CHAR payload had to fit its declared precision before SQL Server converted it.
+        validateGuidLength(value.length(), precision);
+        int start = '{' == value.charAt(0) ? 1 : 0;
+        // SQL Server ignores suffixes after a complete GUID (or {GUID}), but does not trim leading whitespace.
+        if (1 == start && (value.length() < BRACED_GUID_TEXT_LENGTH
+                || '}' != value.charAt(BRACED_GUID_CLOSING_BRACE_INDEX))) {
+            throw new IllegalArgumentException();
+        }
+        // UUID.fromString accepts short groups and non-ASCII digits on some JDKs; SQL Server requires 8-4-4-4-12.
+        for (int i = 0; i < GUID_TEXT_LENGTH; i++) {
+            char c = value.charAt(start + i);
+            if (8 == i || 13 == i || 18 == i || 23 == i) {
+                if ('-' != c) {
+                    throw new IllegalArgumentException();
+                }
+            } else if (!(('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || ('A' <= c && c <= 'F'))) {
+                throw new IllegalArgumentException();
+            }
+        }
+        return UUID.fromString(value.substring(start, start + GUID_TEXT_LENGTH));
+    }
+
+    private static void validateGuidLength(int length, int precision) {
+        if (length < GUID_TEXT_LENGTH || length > precision) {
+            throw new IllegalArgumentException();
         }
     }
 
@@ -3281,6 +3377,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             destSSType = destCryptoMeta.baseTypeInfo.getSSType();
         }
 
+        // Inspect metadata before opening a source stream: getColumn can close an active ResultSet stream.
+        boolean nativeGuid = isNativeGuid(srcColOrdinal, destColOrdinal);
+
         // Get the cell from the source result set if we are copying from result set.
         // If we are copying from a bulk reader colValue will be passed as the argument.
         if (null != sourceResultSet) {
@@ -3376,8 +3475,12 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         destCryptoMeta, connection, null);
             }
         }
-        writeColumnToTdsWriter(tdsWriter, srcPrecision, srcScale, srcJdbcType, srcNullable, srcColOrdinal,
-                destColOrdinal, isStreaming, colValue, cal);
+        if (nativeGuid) {
+            writeGuidToTdsWriter(tdsWriter, colValue, srcPrecision);
+        } else {
+            writeColumnToTdsWriter(tdsWriter, srcPrecision, srcScale, srcJdbcType, srcNullable, srcColOrdinal,
+                    destColOrdinal, isStreaming, colValue, cal);
+        }
     }
 
     /**
