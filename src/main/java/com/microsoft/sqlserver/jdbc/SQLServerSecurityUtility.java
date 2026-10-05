@@ -22,7 +22,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.azure.core.credential.AccessToken;
-import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
@@ -382,8 +381,25 @@ class SQLServerSecurityUtility {
                 + SQLServerMSAL4JUtils.SLASH_DEFAULT;
         tokenRequestContext.setScopes(Arrays.asList(scope));
 
-        SqlAuthenticationToken sqlFedAuthToken = getCredentialAuthToken(mic, tokenRequestContext,
-                millisecondsRemaining, key);
+        Optional<AccessToken> accessTokenOptional;
+        try {
+            accessTokenOptional = mic.getToken(tokenRequestContext)
+                    .timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS))
+                    .blockOptional();
+        } catch (RuntimeException e) {
+            removeCredentialFromCache(key, mic);
+            throw mapTokenAcquisitionException(e);
+        }
+
+        if (!accessTokenOptional.isPresent()) {
+            removeCredentialFromCache(key, mic);
+            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
+                    null);
+        }
+
+        AccessToken accessToken = accessTokenOptional.get();
+        SqlAuthenticationToken sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(),
+                accessToken.getExpiresAt().toInstant().toEpochMilli());
 
         if (logger.isLoggable(java.util.logging.Level.FINEST)) {
             logger.finest("Got fedAuth token, expiry: " + sqlFedAuthToken.getExpiresOn().toString());
@@ -456,50 +472,43 @@ class SQLServerSecurityUtility {
                 + SQLServerMSAL4JUtils.SLASH_DEFAULT;
         tokenRequestContext.setScopes(Arrays.asList(scope));
 
-        return getCredentialAuthToken(dac, tokenRequestContext, millisecondsRemaining, key);
-    }
-
-    static SqlAuthenticationToken getCredentialAuthToken(TokenCredential credential,
-            TokenRequestContext tokenRequestContext, long millisecondsRemaining) throws SQLServerException {
-        return getCredentialAuthToken(credential, tokenRequestContext, millisecondsRemaining, null);
-    }
-
-    private static SqlAuthenticationToken getCredentialAuthToken(TokenCredential credential,
-            TokenRequestContext tokenRequestContext, long millisecondsRemaining,
-            String credentialCacheKey) throws SQLServerException {
+        Optional<AccessToken> accessTokenOptional;
         try {
-            Optional<AccessToken> accessTokenOptional = credential.getToken(tokenRequestContext)
+            accessTokenOptional = dac.getToken(tokenRequestContext)
                     .timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS))
                     .blockOptional();
-
-            if (!accessTokenOptional.isPresent()) {
-                removeCredentialFromCacheIfPresent(credentialCacheKey, credential);
-                throw new SQLServerException(
-                        SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"), null);
-            }
-
-            AccessToken accessToken = accessTokenOptional.get();
-            return new SqlAuthenticationToken(accessToken.getToken(),
-                    accessToken.getExpiresAt().toInstant().toEpochMilli());
         } catch (RuntimeException e) {
-            removeCredentialFromCacheIfPresent(credentialCacheKey, credential);
-
-            Throwable interruptedCause = findCause(e, InterruptedException.class);
-            if (null != interruptedCause) {
-                Thread.currentThread().interrupt();
-                throw new SQLServerException(
-                        SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"), interruptedCause);
-            }
-
-            Throwable timeoutCause = findCause(e, java.util.concurrent.TimeoutException.class);
-            if (null != timeoutCause) {
-                throw new SQLServerException(
-                        SQLServerException.getErrString("R_AADTokenAcquisitionTimeout"), timeoutCause);
-            }
-
-            throw new SQLServerException(
-                    SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionError"), e);
+            removeCredentialFromCache(key, dac);
+            throw mapTokenAcquisitionException(e);
         }
+
+        if (!accessTokenOptional.isPresent()) {
+            removeCredentialFromCache(key, dac);
+            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
+                    null);
+        }
+
+        AccessToken accessToken = accessTokenOptional.get();
+        return new SqlAuthenticationToken(accessToken.getToken(),
+                accessToken.getExpiresAt().toInstant().toEpochMilli());
+    }
+
+    static SQLServerException mapTokenAcquisitionException(RuntimeException exception) {
+        Throwable interruptedCause = findCause(exception, InterruptedException.class);
+        if (null != interruptedCause) {
+            Thread.currentThread().interrupt();
+            return new SQLServerException(
+                    SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"), interruptedCause);
+        }
+
+        Throwable timeoutCause = findCause(exception, java.util.concurrent.TimeoutException.class);
+        if (null != timeoutCause) {
+            return new SQLServerException(
+                    SQLServerException.getErrString("R_AADTokenAcquisitionTimeout"), timeoutCause);
+        }
+
+        return new SQLServerException(
+                SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionError"), exception);
     }
 
     private static Throwable findCause(Throwable throwable, Class<? extends Throwable> expectedType) {
@@ -510,12 +519,6 @@ class SQLServerSecurityUtility {
             throwable = throwable.getCause();
         }
         return null;
-    }
-
-    private static void removeCredentialFromCacheIfPresent(String key, Object expectedCredential) {
-        if (null != key) {
-            removeCredentialFromCache(key, expectedCredential);
-        }
     }
 
     private static String[] getAdditonallyAllowedTenants() {
