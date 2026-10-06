@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -61,12 +62,12 @@ public class SQLServerMSAL4JUtilsTest {
     }
 
     @Test
-    public void testTokenAcquisitionInterruptionIsMappedAndRestored() {
+    public void testDirectTokenAcquisitionInterruptionIsMappedAndRestored() {
         InterruptedException interrupted = new InterruptedException("token acquisition interrupted");
 
         try {
             SQLServerException exception = SQLServerMSAL4JUtils.mapTokenAcquisitionException(
-                    new ExecutionException(interrupted), USER, AUTHENTICATION);
+                    interrupted, USER, AUTHENTICATION);
 
             assertEquals(SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"),
                     exception.getMessage());
@@ -78,13 +79,26 @@ public class SQLServerMSAL4JUtilsTest {
     }
 
     @Test
+    public void testWorkerTokenAcquisitionInterruptionDoesNotInterruptCaller() {
+        InterruptedException interrupted = new InterruptedException("worker token acquisition interrupted");
+        SQLServerException exception = SQLServerMSAL4JUtils.mapTokenAcquisitionException(
+                new ExecutionException(interrupted), USER, AUTHENTICATION);
+
+        assertEquals(SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"),
+                exception.getMessage());
+        assertSame(interrupted, exception.getCause());
+        assertFalse(Thread.currentThread().isInterrupted());
+    }
+
+    @Test
     public void testDirectRuntimeFailurePreservesCause() {
-        RuntimeException failure = new RuntimeException("synchronous MSAL failure");
+        RuntimeException failure = new RuntimeException("{\"error\":\"synchronous MSAL failure\"}");
         SQLServerException exception = SQLServerMSAL4JUtils
                 .mapTokenAcquisitionException(failure, USER, AUTHENTICATION);
 
         assertTrue(exception.getMessage().startsWith(MessageFormat.format(
                 SQLServerException.getErrString("R_MSALExecution"), USER, AUTHENTICATION)));
+        assertTrue(exception.getMessage().contains(failure.getMessage()));
         assertSame(failure, exception.getCause());
     }
 

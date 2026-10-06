@@ -533,7 +533,9 @@ class SQLServerMSAL4JUtils {
     static SQLServerException mapTokenAcquisitionException(Exception e, String user, String authenticationString) {
         Throwable interruptedCause = findCause(e, InterruptedException.class);
         if (null != interruptedCause) {
-            Thread.currentThread().interrupt();
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             return new SQLServerException(
                     SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"), interruptedCause);
         }
@@ -547,11 +549,10 @@ class SQLServerMSAL4JUtils {
         Object[] msgArgs = {user, authenticationString};
 
         if (null == e.getCause() || null == e.getCause().getMessage()) {
-            MessageFormat form = new MessageFormat(
-                    SQLServerException.getErrString("R_MSALExecution") + " " + e.getMessage());
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
 
             // The case when Future's outcome has no AuthenticationResult but Exception.
-            return new SQLServerException(form.format(msgArgs), null, 0, e);
+            return new SQLServerException(form.format(msgArgs) + " " + e.getMessage(), null, 0, e);
         } else {
             /*
              * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
