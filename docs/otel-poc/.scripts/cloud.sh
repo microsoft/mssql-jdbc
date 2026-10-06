@@ -78,8 +78,8 @@ case "$action" in
     preflight
     create_group
     "${compose[@]}" --profile tools config --quiet
-    "${compose[@]}" --profile tools build app token-server grafana cloud-verifier
-    "${compose[@]}" up -d --wait --wait-timeout 240 evidence token-server otelcol delta-bulk-loader sqlserver grafana-token-server grafana
+    "${compose[@]}" --profile tools build app token-server grafana fdh-ui cloud-verifier
+    "${compose[@]}" up -d --wait --wait-timeout 240 evidence token-server otelcol delta-bulk-loader sqlserver grafana-token-server grafana fdh-ui
     "${compose[@]}" run --rm --no-deps -T verify --wait local
     # Separate deterministic batches produce a realistic uneven distribution
     # while preserving one finite Java process and one root per failed open.
@@ -91,7 +91,7 @@ case "$action" in
     "${compose[@]}" cp evidence:/evidence/traces.json "$artifact_dir/evidence.json"
     node .scripts/cloud-e2e.mjs expected "$env_file" "$artifact_dir/evidence.json" > "$artifact_dir/expected.json"
     "${compose[@]}" run --rm --no-deps -T cloud-verifier
-    printf 'Grafana: http://127.0.0.1:3001/d/jdbc-connection-errors\n'
+    printf 'FDH customer mock: http://127.0.0.1:3001\n'
     ;;
   status) "${compose[@]}" ps ;;
   logs) shift 2; "${compose[@]}" logs --tail=100 -f "$@" ;;

@@ -77,11 +77,12 @@ never authenticates, downloads certificates, resets Git, removes host build
 outputs or prunes Docker globally. Use the same `DEMO_STACK` when stopping an
 internal/Delta stack; stop one mode before switching to another.
 
-## Dedicated Kusto + Delta + Grafana E2E
+## Dedicated Kusto + Delta + customer UI E2E
 
 The `cloud` lifecycle preserves this branch's failure-only signal contract while
 running the same accepted connection traces through queued Kusto ingestion,
-ADLS/Event Hub/Delta bulk loading, and a connection-error Grafana dashboard.
+ADLS/Event Hub/Delta bulk loading, internal Grafana verification, and a
+Microsoft Fabric-inspired TypeScript customer mock.
 It is an explicit opt-in and does not reuse or reset the original Protobus
 `AppTelemetry`, `protobus-demo`, or shared Event Hub consumer group targets.
 
@@ -106,8 +107,9 @@ evidence, then verifies the same span IDs, parentage, status, attributes and
 microsecond timestamps in Kusto and committed Delta tables. It rejects JDBC
 metrics, logs, unknown span events, and sensitive event attributes; the two
 sanitized connection-error/retry event types must also agree across Kusto and
-Delta. Finally, it exercises every provisioned Grafana query. Grafana remains loopback-only at
-`http://127.0.0.1:3001/d/jdbc-connection-errors`.
+Delta. Finally, it exercises every provisioned Grafana query. Grafana remains an
+internal verification dependency; the customer-facing FDH mock is loopback-only
+at `http://127.0.0.1:3001`.
 
 `down` removes this run's containers and deletes only its metadata-verified Event
 Hub consumer group. `clean` additionally removes local volumes and the exact
@@ -123,12 +125,12 @@ For a realistic uneven distribution, set `DEMO_CONFIG_COUNT`, `DEMO_DNS_COUNT`,
 `DEMO_LOGIN_COUNT`, and `DEMO_SUCCESS_COUNT`; these per-scenario values override
 `DEMO_REPEAT` for the cloud lifecycle.
 
-The Grafana dashboard provides phase, category, error-type, and connection-GUID
-filters. Click a GUID in the failed-connections table to select one failed open.
-The drill-down panels then show every root span attribute, the complete child
-span tree, and sanitized error/retry events for that connection. Passwords,
-connection strings, SQL text, exception messages, and stack traces are neither
-collected nor displayed.
+The FDH-style mock uses deterministic customer-safe data to support design
+reviews without connecting a browser directly to telemetry backends. It includes
+estate navigation, summary KPIs, failure and latency charts, phase/region/search
+filters, and an individual connection drawer with a span waterfall, all
+attributes, and sanitized error/retry events. Passwords, connection strings, SQL
+text, exception messages, and stack traces are neither collected nor displayed.
 
 ## Scenario and environment contract
 

@@ -120,6 +120,7 @@ services:
 
   grafana-token-server:
     extends: token-server
+    restart: unless-stopped
     environment:
       IDENTITY_HEADER: ${IDENTITY_HEADER}
       TOKEN_ALLOWED_RESOURCES: "https://kusto.kusto.windows.net,https://kusto.kusto.windows.net/,https://management.azure.com,https://management.azure.com/,${KUSTO_CLUSTER_URI},${KUSTO_CLUSTER_URI}/"
@@ -134,6 +135,7 @@ services:
       args:
         GRAFANA_IMAGE: ${GRAFANA_IMAGE:?Set an approved digest-pinned Grafana image}
     image: mssql-jdbc-connection-grafana:local
+    restart: unless-stopped
     user: "472:0"
     environment:
       GF_SECURITY_ADMIN_USER: admin
@@ -159,9 +161,26 @@ services:
       timeout: 5s
       retries: 30
       start_period: 30s
-    ports:
-      - "127.0.0.1:3001:3000"
     networks: [identity, outbound]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  fdh-ui:
+    build:
+      context: ./internal/fdh-ui
+    image: mssql-jdbc-fdh-mock:local
+    restart: unless-stopped
+    depends_on:
+      grafana:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3001:8080"
+    networks: [monitor, outbound]
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:rw,nosuid,nodev,uid=101,gid=101,size=16m
+      - /var/run:rw,nosuid,nodev,uid=101,gid=101,size=1m
+      - /tmp:rw,nosuid,nodev,uid=101,gid=101,size=16m
     security_opt: ["no-new-privileges:true"]
     cap_drop: [ALL]
 

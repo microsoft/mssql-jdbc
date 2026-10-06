@@ -372,7 +372,7 @@ function cli() {
   if (!['config', 'generate', 'expected', 'compare'].includes(command) || !envPath) fail('Usage: cloud-e2e.mjs config|generate|expected|compare ENV_FILE OUTPUT [ACTUAL]');
   const config = configure(parseEnv(readFileSync(resolve(envPath), 'utf8')));
   if (command === 'config') {
-    process.stdout.write(JSON.stringify({ run: config.run, owner: config.owner, project: config.project, service: config.service, cluster: config.cluster, database: config.database, rootPath: config.rootPath, consumerGroup: config.consumerGroup, grafana: 'http://127.0.0.1:3001' }, null, 2) + '\n');
+    process.stdout.write(JSON.stringify({ run: config.run, owner: config.owner, project: config.project, service: config.service, cluster: config.cluster, database: config.database, rootPath: config.rootPath, consumerGroup: config.consumerGroup, customerUi: 'http://127.0.0.1:3001' }, null, 2) + '\n');
     return;
   }
   if (!outputPath) fail('Output directory is required');
