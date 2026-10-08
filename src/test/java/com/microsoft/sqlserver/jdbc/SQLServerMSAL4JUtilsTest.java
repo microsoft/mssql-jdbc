@@ -6,13 +6,27 @@ package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.Test;
 
+import com.microsoft.aad.msal4j.ClientCredentialParameters;
+import com.microsoft.aad.msal4j.ConfidentialClientApplication;
+import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.InteractiveRequestParameters;
+import com.microsoft.aad.msal4j.SilentParameters;
 
 
 /**
@@ -43,5 +57,48 @@ public class SQLServerMSAL4JUtilsTest {
         assertEquals(user, params.loginHint(), "loginHint should be propagated from the connection user");
         assertTrue(params.scopes().contains(spn + SQLServerMSAL4JUtils.SLASH_DEFAULT),
                 "scopes must contain the resource SPN with the /.default suffix");
+    }
+
+    /**
+     * The silent fast-path must return the cached token on a cache hit AND must never fall through
+     * to {@code acquireToken} (the real Entra ID call, which is gated by the global semaphore). This
+     * is the behavior that lets in-memory cache hits bypass the gate.
+     */
+    @Test
+    public void testAcquireTokenSilentlyReturnsCachedTokenOnHit() throws Exception {
+        ConfidentialClientApplication clientApplication = mock(ConfidentialClientApplication.class);
+        IAuthenticationResult silentResult = mock(IAuthenticationResult.class);
+        String cachedAccessToken = "cached-access-token";
+        Date expiry = new Date(System.currentTimeMillis() + 3_600_000L);
+        when(silentResult.accessToken()).thenReturn(cachedAccessToken);
+        when(silentResult.expiresOnDate()).thenReturn(expiry);
+        when(clientApplication.acquireTokenSilently(any(SilentParameters.class)))
+                .thenReturn(CompletableFuture.completedFuture(silentResult));
+
+        Set<String> scopes = Collections.singleton("https://database.windows.net/.default");
+        SqlAuthenticationToken token = SQLServerMSAL4JUtils.acquireTokenSilentlyOrNull(clientApplication, scopes,
+                30000, "principal-id");
+
+        assertNotNull(token, "a cache hit must return a token");
+        assertEquals(cachedAccessToken, token.getAccessToken(), "the cached access token must be returned");
+        verify(clientApplication, never()).acquireToken(any(ClientCredentialParameters.class));
+    }
+
+    /**
+     * On a cache miss, MSAL's silent future completes exceptionally; the helper must swallow that and
+     * return {@code null} so the caller takes the gated slow path that performs the real AAD call.
+     */
+    @Test
+    public void testAcquireTokenSilentlyReturnsNullOnMiss() throws Exception {
+        ConfidentialClientApplication clientApplication = mock(ConfidentialClientApplication.class);
+        CompletableFuture<IAuthenticationResult> miss = new CompletableFuture<>();
+        miss.completeExceptionally(new RuntimeException("no cached token for these scopes"));
+        when(clientApplication.acquireTokenSilently(any(SilentParameters.class))).thenReturn(miss);
+
+        Set<String> scopes = Collections.singleton("https://database.windows.net/.default");
+        SqlAuthenticationToken token = SQLServerMSAL4JUtils.acquireTokenSilentlyOrNull(clientApplication, scopes,
+                30000, "principal-id");
+
+        assertNull(token, "a cache miss must return null so the caller takes the gated slow path");
     }
 }
