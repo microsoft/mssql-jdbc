@@ -27,9 +27,11 @@ import org.junit.runner.RunWith;
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkData;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.SQLServerStatementColumnEncryptionSetting;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -66,7 +68,7 @@ public class BulkCopyGuidAETest extends AESetup {
     public void testBulkCopyGuidIntoEncryptedColumn() throws SQLException {
         UUID guid = UUID.randomUUID();
 
-        try (Connection conn = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+        try (SQLServerConnection conn = PrepUtil.getConnection(AETestConnectionString, AEInfo);
                 Statement stmt = conn.createStatement()) {
             createEncryptedGuidTable(stmt);
             try {
@@ -82,7 +84,7 @@ public class BulkCopyGuidAETest extends AESetup {
                     assertEquals(guid, UUID.fromString(rs.getUniqueIdentifier(1)));
                 }
 
-                assertStoredValueIsCiphertext();
+                assertStoredValueIsCiphertext(conn);
             } finally {
                 TestUtils.dropTableIfExists(destTableNameAE, stmt);
             }
@@ -170,12 +172,12 @@ public class BulkCopyGuidAETest extends AESetup {
     }
 
     /**
-     * Reads the column over a connection without column encryption, where the driver cannot decrypt, to show that what
-     * reached the server is the ciphertext of the value and not the 16 bytes of the GUID itself.
+     * Reads ciphertext with decryption disabled for this statement, using the same connection that created the table
+     * because AE setup can target a different server from the base connection string.
      */
-    private void assertStoredValueIsCiphertext() throws SQLException {
-        try (Connection plainConn = PrepUtil.getConnection(connectionString);
-                Statement plainStmt = plainConn.createStatement();
+    private void assertStoredValueIsCiphertext(SQLServerConnection conn) throws SQLException {
+        try (Statement plainStmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                conn.getHoldability(), SQLServerStatementColumnEncryptionSetting.DISABLED);
                 ResultSet rs = plainStmt.executeQuery("SELECT guidCol FROM " + destTableNameAE)) {
             assertTrue(rs.next());
             byte[] stored = rs.getBytes(1);
