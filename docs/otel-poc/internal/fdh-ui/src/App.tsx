@@ -30,6 +30,11 @@ const phaseColor: Record<FailurePhase, string> = {
   Login: '#c239b3',
 };
 
+const statementCategoryColor: Record<string, string> = {
+  'Constraint violation': '#c50f1f',
+  'Query syntax & semantics': '#5b5fc7',
+};
+
 function Logo() {
   return (
     <div className="logo-mark" aria-label="FDH">
@@ -115,6 +120,84 @@ function Activity({ data }: { data: ConnectionFailure[] }) {
         {[25, 65, 105].map(y => <line key={y} x1="0" x2="560" y1={y} y2={y} className="chart-grid" />)}
         <polygon points={`0,120 ${line} 560,120`} fill="url(#area)" />
         <polyline points={line} fill="none" stroke="#5b5fc7" strokeWidth="2.3" />
+      </svg>
+      <div className="chart-axis"><span>Earlier</span><span>Recent</span></div>
+    </div>
+  );
+}
+
+function StatementDistribution({ data }: { data: StatementFailure[] }) {
+  const categories = ['Constraint violation', 'Query syntax & semantics'];
+  const counts = categories.map(category => ({
+    category,
+    count: data.filter(item => item.category === category).length,
+  }));
+  const top = [...counts].sort((a, b) => b.count - a.count)[0];
+  const max = Math.max(...counts.map(item => item.count), 1);
+  return (
+    <div className="panel distribution-panel statement-distribution-panel">
+      <div className="panel-title-row">
+        <div>
+          <h3>Statement failures by category</h3>
+          <p>Failed Statement and PreparedStatement executions grouped by driver category</p>
+        </div>
+        <Button appearance="subtle" icon={<MoreHorizontalRegular />} />
+      </div>
+      <div className="distribution-content">
+        <div className="bars statement-bars" aria-label="Statement error category distribution">
+          {counts.map(item => (
+            <div className="bar-group" key={item.category}>
+              <div className="bar-value">{item.count}</div>
+              <div className="bar-track">
+                <div
+                  className="bar-fill"
+                  style={{
+                    height: `${Math.max((item.count / max) * 100, 4)}%`,
+                    background: statementCategoryColor[item.category],
+                  }}
+                />
+              </div>
+              <div className="bar-label">{item.category}</div>
+            </div>
+          ))}
+        </div>
+        <div className="insight-card statement-insight-card">
+          <span className="insight-kicker">Top category</span>
+          <strong>{top.category}</strong>
+          <span>{Math.round((top.count / Math.max(data.length, 1)) * 100)}% of statement failures</span>
+          <div className="mini-rule" />
+          <span className="insight-note">Stable, message-independent classification</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatementActivity({ data }: { data: StatementFailure[] }) {
+  const points = data.slice(0, 32).reverse().map((item, index) => ({
+    x: index * (560 / 31),
+    y: 108 - Math.min(item.duration, 94),
+  }));
+  const line = points.map(point => `${point.x},${point.y}`).join(' ');
+  return (
+    <div className="panel activity-panel">
+      <div className="panel-title-row">
+        <div>
+          <h3>Statement failure duration</h3>
+          <p>End-to-end latency for recent failed SQL executions</p>
+        </div>
+        <span className="period-chip">Last 24 hours</span>
+      </div>
+      <svg className="activity-chart" viewBox="0 0 560 130" preserveAspectRatio="none" role="img" aria-label="Statement failure duration chart">
+        <defs>
+          <linearGradient id="statement-area" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor="#c50f1f" stopOpacity=".22" />
+            <stop offset="1" stopColor="#c50f1f" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[25, 65, 105].map(y => <line key={y} x1="0" x2="560" y1={y} y2={y} className="chart-grid" />)}
+        <polygon points={`0,120 ${line} 560,120`} fill="url(#statement-area)" />
+        <polyline points={line} fill="none" stroke="#c50f1f" strokeWidth="2.3" />
       </svg>
       <div className="chart-axis"><span>Earlier</span><span>Recent</span></div>
     </div>
@@ -249,6 +332,11 @@ export function App() {
 
   const loginCount = filtered.filter(item => item.phase === 'Login').length;
   const avgDuration = filtered.length ? Math.round(filtered.reduce((sum, item) => sum + item.duration, 0) / filtered.length) : 0;
+  const preparedStatementCount = statementFailures.filter(item => item.statementType === 'PreparedStatement').length;
+  const statementAvgDuration = statementFailures.length
+    ? Math.round(statementFailures.reduce((sum, item) => sum + item.duration, 0) / statementFailures.length)
+    : 0;
+  const statementCategoryCount = new Set(statementFailures.map(item => item.category)).size;
 
   return (
     <div className="app-shell">
@@ -322,6 +410,20 @@ export function App() {
             </table>
           </div>
           <div className="table-footer"><span>Showing {Math.min(filtered.length, 40)} of {filtered.length} failures</span><span>Mock data · no customer identifiers</span></div>
+        </section>
+        <section className="statement-analysis-header">
+          <div><h2>Statement error analysis</h2><p>Category trends for failed Statement and PreparedStatement executions.</p></div>
+          <span className="period-chip">{statementFailures.length} failures</span>
+        </section>
+        <section className="metrics statement-metrics">
+          <MetricCard label="Failed statements" value={statementFailures.length.toLocaleString()} delta="Last 24 hours" tone="#c50f1f" />
+          <MetricCard label="PreparedStatement failures" value={preparedStatementCount.toLocaleString()} delta={`${Math.round(preparedStatementCount / Math.max(statementFailures.length, 1) * 100)}% of failures`} tone="#5b5fc7" />
+          <MetricCard label="Average duration" value={`${statementAvgDuration} ms`} delta="Across failed executions" tone="#c239b3" />
+          <MetricCard label="Error categories" value={String(statementCategoryCount)} delta="Stable driver classification" tone="#117865" />
+        </section>
+        <section className="charts-grid statement-charts-grid">
+          <StatementDistribution data={statementFailures} />
+          <StatementActivity data={statementFailures} />
         </section>
         <section className="panel table-panel statement-panel">
           <div className="panel-title-row table-title-row">

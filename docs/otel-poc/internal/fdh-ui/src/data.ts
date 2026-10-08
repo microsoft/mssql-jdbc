@@ -156,7 +156,7 @@ export const failures: ConnectionFailure[] = phaseCounts.flatMap(([phase, count]
 
 export const statementFailures: StatementFailure[] = Array.from({ length: 42 }, (_, position): StatementFailure => {
   const prepared = position % 3 !== 0;
-  const constraint = position % 2 === 0;
+  const constraint = position % 5 < 3;
   const index = 500 + position;
   const duration = Math.round(12 + seeded(index, 12) * 95);
   const id = guid(index).replaceAll('-', '');
