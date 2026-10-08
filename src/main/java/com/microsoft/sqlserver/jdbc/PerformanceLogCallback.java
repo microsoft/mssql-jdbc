@@ -77,7 +77,7 @@ public interface PerformanceLogCallback {
     }
 
     /**
-     * Returns the SQL text for the current performance event.
+    * Returns the SQL text for the current performance event, including statement lifecycle boundary publication.
      * Only valid inside a {@link #publish} callback invocation.
      * Returns {@code null} for connection-level activities or when called outside {@code publish()}.
      *
@@ -88,7 +88,7 @@ public interface PerformanceLogCallback {
     }
 
     /**
-     * Returns the statement type for the current performance event.
+    * Returns the statement type for the current performance event, including statement lifecycle boundary publication.
      * Only valid inside a {@link #publish} callback invocation.
      * Returns {@code null} for connection-level activities or when called outside {@code publish()}.
      *

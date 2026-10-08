@@ -79,6 +79,7 @@ class PerformanceLog {
         private final boolean useNanos;
         private final PerformanceLogCallback lifecycleCallback;
         private final ConnectionPerformanceState.Node lifecycle;
+        private final StatementPerformanceState.Node statementLifecycle;
         private boolean closed;
 
         private Exception exception;
@@ -90,6 +91,7 @@ class PerformanceLog {
             useNanos = false;
             lifecycleCallback = null;
             lifecycle = null;
+            statementLifecycle = null;
             closed = true;
         }
 
@@ -119,18 +121,23 @@ class PerformanceLog {
                 this.activity = activity;
                 this.startTime = useNanos ? System.nanoTime() : System.currentTimeMillis();
 
-                // If we have a callback and statement info, capture it for use during publish
-                if (registered != null && stmt != null) {
-                    this.stmtHandle = stmt;
-                    this.userSql = userSql;
-                }
+            }
+            // Lifecycle-only statement scopes are not legacy-enabled, but still need callback-scoped metadata.
+            if (registered != null && stmt != null) {
+                this.stmtHandle = stmt;
+                this.userSql = userSql;
             }
                 lifecycle = allowLifecycle && lifecycleCallback != null && statementId == 0 && stmt == null
                     && activity.connectionPhase() != null
                     && (con == null || !con.getSessionRecovery().isReconnectRunning())
                     && (activity == PerformanceActivity.CONNECTION || ConnectionPerformanceState.current(con) != null)
                         ? ConnectionPerformanceState.enter(con, activity) : null;
-            if (lifecycle != null && lifecycleCallback != null) {
+                    statementLifecycle = allowLifecycle && lifecycleCallback != null && statementId != 0 && stmt != null
+                        && activity.statementPhase() != null
+                        && (activity == PerformanceActivity.STATEMENT_INVOCATION
+                            || StatementPerformanceState.current(stmt) != null)
+                            ? StatementPerformanceState.enter(stmt, activity, userSql) : null;
+                    if (lifecycle != null && lifecycleCallback != null) {
                 lifecycle.scope = this;
                 boolean started = false;
                 try {
@@ -140,6 +147,18 @@ class PerformanceLog {
                     // Fatal VM failures must not leave thread-owned roots behind either.
                     if (!started) {
                         ConnectionPerformanceState.exit(lifecycle);
+                    }
+                }
+            }
+            if (statementLifecycle != null && lifecycleCallback != null) {
+                statementLifecycle.scope = this;
+                boolean started = false;
+                try {
+                    notifyStatementLifecycle(false);
+                    started = true;
+                } finally {
+                    if (!started) {
+                        StatementPerformanceState.exit(statementLifecycle);
                     }
                 }
             }
@@ -153,6 +172,9 @@ class PerformanceLog {
             if (lifecycle != null && !closed) {
                 lifecycle.fail(e, null);
             }
+            if (statementLifecycle != null && !closed) {
+                statementLifecycle.fail(e, null);
+            }
         }
 
         private void notifyLifecycle(boolean end) {
@@ -163,6 +185,23 @@ class PerformanceLog {
                 } catch (Exception | LinkageError | ServiceConfigurationError e) {
                     // SDK/exporter failures are not SQL errors. Do not log their messages or throwable objects.
                     logCallbackFailure();
+                }
+            }
+        }
+
+        private void notifyStatementLifecycle(boolean end) {
+            if (lifecycleCallback != null) {
+                try {
+                    // Expose the same callback-scoped SQL/type accessors as legacy statement publication. The
+                    // callback must sanitize or discard SQL synchronously; lifecycle snapshots never retain it.
+                    currentUserSql.set(userSql);
+                    currentStatementType.set(deriveStatementType(stmtHandle));
+                    lifecycleCallback.publish(statementLifecycle.event(end));
+                } catch (Exception | LinkageError | ServiceConfigurationError e) {
+                    logCallbackFailure();
+                } finally {
+                    currentUserSql.remove();
+                    currentStatementType.remove();
                 }
             }
         }
@@ -185,7 +224,8 @@ class PerformanceLog {
 
         @Override
         public void close() {
-            if (closed || (lifecycle != null && !lifecycle.isOwner())) {
+                if (closed || (lifecycle != null && !lifecycle.isOwner())
+                    || (statementLifecycle != null && !statementLifecycle.isOwner())) {
                 return;
             }
             closed = true;
@@ -196,9 +236,15 @@ class PerformanceLog {
                 if (lifecycle != null) {
                     notifyLifecycle(true);
                 }
+                if (statementLifecycle != null) {
+                    notifyStatementLifecycle(true);
+                }
             } finally {
                 if (lifecycle != null) {
                     ConnectionPerformanceState.exit(lifecycle);
+                }
+                if (statementLifecycle != null) {
+                    StatementPerformanceState.exit(statementLifecycle);
                 }
                 publishLegacy(duration);
             }
@@ -278,6 +324,20 @@ class PerformanceLog {
             return Scope.NOOP;
         }
         return new Scope(perfLoggerConnection, con, 0, null, null, PerformanceActivity.CONNECTION, newOpen);
+    }
+
+    static Scope createStatementInvocationScope(SQLServerStatement statement, String userSql) {
+        return new Scope(perfLoggerStatement, statement.connection, statement.getStatementID(), statement, userSql,
+                PerformanceActivity.STATEMENT_INVOCATION, true);
+    }
+
+    static Scope createStatementAttemptScope(SQLServerStatement statement, String userSql) {
+        return new Scope(perfLoggerStatement, statement.connection, statement.getStatementID(), statement, userSql,
+                PerformanceActivity.STATEMENT_ATTEMPT, true);
+    }
+
+    static void recordStatementRetry(SQLServerStatement statement, long delayMillis) {
+        StatementPerformanceState.retry(statement, delayMillis);
     }
 
     /** LOGINACK accepted this endpoint. Initialization remains in its original SQL execution location. */

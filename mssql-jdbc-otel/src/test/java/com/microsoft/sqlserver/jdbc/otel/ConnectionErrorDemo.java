@@ -7,7 +7,9 @@ package com.microsoft.sqlserver.jdbc.otel;
 import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -88,13 +90,13 @@ public final class ConnectionErrorDemo {
         String[] selection = value(env, "DEMO_SCENARIOS", "config,dns").split(",", -1);
         Set<String> scenarios = new LinkedHashSet<>(Arrays.asList(selection));
         if (scenarios.size() != selection.length
-                || !Arrays.asList("config", "dns", "login", "success").containsAll(scenarios)) {
+                || !Arrays.asList("config", "dns", "login", "success", "statements").containsAll(scenarios)) {
             throw invalidConfiguration();
         }
         int repeats = boundedInteger(env, "DEMO_REPEAT", 1, 1, 1000);
         int pauseSeconds = boundedInteger(env, "DEMO_PAUSE_SECONDS", 1, 0, 60);
         String jdbc = null;
-        if (scenarios.contains("login") || scenarios.contains("success")) {
+        if (scenarios.contains("login") || scenarios.contains("success") || scenarios.contains("statements")) {
             jdbc = required(env, "JDBC_CONNECTION_STRING");
             validateJdbc(jdbc, scenarios.contains("login"));
         }
@@ -153,6 +155,10 @@ public final class ConnectionErrorDemo {
 
     private static void execute(String scenario, String jdbc, Map<String, String> env, ConnectionProvider connections,
             ObservingCallback callback, Result result) throws SQLException {
+        if ("statements".equals(scenario)) {
+            executeStatements(jdbc, connections, callback, result);
+            return;
+        }
         Properties properties = deadlines();
         String url = jdbc;
         if ("config".equals(scenario) || "dns".equals(scenario)) {
@@ -205,6 +211,51 @@ public final class ConnectionErrorDemo {
                 result.loginFailures++;
             }
         }
+    }
+
+    private static void executeStatements(String jdbc, ConnectionProvider connections, ObservingCallback callback,
+            Result result) throws SQLException {
+        callback.failedStatementRoots = 0;
+        try (Connection connection = connections.open(jdbc, deadlines())) {
+            if (connection == null) {
+                throw unexpectedOutcome();
+            }
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TABLE #jdbc_otel_stmt_demo (id INT PRIMARY KEY, label NVARCHAR(64))");
+                try {
+                    statement.executeQuery("SELECT N'customer@example.invalid' FROM dbo.__jdbc_otel_missing /* pii: 555-0100 */");
+                    throw unexpectedOutcome();
+                } catch (SQLException expected) {
+                    // Expected missing-object server error.
+                }
+            }
+            try (PreparedStatement prepared = connection
+                    .prepareStatement("INSERT INTO #jdbc_otel_stmt_demo (id, label) VALUES (?, ?)")) {
+                prepared.setInt(1, 1);
+                prepared.setString(2, "private-first-value");
+                prepared.executeUpdate();
+                prepared.setInt(1, 1);
+                prepared.setString(2, "private-duplicate-value");
+                try {
+                    prepared.executeUpdate();
+                    throw unexpectedOutcome();
+                } catch (SQLException expected) {
+                    // Expected primary-key violation.
+                }
+            }
+            try (PreparedStatement success = connection.prepareStatement("SELECT ?")) {
+                success.setString(1, "private-success-control");
+                try (java.sql.ResultSet rows = success.executeQuery()) {
+                    if (!rows.next()) {
+                        throw unexpectedOutcome();
+                    }
+                }
+            }
+        }
+        if (callback.failedStatementRoots != 2) {
+            throw unexpectedOutcome();
+        }
+        result.statementFailures += 2;
     }
 
     static Properties telemetryProperties(Map<String, String> env) {
@@ -343,6 +394,7 @@ public final class ConnectionErrorDemo {
         int configurationFailures;
         int dnsFailures;
         int loginFailures;
+        int statementFailures;
         boolean drained;
         boolean flushed;
     }
@@ -352,6 +404,7 @@ public final class ConnectionErrorDemo {
         private final OpenTelemetryConnectionCallback delegate;
         private PerformanceLogEvent root;
         private int roots;
+        private int failedStatementRoots;
 
         ObservingCallback(OpenTelemetryConnectionCallback delegate) {
             this.delegate = delegate;
@@ -363,6 +416,13 @@ public final class ConnectionErrorDemo {
                     && event.getActivity() == PerformanceActivity.CONNECTION) {
                 root = event.withoutException();
                 roots++;
+            } else if (event.getType() == PerformanceLogEvent.Type.END
+                    && event.getActivity() == PerformanceActivity.STATEMENT_INVOCATION && event.hasException()) {
+                Object category = event.getAttributes().get("mssql.error.category");
+                if (!"query_syntax_semantics".equals(category) && !"constraint_violation".equals(category)) {
+                    throw unexpectedOutcome();
+                }
+                failedStatementRoots++;
             }
             delegate.publish(event);
         }

@@ -55,6 +55,7 @@ services:
       OTEL_LOGS_EXPORTER: none
       DEMO_SCENARIOS: ${DEMO_SCENARIOS:-config,dns}
       DEMO_REPEAT: ${DEMO_REPEAT:-1}
+      DEMO_EXPECTED_STATEMENT_ROOTS: ${DEMO_EXPECTED_STATEMENT_ROOTS:-0}
       DEMO_PAUSE_SECONDS: ${DEMO_PAUSE_SECONDS:-1}
       JDBC_CONNECTION_STRING:
       DEMO_LOGIN_USER:
@@ -85,6 +86,7 @@ services:
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-mssql-jdbc-connection-demo}
       DEMO_SCENARIOS: ${DEMO_SCENARIOS:-config,dns}
       DEMO_REPEAT: ${DEMO_REPEAT:-1}
+      DEMO_EXPECTED_STATEMENT_ROOTS: ${DEMO_EXPECTED_STATEMENT_ROOTS:-0}
     volumes:
       - evidence:/evidence:ro
       - ./.scripts/verify-traces.mjs:/verify-traces.mjs:ro

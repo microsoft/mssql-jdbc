@@ -174,6 +174,7 @@ Use instrumentation scope `com.microsoft.sqlserver.jdbc` with the actual driver 
 | `mssql.statement.type` | String | Required: `statement`, `prepared_statement`, or `callable_statement`. |
 | `mssql.statement.api` | String | Required: `execute_query`, `execute_update`, `execute_large_update`, `execute`, `execute_batch`, `execute_large_batch`, or `internal`. |
 | `mssql.statement.operation` | String | Conditional safe classification: `select`, `insert`, `update`, `delete`, `merge`, `call`, `ddl`, `other`, or `unknown`. Derived by the driver's existing syntax classification without exporting text. |
+| `db.query.text` | String | Conditional root-only masked SQL. The adapter obtains raw SQL only through callback-scoped `getCurrentUserSql()`, removes comments, replaces string, Unicode-string, numeric, exponent, and hexadecimal literals with `?`, normalizes whitespace, and caps output at 4,096 characters. Omit on malformed lexical constructs, input over 16,384 characters, or masking uncertainty. Prepared-statement `?` markers remain markers. |
 | `mssql.statement.outcome` | String | Required at end: `success`, `failure`, `timeout`, or `canceled`. |
 | `mssql.statement.attempt_count` | Int64 | Required at end; total statement attempts begun, including internal configurable retries. |
 | `mssql.statement.retry_count` | Int64 | Required at end; additional attempts actually begun. |
@@ -450,13 +451,25 @@ No event contains SQL text, parameter values, update-count arrays, database obje
 
 ## 8. Privacy and cardinality
 
-### Never export by default
+### Masked statement text contract
 
-- SQL text, normalized SQL text, SQL comments, stored-procedure names, table/column names, or query hashes computed from raw SQL without separate privacy approval.
+The optional adapter may export **masked** SQL as `db.query.text` on the statement execution root. Raw SQL is never placed in `PerformanceLogEvent`, a queue, an asynchronous worker, logs, events, child spans, or metrics.
+
+1. `PerformanceLog` exposes `getCurrentUserSql()` only during the synchronous callback invocation, including statement lifecycle publication.
+2. The adapter calls it only on statement-root START and immediately applies bounded lexical masking on the JDBC thread.
+3. Line and block comments are removed because they can contain arbitrary customer text.
+4. SQL string/Unicode-string, numeric, decimal, exponent, and hexadecimal literals become `?`; escaped quote pairs are consumed without copying their contents.
+5. Quoted and bracketed identifiers are retained to preserve query shape. They may still be customer-sensitive object names; deployments needing stronger minimization must suppress this attribute or apply a stricter collector policy.
+6. Malformed comments/quotes, oversized input/output, or uncertain lexical state fail closed by omitting the attribute.
+7. Masking is data minimization, not a guarantee of de-identification. Never put credentials or regulated data in identifiers or comments, and never use this attribute as an authorization/audit record.
+
+### Never export
+
+- Raw SQL text, literal values, SQL comments, or unbounded query text. Only the masked `db.query.text` contract above is permitted.
 - Parameter names, indexes, JDBC types, lengths, values, encrypted values, TVP contents, streams, or batch value arrays.
 - Database/user/schema names, connection strings, host names, addresses, URLs, key paths, enclave data, certificates, tokens, or prepared/cursor handles.
 - Raw exception messages, `SQLException` chains, stack traces, arbitrary callback metadata, application baggage, or JUL log text.
-- The legacy `getCurrentUserSql()` value in OpenTelemetry. It remains an in-process compatibility API and is outside this export allowlist.
+- Raw `getCurrentUserSql()` output outside the synchronous sanitizer. It must never be retained or passed to asynchronous processing.
 
 ### Safe low-cardinality dimensions
 
@@ -467,7 +480,7 @@ Statement type, JDBC API, bounded operation class, protocol kind, protocol opera
 Use the same nonblocking architecture as connection telemetry:
 
 ```text
-JDBC thread: capture immutable START/END boundary → try enqueue → return
+JDBC thread: capture boundary → synchronously mask callback SQL → try enqueue safe snapshot → return
                                                     │
                                            bounded event queue
                                                     │
@@ -476,7 +489,7 @@ worker: validate, assemble lifecycle tree, apply sampling/privacy
 worker: construct OTel spans/events → application-owned SDK
 ```
 
-- No SDK/exporter call, SQL parsing for telemetry, cause-chain walk, queue wait, force flush, token acquisition, or network I/O on the JDBC execution path.
+- No SDK/exporter call, semantic SQL parsing, cause-chain walk, queue wait, force flush, token acquisition, or network I/O on the JDBC execution path. The bounded lexical masker is the deliberate exception and must be benchmarked.
 - The callback snapshot contains approved scalar metadata and source-captured classification only. Remove exception references before asynchronous admission.
 - Respect the application sampler. Unlike the failed-connection diagnostic MVP, statement spans are high volume and cannot promise complete failure retention after a non-recording head-sampling decision.
 - Provisional limits per invocation: 32 spans and 64 events. Reserve the root, terminal attempt, failing ancestor chain, and terminal error event. Set root truncation/drop counts if limits are exceeded.
@@ -569,7 +582,7 @@ Do not sum these histograms to derive end-to-end latency. Do not use connection 
 }
 ```
 
-The envelope is synthetic decoded JSON, not literal OTLP. SQL and parameter values are absent. `server_call` corresponds to the existing `STATEMENT_PREPEXEC` timing; `first_response` is nested and already included in that duration.
+The envelope is synthetic decoded JSON, not literal OTLP. Literal and parameter values are absent. A production root may additionally carry bounded `db.query.text`, for example `SELECT status FROM orders WHERE customer_id = ? AND created_at >= ?`. `server_call` corresponds to the existing `STATEMENT_PREPEXEC` timing; `first_response` is nested and already included in that duration.
 
 ### Direct statement times out waiting for response
 
@@ -618,6 +631,7 @@ Add a bounded `StatementPerformanceState`, parallel in design to `ConnectionPerf
 | Failure source sites | Capture actual server number/resource key/driver code and phase before wrappers lose evidence. Never reconstruct classifications from localized text. |
 | `PerformanceLogEvent` | Generalize connection-only wording; add `statementId` and stable statement phase without exposing SQL. |
 | `PerformanceLog.Scope` | Allow lifecycle snapshots for statement scopes while keeping legacy callback delivery unchanged. |
+| Optional OTel callback | Call `getCurrentUserSql()` synchronously at statement-root START, mask literals/comments with bounded fail-closed logic, and enqueue only the masked `db.query.text`. |
 
 ### Phased delivery
 
@@ -642,6 +656,7 @@ Add a bounded `StatementPerformanceState`, parallel in design to `ConnectionPerf
 - Verify `executeQuery()` ends before later `ResultSet.next()` work and does not claim full row-consumption latency.
 - Verify batch partial completion without per-item span explosion or update-count-array export.
 - Verify timeout versus explicit cancel versus server database error, with one error event at the originating phase and no duplicate root event.
-- Reject SQL, parameter data, database objects, endpoints, raw exception messages, prepared/cursor handles, and legacy `getCurrentUserSql()` from exported lifecycle snapshots.
+- Reject raw SQL, literals, comments, parameter data, endpoints, raw exception messages, prepared/cursor handles, and unmasked `getCurrentUserSql()` from exported lifecycle snapshots. Verify masked `db.query.text` preserves shape but none of the fixture literal/comment values.
+- Exercise escaped/Unicode strings, decimals, exponents, hex literals, nested block comments, line comments, quoted/bracketed identifiers, malformed quotes/comments, and input/output limits; malformed or oversized input must omit the attribute.
 - Validate nonblocking admission, bounded queues/trees, callback failure isolation, application sampler authority, and no exporter work on JDBC threads.
 - Measure enabled/disabled overhead for plain, prepared cached, prepexec, batch, adaptive-buffered, and full-buffered executions before enabling by default.

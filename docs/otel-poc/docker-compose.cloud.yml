@@ -117,6 +117,7 @@ services:
   verify:
     environment:
       DEMO_EXPECTED_FAILURE_COUNTS: ${DEMO_EXPECTED_FAILURE_COUNTS}
+      DEMO_EXPECTED_STATEMENT_ROOTS: ${DEMO_EXPECTED_STATEMENT_ROOTS}
 
   grafana-token-server:
     extends: token-server

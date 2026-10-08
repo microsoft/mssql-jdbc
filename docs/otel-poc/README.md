@@ -1,8 +1,9 @@
 # Connection-error OpenTelemetry demo
 
-Source-built Java 17 demo of **failure-only JDBC connection spans**. No statement
-load generator, metric producer, Java agent, SQL provisioning or automatic Azure
-login is included. Successful physical opens must emit no spans.
+Source-built Java 17 demo of **failure-only JDBC connection, Statement, and
+PreparedStatement spans**. No metric producer, Java agent, production SQL
+provisioning or automatic Azure login is included. Successful physical opens and
+successful statement executions are negative controls and emit no retained trees.
 
 The default stack is public/local and needs no SQL Server or Azure account:
 
@@ -101,8 +102,10 @@ bash .scripts/dev.sh cloud /secure/path/jdbc-cloud.env logs otelcol
 bash .scripts/dev.sh cloud /secure/path/jdbc-cloud.env down
 ```
 
-`up` performs one `config,dns,login,success` run. The success case is a negative
-control and must add no trace tree. The gate first verifies sanitized local OTLP
+`up` performs `config,dns,login,success,statements` runs. Success cases are
+negative controls and must add no trace trees. The statement scenario produces a
+plain `Statement` missing-object error and a `PreparedStatement` duplicate-key
+error. The gate first verifies sanitized local OTLP
 evidence, then verifies the same span IDs, parentage, status, attributes and
 microsecond timestamps in Kusto and committed Delta tables. It rejects JDBC
 metrics, logs, unknown span events, and sensitive event attributes; the two
@@ -122,15 +125,18 @@ For example, `DEMO_REPEAT=50` generates 50 configuration failures, 50 DNS
 failures, 50 login failures, and 50 successful negative controls. Set
 `DEMO_PAUSE_SECONDS=0` to run the batch without a delay between repetitions.
 For a realistic uneven distribution, set `DEMO_CONFIG_COUNT`, `DEMO_DNS_COUNT`,
-`DEMO_LOGIN_COUNT`, and `DEMO_SUCCESS_COUNT`; these per-scenario values override
+`DEMO_LOGIN_COUNT`, `DEMO_SUCCESS_COUNT`, and `DEMO_STATEMENTS_COUNT`; these per-scenario values override
 `DEMO_REPEAT` for the cloud lifecycle.
 
 The FDH-style mock uses deterministic customer-safe data to support design
 reviews without connecting a browser directly to telemetry backends. It includes
 estate navigation, summary KPIs, failure and latency charts, phase/region/search
-filters, and an individual connection drawer with a span waterfall, all
-attributes, and sanitized error/retry events. Passwords, connection strings, SQL
-text, exception messages, and stack traces are neither collected nor displayed.
+filters, connection and statement error tables, and individual connection or
+statement drawers with span waterfalls, approved attributes, and sanitized
+error/retry events. Statement roots may display bounded `db.query.text`: comments
+and literal values are masked synchronously before asynchronous admission. Raw
+SQL, parameter values, passwords, connection strings, exception messages, and
+stack traces are neither queued nor displayed.
 
 ## Scenario and environment contract
 
@@ -144,7 +150,7 @@ Compose configuration, environment dumps, container inspections or token respons
 
 | Variable | Behavior |
 | --- | --- |
-| `DEMO_SCENARIOS` | `config,dns` by default; choose comma-separated `config,dns,login,success`, without duplicates. |
+| `DEMO_SCENARIOS` | `config,dns` by default; choose comma-separated `config,dns,login,success,statements`, without duplicates. |
 | `DEMO_REPEAT` / `DEMO_PAUSE_SECONDS` | Default `1` / `1`; keep runs small. The evidence gate supports 1–1000 repeats and bounded capture files. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Compose fixes `http://otelcol:4318`; the bootstrap appends/normalizes `/v1/traces`. For host runs, explicitly supply an approved HTTPS receiver. |
 | `OTEL_SERVICE_NAME` | Default `mssql-jdbc-connection-demo`; `gate` overrides it with a unique name to reject stale evidence. |
@@ -154,7 +160,7 @@ Compose configuration, environment dumps, container inspections or token respons
 | `OTEL_BEARER_TOKEN` | Environment-only static token. Short-lived developer diagnostic, not a refreshable production credential. |
 | `OTEL_ARM_RESOURCE_ID` | Exact MISE CheckAccess target; sent as an HTTP header, not inferred or copied into span attributes. |
 | `OTEL_ALLOW_INSECURE_DEVELOPMENT_ENDPOINT` | Compose sets `true` **only** for the internal single-label Docker HTTP endpoint. Never enable for production transport. |
-| `JDBC_CONNECTION_STRING` | Explicit SQL connection for `login`/`success`; never logged. Not used for default early failures or to derive telemetry credentials. |
+| `JDBC_CONNECTION_STRING` | Explicit SQL connection for `login`/`success`/`statements`; never logged. Not used for default early failures or to derive telemetry credentials. |
 | `DEMO_LOGIN_USER` / `DEMO_LOGIN_PASSWORD` | Intentional invalid SQL login overrides for the `login` scenario; provide them through the environment. Do not use a real user's account for deliberate failures. |
 | `DEMO_DISCOVERY_CONNECTION_STRING` | Optional separate bootstrap SQL connection for opt-in discovery from `msdb.dbo.SQLServerAzureArcProperties`, with a bounded timeout. Not needed for default early failures. |
 
@@ -177,8 +183,9 @@ The successful open must add **zero** roots/spans. Keep a positive failure contr
 a success-only capture could mean a dead exporter, so `gate` rejects success-only
 selection. `run` permits inspecting a standalone success scenario without claiming
 proof. The Java demo must itself fail if an intended success fails or an intended
-login failure unexpectedly succeeds. None of these scenarios runs a statement
-workload. Optional discovery performs a bootstrap metadata query only.
+login failure unexpectedly succeeds. Select `statements` only against the sandbox
+SQL target; it uses a connection-local temporary table and fixed bounded SQL.
+Optional discovery performs a bootstrap metadata query only.
 
 Explicit Compose routing is the default. Discovery is a separate Java opt-in:
 use only an operator-controlled discovery database and require the Java bootstrap
@@ -193,10 +200,11 @@ selects the unique run's service, deduplicates retry deliveries, and checks:
 
 - Exactly the requested failed open roots per repeat: configuration, DNS, and
   optional login; correct failure phase/category and ERROR status.
-- Only the driver's connection span names/scope, with descendants attached to
-  retained failed roots; no unexpected roots, statement spans, metrics or logs
-  in the evidence. Credential/header and exception free-text attribute keys are
-  rejected without printing their values.
+- Only approved connection/statement span names and scope, with descendants
+  attached to retained failed roots; no unexpected roots, metrics or logs.
+  Statement roots must carry masked SQL with none of the fixture literals or
+  comments. Credential/header and exception free-text keys are rejected without
+  printing values.
 - Five consecutive matching snapshots after the app finishes, allowing exporter
   batching/file flush. Evidence files are bounded (10 MB, two backups); large
   repeated runs that roll the current capture must be reduced rather than treated

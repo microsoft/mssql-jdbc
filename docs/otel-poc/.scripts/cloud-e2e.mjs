@@ -15,7 +15,7 @@ const NAME = /^[a-z][a-z0-9-]{0,62}$/;
 const RUN = /^[a-f0-9]{32}$/;
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DIGEST = /^[a-z0-9.-]+(?::[0-9]+)?\/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$/i;
-const forbiddenAttribute = /authorization|password|bearer|connection[._]string|db\.(statement|query)|exception\.(message|stacktrace)|http\.request\.header/i;
+const forbiddenAttribute = /authorization|password|bearer|connection[._]string|db\.statement|exception\.(message|stacktrace)|http\.request\.header/i;
 const validId = (value, length) => typeof value === 'string' && value.length === length
   && /^[0-9a-f]+$/i.test(value) && !/^0+$/.test(value);
 const own = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
@@ -98,16 +98,16 @@ export function configure(input) {
       || env.GRAFANA_ADMIN_PASSWORD.length < 24 || env.MSSQL_SA_PASSWORD === env.DEMO_LOGIN_PASSWORD) {
     fail('Invalid or reused runtime secret');
   }
-  const scenarios = env.DEMO_SCENARIOS || 'config,dns,login,success';
+  const scenarios = env.DEMO_SCENARIOS || 'config,dns,login,success,statements';
   const selected = scenarios.split(',');
   const repeat = env.DEMO_REPEAT || '1';
   const pause = env.DEMO_PAUSE_SECONDS || '0';
-  const counts = Object.fromEntries(['config', 'dns', 'login', 'success'].map(scenario => {
+  const counts = Object.fromEntries(['config', 'dns', 'login', 'success', 'statements'].map(scenario => {
     const key = `DEMO_${scenario.toUpperCase()}_COUNT`;
     return [scenario, env[key] ?? (selected.includes(scenario) ? repeat : '0')];
   }));
   if (new Set(selected).size !== selected.length
-      || selected.some(item => !['config', 'dns', 'login', 'success'].includes(item))
+      || selected.some(item => !['config', 'dns', 'login', 'success', 'statements'].includes(item))
       || !selected.includes('success') || !selected.some(item => item !== 'success')
       || !/^[1-9][0-9]{0,2}$/.test(repeat) || Number(repeat) > 1000
       || !/^(?:0|[1-9]|[1-5][0-9]|60)$/.test(pause)
@@ -214,6 +214,11 @@ export function expectedRows(batches, options) {
           const end = BigInt(span.endTimeUnixNano);
           if (end < start) fail('Invalid span duration');
           const attrs = attributes(span.attributes);
+          if (own(attrs, 'db.query.text') && (typeof attrs['db.query.text'] !== 'string'
+              || attrs['db.query.text'].length > 4096
+              || /customer@example|555-0100|private-|pii:/i.test(attrs['db.query.text']))) {
+            fail('Unsafe masked SQL evidence');
+          }
           if (span.status?.message) fail('Status free text is forbidden');
           all.push({
             application: options.service, trace_id: span.traceId.toLowerCase(), span_id: span.spanId.toLowerCase(),
@@ -282,13 +287,41 @@ function rootConnections(service) {
   return `${rootAttributes(service)} spans | where application == '${escaped}' and name == 'mssql.driver.connection.open' | join kind=inner RootAttrs on $left.id==$right.parent_id, $left.export_time_unix_nano==$right.export_time_unix_nano`;
 }
 
+function statementRootAttributes(service) {
+  const escaped = service.replaceAll("'", "''");
+  return `let StatementRootAttrs=span_attrs | where application == '${escaped}' | extend attribute_value=${attributeValue()} | summarize connection_guid=anyif(attribute_value,key=='mssql.connection.guid'), statement_type=anyif(attribute_value,key=='mssql.statement.type'), statement_api=anyif(attribute_value,key=='mssql.statement.api'), operation=anyif(attribute_value,key=='mssql.statement.operation'), masked_sql=anyif(attribute_value,key=='db.query.text'), failure_phase=anyif(attribute_value,key=='mssql.statement.failure_phase'), error_category=anyif(attribute_value,key=='mssql.error.category'), error_type=anyif(attribute_value,key=='error.type'), outcome=anyif(attribute_value,key=='mssql.statement.outcome'), attempt_count=anyif(attribute_value,key=='mssql.statement.attempt_count'), retry_count=anyif(attribute_value,key=='mssql.statement.retry_count') by parent_id, export_time_unix_nano;`;
+}
+
+function statementRoots(service) {
+  const escaped = service.replaceAll("'", "''");
+  return `${statementRootAttributes(service)} spans | where application == '${escaped}' and name == 'mssql.driver.statement.execute' | join kind=inner StatementRootAttrs on $left.id==$right.parent_id, $left.export_time_unix_nano==$right.export_time_unix_nano`;
+}
+
+function statementQueries(service) {
+  const escaped = service.replaceAll("'", "''");
+  const roots = statementRoots(service);
+  const selected = `${roots} | where ('\${statement_trace_id:raw}' == '*' or trace_id == '\${statement_trace_id:raw}')`;
+  const selectedSpans = `${selected} | project selected_trace_id=trace_id | join kind=inner (spans | where application == '${escaped}' | project child_id=id, child_trace_id=trace_id, child_span_id=span_id, child_parent_span_id=parent_span_id, child_start=start_time_unix_nano, child_duration=duration_time_unix_nano, child_name=name, child_status=status_code, child_export=export_time_unix_nano) on $left.selected_trace_id == $right.child_trace_id`;
+  return {
+    byCategory: `${roots} | summarize failures=count() by error_category | order by failures desc`,
+    byType: `${roots} | summarize failures=count() by statement_type, error_category | order by failures desc`,
+    failures: `${roots} | project start_time_unix_nano, trace_id, connection_guid, statement_type, statement_api, operation, masked_sql, failure_phase, error_category, error_type, duration_ms=round(toreal(duration_time_unix_nano)/1000.0,2), attempt_count, retry_count | order by start_time_unix_nano desc | take 500`,
+    attributes: `${selected} | project selected_id=id, selected_export=export_time_unix_nano, trace_id | join kind=inner (span_attrs | where application == '${escaped}' | extend value=${attributeValue()} | project attr_parent_id=parent_id, attr_export=export_time_unix_nano, attribute=key, value, otap_type=type) on $left.selected_id == $right.attr_parent_id, $left.selected_export == $right.attr_export | project trace_id, attribute, value, otap_type | order by attribute asc | take 2000`,
+    tree: `${selectedSpans} | project trace_id=selected_trace_id, start_time_unix_nano=child_start, span_name=child_name, duration_ms=round(toreal(child_duration)/1000.0,2), status_code=child_status, span_id=child_span_id, parent_span_id=child_parent_span_id | order by start_time_unix_nano asc | take 2000`,
+    events: `${selectedSpans} | project selected_trace_id, child_id, child_span_name=child_name, child_export | join kind=inner (span_events | where application == '${escaped}' | project event_id=id, event_parent_id=parent_id, event_time=time_unix_nano, event_name=name, event_export=export_time_unix_nano) on $left.child_id == $right.event_parent_id, $left.child_export == $right.event_export | project trace_id=selected_trace_id, event_time, span_name=child_span_name, event_name, event_id, event_export | join kind=leftouter (span_event_attrs | where application == '${escaped}' | extend value=${attributeValue()} | project attr_event_id=parent_id, attr_event_export=export_time_unix_nano, key, value) on $left.event_id == $right.attr_event_id, $left.event_export == $right.attr_event_export | summarize attributes=make_bag(pack(key,value)) by trace_id, event_time, span_name, event_name | project trace_id, event_time, span_name, event_name, attributes=tostring(attributes) | order by event_time asc | take 2000`
+  };
+}
+
 function queryManifest(service) {
   const joined = rootConnections(service);
+  const statements = statementRoots(service);
   return Object.freeze({
     failuresByPhase: `${joined} | summarize failures=count() by failure_phase | order by failures desc`,
     failuresByCategory: `${joined} | summarize failures=count() by error_category | order by failures desc`,
     failedConnectionDuration: `${joined} | project start_time_unix_nano, duration_ms=toreal(duration_time_unix_nano)/1000.0, failure_phase | order by start_time_unix_nano asc`,
-    individualConnections: `${joined} | project start_time_unix_nano, connection_guid, failure_phase, error_category, error_type, duration_ms=toreal(duration_time_unix_nano)/1000.0, attempt_count, retry_count, budget_exhausted | order by start_time_unix_nano desc | take 500`
+    individualConnections: `${joined} | project start_time_unix_nano, connection_guid, failure_phase, error_category, error_type, duration_ms=toreal(duration_time_unix_nano)/1000.0, attempt_count, retry_count, budget_exhausted | order by start_time_unix_nano desc | take 500`,
+    statementFailuresByCategory: `${statements} | summarize failures=count() by error_category | order by failures desc`,
+    individualStatementFailures: `${statements} | project start_time_unix_nano, trace_id, connection_guid, statement_type, operation, masked_sql, failure_phase, error_category, error_type | order by start_time_unix_nano desc | take 500`
   });
 }
 
@@ -327,9 +360,17 @@ function connectionTableOverrides() {
   }];
 }
 
+function statementTableOverrides() {
+  return [{ matcher: { id: 'byName', options: 'trace_id' }, properties: [{ id: 'links', value: [{
+    title: 'Drill into this failed statement',
+    url: '/d/jdbc-connection-errors/jdbc-connection-error-telemetry?orgId=1&from=now-24h&to=now&timezone=browser&var-failure_phase=*&var-error_category=*&var-error_type=*&var-connection_guid=*&var-statement_trace_id=\${__value.raw}'
+  }] }] }];
+}
+
 export function dashboard(_rows, service) {
   if (typeof service !== 'string' || !service) fail('Dashboard service is required');
   const queries = drilldownQueries(service);
+  const statements = statementQueries(service);
   const roots = rootConnections(service);
   const variableFilter = `| where ('\${failure_phase:raw}' == '*' or failure_phase == '\${failure_phase:raw}') and ('\${error_category:raw}' == '*' or error_category == '\${error_category:raw}') and ('\${error_type:raw}' == '*' or error_type == '\${error_type:raw}')`;
   return {
@@ -339,6 +380,7 @@ export function dashboard(_rows, service) {
       variable('error_category', 'Error category', `${roots} | where ('\${failure_phase:raw}' == '*' or failure_phase == '\${failure_phase:raw}') | distinct error_category | order by error_category asc`, ['failure phase']),
       variable('error_type', 'Error type', `${roots} | where ('\${failure_phase:raw}' == '*' or failure_phase == '\${failure_phase:raw}') and ('\${error_category:raw}' == '*' or error_category == '\${error_category:raw}') | distinct error_type | order by error_type asc`, ['phase', 'category']),
       variable('connection_guid', 'Connection GUID', `${roots} ${variableFilter} | distinct connection_guid | order by connection_guid asc`, ['phase', 'category', 'error type'])
+      , variable('statement_trace_id', 'Statement trace ID', `${statementRoots(service)} | distinct trace_id | order by trace_id asc`)
     ] },
     panels: [
       { id: 1, title: 'Failures by phase', type: 'barchart', gridPos: { x: 0, y: 0, w: 8, h: 8 }, targets: [target('A', queries.failuresByPhase)] },
@@ -347,7 +389,13 @@ export function dashboard(_rows, service) {
       { id: 4, title: 'Failed connections — click a GUID to drill down', type: 'table', gridPos: { x: 0, y: 8, w: 24, h: 10 }, fieldConfig: { defaults: {}, overrides: connectionTableOverrides() }, options: { showHeader: true, cellHeight: 'sm' }, targets: [target('A', queries.individualConnections)] },
       { id: 5, title: 'Selected connection — all root span attributes', description: 'Select or click one Connection GUID. Sensitive payload fields are intentionally never collected.', type: 'table', gridPos: { x: 0, y: 18, w: 12, h: 12 }, options: { showHeader: true, cellHeight: 'sm' }, targets: [target('A', queries.selectedAttributes)] },
       { id: 6, title: 'Selected connection — complete span tree', type: 'table', gridPos: { x: 12, y: 18, w: 12, h: 12 }, options: { showHeader: true, cellHeight: 'sm' }, targets: [target('A', queries.selectedSpanTree)] },
-      { id: 7, title: 'Selected connection — sanitized errors and retry decisions', type: 'table', gridPos: { x: 0, y: 30, w: 24, h: 12 }, options: { showHeader: true, cellHeight: 'sm' }, targets: [target('A', queries.selectedEvents)] }
+      { id: 7, title: 'Selected connection — sanitized errors and retry decisions', type: 'table', gridPos: { x: 0, y: 30, w: 24, h: 12 }, options: { showHeader: true, cellHeight: 'sm' }, targets: [target('A', queries.selectedEvents)] },
+      { id: 8, title: 'Statement failures by category', type: 'piechart', gridPos: { x: 0, y: 42, w: 12, h: 8 }, targets: [target('A', statements.byCategory)] },
+      { id: 9, title: 'Statement vs prepared-statement failures', type: 'barchart', gridPos: { x: 12, y: 42, w: 12, h: 8 }, targets: [target('A', statements.byType)] },
+      { id: 10, title: 'Failed statements — click a trace ID to drill down', type: 'table', gridPos: { x: 0, y: 50, w: 24, h: 11 }, fieldConfig: { defaults: {}, overrides: statementTableOverrides() }, options: { showHeader: true, cellHeight: 'sm' }, targets: [target('A', statements.failures)] },
+      { id: 11, title: 'Selected statement — masked SQL and root attributes', type: 'table', gridPos: { x: 0, y: 61, w: 12, h: 12 }, options: { showHeader: true, cellHeight: 'sm' }, targets: [target('A', statements.attributes)] },
+      { id: 12, title: 'Selected statement — complete phase tree', type: 'table', gridPos: { x: 12, y: 61, w: 12, h: 12 }, options: { showHeader: true, cellHeight: 'sm' }, targets: [target('A', statements.tree)] },
+      { id: 13, title: 'Selected statement — sanitized errors and retry decisions', type: 'table', gridPos: { x: 0, y: 73, w: 24, h: 12 }, options: { showHeader: true, cellHeight: 'sm' }, targets: [target('A', statements.events)] }
     ]
   };
 }
@@ -428,14 +476,16 @@ function cli() {
     'OTEL_AUTH_MODE=none',
     'OTEL_ALLOW_INSECURE_DEVELOPMENT_ENDPOINT=true',
     'OTEL_EXPORTER_OTLP_ENDPOINT=http://otelcol:4318',
-    `DEMO_SCENARIOS=${config.env.DEMO_SCENARIOS || 'config,dns,login,success'}`,
+    `DEMO_SCENARIOS=${config.env.DEMO_SCENARIOS || 'config,dns,login,success,statements'}`,
     `DEMO_REPEAT=${config.env.DEMO_REPEAT || '1'}`,
     `DEMO_PAUSE_SECONDS=${config.env.DEMO_PAUSE_SECONDS || '0'}`,
     `DEMO_CONFIG_COUNT=${config.counts.config}`,
     `DEMO_DNS_COUNT=${config.counts.dns}`,
     `DEMO_LOGIN_COUNT=${config.counts.login}`,
     `DEMO_SUCCESS_COUNT=${config.counts.success}`,
+    `DEMO_STATEMENTS_COUNT=${config.counts.statements}`,
     `DEMO_EXPECTED_FAILURE_COUNTS=configuration:${config.counts.config},dns:${config.counts.dns},login:${config.counts.login}`,
+    `DEMO_EXPECTED_STATEMENT_ROOTS=${Number(config.counts.statements) * 2}`,
     ''
   ].join('\n'));
   process.stdout.write(JSON.stringify({ status: 'generated', directory }) + '\n');

@@ -37,6 +37,7 @@ config_count="$(node -e "const c=require(process.argv[1]); process.stdout.write(
 dns_count="$(node -e "const c=require(process.argv[1]); process.stdout.write(c.scenarioCounts.dns)" "$config")"
 login_count="$(node -e "const c=require(process.argv[1]); process.stdout.write(c.scenarioCounts.login)" "$config")"
 success_count="$(node -e "const c=require(process.argv[1]); process.stdout.write(c.scenarioCounts.success)" "$config")"
+statements_count="$(node -e "const c=require(process.argv[1]); process.stdout.write(c.scenarioCounts.statements)" "$config")"
 
 compose=(docker compose --env-file "$env_file" --env-file "$artifact_dir/runtime.env" --project-name "$project" -f docker-compose.yml -f docker-compose.sql.yml -f docker-compose.cloud.yml)
 
@@ -87,6 +88,7 @@ case "$action" in
     run_scenario dns "$dns_count"
     run_scenario login "$login_count"
     run_scenario success "$success_count"
+    run_scenario statements "$statements_count"
     "${compose[@]}" run --rm --no-deps -T verify
     "${compose[@]}" cp evidence:/evidence/traces.json "$artifact_dir/evidence.json"
     node .scripts/cloud-e2e.mjs expected "$env_file" "$artifact_dir/evidence.json" > "$artifact_dir/expected.json"

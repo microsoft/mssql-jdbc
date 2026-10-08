@@ -33,6 +33,21 @@ export type ConnectionFailure = {
   events: ErrorEvent[];
 };
 
+export type StatementFailure = {
+  id: string;
+  time: string;
+  statementType: 'Statement' | 'PreparedStatement';
+  operation: string;
+  maskedSql: string;
+  category: string;
+  errorType: string;
+  duration: number;
+  connectionId: string;
+  attributes: Record<string, string>;
+  spans: Span[];
+  events: ErrorEvent[];
+};
+
 const phaseCounts: Array<[FailurePhase, number]> = [
   ['DNS', 83],
   ['Configuration', 37],
@@ -138,3 +153,58 @@ export const failures: ConnectionFailure[] = phaseCounts.flatMap(([phase, count]
     };
   }),
 ).sort((a, b) => b.time.localeCompare(a.time));
+
+export const statementFailures: StatementFailure[] = Array.from({ length: 42 }, (_, position): StatementFailure => {
+  const prepared = position % 3 !== 0;
+  const constraint = position % 2 === 0;
+  const index = 500 + position;
+  const duration = Math.round(12 + seeded(index, 12) * 95);
+  const id = guid(index).replaceAll('-', '');
+  const connectionId = guid(index + 1000);
+  const category = constraint ? 'Constraint violation' : 'Query syntax & semantics';
+  const errorType = constraint ? 'sqlserver.2627' : 'sqlserver.208';
+  const maskedSql = constraint
+    ? 'INSERT INTO #jdbc_otel_stmt_demo (id, label) VALUES (?, ?)'
+    : 'SELECT ? FROM dbo.__jdbc_otel_missing';
+  const statementType: StatementFailure['statementType'] = prepared ? 'PreparedStatement' : 'Statement';
+  return {
+    id,
+    time: new Date(Date.now() - (240 + position * 89) * 1000).toISOString(),
+    statementType,
+    operation: constraint ? 'insert' : 'select',
+    maskedSql,
+    category,
+    errorType,
+    duration,
+    connectionId,
+    attributes: {
+      'db.query.text': maskedSql,
+      'db.system.name': 'microsoft.sql_server',
+      'mssql.connection.guid': connectionId,
+      'mssql.statement.type': prepared ? 'prepared_statement' : 'statement',
+      'mssql.statement.api': constraint ? 'execute_update' : 'execute_query',
+      'mssql.statement.operation': constraint ? 'insert' : 'select',
+      'mssql.statement.outcome': 'failure',
+      'mssql.statement.failure_phase': 'server_call',
+      'mssql.statement.attempt_count': '1',
+      'mssql.statement.retry_count': '0',
+      'mssql.error.category': constraint ? 'constraint_violation' : 'query_syntax_semantics',
+      'error.type': errorType,
+      'mssql.telemetry.schema.version': '1.0',
+    },
+    spans: [
+      { name: 'mssql.driver.statement.execute', kind: 'CLIENT', status: 'ERROR', start: 0, duration, depth: 0 },
+      { name: 'mssql.driver.statement.attempt', kind: 'INTERNAL', status: 'ERROR', start: 0.2, duration: duration - 0.4, depth: 1 },
+      { name: 'mssql.driver.statement.request_build', kind: 'INTERNAL', status: 'UNSET', start: 0.5, duration: Math.min(4, duration / 5), depth: 2 },
+      { name: 'mssql.driver.statement.server_call', kind: 'INTERNAL', status: 'ERROR', start: 4.8, duration: Math.max(5, duration - 5.2), depth: 2 },
+      { name: 'mssql.driver.statement.first_response', kind: 'INTERNAL', status: 'ERROR', start: 5.1, duration: Math.max(4, duration - 5.8), depth: 3 },
+    ],
+    events: [{
+      name: 'mssql.driver.error',
+      phase: 'server_call',
+      source: 'sql_server',
+      code: constraint ? 'sqlserver:2627' : 'sqlserver:208',
+      decision: 'not_retryable',
+    }],
+  };
+}).sort((a, b) => b.time.localeCompare(a.time));

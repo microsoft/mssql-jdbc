@@ -22,7 +22,7 @@ import {
   ShieldErrorRegular,
   WeatherMoonRegular,
 } from '@fluentui/react-icons';
-import { ConnectionFailure, FailurePhase, failures } from './data';
+import { ConnectionFailure, FailurePhase, StatementFailure, failures, statementFailures } from './data';
 
 const phaseColor: Record<FailurePhase, string> = {
   DNS: '#117865',
@@ -121,7 +121,7 @@ function Activity({ data }: { data: ConnectionFailure[] }) {
   );
 }
 
-function SpanWaterfall({ connection }: { connection: ConnectionFailure }) {
+function SpanWaterfall({ connection }: { connection: Pick<ConnectionFailure, 'duration' | 'spans'> }) {
   const total = Math.max(connection.duration, 1);
   return (
     <div className="span-list">
@@ -130,7 +130,7 @@ function SpanWaterfall({ connection }: { connection: ConnectionFailure }) {
         <div className="span-row" key={`${span.name}-${index}`}>
           <div className="span-name" style={{ paddingLeft: `${span.depth * 14}px` }}>
             <span className={`status-dot ${span.status.toLowerCase()}`} />
-            <span>{span.name.replace('mssql.driver.connection.', '')}</span>
+            <span>{span.name.replace(/^mssql\.driver\.(?:connection|statement)\./, '')}</span>
           </div>
           <div className="waterfall">
             <div
@@ -198,11 +198,47 @@ function DetailDrawer({ connection, onClose }: { connection: ConnectionFailure; 
   );
 }
 
+function StatementDetailDrawer({ statement, onClose }: { statement: StatementFailure; onClose: () => void }) {
+  const [tab, setTab] = useState('trace');
+  return (
+    <div className="drawer-backdrop" onMouseDown={event => event.currentTarget === event.target && onClose()}>
+      <aside className="detail-drawer">
+        <header className="drawer-header">
+          <div><div className="eyebrow">Failed SQL execution</div><h2>{statement.statementType}</h2><code>{statement.id}</code></div>
+          <Button appearance="subtle" icon={<DismissRegular />} onClick={onClose} aria-label="Close details" />
+        </header>
+        <div className="drawer-summary">
+          <div><span>Status</span><strong className="error-text">Error</strong></div>
+          <div><span>Duration</span><strong>{statement.duration} ms</strong></div>
+          <div><span>Operation</span><strong>{statement.operation}</strong></div>
+          <div><span>Category</span><strong>{statement.category}</strong></div>
+        </div>
+        <div className="masked-query"><span>Masked SQL</span><code>{statement.maskedSql}</code></div>
+        <TabList selectedValue={tab} onTabSelect={(_, data) => setTab(String(data.value))} className="drawer-tabs">
+          <Tab value="trace">Trace</Tab><Tab value="attributes">Attributes</Tab><Tab value="events">Events</Tab>
+        </TabList>
+        <div className="drawer-body">
+          {tab === 'trace' && <SpanWaterfall connection={statement} />}
+          {tab === 'attributes' && <div className="attribute-grid">{Object.entries(statement.attributes).map(([key, value]) => (
+            <div className="attribute-row" key={key}><code>{key}</code><span>{value}</span></div>
+          ))}</div>}
+          {tab === 'events' && <div className="event-list">{statement.events.map((event, index) => (
+            <div className="event-card" key={`${event.name}-${index}`}><div className="event-icon"><ShieldErrorRegular /></div><div>
+              <strong>{event.name}</strong><p>{event.phase} · {event.source}</p><div className="event-tags"><span>{event.code}</span><span>{event.decision}</span></div>
+            </div></div>
+          ))}</div>}
+        </div>
+      </aside>
+    </div>
+  );
+}
+
 export function App() {
   const [phase, setPhase] = useState('All');
   const [region, setRegion] = useState('All');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<ConnectionFailure | null>(null);
+  const [selectedStatement, setSelectedStatement] = useState<StatementFailure | null>(null);
   const [nav, setNav] = useState('Connections');
 
   const filtered = useMemo(() => failures.filter(item =>
@@ -287,8 +323,29 @@ export function App() {
           </div>
           <div className="table-footer"><span>Showing {Math.min(filtered.length, 40)} of {filtered.length} failures</span><span>Mock data · no customer identifiers</span></div>
         </section>
+        <section className="panel table-panel statement-panel">
+          <div className="panel-title-row table-title-row">
+            <div><h3>Statement and prepared-statement errors</h3><p>Masked SQL preserves query shape while removing literal values and comments.</p></div>
+            <span className="period-chip">{statementFailures.length} failures</span>
+          </div>
+          <div className="data-table-wrap">
+            <table className="data-table">
+              <thead><tr><th>Time (UTC)</th><th>Statement type</th><th>Operation</th><th>Masked SQL</th><th>Category</th><th>Error type</th><th>Duration</th><th /></tr></thead>
+              <tbody>{statementFailures.slice(0, 40).map(item => (
+                <tr key={item.id} onClick={() => setSelectedStatement(item)}>
+                  <td>{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</td>
+                  <td><span className="phase-pill"><i style={{ background: item.statementType === 'PreparedStatement' ? '#5b5fc7' : '#117865' }} />{item.statementType}</span></td>
+                  <td>{item.operation}</td><td><code className="query-text">{item.maskedSql}</code></td><td>{item.category}</td>
+                  <td><span className="error-type">{item.errorType}</span></td><td>{item.duration} ms</td><td><ChevronRightRegular /></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <div className="table-footer"><span>Showing {Math.min(statementFailures.length, 40)} of {statementFailures.length} failures</span><span>Literal values and comments masked</span></div>
+        </section>
       </main>
       {selected && <DetailDrawer connection={selected} onClose={() => setSelected(null)} />}
+      {selectedStatement && <StatementDetailDrawer statement={selectedStatement} onClose={() => setSelectedStatement(null)} />}
     </div>
   );
 }

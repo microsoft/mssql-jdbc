@@ -317,7 +317,13 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         }
         SpanContext parent = event.getType() == PerformanceLogEvent.Type.START && isRoot(event) ? Span.current()
                 .getSpanContext() : null;
+        String maskedSql = event.getType() == PerformanceLogEvent.Type.START
+            && event.getActivity() == PerformanceActivity.STATEMENT_INVOCATION
+                ? SqlStatementSanitizer.mask(getCurrentUserSql()) : null;
         PerformanceLogEvent snapshot = event.withoutException();
+        if (maskedSql != null) {
+            snapshot = snapshot.withMaskedQueryText(maskedSql);
+        }
         if (!admission.tryLock()) {
             loseEvent();
             return;
@@ -336,8 +342,9 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
     }
 
     private static boolean isRoot(PerformanceLogEvent event) {
-        return event.getActivity() == PerformanceActivity.CONNECTION && event.getScopeId() == event.getRootScopeId()
-                && event.getParentScopeId() == 0;
+        return event.getScopeId() == event.getRootScopeId() && event.getParentScopeId() == 0
+            && (event.getActivity() == PerformanceActivity.CONNECTION
+                || event.getActivity() == PerformanceActivity.STATEMENT_INVOCATION);
     }
 
     private void loseEvent() {
@@ -417,7 +424,8 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
                         iterator.remove();
                         droppedOpens++;
                     }
-                    open = new Open(rootId, now, Context.root().with(Span.wrap(envelope.parent)));
+                        open = new Open(rootId, now, Context.root().with(Span.wrap(envelope.parent)),
+                            event.getActivity() == PerformanceActivity.STATEMENT_INVOCATION);
                     pending.put(rootId, open);
                 }
                 if (open != null && !open.nodes.containsKey(event.getScopeId())
@@ -470,7 +478,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
                         }
                         pending.remove(rootId);
                         if (node.failed) {
-                            if (metricsEnabled) {
+                            if (metricsEnabled && node.activity == PerformanceActivity.CONNECTION) {
                                 pendingFailures = saturatedAdd(pendingFailures, 1);
                                 if ("timeout".equals(
                                         node.attributes.get(AttributeKey.stringKey("mssql.connection.outcome")))) {
@@ -584,8 +592,10 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         if (!event.getErrorAttributes().isEmpty()) {
             retainEvent(open,
                     new RecordedEvent(owner, "mssql.driver.error", event.getEndEpochNanos(),
-                            ConnectionAttributePolicy.error(event.getErrorAttributes()),
-                            ConnectionAttributePolicy.errorType(event.getAttributes().get("error.type"))));
+                            open.statement ? StatementAttributePolicy.error(event.getErrorAttributes())
+                                           : ConnectionAttributePolicy.error(event.getErrorAttributes()),
+                            open.statement ? StatementAttributePolicy.errorType(event.getAttributes().get("error.type"))
+                                           : ConnectionAttributePolicy.errorType(event.getAttributes().get("error.type"))));
         }
     }
 
@@ -616,7 +626,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
     @SuppressWarnings("unchecked")
     private void retainDiagnostics(Open open, long target, PerformanceLogEvent boundary) {
         List<Map<String, Object>> diagnostics = boundary.getDiagnosticEvents();
-        if (boundary.getScopeId() == open.id) {
+        if (!open.statement && boundary.getScopeId() == open.id) {
             Long dropped = open.nodes.get(open.id).attributes
                     .get(AttributeKey.longKey("mssql.connection.diagnostic_events_dropped"));
             if (dropped != null) {
@@ -654,7 +664,8 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
 
     private void recordDiagnostic(Open open, long scopeId, String name, long epochNanos,
             Map<String, Object> attributes) {
-        Attributes safe = ConnectionAttributePolicy.diagnostic(name, attributes);
+        Attributes safe = open.statement ? StatementAttributePolicy.diagnostic(name, attributes)
+                         : ConnectionAttributePolicy.diagnostic(name, attributes);
         if (safe == null) {
             return;
         }
@@ -664,6 +675,9 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
 
     private static long diagnosticOwner(Open open, long scopeId, String name, long epochNanos,
             Map<String, Object> attributes) {
+        if (open.statement) {
+            return open.id;
+        }
         if ("mssql.driver.retry".equals(name) || "mssql.driver.redirect".equals(name)
                 || "mssql.driver.connection.retry_decision".equals(name)) {
             return open.id;
@@ -702,7 +716,8 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         if (node.id == (root == null ? node.id : root.id)) {
             return;
         }
-        AttributeKey<Long> attempt = AttributeKey.longKey("mssql.connection.attempt");
+        AttributeKey<Long> attempt = AttributeKey.longKey(node.statement ? "mssql.statement.attempt"
+                                        : "mssql.connection.attempt");
         if (parent != null && node.attributes.get(attempt) == null && parent.attributes.get(attempt) != null) {
             node.attributes = node.attributes.toBuilder().put(attempt, parent.attributes.get(attempt)).build();
         }
@@ -984,7 +999,8 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
                 }
                 boolean root = node.id == open.id;
                 Context parent = root ? open.parent : Context.root().with(spans.get(node.parent));
-                Span span = tracer.spanBuilder("mssql.driver.connection." + node.phase).setParent(parent)
+                String prefix = open.statement ? "mssql.driver.statement." : "mssql.driver.connection.";
+                Span span = tracer.spanBuilder(prefix + node.phase).setParent(parent)
                         .setSpanKind(root ? SpanKind.CLIENT : SpanKind.INTERNAL)
                         .setStartTimestamp(node.start, TimeUnit.NANOSECONDS).setAllAttributes(node.attributes)
                         .startSpan();
@@ -1084,6 +1100,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         final long id;
         final long created;
         final Context parent;
+        final boolean statement;
         final Map<Long, Node> nodes = new LinkedHashMap<>();
         final Map<Long, Node> missing = new LinkedHashMap<>();
         final Deque<RecordedEvent> events = new ArrayDeque<>();
@@ -1091,10 +1108,11 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         long droppedSpans;
         long droppedEvents;
 
-        Open(long id, long created, Context parent) {
+        Open(long id, long created, Context parent, boolean statement) {
             this.id = id;
             this.created = created;
             this.parent = parent;
+            this.statement = statement;
         }
     }
 
@@ -1104,6 +1122,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         final long start;
         final PerformanceActivity activity;
         final String phase;
+        final boolean statement;
         long end;
         boolean ended;
         boolean failed;
@@ -1115,9 +1134,13 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
             parent = event.getParentScopeId();
             start = event.getStartEpochNanos();
             activity = event.getActivity();
-            phase = root ? "open" : event.getPhase();
-            attributes = ConnectionAttributePolicy.span(event.getAttributes(), root,
-                    activity == PerformanceActivity.CONNECTION_ATTEMPT, phase, approvedUserAgent);
+                statement = event.getStatementId() != 0 || activity == PerformanceActivity.STATEMENT_INVOCATION;
+                phase = root ? (statement ? "execute" : "open") : event.getPhase();
+                attributes = statement
+                    ? StatementAttributePolicy.span(event.getAttributes(), root,
+                        activity == PerformanceActivity.STATEMENT_ATTEMPT, phase)
+                    : ConnectionAttributePolicy.span(event.getAttributes(), root,
+                        activity == PerformanceActivity.CONNECTION_ATTEMPT, phase, approvedUserAgent);
         }
 
         boolean matches(PerformanceLogEvent event) {
@@ -1129,8 +1152,10 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
             end = event.getEndEpochNanos();
             ended = true;
             // A phase label alone is not evidence that this particular boundary failed.
-            Object outcome = event.getAttributes().get("mssql.connection.outcome");
-            Object attemptOutcome = event.getAttributes().get("mssql.connection.attempt_outcome");
+            Object outcome = event.getAttributes().get(statement ? "mssql.statement.outcome"
+                                                              : "mssql.connection.outcome");
+            Object attemptOutcome = event.getAttributes().get(statement ? "mssql.statement.attempt_outcome"
+                                                                     : "mssql.connection.attempt_outcome");
             failed = event.hasException() || event.getAttributes().containsKey("mssql.error.category")
                     || "failure".equals(attemptOutcome) || "timeout".equals(attemptOutcome)
                     || "canceled".equals(attemptOutcome) || "failure".equals(outcome) || "timeout".equals(outcome)
@@ -1139,13 +1164,19 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
             if (root && "success".equals(event.getAttributes().get("mssql.connection.outcome"))) {
                 failed = false;
             }
-            attributes = attributes.toBuilder().putAll(ConnectionAttributePolicy.span(event.getAttributes(), root,
-                    activity == PerformanceActivity.CONNECTION_ATTEMPT, phase, approvedUserAgent)).build();
+                attributes = attributes.toBuilder().putAll(statement
+                    ? StatementAttributePolicy.span(event.getAttributes(), root,
+                        activity == PerformanceActivity.STATEMENT_ATTEMPT, phase)
+                    : ConnectionAttributePolicy.span(event.getAttributes(), root,
+                        activity == PerformanceActivity.CONNECTION_ATTEMPT, phase, approvedUserAgent)).build();
             if (failed) {
                 attributes = attributes.toBuilder()
                         .put("mssql.error.category",
-                                ConnectionAttributePolicy.category(event.getAttributes().get("mssql.error.category")))
-                        .put("error.type", ConnectionAttributePolicy.errorType(event.getAttributes().get("error.type")))
+                        statement ? StatementAttributePolicy.category(event.getAttributes().get("mssql.error.category"))
+                              : ConnectionAttributePolicy.category(event.getAttributes().get("mssql.error.category")))
+                    .put("error.type", statement
+                        ? StatementAttributePolicy.errorType(event.getAttributes().get("error.type"))
+                        : ConnectionAttributePolicy.errorType(event.getAttributes().get("error.type")))
                         .build();
                 if (root) {
                     String category = attributes.get(AttributeKey.stringKey("mssql.error.category"));
@@ -1156,10 +1187,15 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
                     if ("timeout".equals(outcome) || "canceled".equals(outcome) || "failure".equals(outcome)) {
                         terminalOutcome = (String) outcome;
                     }
-                    attributes = attributes.toBuilder()
-                            .put("mssql.connection.failure_phase",
+                        attributes = statement
+                            ? attributes.toBuilder()
+                                .put("mssql.statement.failure_phase",
+                                    StatementAttributePolicy.phase(event.getFailurePhase()))
+                                .put("mssql.statement.outcome", terminalOutcome).build()
+                            : attributes.toBuilder()
+                                .put("mssql.connection.failure_phase",
                                     ConnectionAttributePolicy.phase(event.getFailurePhase()))
-                            .put("mssql.connection.outcome", terminalOutcome).build();
+                                .put("mssql.connection.outcome", terminalOutcome).build();
                 }
             }
         }

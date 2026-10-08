@@ -32,7 +32,7 @@ test('accepts complete failed trees, zero/absent root parents, and distinct atte
   attempt.attributes.push(attribute('mssql.connection.attempt_outcome', 'failure'));
   const phase = child(attempt, '4');
   assert.deepEqual(verify([batch([phase, config, attempt, dns])],
-    { ...options, scenarios: 'config,dns,success' }), { roots: 2, spans: 4 });
+    { ...options, scenarios: 'config,dns,success' }), { roots: 2, statementRoots: 0, spans: 4 });
 });
 
 test('rejects DNS spans impersonating roots even with expected failure attributes', () => {

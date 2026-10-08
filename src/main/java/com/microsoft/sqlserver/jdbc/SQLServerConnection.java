@@ -2004,12 +2004,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** connection ID */
     private final int connectionID;
 
+    /** Privacy-safe physical connection correlation retained for later statement telemetry. */
+    private String telemetryConnectionGuid;
+
     /**
      * Returns the connection ID for performance tracking
      * @return the connection ID
      */
     final int getConnectionID() {
         return connectionID;
+    }
+
+    final String getTelemetryConnectionGuid() {
+        return telemetryConnectionGuid;
+    }
+
+    final void setTelemetryConnectionGuid(String value) {
+        telemetryConnectionGuid = value;
     }
 
     /**

@@ -200,6 +200,9 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     private transient PerformanceLog.Scope firstPacketToFirstResponseScope;
 
+    /** Raw SQL is callback-scoped only; lifecycle snapshots never retain it. */
+    private transient String telemetryUserSql;
+
     String getClassNameLogging() {
         return loggingClassName;
     }
@@ -263,30 +266,30 @@ public class SQLServerStatement implements ISQLServerStatement {
      * PrepStmtBatchExecCmd).
      */
     final void executeStatement(TDSCommand newStmtCmd) throws SQLServerException, SQLTimeoutException {
-        // Ensure that any response left over from a previous execution has been
-        // completely processed. There may be ENVCHANGEs in that response that
-        // we must acknowledge before proceeding.
-        discardLastExecutionResults();
-
-        // make sure statement hasn't been closed due to closeOnCompletion
-        checkClosed();
-
-        execProps = new ExecuteProperties(this);
-
-        boolean cont;
-        int retryAttempt = 0;
-        ConfigurableRetryLogic crl = ConfigurableRetryLogic.getInstance();
-
-        do {
-            cont = false;
-            
-            // Start request build time tracking for this execution attempt.
-            startCreationToFirstPacketTracking();
-            
+        String telemetrySql = this instanceof SQLServerPreparedStatement
+                ? ((SQLServerPreparedStatement) this).userSQL
+                : newStmtCmd instanceof StmtExecCmd ? ((StmtExecCmd) newStmtCmd).sql : null;
+        telemetryUserSql = telemetrySql;
+        try (PerformanceLog.Scope invocationScope = PerformanceLog.createStatementInvocationScope(this, telemetrySql)) {
             try {
-                // (Re)execute this Statement with the new command
-                executeCommand(newStmtCmd);
-            } catch (SQLServerException e) {
+                // Ensure that any response left over from a previous execution has been completely processed.
+                discardLastExecutionResults();
+                checkClosed();
+                execProps = new ExecuteProperties(this);
+
+                boolean cont;
+                int retryAttempt = 0;
+                ConfigurableRetryLogic crl = ConfigurableRetryLogic.getInstance();
+
+                do {
+                    cont = false;
+                    try (PerformanceLog.Scope attemptScope = PerformanceLog.createStatementAttemptScope(this,
+                            telemetrySql)) {
+                        startCreationToFirstPacketTracking();
+                        try {
+                            executeCommand(newStmtCmd);
+                        } catch (SQLServerException e) {
+                            attemptScope.setException(e);
                 SQLServerError sqlServerError = e.getSQLServerError();
                 ConfigurableRetryRule rule = null;
 
@@ -319,7 +322,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                         // Note: The finally block closes the creationToFirstPacketScope BEFORE we sleep here.
                         // This is intentional - the retry backoff time should not be included in metrics.
                         // A new scope will be started at the top of the next loop iteration.
-                        
+                        PerformanceLog.recordStatementRetry(this, TimeUnit.SECONDS.toMillis(timeToWait));
                         try {
                             Thread.sleep(TimeUnit.SECONDS.toMillis(timeToWait));
                         } catch (InterruptedException ex) {
@@ -336,7 +339,7 @@ public class SQLServerStatement implements ISQLServerStatement {
                 } else {
                     throw e;
                 }
-            } finally {
+                        } finally {
                 // Close the request build scope in finally block to ensure it's closed on ALL paths:
                 // 1. Success path - statement executed successfully
                 // 2. Retry path - exception caught but retrying (scope must close before sleep)
@@ -349,8 +352,34 @@ public class SQLServerStatement implements ISQLServerStatement {
                 if (newStmtCmd.wasExecuted()) {
                     lastStmtExecCmd = newStmtCmd;
                 }
+                        }
+                    }
+                } while (cont);
+            } catch (SQLTimeoutException e) {
+                invocationScope.setException(e);
+                throw e;
+            } catch (SQLServerException e) {
+                invocationScope.setException(e);
+                throw e;
             }
-        } while (cont);
+        } finally {
+            telemetryUserSql = null;
+        }
+    }
+
+    String statementProtocol() {
+        return executedSqlDirectly || executeMethod == EXECUTE_BATCH ? "sql_batch" : "rpc";
+    }
+
+    String statementProtocolOperation(PerformanceActivity activity) {
+        return executeMethod == EXECUTE_BATCH ? "direct_sql_batch" : executedSqlDirectly ? "direct_sql" : "cursor_open";
+    }
+
+    int statementBatchSize() {
+        return this instanceof SQLServerPreparedStatement
+                ? (((SQLServerPreparedStatement) this).batchParamValues == null ? 0
+                                                                                : ((SQLServerPreparedStatement) this).batchParamValues.size())
+                : batchStatementBuffer.size();
     }
 
     /**
@@ -380,8 +409,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                 PerformanceLog.perfLoggerStatement, 
                 connection,
                 getStatementID(), 
-                null,
-                null,
+                this,
+                telemetryUserSql,
                 PerformanceActivity.STATEMENT_REQUEST_BUILD
             );
         }
@@ -408,8 +437,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                 PerformanceLog.perfLoggerStatement,
                 connection,
                 getStatementID(),
-                null,
-                null,
+                this,
+                telemetryUserSql,
                 PerformanceActivity.STATEMENT_FIRST_SERVER_RESPONSE
             );
         }
@@ -992,6 +1021,7 @@ public class SQLServerStatement implements ISQLServerStatement {
             this.sql = sql;
             this.executeMethod = executeMethod;
             this.autoGeneratedKeys = autoGeneratedKeys;
+            stmt.executeMethod = executeMethod;
         }
 
         final boolean doExecute() throws SQLServerException {
@@ -1157,6 +1187,7 @@ public class SQLServerStatement implements ISQLServerStatement {
         StmtBatchExecCmd(SQLServerStatement stmt) {
             super(stmt.toString() + " executeBatch", stmt.queryTimeout, stmt.cancelQueryTimeoutSeconds);
             this.stmt = stmt;
+            stmt.executeMethod = EXECUTE_BATCH;
         }
 
         final boolean doExecute() throws SQLServerException {

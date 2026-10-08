@@ -16,9 +16,11 @@ from deltalake import DeltaTable
 ALLOWED_EVENT_NAMES = frozenset((
     "mssql.driver.error",
     "mssql.driver.connection.retry_decision",
+    "mssql.driver.statement.retry_decision",
+    "mssql.driver.timeout",
 ))
 FORBIDDEN_ATTRIBUTE = re.compile(
-    r"authorization|password|bearer|connection[._]string|db\.(statement|query)|"
+    r"authorization|password|bearer|connection[._]string|db\.statement|"
     r"exception\.(message|stacktrace)|http\.request\.header",
     re.IGNORECASE,
 )
@@ -224,10 +226,12 @@ def verify_grafana():
     with open("/artifacts/queries.json", encoding="utf-8") as handle:
         queries = json.load(handle)
     roots = [row for row in expected_rows() if row["name"] == "mssql.driver.connection.open"]
+    statement_roots = [row for row in expected_rows() if row["name"] == "mssql.driver.statement.execute"]
     if not roots:
         raise RuntimeError("No failed connection is available for Grafana drill-down verification")
     selected = next((row for row in roots if json.loads(row["attributes"]).get("mssql.connection.failure_phase") == "login"), roots[0])
     selected_attributes = json.loads(selected["attributes"])
+    selected_statement = statement_roots[0] if statement_roots else None
     replacements = {
         "$failure_phase": selected_attributes["mssql.connection.failure_phase"],
         "$error_category": selected_attributes["mssql.error.category"],
@@ -237,6 +241,8 @@ def verify_grafana():
         "${error_category:raw}": selected_attributes["mssql.error.category"],
         "${error_type:raw}": selected_attributes["error.type"],
         "${connection_guid:raw}": selected_attributes["mssql.connection.guid"],
+        "$statement_trace_id": selected_statement["trace_id"] if selected_statement else "*",
+        "${statement_trace_id:raw}": selected_statement["trace_id"] if selected_statement else "*",
     }
 
     def resolve(query):
@@ -270,15 +276,17 @@ def verify_grafana():
             raise RuntimeError(f"Grafana drill-down query {index} returned no rows")
 
     now = int(time.time() * 1000)
-    for index, query in enumerate(queries.values(), 1):
-        execute(query, index)
+    for index, (name, query) in enumerate(queries.items(), 1):
+        execute(query, index, not name.startswith("statement") or bool(statement_roots))
     query_index = len(queries) + 1
     for variable in dashboard_model.get("templating", {}).get("list", []):
-        execute(variable["query"], query_index)
+        execute(variable["query"], query_index,
+            variable.get("name") != "statement_trace_id" or bool(statement_roots))
         query_index += 1
     for panel in dashboard_model.get("panels", []):
         for panel_target in panel.get("targets", []):
-            execute(panel_target["query"], query_index)
+            execute(panel_target["query"], query_index,
+                    int(panel.get("id", 0)) < 8 or bool(statement_roots))
             query_index += 1
 
 

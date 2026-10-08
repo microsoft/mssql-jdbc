@@ -86,10 +86,10 @@ test('bounded polling retries incomplete evidence only; arbitrary errors fail im
   await assert.rejects(poll(async () => { calls++; throw new Error('unsafe diagnostic'); }, 1000, 1));
   assert.equal(calls, 1);
 });
-test('Grafana contains cloud-verified connection error phases, categories and durations, never metrics queries', () => {
+test('Grafana contains connection and statement error drill-downs, never metrics queries', () => {
   const d = dashboard(expectedRows(evidence(), options), options.service);
-  assert.equal(d.panels.length, 7);
-  assert.deepEqual(d.templating.list.map(variable => variable.name), ['failure_phase', 'error_category', 'error_type', 'connection_guid']);
+  assert.equal(d.panels.length, 13);
+  assert.deepEqual(d.templating.list.map(variable => variable.name), ['failure_phase', 'error_category', 'error_type', 'connection_guid', 'statement_trace_id']);
   assert.match(JSON.stringify(d), /failure_phase/);
   assert.match(JSON.stringify(d), /error_category/);
   assert.match(JSON.stringify(d), /duration_ms/);
@@ -97,7 +97,9 @@ test('Grafana contains cloud-verified connection error phases, categories and du
   assert.match(JSON.stringify(d), /complete span tree/);
   assert.match(JSON.stringify(d), /sanitized errors and retry decisions/);
   assert.match(JSON.stringify(d), /Drill into this failed connection/);
-  assert.doesNotMatch(JSON.stringify(d), /statement|Prometheus|rate\(|success_count/);
+  assert.match(JSON.stringify(d), /Drill into this failed statement/);
+  assert.match(JSON.stringify(d), /masked_sql/);
+  assert.doesNotMatch(JSON.stringify(d), /Prometheus|rate\(|success_count/);
   assert.ok(d.panels.every(p => p.targets[0].scenarioId === 'raw_frame'));
 });
 test('runtime exposes no OTLP host ingress and does not disable bulk loading validation', () => {

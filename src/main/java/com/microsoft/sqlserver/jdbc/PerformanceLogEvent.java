@@ -12,7 +12,7 @@ import java.util.Map;
 
 
 /**
- * Immutable snapshot of a connection activity boundary. Scope IDs are process-local correlation identifiers, not
+ * Immutable snapshot of a connection or statement activity boundary. Scope IDs are process-local correlation identifiers, not
  * OpenTelemetry trace or span IDs. Attribute maps contain only driver-approved scalar metadata and never raw messages,
  * connection strings, host names or credentials. The exception reference is retained for trusted in-process diagnostics;
  * it is not sanitized, is not deep-copied, and must not be serialized or recorded as a raw telemetry exception.
@@ -31,6 +31,7 @@ public final class PerformanceLogEvent {
     private final long parentScopeId;
     private final long rootScopeId;
     private final int connectionId;
+    private final int statementId;
     private final PerformanceActivity activity;
     private final String phase;
     private final long startEpochNanos;
@@ -47,7 +48,7 @@ public final class PerformanceLogEvent {
             PerformanceActivity activity, long startEpochNanos, long endEpochNanos, long durationNanos,
             Exception exception, String failurePhase, Map<String, Object> attributes,
             Map<String, Object> errorAttributes) {
-        this(type, scopeId, parentScopeId, rootScopeId, connectionId, activity, startEpochNanos, endEpochNanos,
+        this(type, scopeId, parentScopeId, rootScopeId, connectionId, 0, activity, startEpochNanos, endEpochNanos,
                 durationNanos, exception, failurePhase, attributes, errorAttributes, Collections.emptyList());
     }
 
@@ -55,13 +56,23 @@ public final class PerformanceLogEvent {
             PerformanceActivity activity, long startEpochNanos, long endEpochNanos, long durationNanos,
             Exception exception, String failurePhase, Map<String, Object> attributes,
             Map<String, Object> errorAttributes, List<Map<String, Object>> diagnosticEvents) {
+        this(type, scopeId, parentScopeId, rootScopeId, connectionId, 0, activity, startEpochNanos, endEpochNanos,
+            durationNanos, exception, failurePhase, attributes, errorAttributes, diagnosticEvents);
+        }
+
+        PerformanceLogEvent(Type type, long scopeId, long parentScopeId, long rootScopeId, int connectionId,
+            int statementId, PerformanceActivity activity, long startEpochNanos, long endEpochNanos, long durationNanos,
+            Exception exception, String failurePhase, Map<String, Object> attributes,
+            Map<String, Object> errorAttributes, List<Map<String, Object>> diagnosticEvents) {
         this.type = type;
         this.scopeId = scopeId;
         this.parentScopeId = parentScopeId;
         this.rootScopeId = rootScopeId;
         this.connectionId = connectionId;
+        this.statementId = statementId;
         this.activity = activity;
-        this.phase = activity.connectionPhase();
+        String connectionActivityPhase = activity.connectionPhase();
+        this.phase = connectionActivityPhase == null ? activity.statementPhase() : connectionActivityPhase;
         this.startEpochNanos = startEpochNanos;
         this.endEpochNanos = endEpochNanos;
         this.durationNanos = durationNanos;
@@ -80,6 +91,7 @@ public final class PerformanceLogEvent {
         parentScopeId = source.parentScopeId;
         rootScopeId = source.rootScopeId;
         connectionId = source.connectionId;
+        statementId = source.statementId;
         activity = source.activity;
         phase = source.phase;
         startEpochNanos = source.startEpochNanos;
@@ -93,6 +105,26 @@ public final class PerformanceLogEvent {
         diagnosticEvents = source.diagnosticEvents;
     }
 
+    private PerformanceLogEvent(PerformanceLogEvent source, Map<String, Object> safeAttributes) {
+        type = source.type;
+        scopeId = source.scopeId;
+        parentScopeId = source.parentScopeId;
+        rootScopeId = source.rootScopeId;
+        connectionId = source.connectionId;
+        statementId = source.statementId;
+        activity = source.activity;
+        phase = source.phase;
+        startEpochNanos = source.startEpochNanos;
+        endEpochNanos = source.endEpochNanos;
+        durationNanos = source.durationNanos;
+        exception = source.exception;
+        hasException = source.hasException;
+        failurePhase = source.failurePhase;
+        attributes = Collections.unmodifiableMap(safeAttributes);
+        errorAttributes = source.errorAttributes;
+        diagnosticEvents = source.diagnosticEvents;
+    }
+
     /**
      * Returns an asynchronous-safe projection with no exception reference. This constant-time operation shares the
      * already immutable metadata, does not inspect the exception or its causes, and preserves {@link #hasException()}.
@@ -102,6 +134,22 @@ public final class PerformanceLogEvent {
      */
     public PerformanceLogEvent withoutException() {
         return exception == null ? this : new PerformanceLogEvent(this);
+    }
+
+    /**
+     * Returns a snapshot enriched with already-masked bounded SQL. This method never accepts raw or oversized text;
+     * callers remain responsible for fail-closed lexical masking before invoking it.
+     *
+     * @param value masked SQL, at most 4,096 characters
+     * @return enriched immutable snapshot
+     */
+    public PerformanceLogEvent withMaskedQueryText(String value) {
+        if (value == null || value.isEmpty() || value.length() > 4096) {
+            return this;
+        }
+        Map<String, Object> safe = new LinkedHashMap<>(attributes);
+        safe.put("db.query.text", value);
+        return new PerformanceLogEvent(this, safe);
     }
 
     /** @return whether an exception was captured, including when its reference was removed by projection */
@@ -134,12 +182,17 @@ public final class PerformanceLogEvent {
         return connectionId;
     }
 
+    /** @return driver statement ID, or zero for connection activities */
+    public int getStatementId() {
+        return statementId;
+    }
+
     /** @return the accurately bounded connection activity */
     public PerformanceActivity getActivity() {
         return activity;
     }
 
-    /** @return stable phase name; {@code connection.open} for CONNECTION */
+    /** @return stable phase name; {@code connection.open} or {@code statement.execute} for roots */
     public String getPhase() {
         return phase;
     }

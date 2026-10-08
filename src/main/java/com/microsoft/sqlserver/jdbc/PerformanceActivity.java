@@ -132,7 +132,13 @@ public enum PerformanceActivity {
     /** Required post-login connection initialization. */
     CONNECTION_INITIALIZE("Connection initialize"),
     /** Processing a server routing transition after the login exchange. */
-    CONNECTION_REDIRECT("Connection redirect");
+    CONNECTION_REDIRECT("Connection redirect"),
+
+    // Statement lifecycle-only activities. Existing statement timing activities above retain their legacy callbacks.
+    /** One JDBC execute invocation, including internal retries. */
+    STATEMENT_INVOCATION("Statement invocation"),
+    /** One initial or internally retried execution attempt. */
+    STATEMENT_ATTEMPT("Statement attempt");
 
     private final String activity;
 
@@ -176,8 +182,29 @@ public enum PerformanceActivity {
         }
     }
 
+    // Existing timing scopes become accurately parented lifecycle phases without changing their legacy identities.
+    String statementPhase() {
+        switch (this) {
+            case STATEMENT_INVOCATION:
+                return "statement.execute";
+            case STATEMENT_ATTEMPT:
+                return "attempt";
+            case STATEMENT_REQUEST_BUILD:
+                return "request_build";
+            case STATEMENT_FIRST_SERVER_RESPONSE:
+                return "first_response";
+            case STATEMENT_PREPARE:
+            case STATEMENT_PREPEXEC:
+            case STATEMENT_EXECUTE:
+                return "server_call";
+            default:
+                return null;
+        }
+    }
+
     boolean isLifecycleOnly() {
-        return this != CONNECTION && this != PRELOGIN && connectionPhase() != null;
+        return (this != CONNECTION && this != PRELOGIN && connectionPhase() != null)
+                || this == STATEMENT_INVOCATION || this == STATEMENT_ATTEMPT;
     }
 
     @Override

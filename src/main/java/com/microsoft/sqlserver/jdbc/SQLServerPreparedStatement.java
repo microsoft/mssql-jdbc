@@ -160,6 +160,28 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private final boolean usePrepExec;
 
+    @Override
+    String statementProtocol() {
+        return isDirectSqlExecution ? "sql_batch" : "rpc";
+    }
+
+    @Override
+    String statementProtocolOperation(PerformanceActivity activity) {
+        if (activity == PerformanceActivity.STATEMENT_PREPARE) {
+            return "sp_prepare";
+        }
+        if (activity == PerformanceActivity.STATEMENT_PREPEXEC) {
+            return "sp_prepexec";
+        }
+        if (executeMethod == EXECUTE_BATCH) {
+            return isDirectSqlExecution ? "direct_sql_batch" : "prepared_batch";
+        }
+        if (isDirectSqlExecution) {
+            return "direct_sql";
+        }
+        return hasPreparedStatementHandle() ? "sp_execute" : "sp_executesql";
+    }
+
     /**
      * For caching data related to batch insert with bulkcopy
      */
@@ -3415,6 +3437,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         PrepStmtBatchExecCmd(SQLServerPreparedStatement stmt) {
             super(stmt.toString() + " executeBatch", queryTimeout, cancelQueryTimeoutSeconds);
             this.stmt = stmt;
+            stmt.executeMethod = EXECUTE_BATCH;
         }
 
         final boolean doExecute() throws SQLServerException {

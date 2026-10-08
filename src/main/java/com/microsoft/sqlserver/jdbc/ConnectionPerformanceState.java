@@ -261,7 +261,11 @@ final class ConnectionPerformanceState {
                                              : root.startEpochNanos + (startNanos - root.startNanos);
             attributes.put("db.system.name", "microsoft.sql_server");
             if (activity == PerformanceActivity.CONNECTION) {
-                attributes.put("mssql.connection.guid", UUID.randomUUID().toString());
+                String guid = UUID.randomUUID().toString();
+                attributes.put("mssql.connection.guid", guid);
+                if (con != null) {
+                    con.setTelemetryConnectionGuid(guid);
+                }
                 attributes.put("mssql.telemetry.schema.version", "1.0");
                 attributes.put("mssql.authentication.method", "unknown");
                 // Reuse the driver's value; the optional adapter requires exact approval before exporting it.
