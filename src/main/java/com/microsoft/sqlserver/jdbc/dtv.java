@@ -310,6 +310,7 @@ final class DTV {
         private final TDSWriter tdsWriter;
         private final SQLServerConnection conn;
         private final SQLServerStatement statement;
+        private final GregorianCalendar utcCalendar = new GregorianCalendar(UTC.timeZone, Locale.US);
 
         SendByRPCOp(String name, TypeInfo typeInfo, SQLCollation collation, int precision, int outScale,
                 boolean isOutParam, TDSWriter tdsWriter, SQLServerStatement statement) {
@@ -588,7 +589,7 @@ final class DTV {
 
                     case LOCALDATE:
                         // Mapped to JDBC type DATE
-                        calendar = new GregorianCalendar(UTC.timeZone, Locale.US);
+                        calendar = utcCalendar;
 
                         // All time fields are set to default
                         clearSetCalendar(calendar, true, ((LocalDate) value).getYear(),
@@ -601,7 +602,7 @@ final class DTV {
 
                     case LOCALTIME:
                         // Nanoseconds precision, mapped to JDBC type TIME
-                        calendar = new GregorianCalendar(UTC.timeZone, Locale.US);
+                        calendar = utcCalendar;
 
                         // All date fields are set to default
                         LocalTime localTimeValue = ((LocalTime) value);
@@ -618,7 +619,7 @@ final class DTV {
                     case LOCALDATETIME:
                         // Nanoseconds precision, mapped to JDBC type TIMESTAMP
 
-                        calendar = new GregorianCalendar(UTC.timeZone, Locale.US);
+                        calendar = utcCalendar;
                         // Calendar 'month' is 0-based, but LocalDateTime 'month' is 1-based
                         LocalDateTime localDateTimeValue = (LocalDateTime) value;
                         clearSetCalendar(calendar, true, localDateTimeValue.getYear(),
