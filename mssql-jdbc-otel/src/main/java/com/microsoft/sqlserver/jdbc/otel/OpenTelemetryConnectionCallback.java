@@ -50,7 +50,9 @@ import io.opentelemetry.context.Context;
  * JDBC callbacks only capture the root caller's SpanContext, project immutable exception-free events and attempt
  * nonblocking admission to a bounded event queue. An ingestion daemon constructs trees and applies attribute policy;
  * a separate export daemon hands completed failed trees to the application's SDK with original timestamps.
- * No SDK span/metric operation or tree processing runs on a JDBC callback thread. Admission contention or event
+ * No SDK span construction/export or tree processing runs on a JDBC callback thread. When all-operation metrics are
+ * enabled, bounded OpenTelemetry API instrument recording occurs synchronously on lifecycle END; SDK aggregation and
+ * export remain asynchronous. Admission contention or event
  * overflow advances a loss epoch: queued older events and pending partial trees are conservatively discarded.
  * Consequently unrelated concurrent opens may also be lost, but missing boundaries do not fabricate complete trees.
  * Complete-tree queue overload drops whole trees. Per-open limits evict completed older spans before admitting new branches.
@@ -88,6 +90,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
     private final LongSupplier nanoClock;
     private final String approvedUserAgent;
     private final boolean metricsEnabled;
+    private final boolean performanceMetricsEnabled;
     private final Map<Long, Open> pending = new LinkedHashMap<>();
     private final Deque<Open> queue = new ArrayDeque<>();
     private final Thread worker;
@@ -105,6 +108,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
     // Worker-confined SDK objects, initialized only for the first failed open.
     private Tracer tracer;
     private Counters counters;
+    private volatile PerformanceActivityMetrics performanceMetrics;
 
     private OpenTelemetryConnectionCallback(Builder builder) {
         telemetry = builder.telemetry;
@@ -118,6 +122,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         nanoClock = builder.nanoClock;
         approvedUserAgent = builder.approvedUserAgent;
         metricsEnabled = builder.metricsEnabled;
+        performanceMetricsEnabled = builder.performanceMetricsEnabled;
         worker = daemon(this::work, "mssql-jdbc-otel-export");
         ingestion = daemon(this::ingest, "mssql-jdbc-otel-ingest");
         expiry = Executors.newSingleThreadScheduledExecutor(task -> daemon(task, "mssql-jdbc-otel-expiry"));
@@ -157,6 +162,7 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         private Duration maxOpenAge = Duration.ofMinutes(5);
         private Duration closeTimeout = Duration.ofSeconds(5);
         private boolean metricsEnabled;
+        private boolean performanceMetricsEnabled;
         private String approvedUserAgent;
         LongSupplier nanoClock = System::nanoTime;
 
@@ -259,6 +265,19 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
         }
 
         /**
+         * Enables counts, errors, retries and duration histograms for every completed lifecycle activity. Metrics are
+         * recorded from the existing END callback and aggregated by the application-supplied OpenTelemetry SDK; no
+         * second driver instrumentation or aggregation path is created.
+         *
+         * @param value whether to record all-operation performance metrics (default false)
+         * @return this builder
+         */
+        public Builder performanceMetricsEnabled(boolean value) {
+            performanceMetricsEnabled = value;
+            return this;
+        }
+
+        /**
          * Opts in to one exact, privacy-reviewed driver user agent. No runtime text is discovered or fabricated.
          * 
          * @param value
@@ -315,6 +334,9 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
             droppedEvents.incrementAndGet();
             return;
         }
+        if (performanceMetricsEnabled && event.getType() == PerformanceLogEvent.Type.END) {
+            recordPerformanceMetrics(event);
+        }
         SpanContext parent = event.getType() == PerformanceLogEvent.Type.START && isRoot(event) ? Span.current()
                 .getSpanContext() : null;
         String maskedSql = event.getType() == PerformanceLogEvent.Type.START
@@ -339,6 +361,25 @@ public final class OpenTelemetryConnectionCallback implements PerformanceLogCall
             admission.unlock();
         }
         LockSupport.unpark(ingestion);
+    }
+
+    private void recordPerformanceMetrics(PerformanceLogEvent event) {
+        try {
+            PerformanceActivityMetrics current = performanceMetrics;
+            if (current == null) {
+                synchronized (this) {
+                    current = performanceMetrics;
+                    if (current == null) {
+                        current = new PerformanceActivityMetrics(telemetry, SCOPE);
+                        performanceMetrics = current;
+                    }
+                }
+            }
+            current.record(event, this);
+        } catch (RuntimeException | LinkageError | ServiceConfigurationError e) {
+            // Metric SDK failures never suppress span admission or affect the SQL operation.
+            performanceMetrics = null;
+        }
     }
 
     private static boolean isRoot(PerformanceLogEvent event) {

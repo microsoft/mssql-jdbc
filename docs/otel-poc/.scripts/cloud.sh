@@ -91,6 +91,7 @@ case "$action" in
     run_scenario statements "$statements_count"
     "${compose[@]}" run --rm --no-deps -T verify
     "${compose[@]}" cp evidence:/evidence/traces.json "$artifact_dir/evidence.json"
+    "${compose[@]}" cp evidence:/evidence/metrics.json "$artifact_dir/metric-evidence.json"
     node .scripts/cloud-e2e.mjs expected "$env_file" "$artifact_dir/evidence.json" > "$artifact_dir/expected.json"
     "${compose[@]}" run --rm --no-deps -T cloud-verifier
     printf 'FDH customer mock: http://127.0.0.1:3001\n'

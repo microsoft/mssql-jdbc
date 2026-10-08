@@ -51,11 +51,12 @@ services:
       OTEL_BEARER_TOKEN:
       OTEL_ARM_RESOURCE_ID: ${OTEL_ARM_RESOURCE_ID:-}
       OTEL_ALLOW_INSECURE_DEVELOPMENT_ENDPOINT: "true"
+      OTEL_JDBC_METRICS_ENABLED: "true"
       OTEL_METRICS_EXPORTER: none
       OTEL_LOGS_EXPORTER: none
-      DEMO_SCENARIOS: ${DEMO_SCENARIOS:-config,dns}
+      DEMO_SCENARIOS: ${DEMO_SCENARIOS:-config,dns,login,success,statements}
       DEMO_REPEAT: ${DEMO_REPEAT:-1}
-      DEMO_EXPECTED_STATEMENT_ROOTS: ${DEMO_EXPECTED_STATEMENT_ROOTS:-0}
+      DEMO_EXPECTED_STATEMENT_ROOTS: ${DEMO_EXPECTED_STATEMENT_ROOTS:-2}
       DEMO_PAUSE_SECONDS: ${DEMO_PAUSE_SECONDS:-1}
       JDBC_CONNECTION_STRING:
       DEMO_LOGIN_USER:
@@ -84,9 +85,9 @@ services:
     networks: [ingress]
     environment:
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-mssql-jdbc-connection-demo}
-      DEMO_SCENARIOS: ${DEMO_SCENARIOS:-config,dns}
+      DEMO_SCENARIOS: ${DEMO_SCENARIOS:-config,dns,login,success,statements}
       DEMO_REPEAT: ${DEMO_REPEAT:-1}
-      DEMO_EXPECTED_STATEMENT_ROOTS: ${DEMO_EXPECTED_STATEMENT_ROOTS:-0}
+      DEMO_EXPECTED_STATEMENT_ROOTS: ${DEMO_EXPECTED_STATEMENT_ROOTS:-2}
     volumes:
       - evidence:/evidence:ro
       - ./.scripts/verify-traces.mjs:/verify-traces.mjs:ro

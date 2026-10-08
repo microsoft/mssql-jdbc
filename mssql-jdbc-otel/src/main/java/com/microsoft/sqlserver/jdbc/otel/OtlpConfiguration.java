@@ -25,8 +25,10 @@ final class OtlpConfiguration implements Supplier<Map<String, String>>, AutoClos
     private static final int MAX_HEADER_VALUE = 2048;
     private static final long FAILURE_BACKOFF_MILLIS = 1000;
     final String endpoint;
+    final String metricsEndpoint;
     final String serviceName;
     final String approvedUserAgent;
+    final boolean metricsEnabled;
     private final Map<String, String> headers;
     private final String callbackClass;
     private final String scope;
@@ -50,7 +52,9 @@ final class OtlpConfiguration implements Supplier<Map<String, String>>, AutoClos
         Objects.requireNonNull(configuration, "configuration");
         this.clock = clock;
         endpoint = normalizeEndpoint(configuration);
+        metricsEndpoint = endpoint.substring(0, endpoint.length() - "/v1/traces".length()) + "/v1/metrics";
         serviceName = boundedText(configuration.getProperty("otelServiceName", "mssql-jdbc-connection-demo"), 256);
+        metricsEnabled = flag(configuration, "otelJdbcMetricsEnabled");
         approvedUserAgent = configuration.getProperty("otelApprovedUserAgent");
         if (approvedUserAgent != null && !ConnectionAttributePolicy.validUserAgent(approvedUserAgent)) {
             throw new IllegalArgumentException("Invalid approved user agent");

@@ -154,7 +154,10 @@ export function collector() {
         table_filter: { opt_out: ['^multivariate_metrics$'] }
       }
     },
-    service: { extensions: ['misecontainerauth'], telemetry: { metrics: { level: 'none' }, logs: { level: 'warn' } }, pipelines: { traces: { receivers: ['otlp'], processors: ['memory_limiter', 'batch'], exporters: ['otlphttp/evidence', 'deltalake/otap', 'kustoexporter/otap'] } } }
+    service: { extensions: ['misecontainerauth'], telemetry: { metrics: { level: 'none' }, logs: { level: 'warn' } }, pipelines: {
+      traces: { receivers: ['otlp'], processors: ['memory_limiter', 'batch'], exporters: ['otlphttp/evidence', 'deltalake/otap', 'kustoexporter/otap'] },
+      metrics: { receivers: ['otlp'], processors: ['memory_limiter', 'batch'], exporters: ['otlphttp/evidence', 'deltalake/otap', 'kustoexporter/otap'] }
+    } }
   };
 }
 
@@ -170,8 +173,14 @@ function evidenceCollector() {
   return {
     receivers: { otlp: { protocols: { http: { endpoint: '0.0.0.0:4318' } } } },
     processors: { memory_limiter: { check_interval: '1s', limit_mib: 128, spike_limit_mib: 32 }, batch: { timeout: '1s', send_batch_size: 128 } },
-    exporters: { 'file/evidence': { path: '/evidence/traces.json', flush_interval: '1s' } },
-    service: { telemetry: { metrics: { level: 'none' }, logs: { level: 'warn' } }, pipelines: { traces: { receivers: ['otlp'], processors: ['memory_limiter', 'batch'], exporters: ['file/evidence'] } } }
+    exporters: {
+      'file/evidence': { path: '/evidence/traces.json', flush_interval: '1s' },
+      'file/metric-evidence': { path: '/evidence/metrics.json', flush_interval: '1s' }
+    },
+    service: { telemetry: { metrics: { level: 'none' }, logs: { level: 'warn' } }, pipelines: {
+      traces: { receivers: ['otlp'], processors: ['memory_limiter', 'batch'], exporters: ['file/evidence'] },
+      metrics: { receivers: ['otlp'], processors: ['memory_limiter', 'batch'], exporters: ['file/metric-evidence'] }
+    } }
   };
 }
 

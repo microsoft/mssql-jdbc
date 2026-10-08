@@ -150,10 +150,11 @@ Compose configuration, environment dumps, container inspections or token respons
 
 | Variable | Behavior |
 | --- | --- |
-| `DEMO_SCENARIOS` | `config,dns` by default; choose comma-separated `config,dns,login,success,statements`, without duplicates. |
+| `DEMO_SCENARIOS` | Defaults to `config,dns,login,success,statements`: connection errors, a successful connection, Statement and PreparedStatement errors, and successful statement activity. Choose a duplicate-free subset explicitly. |
 | `DEMO_REPEAT` / `DEMO_PAUSE_SECONDS` | Default `1` / `1`; keep runs small. The evidence gate supports 1–1000 repeats and bounded capture files. |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Compose fixes `http://otelcol:4318`; the bootstrap appends/normalizes `/v1/traces`. For host runs, explicitly supply an approved HTTPS receiver. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Compose fixes `http://otelcol:4318`; the bootstrap appends/normalizes `/v1/traces` and `/v1/metrics`. For host runs, explicitly supply an approved HTTPS receiver. |
 | `OTEL_SERVICE_NAME` | Default `mssql-jdbc-connection-demo`; `gate` overrides it with a unique name to reject stale evidence. |
+| `OTEL_JDBC_METRICS_ENABLED` | Compose sets `true`; operation metrics are calculated from existing lifecycle END callbacks and aggregated by the owned OpenTelemetry SDK. |
 | `OTEL_AUTH_MODE` | `none` locally; `azure_cli`, `managed_identity`, `default`, or `static` explicitly elsewhere. No automatic fallback to SQL credentials. |
 | `OTEL_ACCESS_TOKEN_SCOPE` | **Required for every non-`none` mode.** Supply the exact audience-approved credential scope; do not infer it from a resource ID. |
 | `OTEL_TOKEN_AUTHORITY` | Optional explicit callback authority; no actual tenant is baked into this demo. |

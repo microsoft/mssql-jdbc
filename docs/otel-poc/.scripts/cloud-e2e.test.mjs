@@ -50,11 +50,12 @@ test('requires explicit isolation, schema and digest-pinned approved images', ()
     assert.throws(() => configure({ ...env, ROOT_PATH: prefix }));
   }
 });
-test('collector keeps MISE and traces only, routes identical accepted traffic to both stores and evidence', () => {
+test('collector keeps MISE and routes traces and metrics to both stores and evidence', () => {
   const c = collector();
   assert.equal(c.receivers.otlp.protocols.http.auth.authenticator, 'misecontainerauth');
-  assert.deepEqual(Object.keys(c.service.pipelines), ['traces']);
+  assert.deepEqual(Object.keys(c.service.pipelines), ['traces', 'metrics']);
   assert.deepEqual(c.service.pipelines.traces.exporters, ['otlphttp/evidence', 'deltalake/otap', 'kustoexporter/otap']);
+  assert.deepEqual(c.service.pipelines.metrics.exporters, ['otlphttp/evidence', 'deltalake/otap', 'kustoexporter/otap']);
   assert.equal(c.exporters['kustoexporter/otap'].marshaler, 'otap_parquet');
   assert.equal(c.exporters['deltalake/otap'].drop_on_error, false);
 });

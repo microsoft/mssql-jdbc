@@ -25,6 +25,36 @@ if [[ "${1:-}" == compat ]]; then
   export DEMO_ENDPOINT_MODE="${DEMO_ENDPOINT_MODE:-explicit}"
 fi
 mode="${DEMO_STACK:-local}"
+action="${1:-help}"
+scenarios_explicit="${DEMO_SCENARIOS+x}"
+export DEMO_SCENARIOS="${DEMO_SCENARIOS:-config,dns,login,success,statements}"
+export DEMO_REPEAT="${DEMO_REPEAT:-1}"
+export DEMO_PAUSE_SECONDS="${DEMO_PAUSE_SECONDS:-1}"
+export DEMO_WITH_SQL="${DEMO_WITH_SQL:-true}"
+if [[ "$DEMO_WITH_SQL" == false && "$scenarios_explicit" != x ]]; then
+  export DEMO_SCENARIOS=config,dns
+fi
+if [[ "$DEMO_WITH_SQL" == true ]]; then
+  if [[ "$action" =~ ^(up|gate|run)$ && -z "${MSSQL_SA_PASSWORD:-}" ]]; then
+    echo 'The default full workload requires MSSQL_SA_PASSWORD for isolated local SQL.' >&2
+    exit 2
+  fi
+  # Non-executing Compose commands still expand the required overlay variable. This value is never used to start SQL.
+  if [[ -z "${MSSQL_SA_PASSWORD:-}" ]]; then
+    export MSSQL_SA_PASSWORD='NotUsed-Configuration-Only-9f6c2a!'
+  fi
+  # The deliberately nonexistent login needs an unrelated runtime password. It is never persisted or printed.
+  if [[ -z "${DEMO_LOGIN_PASSWORD:-}" ]]; then
+    export DEMO_LOGIN_PASSWORD="IntentionalFailure!$(od -An -N24 -tx1 /dev/urandom | tr -d ' \n')"
+  fi
+fi
+if [[ -z "${DEMO_EXPECTED_STATEMENT_ROOTS:-}" ]]; then
+  if [[ ",$DEMO_SCENARIOS," == *,statements,* ]]; then
+    export DEMO_EXPECTED_STATEMENT_ROOTS="$((DEMO_REPEAT * 2))"
+  else
+    export DEMO_EXPECTED_STATEMENT_ROOTS=0
+  fi
+fi
 compose=(docker compose --project-name mssql-jdbc-connection-poc -f docker-compose.yml)
 services=(aspire-dashboard otelcol)
 case "$mode" in
@@ -39,7 +69,7 @@ case "$mode" in
     ;;
   *) echo 'DEMO_STACK must be local, internal or delta.' >&2; exit 2 ;;
 esac
-case "${DEMO_WITH_SQL:-false}" in
+case "$DEMO_WITH_SQL" in
   true)
     compose+=(-f docker-compose.sql.yml)
     services+=(sqlserver)
@@ -65,7 +95,7 @@ check_delta_group() {
 }
 
 prepare_sql() {
-  if [[ "${DEMO_WITH_SQL:-false}" == true ]]; then
+  if [[ "$DEMO_WITH_SQL" == true ]]; then
     # run --no-deps does not enforce app.depends_on; wait on the actual SQL healthcheck.
     "${compose[@]}" up -d --wait --wait-timeout 180 sqlserver
     if [[ "$compat" == true && "$DEMO_ENDPOINT_MODE" == discovery ]]; then
@@ -108,7 +138,7 @@ gate() {
   printf 'Inspect the same run in Aspire Traces: http://localhost:18888 (service %s)\n' "$OTEL_SERVICE_NAME"
 }
 
-case "${1:-help}" in
+case "$action" in
   config)
     # Quiet is intentional: resolved Compose output can contain secrets.
     check_delta_group
@@ -149,7 +179,8 @@ case "${1:-help}" in
     echo 'Usage: bash .scripts/dev.sh config|build|up|gate|run|status|logs [service]|down|clean'
     echo '       bash .scripts/dev.sh cloud ENV_FILE config|up|status|logs [service]|down|clean'
     echo 'DEMO_STACK=local (default), internal, or delta. up preserves existing volumes.'
-    echo 'DEMO_WITH_SQL=true adds isolated local SQL in any mode; supply its password externally.'
+    echo 'The default workload is config,dns,login,success,statements with SQL and metrics enabled.'
+    echo 'Supply MSSQL_SA_PASSWORD externally. DEMO_WITH_SQL=false opts out of SQL scenarios.'
     echo 'compat up|config|build|gate|run|status|logs|down|clean opts into SQL + MISE + Delta + CLI broker.'
     echo 'compat alone displays help. DEMO_ENDPOINT_MODE=discovery exercises seeded HTTPS discovery.'
     ;;

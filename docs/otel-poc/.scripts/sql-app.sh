@@ -7,7 +7,7 @@ if [[ -z "${MSSQL_SA_PASSWORD:-}" ]]; then
   echo 'The local SQL demo requires MSSQL_SA_PASSWORD.' >&2
   exit 2
 fi
-if [[ ",${DEMO_SCENARIOS:-config,dns}," == *,login,* && -z "${DEMO_LOGIN_PASSWORD:-}" ]]; then
+if [[ ",${DEMO_SCENARIOS:-config,dns,login,success,statements}," == *,login,* && -z "${DEMO_LOGIN_PASSWORD:-}" ]]; then
   echo 'The login scenario requires DEMO_LOGIN_PASSWORD for the nonexistent demo login.' >&2
   exit 2
 fi

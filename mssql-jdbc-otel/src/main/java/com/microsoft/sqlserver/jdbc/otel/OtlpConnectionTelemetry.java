@@ -17,8 +17,11 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.MeterProvider;
 import io.opentelemetry.api.trace.TracerProvider;
 import io.opentelemetry.context.propagation.ContextPropagators;
+import io.opentelemetry.exporter.otlp.http.metrics.OtlpHttpMetricExporter;
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
 import io.opentelemetry.sdk.common.CompletableResultCode;
+import io.opentelemetry.sdk.metrics.SdkMeterProvider;
+import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.data.SpanData;
@@ -27,10 +30,10 @@ import io.opentelemetry.sdk.trace.export.SpanExporter;
 
 
 /**
- * Optional, owned OTLP/HTTP transport for the failure-only connection callback. No global SDK, meter provider,
+ * Optional, owned OTLP/HTTP transport for the failure-only trace callback and opt-in all-operation metrics. No global SDK,
  * shutdown hook, JDBC discovery, or callback registration is created. Register {@link #getCallback()} explicitly
  * with {@code SQLServerDriver.registerPerformanceLogCallback} before the first SQL call, and unregister before close.
- * Successes and legacy statement callbacks are ignored by the existing adapter; metrics remain disabled.
+ * Successful lifecycle END events do not create spans but can contribute metrics when explicitly enabled.
  *
  * <p>
  * Configuration is programmatic (not a JDBC URL). Supported properties:
@@ -52,6 +55,8 @@ import io.opentelemetry.sdk.trace.export.SpanExporter;
  * this token on failure. Static tokens cannot be refreshed or expiry-checked; use a callback for expiring tokens.</li>
  * <li>{@code otelApprovedUserAgent}: optional privacy-approved version-1 driver value; only an exact match from a
  * driver event may be exported. No runtime UA is inferred and this is not an HTTP User-Agent override.</li>
+ * <li>{@code otelJdbcMetricsEnabled=true}: records bounded operation counts, errors, retries, and duration
+ * histograms from existing lifecycle END events and exports them to the endpoint's /v1/metrics path.</li>
  * </ul>
  *
  * <p>
@@ -72,18 +77,20 @@ public final class OtlpConnectionTelemetry implements AutoCloseable {
     private static final Duration WAIT_BUDGET = Duration.ofSeconds(5);
     private final OtlpConfiguration configuration;
     private final SdkTracerProvider provider;
+    private final SdkMeterProvider meterProvider;
     private final OpenTelemetryConnectionCallback callback;
     private final AtomicBoolean closed = new AtomicBoolean();
 
-    private OtlpConnectionTelemetry(OtlpConfiguration configuration, SdkTracerProvider provider,
-            OpenTelemetryConnectionCallback callback) {
+        private OtlpConnectionTelemetry(OtlpConfiguration configuration, SdkTracerProvider provider,
+            SdkMeterProvider meterProvider, OpenTelemetryConnectionCallback callback) {
         this.configuration = configuration;
         this.provider = provider;
+        this.meterProvider = meterProvider;
         this.callback = callback;
     }
 
     /**
-     * Creates an independent traces-only pipeline with a 2048-span batch queue, batches of 128, 200ms schedule,
+    * Creates an independent telemetry pipeline with a 2048-span batch queue, batches of 128, 200ms schedule,
      * 3-second connect/export timeouts and a 5-second processor export wait. No token is acquired at construction.
      *
      * @param configuration
@@ -97,6 +104,7 @@ public final class OtlpConnectionTelemetry implements AutoCloseable {
         SpanExporter exporter = null;
         BatchSpanProcessor processor = null;
         SdkTracerProvider provider = null;
+        SdkMeterProvider meterProvider = null;
         try {
             exporter = new SafeExporter(OtlpHttpSpanExporter.builder().setEndpoint(config.endpoint).setHeaders(config)
                     .setConnectTimeout(EXPORT_TIMEOUT).setTimeout(EXPORT_TIMEOUT).setRetryPolicy(null)
@@ -107,11 +115,25 @@ public final class OtlpConnectionTelemetry implements AutoCloseable {
             provider = SdkTracerProvider.builder().setResource(Resource.empty().merge(resource))
                     .addSpanProcessor(processor).build();
             final SdkTracerProvider ownedProvider = provider;
-            // OpenTelemetrySdk.builder().build() also creates default meter/logger SDKs. Use only the trace SDK.
-            OpenTelemetry tracesOnly = new OpenTelemetry() {
+            if (config.metricsEnabled) {
+                OtlpHttpMetricExporter metricExporter = OtlpHttpMetricExporter.builder()
+                        .setEndpoint(config.metricsEndpoint).setHeaders(config).setConnectTimeout(EXPORT_TIMEOUT)
+                        .setTimeout(EXPORT_TIMEOUT).setRetryPolicy(null).build();
+                PeriodicMetricReader metricReader = PeriodicMetricReader.builder(metricExporter)
+                        .setInterval(Duration.ofSeconds(60)).build();
+                meterProvider = SdkMeterProvider.builder().setResource(Resource.empty().merge(resource))
+                        .registerMetricReader(metricReader).build();
+            }
+            final SdkMeterProvider ownedMeterProvider = meterProvider;
+            OpenTelemetry telemetry = new OpenTelemetry() {
                 @Override
                 public TracerProvider getTracerProvider() {
                     return ownedProvider;
+                }
+
+                @Override
+                public MeterProvider getMeterProvider() {
+                    return ownedMeterProvider == null ? MeterProvider.noop() : ownedMeterProvider;
                 }
 
                 @Override
@@ -119,12 +141,12 @@ public final class OtlpConnectionTelemetry implements AutoCloseable {
                     return ContextPropagators.noop();
                 }
             };
-            OpenTelemetryConnectionCallback.Builder builder = OpenTelemetryConnectionCallback.builder(tracesOnly)
-                    .metricsEnabled(false).closeTimeout(WAIT_BUDGET);
+                OpenTelemetryConnectionCallback.Builder builder = OpenTelemetryConnectionCallback.builder(telemetry)
+                    .metricsEnabled(false).performanceMetricsEnabled(config.metricsEnabled).closeTimeout(WAIT_BUDGET);
             if (config.approvedUserAgent != null) {
                 builder.approvedUserAgent(config.approvedUserAgent);
             }
-            return new OtlpConnectionTelemetry(config, provider, builder.build());
+            return new OtlpConnectionTelemetry(config, provider, meterProvider, builder.build());
         } catch (RuntimeException | LinkageError | ServiceConfigurationError e) {
             config.close();
             if (provider != null) {
@@ -133,6 +155,9 @@ public final class OtlpConnectionTelemetry implements AutoCloseable {
                 processor.shutdown();
             } else if (exporter != null) {
                 exporter.shutdown();
+            }
+            if (meterProvider != null) {
+                meterProvider.shutdown();
             }
             throw new IllegalStateException("Unable to create telemetry transport");
         }
@@ -166,7 +191,12 @@ public final class OtlpConnectionTelemetry implements AutoCloseable {
      */
     public boolean forceFlush(Duration timeout) {
         long nanos = nanos(timeout);
-        return !closed.get() && waitFor(provider.forceFlush(), nanos);
+        if (closed.get()) {
+            return false;
+        }
+        boolean traces = waitFor(provider.forceFlush(), nanos);
+        boolean metrics = meterProvider == null || waitFor(meterProvider.forceFlush(), nanos);
+        return traces && metrics;
     }
 
     private static long nanos(Duration timeout) {
@@ -201,9 +231,18 @@ public final class OtlpConnectionTelemetry implements AutoCloseable {
             try {
                 callback.close();
                 waitFor(provider.forceFlush(), WAIT_BUDGET.toNanos());
+                if (meterProvider != null) {
+                    waitFor(meterProvider.forceFlush(), WAIT_BUDGET.toNanos());
+                }
             } finally {
                 configuration.close();
-                waitFor(provider.shutdown(), WAIT_BUDGET.toNanos());
+                try {
+                    waitFor(provider.shutdown(), WAIT_BUDGET.toNanos());
+                } finally {
+                    if (meterProvider != null) {
+                        waitFor(meterProvider.shutdown(), WAIT_BUDGET.toNanos());
+                    }
+                }
             }
         }
     }

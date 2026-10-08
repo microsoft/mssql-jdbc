@@ -271,8 +271,8 @@ function PerformanceMetricsDashboard() {
   return (
     <section className="performance-dashboard">
       <div className="statement-analysis-header performance-analysis-header">
-        <div><h2>Performance metrics</h2><p>Pre-aggregated interval metrics for all connections and statements—not only failures.</p></div>
-        <span className="period-chip">60-second windows</span>
+        <div><h2>Performance metrics</h2><p>SDK-aggregated metrics from existing lifecycle END events—not only failures.</p></div>
+        <span className="period-chip">60-second SDK export</span>
       </div>
       <section className="metrics performance-metrics">
         <MetricCard label="Connection opens / min" value={current.connections.toLocaleString()} delta={`${connectionRoot.successRate.toFixed(2)}% successful`} tone="#117865" />
@@ -287,10 +287,10 @@ function PerformanceMetricsDashboard() {
       <section className="charts-grid performance-bottom-grid">
         <ActivityLatency title="Statement pipeline latency" subtitle="Independent p95; nested phase durations are not added" metrics={statementStages} tone="#5b5fc7" />
         <div className="panel metric-principles-panel">
-          <div className="panel-title-row"><div><h3>Aggregate signal contract</h3><p>Bounded dimensions and interval snapshots</p></div></div>
+          <div className="panel-title-row"><div><h3>Metric signal contract</h3><p>Existing END boundaries and bounded dimensions</p></div></div>
           <div className="principle-list">
             <div><strong>All operations</strong><span>Successes, failures, timeouts, and cancellations</span></div>
-            <div><strong>Driver pre-aggregation</strong><span>Counts and fixed duration buckets per 60-second window</span></div>
+            <div><strong>OpenTelemetry SDK aggregation</strong><span>One count and duration observation per completed activity</span></div>
             <div><strong>Bounded cardinality</strong><span>No SQL, IDs, server names, exception text, or trace context</span></div>
             <div><strong>Failure diagnostics stay separate</strong><span>Detailed traces above remain failure-only</span></div>
           </div>

@@ -1,4 +1,4 @@
-# Only traces are accepted/exported. There is no metrics/logs pipeline or gRPC receiver.
+# OTLP/HTTP traces and metrics are accepted. There is no logs pipeline or gRPC receiver.
 receivers:
   otlp:
     protocols:
@@ -21,6 +21,12 @@ exporters:
     rotation:
       max_megabytes: 10
       max_backups: 2
+  file/metric-evidence:
+    path: /evidence/metrics.json
+    flush_interval: 1s
+    rotation:
+      max_megabytes: 10
+      max_backups: 2
   otlp/aspire:
     endpoint: aspire-dashboard:18889
     tls:
@@ -37,3 +43,7 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, batch]
       exporters: [file/evidence, otlp/aspire]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [file/metric-evidence, otlp/aspire]

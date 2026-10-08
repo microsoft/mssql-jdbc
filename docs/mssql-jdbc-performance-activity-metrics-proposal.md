@@ -1,12 +1,12 @@
-# Pre-aggregated metrics for JDBC performance activities
+# OpenTelemetry metrics from JDBC performance activities
 
 ## Proposal summary
 
-This document proposes interval-based OpenTelemetry metrics for every performance activity already measured by the Microsoft JDBC Driver for SQL Server. Unlike the failure-only diagnostic spans, these metrics cover **all completed connections and all completed statement executions**, including successes, failures, timeouts, cancellations, and successful operations after an internal retry.
+This document proposes OpenTelemetry metrics derived from the same lifecycle END boundaries already published for connection and statement span assembly. Unlike the failure-only diagnostic spans, these metrics cover **all completed connection and statement activities**, including successes, failures, timeouts, cancellations, and successful operations after an internal retry.
 
-The design keeps the existing `PerformanceLogCallback` contract and the failure-span proof of concept unchanged. It adds a bounded in-process aggregator between performance activity completion and the optional OpenTelemetry exporter. The driver records into fixed-cardinality counters and histograms on the application thread, rotates the active window at a configurable interval, and exports immutable aggregate snapshots asynchronously.
+The design keeps the existing `PerformanceLogCallback` contract and failure-span path unchanged. When `publish(PerformanceLogEvent)` receives a valid END event, the optional adapter records one counter observation and one duration observation using bounded attributes. The application-supplied OpenTelemetry SDK performs normal counter and histogram aggregation and periodic export. There is no second driver instrumentation path, driver-owned window, aggregate snapshot SPI, or replay of individual observations.
 
-This follows the useful properties of the earlier `users/machavan/otelexperiment` proof of concept—counters, duration histograms, periodic metric export, and bounded dimensions—but changes the hot path from one OpenTelemetry SDK call per activity to one driver-owned aggregation update per activity. It also removes IDs, SQL text, trace context, and other unbounded values from metric attributes.
+This follows the earlier `users/machavan/otelexperiment` proof of concept—counters, duration histograms, periodic SDK export, and bounded dimensions—while reusing the lifecycle events now required for span construction. It removes IDs, SQL text, trace context, and other unbounded values from metric attributes.
 
 > **Decision:** spans answer “what happened to this failed operation?” Metrics answer “how is the whole driver workload behaving?” They are complementary signals and have different admission rules.
 
@@ -14,11 +14,11 @@ This follows the useful properties of the earlier `users/machavan/otelexperiment
 
 ### Goals
 
-1. Measure every existing connection and statement `PerformanceActivity`, not only failures.
-2. Pre-aggregate activity counts, outcomes, durations, and retries inside the driver for a bounded interval.
-3. Keep the operation hot path allocation-free after a metric series is initialized.
+1. Measure every connection and statement activity already published through the lifecycle span callback, not only failures.
+2. Derive activity counts, outcomes, durations, and retries only from existing lifecycle END events.
+3. Delegate aggregation, temporality, interval rotation, and export to the application-supplied OpenTelemetry SDK.
 4. Keep metric cardinality bounded and independent of connection count, statement count, SQL diversity, and customer data.
-5. Export standard OpenTelemetry cumulative or delta metric data through the optional adapter.
+5. Export standard OpenTelemetry cumulative or delta metric data through the existing optional adapter.
 6. Preserve existing callback behavior, logging behavior, span behavior, and disabled-path cost.
 7. Support useful fleet dashboards: throughput, success rate, error rate, percentiles, connection lifecycle latency, and statement pipeline latency.
 
@@ -54,11 +54,8 @@ Use instrumentation scope `com.microsoft.sqlserver.jdbc` with the actual driver 
 | `db.client.operation.duration` | Histogram | `s` | Duration distribution for completed activities. |
 | `db.client.operation.error.count` | Monotonic sum | `{error}` | Activities whose terminal outcome is `failure`, `timeout`, or `canceled`. |
 | `db.client.operation.retry.count` | Monotonic sum | `{retry}` | Additional connection or statement attempts actually begun. Root activities only. |
-| `db.client.operation.inflight` | Observable up/down sum | `{operation}` | Optional current root operations in progress: connection opens and statement invocations only. |
-| `mssql.jdbc.metrics.dropped_series` | Monotonic sum | `{series}` | New series rejected after a cardinality bound is reached. No rejected attribute values are exported. |
-| `mssql.jdbc.metrics.dropped_windows` | Monotonic sum | `{window}` | Completed aggregate windows dropped because the async handoff was full. |
 
-The initial dashboard needs the first four instruments. `inflight` and self-observability counters are recommended for production hardening.
+The initial implementation uses these four instruments. In-flight gauges require START/END state and are intentionally deferred; metrics are otherwise stateless in the adapter.
 
 ### 3.2 Metric attributes
 
@@ -85,7 +82,7 @@ Error category and error type remain trace/event detail. If fleet-level error-ca
 
 ## 4. Activity catalog
 
-Every enum value already defined by the driver has an activity series. Existing enum identities remain stable.
+Every activity that already publishes START/END lifecycle boundaries has a metric series. Broad legacy-only callback wrappers are not duplicated into the lifecycle path solely for metrics.
 
 ### 4.1 Connection activities
 
@@ -93,8 +90,6 @@ Every enum value already defined by the driver has an activity series. Existing 
 |---|---|---|
 | `CONNECTION` | `connection.open` | Every physical open invocation, including terminal failures and successful opens. Root throughput and end-to-end connection latency. |
 | `PRELOGIN` | `connection.prelogin_legacy` | Existing broad prelogin wrapper. Retained for callback compatibility and historical comparison. |
-| `LOGIN` | `connection.login_legacy` | Existing broad login/authentication wrapper. Retained for compatibility. |
-| `TOKEN_ACQUISITION` | `connection.token_acquisition_legacy` | Existing broad federated token wrapper when invoked. |
 | `CONNECTION_CONFIGURATION` | `connection.configuration` | Validated connection configuration phase. |
 | `CONNECTION_ATTEMPT` | `connection.attempt` | Every endpoint attempt, including retries. |
 | `INSTANCE_DISCOVERY` | `connection.instance_discovery` | SQL Browser instance discovery when used. |
@@ -106,7 +101,7 @@ Every enum value already defined by the driver has an activity series. Existing 
 | `CONNECTION_INITIALIZE` | `connection.initialize` | Required post-login connection initialization. |
 | `CONNECTION_REDIRECT` | `connection.redirect` | Each server routing transition. |
 
-The legacy and lifecycle values are intentionally distinct. Dashboards should prefer the narrow lifecycle values and use legacy values only for compatibility panels. This prevents two differently bounded activities from being merged into one histogram.
+`LOGIN` and `TOKEN_ACQUISITION` remain legacy callback-only wrappers and therefore do not produce these metrics. Their accurately bounded lifecycle replacements are `LOGIN_EXCHANGE` and `TOKEN_REQUEST`. This avoids a second publication path and prevents differently bounded activities from being merged into one histogram.
 
 ### 4.2 Statement activities
 
@@ -122,41 +117,27 @@ The legacy and lifecycle values are intentionally distinct. Dashboards should pr
 
 For the three server-call activities, `mssql.statement.protocol_operation` may distinguish the approved values `direct_sql`, `direct_sql_batch`, `sp_executesql`, `sp_prepexec`, `sp_prepare`, `sp_execute`, `prepared_batch`, `cursor_open`, `cursor_prepexec`, `cursor_execute`, and `bulk_copy`.
 
-## 5. Pre-aggregation design
+## 5. Recording and aggregation design
 
-### 5.1 Window lifecycle
+### 5.1 Lifecycle reuse
 
-The optional metrics bridge owns two windows:
+The optional adapter observes the lifecycle stream already used for span assembly:
 
 ```text
-application threads                  one daemon exporter
-        │                                    │
-        ├─ record count/duration ──> ACTIVE  │
-        │                           window    │
-        │                                    │
-interval deadline / explicit flush           │
-        └─ atomic rotate ──────────> CLOSED ─┼─> OTel aggregate snapshot
-                                    window    │
-                                             └─> OTLP exporter configured by host
+driver activity closes
+        │
+        └─ PerformanceLogEvent END
+                    ├─ record count/duration/error/retry into OTel API instruments
+                    └─ continue existing failure-only span admission and assembly
+                                      │
+                                      └─ application OTel SDK aggregates and exports
 ```
 
-Default aggregation interval: **60 seconds**. Supported range: 10–300 seconds. The interval is captured when the bridge starts and does not change until it is restarted.
+Metric recording happens before failure-only span filtering, so successful activities and spans rejected by trace admission still contribute metrics. Recording never performs network I/O; the SDK metric reader/exporter owns periodic asynchronous collection and transport.
 
-Rotation swaps the active series map with a fresh bounded map. The closed map is immutable after rotation and is offered to a single-slot or otherwise tightly bounded async handoff. Application threads never perform network I/O and never wait for export.
+### 5.2 SDK aggregation
 
-### 5.2 Per-series aggregate
-
-Each series key is the instrument identity plus the approved bounded attribute tuple. Each interval aggregate contains:
-
-- `count`
-- `errorCount`
-- `sumDurationNanos`
-- `minDurationNanos`
-- `maxDurationNanos`
-- fixed duration bucket counts
-- retry count where applicable
-
-Use `LongAdder` or striped counters for count/sum/buckets and atomic min/max updates. Once initialized, recording a duration performs bounded counter increments only.
+Each END records into OpenTelemetry API counter and histogram instruments. The SDK owns sums, bucket counts, temporality, concurrency, collection intervals, and exporter handoff. Instruments are lazily initialized once when metrics are enabled. SDK failures are isolated inside the callback and never suppress span admission or affect the SQL operation.
 
 ### 5.3 Histogram boundaries
 
@@ -164,17 +145,11 @@ Use duration boundaries suitable for both local driver work and network/server w
 
 `0.1, 0.25, 0.5, 1, 2.5, 5, 10, 25, 50, 100, 250, 500, 1_000, 2_500, 5_000, 10_000, 30_000` milliseconds.
 
-Internally record nanoseconds and classify using integer nanosecond boundaries. Export seconds to align with OpenTelemetry semantic conventions. The aggregate snapshot carries bucket counts, sum, count, min, and max; the adapter maps it to explicit-bucket histogram data without replaying individual observations.
+The callback converts the existing nanosecond duration to seconds and records it once. Explicit bucket boundary advice is supplied when constructing the histogram; the SDK performs bucket classification without adapter-side observation replay.
 
 ### 5.4 Cardinality bounds
 
-The bridge enforces:
-
-- Maximum 512 active series per window by default.
-- No dynamic string values outside closed registries.
-- No series creation after the bound; increment `dropped_series` instead.
-- Maximum one pending closed window by default. If export is behind, drop the older unexported window and increment `dropped_windows`; never block JDBC work.
-- Empty windows are not exported.
+The adapter accepts only fixed activity identities and closed attribute registries. No customer-controlled value, identifier, SQL-derived value, exception text, or callback-provided arbitrary attribute is copied. Therefore series cardinality is bounded by the finite cross-product of instrument, activity, operation kind, outcome, statement type, protocol operation, and authentication method. SDK cardinality limits and exporter queue policy remain application concerns.
 
 Expected normal cardinality is far below the bound. For example, root statement metrics with four outcomes and three statement types require at most 12 series before optional protocol dimensions.
 
@@ -190,22 +165,15 @@ Root retry counters use attempts actually begun: `max(attempt_count - 1, 0)`. A 
 
 ## 6. API and compatibility boundary
 
-The existing legacy `PerformanceLogCallback.publish(...)` overloads remain unchanged. The new aggregate path should use a separate internal SPI so an adapter does not have to reconstruct histograms from individual callback events:
-
-```java
-interface PerformanceMetricSink {
-    void publish(PerformanceMetricWindow window);
-}
-```
-
-`PerformanceMetricWindow` is immutable, contains no raw exceptions or SQL, and exposes only approved aggregate series. The optional OpenTelemetry module installs the sink and maps aggregate snapshots to SDK metric data/export. Applications that register a legacy callback continue receiving individual events exactly as today.
+The existing `PerformanceLogCallback` overloads remain unchanged. No metric SPI is added. The optional adapter consumes `PerformanceLogEvent.Type.END` from the existing lifecycle overload and records directly into OpenTelemetry API instruments. Applications using legacy callbacks continue receiving individual events exactly as today.
 
 Recommended ownership:
 
 | Component | Responsibility |
 |---|---|
-| Core driver | Activity boundaries, outcome classification, bounded series key, fixed-bucket aggregation, interval rotation, immutable snapshot |
-| Optional OTel adapter | Meter provider integration, temporality mapping, async export, shutdown/flush, exporter health |
+| Core driver | Existing activity boundaries, duration, outcome classification, retries, and immutable lifecycle END event |
+| Optional OTel adapter | Bounded metric dimension projection and OpenTelemetry API instrument recording |
+| OpenTelemetry SDK | Aggregation, histogram buckets, temporality, collection interval, queueing, export, flush, and shutdown |
 | Application/collector | Resource identity, credentials, transport policy, routing, retention |
 
 The core driver must remain free of OpenTelemetry API, SDK, exporter, Azure Identity, and HTTP dependencies.
@@ -217,8 +185,6 @@ Metrics are opt-in in the first release.
 | Setting | Default | Rule |
 |---|---|---|
 | `OTEL_JDBC_METRICS_ENABLED` | `false` | Enables aggregate collection when the optional adapter is present. |
-| `OTEL_JDBC_METRICS_INTERVAL_SECONDS` | `60` | Integer 10–300. |
-| `OTEL_JDBC_METRICS_MAX_SERIES` | `512` | Integer 64–4096; restart required. |
 | `OTEL_METRICS_EXPORTER` | Host-defined | Standard OpenTelemetry SDK exporter selection; the driver does not invent credentials. |
 
 Connection-string secrets and per-connection endpoint selection must not become metric dimensions. Prefer one application-level OpenTelemetry pipeline. If per-connection export targets remain a requirement, target count must be bounded separately and target identity must not appear in metric attributes.
@@ -249,11 +215,7 @@ Dashboard math must not add nested phase durations. Percentiles are calculated i
 
 ## 9. Export semantics
 
-Delta temporality is preferred because each snapshot represents one closed interval. If the selected SDK/exporter requires cumulative temporality, the adapter maintains cumulative aggregate state off the JDBC hot path and resets it only when the meter provider is recreated.
-
-Each exported datapoint uses the window start and end timestamps. Export delay does not change the measurement interval. Retries of the same closed window must retain a stable window sequence number so the adapter can avoid duplicate cumulative application.
-
-A flush at shutdown rotates the current non-empty window and waits only within the adapter's bounded flush timeout. JDBC connection close does not flush global metrics.
+The selected OpenTelemetry SDK and metric reader own cumulative or delta temporality. The adapter does not maintain a second cumulative state or window sequence. A telemetry pipeline flush includes the meter provider within its bounded flush timeout. JDBC connection close does not flush global metrics.
 
 ## 10. Security and privacy
 
@@ -272,30 +234,25 @@ A flush at shutdown rotates the current non-empty window and waits only within t
 4. Histogram count equals operation count for every activity series.
 5. p50/p95/p99 computed from exported buckets stay within their enclosing bucket boundaries for deterministic workloads.
 6. No metric attribute key or value contains SQL, IDs, server/customer names, exception text, or trace context.
-7. Series count remains bounded during one million unique SQL statements and one million unique connection IDs.
-8. Export slowdown never blocks application threads and increments `dropped_windows` when the handoff is saturated.
-9. Disabled mode creates no aggregation thread, window, series, or OpenTelemetry object.
+7. Series count remains unchanged during one million unique SQL statements and one million unique connection IDs.
+8. Export slowdown is isolated by the configured SDK metric reader/exporter and never performs transport on the JDBC callback thread.
+9. Disabled mode creates no metric instrument or OpenTelemetry metric observation.
 10. Existing callback, failure-span, Kusto/Delta trace parity, and customer diagnostic dashboard checks remain unchanged.
 11. The metrics dashboard renders nonzero successful-operation throughput and distinguishes root throughput from phase-call counts.
-12. Tests cover interval rotation, boundary buckets, outcome accounting, cardinality rejection, dropped windows, shutdown flush, and temporality conversion.
+12. Validation covers boundary advice, outcome accounting, finite dimensions, successful-operation recording, failure-span independence, and telemetry flush.
 
 ## 12. Implementation sequence
 
-1. Add immutable metric key, fixed-bucket aggregate, active window, and closed window types in core.
-2. Record existing legacy activity completions into the aggregator without changing callback publication.
-3. Record lifecycle-only roots and attempts, ensuring one completion per scope.
-4. Add bounded interval rotation and async snapshot handoff.
-5. Add the internal aggregate sink SPI.
-6. Map snapshots to OpenTelemetry metrics in the optional adapter.
-7. Add a trace-and-metrics collector pipeline to the POC; retain trace-only privacy gates.
-8. Add exact aggregate evidence verification for successful and failed controls.
-9. Add Kusto and Delta metric parity checks if both stores support the selected OTLP metric schema.
-10. Wire the customer dashboard to aggregate metric queries; retain deterministic mock data for design review.
+1. Add bounded metric projection and instruments to the optional adapter.
+2. Record once for each valid lifecycle END before failure-only span filtering.
+3. Add an owned meter provider and periodic OTLP metric exporter to the POC transport.
+4. Retain trace privacy gates and add exact metric evidence for successful and failed controls.
+5. Add Kusto and Delta metric parity checks if both stores support the selected OTLP metric schema.
+6. Wire the customer dashboard to aggregate metric queries; retain deterministic mock data for design review.
 
 ## 13. Open questions
 
 - Whether the first production implementation should expose only root activities by default or all phase activities by default.
 - Whether authentication method is sufficiently useful to justify its series multiplier.
 - Whether protocol operation should be emitted only for statement server-call metrics or omitted from the first release.
-- Whether a native aggregate metric SPI should be public or remain internal until its compatibility contract is proven.
 - Whether metrics should be enabled automatically when a host `MeterProvider` is present or remain explicitly opt-in.

@@ -181,10 +181,10 @@ async function main() {
   }
   const options = {
     service: process.env.OTEL_SERVICE_NAME,
-    scenarios: process.env.DEMO_SCENARIOS || 'config,dns',
+    scenarios: process.env.DEMO_SCENARIOS || 'config,dns,login,success,statements',
     repeat: process.env.DEMO_REPEAT || '1',
     expectedCounts: process.env.DEMO_EXPECTED_FAILURE_COUNTS
-    , expectedStatementRoots: process.env.DEMO_EXPECTED_STATEMENT_ROOTS || '0'
+    , expectedStatementRoots: process.env.DEMO_EXPECTED_STATEMENT_ROOTS || '2'
   };
   // Allow batching and file flush; require five consecutive matching snapshots.
   let stable = 0;

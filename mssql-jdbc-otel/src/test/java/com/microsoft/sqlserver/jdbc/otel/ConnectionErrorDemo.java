@@ -266,6 +266,7 @@ public final class ConnectionErrorDemo {
             copy(env, properties, "OTEL_ARM_RESOURCE_ID", "otelArmResourceId");
             copy(env, properties, "OTEL_ALLOW_INSECURE_LOCAL_ENDPOINT", "otelAllowInsecureLocalEndpoint");
             copy(env, properties, "OTEL_ALLOW_INSECURE_DEVELOPMENT_ENDPOINT", "otelAllowInsecureDevelopmentEndpoint");
+            copy(env, properties, "OTEL_JDBC_METRICS_ENABLED", "otelJdbcMetricsEnabled");
             String mode = value(env, "OTEL_AUTH_MODE", "none");
             if (!Arrays.asList("none", "static", "azure_cli", "managed_identity", "default").contains(mode)) {
                 throw invalidConfiguration();
