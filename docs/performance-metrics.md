@@ -6,6 +6,8 @@ This document describes the performance metrics instrumentation in the JDBC driv
 
 The driver provides fine-grained performance tracking for both connection and statement operations. Metrics are published via `PerformanceLogCallback` (if registered) and/or logged via Java logging.
 
+For the proposed all-operation, interval-based OpenTelemetry aggregation and dashboard contract, see [Pre-aggregated metrics for JDBC performance activities](mssql-jdbc-performance-activity-metrics-proposal.md). That proposal preserves the callback behavior described here while aggregating successful and failed operations into bounded counters and histograms before asynchronous export.
+
 ## Configuration
 
 Performance metrics can be enabled via two mechanisms:

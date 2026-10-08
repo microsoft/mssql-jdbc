@@ -48,6 +48,25 @@ export type StatementFailure = {
   events: ErrorEvent[];
 };
 
+export type PerformanceMetric = {
+  activity: string;
+  label: string;
+  kind: 'Connection' | 'Statement';
+  count: number;
+  successRate: number;
+  errors: number;
+  p50: number;
+  p95: number;
+  p99: number;
+  max: number;
+};
+
+export type ThroughputPoint = {
+  label: string;
+  connections: number;
+  statements: number;
+};
+
 const phaseCounts: Array<[FailurePhase, number]> = [
   ['DNS', 83],
   ['Configuration', 37],
@@ -208,3 +227,27 @@ export const statementFailures: StatementFailure[] = Array.from({ length: 42 }, 
     }],
   };
 }).sort((a, b) => b.time.localeCompare(a.time));
+
+export const performanceMetrics: PerformanceMetric[] = [
+  { activity: 'connection.open', label: 'Open', kind: 'Connection', count: 8760, successRate: 98.36, errors: 144, p50: 31, p95: 94, p99: 181, max: 412 },
+  { activity: 'connection.configuration', label: 'Configuration', kind: 'Connection', count: 8797, successRate: 99.58, errors: 37, p50: 0.7, p95: 1.8, p99: 3.2, max: 8.4 },
+  { activity: 'connection.dns', label: 'DNS', kind: 'Connection', count: 8843, successRate: 99.06, errors: 83, p50: 3.4, p95: 12.8, p99: 29.6, max: 68 },
+  { activity: 'connection.socket_connect', label: 'Socket', kind: 'Connection', count: 8760, successRate: 99.73, errors: 24, p50: 6.8, p95: 22.4, p99: 48.1, max: 133 },
+  { activity: 'connection.prelogin', label: 'Prelogin', kind: 'Connection', count: 8736, successRate: 100, errors: 0, p50: 4.2, p95: 14.6, p99: 31.8, max: 91 },
+  { activity: 'connection.tls', label: 'TLS', kind: 'Connection', count: 8736, successRate: 100, errors: 0, p50: 13.7, p95: 38.9, p99: 72.4, max: 188 },
+  { activity: 'connection.login', label: 'Login', kind: 'Connection', count: 8736, successRate: 99.73, errors: 24, p50: 8.1, p95: 24.3, p99: 53.8, max: 146 },
+  { activity: 'connection.initialize', label: 'Initialize', kind: 'Connection', count: 8712, successRate: 100, errors: 0, p50: 2.7, p95: 8.4, p99: 17.9, max: 47 },
+  { activity: 'statement.execute', label: 'Execute', kind: 'Statement', count: 761640, successRate: 99.994, errors: 42, p50: 11.6, p95: 47.8, p99: 103.2, max: 1432 },
+  { activity: 'statement.attempt', label: 'Attempt', kind: 'Statement', count: 763128, successRate: 99.994, errors: 42, p50: 11.2, p95: 46.9, p99: 101.8, max: 1427 },
+  { activity: 'statement.request_build', label: 'Request build', kind: 'Statement', count: 763128, successRate: 100, errors: 0, p50: 0.4, p95: 1.9, p99: 4.8, max: 36 },
+  { activity: 'statement.server_call.prepare', label: 'Prepare', kind: 'Statement', count: 24864, successRate: 99.99, errors: 2, p50: 4.8, p95: 16.2, p99: 37.4, max: 122 },
+  { activity: 'statement.server_call.prepexec', label: 'Prepexec', kind: 'Statement', count: 138407, successRate: 99.99, errors: 13, p50: 12.4, p95: 51.7, p99: 111.3, max: 805 },
+  { activity: 'statement.server_call.execute', label: 'Server call', kind: 'Statement', count: 599857, successRate: 99.995, errors: 27, p50: 9.7, p95: 43.6, p99: 96.5, max: 1401 },
+  { activity: 'statement.first_response', label: 'First response', kind: 'Statement', count: 763128, successRate: 99.994, errors: 42, p50: 8.9, p95: 41.2, p99: 91.7, max: 1398 },
+];
+
+export const throughputPoints: ThroughputPoint[] = Array.from({ length: 32 }, (_, index) => ({
+  label: `${String(Math.floor(index / 4)).padStart(2, '0')}:${String((index % 4) * 15).padStart(2, '0')}`,
+  connections: Math.round(132 + seeded(index + 800, 21) * 31),
+  statements: Math.round(11840 + seeded(index + 800, 22) * 1760),
+}));

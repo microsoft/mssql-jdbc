@@ -22,7 +22,16 @@ import {
   ShieldErrorRegular,
   WeatherMoonRegular,
 } from '@fluentui/react-icons';
-import { ConnectionFailure, FailurePhase, StatementFailure, failures, statementFailures } from './data';
+import {
+  ConnectionFailure,
+  FailurePhase,
+  PerformanceMetric,
+  StatementFailure,
+  failures,
+  performanceMetrics,
+  statementFailures,
+  throughputPoints,
+} from './data';
 
 const phaseColor: Record<FailurePhase, string> = {
   DNS: '#117865',
@@ -201,6 +210,112 @@ function StatementActivity({ data }: { data: StatementFailure[] }) {
       </svg>
       <div className="chart-axis"><span>Earlier</span><span>Recent</span></div>
     </div>
+  );
+}
+
+function PerformanceThroughput() {
+  const maxStatements = Math.max(...throughputPoints.map(point => point.statements), 1);
+  const maxConnections = Math.max(...throughputPoints.map(point => point.connections), 1);
+  const statementLine = throughputPoints.map((point, index) =>
+    `${index * (560 / 31)},${112 - (point.statements / maxStatements) * 82}`,
+  ).join(' ');
+  const connectionLine = throughputPoints.map((point, index) =>
+    `${index * (560 / 31)},${112 - (point.connections / maxConnections) * 82}`,
+  ).join(' ');
+  return (
+    <div className="panel activity-panel metrics-throughput-panel">
+      <div className="panel-title-row">
+        <div><h3>Operation throughput</h3><p>All successful and failed root operations per minute</p></div>
+        <div className="chart-legend"><span><i className="legend-statements" />Statements</span><span><i className="legend-connections" />Connections</span></div>
+      </div>
+      <svg className="activity-chart" viewBox="0 0 560 130" preserveAspectRatio="none" role="img" aria-label="Connection and statement throughput chart">
+        {[25, 65, 105].map(y => <line key={y} x1="0" x2="560" y1={y} y2={y} className="chart-grid" />)}
+        <polyline points={statementLine} fill="none" stroke="#5b5fc7" strokeWidth="2.4" />
+        <polyline points={connectionLine} fill="none" stroke="#117865" strokeWidth="2.4" />
+      </svg>
+      <div className="chart-axis"><span>Earlier</span><span>Recent</span></div>
+    </div>
+  );
+}
+
+function ActivityLatency({ title, subtitle, metrics, tone }: {
+  title: string;
+  subtitle: string;
+  metrics: PerformanceMetric[];
+  tone: string;
+}) {
+  const max = Math.max(...metrics.map(metric => metric.p95), 1);
+  return (
+    <div className="panel metrics-latency-panel">
+      <div className="panel-title-row"><div><h3>{title}</h3><p>{subtitle}</p></div><span className="period-chip">p95 · ms</span></div>
+      <div className="latency-bars">
+        {metrics.map(metric => (
+          <div className="latency-row" key={metric.activity}>
+            <span>{metric.label}</span>
+            <div className="latency-track"><i style={{ width: `${Math.max((metric.p95 / max) * 100, 2)}%`, background: tone }} /></div>
+            <strong>{metric.p95.toFixed(metric.p95 < 10 ? 1 : 0)}</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PerformanceMetricsDashboard() {
+  const connectionRoot = performanceMetrics.find(metric => metric.activity === 'connection.open')!;
+  const statementRoot = performanceMetrics.find(metric => metric.activity === 'statement.execute')!;
+  const connectionStages = performanceMetrics.filter(metric => metric.kind === 'Connection' && !metric.activity.endsWith('.open'));
+  const statementStages = performanceMetrics.filter(metric => metric.kind === 'Statement'
+    && !['statement.execute', 'statement.attempt'].includes(metric.activity));
+  const current = throughputPoints.at(-1)!;
+  return (
+    <section className="performance-dashboard">
+      <div className="statement-analysis-header performance-analysis-header">
+        <div><h2>Performance metrics</h2><p>Pre-aggregated interval metrics for all connections and statements—not only failures.</p></div>
+        <span className="period-chip">60-second windows</span>
+      </div>
+      <section className="metrics performance-metrics">
+        <MetricCard label="Connection opens / min" value={current.connections.toLocaleString()} delta={`${connectionRoot.successRate.toFixed(2)}% successful`} tone="#117865" />
+        <MetricCard label="Statement executions / min" value={current.statements.toLocaleString()} delta={`${statementRoot.successRate.toFixed(3)}% successful`} tone="#5b5fc7" />
+        <MetricCard label="Connection p95" value={`${connectionRoot.p95} ms`} delta="Physical open latency" tone="#c239b3" />
+        <MetricCard label="Statement p95" value={`${statementRoot.p95} ms`} delta="JDBC execute invocation" tone="#c50f1f" />
+      </section>
+      <section className="charts-grid performance-top-grid">
+        <PerformanceThroughput />
+        <ActivityLatency title="Connection lifecycle latency" subtitle="Independent p95 for each measured phase" metrics={connectionStages} tone="#117865" />
+      </section>
+      <section className="charts-grid performance-bottom-grid">
+        <ActivityLatency title="Statement pipeline latency" subtitle="Independent p95; nested phase durations are not added" metrics={statementStages} tone="#5b5fc7" />
+        <div className="panel metric-principles-panel">
+          <div className="panel-title-row"><div><h3>Aggregate signal contract</h3><p>Bounded dimensions and interval snapshots</p></div></div>
+          <div className="principle-list">
+            <div><strong>All operations</strong><span>Successes, failures, timeouts, and cancellations</span></div>
+            <div><strong>Driver pre-aggregation</strong><span>Counts and fixed duration buckets per 60-second window</span></div>
+            <div><strong>Bounded cardinality</strong><span>No SQL, IDs, server names, exception text, or trace context</span></div>
+            <div><strong>Failure diagnostics stay separate</strong><span>Detailed traces above remain failure-only</span></div>
+          </div>
+        </div>
+      </section>
+      <section className="panel table-panel aggregate-metrics-panel">
+        <div className="panel-title-row table-title-row">
+          <div><h3>Performance activity aggregates</h3><p>Counts and percentiles calculated independently for each activity.</p></div>
+          <span className="period-chip">Last 60 minutes</span>
+        </div>
+        <div className="data-table-wrap aggregate-table-wrap">
+          <table className="data-table aggregate-table">
+            <thead><tr><th>Activity</th><th>Kind</th><th>Count</th><th>Success rate</th><th>Errors</th><th>p50</th><th>p95</th><th>p99</th><th>Max</th></tr></thead>
+            <tbody>{performanceMetrics.map(metric => (
+              <tr key={metric.activity}>
+                <td><code className="metric-activity">{metric.activity}</code></td><td>{metric.kind}</td><td>{metric.count.toLocaleString()}</td>
+                <td>{metric.successRate.toFixed(metric.successRate > 99.99 ? 3 : 2)}%</td><td>{metric.errors.toLocaleString()}</td>
+                <td>{metric.p50} ms</td><td><strong>{metric.p95} ms</strong></td><td>{metric.p99} ms</td><td>{metric.max} ms</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+        <div className="table-footer"><span>{performanceMetrics.length} bounded activity series</span><span>Mock aggregate data · includes successful operations</span></div>
+      </section>
+    </section>
   );
 }
 
@@ -445,6 +560,7 @@ export function App() {
           </div>
           <div className="table-footer"><span>Showing {Math.min(statementFailures.length, 40)} of {statementFailures.length} failures</span><span>Literal values and comments masked</span></div>
         </section>
+        <PerformanceMetricsDashboard />
       </main>
       {selected && <DetailDrawer connection={selected} onClose={() => setSelected(null)} />}
       {selectedStatement && <StatementDetailDrawer statement={selectedStatement} onClose={() => setSelectedStatement(null)} />}
