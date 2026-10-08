@@ -23,7 +23,7 @@ import org.ietf.jgss.GSSCredential;
 
 
 /**
- * Implements the java.sql.Driver for SQLServerConnect.
+ * Describes a connection property and builds its JDBC DriverPropertyInfo.
  *
  */
 final class SQLServerDriverPropertyInfo {
