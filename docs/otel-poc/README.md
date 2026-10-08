@@ -1,11 +1,17 @@
 # Connection-error OpenTelemetry demo
 
 Source-built Java 17 demo of **failure-only JDBC connection, Statement, and
-PreparedStatement spans**. No metric producer, Java agent, production SQL
-provisioning or automatic Azure login is included. Successful physical opens and
-successful statement executions are negative controls and emit no retained trees.
+PreparedStatement spans plus all-operation lifecycle metrics**. No Java agent,
+production SQL provisioning, server-side telemetry collector, or automatic Azure
+login is included. Successful physical opens and statement executions emit metrics
+but no retained diagnostic trees.
 
-The default stack is public/local and needs no SQL Server or Azure account:
+See [Kusto table reference](kusto-table-reference.md) for the exact client tables,
+schemas, joins, and the explicit SQL Server-side telemetry boundary.
+
+The default stack is public/local and uses an isolated SQL Server container. It
+needs no Azure account, but requires an externally supplied strong
+`MSSQL_SA_PASSWORD`:
 
 ```text
 ConnectionErrorDemo -- OTLP/HTTP --> otelcol-contrib -- OTLP --> Aspire
@@ -53,16 +59,16 @@ bash .scripts/dev.sh config
 bash .scripts/dev.sh up
 ```
 
-`up` builds the source image, starts the local collector/dashboard, waits for HTTP
-ingestion, runs `config,dns` once, and checks real captured OTLP. It neither wipes
+`up` builds the source image, starts SQL Server and the local collector/dashboard,
+waits for HTTP ingestion, runs `config,dns,login,success,statements` once, and checks
+real captured OTLP traces and metrics. It neither wipes
 existing volumes nor leaves a load generator running. Expected connection
 failures are the workload, not failed infrastructure. The demo must close/flush
 its bootstrap before exit; flush completion alone is **not** delivery evidence.
 
 Open **Traces** in Aspire and select the unique `mssql-jdbc-connection-gate-*`
-service printed by the gate. Inspect failed open trees, configuration failure
-before network activity, and DNS failure before SQL login. No JDBC connection
-string is required to export either early failure.
+service printed by the gate. Inspect failed connection, Statement, and
+PreparedStatement trees and the successful-operation metrics.
 
 ```bash
 bash .scripts/dev.sh gate        # another isolated evidence-checked run
