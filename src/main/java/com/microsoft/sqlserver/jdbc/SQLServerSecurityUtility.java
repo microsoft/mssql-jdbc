@@ -381,31 +381,25 @@ class SQLServerSecurityUtility {
                 + SQLServerMSAL4JUtils.SLASH_DEFAULT;
         tokenRequestContext.setScopes(Arrays.asList(scope));
 
-        SqlAuthenticationToken sqlFedAuthToken = null;
-
         Optional<AccessToken> accessTokenOptional;
         try {
             accessTokenOptional = mic.getToken(tokenRequestContext)
                     .timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS))
                     .blockOptional();
         } catch (RuntimeException e) {
-            // A transient failure (e.g. Managed Identity endpoint outage or timeout) can leave the cached
-            // credential's internal token state in a failed state, causing every subsequent token request on the
-            // same instance to keep failing. Evict the cached credential so the next attempt builds a fresh
-            // instance and can recover, instead of failing persistently until the process is restarted.
             removeCredentialFromCache(key, mic);
-            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionError"), e);
+            throw mapTokenAcquisitionException(e);
         }
 
         if (!accessTokenOptional.isPresent()) {
             removeCredentialFromCache(key, mic);
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
                     null);
-        } else {
-            AccessToken accessToken = accessTokenOptional.get();
-            sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(),
-                    accessToken.getExpiresAt().toInstant().toEpochMilli());
         }
+
+        AccessToken accessToken = accessTokenOptional.get();
+        SqlAuthenticationToken sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(),
+                accessToken.getExpiresAt().toInstant().toEpochMilli());
 
         if (logger.isLoggable(java.util.logging.Level.FINEST)) {
             logger.finest("Got fedAuth token, expiry: " + sqlFedAuthToken.getExpiresOn().toString());
@@ -478,33 +472,53 @@ class SQLServerSecurityUtility {
                 + SQLServerMSAL4JUtils.SLASH_DEFAULT;
         tokenRequestContext.setScopes(Arrays.asList(scope));
 
-        SqlAuthenticationToken sqlFedAuthToken = null;
-
         Optional<AccessToken> accessTokenOptional;
         try {
             accessTokenOptional = dac.getToken(tokenRequestContext)
                     .timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS))
                     .blockOptional();
         } catch (RuntimeException e) {
-            // A transient failure (e.g. Managed Identity endpoint outage or timeout) can leave the cached
-            // credential's internal token state in a failed state, causing every subsequent token request on the
-            // same instance to keep failing. Evict the cached credential so the next attempt builds a fresh
-            // instance and can recover, instead of failing persistently until the process is restarted.
             removeCredentialFromCache(key, dac);
-            throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionError"), e);
+            throw mapTokenAcquisitionException(e);
         }
 
         if (!accessTokenOptional.isPresent()) {
             removeCredentialFromCache(key, dac);
             throw new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionFail"),
                     null);
-        } else {
-            AccessToken accessToken = accessTokenOptional.get();
-            sqlFedAuthToken = new SqlAuthenticationToken(accessToken.getToken(),
-                    accessToken.getExpiresAt().toInstant().toEpochMilli());
         }
 
-        return sqlFedAuthToken;
+        AccessToken accessToken = accessTokenOptional.get();
+        return new SqlAuthenticationToken(accessToken.getToken(),
+                accessToken.getExpiresAt().toInstant().toEpochMilli());
+    }
+
+    static SQLServerException mapTokenAcquisitionException(RuntimeException exception) {
+        Throwable interruptedCause = findCause(exception, InterruptedException.class);
+        if (null != interruptedCause) {
+            Thread.currentThread().interrupt();
+            return new SQLServerException(
+                    SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"), interruptedCause);
+        }
+
+        Throwable timeoutCause = findCause(exception, java.util.concurrent.TimeoutException.class);
+        if (null != timeoutCause) {
+            return new SQLServerException(
+                    SQLServerException.getErrString("R_AADTokenAcquisitionTimeout"), timeoutCause);
+        }
+
+        return new SQLServerException(
+                SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionError"), exception);
+    }
+
+    private static Throwable findCause(Throwable throwable, Class<? extends Throwable> expectedType) {
+        while (null != throwable) {
+            if (expectedType.isInstance(throwable)) {
+                return throwable;
+            }
+            throwable = throwable.getCause();
+        }
+        return null;
     }
 
     private static String[] getAdditonallyAllowedTenants() {
