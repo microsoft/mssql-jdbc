@@ -4382,6 +4382,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      *                      if an error occurs
      */
     String formatLiteralValue(Object value) throws SQLException {
+        boolean isInProcedureCall = null != procedureName && isDirectSqlExecution;
+
         if (value == null) {
             return "NULL";
         } else if (value instanceof String) {
@@ -4403,6 +4405,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             int scale = bd.scale();
 
             if (precision > 18 || scale > 6) {
+                if (isInProcedureCall) {
+                    return "'" + escapeSQLString(plainStr) + "'";
+                }
+
                 // Need explicit CAST for high precision numbers
                 // Clamp to SQL Server limits: decimal(38, min(scale, 38))
                 // Ensure scale <= precision
@@ -4435,14 +4441,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Convert Double to BigDecimal for precise representation
             return new java.math.BigDecimal(value.toString()).toPlainString();
         } else if (value instanceof java.sql.Date) {
-            return "CAST('" + escapeSQLString(value.toString()) + "' AS DATE)";
+            String date = value.toString();
+            if (isInProcedureCall) {
+                date = date.replace("-", "");
+            }
+            date = escapeSQLString(date);
+            return isInProcedureCall ? "'" + date + "'" : "CAST('" + date + "' AS DATE)";
         } else if (value instanceof java.sql.Time) {
-            return "CAST('" + escapeSQLString(value.toString()) + "' AS TIME)";
+            String time = escapeSQLString(value.toString());
+            return isInProcedureCall ? "'" + time + "'" : "CAST('" + time + "' AS TIME)";
         } else if (value instanceof java.sql.Timestamp) {
-            return "CAST('" + escapeSQLString(value.toString()) + "' AS DATETIME2)";
+            String timestamp = value.toString();
+            if (isInProcedureCall) {
+                timestamp = timestamp.replace(' ', 'T');
+            }
+            timestamp = escapeSQLString(timestamp);
+            return isInProcedureCall ? "'" + timestamp + "'" : "CAST('" + timestamp + "' AS DATETIME2)";
         } else if (value instanceof java.util.Date) {
             // generic java.util.Date -> timestamp
-            return "CAST('" + TS_FMT.format((java.util.Date) value) + "' AS DATETIME2)";
+            String timestamp = TS_FMT.format((java.util.Date) value);
+            if (isInProcedureCall) {
+                timestamp = timestamp.replace(' ', 'T');
+            }
+            timestamp = escapeSQLString(timestamp);
+            return isInProcedureCall ? "'" + timestamp + "'" : "CAST('" + timestamp + "' AS DATETIME2)";
         } else if (value instanceof byte[]) {
             return bytesToHexLiteral((byte[]) value);
         } else if (value instanceof Blob) {
