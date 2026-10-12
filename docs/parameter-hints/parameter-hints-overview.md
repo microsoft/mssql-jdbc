@@ -4,6 +4,34 @@
 
 This document describes the parameter length hint mechanisms available in mssql-jdbc for optimizing memory grants in SQL Server execution plans when working with variable-length types (VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY).
 
+## Phase 2 status: connection property wiring only
+
+`stringParameterDefaultLength` is registered as a normal connection URL, `java.util.Properties`,
+and DataSource property. **This preparatory increment only parses and stores the setting; it does
+not change parameter declarations or make setters honor a connection-default length.** The existing
+`defineParameterType()` and `setObject(..., scaleOrLength)` behavior below remains unchanged.
+
+| Configuration | Connect-time behavior |
+|---|---|
+| Omitted | Stores 0 (legacy sizing), without a warning. |
+| Explicit 0 or a negative 32-bit integer | Logs a warning and stores 0; does not reject the connection for this setting. |
+| Positive 32-bit integer | Retains the exact configured integer, including 5000 and values above 8000. |
+| Malformed text, empty text, or integer overflow | Throws a driver connection-property exception. |
+
+`SQLServerDataSource.setStringParameterDefaultLength(int)` stores the supplied integer without
+eager validation, matching other integer properties. Its getter returns that stored value (or 0
+when unset), not the normalized value on an opened connection. The setting uses the existing
+DataSource JNDI and serialization mechanisms, including pooled and XA DataSources.
+
+Adaptive sizing, per-parameter history, and effective-type-specific bounds are deferred to the next
+increment. There is deliberately no global clamp: 5000 is within the varchar/varbinary bound but
+exceeds the nvarchar bound. Future resolution must use encoded bytes for varchar, UTF-16 code
+units for nvarchar, and bytes for varbinary, after `sendStringParametersAsUnicode` takes effect.
+The intended precedence is enforced `defineParameterType()` declaration, then usable positive
+explicit `setObject` hint, then connection-default policy, then existing sizing. Explicit hints
+must not be combined with the connection default using `max`. Callable OUT/INOUT behavior and
+remaining lifecycle details still require agreement before adaptive resolution is implemented.
+
 ## The Problem
 
 By default, when a Java application calls `setString()`, `setNString()`, or `setBytes()` on a `PreparedStatement`, mssql-jdbc declares the parameter in TDS using the maximum bounded width regardless of the actual value size:

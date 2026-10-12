@@ -945,6 +945,23 @@ public class SQLServerDataSource
                 SQLServerDriverIntProperty.PACKET_SIZE.getDefaultValue());
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setStringParameterDefaultLength(int length) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH.toString(), length);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getStringParameterDefaultLength() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH.toString(),
+                SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH.getDefaultValue());
+    }
+
     @Override
     public void setQueryTimeout(int queryTimeout) {
         setIntProperty(connectionProps, SQLServerDriverIntProperty.QUERY_TIMEOUT.toString(), queryTimeout);
