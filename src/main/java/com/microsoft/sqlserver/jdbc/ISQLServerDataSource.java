@@ -550,19 +550,26 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * Malformed or overflowing integer text supplied through a URL or Properties causes a connection-property error.
      * Positive values are retained without a global clamp, pending effective-type-specific length resolution.
      * </p>
+     * The default implementation does nothing, retaining compatibility with third-party implementations.
+     * {@link SQLServerDataSource} overrides this method to store the setting.
      *
      * @param length
      *        The configured length, or a non-positive integer to select legacy sizing.
      */
-    void setStringParameterDefaultLength(int length);
+    default void setStringParameterDefaultLength(int length) {
+        // Retain binary compatibility for third-party implementations of this interface.
+    }
 
     /**
      * Returns the stored connection-default parameter length setting, before connect-time validation.
      * This preparatory setting does not yet affect parameter declarations.
+     * The default implementation returns zero; {@link SQLServerDataSource} returns the stored setting.
      *
      * @return The configured integer, including non-positive values, or zero when unset.
      */
-    int getStringParameterDefaultLength();
+    default int getStringParameterDefaultLength() {
+        return 0;
+    }
 
     /**
      * Sets the kind of integrated security you want your application to use.

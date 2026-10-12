@@ -844,28 +844,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return stringParameterDefaultLength;
     }
 
-    private void initStringParameterDefaultLength() throws SQLServerException {
-        stringParameterDefaultLength = SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH.getDefaultValue();
-        String value = activeConnectionProperties
-                .getProperty(SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH.toString());
-        if (null != value) {
-            int configuredLength;
-            try {
-                configuredLength = Integer.parseInt(value);
-            } catch (NumberFormatException e) {
-                SQLServerException.makeFromDriverError(this, this,
-                        SQLServerException.getErrString("R_invalidStringParameterDefaultLength"), null, false);
-                return;
-            }
-            if (configuredLength > 0) {
-                stringParameterDefaultLength = configuredLength;
-            } else if (connectionlogger.isLoggable(Level.WARNING)) {
-                connectionlogger.warning(toString() + " " + MessageFormat.format(
-                        SQLServerException.getErrString("R_stringParameterDefaultLengthDisabled"), configuredLength));
-            }
-        }
-    }
-
     /** last update count flag */
     private boolean lastUpdateCount;
 
@@ -3449,7 +3427,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
 
-                initStringParameterDefaultLength();
+                sPropKey = SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                stringParameterDefaultLength = SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH
+                        .getDefaultValue();
+                if (null != sPropValue) {
+                    try {
+                        int n = Integer.parseInt(sPropValue);
+                        if (n > 0) {
+                            stringParameterDefaultLength = n;
+                        } else if (connectionlogger.isLoggable(Level.WARNING)) {
+                            connectionlogger.warning(toString() + " "
+                                    + SQLServerException.getErrString("R_stringParameterDefaultLengthDisabled"));
+                        }
+                    } catch (NumberFormatException e) {
+                        SQLServerException.makeFromDriverError(this, this,
+                                SQLServerException.getErrString("R_invalidStringParameterDefaultLength"), null, false);
+                    }
+                }
 
                 // Handle optional packetSize property
                 sPropKey = SQLServerDriverIntProperty.PACKET_SIZE.toString();

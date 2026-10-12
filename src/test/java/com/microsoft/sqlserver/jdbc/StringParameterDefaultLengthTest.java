@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,6 +40,16 @@ import com.microsoft.sqlserver.testframework.Constants;
 @Tag("Unit")
 public class StringParameterDefaultLengthTest {
     private static final String PROPERTY = "stringParameterDefaultLength";
+
+    @Test
+    public void testInterfaceCompatibilityDefaults() throws Exception {
+        assertTrue(ISQLServerDataSource.class.getMethod("getStringParameterDefaultLength").isDefault());
+        assertTrue(ISQLServerDataSource.class.getMethod("setStringParameterDefaultLength", int.class).isDefault());
+        ISQLServerDataSource source = mock(ISQLServerDataSource.class, CALLS_REAL_METHODS);
+        assertEquals(0, source.getStringParameterDefaultLength());
+        source.setStringParameterDefaultLength(5000);
+        assertEquals(0, source.getStringParameterDefaultLength());
+    }
 
     @Test
     public void testPropertyInfoDefault() throws Exception {
@@ -121,7 +133,8 @@ public class StringParameterDefaultLengthTest {
             assertEquals(Math.max(0, configured), connection.getStringParameterDefaultLength());
             assertEquals(null != value && configured <= 0 ? 1 : 0, warnings.size());
             if (!warnings.isEmpty()) {
-                assertTrue(warnings.get(0).getMessage().contains("legacy"));
+                assertEquals(connection + " The stringParameterDefaultLength value is not positive; "
+                        + "using legacy parameter sizing.", warnings.get(0).getMessage());
             }
         } finally {
             logger.removeHandler(handler);

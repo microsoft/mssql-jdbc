@@ -240,7 +240,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_statementPoolingCacheSizePropertyDescription", "This setting specifies the size of the prepared statement cache for a connection. A value less than 1 means no cache."},
         {"R_stringParameterDefaultLengthPropertyDescription", "Stores a connection-default character and binary parameter length. Defaults to 0 (legacy sizing). Preparatory setting; parameter declarations do not yet use this value."},
         {"R_invalidStringParameterDefaultLength", "The stringParameterDefaultLength value must be a 32-bit integer."},
-        {"R_stringParameterDefaultLengthDisabled", "The stringParameterDefaultLength value {0} is not positive; using legacy parameter sizing."},
+        {"R_stringParameterDefaultLengthDisabled", "The stringParameterDefaultLength value is not positive; using legacy parameter sizing."},
         {"R_gsscredentialPropertyDescription", "Impersonated GSS Credential to access SQL Server."},
         {"R_msiClientIdPropertyDescription", "Client Id of User Assigned Managed Identity to be used for generating access token for Azure AD MSI Authentication"},
         {"R_clientCertificatePropertyDescription", "Client certificate path."},
