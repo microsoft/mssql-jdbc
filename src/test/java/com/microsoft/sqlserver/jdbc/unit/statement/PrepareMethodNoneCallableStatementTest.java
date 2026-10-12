@@ -22,6 +22,11 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -96,6 +101,63 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
         BigDecimal expected = new BigDecimal("0.1234567");
         assertInputRoundTrip("decimal(8,7)", cs -> cs.setBigDecimal(1, expected),
                 rs -> assertEquals(expected, rs.getBigDecimal(1)));
+    }
+
+    @Test
+    public void testSqlVariantPreservesDecimalTypesAcrossFormattingThreshold() throws SQLException {
+        String procedureName = temporaryProcedureName("callable_none_sql_variant");
+        String connStrWithNone = connectionString + ";prepareMethod=none";
+        BigDecimal lowPrecision = new BigDecimal("12345.123456");
+        BigDecimal precisionBoundary = new BigDecimal("12345678901234.12345");
+        BigDecimal negativeHighPrecision = new BigDecimal("-12345678901234.12345");
+        BigDecimal highScale = new BigDecimal("-0.0000001");
+        BigDecimal scientificNotation = new BigDecimal("1E-7");
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStrWithNone);
+                Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE " + procedureName
+                    + " @low sql_variant, @boundary sql_variant, @negative sql_variant,"
+                    + " @highScale sql_variant, @scientific sql_variant"
+                    + " AS SELECT @low, SQL_VARIANT_PROPERTY(@low, 'BaseType'),"
+                    + " SQL_VARIANT_PROPERTY(@low, 'Precision'), SQL_VARIANT_PROPERTY(@low, 'Scale'),"
+                    + " @boundary, SQL_VARIANT_PROPERTY(@boundary, 'BaseType'),"
+                    + " SQL_VARIANT_PROPERTY(@boundary, 'Precision'), SQL_VARIANT_PROPERTY(@boundary, 'Scale'),"
+                    + " @negative, SQL_VARIANT_PROPERTY(@negative, 'BaseType'),"
+                    + " SQL_VARIANT_PROPERTY(@negative, 'Precision'), SQL_VARIANT_PROPERTY(@negative, 'Scale'),"
+                    + " @highScale, SQL_VARIANT_PROPERTY(@highScale, 'BaseType'),"
+                    + " @scientific, SQL_VARIANT_PROPERTY(@scientific, 'BaseType')");
+
+            try (CallableStatement cs = conn.prepareCall("{call " + procedureName + "(?, ?, ?, ?, ?)}")) {
+                cs.setBigDecimal(1, lowPrecision);
+                cs.setBigDecimal(2, precisionBoundary);
+                cs.setBigDecimal(3, negativeHighPrecision);
+                cs.setBigDecimal(4, highScale);
+                cs.setBigDecimal(5, scientificNotation);
+
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(lowPrecision, rs.getBigDecimal(1));
+                    assertDecimalBaseType(rs.getString(2));
+                    assertEquals(lowPrecision.precision(), rs.getInt(3));
+                    assertEquals(lowPrecision.scale(), rs.getInt(4));
+                    assertEquals(precisionBoundary, rs.getBigDecimal(5));
+                    assertDecimalBaseType(rs.getString(6));
+                    assertEquals(precisionBoundary.precision(), rs.getInt(7));
+                    assertEquals(precisionBoundary.scale(), rs.getInt(8));
+                    assertEquals(negativeHighPrecision, rs.getBigDecimal(9));
+                    assertDecimalBaseType(rs.getString(10));
+                    assertEquals(negativeHighPrecision.precision(), rs.getInt(11));
+                    assertEquals(negativeHighPrecision.scale(), rs.getInt(12));
+                    assertEquals(highScale, rs.getBigDecimal(13));
+                    assertDecimalBaseType(rs.getString(14));
+                    assertEquals(scientificNotation, rs.getBigDecimal(15));
+                    assertDecimalBaseType(rs.getString(16));
+                    assertFalse(rs.next());
+                }
+            } finally {
+                TestUtils.dropProcedureIfExists(procedureName, stmt);
+            }
+        }
     }
 
     @Test
@@ -191,6 +253,187 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
     }
 
     @Test
+    public void testParameterOrderingWithMixedInputTypes() throws SQLException {
+        String procedureName = temporaryProcedureName("callable_none_ordering");
+        String connStrWithNone = connectionString + ";prepareMethod=none";
+        Timestamp timestamp = Timestamp.valueOf("2026-10-07 00:00:00.123");
+        BigDecimal decimal = new BigDecimal("12345678901234.12345");
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStrWithNone);
+                Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE " + procedureName
+                    + " @text nvarchar(20), @number int, @timestamp datetime2(3), @decimal decimal(19,5),"
+                    + " @flag bit, @tail nvarchar(20)"
+                    + " AS SELECT @text, @number, @timestamp, @decimal, @flag, @tail");
+
+            try (CallableStatement cs = conn.prepareCall("{call " + procedureName + "(?, ?, ?, ?, ?, ?)}")) {
+                cs.setString(1, "first");
+                cs.setInt(2, 42);
+                cs.setTimestamp(3, timestamp);
+                cs.setBigDecimal(4, decimal);
+                cs.setBoolean(5, true);
+                cs.setString(6, "last");
+
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals("first", rs.getString(1));
+                    assertEquals(42, rs.getInt(2));
+                    assertEquals(timestamp, rs.getTimestamp(3));
+                    assertEquals(decimal, rs.getBigDecimal(4));
+                    assertTrue(rs.getBoolean(5));
+                    assertEquals("last", rs.getString(6));
+                    assertFalse(rs.next());
+                }
+                assertNoPreparedHandle(cs);
+            } catch (ReflectiveOperationException e) {
+                throw new SQLException(e);
+            } finally {
+                TestUtils.dropProcedureIfExists(procedureName, stmt);
+            }
+        }
+    }
+
+    @Test
+    public void testJavaTimeInputs() throws SQLException {
+        String procedureName = temporaryProcedureName("callable_none_java_time");
+        String connStrWithNone = connectionString + ";prepareMethod=none";
+        LocalDateTime localDateTime = LocalDateTime.of(2026, 10, 7, 1, 2, 3, 123456700);
+        LocalDate localDate = LocalDate.of(2026, 10, 7);
+        LocalTime localTime = LocalTime.of(23, 59, 59, 999999900);
+        OffsetDateTime offsetDateTime = OffsetDateTime.parse("2026-10-07T01:02:03.1234567+05:30");
+        OffsetTime offsetTime = OffsetTime.parse("01:02:03.1234567+05:30");
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStrWithNone);
+                Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE " + procedureName
+                    + " @localDateTime datetime2(7), @localDate date, @localTime time(7),"
+                    + " @offsetDateTime datetimeoffset(7), @offsetTime datetimeoffset(7)"
+                    + " AS SELECT @localDateTime, @localDate, @localTime, @offsetDateTime, @offsetTime");
+
+            try (CallableStatement cs = conn.prepareCall("{call " + procedureName + "(?, ?, ?, ?, ?)}")) {
+                cs.setObject(1, localDateTime);
+                cs.setObject(2, localDate);
+                cs.setObject(3, localTime);
+                cs.setObject(4, offsetDateTime);
+                cs.setObject(5, offsetTime);
+
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(localDateTime, rs.getObject(1, LocalDateTime.class));
+                    assertEquals(localDate, rs.getObject(2, LocalDate.class));
+                    assertEquals(localTime, rs.getObject(3, LocalTime.class));
+                    assertEquals(offsetDateTime, rs.getObject(4, OffsetDateTime.class));
+                    // A time-only value has no date, so the server supplies its own default date when widening it
+                    // to datetimeoffset; only the time of day and offset are meaningful.
+                    OffsetDateTime offsetTimeResult = rs.getObject(5, OffsetDateTime.class);
+                    assertEquals(offsetTime.toLocalTime(), offsetTimeResult.toLocalTime());
+                    assertEquals(offsetTime.getOffset(), offsetTimeResult.getOffset());
+                    assertFalse(rs.next());
+                }
+            } finally {
+                TestUtils.dropProcedureIfExists(procedureName, stmt);
+            }
+        }
+    }
+
+    @Test
+    public void testTemporalBoundariesAndNull() throws SQLException {
+        String procedureName = temporaryProcedureName("callable_none_temporal_boundaries");
+        String connStrWithNone = connectionString + ";prepareMethod=none";
+        LocalDate minimumDate = LocalDate.of(1, 1, 1);
+        LocalDate maximumDate = LocalDate.of(9999, 12, 31);
+        LocalTime maximumTime = LocalTime.of(23, 59, 59, 999999900);
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStrWithNone);
+                Statement stmt = conn.createStatement()) {
+            stmt.execute("SET LANGUAGE French");
+            stmt.execute("SET DATEFORMAT mdy");
+            stmt.execute("CREATE PROCEDURE " + procedureName
+                    + " @minimumDate date, @maximumDate date, @maximumTime time(7), @nullable datetime2(7)"
+                    + " AS SELECT @minimumDate, @maximumDate, @maximumTime, @nullable");
+
+            try (CallableStatement cs = conn.prepareCall("{call " + procedureName + "(?, ?, ?, ?)}")) {
+                cs.setObject(1, minimumDate);
+                cs.setObject(2, maximumDate);
+                cs.setObject(3, maximumTime);
+                cs.setNull(4, Types.TIMESTAMP);
+
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(minimumDate, rs.getObject(1, LocalDate.class));
+                    assertEquals(maximumDate, rs.getObject(2, LocalDate.class));
+                    assertEquals(maximumTime, rs.getObject(3, LocalTime.class));
+                    assertNull(rs.getObject(4));
+                    assertFalse(rs.next());
+                }
+            } finally {
+                TestUtils.dropProcedureIfExists(procedureName, stmt);
+            }
+        }
+    }
+
+    @Test
+    public void testUdfArgumentsRemainValidInExpressionContexts() throws SQLException {
+        String suffix = RandomUtil.getIdentifier("callable_none_udf");
+        String scalarFunction = "dbo." + AbstractSQLGenerator.escapeIdentifier(suffix + "_scalar");
+        String tableFunction = "dbo." + AbstractSQLGenerator.escapeIdentifier(suffix + "_table");
+        String tableName = AbstractSQLGenerator.escapeIdentifier(suffix + "_data");
+        String connStrWithNone = connectionString + ";prepareMethod=none";
+        BigDecimal expected = new BigDecimal("12345678901234.12345");
+
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStrWithNone);
+                Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE FUNCTION " + scalarFunction
+                    + " (@value decimal(19,5)) RETURNS decimal(19,5) AS BEGIN RETURN @value END");
+            stmt.execute("CREATE FUNCTION " + tableFunction
+                    + " (@value decimal(19,5)) RETURNS TABLE AS RETURN SELECT @value AS value");
+            stmt.execute("CREATE TABLE " + tableName + " (id int PRIMARY KEY, value decimal(19,5))");
+
+            try {
+                try (PreparedStatement ps = conn.prepareStatement("SELECT " + scalarFunction + "(?)")) {
+                    ps.setBigDecimal(1, expected);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        assertEquals(expected, rs.getBigDecimal(1));
+                    }
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement("SELECT value FROM " + tableFunction + "(?)")) {
+                    ps.setBigDecimal(1, expected);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        assertEquals(expected, rs.getBigDecimal(1));
+                    }
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + tableName + " VALUES (1, "
+                        + scalarFunction + "(?))")) {
+                    ps.setBigDecimal(1, expected);
+                    assertEquals(1, ps.executeUpdate());
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement("UPDATE " + tableName + " SET value = "
+                        + scalarFunction + "(?) WHERE value = " + scalarFunction + "(?)")) {
+                    ps.setBigDecimal(1, expected.negate());
+                    ps.setBigDecimal(2, expected);
+                    assertEquals(1, ps.executeUpdate());
+                }
+
+                try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + tableName + " WHERE value = "
+                        + scalarFunction + "(?)")) {
+                    ps.setBigDecimal(1, expected.negate());
+                    assertEquals(1, ps.executeUpdate());
+                }
+            } finally {
+                // Test identifiers contain an apostrophe, which TestUtils.dropFunctionWithSchemaIfExists does not escape.
+                stmt.execute("DROP TABLE IF EXISTS " + tableName);
+                stmt.execute("DROP FUNCTION IF EXISTS " + tableFunction);
+                stmt.execute("DROP FUNCTION IF EXISTS " + scalarFunction);
+            }
+        }
+    }
+
+    @Test
     public void testSupplementalUnaffectedInputTypes() throws SQLException {
         String procedureName = temporaryProcedureName("callable_none_supplemental_controls");
         String connStrWithNone = connectionString + ";prepareMethod=none";
@@ -234,12 +477,13 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
         BigDecimal expectedHighScaleDecimal = new BigDecimal("0.1234567");
 
         try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connStrWithNone);
-                PreparedStatement ps = conn.prepareStatement("SELECT ?, ?, ?, ?, ?")) {
+                PreparedStatement ps = conn.prepareStatement("SELECT ?, ?, ?, ?, ?, ?")) {
             ps.setDate(1, expectedDate);
             ps.setTime(2, expectedTime);
             ps.setTimestamp(3, expectedTimestamp);
             ps.setBigDecimal(4, expectedHighPrecisionDecimal);
             ps.setBigDecimal(5, expectedHighScaleDecimal);
+            ps.setNull(6, Types.TIMESTAMP);
 
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());
@@ -248,6 +492,7 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
                 assertEquals(expectedTimestamp, rs.getTimestamp(3));
                 assertEquals(expectedHighPrecisionDecimal, rs.getBigDecimal(4));
                 assertEquals(expectedHighScaleDecimal, rs.getBigDecimal(5));
+                assertNull(rs.getTimestamp(6));
                 assertFalse(rs.next());
             }
         }
@@ -310,6 +555,12 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
                 TestUtils.dropProcedureIfExists(procedureName, stmt);
             }
         }
+    }
+
+    // SQL Server reports numeric constants as "numeric", a synonym of "decimal"; the type must not be a string type.
+    private static void assertDecimalBaseType(String baseType) {
+        assertTrue("decimal".equals(baseType) || "numeric".equals(baseType),
+                "Expected a decimal/numeric base type but was: " + baseType);
     }
 
     private static String temporaryProcedureName(String prefix) {

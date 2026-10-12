@@ -4382,7 +4382,50 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      *                      if an error occurs
      */
     String formatLiteralValue(Object value) throws SQLException {
+        // procedureName is populated when call syntax identifies a stored procedure; direct execution uses that
+        // non-null value to format procedure arguments without CAST expressions.
         boolean isInProcedureCall = null != procedureName && isDirectSqlExecution;
+
+        if (isInProcedureCall) {
+            if (value instanceof java.math.BigDecimal) {
+                return ((java.math.BigDecimal) value).toPlainString();
+            } else if (value instanceof java.sql.Date) {
+                return "'" + escapeSQLString(value.toString().replace("-", "")) + "'";
+            } else if (value instanceof java.sql.Time) {
+                return "'" + escapeSQLString(value.toString()) + "'";
+            } else if (value instanceof java.sql.Timestamp) {
+                return "'" + escapeSQLString(value.toString().replace(' ', 'T')) + "'";
+            } else if (value instanceof java.util.Date) {
+                return "'" + escapeSQLString(TS_FMT.format((java.util.Date) value).replace(' ', 'T')) + "'";
+            }
+        } else {
+            if (value instanceof java.math.BigDecimal) {
+                // Use toPlainString() to avoid scientific notation
+                java.math.BigDecimal bd = (java.math.BigDecimal) value;
+                String plainStr = bd.toPlainString();
+                int precision = bd.precision();
+                int scale = bd.scale();
+
+                if (precision <= 18 && scale <= 6) {
+                    return plainStr;
+                }
+
+                // Need explicit CAST for high precision numbers
+                // Clamp to SQL Server limits: decimal(38, min(scale, 38))
+                // Ensure scale <= precision
+                int sqlPrecision = Math.min(precision, 38);
+                int sqlScale = Math.min(Math.min(scale, 38), sqlPrecision);
+                return "CAST(" + plainStr + " AS DECIMAL(" + sqlPrecision + "," + sqlScale + "))";
+            } else if (value instanceof java.sql.Date) {
+                return "CAST('" + escapeSQLString(value.toString()) + "' AS DATE)";
+            } else if (value instanceof java.sql.Time) {
+                return "CAST('" + escapeSQLString(value.toString()) + "' AS TIME)";
+            } else if (value instanceof java.sql.Timestamp) {
+                return "CAST('" + escapeSQLString(value.toString()) + "' AS DATETIME2)";
+            } else if (value instanceof java.util.Date) {
+                return "CAST('" + escapeSQLString(TS_FMT.format((java.util.Date) value)) + "' AS DATETIME2)";
+            }
+        }
 
         if (value == null) {
             return "NULL";
@@ -4394,29 +4437,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return prefix + escapeSQLString(value.toString()) + "'";
         } else if (value instanceof Boolean) {
             return ((Boolean) value) ? "1" : "0";
-        } else if (value instanceof java.math.BigDecimal) {
-            // Use toPlainString() to avoid scientific notation
-            java.math.BigDecimal bd = (java.math.BigDecimal) value;
-            String plainStr = bd.toPlainString();
-
-            // For very large or high-precision decimals, wrap in CAST to preserve precision
-            // SQL Server decimal max precision is 38, scale max 38
-            int precision = bd.precision();
-            int scale = bd.scale();
-
-            if (precision > 18 || scale > 6) {
-                if (isInProcedureCall) {
-                    return "'" + escapeSQLString(plainStr) + "'";
-                }
-
-                // Need explicit CAST for high precision numbers
-                // Clamp to SQL Server limits: decimal(38, min(scale, 38))
-                // Ensure scale <= precision
-                int sqlPrecision = Math.min(precision, 38);
-                int sqlScale = Math.min(Math.min(scale, 38), sqlPrecision);
-                return "CAST(" + plainStr + " AS DECIMAL(" + sqlPrecision + "," + sqlScale + "))";
-            }
-            return plainStr;
         } else if (value instanceof Byte || value instanceof Short || value instanceof Integer
                 || value instanceof Long) {
             return value.toString();
@@ -4440,31 +4460,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
             // Convert Double to BigDecimal for precise representation
             return new java.math.BigDecimal(value.toString()).toPlainString();
-        } else if (value instanceof java.sql.Date) {
-            String date = value.toString();
-            if (isInProcedureCall) {
-                date = date.replace("-", "");
-            }
-            date = escapeSQLString(date);
-            return isInProcedureCall ? "'" + date + "'" : "CAST('" + date + "' AS DATE)";
-        } else if (value instanceof java.sql.Time) {
-            String time = escapeSQLString(value.toString());
-            return isInProcedureCall ? "'" + time + "'" : "CAST('" + time + "' AS TIME)";
-        } else if (value instanceof java.sql.Timestamp) {
-            String timestamp = value.toString();
-            if (isInProcedureCall) {
-                timestamp = timestamp.replace(' ', 'T');
-            }
-            timestamp = escapeSQLString(timestamp);
-            return isInProcedureCall ? "'" + timestamp + "'" : "CAST('" + timestamp + "' AS DATETIME2)";
-        } else if (value instanceof java.util.Date) {
-            // generic java.util.Date -> timestamp
-            String timestamp = TS_FMT.format((java.util.Date) value);
-            if (isInProcedureCall) {
-                timestamp = timestamp.replace(' ', 'T');
-            }
-            timestamp = escapeSQLString(timestamp);
-            return isInProcedureCall ? "'" + timestamp + "'" : "CAST('" + timestamp + "' AS DATETIME2)";
         } else if (value instanceof byte[]) {
             return bytesToHexLiteral((byte[]) value);
         } else if (value instanceof Blob) {
