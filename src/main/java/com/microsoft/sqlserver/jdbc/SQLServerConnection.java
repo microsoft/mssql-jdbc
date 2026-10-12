@@ -833,6 +833,39 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return sendStringParametersAsUnicode;
     }
 
+    private int stringParameterDefaultLength = SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH
+            .getDefaultValue();
+
+    /**
+     * Returns the configured positive length, or zero for legacy sizing. Type-specific bounds are not applied here.
+     * This is preparatory property storage; parameter declaration resolution does not yet consume it.
+     */
+    int getStringParameterDefaultLength() {
+        return stringParameterDefaultLength;
+    }
+
+    private void initStringParameterDefaultLength() throws SQLServerException {
+        stringParameterDefaultLength = SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH.getDefaultValue();
+        String value = activeConnectionProperties
+                .getProperty(SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH.toString());
+        if (null != value) {
+            int configuredLength;
+            try {
+                configuredLength = Integer.parseInt(value);
+            } catch (NumberFormatException e) {
+                SQLServerException.makeFromDriverError(this, this,
+                        SQLServerException.getErrString("R_invalidStringParameterDefaultLength"), null, false);
+                return;
+            }
+            if (configuredLength > 0) {
+                stringParameterDefaultLength = configuredLength;
+            } else if (connectionlogger.isLoggable(Level.WARNING)) {
+                connectionlogger.warning(toString() + " " + MessageFormat.format(
+                        SQLServerException.getErrString("R_stringParameterDefaultLengthDisabled"), configuredLength));
+            }
+        }
+    }
+
     /** last update count flag */
     private boolean lastUpdateCount;
 
@@ -3415,6 +3448,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
                     SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
                 }
+
+                initStringParameterDefaultLength();
 
                 // Handle optional packetSize property
                 sPropKey = SQLServerDriverIntProperty.PACKET_SIZE.toString();

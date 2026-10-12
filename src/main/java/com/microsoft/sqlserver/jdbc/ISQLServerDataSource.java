@@ -542,6 +542,29 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     int getPacketSize();
 
     /**
+     * Stores the connection-default length setting for character and binary parameters.
+     * <p>
+     * This property is preparatory wiring only: parameter declarations do not yet use this setting.
+     * The value is validated when a connection is opened, not by this setter. An explicitly configured zero or
+     * negative integer logs a warning and selects legacy sizing; an omitted value defaults to zero without a warning.
+     * Malformed or overflowing integer text supplied through a URL or Properties causes a connection-property error.
+     * Positive values are retained without a global clamp, pending effective-type-specific length resolution.
+     * </p>
+     *
+     * @param length
+     *        The configured length, or a non-positive integer to select legacy sizing.
+     */
+    void setStringParameterDefaultLength(int length);
+
+    /**
+     * Returns the stored connection-default parameter length setting, before connect-time validation.
+     * This preparatory setting does not yet affect parameter declarations.
+     *
+     * @return The configured integer, including non-positive values, or zero when unset.
+     */
+    int getStringParameterDefaultLength();
+
+    /**
      * Sets the kind of integrated security you want your application to use.
      * 
      * @param authenticationScheme
