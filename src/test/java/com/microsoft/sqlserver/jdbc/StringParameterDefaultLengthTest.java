@@ -107,20 +107,7 @@ public class StringParameterDefaultLengthTest {
         Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
         Level previousLevel = logger.getLevel();
         List<LogRecord> warnings = new ArrayList<>();
-        Handler handler = new Handler() {
-            @Override
-            public void publish(LogRecord record) {
-                if (record.getLevel() == Level.WARNING && record.getMessage().contains(PROPERTY)) {
-                    warnings.add(record);
-                }
-            }
-
-            @Override
-            public void flush() {}
-
-            @Override
-            public void close() {}
-        };
+        Handler handler = warningHandler(warnings);
         logger.addHandler(handler);
         logger.setLevel(Level.WARNING);
         try (SQLServerConnection connection = new SQLServerConnection("property-test")) {
@@ -140,6 +127,110 @@ public class StringParameterDefaultLengthTest {
             logger.removeHandler(handler);
             logger.setLevel(previousLevel);
         }
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"-1", "0", "1", "3999", "4000", "4001", "5000", "7999", "8000", "8001", "2147483647"})
+    public void testEffectiveTypeBounds(String value) throws Exception {
+        Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
+        Level previousLevel = logger.getLevel();
+        List<LogRecord> warnings = new ArrayList<>();
+        Handler handler = warningHandler(warnings);
+        logger.addHandler(handler);
+        logger.setLevel(Level.WARNING);
+        try (SQLServerConnection connection = new SQLServerConnection("property-test")) {
+            SQLServerException exception = assertThrows(SQLServerException.class,
+                    () -> connection.connect(parsingProperties(value), null));
+            assertEquals(MessageFormat.format(SQLServerException.getErrString("R_invalidPacketSize"), "1"),
+                    exception.getMessage());
+            int configured = null == value ? 0 : Math.max(0, Integer.parseInt(value));
+            warnings.clear();
+            for (JDBCType type : JDBCType.values()) {
+                int expected;
+                switch (type) {
+                    case CHAR:
+                    case VARCHAR:
+                    case BINARY:
+                    case VARBINARY:
+                        expected = Math.min(configured, 8000);
+                        break;
+                    case NCHAR:
+                    case NVARCHAR:
+                        expected = Math.min(configured, 4000);
+                        break;
+                    default:
+                        expected = 0;
+                        break;
+                }
+                assertEquals(expected, connection.getStringParameterDefaultLength(type), type.toString());
+                assertEquals(configured, connection.getStringParameterDefaultLength());
+            }
+            assertEquals(configured > 8000 ? 3 : configured > 4000 ? 1 : 0, warnings.size());
+        } finally {
+            logger.removeHandler(handler);
+            logger.setLevel(previousLevel);
+        }
+    }
+
+    @Test
+    public void testBoundWarningsOncePerFamilyAndConnection() throws Exception {
+        Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
+        Level previousLevel = logger.getLevel();
+        List<LogRecord> warnings = new ArrayList<>();
+        Handler handler = warningHandler(warnings);
+        logger.addHandler(handler);
+        logger.setLevel(Level.WARNING);
+        try {
+            for (int connectionIndex = 0; connectionIndex < 2; connectionIndex++) {
+                try (SQLServerConnection connection = new SQLServerConnection("property-test")) {
+                    SQLServerException exception = assertThrows(SQLServerException.class,
+                            () -> connection.connect(parsingProperties("8001"), null));
+                    assertEquals(MessageFormat.format(SQLServerException.getErrString("R_invalidPacketSize"), "1"),
+                            exception.getMessage());
+                    int previousWarnings = warnings.size();
+                    logger.setLevel(Level.OFF);
+                    assertEquals(4000, connection.getStringParameterDefaultLength(JDBCType.NVARCHAR));
+                    assertEquals(previousWarnings, warnings.size());
+                    logger.setLevel(Level.WARNING);
+                    for (int row = 0; row < 100; row++) {
+                        for (JDBCType type : new JDBCType[] {JDBCType.CHAR, JDBCType.VARCHAR, JDBCType.NCHAR,
+                                JDBCType.NVARCHAR, JDBCType.BINARY, JDBCType.VARBINARY}) {
+                            connection.getStringParameterDefaultLength(type);
+                        }
+                    }
+                    assertEquals(previousWarnings + 3, warnings.size());
+                    String[] families = {"varchar", "nvarchar", "varbinary"};
+                    int[] limits = {8000, 4000, 8000};
+                    for (int i = 0; i < families.length; i++) {
+                        assertEquals(
+                                connection + " The stringParameterDefaultLength value exceeds the " + families[i]
+                                        + " limit; using the legacy bound of " + limits[i] + ".",
+                                warnings.get(previousWarnings + i).getMessage());
+                    }
+                }
+            }
+        } finally {
+            logger.removeHandler(handler);
+            logger.setLevel(previousLevel);
+        }
+    }
+
+    private static Handler warningHandler(List<LogRecord> warnings) {
+        return new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                if (record.getLevel() == Level.WARNING && record.getMessage().contains(PROPERTY)) {
+                    warnings.add(record);
+                }
+            }
+
+            @Override
+            public void flush() {}
+
+            @Override
+            public void close() {}
+        };
     }
 
     @ParameterizedTest

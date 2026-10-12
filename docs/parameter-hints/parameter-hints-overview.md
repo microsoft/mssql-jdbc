@@ -4,11 +4,12 @@
 
 This document describes the parameter length hint mechanisms available in mssql-jdbc for optimizing memory grants in SQL Server execution plans when working with variable-length types (VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY).
 
-## Phase 2 status: connection property wiring only
+## Phase 2 status: connection property wiring and internal bounds policy
 
 `stringParameterDefaultLength` is registered as a normal connection URL, `java.util.Properties`,
-and DataSource property. **This preparatory increment only parses and stores the setting; it does
-not change parameter declarations or make setters honor a connection-default length.** The existing
+and DataSource property. **The preparatory increments parse and store the setting and provide an
+internal effective-type bounds policy; they do not change parameter declarations or make setters
+honor a connection-default length.** The existing
 `defineParameterType()` and `setObject(..., scaleOrLength)` behavior below remains unchanged.
 
 | Configuration | Connect-time behavior |
@@ -23,10 +24,18 @@ eager validation, matching other integer properties. Its getter returns that sto
 when unset), not the normalized value on an opened connection. The setting uses the existing
 DataSource JNDI and serialization mechanisms, including pooled and XA DataSources.
 
-Adaptive sizing, per-parameter history, and effective-type-specific bounds are deferred to the next
-increment. There is deliberately no global clamp: 5000 is within the varchar/varbinary bound but
-exceeds the nvarchar bound. Future resolution must use encoded bytes for varchar, UTF-16 code
-units for nvarchar, and bytes for varbinary, after `sendStringParametersAsUnicode` takes effect.
+The internal bounds policy retains a positive floor up to 8000 for CHAR/VARCHAR and BINARY/VARBINARY,
+or 4000 for NCHAR/NVARCHAR. An oversized floor resolves to that family's legacy bound and logs a
+warning at most once per family per connection when warning logging is enabled. Fixed and variable
+types share a warning family. Disabled settings and other types (including LONG and LOB types)
+return no floor. The raw stored value is never changed: 5000 remains valid for varchar/varbinary
+even after resolving it to 4000 for nvarchar. These warnings are not yet emitted during statement
+execution because declaration resolution does not consume the policy.
+
+Adaptive sizing and per-parameter history are deferred. Future resolution must supply the effective
+type after `sendStringParametersAsUnicode` takes effect and measure encoded bytes for varchar,
+UTF-16 code units for nvarchar, and bytes for varbinary. The bounded floor must not cap actual data:
+existing LONG/MAX handling for large values remains unchanged.
 The intended precedence is enforced `defineParameterType()` declaration, then usable positive
 explicit `setObject` hint, then connection-default policy, then existing sizing. Explicit hints
 must not be combined with the connection default using `max`. Callable OUT/INOUT behavior and
