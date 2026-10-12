@@ -36,6 +36,7 @@ public class StringParameterDefaultLengthConnectionTest extends AbstractTest {
         String url = TestUtils.addOrOverrideProperty(connectionString, PROPERTY, Integer.toString(value));
         try (SQLServerConnection connection = (SQLServerConnection) PrepUtil.getConnection(url)) {
             assertEquals(expected, connection.getStringParameterDefaultLength());
+            assertEffectiveTypeBounds(connection, expected);
             assertUsable(connection);
         }
 
@@ -45,6 +46,7 @@ public class StringParameterDefaultLengthConnectionTest extends AbstractTest {
         try (SQLServerConnection connection = (SQLServerConnection) DriverManager.getConnection(overriddenUrl,
                 properties)) {
             assertEquals(expected, connection.getStringParameterDefaultLength());
+            assertEffectiveTypeBounds(connection, expected);
             assertUsable(connection);
         }
 
@@ -53,6 +55,7 @@ public class StringParameterDefaultLengthConnectionTest extends AbstractTest {
         source.setStringParameterDefaultLength(value);
         try (SQLServerConnection connection = (SQLServerConnection) source.getConnection()) {
             assertEquals(expected, connection.getStringParameterDefaultLength());
+            assertEffectiveTypeBounds(connection, expected);
             assertUsable(connection);
         }
     }
@@ -67,8 +70,17 @@ public class StringParameterDefaultLengthConnectionTest extends AbstractTest {
             try (SQLServerConnection second = (SQLServerConnection) source.getConnection()) {
                 assertEquals(5000, first.getStringParameterDefaultLength());
                 assertEquals(100, second.getStringParameterDefaultLength());
+                assertEffectiveTypeBounds(first, 5000);
+                assertEffectiveTypeBounds(second, 100);
             }
         }
+    }
+
+    private static void assertEffectiveTypeBounds(SQLServerConnection connection, int configured) {
+        assertEquals(Math.min(configured, 8000), connection.getStringParameterDefaultLength(JDBCType.VARCHAR));
+        assertEquals(Math.min(configured, 4000), connection.getStringParameterDefaultLength(JDBCType.NVARCHAR));
+        assertEquals(Math.min(configured, 8000), connection.getStringParameterDefaultLength(JDBCType.VARBINARY));
+        assertEquals(configured, connection.getStringParameterDefaultLength());
     }
 
     private static void assertUsable(SQLServerConnection connection) throws Exception {
