@@ -57,7 +57,7 @@ public class ParameterLengthHistoryConnectionTest extends AbstractTest {
     }
 
     @Test
-    public void testSnapshotAndClearLifecycleWithoutChangingDeclarations() throws Exception {
+    public void testSnapshotAndClearLifecycleWithAdaptiveDeclarations() throws Exception {
         try (SQLServerConnection connection = openConnection(10); Statement setup = connection.createStatement()) {
             setup.execute("CREATE TABLE #ParameterLengthHistory (firstValue nvarchar(max), secondValue nvarchar(max))");
             try (SQLServerPreparedStatement statement = (SQLServerPreparedStatement) connection
@@ -81,11 +81,11 @@ public class ParameterLengthHistoryConnectionTest extends AbstractTest {
                 assertNull(firstRow[0].getInputDTV().getScale());
                 assertEquals(Integer.valueOf(40), secondRow[0].getInputDTV().getScale());
                 assertEquals(10, firstHistory.resolveLength(JDBCType.NVARCHAR, 10, 0));
-                assertEquals("nvarchar(4000)", firstRow[0].getTypeDefinition(connection, null));
+                assertEquals("nvarchar(10)", firstRow[0].getTypeDefinition(connection, null));
                 assertEquals("nvarchar(40)", secondRow[0].getTypeDefinition(connection, null));
 
-                // Seed an observation explicitly until declaration resolution starts recording lengths.
-                assertEquals(113, firstRow[0].getLengthHistory().resolveLength(JDBCType.NVARCHAR, 10, 113));
+                statement.setString(1, repeated(113));
+                assertEquals("nvarchar(113)", statement.inOutParam[0].getTypeDefinition(connection, null));
                 statement.clearParameters();
                 assertNull(statement.inOutParam[0].getInputDTV());
                 assertSame(firstHistory, statement.inOutParam[0].getLengthHistory());
@@ -104,7 +104,7 @@ public class ParameterLengthHistoryConnectionTest extends AbstractTest {
                 statement.setString(1, "x");
                 statement.addBatch();
                 statement.executeBatch();
-                assertEquals("nvarchar(4000)", statement.inOutParam[0].getTypeDefinition(connection, null));
+                assertEquals("nvarchar(113)", statement.inOutParam[0].getTypeDefinition(connection, null));
                 assertEquals(113, firstHistory.resolveLength(JDBCType.NVARCHAR, 10, 0));
                 statement.defineParameterType(1, Types.NVARCHAR, 16);
                 statement.setString(1, "x");
@@ -141,6 +141,7 @@ public class ParameterLengthHistoryConnectionTest extends AbstractTest {
                         statement.setString("@output", "x");
                     }
                     statement.execute();
+                    assertEquals("nvarchar(10)", statement.inOutParam[0].getTypeDefinition(connection, null));
                     assertEquals(repeated(200), statement.getString("@output"));
                     assertEquals("nvarchar(4000)", statement.inOutParam[1].getTypeDefinition(connection, null));
                     assertEquals(10, outputHistory.resolveLength(JDBCType.NVARCHAR, 10, 0));
