@@ -662,8 +662,7 @@ final class Parameter {
          */
         private Integer resolveSetObjectLengthHint(DTV dtv, int lengthHint) throws SQLServerException {
             if (lengthHint <= 0) {
-                // Not a usable length. Ignore the hint and let the driver size the parameter as
-                // it did before length hints existed.
+                // Not a usable hint. Eligible inputs can still use the connection default.
                 return null;
             }
 
@@ -803,8 +802,7 @@ final class Parameter {
             boolean aeActive = param.shouldHonorAEForParameter && (null != jdbcTypeSetByUser)
                     && !(null == param.getCryptoMetadata() && param.renewDefinition);
 
-            // Resolves the effective declared length from defineParameterType() (enforced) or
-            // setObject(..., scaleOrLength) (advisory, widened to fit the value when necessary).
+            // Explicit declarations and advisory hints precede the adaptive connection default.
             Integer applicationLengthHint = aeActive ? null : getApplicationSpecifiedLengthHint(dtv);
             if (null == applicationLengthHint) {
                 applicationLengthHint = getConnectionDefaultLength(dtv);
