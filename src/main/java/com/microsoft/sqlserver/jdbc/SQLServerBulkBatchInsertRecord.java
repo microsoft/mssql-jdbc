@@ -42,6 +42,16 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
     private static final String loggerClassName = "SQLServerBulkBatchInsertRecord";
 
     /*
+     * Formatter to remove the decimal part as SQL Server floors the
+     * decimal in integer types
+     */
+    private static final DecimalFormat DECIMAL_FORMATTER;
+    static {
+        DECIMAL_FORMATTER = new DecimalFormat("#");
+        DECIMAL_FORMATTER.setRoundingMode(RoundingMode.DOWN);
+    }
+
+    /*
      * Constructs a SQLServerBulkBatchInsertRecord with the batch parameter, column list, value list, and encoding
      */
     SQLServerBulkBatchInsertRecord(ArrayList<Parameter[]> batchParam, ArrayList<String> columnList,
@@ -74,24 +84,16 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
         super.loggerPackageName = "com.microsoft.sqlserver.jdbc.SQLServerBulkBatchInsertRecord";
     }
 
-    private Object convertValue(ColumnMetadata cm, Object data) throws SQLServerException {
+    private Object parseStringValue(ColumnMetadata cm, String data) throws SQLServerException {
         switch (cm.columnType) {
             case Types.INTEGER: {
-                // Formatter to remove the decimal part as SQL Server floors the
-                // decimal in integer types
-                DecimalFormat decimalFormatter = new DecimalFormat("#");
-                decimalFormatter.setRoundingMode(RoundingMode.DOWN);
-                String formatedfInput = decimalFormatter.format(Double.parseDouble(data.toString()));
+                String formatedfInput = DECIMAL_FORMATTER.format(Double.parseDouble(data.toString()));
                 return Integer.valueOf(formatedfInput);
             }
 
             case Types.TINYINT:
             case Types.SMALLINT: {
-                // Formatter to remove the decimal part as SQL Server floors the
-                // decimal in integer types
-                DecimalFormat decimalFormatter = new DecimalFormat("#");
-                decimalFormatter.setRoundingMode(RoundingMode.DOWN);
-                String formatedfInput = decimalFormatter.format(Double.parseDouble(data.toString()));
+                String formatedfInput = DECIMAL_FORMATTER.format(Double.parseDouble(data.toString()));
                 return Short.valueOf(formatedfInput);
             }
 
@@ -114,13 +116,11 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
             }
 
             case Types.BIT: {
-                // "true" => 1, "false" => 0
-                // Any non-zero value (integer/double) => 1, 0/0.0 => 0
-                try {
-                    return (0 == Double.parseDouble(data.toString())) ? Boolean.FALSE : Boolean.TRUE;
-                } catch (NumberFormatException e) {
-                    return Boolean.parseBoolean(data.toString());
+                String stringData = data.toString();
+                if ("0".equals(stringData) || "0.0".equals(stringData) || "false".equalsIgnoreCase(stringData)) {
+                    return Boolean.FALSE;
                 }
+                return Boolean.TRUE;
             }
 
             case Types.REAL: {
@@ -135,20 +135,12 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
             case Types.VARBINARY:
             case Types.LONGVARBINARY:
             case Types.BLOB: {
-                if (data instanceof byte[] || data instanceof InputStream) {
-                    /*
-                     * if the binary data comes in as a byte array or Input Stream through setBytes()/setBinaryStream() 
-                     * through Bulk Copy for Batch Insert API, don't turn the binary array into a string.
-                     */
-                    return data;
+                // Strip off 0x if present.
+                String binData = data.toString().trim();
+                if (binData.startsWith("0x") || binData.startsWith("0X")) {
+                    return binData.substring(2);
                 } else {
-                    // Strip off 0x if present.
-                    String binData = data.toString().trim();
-                    if (binData.startsWith("0x") || binData.startsWith("0X")) {
-                        return binData.substring(2);
-                    } else {
-                        return binData;
-                    }
+                    return binData;
                 }
             }
 
@@ -196,6 +188,16 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
                 // The string is copied as is.
                 return data;
             }
+        }
+    }
+
+    private Object parseStringValueOrFail(ColumnMetadata cm, String data) throws SQLServerException {
+        try {
+            return parseStringValue(cm, data);
+        } catch (IllegalArgumentException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
+            throw new SQLServerException(form.format(new Object[] {data, JDBCType.of(cm.columnType)}),
+                    null, 0, e);
         }
     }
 
@@ -249,7 +251,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
                  * value.
                  */
                 else {
-                    rowData = removeSingleQuote(valueData);
+                    rowData = parseStringValueOrFail(pair.getValue(), removeSingleQuote(valueData));
                 }
             }
             // case when the user has provided the optional list of column names.
@@ -269,7 +271,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
                     } else if ("null".equalsIgnoreCase(valueData)) {
                         rowData = null;
                     } else {
-                        rowData = removeSingleQuote(valueData);
+                        rowData = parseStringValueOrFail(pair.getValue(), removeSingleQuote(valueData));
                     }
                     columnListIndex++;
                 } else {
@@ -278,19 +280,7 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
             }
 
             try {
-                if (null == rowData) {
-                    data[index] = null;
-                    continue;
-                } else if (0 == rowData.toString().length()) {
-                    data[index] = "";
-                    continue;
-                }
-                data[index] = convertValue(pair.getValue(), rowData);
-            } catch (IllegalArgumentException e) {
-                String value = "'" + rowData + "'";
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_errorConvertingValue"));
-                throw new SQLServerException(form.format(new Object[] {value, JDBCType.of(pair.getValue().columnType)}),
-                        null, 0, e);
+                data[index] = rowData;
             } catch (ArrayIndexOutOfBoundsException e) {
                 throw new SQLServerException(SQLServerException.getErrString("R_DataSchemaMismatch"), e);
             }
