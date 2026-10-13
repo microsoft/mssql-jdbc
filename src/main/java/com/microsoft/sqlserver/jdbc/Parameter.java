@@ -78,6 +78,42 @@ final class Parameter {
     // DECIMAL/NUMERIC type-definition logic (which checks userProvidesPrecision).
     private int defineParameterTypeLengthHint = 0;
 
+    /**
+     * Observed lengths for one ordinal, independent of DTV values, explicit hints and AE valueLength.
+     * Call only when resolving a connection-default declaration, with lengths in the effective type's units.
+     * Declaration resolution does not yet consume this preparatory state.
+     */
+    static final class LengthHistory {
+        private int varcharLength;
+        private int nvarcharLength;
+        private int varbinaryLength;
+
+        int resolveLength(JDBCType effectiveType, int floor, int actualLength) {
+            assert floor >= 0;
+            assert actualLength >= 0;
+            if (0 == floor) {
+                return 0;
+            }
+
+            switch (effectiveType) {
+                case CHAR:
+                case VARCHAR:
+                    varcharLength = Math.max(varcharLength, actualLength);
+                    return Math.max(floor, varcharLength);
+                case NCHAR:
+                case NVARCHAR:
+                    nvarcharLength = Math.max(nvarcharLength, actualLength);
+                    return Math.max(floor, nvarcharLength);
+                case BINARY:
+                case VARBINARY:
+                    varbinaryLength = Math.max(varbinaryLength, actualLength);
+                    return Math.max(floor, varbinaryLength);
+                default:
+                    return 0;
+            }
+        }
+    }
+
     void setDefineParameterTypeSqlType(int sqlType) {
         this.defineParameterTypeSqlType = sqlType;
     }

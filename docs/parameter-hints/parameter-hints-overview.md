@@ -32,7 +32,14 @@ return no floor. The raw stored value is never changed: 5000 remains valid for v
 even after resolving it to 4000 for nvarchar. These warnings are not yet emitted during statement
 execution because declaration resolution does not consume the policy.
 
-Adaptive sizing and per-parameter history are deferred. Future resolution must supply the effective
+An internal per-parameter history primitive is also available for later declaration integration.
+It records exact observed lengths independently for varchar, nvarchar, and varbinary; fixed aliases
+share the corresponding variable family's history. Smaller or empty observations do not shrink
+history. The configured floor is applied to the result but is not itself an observed value.
+Disabled floors and unrelated types do not update history. It stores lengths only, not parameter
+values, DTV objects, or explicit hints. No production caller records observations yet.
+
+Adaptive declaration sizing remains deferred. Future resolution must supply the effective
 type after `sendStringParametersAsUnicode` takes effect and measure encoded bytes for varchar,
 UTF-16 code units for nvarchar, and bytes for varbinary. The bounded floor must not cap actual data:
 existing LONG/MAX handling for large values remains unchanged.
