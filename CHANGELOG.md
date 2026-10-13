@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [Unreleased]
+
+### Added
+
+- **Add Adaptive Input Parameter Sizing** [#3071](https://github.com/microsoft/mssql-jdbc/pull/3071)
+  - **What was added**: The `stringParameterDefaultLength` connection/DataSource property, with exact per-parameter growth and shared batch history for character and binary input declarations.
+  - **Who benefits**: Applications wanting smaller input declarations without specifying a hint on every setter.
+  - **Impact**: Disabled by default. Explicit hints, registered OUT/INOUT sizing, Always Encrypted declarations, and large-value MAX handling remain authoritative.
+
 ## [13.6.0] Stable Release
 
 ### Added

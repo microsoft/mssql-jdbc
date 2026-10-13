@@ -542,6 +542,46 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
     int getPacketSize();
 
     /**
+     * Sets the minimum adaptive declaration length for character and binary input parameters.
+     * <p>
+     * The value is validated when a connection is opened, not by this setter. An explicitly configured zero or
+     * negative integer logs a warning and selects legacy sizing; an omitted value defaults to zero without a warning.
+     * Malformed or overflowing integer text supplied through a URL or Properties causes a connection-property error.
+     * Positive values are retained without a global clamp. A floor above the effective type's bounded limit
+     * falls back to 8000 for varchar/varbinary or 4000 for nvarchar, with a warning once per family per connection.
+     * Lengths use encoded bytes for varchar, UTF-16 code units for nvarchar, and bytes for varbinary after
+     * sendStringParametersAsUnicode takes effect.
+     * </p>
+     * <p>
+     * Each prepared or callable input parameter retains its largest observed length separately per effective family.
+     * History grows during declaration resolution, is shared with batch snapshots, and survives clearParameters
+     * and clearBatch. New statements start fresh. Explicit defineParameterType declarations and usable positive
+     * setObject length hints take precedence without updating this history. Registered OUT/INOUT parameters retain
+     * existing sizing to avoid narrowing returned values. Always Encrypted declarations, streams with unmeasurable
+     * values, and explicitly unbounded types retain their existing behavior. Large actual values are not truncated
+     * to the configured floor.
+     * </p>
+     * The default implementation does nothing, retaining compatibility with third-party implementations.
+     * {@link SQLServerDataSource} overrides this method to store the setting.
+     *
+     * @param length
+     *        The configured length, or a non-positive integer to select legacy sizing.
+     */
+    default void setStringParameterDefaultLength(int length) {
+        // Retain binary compatibility for third-party implementations of this interface.
+    }
+
+    /**
+     * Returns the stored connection-default parameter length setting, before connect-time validation.
+     * The default implementation returns zero; {@link SQLServerDataSource} returns the stored setting.
+     *
+     * @return The configured integer, including non-positive values, or zero when unset.
+     */
+    default int getStringParameterDefaultLength() {
+        return 0;
+    }
+
+    /**
      * Sets the kind of integrated security you want your application to use.
      * 
      * @param authenticationScheme
