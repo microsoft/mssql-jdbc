@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc.resiliency;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -52,6 +53,16 @@ public class BasicConnectionTest extends AbstractTest {
     @Test
     public void testBasicReconnectDefault() throws SQLException {
         basicReconnect(connectionString);
+    }
+
+    @Test
+    public void testIsValidReturnsFalseWhenRecoveryConnectionFails() throws SQLException {
+        try (Connection c = ResiliencyUtils.getConnection(connectionString + ";socketTimeout=0;connectRetryCount=1")) {
+            ResiliencyUtils.killConnection(c, connectionString, 0);
+            ResiliencyUtils.blockConnection(c);
+
+            assertFalse(c.isValid(1));
+        }
     }
 
     @Test
