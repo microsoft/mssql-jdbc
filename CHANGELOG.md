@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [13.6.1] Stable Release
+
+### Fixed
+
+- **Fix Callable Statements with `prepareMethod=none`** [#3073](https://github.com/microsoft/mssql-jdbc/pull/3073)
+  - **What was fixed**: Procedure-call parameters for dates, times, timestamps, and decimals with precision greater than 18 or scale greater than 6 are now written as plain literals when `prepareMethod=none` is used.
+  - **Who benefits**: Applications executing callable statements with `prepareMethod=none` and affected parameter types.
+  - **Impact**: Prevents invalid `CAST(...)` expressions from being emitted in `EXEC` argument lists while preserving typed parameter handling for other statements.
+
 ## [13.6.0] Stable Release
 
 ### Added
