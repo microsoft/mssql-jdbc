@@ -29,6 +29,8 @@ public class AdaptiveParameterSizingTest {
         Parameter parameter = new Parameter(false, true);
         String family = type.isBinary() ? "varbinary"
                                         : type == JDBCType.NCHAR || type == JDBCType.NVARCHAR ? "nvarchar" : "varchar";
+        set(parameter, connection, type, null, null);
+        assertEquals(family + "(10)", parameter.getTypeDefinition(connection, null));
         int[] lengths = {0, 1, 11, 3, 17, 0};
         int[] expected = {10, 10, 11, 11, 17, 17};
         for (int i = 0; i < lengths.length; i++) {
@@ -109,6 +111,8 @@ public class AdaptiveParameterSizingTest {
     public void testOutputAndEncryptedParametersRetainExistingSizing() throws Exception {
         SQLServerConnection connection = connection(false, 10);
         Parameter output = new Parameter(false, true);
+        set(output, connection, JDBCType.NVARCHAR, "x", null);
+        assertEquals("nvarchar(10)", output.getTypeDefinition(connection, null));
         output.registerForOutput(JDBCType.NVARCHAR, connection);
         assertEquals("nvarchar(4000)", output.getTypeDefinition(connection, null));
         set(output, connection, JDBCType.NVARCHAR, "x", null);
@@ -121,6 +125,18 @@ public class AdaptiveParameterSizingTest {
         encrypted.renewDefinition = true;
         assertEquals("nvarchar(13)", encrypted.getTypeDefinition(connection, null));
         assertEquals(13, encrypted.getLengthHistory().resolveLength(JDBCType.NVARCHAR, 10, 0));
+    }
+
+    @Test
+    public void testExplicitUnboundedTypesAndMaxHintsDoNotGrowDefaultHistory() throws Exception {
+        SQLServerConnection connection = connection(false, 10);
+        Parameter parameter = new Parameter(false, true);
+        set(parameter, connection, JDBCType.LONGNVARCHAR, repeated(31), null);
+        assertEquals("nvarchar(max)", parameter.cloneForBatch().getTypeDefinition(connection, null));
+        set(parameter, connection, JDBCType.NVARCHAR, repeated(51), 5000);
+        assertEquals("nvarchar(max)", parameter.cloneForBatch().getTypeDefinition(connection, null));
+        set(parameter, connection, JDBCType.NVARCHAR, "x", null);
+        assertEquals("nvarchar(10)", parameter.getTypeDefinition(connection, null));
     }
 
     @Test
