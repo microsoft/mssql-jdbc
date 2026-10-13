@@ -5,15 +5,51 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 
 @Tag("Unit")
 public class ParameterLengthHistoryTest {
+    @Test
+    public void testDisabledParametersDoNotAllocateHistory() {
+        Parameter parameter = new Parameter(false);
+        assertNull(parameter.getLengthHistory());
+        assertNull(parameter.cloneForBatch().getLengthHistory());
+        assertNull(new Parameter(true, false).getLengthHistory());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testBatchClonesShareHistoryBeforeFirstObservation(boolean honorAE) {
+        Parameter parameter = new Parameter(honorAE, true);
+        Parameter first = parameter.cloneForBatch();
+        Parameter second = parameter.cloneForBatch();
+        Parameter.LengthHistory history = parameter.getLengthHistory();
+        assertSame(history, first.getLengthHistory());
+        assertSame(history, second.getLengthHistory());
+        assertSame(history, first.cloneForBatch().getLengthHistory());
+        assertNotSame(history, new Parameter(honorAE, true).getLengthHistory());
+
+        assertEquals(11, first.getLengthHistory().resolveLength(JDBCType.VARCHAR, 10, 11));
+        assertEquals(13, second.getLengthHistory().resolveLength(JDBCType.VARCHAR, 10, 13));
+        assertEquals(13, parameter.getLengthHistory().resolveLength(JDBCType.VARCHAR, 10, 1));
+        parameter.setValueLength(77);
+        parameter.setDefineParameterTypeLengthHint(89);
+        parameter.clearInputValue();
+        parameter.resetOutputValue();
+        assertSame(history, parameter.getLengthHistory());
+        assertEquals(13, history.resolveLength(JDBCType.VARCHAR, 10, 0));
+        assertEquals(77, parameter.getValueLength());
+    }
+
     @ParameterizedTest
     @EnumSource(value = JDBCType.class, names = {"CHAR", "VARCHAR", "NCHAR", "NVARCHAR", "BINARY", "VARBINARY"})
     public void testExactMonotonicGrowth(JDBCType type) {

@@ -4,11 +4,11 @@
 
 This document describes the parameter length hint mechanisms available in mssql-jdbc for optimizing memory grants in SQL Server execution plans when working with variable-length types (VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY).
 
-## Phase 2 status: connection property wiring and internal bounds policy
+## Phase 2 status: connection property wiring and internal sizing state
 
 `stringParameterDefaultLength` is registered as a normal connection URL, `java.util.Properties`,
 and DataSource property. **The preparatory increments parse and store the setting and provide an
-internal effective-type bounds policy; they do not change parameter declarations or make setters
+internal effective-type bounds policy and history storage; they do not change parameter declarations or make setters
 honor a connection-default length.** The existing
 `defineParameterType()` and `setObject(..., scaleOrLength)` behavior below remains unchanged.
 
@@ -38,6 +38,14 @@ share the corresponding variable family's history. Smaller or empty observations
 history. The configured floor is applied to the result but is not itself an observed value.
 Disabled floors and unrelated types do not update history. It stores lengths only, not parameter
 values, DTV objects, or explicit hints. No production caller records observations yet.
+
+When the property is positive, prepared and callable statements now initialize one history holder
+per ordinal before any batch snapshots are taken. Batch clones share their ordinal's holder, so
+future row-by-row declaration resolution can retain observations across the batch. Existing DTV
+snapshot and explicit-hint behavior is unchanged. `clearParameters()` and `clearBatch()` retain the
+holder; new statements get independent holders, and disabled connections allocate none. Holders
+are initialized for all ordinals, including registered OUT/INOUT parameters, but this does not yet
+apply the policy to any parameter or define output sizing semantics.
 
 Adaptive declaration sizing remains deferred. Future resolution must supply the effective
 type after `sendStringParametersAsUnicode` takes effect and measure encoded bytes for varchar,

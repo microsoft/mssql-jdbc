@@ -78,6 +78,12 @@ final class Parameter {
     // DECIMAL/NUMERIC type-definition logic (which checks userProvidesPrecision).
     private int defineParameterTypeLengthHint = 0;
 
+    private LengthHistory lengthHistory;
+
+    LengthHistory getLengthHistory() {
+        return lengthHistory;
+    }
+
     /**
      * Observed lengths for one ordinal, independent of DTV values, explicit hints and AE valueLength.
      * Call only when resolving a connection-default declaration, with lengths in the effective type's units.
@@ -195,6 +201,13 @@ final class Parameter {
 
     Parameter(boolean honorAE) {
         shouldHonorAEForParameter = honorAE;
+    }
+
+    Parameter(boolean honorAE, boolean trackLengthHistory) {
+        this(honorAE);
+        if (trackLengthHistory) {
+            lengthHistory = new LengthHistory();
+        }
     }
 
     // Flag set to true if this is a registered OUTPUT parameter.
@@ -334,6 +347,8 @@ final class Parameter {
         clonedParam.userProvidesScale = userProvidesScale;
         clonedParam.defineParameterTypeSqlType = defineParameterTypeSqlType;
         clonedParam.defineParameterTypeLengthHint = defineParameterTypeLengthHint;
+        // Initialize on the original parameter so all snapshots share the same observations.
+        clonedParam.lengthHistory = lengthHistory;
         return clonedParam;
     }
 
