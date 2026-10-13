@@ -840,7 +840,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     /**
      * Returns the configured positive length, or zero for legacy sizing. Type-specific bounds are not applied here.
-     * This is preparatory property storage; parameter declaration resolution does not yet consume it.
      */
     int getStringParameterDefaultLength() {
         return stringParameterDefaultLength;
@@ -849,7 +848,6 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /**
      * Returns the configured floor bounded for the effective type, or zero when disabled or not applicable.
      * The caller must supply the type after Unicode promotion. This does not bound actual data or track its length.
-     * Parameter declaration resolution does not yet consume this policy.
      */
     int getStringParameterDefaultLength(JDBCType effectiveType) {
         if (0 == stringParameterDefaultLength) {

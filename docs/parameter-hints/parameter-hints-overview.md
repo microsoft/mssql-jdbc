@@ -4,13 +4,12 @@
 
 This document describes the parameter length hint mechanisms available in mssql-jdbc for optimizing memory grants in SQL Server execution plans when working with variable-length types (VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY).
 
-## Phase 2 status: connection property wiring and internal sizing state
+## Adaptive connection default: `stringParameterDefaultLength`
 
 `stringParameterDefaultLength` is registered as a normal connection URL, `java.util.Properties`,
-and DataSource property. **The preparatory increments parse and store the setting and provide an
-internal effective-type bounds policy and history storage; they do not change parameter declarations or make setters
-honor a connection-default length.** The existing
-`defineParameterType()` and `setObject(..., scaleOrLength)` behavior below remains unchanged.
+and DataSource property. A positive value enables adaptive declaration sizing for character and
+binary **input-only parameters** on prepared and callable statements, including named and ordinal
+setters. Omission keeps legacy sizing. Explicit declarations and hints retain precedence.
 
 | Configuration | Connect-time behavior |
 |---|---|
@@ -24,37 +23,70 @@ eager validation, matching other integer properties. Its getter returns that sto
 when unset), not the normalized value on an opened connection. The setting uses the existing
 DataSource JNDI and serialization mechanisms, including pooled and XA DataSources.
 
-The internal bounds policy retains a positive floor up to 8000 for CHAR/VARCHAR and BINARY/VARBINARY,
+The bounds policy retains a positive floor up to 8000 for CHAR/VARCHAR and BINARY/VARBINARY,
 or 4000 for NCHAR/NVARCHAR. An oversized floor resolves to that family's legacy bound and logs a
 warning at most once per family per connection when warning logging is enabled. Fixed and variable
-types share a warning family. Disabled settings and other types (including LONG and LOB types)
-return no floor. The raw stored value is never changed: 5000 remains valid for varchar/varbinary
-even after resolving it to 4000 for nvarchar. These warnings are not yet emitted during statement
-execution because declaration resolution does not consume the policy.
+types share a warning family. The raw stored value is never changed: 5000 remains valid for
+varchar/varbinary even after resolving it to 4000 for nvarchar. Bounds are applied only when an
+eligible parameter uses the default, not globally during connection setup.
 
-An internal per-parameter history primitive is also available for later declaration integration.
-It records exact observed lengths independently for varchar, nvarchar, and varbinary; fixed aliases
-share the corresponding variable family's history. Smaller or empty observations do not shrink
-history. The configured floor is applied to the result but is not itself an observed value.
-Disabled floors and unrelated types do not update history. It stores lengths only, not parameter
-values, DTV objects, or explicit hints. No production caller records observations yet.
+### Units, history, and precedence
 
-When the property is positive, prepared and callable statements now initialize one history holder
-per ordinal before any batch snapshots are taken. Batch clones share their ordinal's holder, so
-future row-by-row declaration resolution can retain observations across the batch. Existing DTV
-snapshot and explicit-hint behavior is unchanged. `clearParameters()` and `clearBatch()` retain the
-holder; new statements get independent holders, and disabled connections allocate none. Holders
-are initialized for all ordinals, including registered OUT/INOUT parameters, but this does not yet
-apply the policy to any parameter or define output sizing semantics.
+Sizing uses the effective type after `sendStringParametersAsUnicode`: varchar lengths are encoded
+bytes in the database collation, nvarchar lengths are UTF-16 code units, and varbinary lengths are
+bytes. CHAR, NCHAR, and BINARY use the corresponding variable-length wire family.
 
-Adaptive declaration sizing remains deferred. Future resolution must supply the effective
-type after `sendStringParametersAsUnicode` takes effect and measure encoded bytes for varchar,
-UTF-16 code units for nvarchar, and bytes for varbinary. The bounded floor must not cap actual data:
-existing LONG/MAX handling for large values remains unchanged.
-The intended precedence is enforced `defineParameterType()` declaration, then usable positive
-explicit `setObject` hint, then connection-default policy, then existing sizing. Explicit hints
-must not be combined with the connection default using `max`. Callable OUT/INOUT behavior and
-remaining lifecycle details still require agreement before adaptive resolution is implemented.
+Each statement ordinal keeps independent varchar, nvarchar, and varbinary histories. Declaration
+resolution takes the larger of the effective floor and that family's largest observed length.
+Growth is exact, with no bucketing or batch pre-scan. Null and empty values use the floor or
+established history without shrinking it. Large actual values continue using LONG/MAX handling;
+the configured floor never truncates data. A bounded input promoted to MAX by its actual length
+also retains that observation across subsequent batch snapshots.
+
+History grows at declaration resolution, not at setter or `addBatch()` time. Overwritten values
+and discarded batch rows therefore do not increase it. `clearParameters()` and `clearBatch()`
+retain established observations. Different ordinals and new statements have independent history,
+even if the new statement reuses a cached prepared handle. Only lengths are shared across an
+ordinal's batch snapshots; existing DTV snapshot and explicit-hint behavior remains unchanged.
+
+Precedence is enforced `defineParameterType()` declaration, then usable positive explicit
+`setObject` hint, then the adaptive connection default, then legacy sizing. Explicit hints are
+not combined with the floor using `max` and do not update default history. Non-positive explicit
+hints are unusable, so eligible values can use the connection default. Existing sticky MAX
+declarations remain authoritative.
+
+### Compatibility boundaries
+
+- **Registered OUT/INOUT parameters retain existing sizing**, including existing explicit-hint
+  behavior. Input values cannot predict the size of returned values, so this connection default
+  never narrows output buffers or records output history. Callable input-only parameters do adapt.
+- Always Encrypted declarations remain authoritative. Unencrypted parameters identified during
+  encryption metadata renewal can use adaptive sizing.
+- Streams and values whose lengths cannot be measured safely retain legacy sizing. Explicit
+  LONG/LOB types and other unrelated types do not participate in adaptive history.
+- Bulk copy continues using destination-column metadata. `prepareMethod=none` continues sending
+  literal SQL; this setting does not change literal formatting or introduce prepared handles.
+
+### Example
+
+```java
+SQLServerDataSource ds = new SQLServerDataSource();
+ds.setStringParameterDefaultLength(10);
+// Configure the remaining connection properties normally.
+try (Connection con = ds.getConnection();
+        PreparedStatement ps = con.prepareStatement("SELECT ?")) {
+    for (String value : new String[] {"x", "abcdefghijklm", "xy"}) {
+        ps.setString(1, value);
+        try (ResultSet rs = ps.executeQuery()) {
+            // With sendStringParametersAsUnicode=true, declarations are
+            // nvarchar(10), nvarchar(13), nvarchar(13), in that order.
+            while (rs.next()) {
+                System.out.println(rs.getString(1));
+            }
+        }
+    }
+}
+```
 
 ## The Problem
 
@@ -68,7 +100,7 @@ By default, when a Java application calls `setString()`, `setNString()`, or `set
 
 SQL Server uses the declared TypeInfo width to compute **memory grants** for query execution plans. When a parameter is declared `varchar(8000)` but the actual data is only 50 characters, the server over-allocates memory — compounding across batch sizes and concurrent sessions.
 
-## Solutions: Two APIs, One Precedence Rule
+## Explicit APIs: Higher Priority Than the Connection Default
 
 ### 1. `defineParameterType()` — The Primary API
 

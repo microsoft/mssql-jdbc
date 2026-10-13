@@ -238,7 +238,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_enablePrepareOnFirstPreparedStatementCallPropertyDescription", "This setting specifies whether a prepared statement is prepared (sp_prepexec) on first use (property=true) or on second after first calling sp_executesql (property=false)."},
         {"R_cacheBulkCopyMetadataPropertyDescription", "This setting specifies whether the driver caches the metadata used for bulk copy for batch inserts."},
         {"R_statementPoolingCacheSizePropertyDescription", "This setting specifies the size of the prepared statement cache for a connection. A value less than 1 means no cache."},
-        {"R_stringParameterDefaultLengthPropertyDescription", "Stores a connection-default character and binary parameter length. Defaults to 0 (legacy sizing). Preparatory setting; parameter declarations do not yet use this value."},
+        {"R_stringParameterDefaultLengthPropertyDescription", "The minimum adaptive declaration length for character and binary input parameters. Defaults to 0 (legacy sizing). Explicit hints and registered output parameter sizing take precedence."},
         {"R_invalidStringParameterDefaultLength", "The stringParameterDefaultLength value must be a 32-bit integer."},
         {"R_stringParameterDefaultLengthDisabled", "The stringParameterDefaultLength value is not positive; using legacy parameter sizing."},
         {"R_stringParameterDefaultLengthExceedsBound", "The stringParameterDefaultLength value exceeds the {0} limit; using the legacy bound of {1}."},
