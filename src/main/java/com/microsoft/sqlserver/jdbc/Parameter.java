@@ -87,7 +87,6 @@ final class Parameter {
     /**
      * Observed lengths for one ordinal, independent of DTV values, explicit hints and AE valueLength.
      * Call only when resolving a connection-default declaration, with lengths in the effective type's units.
-     * Declaration resolution does not yet consume this preparatory state.
      */
     static final class LengthHistory {
         private int varcharLength;
@@ -591,10 +590,13 @@ final class Parameter {
 
         private final Parameter param;
         private final SQLServerConnection con;
+        private final JDBCType inputJdbcType;
 
         GetTypeDefinitionOp(Parameter param, SQLServerConnection con) {
             this.param = param;
             this.con = con;
+            // Retain the effective family before executeOp promotes large values to LONG types.
+            inputJdbcType = param.getJdbcType();
         }
 
         private Integer getApplicationSpecifiedLengthHint(DTV dtv) throws SQLServerException {
@@ -706,6 +708,10 @@ final class Parameter {
          * {@link Util#getValueLengthBaseOnJavaType}.
          */
         private Integer getActualValueLength(DTV dtv) throws SQLServerException {
+            return getActualValueLength(dtv, dtv.getJdbcType());
+        }
+
+        private Integer getActualValueLength(DTV dtv, JDBCType jdbcType) throws SQLServerException {
             Object setterValue = dtv.getSetterValue();
             if (null == setterValue) {
                 return null;
@@ -716,7 +722,6 @@ final class Parameter {
                 return null;
             }
 
-            JDBCType jdbcType = dtv.getJdbcType();
             if (JavaType.STRING == javaType && (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType)) {
                 SQLCollation collation = con.getDatabaseCollation();
                 if (null == collation) {
@@ -727,6 +732,24 @@ final class Parameter {
             }
 
             return Util.getValueLengthBaseOnJavaType(setterValue, javaType, null, dtv.getScale(), jdbcType);
+        }
+
+        private Integer getConnectionDefaultLength(DTV dtv) throws SQLServerException {
+            // Never infer an output buffer length from an input value, or replace an explicit/AE declaration.
+            if (null == param.lengthHistory || param.isOutput() || 0 != param.defineParameterTypeSqlType
+                    || (null != dtv.getScale() && dtv.getScale() > 0) || (param.shouldHonorAEForParameter
+                            && !(null == param.getCryptoMetadata() && param.renewDefinition))) {
+                return null;
+            }
+
+            Integer actualLength = null == dtv.getSetterValue() ? Integer.valueOf(0)
+                                                                : getActualValueLength(dtv, inputJdbcType);
+            if (null == actualLength) {
+                return null;
+            }
+            int floor = con.getStringParameterDefaultLength(inputJdbcType);
+            return 0 == floor ? null
+                              : Integer.valueOf(param.lengthHistory.resolveLength(inputJdbcType, floor, actualLength));
         }
 
         private Integer getBoundedDeclaredLengthHint(JDBCType jdbcType, int hintLength) {
@@ -783,6 +806,9 @@ final class Parameter {
             // Resolves the effective declared length from defineParameterType() (enforced) or
             // setObject(..., scaleOrLength) (advisory, widened to fit the value when necessary).
             Integer applicationLengthHint = aeActive ? null : getApplicationSpecifiedLengthHint(dtv);
+            if (null == applicationLengthHint) {
+                applicationLengthHint = getConnectionDefaultLength(dtv);
+            }
 
             switch (dtv.getJdbcType()) {
                 case TINYINT:
@@ -964,8 +990,7 @@ final class Parameter {
                             param.typeDefinition = VARBINARY_MAX;
                         }
                     } else if (null != applicationLengthHint) {
-                        // Application-provided length from defineParameterType() (enforced) or
-                        // setObject(..., scaleOrLength) (advisory, already widened to fit the value).
+                        // Explicit declaration, advisory hint, or adaptive connection default.
                         int hint = applicationLengthHint;
                         if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
                             param.typeDefinition = VARBINARY_MAX;
@@ -1127,8 +1152,7 @@ final class Parameter {
                             }
                         }
                     } else if (null != applicationLengthHint) {
-                        // Application-provided length from defineParameterType() (enforced) or
-                        // setObject(..., scaleOrLength) (advisory, already widened to fit the value).
+                        // Explicit declaration, advisory hint, or adaptive connection default.
                         int hint = applicationLengthHint;
                         if (hint > DataTypes.SHORT_VARTYPE_MAX_BYTES) {
                             param.typeDefinition = VARCHAR_MAX;
@@ -1268,8 +1292,7 @@ final class Parameter {
                         }
                         break;
                     } else if (null != applicationLengthHint) {
-                        // Application-provided length from defineParameterType() (enforced) or
-                        // setObject(..., scaleOrLength) (advisory, already widened to fit the value).
+                        // Explicit declaration, advisory hint, or adaptive connection default.
                         int hint = applicationLengthHint;
                         if (hint > DataTypes.SHORT_VARTYPE_MAX_CHARS) {
                             param.typeDefinition = NVARCHAR_MAX;
