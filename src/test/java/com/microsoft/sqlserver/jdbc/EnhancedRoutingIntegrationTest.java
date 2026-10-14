@@ -356,8 +356,8 @@ public class EnhancedRoutingIntegrationTest {
             byte[] payload = buf.toByteArray();
 
             // Inject crafted bytes into a TDSPacket → TDSReader
-            TDSPacket packet = new TDSPacket(payload.length);
-            System.arraycopy(payload, 0, packet.payload, 0, payload.length);
+            TDSPacket packet = new TDSPacket(payload.length, BufferMode.HEAP);
+            packet.payload.put(payload);
             packet.payloadLength = payload.length;
 
             return createTdsReader(conn, packet);
@@ -408,8 +408,8 @@ public class EnhancedRoutingIntegrationTest {
             buf.write(0);                              // old value length = 0
 
             byte[] payload = buf.toByteArray();
-            TDSPacket packet = new TDSPacket(payload.length);
-            System.arraycopy(payload, 0, packet.payload, 0, payload.length);
+            TDSPacket packet = new TDSPacket(payload.length, BufferMode.HEAP);
+            packet.payload.put(payload);
             packet.payloadLength = payload.length;
             return createTdsReader(conn, packet);
         }
