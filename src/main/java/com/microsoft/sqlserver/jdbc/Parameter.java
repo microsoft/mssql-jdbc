@@ -53,7 +53,6 @@ final class Parameter {
     }
 
     private boolean shouldHonorAEForParameter = false;
-    private final boolean isDirectSqlExecution;
     private boolean userProvidesPrecision = false;
     private boolean userProvidesScale = false;
 
@@ -159,12 +158,7 @@ final class Parameter {
     }
 
     Parameter(boolean honorAE) {
-        this(honorAE, false);
-    }
-
-    Parameter(boolean honorAE, boolean isDirectSqlExecution) {
         shouldHonorAEForParameter = honorAE;
-        this.isDirectSqlExecution = isDirectSqlExecution;
     }
 
     // Flag set to true if this is a registered OUTPUT parameter.
@@ -288,7 +282,7 @@ final class Parameter {
      * semantics that we don't need here.
      */
     final Parameter cloneForBatch() {
-        Parameter clonedParam = new Parameter(shouldHonorAEForParameter, isDirectSqlExecution);
+        Parameter clonedParam = new Parameter(shouldHonorAEForParameter);
         clonedParam.typeInfo = typeInfo;
         clonedParam.typeDefinition = typeDefinition;
         clonedParam.outScale = outScale;
@@ -366,7 +360,7 @@ final class Parameter {
     void setValue(JDBCType jdbcType, Object value, JavaType javaType, StreamSetterArgs streamSetterArgs,
             Calendar calendar, Integer precision, Integer scale, SQLServerConnection con, boolean forceEncrypt,
             SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting, int parameterIndex, String userSQL,
-            String tvpName) throws SQLServerException {
+            String tvpName, boolean isDirectSqlExecution) throws SQLServerException {
 
         if (shouldHonorAEForParameter) {
             userProvidesPrecision = false;
