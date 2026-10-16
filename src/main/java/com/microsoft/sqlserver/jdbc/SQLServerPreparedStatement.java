@@ -360,7 +360,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         bReturnValueSyntax = parsedSQL.bReturnValueSyntax;
         userSQL = parsedSQL.processedSQL;
         userSQLParamPositions = parsedSQL.parameterPositions;
-        initParams(userSQLParamPositions.length);
         useBulkCopyForBatchInsert = conn.getUseBulkCopyForBatchInsert();
 
         // Calculate prepare method flags once in constructor since prepareMethod and
@@ -386,6 +385,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             isDirectSqlExecution = false;
             usePrepExec = false;
         }
+        initParams(userSQLParamPositions.length);
     }
 
     /**
@@ -508,7 +508,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     final void initParams(int nParams) {
         inOutParam = new Parameter[nParams];
         for (int i = 0; i < nParams; i++) {
-            inOutParam[i] = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
+            inOutParam[i] = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection),
+                    isDirectSqlExecution);
         }
     }
 

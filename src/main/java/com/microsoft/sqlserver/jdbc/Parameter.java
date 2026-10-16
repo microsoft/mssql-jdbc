@@ -53,6 +53,7 @@ final class Parameter {
     }
 
     private boolean shouldHonorAEForParameter = false;
+    private final boolean isDirectSqlExecution;
     private boolean userProvidesPrecision = false;
     private boolean userProvidesScale = false;
 
@@ -158,7 +159,12 @@ final class Parameter {
     }
 
     Parameter(boolean honorAE) {
+        this(honorAE, false);
+    }
+
+    Parameter(boolean honorAE, boolean isDirectSqlExecution) {
         shouldHonorAEForParameter = honorAE;
+        this.isDirectSqlExecution = isDirectSqlExecution;
     }
 
     // Flag set to true if this is a registered OUTPUT parameter.
@@ -282,7 +288,7 @@ final class Parameter {
      * semantics that we don't need here.
      */
     final Parameter cloneForBatch() {
-        Parameter clonedParam = new Parameter(shouldHonorAEForParameter);
+        Parameter clonedParam = new Parameter(shouldHonorAEForParameter, isDirectSqlExecution);
         clonedParam.typeInfo = typeInfo;
         clonedParam.typeDefinition = typeDefinition;
         clonedParam.outScale = outScale;
@@ -473,8 +479,10 @@ final class Parameter {
         // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging
         // the value with the appropriate corresponding Unicode type.
         // JavaType.OBJECT == javaType when calling setNull()
-        if (con.sendStringParametersAsUnicode() && (JavaType.STRING == javaType || JavaType.READER == javaType
-                || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
+        // Direct SQL also uses Unicode types internally to preserve text instead of encoded bytes.
+        // Literal formatting still uses the connection's Unicode setting to choose the N prefix.
+        if ((con.sendStringParametersAsUnicode() || isDirectSqlExecution) && (JavaType.STRING == javaType
+                || JavaType.READER == javaType || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
             jdbcType = getSSPAUJDBCType(jdbcType);
         }
 
