@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 
 /**
@@ -25,9 +26,18 @@ class PLPInputStream extends BaseInputStream {
 
     private static final byte[] EMPTY_PLP_BYTES = new byte[0];
     private static final int PLP_EOS = -1;
+    private static final int MAX_PLP_SIZE = Integer.MAX_VALUE;
+
+    /**
+     * Upper bound on the bytes {@link #getBytes()} allocates ahead of data actually received. Each buffer growth is
+     * limited to the larger of this value and the bytes already received.
+     */
+    static final int MAX_UNVERIFIED_ALLOCATION = 1024 * 1024;
 
     private int currentChunkRemain;
     private int markedChunkRemain;
+    private long totalChunkLength;
+    private long markedTotalChunkLength;
     private int leftOverReadLimit = 0;
 
     private byte[] oneByteArray = new byte[1];
@@ -87,8 +97,11 @@ class PLPInputStream extends BaseInputStream {
      * Initializes the input stream.
      */
     PLPInputStream(TDSReader tdsReader, long statedPayloadLength, boolean isAdaptive, boolean isStreaming,
-            ServerDTVImpl dtv) {
+            ServerDTVImpl dtv) throws SQLServerException {
         super(tdsReader, isAdaptive, isStreaming, dtv);
+        if (UNKNOWN_PLP_LEN != statedPayloadLength && (statedPayloadLength < 0 || statedPayloadLength > MAX_PLP_SIZE)) {
+            tdsReader.throwInvalidTDS();
+        }
         this.payloadLength = (UNKNOWN_PLP_LEN != statedPayloadLength) ? ((int) statedPayloadLength) : -1;
         this.currentChunkRemain = this.markedChunkRemain = 0;
     }
@@ -96,34 +109,34 @@ class PLPInputStream extends BaseInputStream {
     /**
      * Helper function to convert the entire PLP stream into a contiguous byte array. This call is inefficient (in terms
      * of memory usage and run time) for very large PLPs. Use it only if a contiguous byte array is required.
+     * 
+     * The declared total length and chunk lengths are server-controlled and are not trusted for allocation. The buffer
+     * grows only as chunk data is received, so memory use stays proportional to the bytes actually sent.
      */
     byte[] getBytes() throws SQLServerException {
-        byte[] value;
+        byte[] value = EMPTY_PLP_BYTES;
+        int bytesRead = 0;
 
-        // The following 0-byte read just ensures that the number of bytes
-        // remaining in the current chunk is known.
-        readBytesInternal(null, 0, 0);
-
-        if (PLP_EOS == currentChunkRemain) {
-            value = EMPTY_PLP_BYTES;
-        } else {
-            // If the PLP payload length is known, allocate the final byte array now.
-            // Otherwise, start with the size of the first chunk. Additional chunks
-            // will cause the array to be reallocated & copied.
-            value = new byte[(-1 != payloadLength) ? payloadLength : currentChunkRemain];
-
-            int bytesRead = 0;
-            while (PLP_EOS != currentChunkRemain) {
-                // If the current byte array isn't large enough to hold
-                // the contents of the current chunk, then make it larger.
-                if (value.length == bytesRead) {
-                    byte[] newValue = new byte[bytesRead + currentChunkRemain];
-                    System.arraycopy(value, 0, newValue, 0, bytesRead);
-                    value = newValue;
+        while (true) {
+            if (value.length == bytesRead) {
+                // The following 0-byte read just ensures that the number of bytes
+                // remaining in the current chunk is known.
+                readBytesInternal(null, 0, 0);
+                if (PLP_EOS == currentChunkRemain) {
+                    break;
                 }
-
-                bytesRead += readBytesInternal(value, bytesRead, currentChunkRemain);
+                value = Arrays.copyOf(value, nextCapacity(bytesRead));
             }
+
+            int n = readBytesInternal(value, bytesRead, value.length - bytesRead);
+            if (-1 == n) {
+                break;
+            }
+            bytesRead += n;
+        }
+
+        if (value.length != bytesRead) {
+            value = Arrays.copyOf(value, bytesRead);
         }
 
         // Always close the stream after retrieving it
@@ -134,6 +147,21 @@ class PLPInputStream extends BaseInputStream {
         }
 
         return value;
+    }
+
+    /**
+     * Computes the buffer capacity once the current buffer, holding {@code bytesRead} bytes, is full and more chunk data
+     * is pending. Each step grows by no more than the larger of {@code bytesRead} and
+     * {@link #MAX_UNVERIFIED_ALLOCATION}, so declared lengths cannot force an allocation far beyond the data received.
+     */
+    private int nextCapacity(int bytesRead) {
+        assert currentChunkRemain > 0;
+
+        // readBytesInternal guarantees bytesRead + currentChunkRemain <= payloadLength (when known) <= MAX_PLP_SIZE.
+        long remaining = (-1 != payloadLength) ? (long) payloadLength - bytesRead
+                                               : Math.max((long) currentChunkRemain, bytesRead);
+        long growBy = Math.min(remaining, Math.max((long) bytesRead, MAX_UNVERIFIED_ALLOCATION));
+        return (int) Math.min((long) bytesRead + growBy, MAX_PLP_SIZE);
     }
 
     /**
@@ -308,20 +336,25 @@ class PLPInputStream extends BaseInputStream {
              */
             if (0 == currentChunkRemain) {
                 long chunkSize = tdsReader.readUnsignedInt();
-                
+
                 // Check for end of stream
                 if (0 == chunkSize) {
+                    // A value ending before its declared length is malformed; rejecting it also avoids padding the
+                    // result out to the unverified declared length.
+                    if (-1 != payloadLength && totalChunkLength != payloadLength) {
+                        tdsReader.throwInvalidTDS();
+                    }
                     currentChunkRemain = PLP_EOS;
                     break;
                 }
-                
-                // Validate chunk size to prevent integer overflow (CWE-190)
-                // A malicious server could send a chunk size > Integer.MAX_VALUE
-                // which would cause silent data truncation or crash when cast to int
-                if (chunkSize > Integer.MAX_VALUE) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_invalidTDS"), null);
+
+                // The previous total is bounded by MAX_PLP_SIZE, so adding an unsigned int cannot overflow long.
+                long nextTotal = totalChunkLength + chunkSize;
+                if (nextTotal > MAX_PLP_SIZE || (-1 != payloadLength && nextTotal > payloadLength)) {
+                    tdsReader.throwInvalidTDS();
                 }
-                
+
+                totalChunkLength = nextTotal;
                 currentChunkRemain = (int) chunkSize;
                 assert currentChunkRemain >= 0;
             }
@@ -375,6 +408,7 @@ class PLPInputStream extends BaseInputStream {
         if (null != tdsReader && readLimit > 0) {
             currentMark = tdsReader.mark();
             markedChunkRemain = currentChunkRemain;
+            markedTotalChunkLength = totalChunkLength;
             leftOverReadLimit = readLimit;
             setReadLimit(readLimit);
         }
@@ -407,6 +441,7 @@ class PLPInputStream extends BaseInputStream {
         resetHelper();
         leftOverReadLimit = readLimit;
         currentChunkRemain = markedChunkRemain;
+        totalChunkLength = markedTotalChunkLength;
     }
 }
 
@@ -438,7 +473,7 @@ final class PLPXMLInputStream extends PLPInputStream {
     }
 
     PLPXMLInputStream(TDSReader tdsReader, long statedPayloadLength, InputStreamGetterArgs getterArgs,
-            ServerDTVImpl dtv) {
+            ServerDTVImpl dtv) throws SQLServerException {
         super(tdsReader, statedPayloadLength, getterArgs.isAdaptive, getterArgs.isStreaming, dtv);
     }
 
