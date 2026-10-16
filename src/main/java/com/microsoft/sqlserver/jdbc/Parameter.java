@@ -360,7 +360,7 @@ final class Parameter {
     void setValue(JDBCType jdbcType, Object value, JavaType javaType, StreamSetterArgs streamSetterArgs,
             Calendar calendar, Integer precision, Integer scale, SQLServerConnection con, boolean forceEncrypt,
             SQLServerStatementColumnEncryptionSetting stmtColumnEncriptionSetting, int parameterIndex, String userSQL,
-            String tvpName) throws SQLServerException {
+            String tvpName, boolean isDirectSqlExecution) throws SQLServerException {
 
         if (shouldHonorAEForParameter) {
             userProvidesPrecision = false;
@@ -473,8 +473,10 @@ final class Parameter {
         // to the server as Unicode rather than MBCS. This is accomplished here by re-tagging
         // the value with the appropriate corresponding Unicode type.
         // JavaType.OBJECT == javaType when calling setNull()
-        if (con.sendStringParametersAsUnicode() && (JavaType.STRING == javaType || JavaType.READER == javaType
-                || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
+        // Direct SQL also uses Unicode types internally to preserve text instead of encoded bytes.
+        // Literal formatting still uses the connection's Unicode setting to choose the N prefix.
+        if ((con.sendStringParametersAsUnicode() || isDirectSqlExecution) && (JavaType.STRING == javaType
+                || JavaType.READER == javaType || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
             jdbcType = getSSPAUJDBCType(jdbcType);
         }
 
