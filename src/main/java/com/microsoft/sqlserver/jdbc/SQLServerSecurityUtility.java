@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -27,6 +28,8 @@ import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
+
+import reactor.core.Exceptions;
 
 import static com.microsoft.sqlserver.jdbc.Util.getHashedSecret;
 
@@ -387,6 +390,10 @@ class SQLServerSecurityUtility {
                     .timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS))
                     .blockOptional();
         } catch (RuntimeException e) {
+            // A transient failure (e.g. Managed Identity endpoint outage or timeout) can leave the cached
+            // credential's internal token state in a failed state, causing every subsequent token request on the
+            // same instance to keep failing. Evict the cached credential so the next attempt builds a fresh
+            // instance and can recover, instead of failing persistently until the process is restarted.
             removeCredentialFromCache(key, mic);
             throw mapTokenAcquisitionException(e);
         }
@@ -478,6 +485,10 @@ class SQLServerSecurityUtility {
                     .timeout(Duration.of(Math.min(millisecondsRemaining, TOKEN_WAIT_DURATION_MS), ChronoUnit.MILLIS))
                     .blockOptional();
         } catch (RuntimeException e) {
+            // A transient failure (e.g. Managed Identity endpoint outage or timeout) can leave the cached
+            // credential's internal token state in a failed state, causing every subsequent token request on the
+            // same instance to keep failing. Evict the cached credential so the next attempt builds a fresh
+            // instance and can recover, instead of failing persistently until the process is restarted.
             removeCredentialFromCache(key, dac);
             throw mapTokenAcquisitionException(e);
         }
@@ -494,31 +505,16 @@ class SQLServerSecurityUtility {
     }
 
     static SQLServerException mapTokenAcquisitionException(RuntimeException exception) {
-        Throwable interruptedCause = findCause(exception, InterruptedException.class);
-        if (null != interruptedCause) {
-            Thread.currentThread().interrupt();
-            return new SQLServerException(
-                    SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"), interruptedCause);
+        // Reactor's block wraps checked exceptions (e.g. TimeoutException, InterruptedException) in a RuntimeException.
+        Throwable cause = Exceptions.unwrap(exception);
+        if (cause instanceof TimeoutException) {
+            return new SQLServerException(SQLServerException.getErrString("R_AADTokenAcquisitionTimeout"), cause);
         }
-
-        Throwable timeoutCause = findCause(exception, java.util.concurrent.TimeoutException.class);
-        if (null != timeoutCause) {
-            return new SQLServerException(
-                    SQLServerException.getErrString("R_AADTokenAcquisitionTimeout"), timeoutCause);
+        if (cause instanceof InterruptedException) {
+            return new SQLServerException(SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"), cause);
         }
-
-        return new SQLServerException(
-                SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionError"), exception);
-    }
-
-    private static Throwable findCause(Throwable throwable, Class<? extends Throwable> expectedType) {
-        while (null != throwable) {
-            if (expectedType.isInstance(throwable)) {
-                return throwable;
-            }
-            throwable = throwable.getCause();
-        }
-        return null;
+        return new SQLServerException(SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionError"),
+                exception);
     }
 
     private static String[] getAdditonallyAllowedTenants() {

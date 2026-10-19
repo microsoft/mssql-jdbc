@@ -5,16 +5,18 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.TimeoutException;
 
 import org.junit.jupiter.api.Test;
 
+import reactor.core.Exceptions;
+
 public class SQLServerSecurityUtilityTest {
     @Test
-    public void credentialFailureIsPreserved() {
+    public void testCredentialFailureIsPreserved() {
         IllegalStateException credentialFailure = new IllegalStateException("credential failure");
         SQLServerException exception = SQLServerSecurityUtility.mapTokenAcquisitionException(credentialFailure);
 
@@ -24,30 +26,23 @@ public class SQLServerSecurityUtilityTest {
     }
 
     @Test
-    public void tokenAcquisitionTimesOut() {
+    public void testTokenAcquisitionTimeoutIsMapped() {
         TimeoutException timeout = new TimeoutException("token acquisition timed out");
-        RuntimeException credentialFailure = new RuntimeException(timeout);
-        SQLServerException exception = SQLServerSecurityUtility.mapTokenAcquisitionException(credentialFailure);
+        SQLServerException exception = SQLServerSecurityUtility
+                .mapTokenAcquisitionException(Exceptions.propagate(timeout));
 
         assertEquals(SQLServerException.getErrString("R_AADTokenAcquisitionTimeout"), exception.getMessage());
         assertSame(timeout, exception.getCause());
     }
 
     @Test
-    public void tokenAcquisitionRestoresInterruptFlag() {
+    public void testTokenAcquisitionInterruptionIsMapped() {
         InterruptedException interrupted = new InterruptedException("token acquisition interrupted");
-        RuntimeException credentialFailure = new RuntimeException(interrupted);
+        SQLServerException exception = SQLServerSecurityUtility
+                .mapTokenAcquisitionException(Exceptions.propagate(interrupted));
 
-        try {
-            SQLServerException exception = SQLServerSecurityUtility
-                    .mapTokenAcquisitionException(credentialFailure);
-
-            assertEquals(SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"),
-                    exception.getMessage());
-            assertSame(interrupted, exception.getCause());
-            assertTrue(Thread.currentThread().isInterrupted());
-        } finally {
-            Thread.interrupted();
-        }
+        assertEquals(SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"), exception.getMessage());
+        assertSame(interrupted, exception.getCause());
+        assertFalse(Thread.currentThread().isInterrupted());
     }
 }
