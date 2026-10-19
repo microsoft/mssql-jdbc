@@ -137,9 +137,15 @@ class SQLServerMSAL4JUtils {
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
-        } catch (InterruptedException | MalformedURLException | ExecutionException | TimeoutException
-                | RuntimeException e) {
-            throw mapTokenAcquisitionException(e, user, authenticationString);
+        } catch (InterruptedException e) {
+            // re-interrupt thread
+            Thread.currentThread().interrupt();
+
+            throw new SQLServerException(e.getMessage(), e);
+        } catch (MalformedURLException | ExecutionException e) {
+            throw getCorrectedException(e, user, authenticationString);
+        } catch (TimeoutException e) {
+            throw getCorrectedException(new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e), user, authenticationString);
         } finally {
             if (isSemAcquired) {
                 sem.release();
@@ -209,9 +215,15 @@ class SQLServerMSAL4JUtils {
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
-        } catch (InterruptedException | MalformedURLException | ExecutionException | TimeoutException
-                | RuntimeException e) {
-            throw mapTokenAcquisitionException(e, aadPrincipalID, authenticationString);
+        } catch (InterruptedException e) {
+            // re-interrupt thread
+            Thread.currentThread().interrupt();
+
+            throw new SQLServerException(e.getMessage(), e);
+        } catch (MalformedURLException | ExecutionException e) {
+            throw getCorrectedException(e, aadPrincipalID, authenticationString);
+        } catch (TimeoutException e) {
+            throw getCorrectedException(new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e), aadPrincipalID, authenticationString);
         } finally {
             if (isSemAcquired) {
                 sem.release();
@@ -332,12 +344,19 @@ class SQLServerMSAL4JUtils {
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
+        } catch (InterruptedException e) {
+            // re-interrupt thread
+            Thread.currentThread().interrupt();
+
+            throw new SQLServerException(e.getMessage(), e);
         } catch (GeneralSecurityException e) {
             // this includes all certificate exceptions
             throw new SQLServerException(SQLServerException.getErrString("R_readCertError") + e.getMessage(), null, 0,
                     null);
+        } catch (TimeoutException e) {
+            throw getCorrectedException(new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e), aadPrincipalID, authenticationString);
         } catch (Exception e) {
-            throw mapTokenAcquisitionException(e, aadPrincipalID, authenticationString);
+            throw getCorrectedException(e, aadPrincipalID, authenticationString);
 
         } finally {
             if (isSemAcquired) {
@@ -393,8 +412,15 @@ class SQLServerMSAL4JUtils {
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
-        } catch (InterruptedException | IOException | ExecutionException | TimeoutException | RuntimeException e) {
-            throw mapTokenAcquisitionException(e, user, authenticationString);
+        } catch (InterruptedException e) {
+            // re-interrupt thread
+            Thread.currentThread().interrupt();
+
+            throw new SQLServerException(e.getMessage(), e);
+        } catch (IOException | ExecutionException e) {
+            throw getCorrectedException(e, user, authenticationString);
+        } catch (TimeoutException e) {
+            throw getCorrectedException(new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e), user, authenticationString);
         } finally {
             if (isSemAcquired) {
                 sem.release();
@@ -490,9 +516,15 @@ class SQLServerMSAL4JUtils {
             }
 
             return new SqlAuthenticationToken(authenticationResult.accessToken(), authenticationResult.expiresOnDate());
-        } catch (InterruptedException | MalformedURLException | URISyntaxException | ExecutionException
-                | TimeoutException | RuntimeException e) {
-            throw mapTokenAcquisitionException(e, user, authenticationString);
+        } catch (InterruptedException e) {
+            // re-interrupt thread
+            Thread.currentThread().interrupt();
+
+            throw new SQLServerException(e.getMessage(), e);
+        } catch (MalformedURLException | URISyntaxException | ExecutionException e) {
+            throw getCorrectedException(e, user, authenticationString);
+        } catch (TimeoutException e) {
+            throw getCorrectedException(new SQLServerException(SQLServerException.getErrString("R_connectionTimedOut"), e), user, authenticationString);
         } finally {
             if (isSemAcquired) {
                 sem.release();
@@ -530,29 +562,15 @@ class SQLServerMSAL4JUtils {
                 .build();
     }
 
-    static SQLServerException mapTokenAcquisitionException(Exception e, String user, String authenticationString) {
-        Throwable interruptedCause = findCause(e, InterruptedException.class);
-        if (null != interruptedCause) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            return new SQLServerException(
-                    SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"), interruptedCause);
-        }
-
-        Throwable timeoutCause = findCause(e, TimeoutException.class);
-        if (null != timeoutCause) {
-            return new SQLServerException(
-                    SQLServerException.getErrString("R_AADTokenAcquisitionTimeout"), timeoutCause);
-        }
-
+    private static SQLServerException getCorrectedException(Exception e, String user, String authenticationString) {
         Object[] msgArgs = {user, authenticationString};
 
         if (null == e.getCause() || null == e.getCause().getMessage()) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
+            MessageFormat form = new MessageFormat(
+                    SQLServerException.getErrString("R_MSALExecution") + " " + e.getMessage());
 
             // The case when Future's outcome has no AuthenticationResult but Exception.
-            return new SQLServerException(form.format(msgArgs) + " " + e.getMessage(), null, 0, e);
+            return new SQLServerException(form.format(msgArgs), null);
         } else {
             /*
              * the cause error message uses \\n\\r which does not give correct format change it to \r\n to provide
@@ -561,8 +579,7 @@ class SQLServerMSAL4JUtils {
             String correctedErrorMessage = e.getCause().getMessage().replaceAll("\\\\r\\\\n", "\r\n")
                     .replaceAll("\\{", "\"").replaceAll("\\}", "\"");
 
-            RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage,
-                    e.getCause());
+            RuntimeException correctedAuthenticationException = new RuntimeException(correctedErrorMessage);
             MessageFormat form = new MessageFormat(
                     SQLServerException.getErrString("R_MSALExecution") + " " + correctedErrorMessage);
 
@@ -574,16 +591,6 @@ class SQLServerMSAL4JUtils {
 
             return new SQLServerException(form.format(msgArgs), null, 0, correctedExecutionException);
         }
-    }
-
-    private static Throwable findCause(Throwable throwable, Class<? extends Throwable> expectedType) {
-        while (null != throwable) {
-            if (expectedType.isInstance(throwable)) {
-                return throwable;
-            }
-            throwable = throwable.getCause();
-        }
-        return null;
     }
 
     private static class TokenCacheMap {
