@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -43,7 +44,7 @@ import microsoft.sql.DateTimeOffset;
  */
 @RunWith(JUnitPlatform.class)
 public class PrepareMethodLiteralTest extends AbstractTest {
-    private static final String[] MODES = {"default", "prepexec", "prepare", "none"};
+    private static final String[] MODES = {"default", "prepexec", "prepare", "none", "scopeTempTablesToConnection"};
     private static final String DATE_TEXT = "2024-02-13";
     private static final String TIMESTAMP_TEXT = "2024-02-13 12:23:45.047";
     private static final String GUID_TEXT = "01234567-89AB-CDEF-0123-456789ABCDEF";
@@ -158,6 +159,95 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                 }
             }
         }
+    }
+
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection"})
+    public void testSelectIntoPreservesCharacterAndBinaryTypes(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, false);
+                PreparedStatement ps = conn
+                        .prepareStatement("SELECT ? AS string_value, ? AS object_value, ? AS binary_value, "
+                                + "CONVERT(datetime2(3), ?, 121) AS converted_value INTO #literal_bound");
+                Statement stmt = conn.createStatement()) {
+            bindLiteralValues(ps, "Black'Rock");
+            assertEquals(1, ps.executeUpdate());
+            // Reading from another statement also verifies that creation used the connection's scope.
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM #literal_bound")) {
+                assertTrue(rs.next());
+                assertEquals(Types.VARCHAR, rs.getMetaData().getColumnType(1));
+                assertEquals(Types.VARCHAR, rs.getMetaData().getColumnType(2));
+                assertEquals(Types.VARBINARY, rs.getMetaData().getColumnType(3));
+                assertLiteralValues(rs, "Black'Rock");
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "mode={0}, createInPreparedSql={1}, batch={2}")
+    @MethodSource("literalExecutionCases")
+    public void testLiteralBindingsThroughExecution(String mode, boolean createInPreparedSql,
+            boolean batch) throws SQLException {
+        String insert = "INSERT INTO #literal_results VALUES (?, ?, ?, CONVERT(datetime2(3), ?, 121))";
+        String sql = createInPreparedSql ? "CREATE TABLE #literal_marker (id int); " + insert : insert;
+        try (Connection conn = openConnection(mode, false); Statement stmt = conn.createStatement()) {
+            // sql_variant preserves the input types instead of coercing binary text into a VARCHAR column.
+            stmt.execute("CREATE TABLE #literal_results (string_value sql_variant, object_value sql_variant, "
+                    + "binary_value sql_variant, converted_value datetime2(3))");
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                for (String text : new String[] {"Black'Rock", "second'value"}) {
+                    bindLiteralValues(ps, text);
+                    if (batch) {
+                        // One creation per SQL batch avoids duplicate CREATE TABLE declarations.
+                        // Rebinding after addBatch verifies that execution uses the captured values.
+                        ps.addBatch();
+                        bindLiteralValues(ps, "not the batched value");
+                        assertEquals(1, ps.executeBatch().length);
+                        ps.clearBatch();
+                    } else {
+                        ps.executeUpdate();
+                    }
+                    try (ResultSet rs = stmt
+                            .executeQuery("SELECT string_value, object_value, binary_value, converted_value, "
+                                    + "SQL_VARIANT_PROPERTY(string_value, 'BaseType'), "
+                                    + "SQL_VARIANT_PROPERTY(object_value, 'BaseType'), "
+                                    + "SQL_VARIANT_PROPERTY(binary_value, 'BaseType') FROM #literal_results")) {
+                        assertTrue(rs.next());
+                        assertLiteralValues(rs, text);
+                        assertEquals("varchar", rs.getString(5));
+                        assertEquals("varchar", rs.getString(6));
+                        assertEquals("varbinary", rs.getString(7));
+                        assertFalse(rs.next());
+                    }
+                    stmt.executeUpdate("DELETE FROM #literal_results");
+                    if (createInPreparedSql) {
+                        stmt.executeUpdate("DROP TABLE #literal_marker");
+                    }
+                }
+            }
+        }
+    }
+
+    private static void bindLiteralValues(PreparedStatement ps, String text) throws SQLException {
+        ps.setString(1, text);
+        ps.setObject(2, text, Types.VARCHAR);
+        ps.setBytes(3, BINARY_VALUE);
+        ps.setString(4, "2026-10-15 16:17:39.360");
+    }
+
+    private static void assertLiteralValues(ResultSet rs, String text) throws SQLException {
+        assertEquals(text, rs.getString(1));
+        assertEquals(text, rs.getString(2));
+        assertArrayEquals(BINARY_VALUE, rs.getBytes(3));
+        assertEquals(Timestamp.valueOf("2026-10-15 16:17:39.360"), rs.getTimestamp(4));
+    }
+
+    private static Stream<Arguments> literalExecutionCases() {
+        return prepareModes().flatMap(mode -> {
+            Stream<Boolean> creationCases = "none".equals(mode) || "scopeTempTablesToConnection".equals(mode) ? Stream
+                    .of(false, true) : Stream.of(false);
+            return creationCases
+                    .flatMap(create -> Stream.of(false, true).map(batch -> Arguments.of(mode, create, batch)));
+        });
     }
 
     private static Stream<String> prepareModes() {
