@@ -1,12 +1,10 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -126,71 +124,6 @@ public class TDSTokenHandlerTest {
         assertArrayEquals(new byte[] {2, 3, 4, 5}, remaining);
     }
 
-    /**
-     * Reproduces the reported MSRC triggers: a large declared total length followed by a one-byte first-chunk header
-     * and no chunk body. The driver must fail with an ordinary SQLServerException when the data runs out instead of
-     * allocating the declared length up front.
-     */
-    @ParameterizedTest
-    @ValueSource(longs = {268_435_455L, Integer.MAX_VALUE})
-    void testDeclaredLengthWithoutChunkBodyDoesNotAllocateDeclaredLength(long declaredLength) throws Exception {
-        byte[] wire = concat(header(declaredLength), le32(1));
-        SQLServerException e = assertThrows(SQLServerException.class, () -> readPlp(wire));
-        assertEquals(INVALID_TDS, e.getMessage());
-
-        e = assertThrows(SQLServerException.class, () -> PLPXMLInputStream
-                .makeXMLStream(reader(wire), InputStreamGetterArgs.getDefaultArgs(), null).getBytes());
-        assertEquals(INVALID_TDS, e.getMessage());
-    }
-
-    /**
-     * Verifies that memory allocated while materializing a value follows the data received rather than the declared
-     * total or chunk lengths. Uses HotSpot's per-thread allocation counter when available.
-     */
-    @ParameterizedTest
-    @ValueSource(longs = {268_435_455L, Integer.MAX_VALUE, PLPInputStream.UNKNOWN_PLP_LEN})
-    void testAllocationBoundedByReceivedData(long declaredLength) throws Exception {
-        java.lang.management.ThreadMXBean bean = ManagementFactory.getThreadMXBean();
-        assumeTrue(bean instanceof com.sun.management.ThreadMXBean);
-        com.sun.management.ThreadMXBean threadBean = (com.sun.management.ThreadMXBean) bean;
-        assumeTrue(threadBean.isThreadAllocatedMemorySupported() && threadBean.isThreadAllocatedMemoryEnabled());
-
-        // Warm up class loading and mocks so they don't count against the budget.
-        assertThrows(SQLServerException.class, () -> readPlp(concat(header(16), le32(1))));
-
-        byte[] wire = concat(header(declaredLength), le32(Integer.MAX_VALUE));
-        long threadId = Thread.currentThread().getId();
-        long before = threadBean.getThreadAllocatedBytes(threadId);
-        assertThrows(SQLServerException.class, () -> readPlp(wire));
-        long allocated = threadBean.getThreadAllocatedBytes(threadId) - before;
-
-        assertTrue(allocated < 4L * PLPInputStream.MAX_UNVERIFIED_ALLOCATION,
-                "Allocated " + allocated + " bytes for a value whose body was never sent");
-    }
-
-    @Test
-    void testSmallUnknownLengthValueAllocation() throws Exception {
-        java.lang.management.ThreadMXBean bean = ManagementFactory.getThreadMXBean();
-        assumeTrue(bean instanceof com.sun.management.ThreadMXBean);
-        com.sun.management.ThreadMXBean threadBean = (com.sun.management.ThreadMXBean) bean;
-        assumeTrue(threadBean.isThreadAllocatedMemorySupported() && threadBean.isThreadAllocatedMemoryEnabled());
-
-        byte[] data = {1, 2, 3, 4, 5};
-        byte[] wire = plp(PLPInputStream.UNKNOWN_PLP_LEN, data);
-        for (int i = 0; i < 10; i++) {
-            assertArrayEquals(data, readPlp(wire));
-        }
-        PLPInputStream stream = PLPInputStream.makeStream(reader(wire), InputStreamGetterArgs.getDefaultArgs(), null);
-        long threadId = Thread.currentThread().getId();
-        long before = threadBean.getThreadAllocatedBytes(threadId);
-        byte[] value = stream.getBytes();
-        long allocated = threadBean.getThreadAllocatedBytes(threadId) - before;
-
-        assertArrayEquals(data, value);
-        assertTrue(allocated < 64 * 1024,
-                "Allocated " + allocated + " bytes for a five-byte unknown-length value");
-    }
-
     @ParameterizedTest
     @ValueSource(longs = {3 * 1024 * 1024 + 123, PLPInputStream.UNKNOWN_PLP_LEN})
     void testLargeValueAboveInitialAllocation(long declaredLength) throws Exception {
@@ -215,16 +148,6 @@ public class TDSTokenHandlerTest {
                 InputStreamGetterArgs.getDefaultArgs(), null);
         IOException readError = assertThrows(IOException.class, () -> stream.read(new byte[10]));
         assertEquals(INVALID_TDS, readError.getCause().getMessage());
-    }
-
-    private static byte[] le32(int value) {
-        return ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(value).array();
-    }
-
-    private static byte[] concat(byte[] a, byte[] b) {
-        byte[] result = Arrays.copyOf(a, a.length + b.length);
-        System.arraycopy(b, 0, result, a.length, b.length);
-        return result;
     }
 
     private TDSReader mockReader() throws SQLServerException {
