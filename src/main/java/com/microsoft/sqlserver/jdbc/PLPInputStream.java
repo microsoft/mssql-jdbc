@@ -156,10 +156,11 @@ class PLPInputStream extends BaseInputStream {
     private int nextCapacity(int bytesRead) {
         assert currentChunkRemain > 0;
 
-        long limit = (-1 != payloadLength) ? payloadLength : MAX_PLP_SIZE;
-        long remaining = limit - bytesRead;
+        // readBytesInternal guarantees bytesRead + currentChunkRemain <= payloadLength (when known) <= MAX_PLP_SIZE.
+        long remaining = (-1 != payloadLength) ? (long) payloadLength - bytesRead
+                                               : Math.max((long) currentChunkRemain, bytesRead);
         long growBy = Math.min(remaining, Math.max((long) bytesRead, MAX_UNVERIFIED_ALLOCATION));
-        return (int) (bytesRead + growBy);
+        return (int) Math.min((long) bytesRead + growBy, MAX_PLP_SIZE);
     }
 
     /**
