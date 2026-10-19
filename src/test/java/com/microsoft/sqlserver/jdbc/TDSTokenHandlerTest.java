@@ -168,6 +168,29 @@ public class TDSTokenHandlerTest {
                 "Allocated " + allocated + " bytes for a value whose body was never sent");
     }
 
+    @Test
+    void testSmallUnknownLengthValueAllocation() throws Exception {
+        java.lang.management.ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+        assumeTrue(bean instanceof com.sun.management.ThreadMXBean);
+        com.sun.management.ThreadMXBean threadBean = (com.sun.management.ThreadMXBean) bean;
+        assumeTrue(threadBean.isThreadAllocatedMemorySupported() && threadBean.isThreadAllocatedMemoryEnabled());
+
+        byte[] data = {1, 2, 3, 4, 5};
+        byte[] wire = plp(PLPInputStream.UNKNOWN_PLP_LEN, data);
+        for (int i = 0; i < 10; i++) {
+            assertArrayEquals(data, readPlp(wire));
+        }
+        PLPInputStream stream = PLPInputStream.makeStream(reader(wire), InputStreamGetterArgs.getDefaultArgs(), null);
+        long threadId = Thread.currentThread().getId();
+        long before = threadBean.getThreadAllocatedBytes(threadId);
+        byte[] value = stream.getBytes();
+        long allocated = threadBean.getThreadAllocatedBytes(threadId) - before;
+
+        assertArrayEquals(data, value);
+        assertTrue(allocated < 64 * 1024,
+                "Allocated " + allocated + " bytes for a five-byte unknown-length value");
+    }
+
     @ParameterizedTest
     @ValueSource(longs = {3 * 1024 * 1024 + 123, PLPInputStream.UNKNOWN_PLP_LEN})
     void testLargeValueAboveInitialAllocation(long declaredLength) throws Exception {
