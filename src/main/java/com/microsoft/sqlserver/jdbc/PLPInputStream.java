@@ -117,7 +117,7 @@ class PLPInputStream extends BaseInputStream {
         byte[] value = EMPTY_PLP_BYTES;
         int bytesRead = 0;
 
-        while (true) {
+        while (PLP_EOS != currentChunkRemain) {
             if (value.length == bytesRead) {
                 // The following 0-byte read just ensures that the number of bytes
                 // remaining in the current chunk is known.
@@ -129,10 +129,9 @@ class PLPInputStream extends BaseInputStream {
             }
 
             int n = readBytesInternal(value, bytesRead, value.length - bytesRead);
-            if (-1 == n) {
-                break;
+            if (n > 0) {
+                bytesRead += n;
             }
-            bytesRead += n;
         }
 
         if (value.length != bytesRead) {
@@ -157,11 +156,10 @@ class PLPInputStream extends BaseInputStream {
     private int nextCapacity(int bytesRead) {
         assert currentChunkRemain > 0;
 
-        // readBytesInternal guarantees bytesRead + currentChunkRemain <= payloadLength (when known) <= MAX_PLP_SIZE.
-        long remaining = (-1 != payloadLength) ? (long) payloadLength - bytesRead
-                                               : Math.max((long) currentChunkRemain, bytesRead);
+        long limit = (-1 != payloadLength) ? payloadLength : MAX_PLP_SIZE;
+        long remaining = limit - bytesRead;
         long growBy = Math.min(remaining, Math.max((long) bytesRead, MAX_UNVERIFIED_ALLOCATION));
-        return (int) Math.min((long) bytesRead + growBy, MAX_PLP_SIZE);
+        return (int) (bytesRead + growBy);
     }
 
     /**
