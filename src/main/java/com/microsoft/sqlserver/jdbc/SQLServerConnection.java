@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -831,6 +832,66 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     boolean sendStringParametersAsUnicode() {
         return sendStringParametersAsUnicode;
+    }
+
+    private int stringParameterDefaultLength = SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH
+            .getDefaultValue();
+    private EnumSet<SSType> stringParameterDefaultLengthWarnings;
+
+    /**
+     * Returns the configured positive length, or zero for legacy sizing. Type-specific bounds are not applied here.
+     */
+    int getStringParameterDefaultLength() {
+        return stringParameterDefaultLength;
+    }
+
+    /**
+     * Returns the configured floor bounded for the effective type, or zero when disabled or not applicable.
+     * The caller must supply the type after Unicode promotion. This does not bound actual data or track its length.
+     */
+    int getStringParameterDefaultLength(JDBCType effectiveType) {
+        if (0 == stringParameterDefaultLength) {
+            return 0;
+        }
+
+        SSType family;
+        int limit;
+        switch (effectiveType) {
+            case CHAR:
+            case VARCHAR:
+                family = SSType.VARCHAR;
+                limit = DataTypes.SHORT_VARTYPE_MAX_BYTES;
+                break;
+            case NCHAR:
+            case NVARCHAR:
+                family = SSType.NVARCHAR;
+                limit = DataTypes.SHORT_VARTYPE_MAX_CHARS;
+                break;
+            case BINARY:
+            case VARBINARY:
+                family = SSType.VARBINARY;
+                limit = DataTypes.SHORT_VARTYPE_MAX_BYTES;
+                break;
+            default:
+                return 0;
+        }
+
+        if (stringParameterDefaultLength <= limit) {
+            return stringParameterDefaultLength;
+        }
+
+        if (connectionlogger.isLoggable(Level.WARNING)) {
+            if (null == stringParameterDefaultLengthWarnings) {
+                stringParameterDefaultLengthWarnings = EnumSet.noneOf(SSType.class);
+            }
+            if (stringParameterDefaultLengthWarnings.add(family)) {
+                MessageFormat form = new MessageFormat(
+                        SQLServerException.getErrString("R_stringParameterDefaultLengthExceedsBound"));
+                Object[] msgArgs = {family.toString(), Integer.toString(limit)};
+                connectionlogger.warning(toString() + " " + form.format(msgArgs));
+            }
+        }
+        return limit;
     }
 
     /** last update count flag */
@@ -3414,6 +3475,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidPortNumber"));
                     Object[] msgArgs = {activeConnectionProperties.getProperty(sPropKey)};
                     SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
+                }
+
+                sPropKey = SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH.toString();
+                sPropValue = activeConnectionProperties.getProperty(sPropKey);
+                stringParameterDefaultLength = SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH
+                        .getDefaultValue();
+                if (null != sPropValue) {
+                    try {
+                        int n = Integer.parseInt(sPropValue);
+                        if (n > 0) {
+                            stringParameterDefaultLength = n;
+                        } else if (connectionlogger.isLoggable(Level.WARNING)) {
+                            connectionlogger.warning(toString() + " "
+                                    + SQLServerException.getErrString("R_stringParameterDefaultLengthDisabled"));
+                        }
+                    } catch (NumberFormatException e) {
+                        SQLServerException.makeFromDriverError(this, this,
+                                SQLServerException.getErrString("R_invalidStringParameterDefaultLength"), null, false);
+                    }
                 }
 
                 // Handle optional packetSize property

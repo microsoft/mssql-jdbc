@@ -508,7 +508,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     final void initParams(int nParams) {
         inOutParam = new Parameter[nParams];
         for (int i = 0; i < nParams; i++) {
-            inOutParam[i] = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection));
+            inOutParam[i] = new Parameter(Util.shouldHonorAEForParameters(stmtColumnEncriptionSetting, connection),
+                    connection.getStringParameterDefaultLength() > 0);
         }
     }
 
