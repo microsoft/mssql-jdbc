@@ -3,6 +3,97 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [14.1.0] Preview Release
+
+### Added
+
+- **Enable Native `uniqueidentifier` Encoding for Bulk Copy** [#3041](https://github.com/microsoft/mssql-jdbc/pull/3041)
+  - **What was added**: Eligible GUID columns are sent using the native TDS `uniqueidentifier` representation instead of `CHAR(n)`.
+  - **Who benefits**: Applications using Bulk Copy with plaintext `uniqueidentifier` columns.
+  - **Impact**: Avoids server-side character-to-GUID conversion while preserving tested GUID input acceptance, declared-precision constraints, encrypted-column handling, and character-destination fallbacks. Invalid GUIDs can now fail on the client instead of the server, so a subsequent `commit()` on a caller-owned transaction can commit earlier work that previously rolled back.
+  - **Application action required**: Explicitly roll back caller-owned transactions after GUID conversion failures if earlier work must not be committed; do not rely on a server-side conversion error to trigger rollback. This also applies to eligible batches using `useBulkCopyForBatchInsert=true`.
+
+- **Add Configurable Kerberos Credential Delegation** [#3036](https://github.com/microsoft/mssql-jdbc/pull/3036)
+  - **What was added**: The `enableKerberosCredentialDelegation` connection property and corresponding `SQLServerDataSource` getter and setter for `authenticationScheme=JavaKerberos`.
+  - **Who benefits**: Applications that require Kerberos delegation for trusted double-hop scenarios.
+  - **Impact**: Credential delegation is now disabled by default and must be explicitly enabled with `enableKerberosCredentialDelegation=true`; standard Kerberos authentication is unchanged.
+  - **Application action required**: Applications that relied on the previous default delegation behavior must explicitly set `enableKerberosCredentialDelegation=true` through the connection string or `SQLServerDataSource`.
+
+### Changed
+
+- **Strengthen JDBC URL Port and Instance-Name Validation** [#3031](https://github.com/microsoft/mssql-jdbc/pull/3031)
+  - **What was changed**: Validated port segments as non-empty numeric values in the range `0–65535` and rejected instance names containing `=`.
+  - **Who benefits**: Applications constructing SQL Server JDBC URLs and users diagnosing malformed connection strings.
+  - **Impact**: Malformed port and instance-name values now fail early with descriptive driver errors; well-formed URLs are unchanged.
+
+- **Harden Stored-Procedure Parameter Metadata Resolution** [#3033](https://github.com/microsoft/mssql-jdbc/pull/3033)
+  - **What was changed**: Normalized and quoted procedure-name parts as identifiers or string literals when constructing internal `sp_sproc_columns` metadata queries.
+  - **Who benefits**: Applications using `CallableStatement` parameter metadata and named parameters with qualified, quoted, or special-character procedure names.
+  - **Impact**: Makes metadata resolution more predictable and prevents procedure-name text from being interpreted as additional SQL. Applications relying on raw T-SQL fragments in procedure-name parts must migrate to separate procedure calls or explicit SQL batches.
+  - **Application action required**: Applications that relied on raw T-SQL fragments or multiple-procedure text in a procedure name must use separate `prepareCall()` calls or execute an explicit SQL batch instead. For parameter metadata and named-parameter resolution, replace single-quoted names such as `{call 'GetEmployee'(?)}` with bare or bracketed names such as `{call GetEmployee(?)}` or `{call [GetEmployee](?)}`.
+
+- **Harden Always Encrypted AAS Attestation Token Validation** [#3042](https://github.com/microsoft/mssql-jdbc/pull/3042)
+  - **What was changed**: Validated the attestation token issuer against the configured provider, enforced `exp`/`nbf` lifetime claims with clock skew, and made rejected responses retry-safe before enclave session establishment.
+  - **Who benefits**: Applications using Always Encrypted with secure enclaves and Azure Attestation Service.
+  - **Impact**: Rejects tokens from a different provider or outside their validity window and prevents cached metadata from bypassing attestation on retry.
+
+- **Upgrade Azure HTTP Netty and Transitive Jackson Dependencies** [#3060](https://github.com/microsoft/mssql-jdbc/pull/3060)
+  - **What was changed**: Upgraded `azure-core-http-netty` to 1.16.7 and transitive Jackson dependencies to 2.18.9.
+  - **Who benefits**: Applications using the optional Azure SDK integrations.
+  - **Impact**: Addresses the reported Jackson vulnerabilities. `netty-codec-dns` remains at 4.1.135.Final pending an upstream Azure or Reactor Netty release.
+
+- **Improve Managed Identity Token Acquisition Error Reporting** [#3061](https://github.com/microsoft/mssql-jdbc/pull/3061)
+  - **What was changed**: Added distinct errors for timeout and interruption while acquiring tokens through `ManagedIdentityCredential` or `DefaultAzureCredential`, while preserving the original cause.
+  - **Who benefits**: Applications using `ActiveDirectoryManagedIdentity`, `ActiveDirectoryMSI`, or `ActiveDirectoryDefault`.
+  - **Impact**: Makes authentication failures easier to diagnose; other credential failures retain the existing behavior.
+
+### Fixed
+
+- **Prevent Silent Loss of Trailing SQL in Bulk Copy Batch Inserts** [#3037](https://github.com/microsoft/mssql-jdbc/pull/3037)
+  - **What was fixed**: Detected query hints, additional `VALUES` tuples, and other meaningful SQL after the first values tuple and persistently routed those statements through normal batch execution.
+  - **Who benefits**: Applications using `useBulkCopyForBatchInsert=true` with query hints, multi-row inserts, or trailing comments.
+  - **Impact**: Preserves the complete SQL statement, update counts, comments, and batch entries while retaining Bulk Copy for supported inserts.
+
+- **Fix `Connection.isValid()` Timeout on Unresponsive Sockets** [#3053](https://github.com/microsoft/mssql-jdbc/pull/3053)
+  - **What was fixed**: Temporarily bounded socket reads during validation when `socketTimeout=0` and restored the original network timeout afterward.
+  - **Who benefits**: Applications calling `Connection.isValid(int)` on connections whose TCP peer becomes unresponsive.
+  - **Impact**: Validation now honors the caller-supplied timeout and returns `false` instead of blocking indefinitely.
+
+- **Restore `acceptsURL()` Rejection of Malformed URLs** [#3063](https://github.com/microsoft/mssql-jdbc/pull/3063)
+  - **What was fixed**: Restored `SQLServerDriver.acceptsURL()` returning `false` when URL parsing fails.
+  - **Who benefits**: Applications and frameworks using `acceptsURL()` to identify SQL Server JDBC URLs.
+  - **Impact**: Preserves established behavior for malformed URLs while `connect()` continues to report the specific parsing error.
+
+- **Fix Always Encrypted GUID Bulk Copy Test in Multi-Server Pipelines** [#3069](https://github.com/microsoft/mssql-jdbc/pull/3069)
+  - **What was fixed**: Reused the Always Encrypted connection for ciphertext verification so the test cannot query a different server in multi-server configurations.
+  - **Who benefits**: Contributors and CI pipelines running Always Encrypted GUID bulk-copy coverage.
+  - **Impact**: Improves test reliability without changing driver behavior or public APIs.
+
+- **Fix Callable Statements with `prepareMethod=none`** [#3070](https://github.com/microsoft/mssql-jdbc/pull/3070)
+  - **What was fixed**: Emitted procedure-safe literals for temporal and high-precision or high-scale decimal input parameters during direct stored-procedure execution.
+  - **Who benefits**: Applications using `CallableStatement` with `prepareMethod=none`.
+  - **Impact**: Prevents SQL Server error 102 for valid temporal and decimal procedure arguments while preserving `CAST(...)` formatting in ordinary expression positions.
+
+- **Fix Non-Unicode String Literals in Direct SQL Execution** [#3076](https://github.com/microsoft/mssql-jdbc/pull/3076)
+  - **What was fixed**: Kept character parameters as character values during direct SQL binding when `sendStringParametersAsUnicode=false`, rather than incorrectly formatting them as binary literals.
+  - **Who benefits**: Applications using `prepareMethod=none` or direct `scopeTempTablesToConnection` execution with non-Unicode strings.
+  - **Impact**: Preserves VARCHAR semantics and correct conversions while leaving binary parameters and normal prepared execution unchanged.
+
+- **Validate PLP Payload Lengths and Preserve Stream Accounting** [#3077](https://github.com/microsoft/mssql-jdbc/pull/3077)
+  - **What was fixed**: Validated declared and accumulated PLP lengths against `Integer.MAX_VALUE`, required known totals to match, and preserved accounting across `mark()` and `reset()`.
+  - **Who benefits**: Applications reading large character, binary, and XML values through TDS PLP streams.
+  - **Impact**: Rejects invalid or overflowing payload lengths through the standard invalid-TDS error path without changing normal LOB allocation behavior.
+
+- **Correct Spelling in JDBC Error Messages** [#3051](https://github.com/microsoft/mssql-jdbc/pull/3051)
+  - **What was fixed**: Corrected `occured` to `occurred` in a fine-level log message and the AAS JWT error resource.
+  - **Who benefits**: Users and tools that read driver diagnostics.
+  - **Impact**: Documentation and message-only correction with no runtime behavior change.
+
+- **Parameterize the Database Compatibility-Level Query** [#3062](https://github.com/microsoft/mssql-jdbc/pull/3062)
+  - **What was fixed**: Bound the current catalog name with a `PreparedStatement` and closed the statement and result set with try-with-resources.
+  - **Who benefits**: Applications querying database compatibility metadata, including catalogs containing quotes.
+  - **Impact**: Handles catalog names consistently and avoids composing the catalog name into query text.
+
 ## [13.6.0] Stable Release
 
 ### Added
