@@ -30,7 +30,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   - **What was changed**: Normalized and quoted procedure-name parts as identifiers or string literals when constructing internal `sp_sproc_columns` metadata queries.
   - **Who benefits**: Applications using `CallableStatement` parameter metadata and named parameters with qualified, quoted, or special-character procedure names.
   - **Impact**: Makes metadata resolution more predictable and prevents procedure-name text from being interpreted as additional SQL. Applications relying on raw T-SQL fragments in procedure-name parts must migrate to separate procedure calls or explicit SQL batches.
-  - **Application action required**: Applications that relied on raw T-SQL fragments or multiple-procedure text in a procedure name must use separate `prepareCall()` calls or execute an explicit SQL batch instead.
+  - **Application action required**: Applications that relied on raw T-SQL fragments or multiple-procedure text in a procedure name must use separate `prepareCall()` calls or execute an explicit SQL batch instead. For parameter metadata and named-parameter resolution, replace single-quoted names such as `{call 'GetEmployee'(?)}` with bare or bracketed names such as `{call GetEmployee(?)}` or `{call [GetEmployee](?)}`.
 
 - **Harden Always Encrypted AAS Attestation Token Validation** [#3042](https://github.com/microsoft/mssql-jdbc/pull/3042)
   - **What was changed**: Validated the attestation token issuer against the configured provider, enforced `exp`/`nbf` lifetime claims with clock skew, and made rejected responses retry-safe before enclave session establishment.
