@@ -25,9 +25,12 @@ class PLPInputStream extends BaseInputStream {
 
     private static final byte[] EMPTY_PLP_BYTES = new byte[0];
     private static final int PLP_EOS = -1;
+    private static final int MAX_PLP_SIZE = Integer.MAX_VALUE;
 
     private int currentChunkRemain;
     private int markedChunkRemain;
+    private long totalChunkLength;
+    private long markedTotalChunkLength;
     private int leftOverReadLimit = 0;
 
     private byte[] oneByteArray = new byte[1];
@@ -87,8 +90,11 @@ class PLPInputStream extends BaseInputStream {
      * Initializes the input stream.
      */
     PLPInputStream(TDSReader tdsReader, long statedPayloadLength, boolean isAdaptive, boolean isStreaming,
-            ServerDTVImpl dtv) {
+            ServerDTVImpl dtv) throws SQLServerException {
         super(tdsReader, isAdaptive, isStreaming, dtv);
+        if (UNKNOWN_PLP_LEN != statedPayloadLength && (statedPayloadLength < 0 || statedPayloadLength > MAX_PLP_SIZE)) {
+            tdsReader.throwInvalidTDS();
+        }
         this.payloadLength = (UNKNOWN_PLP_LEN != statedPayloadLength) ? ((int) statedPayloadLength) : -1;
         this.currentChunkRemain = this.markedChunkRemain = 0;
     }
@@ -311,17 +317,20 @@ class PLPInputStream extends BaseInputStream {
                 
                 // Check for end of stream
                 if (0 == chunkSize) {
+                    if (-1 != payloadLength && totalChunkLength != payloadLength) {
+                        tdsReader.throwInvalidTDS();
+                    }
                     currentChunkRemain = PLP_EOS;
                     break;
                 }
                 
-                // Validate chunk size to prevent integer overflow (CWE-190)
-                // A malicious server could send a chunk size > Integer.MAX_VALUE
-                // which would cause silent data truncation or crash when cast to int
-                if (chunkSize > Integer.MAX_VALUE) {
-                    throw new SQLServerException(SQLServerException.getErrString("R_invalidTDS"), null);
+                // The accepted total and an unsigned chunk size cannot overflow long.
+                long nextTotal = totalChunkLength + chunkSize;
+                if (nextTotal > MAX_PLP_SIZE || (-1 != payloadLength && nextTotal > payloadLength)) {
+                    tdsReader.throwInvalidTDS();
                 }
                 
+                totalChunkLength = nextTotal;
                 currentChunkRemain = (int) chunkSize;
                 assert currentChunkRemain >= 0;
             }
@@ -375,6 +384,7 @@ class PLPInputStream extends BaseInputStream {
         if (null != tdsReader && readLimit > 0) {
             currentMark = tdsReader.mark();
             markedChunkRemain = currentChunkRemain;
+            markedTotalChunkLength = totalChunkLength;
             leftOverReadLimit = readLimit;
             setReadLimit(readLimit);
         }
@@ -407,6 +417,7 @@ class PLPInputStream extends BaseInputStream {
         resetHelper();
         leftOverReadLimit = readLimit;
         currentChunkRemain = markedChunkRemain;
+        totalChunkLength = markedTotalChunkLength;
     }
 }
 
@@ -438,7 +449,7 @@ final class PLPXMLInputStream extends PLPInputStream {
     }
 
     PLPXMLInputStream(TDSReader tdsReader, long statedPayloadLength, InputStreamGetterArgs getterArgs,
-            ServerDTVImpl dtv) {
+            ServerDTVImpl dtv) throws SQLServerException {
         super(tdsReader, statedPayloadLength, getterArgs.isAdaptive, getterArgs.isStreaming, dtv);
     }
 

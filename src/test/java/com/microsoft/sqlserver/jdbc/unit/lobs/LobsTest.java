@@ -5,7 +5,9 @@
 package com.microsoft.sqlserver.jdbc.unit.lobs;
 
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -42,11 +44,14 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.jdbc.TestUtils.DBBinaryStream;
@@ -88,6 +93,43 @@ public class LobsTest extends AbstractTest {
 
         tableName = RandomUtil.getIdentifier("LOBS");
         escapedTableName = AbstractSQLGenerator.escapeIdentifier(tableName);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"adaptive, false", "full, false", "adaptive, true", "full, true"})
+    public void testLargePlpRead(String buffering, boolean streaming) throws Exception {
+        byte[] data = new byte[3 * 1024 * 1024 + 123];
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (byte) (i * 31 + 7);
+        }
+
+        try (Connection con = getConnection(); SQLServerPreparedStatement stmt = (SQLServerPreparedStatement) con
+                .prepareStatement("SELECT CAST(? AS varbinary(max)), 42")) {
+            stmt.setResponseBuffering(buffering);
+            stmt.setBytes(1, data);
+            try (ResultSet rs = stmt.executeQuery()) {
+                assertTrue(rs.next());
+                if (streaming) {
+                    try (InputStream stream = rs.getBinaryStream(1);
+                            ByteArrayOutputStream received = new ByteArrayOutputStream()) {
+                        byte[] probe = new byte[256];
+                        stream.mark(1024);
+                        assertEquals(probe.length, stream.read(probe));
+                        stream.reset();
+                        byte[] buffer = new byte[8192];
+                        int count;
+                        while (-1 != (count = stream.read(buffer))) {
+                            received.write(buffer, 0, count);
+                        }
+                        assertArrayEquals(data, received.toByteArray());
+                    }
+                } else {
+                    assertArrayEquals(data, rs.getBytes(1));
+                }
+                assertEquals(42, rs.getInt(2));
+                assertFalse(rs.next());
+            }
+        }
     }
 
     @TestFactory
