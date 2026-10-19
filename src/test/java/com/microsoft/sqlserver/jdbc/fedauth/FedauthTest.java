@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -26,6 +27,7 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -549,6 +551,35 @@ public class FedauthTest extends FedauthCommon {
                 assertSame(failure.getCause(), exception.getCause());
             }
             assertFalse(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Tag(Constants.reqExternalSetup)
+    @Test
+    public void testInterruptedCallbackDoesNotRetryLogin() throws Exception {
+        SQLServerDataSource ds = new SQLServerDataSource();
+        updateDataSource(accessTokenCallbackConnectionString, ds);
+        ds.setConnectRetryCount(2);
+        ds.setConnectRetryInterval(1);
+        ds.setLoginTimeout(30);
+        AtomicInteger calls = new AtomicInteger();
+        InterruptedException interrupted = new InterruptedException("callback wait interrupted");
+        ds.setAccessTokenCallback((spn, stsurl) -> {
+            calls.incrementAndGet();
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(interrupted);
+        });
+        try {
+            SQLServerException exception = assertThrows(SQLServerException.class, () -> {
+                try (Connection connection = ds.getConnection()) {}
+            });
+            assertTrue(exception.getMessage().matches(TestUtils.formatErrorMsg("R_AADTokenAcquisitionInterrupted")),
+                    exception.getMessage());
+            assertSame(interrupted, exception.getCause());
+            assertTrue(Thread.currentThread().isInterrupted(), "Caller interruption must be preserved.");
+            assertEquals(1, calls.get(), "Interrupted token acquisition must not be retried.");
         } finally {
             Thread.interrupted();
         }

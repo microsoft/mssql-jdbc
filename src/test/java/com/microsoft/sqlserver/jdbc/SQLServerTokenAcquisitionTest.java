@@ -9,9 +9,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -26,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
+import org.mockito.MockedConstruction;
 
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.ActiveDirectoryAuthentication;
 
@@ -153,6 +163,87 @@ class SQLServerTokenAcquisitionTest {
         } finally {
             Thread.interrupted();
         }
+    }
+
+    @Test
+    void callerInterruptionStopsEnclosingLoginRetries() throws Exception {
+        boolean wasWindows = SQLServerConnection.isWindows;
+        try (SQLServerConnection connection = loginConnection();
+                MockedConstruction<TDSChannel> channels = mockConstruction(TDSChannel.class);
+                MockedStatic<AuthenticationJNI> nativeAuth = mockStatic(AuthenticationJNI.class)) {
+            SQLServerConnection.isWindows = true;
+            DLLException failure = new DLLException("transient failure",
+                    ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TRANSIENT_ERROR, 1, 1);
+            nativeAuth.when(AuthenticationJNI::isDllLoaded).thenReturn(true);
+            nativeAuth.when(() -> AuthenticationJNI.getAccessTokenForWindowsIntegrated(anyString(), anyString(),
+                    anyString(), anyString(), anyLong())).thenAnswer(invocation -> {
+                        Thread.currentThread().interrupt();
+                        throw failure;
+                    });
+            Method tokenMethod = SQLServerConnection.class.getDeclaredMethod("getFedAuthToken",
+                    SQLServerConnection.SqlFedAuthInfo.class);
+            tokenMethod.setAccessible(true);
+            doAnswer(invocation -> {
+                try {
+                    tokenMethod.invoke(connection, fedAuthInfo(connection));
+                    return true;
+                } catch (InvocationTargetException e) {
+                    throw e.getCause();
+                }
+            }).when(connection).executeCommand(any(TDSCommand.class));
+
+            SQLServerException exception = loginFailure(connection);
+            assertEquals(SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"), exception.getMessage());
+            assertTrue(exception.getCause() instanceof InterruptedException);
+            assertTrue(Thread.currentThread().isInterrupted());
+            assertTrue(connection.isClosed());
+            assertEquals(1, channels.constructed().size());
+            nativeAuth.verify(() -> AuthenticationJNI.getAccessTokenForWindowsIntegrated(anyString(), anyString(),
+                    anyString(), anyString(), anyLong()), times(1));
+        } finally {
+            SQLServerConnection.isWindows = wasWindows;
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    void workerInterruptionDoesNotCancelEnclosingLoginRetries() throws Exception {
+        try (SQLServerConnection connection = loginConnection();
+                MockedConstruction<TDSChannel> channels = mockConstruction(TDSChannel.class)) {
+            SQLServerException failure = SQLServerSecurityUtility.mapTokenAcquisitionException(
+                    new RuntimeException(new InterruptedException("credential worker interrupted")));
+            doAnswer(invocation -> {
+                throw failure;
+            }).when(connection).executeCommand(any(TDSCommand.class));
+
+            assertSame(failure, loginFailure(connection));
+            assertFalse(Thread.currentThread().isInterrupted());
+            assertEquals(2, channels.constructed().size());
+            verify(connection, times(2)).executeCommand(any(TDSCommand.class));
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    private static SQLServerConnection loginConnection() throws Exception {
+        SQLServerConnection connection = spy(connection(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED));
+        connection.activeConnectionProperties.setProperty("workstationID", "token-test");
+        setField(connection, "connectRetryCount", 1);
+        setField(connection, "connectRetryInterval", 0);
+        setField(connection, "negotiatedEncryptionLevel", TDS.ENCRYPT_NOT_SUP);
+        doReturn(false).when(connection).getTransparentNetworkIPResolution();
+        doNothing().when(connection).prelogin(anyString(), anyInt());
+        return connection;
+    }
+
+    private static SQLServerException loginFailure(SQLServerConnection connection) throws Exception {
+        Method login = SQLServerConnection.class.getDeclaredMethod("login", String.class, String.class, int.class,
+                String.class, FailoverInfo.class, int.class, long.class);
+        login.setAccessible(true);
+        InvocationTargetException exception = assertThrows(InvocationTargetException.class,
+                () -> login.invoke(connection, "localhost", null, 1433, null, null, 30, System.currentTimeMillis()));
+        assertTrue(exception.getCause() instanceof SQLServerException);
+        return (SQLServerException) exception.getCause();
     }
 
     private SQLServerException nativeFailure(DLLException failure, boolean expired,

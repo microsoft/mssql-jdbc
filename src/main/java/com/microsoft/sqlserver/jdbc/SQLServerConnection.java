@@ -4161,7 +4161,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                         sqlServerError = e.getSQLServerError();
 
-                        if (isFatalError(e) // do not retry on fatal errors
+                        if (Thread.currentThread().isInterrupted() // caller cancellation, not worker interruption
+                                || isFatalError(e) // do not retry on fatal errors
                                 || timerHasExpired(timerExpire) // no time left
                                 || (timerRemaining(timerExpire) < TimeUnit.SECONDS.toMillis(connectRetryInterval)
                                         + 2 * timeForFirstTry) // not enough time for another retry

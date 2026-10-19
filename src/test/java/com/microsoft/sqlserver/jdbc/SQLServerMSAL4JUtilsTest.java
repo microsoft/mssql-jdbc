@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -116,6 +117,17 @@ public class SQLServerMSAL4JUtilsTest {
 
         assertNotNull(exception.getCause());
         assertSame(authenticationFailure, exception.getCause().getCause().getCause());
+    }
+
+    @Test
+    public void testSynchronousFailureWithNestedCausePreservesContext() {
+        IOException cause = new IOException("transport failed");
+        IllegalStateException failure = new IllegalStateException("{\"error\":\"can't acquire token\"}", cause);
+        SQLServerException exception = SQLServerMSAL4JUtils.mapTokenAcquisitionException(failure, USER, AUTHENTICATION);
+
+        assertSame(failure, exception.getCause());
+        assertSame(cause, exception.getCause().getCause());
+        assertTrue(exception.getMessage().contains(failure.getMessage()));
     }
 
     @Test

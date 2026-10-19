@@ -550,7 +550,7 @@ class SQLServerMSAL4JUtils {
 
         Object[] msgArgs = {user, authenticationString};
 
-        if (null == e.getCause() || null == e.getCause().getMessage()) {
+        if (!(e instanceof ExecutionException) || null == e.getCause() || null == e.getCause().getMessage()) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
 
             // The case when Future's outcome has no AuthenticationResult but Exception.
