@@ -10,7 +10,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - **Enable Native `uniqueidentifier` Encoding for Bulk Copy** [#3041](https://github.com/microsoft/mssql-jdbc/pull/3041)
   - **What was added**: Eligible GUID columns are sent using the native TDS `uniqueidentifier` representation instead of `CHAR(n)`.
   - **Who benefits**: Applications using Bulk Copy with plaintext `uniqueidentifier` columns.
-  - **Impact**: Avoids server-side character-to-GUID conversion while preserving existing GUID parsing, validation, encrypted-column handling, and character-destination fallbacks.
+  - **Impact**: Avoids server-side character-to-GUID conversion while preserving tested GUID input acceptance, declared-precision constraints, encrypted-column handling, and character-destination fallbacks. Invalid GUIDs can now fail on the client instead of the server, so a subsequent `commit()` on a caller-owned transaction can commit earlier work that previously rolled back.
+  - **Application action required**: Explicitly roll back caller-owned transactions after GUID conversion failures if earlier work must not be committed; do not rely on a server-side conversion error to trigger rollback. This also applies to eligible batches using `useBulkCopyForBatchInsert=true`.
 
 - **Add Configurable Kerberos Credential Delegation** [#3036](https://github.com/microsoft/mssql-jdbc/pull/3036)
   - **What was added**: The `enableKerberosCredentialDelegation` connection property and corresponding `SQLServerDataSource` getter and setter for `authenticationScheme=JavaKerberos`.
