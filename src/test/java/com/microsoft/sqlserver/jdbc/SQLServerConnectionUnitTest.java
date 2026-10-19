@@ -202,7 +202,8 @@ public class SQLServerConnectionUnitTest {
         SQLServerException exception = assertThrows(SQLServerException.class, () -> SQLServerSecurityUtility
                 .getManagedIdentityCredAuthToken(MI_TEST_RESOURCE, MI_TEST_CLIENT_ID, 25L));
 
-        assertTokenAcquisitionError(exception);
+        assertEquals(SQLServerException.getErrString("R_AADTokenAcquisitionTimeout"), exception.getMessage(),
+                "The exception path must report a token acquisition timeout.");
         Throwable unwrappedCause = Exceptions.unwrap(exception.getCause());
         assertTrue(unwrappedCause instanceof TimeoutException,
                 "Expected Reactor to produce a TimeoutException, but got: " + unwrappedCause);
