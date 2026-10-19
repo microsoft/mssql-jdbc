@@ -8,10 +8,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,25 +22,18 @@ import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
-import com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
-import com.microsoft.sqlserver.jdbc.SqlAuthenticationToken;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
@@ -503,86 +492,6 @@ public class FedauthTest extends FedauthCommon {
         String cs = TestUtils.addOrOverrideProperty(accessTokenCallbackConnectionString, "accessTokenCallbackClass",
                 PooledConnectionTest.AccessTokenCallbackClass.class.getName());
         try (Connection conn1 = DriverManager.getConnection(cs)) {}
-    }
-
-    public static class TimeoutCallback implements SQLServerAccessTokenCallback {
-        @Override
-        public SqlAuthenticationToken getAccessToken(String spn, String stsurl) {
-            throw new RuntimeException(new TimeoutException("callback timed out"));
-        }
-    }
-
-    public static class InterruptedWorkerCallback implements SQLServerAccessTokenCallback {
-        @Override
-        public SqlAuthenticationToken getAccessToken(String spn, String stsurl) {
-            throw new RuntimeException(new InterruptedException("callback worker interrupted"));
-        }
-    }
-
-    @Tag(Constants.reqExternalSetup)
-    @ParameterizedTest
-    @CsvSource({"false,false", "false,true", "true,false", "true,true"})
-    public void testCallbackAcquisitionFailure(boolean useClass, boolean timeout) throws Exception {
-        SQLServerDataSource ds = new SQLServerDataSource();
-        updateDataSource(accessTokenCallbackConnectionString, ds);
-        RuntimeException failure = new RuntimeException(
-                timeout ? new TimeoutException("callback timed out")
-                        : new InterruptedException("callback worker interrupted"));
-        if (useClass) {
-            ds.setAccessTokenCallbackClass(
-                    timeout ? TimeoutCallback.class.getName() : InterruptedWorkerCallback.class.getName());
-        } else {
-            ds.setAccessTokenCallback((spn, stsurl) -> {
-                throw failure;
-            });
-        }
-        try {
-            SQLServerException exception = assertThrows(SQLServerException.class, () -> {
-                try (Connection connection = ds.getConnection()) {}
-            });
-            String errorKey = timeout ? "R_AADTokenAcquisitionTimeout" : "R_AADTokenAcquisitionInterrupted";
-            assertTrue(exception.getMessage().matches(TestUtils.formatErrorMsg(errorKey)), exception.getMessage());
-            if (useClass) {
-                assertTrue(
-                        timeout ? exception.getCause() instanceof TimeoutException
-                                : exception.getCause() instanceof InterruptedException,
-                        "The callback failure cause must be preserved.");
-            } else {
-                assertSame(failure.getCause(), exception.getCause());
-            }
-            assertFalse(Thread.currentThread().isInterrupted());
-        } finally {
-            Thread.interrupted();
-        }
-    }
-
-    @Tag(Constants.reqExternalSetup)
-    @Test
-    public void testInterruptedCallbackDoesNotRetryLogin() throws Exception {
-        SQLServerDataSource ds = new SQLServerDataSource();
-        updateDataSource(accessTokenCallbackConnectionString, ds);
-        ds.setConnectRetryCount(2);
-        ds.setConnectRetryInterval(1);
-        ds.setLoginTimeout(30);
-        AtomicInteger calls = new AtomicInteger();
-        InterruptedException interrupted = new InterruptedException("callback wait interrupted");
-        ds.setAccessTokenCallback((spn, stsurl) -> {
-            calls.incrementAndGet();
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(interrupted);
-        });
-        try {
-            SQLServerException exception = assertThrows(SQLServerException.class, () -> {
-                try (Connection connection = ds.getConnection()) {}
-            });
-            assertTrue(exception.getMessage().matches(TestUtils.formatErrorMsg("R_AADTokenAcquisitionInterrupted")),
-                    exception.getMessage());
-            assertSame(interrupted, exception.getCause());
-            assertTrue(Thread.currentThread().isInterrupted(), "Caller interruption must be preserved.");
-            assertEquals(1, calls.get(), "Interrupted token acquisition must not be retried.");
-        } finally {
-            Thread.interrupted();
-        }
     }
 
     private static void validateException(String url, String resourceKey) {

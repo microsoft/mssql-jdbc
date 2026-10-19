@@ -8,21 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.cert.CertificateException;
 import java.text.MessageFormat;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import com.microsoft.aad.msal4j.InteractiveRequestParameters;
 
@@ -117,47 +110,5 @@ public class SQLServerMSAL4JUtilsTest {
 
         assertNotNull(exception.getCause());
         assertSame(authenticationFailure, exception.getCause().getCause().getCause());
-    }
-
-    @Test
-    public void testSynchronousFailureWithNestedCausePreservesContext() {
-        IOException cause = new IOException("transport failed");
-        IllegalStateException failure = new IllegalStateException("{\"error\":\"can't acquire token\"}", cause);
-        SQLServerException exception = SQLServerMSAL4JUtils.mapTokenAcquisitionException(failure, USER, AUTHENTICATION);
-
-        assertSame(failure, exception.getCause());
-        assertSame(cause, exception.getCause().getCause());
-        assertTrue(exception.getMessage().contains(failure.getMessage()));
-    }
-
-    @Test
-    public void testCertificateFailurePreservesCause(@TempDir Path directory) throws Exception {
-        Path certificate = Files.createFile(directory.resolve("invalid.pfx"));
-        try (SQLServerConnection connection = new SQLServerConnection("certificate test")) {
-            SQLServerConnection.SqlFedAuthInfo info = connection.new SqlFedAuthInfo();
-            info.spn = "https://database.windows.net/";
-            info.stsurl = "https://login.microsoftonline.com/test";
-            SQLServerException exception = assertThrows(SQLServerException.class,
-                    () -> SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipalCertificate(info, "test-client",
-                            certificate.toString(), "", null, null,
-                            SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString(), 1000));
-            assertTrue(exception.getMessage().startsWith(SQLServerException.getErrString("R_readCertError")));
-            assertTrue(exception.getCause() instanceof CertificateException);
-        }
-    }
-
-    @Test
-    public void testMissingCertificatePreservesCause(@TempDir Path directory) throws Exception {
-        try (SQLServerConnection connection = new SQLServerConnection("certificate test")) {
-            SQLServerConnection.SqlFedAuthInfo info = connection.new SqlFedAuthInfo();
-            info.spn = "https://database.windows.net/";
-            info.stsurl = "https://login.microsoftonline.com/test";
-            SQLServerException exception = assertThrows(SQLServerException.class,
-                    () -> SQLServerMSAL4JUtils.getSqlFedAuthTokenPrincipalCertificate(info, "test-client",
-                            directory.resolve("missing.pfx").toString(), "", null, null,
-                            SqlAuthentication.ACTIVE_DIRECTORY_SERVICE_PRINCIPAL_CERTIFICATE.toString(), 1000));
-            assertTrue(exception.getMessage().startsWith(SQLServerException.getErrString("R_readCertError")));
-            assertTrue(exception.getCause() instanceof FileNotFoundException);
-        }
     }
 }

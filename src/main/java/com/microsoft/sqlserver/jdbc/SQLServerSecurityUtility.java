@@ -494,13 +494,9 @@ class SQLServerSecurityUtility {
     }
 
     static SQLServerException mapTokenAcquisitionException(RuntimeException exception) {
-        return mapTokenAcquisitionException(exception, "R_ManagedIdentityTokenAcquisitionError");
-    }
-
-    static SQLServerException mapTokenAcquisitionException(RuntimeException exception, String errorKey) {
         Throwable interruptedCause = findCause(exception, InterruptedException.class);
         if (null != interruptedCause) {
-            // Reactor restores the flag when its blocking wait is interrupted. A worker's failure must not set it.
+            Thread.currentThread().interrupt();
             return new SQLServerException(
                     SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"), interruptedCause);
         }
@@ -512,7 +508,7 @@ class SQLServerSecurityUtility {
         }
 
         return new SQLServerException(
-                SQLServerException.getErrString(errorKey), exception);
+                SQLServerException.getErrString("R_ManagedIdentityTokenAcquisitionError"), exception);
     }
 
     private static Throwable findCause(Throwable throwable, Class<? extends Throwable> expectedType) {

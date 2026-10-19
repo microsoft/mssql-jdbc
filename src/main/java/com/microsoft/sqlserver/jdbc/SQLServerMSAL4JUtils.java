@@ -293,7 +293,7 @@ class SQLServerMSAL4JUtils {
             } catch (FileNotFoundException e) {
                 // re-throw if file not there no point to try another format
                 throw new SQLServerException(SQLServerException.getErrString("R_readCertError") + e.getMessage(), null,
-                        0, e);
+                        0, null);
             } catch (CertificateException | NoSuchAlgorithmException | IOException e) {
                 // ignore not PKCS12 cert error, will try another format after this
                 if (logger.isLoggable(Level.FINER)) {
@@ -335,9 +335,7 @@ class SQLServerMSAL4JUtils {
         } catch (GeneralSecurityException e) {
             // this includes all certificate exceptions
             throw new SQLServerException(SQLServerException.getErrString("R_readCertError") + e.getMessage(), null, 0,
-                    e);
-        } catch (SQLServerException e) {
-            throw e;
+                    null);
         } catch (Exception e) {
             throw mapTokenAcquisitionException(e, aadPrincipalID, authenticationString);
 
@@ -550,7 +548,7 @@ class SQLServerMSAL4JUtils {
 
         Object[] msgArgs = {user, authenticationString};
 
-        if (!(e instanceof ExecutionException) || null == e.getCause() || null == e.getCause().getMessage()) {
+        if (null == e.getCause() || null == e.getCause().getMessage()) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
 
             // The case when Future's outcome has no AuthenticationResult but Exception.
