@@ -97,6 +97,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Fixed
 
+- **Improve AAD Token Acquisition Error Handling** [#3061](https://github.com/microsoft/mssql-jdbc/pull/3061)
+  - **What was fixed**: Distinguished caller interruption from credential-worker failures, standardized callback acquisition errors, and preserved certificate and native DLL failure causes. Native authentication retry waits now stop on interruption and report exhausted retry time as a token acquisition timeout.
+  - **Who benefits**: Applications using Microsoft Entra ID authentication or access-token callbacks.
+  - **Impact**: Improves diagnostics without spuriously interrupting pooled caller threads. Synchronous callbacks remain responsible for their own timeouts; in-flight native DLL calls are not forcibly cancelled.
+
 - **Fix Closed-Statement NullPointerException in buildParamTypeDefinitions** [#2995](https://github.com/microsoft/mssql-jdbc/pull/2995)
   - **What was fixed**: Checked the statement's closed state before accessing a null parameter array in `buildParamTypeDefinitions()`.
   - **Who benefits**: Applications that invoke parameter-related methods after a prepared or callable statement is closed.

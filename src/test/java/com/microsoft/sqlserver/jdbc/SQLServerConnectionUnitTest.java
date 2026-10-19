@@ -49,8 +49,11 @@ import java.util.logging.Logger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.ManagedIdentityCredential;
@@ -59,6 +62,7 @@ import com.microsoft.sqlserver.testframework.Constants;
 
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 
 /**
@@ -208,6 +212,54 @@ public class SQLServerConnectionUnitTest {
         assertTrue(unwrappedCause instanceof TimeoutException,
                 "Expected Reactor to produce a TimeoutException, but got: " + unwrappedCause);
         assertFalse(cache.containsKey(key), "A credential that times out must be evicted from the cache.");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testCredentialWorkerInterruptionDoesNotInterruptCaller(boolean managedIdentity) throws Exception {
+        InterruptedException failure = new InterruptedException("credential worker interrupted");
+        Mono<AccessToken> token = Mono.<AccessToken>error(failure).subscribeOn(Schedulers.boundedElastic());
+        try {
+            SQLServerException exception = credentialInterruption(managedIdentity, token);
+            assertSame(failure, exception.getCause());
+            assertFalse(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testCredentialBlockingWaitPreservesInterruptFlag(boolean managedIdentity) throws Exception {
+        Mono<AccessToken> token = Mono.<AccessToken>never()
+                .doOnSubscribe(subscription -> Thread.currentThread().interrupt());
+        try {
+            SQLServerException exception = credentialInterruption(managedIdentity, token);
+            assertTrue(exception.getCause() instanceof InterruptedException);
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    private SQLServerException credentialInterruption(boolean managedIdentity,
+            Mono<AccessToken> token) throws Exception {
+        TokenCredential credential = managedIdentity ? mock(ManagedIdentityCredential.class)
+                                                     : mock(DefaultAzureCredential.class);
+        when(credential.getToken(any(TokenRequestContext.class))).thenReturn(token);
+        String key = managedIdentity ? managedIdentityCacheKey() : defaultAzureCredentialCacheKey();
+        getCredentialCache().put(key, wrapCredential(credential));
+
+        SQLServerException exception = assertThrows(SQLServerException.class, () -> {
+            if (managedIdentity) {
+                SQLServerSecurityUtility.getManagedIdentityCredAuthToken(MI_TEST_RESOURCE, MI_TEST_CLIENT_ID, 5000L);
+            } else {
+                SQLServerSecurityUtility.getDefaultAzureCredAuthToken(MI_TEST_RESOURCE, MI_TEST_CLIENT_ID, 5000);
+            }
+        });
+        assertEquals(SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"), exception.getMessage());
+        assertFalse(getCredentialCache().containsKey(key), "The failed credential must be evicted.");
+        return exception;
     }
 
     @Test

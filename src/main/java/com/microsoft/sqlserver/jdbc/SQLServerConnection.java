@@ -6983,21 +6983,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString())
                         && null != accessTokenCallbackClass
                         && !accessTokenCallbackClass.isEmpty()) {
+                    SQLServerAccessTokenCallback callbackInstance;
                     try {
                         Object[] msgArgs = { "accessTokenCallbackClass",
                                 "com.microsoft.sqlserver.jdbc.SQLServerAccessTokenCallback" };
-                        SQLServerAccessTokenCallback callbackInstance = Util.newInstance(
+                        callbackInstance = Util.newInstance(
                                 SQLServerAccessTokenCallback.class,
                                 accessTokenCallbackClass, null, msgArgs);
-                        fedAuthToken = callbackInstance.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
                     } catch (Exception e) {
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_InvalidAccessTokenCallbackClass"));
                         throw new SQLServerException(form.format(new Object[] { accessTokenCallbackClass }), e);
                     }
+                    fedAuthToken = getAccessTokenFromCallback(callbackInstance, fedAuthInfo);
                 } else if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString())
                         && null != accessTokenCallback) {
-                    fedAuthToken = accessTokenCallback.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
+                    fedAuthToken = getAccessTokenFromCallback(accessTokenCallback, fedAuthInfo);
                 } else {
                     fedAuthToken = getFedAuthToken(fedAuthInfo);
                 }
@@ -7014,6 +7015,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 fedAuthScope.setException(e);
                 throw e;
             }
+        }
+    }
+
+    private SqlAuthenticationToken getAccessTokenFromCallback(SQLServerAccessTokenCallback callback,
+            SqlFedAuthInfo fedAuthInfo) throws SQLServerException {
+        try {
+            return callback.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
+        } catch (RuntimeException e) {
+            throw SQLServerSecurityUtility.mapTokenAcquisitionException(e, "R_AADTokenAcquisitionError");
         }
     }
 
@@ -7132,13 +7142,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             MessageFormat form = new MessageFormat(
                                     SQLServerException.getErrString("R_UnableLoadMSSQLAuthDll"));
                             Object[] msgArgs = { Integer.toHexString(dllException.getState()) };
-                            throw new SQLServerException(form.format(msgArgs), null);
+                            throw new SQLServerException(form.format(msgArgs), dllException);
                         }
 
                         millisecondsRemaining = timerRemaining(timerExpire);
                         if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TRANSIENT_ERROR != errorCategory
                                 || timerHasExpired(timerExpire)
                                 || (fedauthSleepInterval >= millisecondsRemaining)) {
+                            if (ActiveDirectoryAuthentication.GET_ACCESS_TOKEN_TRANSIENT_ERROR == errorCategory) {
+                                throw new SQLServerException(
+                                        SQLServerException.getErrString("R_AADTokenAcquisitionTimeout"), dllException);
+                            }
 
                             String errorStatus = Integer.toHexString(dllException.getStatus());
 
@@ -7169,7 +7183,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                             + millisecondsRemaining + " milliseconds.");
                         }
 
-                        sleepForInterval(fedauthSleepInterval);
+                        try {
+                            Thread.sleep(fedauthSleepInterval);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new SQLServerException(
+                                    SQLServerException.getErrString("R_AADTokenAcquisitionInterrupted"), e);
+                        }
                         fedauthSleepInterval = (fedauthSleepInterval < 500) ? fedauthSleepInterval * 2 : 1000;
 
                     }

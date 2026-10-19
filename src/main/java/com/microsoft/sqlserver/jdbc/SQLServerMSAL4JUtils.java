@@ -293,7 +293,7 @@ class SQLServerMSAL4JUtils {
             } catch (FileNotFoundException e) {
                 // re-throw if file not there no point to try another format
                 throw new SQLServerException(SQLServerException.getErrString("R_readCertError") + e.getMessage(), null,
-                        0, null);
+                        0, e);
             } catch (CertificateException | NoSuchAlgorithmException | IOException e) {
                 // ignore not PKCS12 cert error, will try another format after this
                 if (logger.isLoggable(Level.FINER)) {
@@ -335,7 +335,9 @@ class SQLServerMSAL4JUtils {
         } catch (GeneralSecurityException e) {
             // this includes all certificate exceptions
             throw new SQLServerException(SQLServerException.getErrString("R_readCertError") + e.getMessage(), null, 0,
-                    null);
+                    e);
+        } catch (SQLServerException e) {
+            throw e;
         } catch (Exception e) {
             throw mapTokenAcquisitionException(e, aadPrincipalID, authenticationString);
 
