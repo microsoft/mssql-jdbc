@@ -79,15 +79,23 @@ public class DataTypesTest extends AbstractTest {
 
         datetime2("yyyy-mm-dd hh:mm:ss", 7, java.sql.Types.TIMESTAMP, "java.sql.Timestamp"),
 
-        datetimeoffset("yyyy-mm-dd hh:mm:ss +hh:mm", 7, microsoft.sql.Types.DATETIMEOFFSET, "microsoft.sql.DateTimeOffset");
+        datetimeoffset("yyyy-mm-dd hh:mm:ss +hh:mm", 7, microsoft.sql.Types.DATETIMEOFFSET,
+                "microsoft.sql.DateTimeOffset", java.sql.Types.TIMESTAMP_WITH_TIMEZONE, "java.time.OffsetDateTime");
 
         final int basePrecision;
         final int maxPrecision;
         final int maxFractionalSecondsDigits;
         final int jdbcType;
         final String className;
+        final int resultSetJdbcType;
+        final String resultSetClassName;
 
         SQLType(String format, int maxFractionalSecondsDigits, int jdbcType, String className) {
+            this(format, maxFractionalSecondsDigits, jdbcType, className, jdbcType, className);
+        }
+
+        SQLType(String format, int maxFractionalSecondsDigits, int jdbcType, String className, int resultSetJdbcType,
+                String resultSetClassName) {
             assert maxFractionalSecondsDigits >= 0;
 
             this.basePrecision = format.length();
@@ -96,6 +104,8 @@ public class DataTypesTest extends AbstractTest {
                     + ((maxFractionalSecondsDigits > 0) ? (1 + maxFractionalSecondsDigits) : 0);
             this.jdbcType = jdbcType;
             this.className = className;
+            this.resultSetJdbcType = resultSetJdbcType;
+            this.resultSetClassName = resultSetClassName;
         }
     };
 
@@ -159,7 +169,8 @@ public class DataTypesTest extends AbstractTest {
 
                 ResultSetMetaData metadata = rs.getMetaData();
 
-                assertEquals(sqlType.jdbcType, metadata.getColumnType(1), "getColumnType() of " + sqlCastExpression());
+                assertEquals(sqlType.resultSetJdbcType, metadata.getColumnType(1),
+                        "getColumnType() of " + sqlCastExpression());
                 assertEquals(sqlType.toString(), metadata.getColumnTypeName(1),
                         "getColumnTypeName() of " + sqlCastExpression());
                 assertEquals(precision, metadata.getPrecision(1), "getPrecision() of " + sqlCastExpression());
@@ -170,7 +181,7 @@ public class DataTypesTest extends AbstractTest {
 
                 // Scale is interpreted as number of fractional seconds precision
                 assertEquals(scale, metadata.getScale(1), "getScale() of " + sqlCastExpression());
-                assertEquals(sqlType.className, metadata.getColumnClassName(1),
+                assertEquals(sqlType.resultSetClassName, metadata.getColumnClassName(1),
                         "getColumnClassName() of " + sqlCastExpression());
 
                 // Katmai temporal types are not signed

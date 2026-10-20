@@ -177,6 +177,17 @@ public class ComparisonUtil {
                             "Unexpected datetimeoffset value. Expected:" + expectedValue + " Actual:" + actualValue);
                     break;
 
+                case java.sql.Types.TIMESTAMP_WITH_TIMEZONE:
+                    Object expectedOffsetDateTime = expectedValue instanceof microsoft.sql.DateTimeOffset
+                            ? ((microsoft.sql.DateTimeOffset) expectedValue).getOffsetDateTime()
+                            : expectedValue;
+                    Object actualOffsetDateTime = actualValue instanceof microsoft.sql.DateTimeOffset
+                            ? ((microsoft.sql.DateTimeOffset) actualValue).getOffsetDateTime()
+                            : actualValue;
+                    assertEquals(expectedOffsetDateTime, actualOffsetDateTime,
+                            "Unexpected datetimeoffset value. Expected:" + expectedValue + " Actual:" + actualValue);
+                    break;
+
                 default:
                     fail("Unhandled JDBCType " + JDBCType.valueOf(dataType));
                     break;
