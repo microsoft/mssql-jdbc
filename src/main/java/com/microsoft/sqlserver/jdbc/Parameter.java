@@ -66,6 +66,10 @@ final class Parameter {
     // set length of value for variable length type (String)
     private int valueLength = 0;
 
+    // Direct SQL execution only: true when the setter requested a national character type (for example setNString),
+    // so the inlined literal keeps the N prefix even when sendStringParametersAsUnicode=false.
+    private boolean nationalCharacterLiteral = false;
+
     private boolean forceEncryption = false;
 
     // The java.sql.Types value passed to defineParameterType(). Non-zero indicates
@@ -183,6 +187,15 @@ final class Parameter {
     }
 
     /**
+     * Returns true if, for direct SQL execution, the setter requested a national character type.
+     *
+     * @return Per the description.
+     */
+    boolean isNationalCharacterLiteral() {
+        return nationalCharacterLiteral;
+    }
+
+    /**
      * Used when sendStringParametersAsUnicode=true to derive the appropriate National Character Set JDBC type
      * corresponding to the specified JDBC type.
      */
@@ -294,6 +307,7 @@ final class Parameter {
         clonedParam.cryptoMeta = cryptoMeta;
         clonedParam.jdbcTypeSetByUser = jdbcTypeSetByUser;
         clonedParam.valueLength = valueLength;
+        clonedParam.nationalCharacterLiteral = nationalCharacterLiteral;
         clonedParam.userProvidesPrecision = userProvidesPrecision;
         clonedParam.userProvidesScale = userProvidesScale;
         clonedParam.defineParameterTypeSqlType = defineParameterTypeSqlType;
@@ -474,7 +488,12 @@ final class Parameter {
         // the value with the appropriate corresponding Unicode type.
         // JavaType.OBJECT == javaType when calling setNull()
         // Direct SQL also uses Unicode types internally to preserve text instead of encoded bytes.
-        // Literal formatting still uses the connection's Unicode setting to choose the N prefix.
+        // Literal formatting still uses the connection's Unicode setting to choose the N prefix, unless the setter
+        // requested a national character type, which is recorded before the re-tagging below.
+        if (isDirectSqlExecution) {
+            nationalCharacterLiteral = JDBCType.NCHAR == jdbcType || JDBCType.NVARCHAR == jdbcType
+                    || JDBCType.LONGNVARCHAR == jdbcType || JDBCType.NCLOB == jdbcType;
+        }
         if ((con.sendStringParametersAsUnicode() || isDirectSqlExecution) && (JavaType.STRING == javaType
                 || JavaType.READER == javaType || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
             jdbcType = getSSPAUJDBCType(jdbcType);

@@ -10,17 +10,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.StringReader;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.TimeZone;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -31,6 +40,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.PrepUtil;
@@ -49,6 +60,7 @@ public class PrepareMethodLiteralTest extends AbstractTest {
     private static final String TIMESTAMP_TEXT = "2024-02-13 12:23:45.047";
     private static final String GUID_TEXT = "01234567-89AB-CDEF-0123-456789ABCDEF";
     private static final byte[] BINARY_VALUE = {1, 2, 3, 4};
+    private static final String UNICODE_TEXT = "caf\u00e9 \u540d\u524d";
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -227,6 +239,136 @@ public class PrepareMethodLiteralTest extends AbstractTest {
         }
     }
 
+    /** Verifies a negative value bound after '-' is subtracted rather than forming a '--' comment. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testNegativeValueAfterMinusOperator(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true);
+                PreparedStatement ps = conn.prepareStatement("SELECT 10 -?, 10 -?, 10 -?")) {
+            ps.setInt(1, -5);
+            ps.setBigDecimal(2, new BigDecimal("-2.5"));
+            ps.setDouble(3, -1.5);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(3, rs.getMetaData().getColumnCount());
+                assertEquals(15, rs.getInt(1));
+                assertEquals(0, new BigDecimal("12.5").compareTo(rs.getBigDecimal(2)));
+                assertEquals(11.5, rs.getDouble(3));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** Verifies a negative value after '-' cannot comment out the rest of a WHERE clause and widen the result. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testNegativeValueCannotCommentOutPredicate(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #literal_rows (id int, visible bit)");
+            stmt.execute("INSERT INTO #literal_rows VALUES (2, 0)");
+            // The predicate is id = 3 AND visible = 1, so no row matches. If the trailing filter were commented out,
+            // the hidden row with id = 2 would be returned.
+            try (PreparedStatement ps = conn
+                    .prepareStatement("SELECT COUNT(*) FROM #literal_rows WHERE id = 2 -? AND visible = 1")) {
+                ps.setInt(1, -1);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(0, rs.getInt(1));
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
+    /** Verifies setLong values keep bigint semantics in arithmetic instead of overflowing as int literals. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testBigintArithmeticDoesNotOverflowInt(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); PreparedStatement ps = conn.prepareStatement("SELECT ? + ?")) {
+            ps.setLong(1, Integer.MAX_VALUE);
+            ps.setLong(2, 1L);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(Integer.MAX_VALUE + 1L, rs.getLong(1));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** Verifies setObject's target JDBC type (VARCHAR) drives SQL semantics: string concatenation, not addition. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testSetObjectTargetTypeIsHonored(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true);
+                PreparedStatement ps = conn.prepareStatement("SELECT ? + 'x'")) {
+            ps.setObject(1, 3, Types.VARCHAR);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("3x", rs.getString(1));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** Verifies setNString and NVARCHAR setObject preserve Unicode text when sendStringParametersAsUnicode=false. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testNationalCharacterSettersWithoutUnicodeDefault(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, false);
+                PreparedStatement ps = conn.prepareStatement("SELECT ?, ?")) {
+            ps.setNString(1, UNICODE_TEXT);
+            ps.setObject(2, UNICODE_TEXT, Types.NVARCHAR);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(UNICODE_TEXT, rs.getString(1));
+                assertEquals(UNICODE_TEXT, rs.getString(2));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** Verifies numeric, bit, binary and NULL markers followed directly by a keyword (e.g. '?and') stay valid SQL. */
+    @ParameterizedTest(name = "{0}, mode={1}")
+    @MethodSource("adjacentKeywordCases")
+    public void testAdjacentKeywordAfterNonStringParameter(QueryCase testCase, String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); PreparedStatement ps = conn.prepareStatement(testCase.sql)) {
+            testCase.binder.bind(ps);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** Verifies a table-valued parameter bound with setStructured can be queried as a table source. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testTableValuedParameter(String mode) throws SQLException {
+        String typeName = "PrepareMethodLiteralTvp_" + UUID.randomUUID().toString().replace("-", "");
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TYPE " + typeName + " AS TABLE (value int)");
+            try {
+                SQLServerDataTable table = new SQLServerDataTable();
+                table.addColumnMetadata("value", Types.INTEGER);
+                table.addRow(1);
+                table.addRow(2);
+                table.addRow(3);
+                try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) conn
+                        .prepareStatement("SELECT SUM(value) FROM ?")) {
+                    ps.setStructured(1, typeName, table);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        assertEquals(6, rs.getInt(1));
+                        assertFalse(rs.next());
+                    }
+                }
+            } finally {
+                stmt.execute("DROP TYPE IF EXISTS " + typeName);
+            }
+        }
+    }
+
     private static void bindLiteralValues(PreparedStatement ps, String text) throws SQLException {
         ps.setString(1, text);
         ps.setObject(2, text, Types.VARCHAR);
@@ -313,9 +455,90 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                 new ParameterCase("sql-text-as-data", "nvarchar(200)", ps -> ps.setString(1, "x'); SELECT 99; --")),
                 new ParameterCase("null-date", "date", ps -> ps.setNull(1, Types.DATE)),
                 new ParameterCase("null-timestamp", "datetime2", ps -> ps.setNull(1, Types.TIMESTAMP)),
-                new ParameterCase("null-decimal", "decimal(38,10)", ps -> ps.setNull(1, Types.DECIMAL))};
+                new ParameterCase("null-decimal", "decimal(38,10)", ps -> ps.setNull(1, Types.DECIMAL)),
+                // Time with milliseconds keeps its fractional seconds.
+                new ParameterCase("time-milliseconds", "time(3)",
+                        ps -> ps.setTime(1, new Time(Time.valueOf("13:14:15").getTime() + 500))),
+                // Timestamp with 9-digit nanoseconds rounds like typed binding instead of failing to convert.
+                new ParameterCase("timestamp-nanoseconds", "datetime2(7)",
+                        ps -> ps.setTimestamp(1, Timestamp.valueOf("2024-02-13 13:14:15.123456789"))),
+                // Timestamp with 7 fractional digits converts to legacy datetime with the same rounding.
+                new ParameterCase("datetime-fractional-seconds", "datetime",
+                        ps -> ps.setTimestamp(1, Timestamp.valueOf("2024-02-13 13:14:15.1234567"))),
+                // setTimestamp with a Calendar applies the Calendar's time zone.
+                new ParameterCase("timestamp-calendar", "datetime2(3)",
+                        ps -> ps.setTimestamp(1, Timestamp.valueOf(TIMESTAMP_TEXT), foreignCalendar())),
+                // setDate with a Calendar applies the Calendar's time zone.
+                new ParameterCase("date-calendar", "date",
+                        ps -> ps.setDate(1, Date.valueOf(DATE_TEXT), foreignCalendar())),
+                // setTime with a Calendar applies the Calendar's time zone.
+                new ParameterCase("time-calendar", "time(3)",
+                        ps -> ps.setTime(1, Time.valueOf("13:14:15"), foreignCalendar())),
+                // LocalDateTime with 9-digit nanoseconds rounds like typed binding.
+                new ParameterCase("local-date-time-nanoseconds", "datetime2(7)",
+                        ps -> ps.setObject(1, LocalDateTime.of(2024, 2, 13, 13, 14, 15, 123456789))),
+                // LocalTime with 9-digit nanoseconds rounds like typed binding.
+                new ParameterCase("local-time-nanoseconds", "time(7)",
+                        ps -> ps.setObject(1, LocalTime.of(13, 14, 15, 123456789))),
+                // Double beyond the decimal(38) range is sent as a float, not an out-of-range numeric literal.
+                new ParameterCase("large-double", "float", ps -> ps.setDouble(1, 1.0E300)),
+                // Tiny double keeps its value instead of a 300-digit plain decimal literal.
+                new ParameterCase("small-double", "float", ps -> ps.setDouble(1, 1.0E-300)),
+                // setObject with an INTEGER target sends an int, so the sql_variant base type matches typed binding.
+                new ParameterCase("string-with-integer-target", "sql_variant",
+                        ps -> ps.setObject(1, "123", Types.INTEGER)),
+                // setObject with a scale argument rounds the decimal to that scale.
+                new ParameterCase("decimal-with-target-scale", "decimal(10,3)",
+                        ps -> ps.setObject(1, new BigDecimal("1.235"), Types.DECIMAL, 2)),
+                // setCharacterStream sends the Reader's content, not its toString().
+                new ParameterCase("character-stream", "nvarchar(max)",
+                        ps -> ps.setCharacterStream(1, new StringReader("stream text"))),
+                // setNCharacterStream sends the Reader's Unicode content.
+                new ParameterCase("ncharacter-stream", "nvarchar(max)",
+                        ps -> ps.setNCharacterStream(1, new StringReader(UNICODE_TEXT))),
+                // setAsciiStream sends the stream's content, not its toString().
+                new ParameterCase("ascii-stream", "varchar(max)",
+                        ps -> ps.setAsciiStream(1,
+                                new ByteArrayInputStream("ascii text".getBytes(StandardCharsets.US_ASCII)))),
+                // setBinaryStream sends the stream's bytes, not its toString().
+                new ParameterCase("binary-stream", "varbinary(max)",
+                        ps -> ps.setBinaryStream(1, new ByteArrayInputStream(BINARY_VALUE))),
+                // setSQLXML sends the XML document, not the SQLXML object's toString().
+                new ParameterCase("sqlxml", "xml", ps -> {
+                    SQLXML xml = ps.getConnection().createSQLXML();
+                    xml.setString("<root><value>1</value></root>");
+                    ps.setSQLXML(1, xml);
+                })};
         return Arrays.stream(cases).flatMap(testCase -> prepareModes()
                 .flatMap(mode -> Stream.of(false, true).map(callable -> Arguments.of(testCase, mode, callable))));
+    }
+
+    private static Stream<Arguments> adjacentKeywordCases() {
+        QueryCase[] cases = {
+                // Integer literal followed by 'and' must not become '5and'.
+                new QueryCase("integer", "SELECT CASE WHEN 5 = ?and 1 = 1 THEN 1 ELSE 0 END", ps -> ps.setInt(1, 5)),
+                // Decimal literal followed by 'and' must not become '5.5and'.
+                new QueryCase("decimal", "SELECT CASE WHEN 5.5 = ?and 1 = 1 THEN 1 ELSE 0 END",
+                        ps -> ps.setBigDecimal(1, new BigDecimal("5.5"))),
+                // Bit literal followed by 'and' must not become '1and'.
+                new QueryCase("boolean", "SELECT CASE WHEN 1 = ?and 1 = 1 THEN 1 ELSE 0 END",
+                        ps -> ps.setBoolean(1, true)),
+                // Hex literal followed by 'and' must not become the invalid '0x01020304and'.
+                new QueryCase("binary", "SELECT CASE WHEN 0x01020304 = ?and 1 = 1 THEN 1 ELSE 0 END",
+                        ps -> ps.setBytes(1, BINARY_VALUE)),
+                // NULL literal followed by 'is' must not become the identifier 'NULLis'.
+                new QueryCase("null", "SELECT CASE WHEN ?is null THEN 1 ELSE 0 END",
+                        ps -> ps.setNull(1, Types.INTEGER))};
+        return Arrays.stream(cases).flatMap(testCase -> prepareModes().map(mode -> Arguments.of(testCase, mode)));
+    }
+
+    // Uses a zone whose offset differs from the JVM default so that an ignored Calendar is observable.
+    private static Calendar foreignCalendar() {
+        TimeZone zone = TimeZone.getTimeZone("Pacific/Kiritimati");
+        if (zone.getRawOffset() == TimeZone.getDefault().getRawOffset()) {
+            zone = TimeZone.getTimeZone("Pacific/Pago_Pago");
+        }
+        return Calendar.getInstance(zone);
     }
 
     private static Connection openConnection(String mode, boolean unicode) throws SQLException {
@@ -353,6 +576,23 @@ public class PrepareMethodLiteralTest extends AbstractTest {
         ParameterCase(String name, String sqlType, Binder binder) {
             this.name = name;
             this.sqlType = sqlType;
+            this.binder = binder;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    private static final class QueryCase {
+        final String name;
+        final String sql;
+        final Binder binder;
+
+        QueryCase(String name, String sql, Binder binder) {
+            this.name = name;
+            this.sql = sql;
             this.binder = binder;
         }
 

@@ -562,11 +562,12 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
     public void testFormatLiteralValueLongMinMax() throws Exception {
         SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
 
+        // Long values are cast to BIGINT so that expressions keep bigint semantics.
         // Test Long.MIN_VALUE
-        assertEquals("-9223372036854775808", callFormatLiteralValue(pstmt, Long.MIN_VALUE));
+        assertEquals("CAST(-9223372036854775808 AS BIGINT)", callFormatLiteralValue(pstmt, Long.MIN_VALUE));
 
         // Test Long.MAX_VALUE
-        assertEquals("9223372036854775807", callFormatLiteralValue(pstmt, Long.MAX_VALUE));
+        assertEquals("CAST(9223372036854775807 AS BIGINT)", callFormatLiteralValue(pstmt, Long.MAX_VALUE));
     }
 
     @Test
@@ -594,21 +595,25 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
     public void testFormatLiteralValueDoubleMinMax() throws Exception {
         SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
 
+        // Double values are sent as float literals in E notation.
         // Test Double.MIN_VALUE (smallest positive value)
         String result = callFormatLiteralValue(pstmt, Double.MIN_VALUE);
-        assertEquals(new BigDecimal(Double.toString(Double.MIN_VALUE)).toPlainString(), result);
+        assertEquals(Double.toString(Double.MIN_VALUE), result);
 
         // Test Double.MAX_VALUE
         result = callFormatLiteralValue(pstmt, Double.MAX_VALUE);
-        assertEquals(new BigDecimal(Double.toString(Double.MAX_VALUE)).toPlainString(), result);
+        assertEquals(Double.toString(Double.MAX_VALUE), result);
 
         // Test negative Double.MAX_VALUE
         result = callFormatLiteralValue(pstmt, -Double.MAX_VALUE);
-        assertEquals(new BigDecimal(Double.toString(-Double.MAX_VALUE)).toPlainString(), result);
+        assertEquals(Double.toString(-Double.MAX_VALUE), result);
 
         // Test Double.MIN_NORMAL
         result = callFormatLiteralValue(pstmt, Double.MIN_NORMAL);
-        assertEquals(new BigDecimal(Double.toString(Double.MIN_NORMAL)).toPlainString(), result);
+        assertEquals(Double.toString(Double.MIN_NORMAL), result);
+
+        // A value without an exponent gets E0 so that it is still a float literal
+        assertEquals("-1.5E0", callFormatLiteralValue(pstmt, -1.5d));
     }
 
     @Test
@@ -677,17 +682,17 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
     public void testFormatLiteralValueScientificNotationHandling() throws Exception {
         SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
 
-        // Test very small double that might use scientific notation
+        // Doubles use E notation, which SQL Server reads as a float literal. A plain decimal literal would be
+        // typed as numeric and cannot hold values beyond 38 digits.
+        // Test very small double
         double scientificDouble = 1.23e-100;
         String result = callFormatLiteralValue(pstmt, scientificDouble);
-        // Should not contain 'E' or 'e' (scientific notation)
-        assertTrue(!result.contains("E") && !result.contains("e"));
+        assertEquals("1.23E-100", result);
 
-        // Test very large double that might use scientific notation
+        // Test very large double
         double largeDouble = 1.23e100;
         result = callFormatLiteralValue(pstmt, largeDouble);
-        // Should not contain 'E' or 'e' (scientific notation)
-        assertTrue(!result.contains("E") && !result.contains("e"));
+        assertEquals("1.23E100", result);
     }
 
     @Test
