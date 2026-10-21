@@ -327,6 +327,47 @@ public class PrepareMethodLiteralTest extends AbstractTest {
         }
     }
 
+    /**
+     * Verifies that when direct execution falls back to RPC (here because of stream parameters), character values keep
+     * the types of typed binding: setString and setCharacterStream are varchar when
+     * sendStringParametersAsUnicode=false, and setNString stays nvarchar. A later execution without streams inlines
+     * literals again, and the string parameters are still sent as text.
+     */
+    @ParameterizedTest(name = "mode={0}, unicode={1}")
+    @MethodSource("configurations")
+    public void testRpcFallbackKeepsSetterCharacterTypes(String mode, boolean unicode) throws SQLException {
+        int expectedLength = unicode ? 6 : 3;
+        try (Connection conn = openConnection(mode, unicode); PreparedStatement ps = conn
+                .prepareStatement("SELECT DATALENGTH(?), DATALENGTH(?), DATALENGTH(?), ?, ?")) {
+            ps.setString(1, "abc");
+            ps.setNString(2, "abc");
+            ps.setCharacterStream(3, new StringReader("abc"));
+            ps.setString(4, "abc");
+            ps.setBinaryStream(5, new ByteArrayInputStream(BINARY_VALUE));
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(expectedLength, rs.getInt(1));
+                assertEquals(6, rs.getInt(2));
+                assertEquals(expectedLength, rs.getInt(3));
+                assertEquals("abc", rs.getString(4));
+                assertArrayEquals(BINARY_VALUE, rs.getBytes(5));
+                assertFalse(rs.next());
+            }
+
+            ps.setString(3, "abc");
+            ps.setBytes(5, BINARY_VALUE);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(expectedLength, rs.getInt(1));
+                assertEquals(6, rs.getInt(2));
+                assertEquals(expectedLength, rs.getInt(3));
+                assertEquals("abc", rs.getString(4));
+                assertArrayEquals(BINARY_VALUE, rs.getBytes(5));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
     /** Verifies numeric, bit, binary and NULL markers followed directly by a keyword (e.g. '?and') stay valid SQL. */
     @ParameterizedTest(name = "{0}, mode={1}")
     @MethodSource("adjacentKeywordCases")

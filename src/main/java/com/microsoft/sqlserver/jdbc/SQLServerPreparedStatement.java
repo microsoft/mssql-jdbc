@@ -1469,9 +1469,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (isDirectSqlExecution) {
             if (!sendAsDirectSql) {
                 // Parameters that cannot be inlined as literals are sent with an unprepared sp_executesql call.
-                // No server handle is created or cached.
-                buildExecSQLParams(tdsWriter);
-                sendParamsByRPC(tdsWriter, params);
+                // No server handle is created or cached. Character values keep the type and encoding the setter
+                // requested, as with typed binding, instead of the national type used for literals.
+                for (Parameter param : params) {
+                    param.useSetterCharacterTypeForRpc(connection);
+                }
+                try {
+                    buildPreparedStrings(params, false);
+                    buildExecSQLParams(tdsWriter);
+                    sendParamsByRPC(tdsWriter, params);
+                } finally {
+                    for (Parameter param : params) {
+                        param.restoreDirectSqlLiteralValue();
+                    }
+                }
                 return false;
             }
 
@@ -4305,8 +4316,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
-    // Date format for java.util.Date -> DATETIME2 conversion
-    private static final SimpleDateFormat TS_FMT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US);
+    /**
+     * Formats a java.util.Date as yyyy-MM-dd HH:mm:ss.SSS in the default time zone. SimpleDateFormat is not
+     * thread-safe, so a new instance is used per call instead of a shared static one.
+     */
+    private static String formatUtilDate(java.util.Date value) {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(value);
+    }
 
     // OUT parameter marker for replaceParameterMarkers
     static final char[] OUT = { ' ', 'O', 'U', 'T' };
@@ -4520,7 +4536,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             } else if (value instanceof java.sql.Timestamp) {
                 return "'" + escapeSQLString(value.toString().replace(' ', 'T')) + "'";
             } else if (value instanceof java.util.Date) {
-                return "'" + escapeSQLString(TS_FMT.format((java.util.Date) value).replace(' ', 'T')) + "'";
+                return "'" + escapeSQLString(formatUtilDate((java.util.Date) value).replace(' ', 'T')) + "'";
             }
         } else {
             if (value instanceof java.math.BigDecimal) {
@@ -4547,7 +4563,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             } else if (value instanceof java.sql.Timestamp) {
                 return "CAST('" + escapeSQLString(value.toString()) + "' AS DATETIME2)";
             } else if (value instanceof java.util.Date) {
-                return "CAST('" + escapeSQLString(TS_FMT.format((java.util.Date) value)) + "' AS DATETIME2)";
+                return "CAST('" + escapeSQLString(formatUtilDate((java.util.Date) value)) + "' AS DATETIME2)";
             } else if (value instanceof Long) {
                 // An integer literal is typed as int, so keep bigint semantics in expressions.
                 return "CAST(" + value + " AS BIGINT)";

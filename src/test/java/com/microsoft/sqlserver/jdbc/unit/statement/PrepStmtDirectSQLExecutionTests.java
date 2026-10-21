@@ -14,7 +14,13 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -518,6 +524,46 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
         assertEquals("CAST('2023-12-15 14:30:45.123' AS DATETIME2)", oldResult);
 
         assertNotEquals(oldResult, optimizedResult, "Optimized version preserves DATETIME2 precision (7 digits)");
+    }
+
+    /**
+     * java.util.Date literals are formatted correctly when several threads format different values at the same time.
+     */
+    @Test
+    public void testFormatLiteralValueUtilDateIsThreadSafe() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+        int threadCount = 8;
+        int iterations = 2000;
+
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        try {
+            List<Future<String>> results = new ArrayList<>();
+            for (int t = 0; t < threadCount; t++) {
+                // Each thread uses a different year and time so that a shared formatter would mix up the fields.
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.clear();
+                cal.set(2001 + t * 111, t, 1 + t * 3, t * 2, t * 7, t * 5);
+                cal.set(java.util.Calendar.MILLISECOND, 100 + t);
+                java.util.Date value = cal.getTime();
+                String expected = "CAST('" + new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS",
+                        java.util.Locale.US).format(value) + "' AS DATETIME2)";
+
+                results.add(executor.submit(() -> {
+                    for (int i = 0; i < iterations; i++) {
+                        String actual = callFormatLiteralValue(pstmt, value);
+                        if (!expected.equals(actual)) {
+                            return "expected " + expected + " but was " + actual;
+                        }
+                    }
+                    return null;
+                }));
+            }
+            for (Future<String> result : results) {
+                assertNull(result.get(60, TimeUnit.SECONDS));
+            }
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     // ==================== Numeric Formatting Tests ====================
