@@ -41,6 +41,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -321,6 +322,51 @@ public class PrepareMethodLiteralTest extends AbstractTest {
         }
     }
 
+    /**
+     * Verifies a REAL setObject target is converted like typed binding, which declares REAL as float, so 16777217 is
+     * not rounded to a 32-bit real. The second execution binds a stream, so direct execution falls back to RPC.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testRealTargetMatchesTypedBinding(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true);
+                PreparedStatement ps = conn.prepareStatement("SELECT ?, ?, DATALENGTH(?)")) {
+            for (boolean stream : new boolean[] {false, true}) {
+                ps.setObject(1, "16777217", Types.REAL);
+                ps.setObject(2, 16777217L, Types.REAL);
+                if (stream) {
+                    ps.setBinaryStream(3, new ByteArrayInputStream(BINARY_VALUE));
+                } else {
+                    ps.setBytes(3, BINARY_VALUE);
+                }
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(16777217.0, rs.getDouble(1), "stream=" + stream);
+                    assertEquals(16777217.0, rs.getDouble(2), "stream=" + stream);
+                    assertEquals(BINARY_VALUE.length, rs.getInt(3));
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
+    /** Verifies setTime keeps milliseconds that are not on a 1/300 second tick when sendTimeAsDatetime=false. */
+    @ParameterizedTest(name = "mode={0}, callable={1}")
+    @MethodSource("callableConfigurations")
+    public void testTimeWithoutSendTimeAsDatetimeKeepsMilliseconds(String mode,
+            boolean callable) throws SQLException {
+        Time expected = new Time(Time.valueOf("13:14:15").getTime() + 1);
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            conn.unwrap(SQLServerConnection.class).setSendTimeAsDatetime(false);
+            String query = "SELECT CAST(? AS time(3))";
+            if (callable) {
+                stmt.execute("CREATE PROCEDURE #literal_time @value time(3) AS SELECT @value");
+                query = "{call #literal_time(?)}";
+            }
+            assertEquals(expected, readValue(conn, query, ps -> ps.setTime(1, expected), callable));
+        }
+    }
+
     /** Verifies setObject's target JDBC type (VARCHAR) drives SQL semantics: string concatenation, not addition. */
     @ParameterizedTest(name = "mode={0}")
     @MethodSource("prepareModes")
@@ -467,6 +513,10 @@ public class PrepareMethodLiteralTest extends AbstractTest {
         return prepareModes().flatMap(mode -> Stream.of(false, true).map(unicode -> Arguments.of(mode, unicode)));
     }
 
+    private static Stream<Arguments> callableConfigurations() {
+        return prepareModes().flatMap(mode -> Stream.of(false, true).map(callable -> Arguments.of(mode, callable)));
+    }
+
     private static Stream<Arguments> predicateCases() {
         PredicateCase[] cases = {
                 new PredicateCase("character-string", "char(9)", "'SAMPLE123'", "=",
@@ -526,6 +576,12 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                 // Time with milliseconds keeps its fractional seconds.
                 new ParameterCase("time-milliseconds", "time(3)",
                         ps -> ps.setTime(1, new Time(Time.valueOf("13:14:15").getTime() + 500))),
+                // With sendTimeAsDatetime (the default), a time is rounded to a 1/300 second tick: .001 becomes .000.
+                new ParameterCase("time-off-tick-milliseconds", "time(3)",
+                        ps -> ps.setTime(1, new Time(Time.valueOf("13:14:15").getTime() + 1))),
+                // The same rounding applies to setTime with a Calendar.
+                new ParameterCase("time-calendar-off-tick-milliseconds", "time(3)",
+                        ps -> ps.setTime(1, new Time(Time.valueOf("13:14:15").getTime() + 1), foreignCalendar())),
                 // Timestamp with 9-digit nanoseconds rounds like typed binding instead of failing to convert.
                 new ParameterCase("timestamp-nanoseconds", "datetime2(7)",
                         ps -> ps.setTimestamp(1, Timestamp.valueOf("2024-02-13 13:14:15.123456789"))),

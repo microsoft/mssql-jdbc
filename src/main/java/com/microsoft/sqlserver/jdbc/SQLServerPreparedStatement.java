@@ -1446,12 +1446,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
-    private static boolean procedureArgumentRequiresRpc(Parameter param, Object value) {
+    private boolean procedureArgumentRequiresRpc(Parameter param, Object value) {
         if (value instanceof String) {
             return null != getNumericLiteralType(param.getJdbcType());
         }
         if (value instanceof java.sql.Timestamp) {
             return 0 != ((java.sql.Timestamp) value).getNanos() % 1000000;
+        }
+        if (value instanceof java.sql.Time) {
+            // With sendTimeAsDatetime, typed binding rounds milliseconds to datetime precision, which a string
+            // argument does not do.
+            return connection.getSendTimeAsDatetime() && 0 != Math.floorMod(((java.sql.Time) value).getTime(), 1000L);
         }
         return false;
     }
@@ -4562,7 +4567,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             } else if (value instanceof java.sql.Date) {
                 return "CAST('" + escapeSQLString(value.toString()) + "' AS DATE)";
             } else if (value instanceof java.sql.Time) {
-                return "CAST('" + escapeSQLString(formatTime((java.sql.Time) value)) + "' AS TIME)";
+                return castTimeLiteral(formatTime((java.sql.Time) value));
             } else if (value instanceof java.sql.Timestamp) {
                 return "CAST('" + escapeSQLString(value.toString()) + "' AS DATETIME2)";
             } else if (value instanceof java.util.Date) {
@@ -4631,6 +4636,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
+     * Converts a time of day to the type used by typed binding: datetime on 1970-01-01 when sendTimeAsDatetime is
+     * set, so milliseconds are rounded to datetime precision, and time otherwise.
+     */
+    private String castTimeLiteral(String time) {
+        if (connection.getSendTimeAsDatetime()) {
+            return "CAST('1970-01-01T" + escapeSQLString(time) + "' AS DATETIME)";
+        }
+        return "CAST('" + escapeSQLString(time) + "' AS TIME)";
+    }
+
+    /**
      * Formats a java.sql.Date, Time, or Timestamp as the wall-clock date and time in the Calendar's time zone.
      */
     private String formatTemporalInCalendar(java.util.Date value, Calendar calendar, boolean isInProcedureCall) {
@@ -4651,6 +4667,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } else if (value instanceof java.sql.Time) {
             int millis = cal.get(Calendar.MILLISECOND);
             text = (0 == millis) ? time : time + String.format(Locale.US, ".%03d", millis);
+            if (!isInProcedureCall) {
+                return castTimeLiteral(text);
+            }
             sqlType = "TIME";
         } else {
             text = isInProcedureCall ? date.replace("-", "") : date;
@@ -4676,8 +4695,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 return "INT";
             case BIGINT:
                 return "BIGINT";
-            case REAL:
-                return "REAL";
+            case REAL: // Typed binding declares REAL as float.
             case FLOAT:
             case DOUBLE:
                 return "FLOAT";

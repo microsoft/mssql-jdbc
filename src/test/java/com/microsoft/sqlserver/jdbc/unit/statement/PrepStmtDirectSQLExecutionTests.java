@@ -485,6 +485,8 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
         Timestamp testTimestamp = Timestamp.valueOf("2023-12-15 14:30:45.123456789");
 
         // Verify optimized formatting produces correct SQL CAST syntax
+        SQLServerConnection conn = (SQLServerConnection) pstmt.getConnection();
+        conn.setSendTimeAsDatetime(false);
         assertEquals("CAST('2023-12-15' AS DATE)", callFormatLiteralValue(pstmt, testDate));
         assertEquals("CAST('14:30:45' AS TIME)", callFormatLiteralValue(pstmt, testTime));
         assertEquals("CAST('2023-12-15 14:30:45.123456789' AS DATETIME2)",
@@ -504,6 +506,12 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
         Time endOfDay = Time.valueOf("23:59:59");
         assertEquals("CAST('00:00:00' AS TIME)", callFormatLiteralValue(pstmt, midnight));
         assertEquals("CAST('23:59:59' AS TIME)", callFormatLiteralValue(pstmt, endOfDay));
+
+        // With sendTimeAsDatetime, a time is sent as datetime on 1970-01-01, as with typed binding
+        conn.setSendTimeAsDatetime(true);
+        assertEquals("CAST('1970-01-01T14:30:45' AS DATETIME)", callFormatLiteralValue(pstmt, testTime));
+        assertEquals("CAST('1970-01-01T00:00:00' AS DATETIME)", callFormatLiteralValue(pstmt, midnight));
+        assertEquals("CAST('1970-01-01T23:59:59' AS DATETIME)", callFormatLiteralValue(pstmt, endOfDay));
     }
 
     @Test
