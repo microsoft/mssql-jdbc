@@ -401,6 +401,72 @@ public class PrepareMethodLiteralTest extends AbstractTest {
         }
     }
 
+    /** A procedure's sql_variant argument must receive the declared decimal type, not a float literal. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testDoubleWithDecimalTargetInProcedure(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #literal_decimal_variant @v sql_variant AS SELECT "
+                    + "SQL_VARIANT_PROPERTY(@v, 'BaseType'), SQL_VARIANT_PROPERTY(@v, 'Scale'), "
+                    + "CONVERT(decimal(38,4), @v)");
+            try (PreparedStatement ps = conn.prepareCall("{call #literal_decimal_variant(?)}")) {
+                for (int targetType : new int[] {Types.DECIMAL, Types.NUMERIC}) {
+                    ps.setObject(1, 1.23456, targetType, 2);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        assertEquals("decimal", rs.getString(1), "targetType=" + targetType);
+                        assertEquals(4, rs.getInt(2), "targetType=" + targetType);
+                        assertEquals(new BigDecimal("1.2346"), rs.getBigDecimal(3), "targetType=" + targetType);
+                        assertFalse(rs.next());
+                    }
+                }
+            }
+        }
+    }
+
+    /** MONEY and SMALLMONEY targets must retain fractional arithmetic, even when bound from a Long. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testLongWithMoneyTargetKeepsFractionalArithmetic(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true);
+                PreparedStatement ps = conn.prepareStatement("SELECT ? / 2, ? / 2")) {
+            ps.setObject(1, 2147483649L, microsoft.sql.Types.MONEY);
+            ps.setObject(2, 5L, microsoft.sql.Types.SMALLMONEY);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(0, new BigDecimal("1073741824.5").compareTo(rs.getBigDecimal(1)));
+                assertEquals(0, new BigDecimal("2.5").compareTo(rs.getBigDecimal(2)));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** A high-precision datetime2 procedure call followed by temp-table DDL must retain batch scope. */
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection"})
+    public void testProcedureTimestampAndTempTableKeepsConnectionScope(String mode) throws SQLException {
+        Timestamp timestamp = Timestamp.valueOf("2024-02-13 13:14:15.1234567");
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #literal_timestamp_echo @d datetime2(7) AS SELECT @d");
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "EXEC #literal_timestamp_echo ?; CREATE TABLE #literal_timestamp_scope (i int)")) {
+                ps.setTimestamp(1, timestamp);
+                boolean hasResultSet = ps.execute();
+                while (hasResultSet || -1 != ps.getUpdateCount()) {
+                    if (hasResultSet) {
+                        try (ResultSet rs = ps.getResultSet()) {
+                            assertTrue(rs.next());
+                            assertEquals(timestamp, rs.getTimestamp(1));
+                            assertFalse(rs.next());
+                        }
+                    }
+                    hasResultSet = ps.getMoreResults();
+                }
+            }
+            assertTrue(tempTableExists(conn, "#literal_timestamp_scope"));
+        }
+    }
+
     /**
      * Verifies literal formatting when the prepared SQL creates a temp table, which also enables direct execution
      * under scopeTempTablesToConnection. In the direct modes the temp table outlives the statement.

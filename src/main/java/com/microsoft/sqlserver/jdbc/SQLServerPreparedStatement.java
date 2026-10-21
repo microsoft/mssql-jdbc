@@ -1413,8 +1413,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Returns true if a statement configured for direct SQL execution has parameters that cannot be inlined as
      * T-SQL literals: a return value, output parameters, table-valued parameters, streams, or SQLXML values. In a
      * procedure call, where arguments cannot be CAST expressions, this also includes values whose literal would lose
-     * their type: a string with a numeric target type, and a timestamp with sub-millisecond precision, which a
-     * datetime parameter would reject instead of rounding.
+    * their type: a string or double with an exact numeric target type, and a timestamp with sub-millisecond
+    * precision, which a datetime parameter would reject instead of rounding. If the batch creates a temp table,
+    * retain the direct execution of timestamp arguments to preserve connection-scoped temp tables.
      *
      * @param params
      *        the parameters of the execution
@@ -1451,8 +1452,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (value instanceof String) {
             return null != getNumericLiteralType(param.getJdbcType());
         }
+        if (value instanceof Double) {
+            String numericType = getNumericLiteralType(param.getJdbcType());
+            return (null != numericType && !"FLOAT".equals(numericType)) || JDBCType.DECIMAL == param.getJdbcType()
+                    || JDBCType.NUMERIC == param.getJdbcType();
+        }
         if (value instanceof java.sql.Timestamp) {
-            return 0 != ((java.sql.Timestamp) value).getNanos() % 1000000;
+            // An RPC scopes a temp table created later in this batch to the call. Preserve the direct batch when
+            // the timestamp literal is already accepted by the procedure (for example a datetime2 parameter).
+            return 0 != ((java.sql.Timestamp) value).getNanos() % 1000000
+                    && !containsTemporaryTableOperations(userSQL);
         }
         if (value instanceof java.sql.Time) {
             // With sendTimeAsDatetime, typed binding rounds milliseconds to datetime precision, which a string
@@ -4712,6 +4721,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 return "INT";
             case BIGINT:
                 return "BIGINT";
+            case MONEY:
+            case SMALLMONEY: // Non-encrypted typed binding declares SMALLMONEY as money.
+                return "MONEY";
             case REAL: // Typed binding declares REAL as float.
             case FLOAT:
             case DOUBLE:
