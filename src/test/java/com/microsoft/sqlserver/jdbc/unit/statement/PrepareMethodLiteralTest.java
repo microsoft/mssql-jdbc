@@ -19,6 +19,7 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Statement;
@@ -336,6 +337,63 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                     assertEquals(new BigDecimal("9223372036854775808"), rs.getBigDecimal(1),
                             "targetType=" + targetType);
                     assertEquals(new BigDecimal("5.00"), rs.getBigDecimal(2), "targetType=" + targetType);
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
+    /** Verifies a Double bound with an INTEGER target keeps int semantics instead of float. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testDoubleWithIntegerTargetKeepsIntSemantics(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true)) {
+            try (PreparedStatement ps = conn.prepareStatement("SELECT ?, ? / 2")) {
+                ps.setObject(1, 2.7, Types.INTEGER);
+                ps.setObject(2, 5.0, Types.INTEGER);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(Types.INTEGER, rs.getMetaData().getColumnType(1));
+                    assertEquals(2, rs.getInt(1));
+                    assertEquals(Types.INTEGER, rs.getMetaData().getColumnType(2));
+                    assertEquals(2, rs.getInt(2));
+                    assertFalse(rs.next());
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement("SELECT ? + 1")) {
+                ps.setObject(1, (double) Integer.MAX_VALUE, Types.INTEGER);
+                assertThrows(SQLException.class, () -> {
+                    try (ResultSet rs = ps.executeQuery()) {
+                        rs.next();
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * Verifies a Double bound with a DECIMAL or NUMERIC target keeps decimal semantics instead of float, while
+     * setDouble keeps float semantics.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testDoubleWithDecimalTargetKeepsDecimalSemantics(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true);
+                PreparedStatement ps = conn.prepareStatement("SELECT ? + 1, ?, ? + 1")) {
+            for (int targetType : new int[] {Types.DECIMAL, Types.NUMERIC}) {
+                ps.setObject(1, 1.0E20, targetType);
+                ps.setObject(2, 1.23456, targetType, 2);
+                ps.setDouble(3, 1.0E20);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    ResultSetMetaData metaData = rs.getMetaData();
+                    assertEquals(Types.DECIMAL, metaData.getColumnType(1), "targetType=" + targetType);
+                    assertEquals(0, new BigDecimal("100000000000000000001").compareTo(rs.getBigDecimal(1)),
+                            "targetType=" + targetType);
+                    // Typed binding declares a double with a scale of at least 4.
+                    assertEquals(new BigDecimal("1.2346"), rs.getBigDecimal(2), "targetType=" + targetType);
+                    assertEquals(Types.DOUBLE, metaData.getColumnType(3), "targetType=" + targetType);
+                    assertEquals(1.0E20, rs.getDouble(3), "targetType=" + targetType);
                     assertFalse(rs.next());
                 }
             }

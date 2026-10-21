@@ -4501,23 +4501,30 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return formatLiteralValue(value.toString(), national);
         }
 
-        // A string or long with a numeric target type is converted to that type, so a long bound as INTEGER keeps
-        // int semantics instead of being sent as bigint.
-        if ((value instanceof String || value instanceof Long) && !isInProcedureCall) {
+        // A string, long or double with a numeric target type is converted to that type, so a long bound as INTEGER
+        // keeps int semantics instead of being sent as bigint, and a double bound as INTEGER keeps int semantics
+        // instead of float. A double literal is already a float, so float targets need no conversion.
+        if ((value instanceof String || value instanceof Long || value instanceof Double) && !isInProcedureCall) {
             String numericType = getNumericLiteralType(jdbcType);
-            if (null != numericType) {
+            if (null != numericType && !(value instanceof Double && "FLOAT".equals(numericType))) {
                 String text = (value instanceof Long) ? value.toString() : formatLiteralValue(value, national);
                 return "CAST(" + text + " AS " + numericType + ")";
             }
         }
 
-        // A long with a decimal target type is converted to decimal(38, scale), the type declared by typed binding.
-        if (value instanceof Long && !isInProcedureCall
+        // A long or double with a decimal target type is converted to decimal(38, scale), the type declared by typed
+        // binding. Typed binding declares a double with a scale of at least 4.
+        if ((value instanceof Long || value instanceof Double) && !isInProcedureCall
                 && (JDBCType.DECIMAL == jdbcType || JDBCType.NUMERIC == jdbcType)) {
             Integer targetScale = (null != inputDTV) ? inputDTV.getScale() : null;
             int maxPrecision = SQLServerConnection.MAX_DECIMAL_PRECISION;
-            int scale = (null == targetScale) ? 0 : Math.max(0, Math.min(targetScale, maxPrecision));
-            return "CAST(" + value + " AS DECIMAL(" + maxPrecision + "," + scale + "))";
+            int scale = (null == targetScale) ? 0 : targetScale;
+            if (value instanceof Double) {
+                scale = Math.max(scale, 4);
+            }
+            scale = Math.max(0, Math.min(scale, maxPrecision));
+            String text = (value instanceof Long) ? value.toString() : formatLiteralValue(value, national);
+            return "CAST(" + text + " AS DECIMAL(" + maxPrecision + "," + scale + "))";
         }
 
         return formatLiteralValue(value, national);
