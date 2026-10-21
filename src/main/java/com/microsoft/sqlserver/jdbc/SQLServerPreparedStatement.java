@@ -1285,7 +1285,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             }
                         }
                     }
-                    if (getStatementLogger().isLoggable(java.util.logging.Level.FINER)) {
+                    if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
                         getStatementLogger().fine("Parameter encryption metadata is set.");
                     }
                 }
@@ -2265,11 +2265,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision, int scale,
             boolean forceEncrypt) throws SQLServerException {
-        setObjectWithOptionalScale(parameterIndex, x, targetSqlType, precision, scale, forceEncrypt);
-    }
-
-    private void setObjectWithOptionalScale(int parameterIndex, Object x, int targetSqlType, Integer precision,
-            Integer scale, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject",
                     new Object[] {parameterIndex, x, targetSqlType, precision, scale, forceEncrypt});
@@ -2365,7 +2360,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale,
             boolean forceEncrypt) throws SQLServerException {
-        setObjectWithOptionalScale(parameterIndex, x, targetSqlType.getVendorTypeNumber(), precision, scale, forceEncrypt);
+        setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), precision, scale, forceEncrypt);
     }
 
     @Override
