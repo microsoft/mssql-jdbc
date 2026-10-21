@@ -1435,7 +1435,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             DTV inputDTV = param.getInputDTV();
             if (null != inputDTV) {
                 JavaType javaType = inputDTV.getJavaType();
-                if (JavaType.INPUTSTREAM == javaType || JavaType.READER == javaType || JavaType.SQLXML == javaType) {
+                if (null != inputDTV.getSetterValue() && (JavaType.INPUTSTREAM == javaType
+                        || JavaType.READER == javaType || JavaType.SQLXML == javaType)) {
                     return true;
                 }
                 if (isInProcedureCall && procedureArgumentRequiresRpc(param, inputDTV.getSetterValue())) {

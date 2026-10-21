@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc.unit.statement;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -455,6 +456,19 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                 assertEquals(!stream && isDirectMode(mode), tempTableExists(conn, "#literal_rpc"),
                         "stream=" + stream);
             }
+
+            // A null stream is a NULL literal, not a stream that requires an RPC. Remove the prior table first.
+            if (tempTableExists(conn, "#literal_rpc")) {
+                stmt.execute("DROP TABLE #literal_rpc");
+            }
+            ps.setBinaryStream(1, null);
+            try (ResultSet rs = firstResultSet(ps)) {
+                assertTrue(rs.next());
+                assertNull(rs.getObject(1));
+                assertEquals(7, rs.getInt(2));
+                assertFalse(rs.next());
+            }
+            assertEquals(isDirectMode(mode), tempTableExists(conn, "#literal_rpc"), "null stream");
         }
     }
 
