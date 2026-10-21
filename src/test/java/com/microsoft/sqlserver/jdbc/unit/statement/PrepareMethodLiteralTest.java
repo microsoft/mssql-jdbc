@@ -467,6 +467,40 @@ public class PrepareMethodLiteralTest extends AbstractTest {
         }
     }
 
+    /** Only procedure arguments must avoid CAST; a subsequent SQL expression still needs bigint semantics. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testNonLeadingProcedureArgumentsAndTempTableScope(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #literal_long_echo @v bigint AS SELECT @v");
+                for (String prefix : new String[] {"SET NOCOUNT ON; ", "/* leading ; comment */ ",
+                    "-- leading ; comment\n"}) {
+                try (PreparedStatement ps = conn.prepareStatement(prefix
+                        + "EXEC #literal_long_echo ?; SELECT ? + 1 AS total INTO #literal_nonleading")) {
+                    ps.setLong(1, 5L);
+                    ps.setLong(2, Integer.MAX_VALUE);
+                    try (ResultSet rs = firstResultSet(ps)) {
+                        assertTrue(rs.next());
+                        assertEquals(5L, rs.getLong(1));
+                        assertFalse(rs.next());
+                    }
+                    while (ps.getMoreResults() || -1 != ps.getUpdateCount()) {
+                        // Consume the SELECT INTO result before checking the table from another statement.
+                    }
+                }
+                assertEquals(isDirectMode(mode), tempTableExists(conn, "#literal_nonleading"), "prefix=" + prefix);
+                if (tempTableExists(conn, "#literal_nonleading")) {
+                    try (ResultSet rs = stmt.executeQuery("SELECT total FROM #literal_nonleading")) {
+                        assertTrue(rs.next());
+                        assertEquals(Integer.MAX_VALUE + 1L, rs.getLong(1));
+                        assertFalse(rs.next());
+                    }
+                    stmt.execute("DROP TABLE #literal_nonleading");
+                }
+            }
+        }
+    }
+
     /**
      * Verifies literal formatting when the prepared SQL creates a temp table, which also enables direct execution
      * under scopeTempTablesToConnection. In the direct modes the temp table outlives the statement.

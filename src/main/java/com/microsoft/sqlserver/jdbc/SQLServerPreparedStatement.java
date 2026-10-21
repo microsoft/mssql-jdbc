@@ -79,6 +79,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /** Parameter positions in processed SQL statement text. */
     final int[] userSQLParamPositions;
 
+    /** Procedure-argument context for each marker in a direct SQL statement, computed once per statement. */
+    private final boolean[] directSqlProcedureArguments;
+
     /** SQL statement with expanded parameter tokens */
     private String preparedSQL;
 
@@ -386,6 +389,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } else {
             isDirectSqlExecution = false;
             usePrepExec = false;
+        }
+        if (isDirectSqlExecution) {
+            directSqlProcedureArguments = new boolean[userSQLParamPositions.length];
+            for (int i = 0; i < userSQLParamPositions.length; i++) {
+                directSqlProcedureArguments[i] = isProcedureArgument(userSQL, userSQLParamPositions[i]);
+            }
+        } else {
+            directSqlProcedureArguments = null;
         }
     }
 
@@ -1274,7 +1285,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             }
                         }
                     }
-                    if (getStatementLogger().isLoggable(java.util.logging.Level.FINE)) {
+                    if (getStatementLogger().isLoggable(java.util.logging.Level.FINER)) {
                         getStatementLogger().fine("Parameter encryption metadata is set.");
                     }
                 }
@@ -1409,24 +1420,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
-    /**
-     * Returns true if a statement configured for direct SQL execution has parameters that cannot be inlined as
-     * T-SQL literals: a return value, output parameters, table-valued parameters, streams, or SQLXML values. In a
-     * procedure call, where arguments cannot be CAST expressions, this also includes values whose literal would lose
-    * their type: a string or double with an exact numeric target type, and a timestamp with sub-millisecond
-    * precision, which a datetime parameter would reject instead of rounding. If the batch creates a temp table,
-    * retain the direct execution of timestamp arguments to preserve connection-scoped temp tables.
-     *
-     * @param params
-     *        the parameters of the execution
-     * @return true if the execution must be sent as an RPC
-     */
+    /** Returns whether direct execution must use a typed RPC because a parameter cannot be inlined safely. */
     private boolean directExecutionRequiresRpc(Parameter[] params) {
         if (bReturnValueSyntax) {
             return true;
         }
-        boolean isInProcedureCall = null != procedureName;
-        for (Parameter param : params) {
+        for (int i = 0; i < params.length; i++) {
+            Parameter param = params[i];
             if (null == param) {
                 continue;
             }
@@ -1440,12 +1440,48 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         || JavaType.READER == javaType || JavaType.SQLXML == javaType)) {
                     return true;
                 }
-                if (isInProcedureCall && procedureArgumentRequiresRpc(param, inputDTV.getSetterValue())) {
+                if (directSqlProcedureArguments[i] && procedureArgumentRequiresRpc(param, inputDTV.getSetterValue())) {
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    /**
+     * Identifies the statement containing a parameter, rather than assuming an EXEC must begin the entire batch.
+     * Semicolons inside quoted text, identifiers or comments are ignored by the existing SQL scanner.
+     */
+    private static boolean isProcedureArgument(String sql, int parameterPosition) {
+        int start = 0;
+        int separator = ParameterUtils.scanSQLForChar(';', sql, start);
+        while (separator < parameterPosition) {
+            start = separator + 1;
+            separator = ParameterUtils.scanSQLForChar(';', sql, start);
+        }
+
+        while (start < parameterPosition) {
+            if (Character.isWhitespace(sql.charAt(start))) {
+                start++;
+            } else if (start + 1 < parameterPosition && sql.charAt(start) == '/' && sql.charAt(start + 1) == '*') {
+                int end = sql.indexOf("*/", start + 2);
+                if (end < 0 || end >= parameterPosition) {
+                    return false;
+                }
+                start = end + 2;
+            } else if (start + 1 < parameterPosition && sql.charAt(start) == '-' && sql.charAt(start + 1) == '-') {
+                start += 2;
+                while (start < parameterPosition && sql.charAt(start) != '\n' && sql.charAt(start) != '\r') {
+                    start++;
+                }
+            } else {
+                break;
+            }
+        }
+
+        int keywordLength = sql.regionMatches(true, start, "EXECUTE", 0, 7) ? 7 : 4;
+        return start + keywordLength < parameterPosition && sql.regionMatches(true, start, "EXEC", 0, 4)
+                && Character.isWhitespace(sql.charAt(start + keywordLength));
     }
 
     private boolean procedureArgumentRequiresRpc(Parameter param, Object value) {
@@ -2227,7 +2263,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision, int scale,
+    public final void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision, Integer scale,
             boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject",
@@ -4444,7 +4480,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (params[paramIndex] != null) {
                     value = params[paramIndex].getSetterValue();
                 }
-                String literal = formatLiteralValue(params[paramIndex], value);
+                boolean isInProcedureCall = null != directSqlProcedureArguments && sqlSrc == userSQL
+                    && paramPositions == userSQLParamPositions
+                    ? directSqlProcedureArguments[paramIndex] : isProcedureArgument(sqlSrc, srcEnd);
+                String literal = formatLiteralValue(params[paramIndex], value, isInProcedureCall);
 
                 // A negative literal after '-' would otherwise start a '--' comment.
                 if (literal.startsWith("-") && result.length() > 0 && '-' == result.charAt(result.length() - 1)) {
@@ -4488,12 +4527,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @throws SQLException
      *         if an error occurs
      */
-    private String formatLiteralValue(Parameter param, Object value) throws SQLException {
+    private String formatLiteralValue(Parameter param, Object value, boolean isInProcedureCall) throws SQLException {
         if (null == param || null == value) {
             return formatLiteralValue(value);
         }
 
-        boolean isInProcedureCall = null != procedureName && isDirectSqlExecution;
         boolean national = param.isNationalCharacterLiteral();
         JDBCType jdbcType = param.getJdbcType();
 
@@ -4508,7 +4546,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // An integral value with a character target type is sent as text.
         if (jdbcType.isTextual() && (value instanceof Byte || value instanceof Short || value instanceof Integer
                 || value instanceof Long)) {
-            return formatLiteralValue(value.toString(), national);
+            return formatLiteralValue(value.toString(), national, isInProcedureCall);
         }
 
         // A string, long or double with a numeric target type is converted to that type, so a long bound as INTEGER
@@ -4517,7 +4555,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if ((value instanceof String || value instanceof Long || value instanceof Double) && !isInProcedureCall) {
             String numericType = getNumericLiteralType(jdbcType);
             if (null != numericType && !(value instanceof Double && "FLOAT".equals(numericType))) {
-                String text = (value instanceof Long) ? value.toString() : formatLiteralValue(value, national);
+                String text = (value instanceof Long) ? value.toString()
+                    : formatLiteralValue(value, national, isInProcedureCall);
                 return "CAST(" + text + " AS " + numericType + ")";
             }
         }
@@ -4533,11 +4572,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 scale = Math.max(scale, 4);
             }
             scale = Math.max(0, Math.min(scale, maxPrecision));
-            String text = (value instanceof Long) ? value.toString() : formatLiteralValue(value, national);
+            String text = (value instanceof Long) ? value.toString()
+                    : formatLiteralValue(value, national, isInProcedureCall);
             return "CAST(" + text + " AS DECIMAL(" + maxPrecision + "," + scale + "))";
         }
 
-        return formatLiteralValue(value, national);
+        return formatLiteralValue(value, national, isInProcedureCall);
     }
 
     /**
@@ -4555,9 +4595,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     private String formatLiteralValue(Object value, boolean national) throws SQLException {
-        // procedureName is populated when call syntax identifies a stored procedure; direct execution uses that
-        // non-null value to format procedure arguments without CAST expressions.
-        boolean isInProcedureCall = null != procedureName && isDirectSqlExecution;
+        return formatLiteralValue(value, national, null != procedureName && isDirectSqlExecution);
+    }
+
+    private String formatLiteralValue(Object value, boolean national, boolean isInProcedureCall) throws SQLException {
+        // An EXEC argument cannot contain CAST expressions, even when other statements precede it in the batch.
         String stringPrefix = (national || connection.sendStringParametersAsUnicode()) ? "N'" : "'";
 
         if (isInProcedureCall) {
