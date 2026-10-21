@@ -1471,16 +1471,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 // Parameters that cannot be inlined as literals are sent with an unprepared sp_executesql call.
                 // No server handle is created or cached. Character values keep the type and encoding the setter
                 // requested, as with typed binding, instead of the national type used for literals.
-                for (Parameter param : params) {
-                    param.useSetterCharacterTypeForRpc(connection);
-                }
+                DTV[] literalValues = new DTV[params.length];
                 try {
+                    for (int i = 0; i < params.length; i++) {
+                        literalValues[i] = params[i].useSetterCharacterTypeForRpc(connection);
+                    }
                     buildPreparedStrings(params, false);
                     buildExecSQLParams(tdsWriter);
                     sendParamsByRPC(tdsWriter, params);
                 } finally {
-                    for (Parameter param : params) {
-                        param.restoreDirectSqlLiteralValue();
+                    for (int i = 0; i < params.length; i++) {
+                        params[i].restoreDirectSqlLiteralValue(literalValues[i]);
                     }
                 }
                 return false;

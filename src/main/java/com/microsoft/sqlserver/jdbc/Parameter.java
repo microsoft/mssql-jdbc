@@ -66,17 +66,10 @@ final class Parameter {
     // set length of value for variable length type (String)
     private int valueLength = 0;
 
-    // Direct SQL execution only: true when the setter requested a national character type (for example setNString),
-    // so the inlined literal keeps the N prefix even when sendStringParametersAsUnicode=false.
-    private boolean nationalCharacterLiteral = false;
-
-    // Direct SQL execution with sendStringParametersAsUnicode=false only: the character type requested by the setter
-    // before the value was re-tagged as a national type for literal formatting. Used when the execution falls back to
-    // RPC, so the value is sent with the same type and encoding as typed binding.
-    private JDBCType directSqlCharacterType = null;
-
-    // The literal-formatting DTV saved while the RPC fallback uses a DTV built with directSqlCharacterType.
-    private DTV directSqlLiteralDTV = null;
+    // Direct SQL execution only: the JDBC type requested by the setter, before character values are re-tagged as
+    // national types for literal formatting. A national type keeps the N prefix on the literal; a re-tagged type is
+    // restored when the execution falls back to RPC.
+    private JDBCType directSqlSetterType = null;
 
     private boolean forceEncryption = false;
 
@@ -200,44 +193,54 @@ final class Parameter {
      * @return Per the description.
      */
     boolean isNationalCharacterLiteral() {
-        return nationalCharacterLiteral;
+        return JDBCType.NCHAR == directSqlSetterType || JDBCType.NVARCHAR == directSqlSetterType
+                || JDBCType.LONGNVARCHAR == directSqlSetterType || JDBCType.NCLOB == directSqlSetterType;
     }
 
     /**
      * Direct SQL execution only: before the execution falls back to RPC, replaces a value that was re-tagged as a
-     * national type for literal formatting with one built with the character type the setter requested. The value is
-     * then sent with the same type and encoding as typed binding. {@link #restoreDirectSqlLiteralValue()} undoes this.
+     * national type for literal formatting with one built with the character type the setter requested, when
+     * sendStringParametersAsUnicode=false. The value is then sent with the same type and encoding as typed binding.
      *
      * @param con
      *        the connection
+     * @return the replaced literal-formatting value to pass to {@link #restoreDirectSqlLiteralValue(DTV)}, or null if
+     *         the value was not replaced
      * @throws SQLServerException
      *         if the value cannot be converted
      */
-    void useSetterCharacterTypeForRpc(SQLServerConnection con) throws SQLServerException {
-        if (null == directSqlCharacterType || null == setterDTV) {
-            return;
+    DTV useSetterCharacterTypeForRpc(SQLServerConnection con) throws SQLServerException {
+        if (null == directSqlSetterType || null == setterDTV || con.sendStringParametersAsUnicode()
+                || getSSPAUJDBCType(directSqlSetterType) == directSqlSetterType
+                || !isUnicodeRetaggedJavaType(setterDTV.getJavaType())) {
+            return null;
         }
+        DTV literalDTV = setterDTV;
         DTV typedDTV = new DTV();
-        typedDTV.setValue(con.getDatabaseCollation(), directSqlCharacterType, setterDTV.getSetterValue(),
-                setterDTV.getJavaType(), setterDTV.getStreamSetterArgs(), setterDTV.getCalendar(),
-                setterDTV.getScale(), con, forceEncryption);
+        typedDTV.setValue(con.getDatabaseCollation(), directSqlSetterType, literalDTV.getSetterValue(),
+                literalDTV.getJavaType(), literalDTV.getStreamSetterArgs(), literalDTV.getCalendar(),
+                literalDTV.getScale(), con, forceEncryption);
         typedDTV.sendStringParametersAsUnicode = false;
-        directSqlLiteralDTV = setterDTV;
         inputDTV = setterDTV = typedDTV;
+        return literalDTV;
     }
 
     /**
-     * Restores the literal-formatting value replaced by {@link #useSetterCharacterTypeForRpc(SQLServerConnection)}.
-     * A stream value consumed by the execution stays cleared.
+     * Restores a literal-formatting value returned by {@link #useSetterCharacterTypeForRpc(SQLServerConnection)}. A
+     * stream value consumed by the execution stays cleared.
+     *
+     * @param literalDTV
+     *        the value to restore, or null
      */
-    void restoreDirectSqlLiteralValue() {
-        if (null == directSqlLiteralDTV) {
-            return;
+    void restoreDirectSqlLiteralValue(DTV literalDTV) {
+        if (null != literalDTV && null != setterDTV) {
+            inputDTV = setterDTV = literalDTV;
         }
-        if (null != setterDTV) {
-            inputDTV = setterDTV = directSqlLiteralDTV;
-        }
-        directSqlLiteralDTV = null;
+    }
+
+    private static boolean isUnicodeRetaggedJavaType(JavaType javaType) {
+        return JavaType.STRING == javaType || JavaType.READER == javaType || JavaType.CLOB == javaType
+                || JavaType.OBJECT == javaType;
     }
 
     /**
@@ -352,8 +355,7 @@ final class Parameter {
         clonedParam.cryptoMeta = cryptoMeta;
         clonedParam.jdbcTypeSetByUser = jdbcTypeSetByUser;
         clonedParam.valueLength = valueLength;
-        clonedParam.nationalCharacterLiteral = nationalCharacterLiteral;
-        clonedParam.directSqlCharacterType = directSqlCharacterType;
+        clonedParam.directSqlSetterType = directSqlSetterType;
         clonedParam.userProvidesPrecision = userProvidesPrecision;
         clonedParam.userProvidesScale = userProvidesScale;
         clonedParam.defineParameterTypeSqlType = defineParameterTypeSqlType;
@@ -535,20 +537,10 @@ final class Parameter {
         // JavaType.OBJECT == javaType when calling setNull()
         // Direct SQL also uses Unicode types internally to preserve text instead of encoded bytes.
         // Literal formatting still uses the connection's Unicode setting to choose the N prefix, unless the setter
-        // requested a national character type, which is recorded before the re-tagging below.
-        directSqlCharacterType = null;
-        directSqlLiteralDTV = null;
-        if (isDirectSqlExecution) {
-            nationalCharacterLiteral = JDBCType.NCHAR == jdbcType || JDBCType.NVARCHAR == jdbcType
-                    || JDBCType.LONGNVARCHAR == jdbcType || JDBCType.NCLOB == jdbcType;
-        }
-        if ((con.sendStringParametersAsUnicode() || isDirectSqlExecution) && (JavaType.STRING == javaType
-                || JavaType.READER == javaType || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
-            JDBCType unicodeJdbcType = getSSPAUJDBCType(jdbcType);
-            if (isDirectSqlExecution && !con.sendStringParametersAsUnicode() && unicodeJdbcType != jdbcType) {
-                directSqlCharacterType = jdbcType;
-            }
-            jdbcType = unicodeJdbcType;
+        // requested a national character type. The setter's type is recorded before the re-tagging below.
+        directSqlSetterType = isDirectSqlExecution ? jdbcType : null;
+        if ((con.sendStringParametersAsUnicode() || isDirectSqlExecution) && isUnicodeRetaggedJavaType(javaType)) {
+            jdbcType = getSSPAUJDBCType(jdbcType);
         }
 
         DTV newDTV = new DTV();
