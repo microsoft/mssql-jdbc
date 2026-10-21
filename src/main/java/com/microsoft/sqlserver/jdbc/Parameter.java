@@ -582,6 +582,10 @@ final class Parameter {
         return setterDTV.getSetterValue();
     }
 
+    boolean hasSetterDTV() {
+        return null != setterDTV;
+    }
+
     int getInt(TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
         Integer value = (Integer) getValue(JDBCType.INTEGER, null, null, tdsReader, statement);
         return null != value ? value : 0;

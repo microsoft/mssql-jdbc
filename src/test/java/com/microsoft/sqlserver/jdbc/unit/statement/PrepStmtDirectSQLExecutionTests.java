@@ -1419,6 +1419,88 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
     // Tests for prepareMethod=none which always uses direct SQL batch execution
     // (no temp table detection required)
 
+    @ParameterizedTest
+    @CsvSource({"none,false,1", "none,false,2", "none,true,1", "none,true,2",
+            "prepexec,false,1", "prepexec,false,2", "prepexec,true,1", "prepexec,true,2"})
+    public void testUnsetParameterInBatch(String prepareMethod, boolean largeBatch, int missingParameter)
+            throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            conn.setPrepareMethod(prepareMethod);
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE missing_table SET value = ? WHERE id = ?")) {
+                ps.setInt(3 - missingParameter, 42);
+                ps.addBatch();
+
+                SQLException error = assertThrows(SQLException.class,
+                        () -> {
+                            if (largeBatch) {
+                                ps.executeLargeBatch();
+                            } else {
+                                ps.executeBatch();
+                            }
+                        });
+                assertTrue(error.getMessage().contains(Integer.toString(missingParameter)),
+                        "Expected the unset parameter's index: " + error);
+            }
+        }
+    }
+
+    @Test
+    public void testUnsetParameterInTempTableDirectBatch() throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            conn.setPrepareMethod("scopeTempTablesToConnection");
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "CREATE TABLE #unset_batch_param (value INT); INSERT INTO #unset_batch_param VALUES (?)")) {
+                ps.addBatch();
+                SQLException error = assertThrows(SQLException.class, ps::executeBatch);
+                assertTrue(error.getMessage().contains("1"), "Expected the unset parameter's index: " + error);
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testUnsetParameterInLaterDirectBatchEntry(boolean largeBatch) throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            conn.setPrepareMethod("none");
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE missing_table SET value = ? WHERE id = ?")) {
+                ps.setInt(1, 42);
+                ps.setInt(2, 1);
+                ps.addBatch();
+                ps.clearParameters();
+                ps.setInt(1, 43);
+                ps.addBatch();
+
+                SQLException error = assertThrows(SQLException.class,
+                        () -> {
+                            if (largeBatch) {
+                                ps.executeLargeBatch();
+                            } else {
+                                ps.executeBatch();
+                            }
+                        });
+                assertTrue(error.getMessage().contains("2"), "Expected the unset parameter's index: " + error);
+            }
+        }
+    }
+
+    @Test
+    public void testExplicitNullInDirectBatchIsSet() throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString);
+                Statement stmt = conn.createStatement()) {
+            conn.setPrepareMethod("none");
+            stmt.execute("CREATE TABLE #null_batch_param (value INT NULL)");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #null_batch_param VALUES (?)")) {
+                ps.setNull(1, Types.INTEGER);
+                ps.addBatch();
+                assertArrayEquals(new int[] {1}, ps.executeBatch());
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM #null_batch_param WHERE value IS NULL")) {
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+            }
+        }
+    }
+
     /**
      * Test prepareMethod=none with regular (non-temp) table DML/SELECT operations
      * Validates that literal parameter substitution works for general queries,

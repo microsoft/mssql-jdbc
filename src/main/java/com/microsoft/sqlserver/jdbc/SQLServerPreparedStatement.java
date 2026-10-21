@@ -2263,8 +2263,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     @Override
-    public final void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision, Integer scale,
+    public final void setObject(int parameterIndex, Object x, int targetSqlType, Integer precision, int scale,
             boolean forceEncrypt) throws SQLServerException {
+        setObjectWithOptionalScale(parameterIndex, x, targetSqlType, precision, scale, forceEncrypt);
+    }
+
+    private void setObjectWithOptionalScale(int parameterIndex, Object x, int targetSqlType, Integer precision,
+            Integer scale, boolean forceEncrypt) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setObject",
                     new Object[] {parameterIndex, x, targetSqlType, precision, scale, forceEncrypt});
@@ -2360,7 +2365,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     @Override
     public final void setObject(int parameterIndex, Object x, SQLType targetSqlType, Integer precision, Integer scale,
             boolean forceEncrypt) throws SQLServerException {
-        setObject(parameterIndex, x, targetSqlType.getVendorTypeNumber(), precision, scale, forceEncrypt);
+        setObjectWithOptionalScale(parameterIndex, x, targetSqlType.getVendorTypeNumber(), precision, scale, forceEncrypt);
     }
 
     @Override
@@ -4476,10 +4481,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 result.append(sqlSrc, srcBegin, srcEnd);
 
                 // Get parameter value and format it
-                Object value = null;
-                if (params[paramIndex] != null) {
-                    value = params[paramIndex].getSetterValue();
+                if (null == params[paramIndex] || !params[paramIndex].hasSetterDTV()) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueNotSetForParameter"));
+                    SQLServerException.makeFromDriverError(connection, this, form.format(new Object[] {paramIndex + 1}),
+                            null, false);
                 }
+                Object value = params[paramIndex].getSetterValue();
                 boolean isInProcedureCall = null != directSqlProcedureArguments && sqlSrc == userSQL
                     && paramPositions == userSQLParamPositions
                     ? directSqlProcedureArguments[paramIndex] : isProcedureArgument(sqlSrc, srcEnd);
@@ -4505,6 +4512,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Append remaining SQL after last parameter
             result.append(sqlSrc, srcBegin, sqlSrc.length());
             return result.toString();
+        } catch (SQLServerException e) {
+            throw e;
         } catch (Exception e) {
             // Try to set the cause, but if OOM occurs even this may fail
             try {

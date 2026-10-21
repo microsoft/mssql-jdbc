@@ -9,10 +9,12 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.sql.BatchUpdateException;
 import java.sql.CallableStatement;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -571,6 +573,25 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
                 assertEquals(27, cs.getInt(2));
             } finally {
                 TestUtils.dropProcedureIfExists(procedureName, stmt);
+            }
+        }
+    }
+
+    /** OUT-only parameters must be rejected before either batch execution path substitutes literals. */
+    @ParameterizedTest(name = "prepareMethod={0}")
+    @ValueSource(strings = {"prepexec", "none"})
+    public void testCallableOutputParameterInBatch(String prepareMethod) throws SQLException {
+        try (SQLServerConnection conn = openConnection(prepareMethod)) {
+            for (boolean largeBatch : new boolean[] {false, true}) {
+                try (CallableStatement cs = conn.prepareCall("{call missing_procedure(?)}")) {
+                    cs.registerOutParameter(1, Types.INTEGER);
+                    cs.addBatch();
+                    if (largeBatch) {
+                        assertThrows(BatchUpdateException.class, cs::executeLargeBatch);
+                    } else {
+                        assertThrows(BatchUpdateException.class, cs::executeBatch);
+                    }
+                }
             }
         }
     }
