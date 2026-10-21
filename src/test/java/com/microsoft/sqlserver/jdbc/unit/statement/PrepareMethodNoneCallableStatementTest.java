@@ -9,10 +9,12 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.sql.BatchUpdateException;
 import java.sql.CallableStatement;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -30,6 +32,8 @@ import java.time.OffsetTime;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -530,6 +534,148 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
                 TestUtils.dropProcedureIfExists(procedureName, stmt);
             }
         }
+    }
+
+    /** Verifies the {? = call fn(?)} return value is populated. */
+    @ParameterizedTest(name = "prepareMethod={0}")
+    @ValueSource(strings = {"prepexec", "none"})
+    public void testCallableFunctionReturnValue(String prepareMethod) throws SQLException {
+        String functionName = "dbo." + AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("callable_none_fn"));
+
+        try (SQLServerConnection conn = openConnection(prepareMethod); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE FUNCTION " + functionName + " (@value int) RETURNS int AS BEGIN RETURN @value + 11 END");
+
+            try (CallableStatement cs = conn.prepareCall("{? = call " + functionName + "(?)}")) {
+                cs.registerOutParameter(1, Types.INTEGER);
+                cs.setInt(2, 31);
+                cs.execute();
+                assertEquals(42, cs.getInt(1));
+            } finally {
+                stmt.execute("DROP FUNCTION IF EXISTS " + functionName);
+            }
+        }
+    }
+
+    /** Verifies a registered OUTPUT parameter is returned from a stored procedure. */
+    @ParameterizedTest(name = "prepareMethod={0}")
+    @ValueSource(strings = {"prepexec", "none"})
+    public void testCallableOutputParameter(String prepareMethod) throws SQLException {
+        String procedureName = temporaryProcedureName("callable_none_output");
+
+        try (SQLServerConnection conn = openConnection(prepareMethod); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE " + procedureName
+                    + " @input int, @output int OUTPUT AS SET @output = @input * 3");
+
+            try (CallableStatement cs = conn.prepareCall("{call " + procedureName + "(?, ?)}")) {
+                cs.setInt(1, 9);
+                cs.registerOutParameter(2, Types.INTEGER);
+                cs.execute();
+                assertEquals(27, cs.getInt(2));
+            } finally {
+                TestUtils.dropProcedureIfExists(procedureName, stmt);
+            }
+        }
+    }
+
+    /** OUT-only parameters must be rejected before either batch execution path substitutes literals. */
+    @ParameterizedTest(name = "prepareMethod={0}")
+    @ValueSource(strings = {"prepexec", "none"})
+    public void testCallableOutputParameterInBatch(String prepareMethod) throws SQLException {
+        try (SQLServerConnection conn = openConnection(prepareMethod)) {
+            for (boolean largeBatch : new boolean[] {false, true}) {
+                try (CallableStatement cs = conn.prepareCall("{call missing_procedure(?)}")) {
+                    cs.registerOutParameter(1, Types.INTEGER);
+                    cs.addBatch();
+                    if (largeBatch) {
+                        assertThrows(BatchUpdateException.class, cs::executeLargeBatch);
+                    } else {
+                        assertThrows(BatchUpdateException.class, cs::executeBatch);
+                    }
+                }
+            }
+        }
+    }
+
+    /** Verifies an INOUT parameter sends its input value and returns the updated value. */
+    @ParameterizedTest(name = "prepareMethod={0}")
+    @ValueSource(strings = {"prepexec", "none"})
+    public void testCallableInOutParameter(String prepareMethod) throws SQLException {
+        String procedureName = temporaryProcedureName("callable_none_inout");
+
+        try (SQLServerConnection conn = openConnection(prepareMethod); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE " + procedureName
+                    + " @value int OUTPUT AS SET @value = @value + 5");
+
+            try (CallableStatement cs = conn.prepareCall("{call " + procedureName + "(?)}")) {
+                cs.setInt(1, 7);
+                cs.registerOutParameter(1, Types.INTEGER);
+                cs.execute();
+                assertEquals(12, cs.getInt(1));
+            } finally {
+                TestUtils.dropProcedureIfExists(procedureName, stmt);
+            }
+        }
+    }
+
+    /** Verifies a procedure can return both a result set and an OUTPUT parameter. */
+    @ParameterizedTest(name = "prepareMethod={0}")
+    @ValueSource(strings = {"prepexec", "none"})
+    public void testCallableOutputParameterWithResultSet(String prepareMethod) throws SQLException {
+        String procedureName = temporaryProcedureName("callable_none_output_rs");
+
+        try (SQLServerConnection conn = openConnection(prepareMethod); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE " + procedureName
+                    + " @input nvarchar(20), @length int OUTPUT AS BEGIN SELECT UPPER(@input);"
+                    + " SET @length = LEN(@input) END");
+
+            try (CallableStatement cs = conn.prepareCall("{call " + procedureName + "(?, ?)}")) {
+                cs.setString(1, "sample");
+                cs.registerOutParameter(2, Types.INTEGER);
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals("SAMPLE", rs.getString(1));
+                    assertFalse(rs.next());
+                }
+                assertEquals(6, cs.getInt(2));
+            } finally {
+                TestUtils.dropProcedureIfExists(procedureName, stmt);
+            }
+        }
+    }
+
+    /** Verifies parameters bound by name, out of declaration order, reach the matching procedure parameters. */
+    @ParameterizedTest(name = "prepareMethod={0}")
+    @ValueSource(strings = {"prepexec", "none"})
+    public void testCallableNamedParameters(String prepareMethod) throws SQLException {
+        String procedureName = "dbo."
+                + AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("callable_none_named"));
+
+        try (SQLServerConnection conn = openConnection(prepareMethod); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE " + procedureName
+                    + " @number int, @text nvarchar(20), @stamp datetime2(3) AS SELECT @number, @text, @stamp");
+
+            Timestamp stamp = Timestamp.valueOf("2026-10-07 01:02:03.456");
+            try (CallableStatement cs = conn.prepareCall("{call " + procedureName + "(?, ?, ?)}")) {
+                // Bind by name in an order that differs from the declaration order.
+                cs.setTimestamp("stamp", stamp);
+                cs.setString("@text", "named");
+                cs.setInt("number", 42);
+                try (ResultSet rs = cs.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(42, rs.getInt(1));
+                    assertEquals("named", rs.getString(2));
+                    assertEquals(stamp, rs.getTimestamp(3));
+                    assertFalse(rs.next());
+                }
+            } finally {
+                stmt.execute("DROP PROCEDURE IF EXISTS " + procedureName);
+            }
+        }
+    }
+
+    private static SQLServerConnection openConnection(String prepareMethod) throws SQLException {
+        return (SQLServerConnection) PrepUtil
+                .getConnection(TestUtils.addOrOverrideProperty(connectionString, "prepareMethod", prepareMethod));
     }
 
     private void assertInputRoundTrip(String sqlType, CallableParameterSetter setter, ResultSetVerifier verifier)
