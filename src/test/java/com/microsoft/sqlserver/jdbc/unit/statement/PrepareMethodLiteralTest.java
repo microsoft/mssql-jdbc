@@ -343,6 +343,85 @@ public class PrepareMethodLiteralTest extends AbstractTest {
     }
 
     /**
+     * Verifies literal formatting when the prepared SQL creates a temp table, which also enables direct execution
+     * under scopeTempTablesToConnection. In the direct modes the temp table outlives the statement.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testLiteralsInStatementThatCreatesTempTable(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); PreparedStatement ps = conn.prepareStatement(
+                "SELECT ? + 1 AS a, 10 - ? AS b, ? + 1 AS c, ? AS t INTO #literal_scope; "
+                        + "SELECT a, b, c, t FROM #literal_scope")) {
+            ps.setLong(1, Integer.MAX_VALUE);
+            ps.setInt(2, -5);
+            ps.setObject(3, Long.MAX_VALUE, Types.DECIMAL);
+            ps.setTime(4, new Time(Time.valueOf("13:14:15").getTime() + 1));
+            try (ResultSet rs = firstResultSet(ps)) {
+                assertTrue(rs.next());
+                assertEquals(2147483648L, rs.getLong(1));
+                assertEquals(15, rs.getInt(2));
+                assertEquals(new BigDecimal("9223372036854775808"), rs.getBigDecimal(3));
+                // With sendTimeAsDatetime, .001 is rounded to .000 as with typed binding.
+                assertEquals(Time.valueOf("13:14:15"), rs.getTime(4));
+                assertFalse(rs.next());
+            }
+            assertEquals(isDirectMode(mode), tempTableExists(conn, "#literal_scope"));
+        }
+    }
+
+    /**
+     * Verifies the RPC fallback when the prepared SQL creates a temp table. A temp table created before the statement
+     * stays accessible. A temp table created by the RPC call is dropped when the call ends, while the literal batch
+     * keeps it on the connection.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testRpcFallbackInStatementThatCreatesTempTable(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement();
+                PreparedStatement ps = conn.prepareStatement("CREATE TABLE #literal_rpc (v varbinary(max)); "
+                        + "INSERT INTO #literal_rpc VALUES (?); "
+                        + "SELECT (SELECT DATALENGTH(v) FROM #literal_rpc), (SELECT n FROM #literal_existing)")) {
+            stmt.execute("CREATE TABLE #literal_existing (n int); INSERT INTO #literal_existing VALUES (7)");
+            for (boolean stream : new boolean[] {true, false}) {
+                if (stream) {
+                    ps.setBinaryStream(1, new ByteArrayInputStream(BINARY_VALUE));
+                } else {
+                    ps.setBytes(1, BINARY_VALUE);
+                }
+                try (ResultSet rs = firstResultSet(ps)) {
+                    assertTrue(rs.next());
+                    assertEquals(BINARY_VALUE.length, rs.getInt(1), "stream=" + stream);
+                    assertEquals(7, rs.getInt(2), "stream=" + stream);
+                    assertFalse(rs.next());
+                }
+                assertEquals(!stream && isDirectMode(mode), tempTableExists(conn, "#literal_rpc"),
+                        "stream=" + stream);
+            }
+        }
+    }
+
+    private static boolean isDirectMode(String mode) {
+        return "none".equals(mode) || "scopeTempTablesToConnection".equals(mode);
+    }
+
+    private static ResultSet firstResultSet(PreparedStatement ps) throws SQLException {
+        boolean isResultSet = ps.execute();
+        while (!isResultSet) {
+            assertTrue(-1 != ps.getUpdateCount(), "The statement did not return a result set.");
+            isResultSet = ps.getMoreResults();
+        }
+        return ps.getResultSet();
+    }
+
+    private static boolean tempTableExists(Connection conn, String name) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT OBJECT_ID('tempdb.." + name + "')")) {
+            assertTrue(rs.next());
+            return null != rs.getObject(1);
+        }
+    }
+
+    /**
      * Verifies a REAL setObject target is converted like typed binding, which declares REAL as float, so 16777217 is
      * not rounded to a 32-bit real. The second execution binds a stream, so direct execution falls back to RPC.
      */
