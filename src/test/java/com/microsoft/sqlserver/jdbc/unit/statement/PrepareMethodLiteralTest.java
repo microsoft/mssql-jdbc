@@ -8,6 +8,7 @@ package com.microsoft.sqlserver.jdbc.unit.statement;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -291,6 +292,31 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                 assertTrue(rs.next());
                 assertEquals(Integer.MAX_VALUE + 1L, rs.getLong(1));
                 assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** Verifies a Long bound with an explicit INTEGER target keeps int semantics instead of widening to bigint. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testLongWithIntegerTargetKeepsIntSemantics(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true)) {
+            try (PreparedStatement ps = conn.prepareStatement("SELECT ?")) {
+                ps.setObject(1, (long) Integer.MAX_VALUE, Types.INTEGER);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(Types.INTEGER, rs.getMetaData().getColumnType(1));
+                    assertEquals(Integer.MAX_VALUE, rs.getInt(1));
+                    assertFalse(rs.next());
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement("SELECT ? + 1")) {
+                ps.setObject(1, (long) Integer.MAX_VALUE, Types.INTEGER);
+                assertThrows(SQLException.class, () -> {
+                    try (ResultSet rs = ps.executeQuery()) {
+                        rs.next();
+                    }
+                });
             }
         }
     }

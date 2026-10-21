@@ -4496,11 +4496,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return formatLiteralValue(value.toString(), national);
         }
 
-        // A string with a numeric target type is converted to that type.
-        if (value instanceof String && !isInProcedureCall) {
+        // A string or long with a numeric target type is converted to that type, so a long bound as INTEGER keeps
+        // int semantics instead of being sent as bigint.
+        if ((value instanceof String || value instanceof Long) && !isInProcedureCall) {
             String numericType = getNumericLiteralType(jdbcType);
             if (null != numericType) {
-                return "CAST(" + formatLiteralValue(value, national) + " AS " + numericType + ")";
+                String text = (value instanceof Long) ? value.toString() : formatLiteralValue(value, national);
+                return "CAST(" + text + " AS " + numericType + ")";
             }
         }
 
