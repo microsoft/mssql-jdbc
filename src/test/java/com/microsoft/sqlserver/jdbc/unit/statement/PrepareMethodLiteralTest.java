@@ -502,6 +502,49 @@ public class PrepareMethodLiteralTest extends AbstractTest {
     }
 
     /**
+     * T-SQL statements need not be separated by semicolons. An EXEC argument that follows another statement must not
+     * be a CAST expression, while an expression in a statement that follows the EXEC still needs bigint semantics.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testProcedureArgumentsWithoutStatementSeparators(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #literal_long_echo @v bigint AS SELECT @v");
+            for (String sql : new String[] {"SET NOCOUNT ON\nEXEC #literal_long_echo ?",
+                    "BEGIN EXEC #literal_long_echo ?; END", "BEGIN EXEC #literal_long_echo @v = ? END",
+                    "IF 1 = 1 EXEC #literal_long_echo ? ELSE SELECT 0",
+                    "DECLARE @rc int\nEXEC @rc = #literal_long_echo ?"}) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setLong(1, 5L);
+                    try (ResultSet rs = firstResultSet(ps)) {
+                        assertTrue(rs.next(), sql);
+                        assertEquals(5L, rs.getLong(1), sql);
+                        assertFalse(rs.next(), sql);
+                    }
+                }
+            }
+            for (String separator : new String[] {"\n", " ", " /* ; */ "}) {
+                String sql = "EXEC #literal_long_echo ?" + separator + "SELECT ? + 1";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setLong(1, 5L);
+                    ps.setLong(2, Integer.MAX_VALUE);
+                    try (ResultSet rs = firstResultSet(ps)) {
+                        assertTrue(rs.next(), sql);
+                        assertEquals(5L, rs.getLong(1), sql);
+                        assertFalse(rs.next(), sql);
+                    }
+                    assertTrue(ps.getMoreResults(), sql);
+                    try (ResultSet rs = ps.getResultSet()) {
+                        assertTrue(rs.next(), sql);
+                        assertEquals(Integer.MAX_VALUE + 1L, rs.getLong(1), sql);
+                        assertFalse(rs.next(), sql);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Verifies literal formatting when the prepared SQL creates a temp table, which also enables direct execution
      * under scopeTempTablesToConnection. In the direct modes the temp table outlives the statement.
      */

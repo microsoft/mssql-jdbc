@@ -391,10 +391,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             usePrepExec = false;
         }
         if (isDirectSqlExecution) {
-            directSqlProcedureArguments = new boolean[userSQLParamPositions.length];
-            for (int i = 0; i < userSQLParamPositions.length; i++) {
-                directSqlProcedureArguments[i] = isProcedureArgument(userSQL, userSQLParamPositions[i]);
-            }
+            directSqlProcedureArguments = findProcedureArguments(userSQL, userSQLParamPositions);
         } else {
             directSqlProcedureArguments = null;
         }
@@ -1448,40 +1445,217 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
-    /**
-     * Identifies the statement containing a parameter, rather than assuming an EXEC must begin the entire batch.
-     * Semicolons inside quoted text, identifiers or comments are ignored by the existing SQL scanner.
-     */
-    private static boolean isProcedureArgument(String sql, int parameterPosition) {
-        int start = 0;
-        int separator = ParameterUtils.scanSQLForChar(';', sql, start);
-        while (separator < parameterPosition) {
-            start = separator + 1;
-            separator = ParameterUtils.scanSQLForChar(';', sql, start);
-        }
+    // Token kinds of the EXEC argument scan. A punctuation token is represented by its character.
+    private static final int TOKEN_WORD = -1;
+    private static final int TOKEN_VARIABLE = -2;
+    private static final int TOKEN_QUOTED_NAME = -3;
+    private static final int TOKEN_LITERAL = -4;
+    private static final int TOKEN_MARKER = -5;
 
-        while (start < parameterPosition) {
-            if (Character.isWhitespace(sql.charAt(start))) {
-                start++;
-            } else if (start + 1 < parameterPosition && sql.charAt(start) == '/' && sql.charAt(start + 1) == '*') {
-                int end = sql.indexOf("*/", start + 2);
-                if (end < 0 || end >= parameterPosition) {
-                    return false;
+    // States of the EXEC argument scan.
+    private static final int EXEC_NONE = 0;
+    private static final int EXEC_NAME_EXPECTED = 1;
+    private static final int EXEC_RETURN_VARIABLE = 2;
+    private static final int EXEC_NAME = 3;
+    private static final int EXEC_ARGUMENT_EXPECTED = 4;
+    private static final int EXEC_ARGUMENT_VARIABLE = 5;
+    private static final int EXEC_NAMED_ARGUMENT_VALUE = 6;
+    private static final int EXEC_AFTER_ARGUMENT = 7;
+    private static final int EXEC_DYNAMIC_SQL = 8;
+
+    /**
+     * Marks the parameters that are arguments of an EXEC statement. An EXEC argument must be a constant or a
+     * variable, so its literal cannot be a CAST expression. T-SQL does not require a separator between statements,
+     * so rather than splitting the batch at semicolons, the scan follows each EXEC argument list up to the first token
+     * that cannot continue it. Quoted text, quoted identifiers and comments are skipped.
+     *
+     * @param sql
+     *        the SQL text
+     * @param parameterPositions
+     *        the ascending positions of the parameter markers in the SQL text
+     * @return for each parameter marker, whether it is an EXEC argument
+     */
+    static boolean[] findProcedureArguments(String sql, int[] parameterPositions) {
+        boolean[] procedureArguments = new boolean[parameterPositions.length];
+        int len = sql.length();
+        int state = EXEC_NONE;
+        int next = 0;
+        int i = 0;
+        while (i < len && next < parameterPositions.length) {
+            char c = sql.charAt(i);
+            if (Character.isWhitespace(c)) {
+                i++;
+                continue;
+            }
+            if ('-' == c && i + 1 < len && '-' == sql.charAt(i + 1)) {
+                while (i < len && '\n' != sql.charAt(i) && '\r' != sql.charAt(i)) {
+                    i++;
                 }
-                start = end + 2;
-            } else if (start + 1 < parameterPosition && sql.charAt(start) == '-' && sql.charAt(start + 1) == '-') {
-                start += 2;
-                while (start < parameterPosition && sql.charAt(start) != '\n' && sql.charAt(start) != '\r') {
-                    start++;
+                continue;
+            }
+            if ('/' == c && i + 1 < len && '*' == sql.charAt(i + 1)) {
+                int end = sql.indexOf("*/", i + 2);
+                i = (end < 0) ? len : end + 2;
+                continue;
+            }
+
+            // A marker that was not reached as a token is not treated as an EXEC argument.
+            while (next < parameterPositions.length && parameterPositions[next] < i) {
+                next++;
+            }
+
+            int start = i;
+            boolean isMarker = false;
+            int kind;
+            if ('?' == c) {
+                isMarker = next < parameterPositions.length && parameterPositions[next] == i;
+                kind = TOKEN_MARKER;
+                i++;
+            } else if ('\'' == c || (('N' == c || 'n' == c) && i + 1 < len && '\'' == sql.charAt(i + 1))) {
+                i = skipQuoted(sql, ('\'' == c) ? i : i + 1, '\'');
+                kind = TOKEN_LITERAL;
+            } else if ('[' == c || '"' == c) {
+                i = skipQuoted(sql, i, ('[' == c) ? ']' : '"');
+                kind = TOKEN_QUOTED_NAME;
+            } else if (Character.isDigit(c) || ('.' == c && i + 1 < len && Character.isDigit(sql.charAt(i + 1)))) {
+                i++;
+                while (i < len) {
+                    char ch = sql.charAt(i);
+                    char previous = sql.charAt(i - 1);
+                    if (!Character.isLetterOrDigit(ch) && '.' != ch
+                            && !(('+' == ch || '-' == ch) && ('e' == previous || 'E' == previous))) {
+                        break;
+                    }
+                    i++;
                 }
+                kind = TOKEN_LITERAL;
+            } else if (Character.isLetter(c) || '_' == c || '@' == c || '#' == c) {
+                i++;
+                while (i < len) {
+                    char ch = sql.charAt(i);
+                    if (!Character.isLetterOrDigit(ch) && '_' != ch && '@' != ch && '#' != ch && '$' != ch) {
+                        break;
+                    }
+                    i++;
+                }
+                kind = ('@' == c) ? TOKEN_VARIABLE : TOKEN_WORD;
             } else {
-                break;
+                i++;
+                kind = c;
+            }
+
+            if (TOKEN_WORD == kind && isKeyword(sql, start, i, "EXEC", "EXECUTE")) {
+                state = EXEC_NAME_EXPECTED;
+            } else {
+                boolean reprocess;
+                do {
+                    reprocess = false;
+                    switch (state) {
+                        case EXEC_NAME_EXPECTED:
+                            if (TOKEN_VARIABLE == kind || TOKEN_MARKER == kind) {
+                                // The return status (a marker in translated call syntax), or a variable that names
+                                // the procedure.
+                                state = EXEC_RETURN_VARIABLE;
+                            } else if (TOKEN_WORD == kind || TOKEN_QUOTED_NAME == kind) {
+                                state = EXEC_NAME;
+                            } else if ('(' == kind) {
+                                state = EXEC_DYNAMIC_SQL;
+                            } else if ('.' != kind) {
+                                state = EXEC_NONE;
+                            }
+                            break;
+                        case EXEC_RETURN_VARIABLE:
+                            if ('=' == kind) {
+                                state = EXEC_NAME_EXPECTED;
+                            } else {
+                                state = EXEC_NAME;
+                                reprocess = true;
+                            }
+                            break;
+                        case EXEC_NAME:
+                            if ('.' == kind) {
+                                state = EXEC_NAME_EXPECTED;
+                            } else {
+                                state = EXEC_ARGUMENT_EXPECTED;
+                                reprocess = true;
+                            }
+                            break;
+                        case EXEC_ARGUMENT_EXPECTED:
+                        case EXEC_NAMED_ARGUMENT_VALUE:
+                            if (TOKEN_MARKER == kind) {
+                                if (isMarker) {
+                                    procedureArguments[next] = true;
+                                }
+                                state = EXEC_AFTER_ARGUMENT;
+                            } else if (TOKEN_VARIABLE == kind && EXEC_ARGUMENT_EXPECTED == state) {
+                                // Either a parameter name or a variable passed as the value.
+                                state = EXEC_ARGUMENT_VARIABLE;
+                            } else if (TOKEN_WORD == kind || TOKEN_VARIABLE == kind || TOKEN_QUOTED_NAME == kind
+                                    || TOKEN_LITERAL == kind) {
+                                state = EXEC_AFTER_ARGUMENT;
+                            } else if ('+' != kind && '-' != kind && '$' != kind) {
+                                // A sign or currency symbol may precede a constant, anything else ends the call.
+                                state = EXEC_NONE;
+                                reprocess = true;
+                            }
+                            break;
+                        case EXEC_ARGUMENT_VARIABLE:
+                            if ('=' == kind) {
+                                state = EXEC_NAMED_ARGUMENT_VALUE;
+                            } else {
+                                state = EXEC_AFTER_ARGUMENT;
+                                reprocess = true;
+                            }
+                            break;
+                        case EXEC_AFTER_ARGUMENT:
+                            if (',' == kind) {
+                                state = EXEC_ARGUMENT_EXPECTED;
+                            } else if (!(TOKEN_WORD == kind && isKeyword(sql, start, i, "OUT", "OUTPUT"))) {
+                                state = EXEC_NONE;
+                                reprocess = true;
+                            }
+                            break;
+                        case EXEC_DYNAMIC_SQL:
+                            // EXEC (...) accepts only string constants and variables.
+                            if (TOKEN_MARKER == kind) {
+                                if (isMarker) {
+                                    procedureArguments[next] = true;
+                                }
+                            } else if (')' == kind) {
+                                state = EXEC_NONE;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                } while (reprocess);
+            }
+
+            if (isMarker) {
+                next++;
             }
         }
+        return procedureArguments;
+    }
 
-        int keywordLength = sql.regionMatches(true, start, "EXECUTE", 0, 7) ? 7 : 4;
-        return start + keywordLength < parameterPosition && sql.regionMatches(true, start, "EXEC", 0, 4)
-                && Character.isWhitespace(sql.charAt(start + keywordLength));
+    /** Returns the index after the closing quote of the quoted text that starts at {@code open}. */
+    private static int skipQuoted(String sql, int open, char close) {
+        int i = open + 1;
+        while (i < sql.length()) {
+            if (close == sql.charAt(i++)) {
+                if (i == sql.length() || close != sql.charAt(i)) {
+                    return i;
+                }
+                i++;
+            }
+        }
+        return i;
+    }
+
+    private static boolean isKeyword(String sql, int start, int end, String keyword, String longKeyword) {
+        int length = end - start;
+        return (keyword.length() == length && sql.regionMatches(true, start, keyword, 0, length))
+                || (longKeyword.length() == length && sql.regionMatches(true, start, longKeyword, 0, length));
     }
 
     private boolean procedureArgumentRequiresRpc(Parameter param, Object value) {
@@ -4468,6 +4642,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         try {
             StringBuilder result = new StringBuilder(sqlSrc.length() + params.length * 20);
             int srcBegin = 0;
+            boolean[] procedureArguments = directSqlProcedureArguments;
+            if (null == procedureArguments || sqlSrc != userSQL || paramPositions != userSQLParamPositions) {
+                procedureArguments = findProcedureArguments(sqlSrc, paramPositions);
+            }
 
             for (int paramIndex = 0; paramIndex < paramPositions.length; paramIndex++) {
                 int srcEnd = paramPositions[paramIndex];
@@ -4482,10 +4660,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             null, false);
                 }
                 Object value = params[paramIndex].getSetterValue();
-                boolean isInProcedureCall = null != directSqlProcedureArguments && sqlSrc == userSQL
-                    && paramPositions == userSQLParamPositions
-                    ? directSqlProcedureArguments[paramIndex] : isProcedureArgument(sqlSrc, srcEnd);
-                String literal = formatLiteralValue(params[paramIndex], value, isInProcedureCall);
+                String literal = formatLiteralValue(params[paramIndex], value, procedureArguments[paramIndex]);
 
                 // A negative literal after '-' would otherwise start a '--' comment.
                 if (literal.startsWith("-") && result.length() > 0 && '-' == result.charAt(result.length() - 1)) {
