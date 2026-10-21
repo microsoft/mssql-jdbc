@@ -322,6 +322,26 @@ public class PrepareMethodLiteralTest extends AbstractTest {
         }
     }
 
+    /** Verifies a Long bound with a DECIMAL or NUMERIC target keeps decimal semantics instead of bigint. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testLongWithDecimalTargetKeepsDecimalSemantics(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true);
+                PreparedStatement ps = conn.prepareStatement("SELECT ? + 1, ?")) {
+            for (int targetType : new int[] {Types.DECIMAL, Types.NUMERIC}) {
+                ps.setObject(1, Long.MAX_VALUE, targetType);
+                ps.setObject(2, 5L, targetType, 2);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(new BigDecimal("9223372036854775808"), rs.getBigDecimal(1),
+                            "targetType=" + targetType);
+                    assertEquals(new BigDecimal("5.00"), rs.getBigDecimal(2), "targetType=" + targetType);
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
     /**
      * Verifies a REAL setObject target is converted like typed binding, which declares REAL as float, so 16777217 is
      * not rounded to a 32-bit real. The second execution binds a stream, so direct execution falls back to RPC.

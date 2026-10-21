@@ -4511,6 +4511,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
+        // A long with a decimal target type is converted to decimal(38, scale), the type declared by typed binding.
+        if (value instanceof Long && !isInProcedureCall
+                && (JDBCType.DECIMAL == jdbcType || JDBCType.NUMERIC == jdbcType)) {
+            Integer targetScale = (null != inputDTV) ? inputDTV.getScale() : null;
+            int maxPrecision = SQLServerConnection.MAX_DECIMAL_PRECISION;
+            int scale = (null == targetScale) ? 0 : Math.max(0, Math.min(targetScale, maxPrecision));
+            return "CAST(" + value + " AS DECIMAL(" + maxPrecision + "," + scale + "))";
+        }
+
         return formatLiteralValue(value, national);
     }
 
