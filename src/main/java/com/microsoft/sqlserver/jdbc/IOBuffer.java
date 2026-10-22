@@ -4108,6 +4108,7 @@ final class TDSWriter {
                                                              : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
 
             calendar = new GregorianCalendar(timeZone, Locale.US);
+            calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
             calendar.setLenient(true);
             calendar.clear();
             calendar.setTimeInMillis(utcMillis);

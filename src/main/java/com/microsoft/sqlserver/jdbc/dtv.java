@@ -746,6 +746,11 @@ final class DTV {
                     // time zone is UTC. For other values, the calendar's time zone is a local time zone.
                     calendar = new GregorianCalendar(timeZone, Locale.US);
 
+                    // Offset-aware values carry a Gregorian instant, not legacy Julian calendar fields.
+                    if (JavaType.OFFSETDATETIME == javaType || JavaType.DATETIMEOFFSET == javaType) {
+                        calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
+                    }
+
                     // Set the calendar lenient to allow setting the DAY_OF_YEAR and MILLISECOND fields
                     // to roll other fields to their correct values.
                     calendar.setLenient(true);

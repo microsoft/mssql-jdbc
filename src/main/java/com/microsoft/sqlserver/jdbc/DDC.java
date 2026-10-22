@@ -990,7 +990,16 @@ final class DDC {
                 //
                 // This optimized path is not functionally correct for dates earlier
                 // than the standard Gregorian change date.
-                if (daysSinceBaseDate >= GregorianChange.DAYS_SINCE_BASE_DATE_HINT) {
+                if (SSType.DATETIMEOFFSET == ssType && (JDBCType.Category.DATETIMEOFFSET == jdbcType.category
+                        || JDBCType.Category.BINARY == jdbcType.category
+                        || JDBCType.Category.SQL_VARIANT == jdbcType.category
+                        || JDBCType.Category.CHARACTER == jdbcType.category)) {
+                    // Preserve the instant for offset-aware objects and the Gregorian fields for strings.
+                    // Legacy java.sql temporal targets still need the calendar rationalization below.
+                    cal.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
+                    cal.set(1, Calendar.JANUARY, 1 + daysSinceBaseDate, 0, 0, 0);
+                    cal.set(Calendar.MILLISECOND, (int) (ticksSinceMidnight / Nanos.PER_MILLISECOND));
+                } else if (daysSinceBaseDate >= GregorianChange.DAYS_SINCE_BASE_DATE_HINT) {
                     // Set the calendar to the specified value. Lenient calendar behavior will update
                     // individual fields according to pure Gregorian calendar rules.
                     //
@@ -1044,6 +1053,7 @@ final class DDC {
                 // (i.e. the time zone of the DATETIMEOFFSET value is UTC).
                 if (SSType.DATETIMEOFFSET == ssType && !componentTimeZone.hasSameRules(localTimeZone)) {
                     GregorianCalendar localCalendar = new GregorianCalendar(localTimeZone, Locale.US);
+                    localCalendar.setGregorianChange(cal.getGregorianChange());
                     localCalendar.clear();
                     localCalendar.setTimeInMillis(cal.getTimeInMillis());
                     cal = localCalendar;

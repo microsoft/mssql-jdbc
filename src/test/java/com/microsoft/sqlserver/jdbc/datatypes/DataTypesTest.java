@@ -25,6 +25,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.time.zone.ZoneOffsetTransition;
 import java.time.zone.ZoneRules;
@@ -38,10 +39,13 @@ import java.util.TimeZone;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -1971,7 +1975,82 @@ public class DataTypesTest extends AbstractTest {
                             + objDateTimeOffset + " and OffsetDateTime : " + objOffsetDateTime);
                 }
             }
+
             TestUtils.dropTableIfExists(escapedTableName, stmt);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {3, 7})
+    public void testDateTimeOffsetProlepticGregorianRoundTrip(int scale) throws Exception {
+        String[] dates = {"0001-01-01T14:00:00+14:00", "1000-01-01T00:00:00Z",
+                "1500-06-15T12:00:00Z", "1500-06-15T12:00:00.1234567+05:45",
+                "1582-10-04T12:00:00Z", "1582-10-04T23:30:00-08:00",
+                "1582-10-04T23:59:59.9999999Z", "1582-10-05T00:00:00Z", "1582-10-06T12:00:00Z",
+                "1582-10-07T12:00:00Z", "1582-10-08T12:00:00Z", "1582-10-09T12:00:00Z",
+                "1582-10-10T12:00:00Z", "1582-10-11T12:00:00Z", "1582-10-12T12:00:00Z",
+                "1582-10-13T12:00:00Z", "1582-10-14T23:59:59.9999999Z", "1582-10-15T00:30:00+14:00",
+                "1582-10-15T00:00:00Z", "2000-01-01T12:00:00Z", "2000-02-29T12:00:00Z",
+                "9999-12-31T09:59:59-14:00"};
+        String sql = "DECLARE @t TABLE (v datetimeoffset(" + scale + ")); INSERT INTO @t VALUES (?); "
+                + "SELECT v, CASE WHEN v = CAST(? AS datetimeoffset(" + scale + ")) "
+                + "AND DATEPART(TZOFFSET, v) = DATEPART(TZOFFSET, CAST(? AS datetimeoffset(" + scale + "))) "
+                + "THEN 1 ELSE 0 END FROM @t";
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            for (String text : dates) {
+                OffsetDateTime input = OffsetDateTime.parse(text);
+                OffsetDateTime expected = input;
+                if (3 == scale) {
+                    expected = input.truncatedTo(ChronoUnit.MILLIS);
+                    if (input.getNano() % 1000000 >= 500000) {
+                        expected = expected.plusNanos(1000000);
+                    }
+                }
+                String isoValue = expected.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+                for (Object value : new Object[] {input, DateTimeOffset.valueOf(input), text}) {
+                    ps.setObject(1, value);
+                    ps.setString(2, isoValue);
+                    ps.setString(3, isoValue);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        // A server-side comparison ensures matching write/read errors cannot mask bad storage.
+                        assertEquals(1, rs.getInt(2), text);
+                        assertEquals(expected, rs.getObject(1, OffsetDateTime.class));
+                        DateTimeOffset actual = rs.getObject(1, DateTimeOffset.class);
+                        assertEquals(expected.toInstant(), actual.getTimestamp().toInstant());
+                        assertEquals(expected, actual.getOffsetDateTime());
+                        assertEquals(expected.toLocalDate().toString(), actual.toString().substring(0, 10));
+                        assertEquals(expected.toLocalDate().toString(), rs.getString(1).substring(0, 10));
+                    }
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1000-01-01T00:00:00Z", "1500-06-15T12:00:00.1234567+05:45",
+            "1582-10-10T12:00:00Z"})
+    public void testDateTimeOffsetBulkCopyPreservesDecodedInstant(String text) throws Exception {
+        OffsetDateTime expected = OffsetDateTime.parse(text);
+        try (Connection source = getConnection(); Connection destination = getConnection();
+                Statement statement = destination.createStatement();
+                PreparedStatement select = source.prepareStatement("SELECT CAST(? AS datetimeoffset(7))");
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(destination)) {
+            statement.execute("CREATE TABLE #dto_gregorian (v datetimeoffset(7))");
+            select.setString(1, text);
+            bulkCopy.setDestinationTableName("#dto_gregorian");
+            try (ResultSet rs = select.executeQuery()) {
+                bulkCopy.writeToServer(rs);
+            }
+            try (PreparedStatement verify = destination.prepareStatement(
+                    "SELECT v, CASE WHEN v = CAST(? AS datetimeoffset(7)) THEN 1 ELSE 0 END FROM #dto_gregorian")) {
+                verify.setString(1, text);
+                try (ResultSet rs = verify.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt(2));
+                    assertEquals(expected, rs.getObject(1, OffsetDateTime.class));
+                }
+            }
         }
     }
 
