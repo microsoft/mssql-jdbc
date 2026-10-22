@@ -4485,14 +4485,25 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             .compile("(?:\\bSET\\s+\\w+|\\bTOP)\\s*$", java.util.regex.Pattern.CASE_INSENSITIVE);
     private static final java.util.regex.Pattern SQL_COMMENT = java.util.regex.Pattern
             .compile("/\\*.*?\\*/|--[^\\r\\n]*", java.util.regex.Pattern.DOTALL);
+    private static final java.util.regex.Pattern MODULE_DEFINITION = java.util.regex.Pattern.compile(
+            "^\\s*(?:CREATE|ALTER)\\s+(?:OR\\s+ALTER\\s+)?(?:PROC|PROCEDURE|FUNCTION|TRIGGER)\\b",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
 
     /**
-     * Returns whether a parameter marker that follows the SQL text built so far is in a position that does not accept
-     * a CAST expression, for example SET ROWCOUNT ? or TOP ?. A Long keeps its plain literal there. Comments before
-     * the marker are ignored.
+     * Returns whether the SQL text before a parameter marker, counted from the previous marker, ends in a position that
+     * does not accept a CAST expression, for example SET ROWCOUNT ? or TOP ?. A Long keeps its plain literal there.
+     * Comments are ignored. Only the original SQL text between two markers is scanned, never the substituted values.
      */
     private static boolean isConstantOnlyPosition(CharSequence sqlBefore) {
         return CONSTANT_ONLY_POSITION.matcher(SQL_COMMENT.matcher(sqlBefore).replaceAll(" ")).find();
+    }
+
+    /**
+     * Returns whether the SQL text creates or alters a procedure, function or trigger. Its body runs later and may
+     * pass a parameter to EXEC, where a CAST expression is not valid, so a Long keeps its plain literal there.
+     */
+    private static boolean isModuleDefinition(String sql) {
+        return MODULE_DEFINITION.matcher(SQL_COMMENT.matcher(sql).replaceAll(" ")).find();
     }
 
     /**
@@ -4532,6 +4543,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         try {
             StringBuilder result = new StringBuilder(sqlSrc.length() + params.length * 20);
             int srcBegin = 0;
+            Boolean moduleDefinition = null; // evaluated once, and only when a Long is bound
 
             for (int paramIndex = 0; paramIndex < paramPositions.length; paramIndex++) {
                 int srcEnd = paramPositions[paramIndex];
@@ -4547,7 +4559,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
                 Object value = params[paramIndex].getSetterValue();
                 String literal;
-                if (value instanceof Long && isConstantOnlyPosition(result)) {
+                if (value instanceof Long && null == moduleDefinition) {
+                    moduleDefinition = isModuleDefinition(sqlSrc);
+                }
+                if (value instanceof Long
+                        && (moduleDefinition || isConstantOnlyPosition(sqlSrc.subSequence(srcBegin, srcEnd)))) {
                     literal = value.toString();
                 } else {
                     literal = formatLiteralValue(params[paramIndex], value);

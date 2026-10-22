@@ -494,7 +494,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
     @ValueSource(strings = {"none"})
     public void testProcedureDefinitionEmbedsTheBoundValue(String mode) throws SQLException {
         try (Connection conn = openConnection(mode); Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE PROCEDURE #inner_def @v int AS SELECT @v");
+            stmt.execute("CREATE PROCEDURE #inner_def @v bigint AS SELECT @v");
             try (PreparedStatement ps = conn.prepareStatement("CREATE PROCEDURE #wrapper_def AS EXEC #inner_def ?")) {
                 ps.setInt(1, 5);
                 ps.execute();
@@ -503,6 +503,39 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 assertTrue(rs.next());
                 assertEquals(5, rs.getInt(1));
                 assertFalse(rs.next());
+            }
+            stmt.execute("DROP PROCEDURE #wrapper_def");
+            // A Long must stay a plain value in the body, because EXEC does not accept a CAST expression.
+            try (PreparedStatement ps = conn.prepareStatement("CREATE PROCEDURE #wrapper_def AS EXEC #inner_def ?")) {
+                ps.setLong(1, 5L);
+                ps.execute();
+            }
+            try (ResultSet rs = stmt.executeQuery("EXEC #wrapper_def")) {
+                assertTrue(rs.next());
+                assertEquals(5L, rs.getLong(1));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    // Several Long markers after a large literal are all processed, and the large literal is not rescanned for them.
+    @Test
+    public void testManyLongMarkersAfterLargeLiteral() throws SQLException {
+        StringBuilder sql = new StringBuilder("SELECT LEN(?)");
+        int markers = 200;
+        for (int i = 0; i < markers; i++) {
+            sql.append(", ? + 1");
+        }
+        String large = new String(new char[200000]).replace('\0', 'x');
+        try (Connection conn = openConnection("none"); PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            ps.setString(1, large);
+            for (int i = 0; i < markers; i++) {
+                ps.setLong(i + 2, Integer.MAX_VALUE);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(large.length(), rs.getInt(1));
+                assertEquals(Integer.MAX_VALUE + 1L, rs.getLong(markers + 1));
             }
         }
     }
