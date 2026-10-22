@@ -4066,6 +4066,7 @@ final class TDSWriter {
                                                                  : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
 
                 calendar = new GregorianCalendar(timeZone);
+                calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
 
                 int year = Integer.parseInt(timestampString.substring(0, 4));
                 int month = Integer.parseInt(timestampString.substring(5, 7));
@@ -4108,6 +4109,7 @@ final class TDSWriter {
                                                              : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
 
             calendar = new GregorianCalendar(timeZone, Locale.US);
+            calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
             calendar.setLenient(true);
             calendar.clear();
             calendar.setTimeInMillis(utcMillis);
@@ -4119,58 +4121,19 @@ final class TDSWriter {
     }
 
     void writeOffsetDateTimeWithTimezone(OffsetDateTime offsetDateTimeValue, int scale) throws SQLServerException {
-        GregorianCalendar calendar;
-        TimeZone timeZone;
-        long utcMillis;
-        int subSecondNanos;
-        int minutesOffset = 0;
+        int minutesOffset = offsetDateTimeValue.getOffset().getTotalSeconds() / 60;
+        int subSecondNanos = offsetDateTimeValue.getNano();
+        GregorianCalendar calendar = initializeCalender(UTC.timeZone);
+        calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
+        calendar.setTimeInMillis(offsetDateTimeValue.toEpochSecond() * 1000);
 
-        try {
-            // offsetTimeValue.getOffset() returns a ZoneOffset object which has only hours and minutes
-            // components. So the result of the division will be an integer always. SQL Server also supports
-            // offsets in minutes precision.
-            minutesOffset = offsetDateTimeValue.getOffset().getTotalSeconds() / 60;
-        } catch (Exception e) {
-            throw new SQLServerException(SQLServerException.getErrString("R_zoneOffsetError"), null, // SQLState is null
-                                                                                                     // as this error is
-                                                                                                     // generated in
-                                                                                                     // the driver
-                    0, // Use 0 instead of DriverError.NOT_SET to use the correct constructor
-                    e);
+        if (offsetDateTimeValue.getYear() < 1 || offsetDateTimeValue.getYear() > 9999
+                || GregorianCalendar.AD != calendar.get(Calendar.ERA)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
+            Object[] msgArgs = {SSType.DATETIMEOFFSET};
+            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_DATETIME_FIELD_OVERFLOW,
+                    DriverError.NOT_SET, null);
         }
-        subSecondNanos = offsetDateTimeValue.getNano();
-
-        // writeScaledTemporal() expects subSecondNanos in 9 digits precssion
-        // but getNano() used in OffsetDateTime returns precession based on nanoseconds read from csv
-        // padding zeros to match the expectation of writeScaledTemporal()
-        int padding = 9 - String.valueOf(subSecondNanos).length();
-        while (padding > 0) {
-            subSecondNanos = subSecondNanos * 10;
-            padding--;
-        }
-
-        // For TIME_WITH_TIMEZONE, use UTC for the calendar that will hold the value
-        timeZone = UTC.timeZone;
-
-        // The behavior is similar to microsoft.sql.DateTimeOffset
-        // In Timestamp format, only YEAR needs to have 4 digits. The leading zeros for the rest of the fields can be
-        // omitted.
-        String offDateTimeStr = String.format("%04d", offsetDateTimeValue.getYear()) + '-'
-                + offsetDateTimeValue.getMonthValue() + '-' + offsetDateTimeValue.getDayOfMonth() + ' '
-                + offsetDateTimeValue.getHour() + ':' + offsetDateTimeValue.getMinute() + ':'
-                + offsetDateTimeValue.getSecond();
-        utcMillis = Timestamp.valueOf(offDateTimeStr).getTime();
-        calendar = initializeCalender(timeZone);
-        calendar.setTimeInMillis(utcMillis);
-
-        // Local timezone value in minutes
-        int minuteAdjustment = ((TimeZone.getDefault().getRawOffset()) / (60 * 1000));
-        // check if date is in day light savings and add daylight saving minutes
-        if (TimeZone.getDefault().inDaylightTime(calendar.getTime()))
-            minuteAdjustment += (TimeZone.getDefault().getDSTSavings()) / (60 * 1000);
-        // If the local time is negative then positive minutesOffset must be subtracted from calender
-        minuteAdjustment += (minuteAdjustment < 0) ? (minutesOffset * (-1)) : minutesOffset;
-        calendar.add(Calendar.MINUTE, minuteAdjustment);
 
         writeScaledTemporal(calendar, subSecondNanos, scale, SSType.DATETIMEOFFSET);
         writeShort((short) minutesOffset);

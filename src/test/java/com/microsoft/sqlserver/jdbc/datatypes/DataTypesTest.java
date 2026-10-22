@@ -3,8 +3,12 @@ package com.microsoft.sqlserver.jdbc.datatypes;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.Date;
@@ -25,6 +29,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.time.zone.ZoneOffsetTransition;
 import java.time.zone.ZoneRules;
@@ -38,10 +43,14 @@ import java.util.TimeZone;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.SQLServerCallableStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
@@ -1018,7 +1027,7 @@ public class DataTypesTest extends AbstractTest {
     enum TestValue {
         POST_GREGORIAN_DATETIME2(new DateTime2Value("1582-10-25 15:07:09.0810000")),
 
-        PRE_GREGORIAN_DTO_VALUE(new DateTimeOffsetValue("1414-01-05 00:00:00.0000000 -08:00")),
+        POST_GREGORIAN_DTO_VALUE(new DateTimeOffsetValue("2014-01-05 00:00:00.0000000 -08:00")),
 
         PRE_GREGORIAN_DATETIME2_VALUE(new DateTime2Value("1414-01-05 00:00:00.0000000")),
 
@@ -1971,7 +1980,191 @@ public class DataTypesTest extends AbstractTest {
                             + objDateTimeOffset + " and OffsetDateTime : " + objOffsetDateTime);
                 }
             }
+
             TestUtils.dropTableIfExists(escapedTableName, stmt);
+        }
+    }
+
+    @Test
+    public void testPreGregorianDateTimeOffsetGetters() throws Exception {
+        String text = "1414-01-05 00:00:00.0000000 -08:00";
+        OffsetDateTime expected = OffsetDateTime.parse("1414-01-05T00:00:00-08:00");
+        DateTimeOffsetValue legacy = new DateTimeOffsetValue(text);
+        try (Connection con = getConnection();
+                PreparedStatement select = con.prepareStatement("SELECT CAST(? AS datetimeoffset(7))")) {
+            select.setString(1, text);
+            try (ResultSet rs = select.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(DateTimeOffset.valueOf(expected), ((SQLServerResultSet) rs).getDateTimeOffset(1));
+                assertEquals(expected, rs.getObject(1, OffsetDateTime.class));
+                assertEquals(text, rs.getString(1));
+                // Legacy java.sql getters retain hybrid-calendar wall-date conversions.
+                assertEquals(legacy.expectedDate(), rs.getDate(1));
+                assertEquals(legacy.expectedTime(), rs.getTime(1));
+                assertEquals(legacy.get().getTimestamp(), rs.getTimestamp(1));
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {3, 7})
+    public void testDateTimeOffsetProlepticGregorianRoundTrip(int scale) throws Exception {
+        String[] dates = {"0001-01-01T14:00:00+14:00", "1000-01-01T00:00:00Z",
+                "1414-01-05T00:00:00-08:00",
+                "1500-06-15T12:00:00Z", "1500-06-15T12:00:00.1234567+05:45",
+                "1582-10-04T12:00:00Z", "1582-10-04T23:30:00-08:00",
+                "1582-10-04T23:59:59.9999999Z", "1582-10-05T00:00:00Z", "1582-10-06T12:00:00Z",
+                "1582-10-07T12:00:00Z", "1582-10-08T12:00:00Z", "1582-10-09T12:00:00Z",
+                "1582-10-10T12:00:00Z", "1582-10-11T12:00:00Z", "1582-10-12T12:00:00Z",
+                "1582-10-13T12:00:00Z", "1582-10-14T23:59:59.9999999Z", "1582-10-15T00:30:00+14:00",
+                "1582-10-15T00:00:00Z", "2000-01-01T12:00:00Z", "2000-02-29T12:00:00Z",
+                "9999-12-31T09:59:59-14:00"};
+        String sql = "DECLARE @t TABLE (v datetimeoffset(" + scale + ")); INSERT INTO @t VALUES (?); "
+                + "SELECT v, CASE WHEN v = CAST(? AS datetimeoffset(" + scale + ")) "
+                + "AND DATEPART(TZOFFSET, v) = DATEPART(TZOFFSET, CAST(? AS datetimeoffset(" + scale + "))) "
+                + "THEN 1 ELSE 0 END FROM @t";
+        try (Connection con = getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            for (String text : dates) {
+                OffsetDateTime input = OffsetDateTime.parse(text);
+                OffsetDateTime expected = input;
+                if (3 == scale) {
+                    expected = input.truncatedTo(ChronoUnit.MILLIS);
+                    if (input.getNano() % 1000000 >= 500000) {
+                        expected = expected.plusNanos(1000000);
+                    }
+                }
+                String isoValue = expected.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+                for (Object value : new Object[] {input, DateTimeOffset.valueOf(input), text}) {
+                    ps.setObject(1, value);
+                    ps.setString(2, isoValue);
+                    ps.setString(3, isoValue);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        // A server-side comparison ensures matching write/read errors cannot mask bad storage.
+                        assertEquals(1, rs.getInt(2), text);
+                        assertEquals(expected, rs.getObject(1, OffsetDateTime.class));
+                        DateTimeOffset actual = rs.getObject(1, DateTimeOffset.class);
+                        assertEquals(expected.toInstant(), actual.getTimestamp().toInstant());
+                        assertEquals(expected, actual.getOffsetDateTime());
+                        assertEquals(expected.toLocalDate().toString(), actual.toString().substring(0, 10));
+                        assertEquals(expected.toLocalDate().toString(), rs.getString(1).substring(0, 10));
+                    }
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1000-01-01T00:00:00Z", "1500-06-15T12:00:00.1234567+05:45",
+            "1582-10-10T12:00:00Z"})
+    public void testDateTimeOffsetBulkCopyPreservesDecodedInstant(String text) throws Exception {
+        OffsetDateTime expected = OffsetDateTime.parse(text);
+        try (Connection source = getConnection(); Connection destination = getConnection();
+                Statement statement = destination.createStatement();
+                PreparedStatement select = source.prepareStatement("SELECT CAST(? AS datetimeoffset(7))");
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(destination)) {
+            statement.execute("CREATE TABLE #dto_gregorian (v datetimeoffset(7))");
+            select.setString(1, text);
+            bulkCopy.setDestinationTableName("#dto_gregorian");
+            try (ResultSet rs = select.executeQuery()) {
+                bulkCopy.writeToServer(rs);
+            }
+            try (PreparedStatement verify = destination.prepareStatement(
+                    "SELECT v, CASE WHEN v = CAST(? AS datetimeoffset(7)) THEN 1 ELSE 0 END FROM #dto_gregorian")) {
+                verify.setString(1, text);
+                try (ResultSet rs = verify.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt(2));
+                    assertEquals(expected, rs.getObject(1, OffsetDateTime.class));
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1000-01-01T00:00:00Z", "1582-10-04T23:59:59.9999999Z", "1582-10-05T00:00:00Z",
+            "1582-10-10T12:00:00Z", "1582-10-10T12:00:00.0000001+05:45", "1582-10-14T23:30:00.0123456-08:00",
+            "1582-10-15T00:30:00+14:00", "2000-01-01T12:00:00Z", "2024-07-01T12:00:00.1234567+05:45",
+            "0001-01-01T14:00:00+14:00", "9999-12-31T09:59:59-14:00"})
+    public void testTimestampWithTimezoneBulkCopyPreservesGregorianInstant(String text) throws Exception {
+        OffsetDateTime expected = OffsetDateTime.parse(text);
+        byte[] csv = ("v\n" + text + "\n").getBytes(StandardCharsets.UTF_8);
+        try (Connection con = getConnection(); Statement statement = con.createStatement();
+                ByteArrayInputStream input = new ByteArrayInputStream(csv);
+                SQLServerBulkCSVFileRecord record = new SQLServerBulkCSVFileRecord(input, Constants.UTF8,
+                        Constants.COMMA, true);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con)) {
+            statement.execute("CREATE TABLE #dto_timezone (v datetimeoffset(7))");
+            record.addColumnMetadata(1, "v", java.sql.Types.TIMESTAMP_WITH_TIMEZONE, 0, 7);
+            bulkCopy.setDestinationTableName("#dto_timezone");
+            bulkCopy.writeToServer(record);
+            try (PreparedStatement verify = con.prepareStatement("SELECT v, CASE WHEN v = CAST(? AS datetimeoffset(7)) "
+                    + "AND DATEPART(TZOFFSET, v) = DATEPART(TZOFFSET, CAST(? AS datetimeoffset(7))) "
+                    + "THEN 1 ELSE 0 END FROM #dto_timezone")) {
+                verify.setString(1, text);
+                verify.setString(2, text);
+                try (ResultSet rs = verify.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt(2), text);
+                    assertEquals(expected, rs.getObject(1, OffsetDateTime.class));
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1500-06-15T00:00:00Z", "1582-10-04T23:30:00-08:00", "1582-10-05T00:00:00Z",
+            "1582-10-10T12:00:00Z", "1582-10-14T23:30:00.0123456-08:00", "1582-10-15T00:30:00+05:45",
+            "2000-01-01T12:00:00Z"})
+    public void testNativeDateTimeOffsetCsvPreservesGregorianDate(String text) throws Exception {
+        OffsetDateTime expected = OffsetDateTime.parse(text);
+        String csvValue = expected.format(DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss.SSSSSSS xxx"));
+        byte[] csv = ("v\n" + csvValue + "\n").getBytes(StandardCharsets.UTF_8);
+        try (Connection con = PrepUtil
+                .getConnection(connectionString + ";sendTemporalDataTypesAsStringForBulkCopy=false");
+                Statement statement = con.createStatement(); ByteArrayInputStream input = new ByteArrayInputStream(csv);
+                SQLServerBulkCSVFileRecord record = new SQLServerBulkCSVFileRecord(input, Constants.UTF8,
+                        Constants.COMMA, true);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con)) {
+            statement.execute("CREATE TABLE #dto_native_csv (v datetimeoffset(7))");
+            record.addColumnMetadata(1, "v", microsoft.sql.Types.DATETIMEOFFSET, 0, 7);
+            bulkCopy.setDestinationTableName("#dto_native_csv");
+            bulkCopy.writeToServer(record);
+            try (PreparedStatement verify = con.prepareStatement("SELECT v, CASE WHEN v = CAST(? AS datetimeoffset(7)) "
+                    + "AND DATEPART(TZOFFSET, v) = DATEPART(TZOFFSET, CAST(? AS datetimeoffset(7))) "
+                    + "THEN 1 ELSE 0 END FROM #dto_native_csv")) {
+                verify.setString(1, csvValue);
+                verify.setString(2, csvValue);
+                try (ResultSet rs = verify.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt(2), text);
+                    assertEquals(expected, rs.getObject(1, OffsetDateTime.class));
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-0001-06-15T12:00:00Z", "0000-06-15T12:00:00Z", "0000-12-31T23:30:00-01:00",
+            "0001-01-01T00:00:00+01:00", "+10000-01-01T00:00:00+01:00", "9999-12-31T23:30:00-01:00"})
+    public void testTimestampWithTimezoneBulkCopyRejectsOutOfRangeDates(String text) throws Exception {
+        byte[] csv = ("v\n" + text + "\n").getBytes(StandardCharsets.UTF_8);
+        try (Connection con = getConnection(); Statement statement = con.createStatement();
+                ByteArrayInputStream input = new ByteArrayInputStream(csv);
+                SQLServerBulkCSVFileRecord record = new SQLServerBulkCSVFileRecord(input, Constants.UTF8,
+                        Constants.COMMA, true);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con)) {
+            statement.execute("CREATE TABLE #dto_range (v datetimeoffset(7))");
+            record.addColumnMetadata(1, "v", java.sql.Types.TIMESTAMP_WITH_TIMEZONE, 0, 7);
+            bulkCopy.setDestinationTableName("#dto_range");
+            SQLServerException error = assertThrows(SQLServerException.class, () -> bulkCopy.writeToServer(record),
+                    text);
+            assertEquals("22008", error.getSQLState(), text);
+            try (ResultSet rs = statement.executeQuery("SELECT COUNT(*) FROM #dto_range")) {
+                assertTrue(rs.next());
+                assertEquals(0, rs.getInt(1), text);
+            }
         }
     }
 
