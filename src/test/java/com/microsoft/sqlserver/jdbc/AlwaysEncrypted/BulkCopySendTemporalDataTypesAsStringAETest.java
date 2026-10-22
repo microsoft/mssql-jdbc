@@ -5,21 +5,28 @@
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -31,6 +38,7 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
+import microsoft.sql.DateTimeOffset;
 
 
 /**
@@ -82,6 +90,39 @@ public class BulkCopySendTemporalDataTypesAsStringAETest extends AESetup {
                     delimiter, true);
 
             testBulkCopyCSV(conn, fileRecord, destTableNameAE);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1500-06-15T00:00:00Z", "1582-10-10T12:00:00.1234567+05:45", "2000-01-01T12:00:00Z"})
+    public void testDateTimeOffsetBulkCopyPreservesGregorianInstant(String text) throws SQLException {
+        OffsetDateTime expected = OffsetDateTime.parse(text);
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("gregorianDtoAE"));
+        try (Connection source = getConnection();
+                Connection destination = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement statement = destination.createStatement();
+                PreparedStatement select = source.prepareStatement("SELECT CAST(? AS datetimeoffset(7))");
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(destination)) {
+            try {
+                statement.execute("CREATE TABLE " + table + " (v datetimeoffset(7) ENCRYPTED WITH "
+                        + "(ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', "
+                        + "COLUMN_ENCRYPTION_KEY = " + cekJks + ") NULL)");
+                select.setString(1, text);
+                bulkCopy.setDestinationTableName(table);
+                try (ResultSet rs = select.executeQuery()) {
+                    bulkCopy.writeToServer(rs);
+                }
+                try (ResultSet rs = statement.executeQuery("SELECT v FROM " + table)) {
+                    assertTrue(rs.next());
+                    assertEquals(expected, rs.getObject(1, OffsetDateTime.class));
+                    DateTimeOffset actual = rs.getObject(1, DateTimeOffset.class);
+                    assertEquals(expected.toInstant(), actual.getTimestamp().toInstant());
+                    assertEquals(expected.getOffset().getTotalSeconds() / 60, actual.getMinutesOffset());
+                    assertFalse(rs.next());
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, statement);
+            }
         }
     }
 

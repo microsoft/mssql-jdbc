@@ -3773,6 +3773,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 subSecondNanos = dtoValue.getTimestamp().getNanos();
                 int minutesOffset = dtoValue.getMinutesOffset();
                 calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+                calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
                 calendar.setLenient(true);
                 calendar.clear();
                 calendar.setTimeInMillis(utcMillis);
