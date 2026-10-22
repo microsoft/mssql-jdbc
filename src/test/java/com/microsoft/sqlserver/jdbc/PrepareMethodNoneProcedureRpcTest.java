@@ -103,7 +103,24 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 Arguments.of("(SELECT ?)", false), Arguments.of("INSERT INTO t VALUES (?)", false),
                 Arguments.of("SET ROWCOUNT ?", false), Arguments.of("DECLARE @v int = ?", false),
                 Arguments.of("UPDATE t SET c = ?", false), Arguments.of("'abc'", false),
-                Arguments.of("@v = ?", false));
+                Arguments.of("@v = ?", false),
+
+                // A module definition does not run its body in this batch. A label is not a call. Service Broker
+                // statements are not procedure calls.
+                Arguments.of("CREATE PROCEDURE dbo.wrapper AS EXEC dbo.inner_proc ?", false),
+                Arguments.of("CREATE OR ALTER PROC dbo.wrapper AS EXEC dbo.inner_proc ?", false),
+                Arguments.of("ALTER /* c */ PROCEDURE dbo.wrapper AS EXEC dbo.inner_proc ?", false),
+                Arguments.of("CREATE TRIGGER trg ON t AFTER INSERT AS EXEC dbo.inner_proc ?", false),
+                Arguments.of("CREATE FUNCTION f() RETURNS int AS BEGIN RETURN ? END", false),
+                Arguments.of("retry: SELECT ? AS v INTO #t", false),
+                Arguments.of("RECEIVE TOP (1) message_body FROM dbo.q; SELECT ? AS v INTO #t", false),
+                Arguments.of("SEND ON CONVERSATION ? MESSAGE TYPE m", false),
+                Arguments.of("GET CONVERSATION GROUP ? FROM dbo.q", false),
+                Arguments.of("MOVE CONVERSATION ? TO ?", false),
+
+                // Statements that follow a definition keyword, a label or a keyword can still hold a call.
+                Arguments.of("CREATE TABLE #t (i int); EXEC p ?", true), Arguments.of("retry: EXEC p ?", true),
+                Arguments.of("retry: dbo.p ?", true), Arguments.of("ALTER TABLE t ADD c int; EXEC p ?", true));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -428,40 +445,81 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
-    // SET ROWCOUNT and TOP accept a number or a variable, not a CAST expression, so a Long stays a plain literal there.
+    // SET ROWCOUNT and TOP accept a number or a variable, not a CAST expression, so a Long stays a plain literal there,
+    // also when comments or a lot of white space come before the marker.
     @ParameterizedTest(name = "mode={0}")
     @ValueSource(strings = {"none", "prepexec", "scopeTempTablesToConnection"})
     public void testLongInConstantOnlyPosition(String mode) throws SQLException {
+        String rows = "SELECT v FROM (VALUES (1), (2), (3)) AS t(v)";
+        String spaces = new String(new char[100]).replace('\0', ' ');
         try (Connection conn = openConnection(mode)) {
-            try (PreparedStatement ps = conn
-                    .prepareStatement("SET ROWCOUNT ?; SELECT v FROM (VALUES (1), (2), (3)) AS t(v)")) {
-                ps.setLong(1, 2L);
-                boolean hasResultSet = ps.execute();
-                while (!hasResultSet) {
-                    assertTrue(-1 != ps.getUpdateCount());
-                    hasResultSet = ps.getMoreResults();
-                }
-                try (ResultSet rs = ps.getResultSet()) {
-                    assertTrue(rs.next());
-                    assertTrue(rs.next());
-                    assertFalse(rs.next(), "SET ROWCOUNT 2 must limit the result to two rows");
+            for (String sql : new String[] {"SET ROWCOUNT ?; " + rows, "SET ROWCOUNT /* limit */ ?; " + rows,
+                    "SET ROWCOUNT -- limit\n ?; " + rows, "SET ROWCOUNT" + spaces + "?; " + rows}) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setLong(1, 2L);
+                    assertEquals(2, countRows(ps), sql);
                 }
             }
             if ("none".equals(mode)) {
-                try (PreparedStatement ps = conn
-                        .prepareStatement("SET ROWCOUNT 0; SELECT TOP ? v FROM (VALUES (1), (2), (3)) AS t(v)")) {
-                    ps.setLong(1, 2L);
-                    boolean hasResultSet = ps.execute();
-                    while (!hasResultSet) {
-                        assertTrue(-1 != ps.getUpdateCount());
-                        hasResultSet = ps.getMoreResults();
-                    }
-                    try (ResultSet rs = ps.getResultSet()) {
-                        assertTrue(rs.next());
-                        assertTrue(rs.next());
-                        assertFalse(rs.next());
+                for (String sql : new String[] {"SET ROWCOUNT 0; SELECT TOP ? v FROM (VALUES (1), (2), (3)) AS t(v)",
+                        "SET ROWCOUNT 0; SELECT TOP /* limit */ ? v FROM (VALUES (1), (2), (3)) AS t(v)",
+                        "SET ROWCOUNT 0; SELECT TOP" + spaces + "? v FROM (VALUES (1), (2), (3)) AS t(v)"}) {
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setLong(1, 2L);
+                        assertEquals(2, countRows(ps), sql);
                     }
                 }
+            }
+        }
+    }
+
+    private static int countRows(PreparedStatement ps) throws SQLException {
+        boolean hasResultSet = ps.execute();
+        while (!hasResultSet) {
+            assertTrue(-1 != ps.getUpdateCount());
+            hasResultSet = ps.getMoreResults();
+        }
+        int count = 0;
+        try (ResultSet rs = ps.getResultSet()) {
+            while (rs.next()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // The body of a procedure definition runs later, not in this batch, so the definition stays a literal batch and
+    // the bound value is embedded in the body.
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none"})
+    public void testProcedureDefinitionEmbedsTheBoundValue(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #inner_def @v int AS SELECT @v");
+            try (PreparedStatement ps = conn.prepareStatement("CREATE PROCEDURE #wrapper_def AS EXEC #inner_def ?")) {
+                ps.setInt(1, 5);
+                ps.execute();
+            }
+            try (ResultSet rs = stmt.executeQuery("EXEC #wrapper_def")) {
+                assertTrue(rs.next());
+                assertEquals(5, rs.getInt(1));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    // A leading label is not a call, so the statement stays a literal batch and keeps its temp table.
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection"})
+    public void testLabelKeepsTempTable(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode)) {
+            try (PreparedStatement ps = conn.prepareStatement("retry: SELECT ? AS v INTO #kept_after_label")) {
+                ps.setInt(1, 1);
+                ps.execute();
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT OBJECT_ID('tempdb..#kept_after_label')")) {
+                assertTrue(rs.next());
+                assertFalse(null == rs.getObject(1), "a label must not turn the statement into an RPC");
             }
         }
     }

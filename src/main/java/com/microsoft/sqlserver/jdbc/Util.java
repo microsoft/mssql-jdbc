@@ -51,7 +51,8 @@ final class Util {
             "DEALLOCATE", "DECLARE", "DELETE", "DENY", "DISABLE", "DROP", "ENABLE", "END", "EXEC", "EXECUTE", "FETCH",
             "GOTO", "GRANT", "IF", "INSERT", "KILL", "MERGE", "OPEN", "PRINT", "RAISERROR", "READTEXT", "RECONFIGURE",
             "RESTORE", "RETURN", "REVERT", "REVOKE", "ROLLBACK", "SAVE", "SELECT", "SET", "SETUSER", "SHUTDOWN", "THROW",
-            "TRUNCATE", "UPDATE", "UPDATETEXT", "USE", "VALUES", "WAITFOR", "WHILE", "WITH", "WRITETEXT")));
+            "TRUNCATE", "UPDATE", "UPDATETEXT", "USE", "VALUES", "WAITFOR", "WHILE", "WITH", "WRITETEXT", "RECEIVE",
+            "SEND", "GET", "MOVE", "ADD", "COPY")));
 
     private Util() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));

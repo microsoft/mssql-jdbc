@@ -1473,6 +1473,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         int i = 0;
         boolean afterExec = false; // the last token was EXEC or EXECUTE; the next one decides if it is a call
         boolean atStart = true; // no token has been read yet
+        boolean afterCreate = false; // the batch starts with CREATE or ALTER; the next words say what is created
         while (i < len) {
             char c = sql.charAt(i);
             if (Character.isWhitespace(c)) {
@@ -1505,6 +1506,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     return true;
                 }
                 atStart = false;
+                afterCreate = false;
                 // A doubled closing quote inside the text is an escaped quote.
                 char close = ('[' == c) ? ']' : c;
                 for (i++; i < len; i++) {
@@ -1527,15 +1529,33 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         return true;
                     }
                     atStart = false;
+                    afterCreate = false;
                     i++;
                 } else {
                     int length = i - start;
                     if (afterExec && !(2 == length && sql.regionMatches(true, start, "AS", 0, 2))) {
                         return true;
                     }
-                    if (atStart && (Character.isLetter(c) || '_' == c || '#' == c)
-                            && !Util.TSQL_STATEMENT_KEYWORDS.contains(sql.substring(start, i).toUpperCase(Locale.ENGLISH))) {
-                        return true;
+                    if (atStart || afterCreate) {
+                        String word = sql.substring(start, i).toUpperCase(Locale.ENGLISH);
+                        if (afterCreate && ("PROC".equals(word) || "PROCEDURE".equals(word) || "FUNCTION".equals(word)
+                                || "TRIGGER".equals(word))) {
+                            return false; // the rest of the batch is a module body, which runs later
+                        }
+                        afterCreate = atStart ? ("CREATE".equals(word) || "ALTER".equals(word))
+                                              : ("OR".equals(word) || "ALTER".equals(word));
+                        if (atStart && (Character.isLetter(c) || '_' == c || '#' == c)
+                                && !Util.TSQL_STATEMENT_KEYWORDS.contains(word)) {
+                            int next = i;
+                            while (next < len && Character.isWhitespace(sql.charAt(next))) {
+                                next++;
+                            }
+                            if (next >= len || ':' != sql.charAt(next)) {
+                                return true;
+                            }
+                            i = next + 1; // a label, the statement after it starts the batch
+                            continue;
+                        }
                     }
                     atStart = false;
                     afterExec = (4 == length && sql.regionMatches(true, start, "EXEC", 0, 4))
@@ -4463,14 +4483,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     // A marker right after SET <option> or TOP is a position that accepts a constant or a variable, not an expression.
     private static final java.util.regex.Pattern CONSTANT_ONLY_POSITION = java.util.regex.Pattern
             .compile("(?:\\bSET\\s+\\w+|\\bTOP)\\s*$", java.util.regex.Pattern.CASE_INSENSITIVE);
+    private static final java.util.regex.Pattern SQL_COMMENT = java.util.regex.Pattern
+            .compile("/\\*.*?\\*/|--[^\\r\\n]*", java.util.regex.Pattern.DOTALL);
 
     /**
      * Returns whether a parameter marker that follows the SQL text built so far is in a position that does not accept
-     * a CAST expression, for example SET ROWCOUNT ? or TOP ?. A Long keeps its plain literal there.
+     * a CAST expression, for example SET ROWCOUNT ? or TOP ?. A Long keeps its plain literal there. Comments before
+     * the marker are ignored.
      */
     private static boolean isConstantOnlyPosition(CharSequence sqlBefore) {
-        int from = Math.max(0, sqlBefore.length() - 64);
-        return CONSTANT_ONLY_POSITION.matcher(sqlBefore.subSequence(from, sqlBefore.length())).find();
+        return CONSTANT_ONLY_POSITION.matcher(SQL_COMMENT.matcher(sqlBefore).replaceAll(" ")).find();
     }
 
     /**
