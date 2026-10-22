@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
@@ -2140,6 +2141,29 @@ public class DataTypesTest extends AbstractTest {
                     assertEquals(expected, rs.getObject(1, OffsetDateTime.class));
                     assertFalse(rs.next());
                 }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-0001-06-15T12:00:00Z", "0000-06-15T12:00:00Z", "0000-12-31T23:30:00-01:00",
+            "0001-01-01T00:00:00+01:00", "+10000-01-01T00:00:00+01:00", "9999-12-31T23:30:00-01:00"})
+    public void testTimestampWithTimezoneBulkCopyRejectsOutOfRangeDates(String text) throws Exception {
+        byte[] csv = ("v\n" + text + "\n").getBytes(StandardCharsets.UTF_8);
+        try (Connection con = getConnection(); Statement statement = con.createStatement();
+                ByteArrayInputStream input = new ByteArrayInputStream(csv);
+                SQLServerBulkCSVFileRecord record = new SQLServerBulkCSVFileRecord(input, Constants.UTF8,
+                        Constants.COMMA, true);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con)) {
+            statement.execute("CREATE TABLE #dto_range (v datetimeoffset(7))");
+            record.addColumnMetadata(1, "v", java.sql.Types.TIMESTAMP_WITH_TIMEZONE, 0, 7);
+            bulkCopy.setDestinationTableName("#dto_range");
+            SQLServerException error = assertThrows(SQLServerException.class, () -> bulkCopy.writeToServer(record),
+                    text);
+            assertEquals("22008", error.getSQLState(), text);
+            try (ResultSet rs = statement.executeQuery("SELECT COUNT(*) FROM #dto_range")) {
+                assertTrue(rs.next());
+                assertEquals(0, rs.getInt(1), text);
             }
         }
     }

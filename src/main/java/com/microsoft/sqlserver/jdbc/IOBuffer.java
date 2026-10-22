@@ -4127,6 +4127,14 @@ final class TDSWriter {
         calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
         calendar.setTimeInMillis(offsetDateTimeValue.toEpochSecond() * 1000);
 
+        if (offsetDateTimeValue.getYear() < 1 || offsetDateTimeValue.getYear() > 9999
+                || GregorianCalendar.AD != calendar.get(Calendar.ERA)) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueOutOfRange"));
+            Object[] msgArgs = {SSType.DATETIMEOFFSET};
+            throw new SQLServerException(form.format(msgArgs), SQLState.DATA_EXCEPTION_DATETIME_FIELD_OVERFLOW,
+                    DriverError.NOT_SET, null);
+        }
+
         writeScaledTemporal(calendar, subSecondNanos, scale, SSType.DATETIMEOFFSET);
         writeShort((short) minutesOffset);
     }
