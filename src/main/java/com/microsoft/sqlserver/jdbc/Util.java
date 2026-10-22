@@ -15,7 +15,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
@@ -41,6 +44,14 @@ final class Util {
 
     /** Maximum valid TCP port number. */
     static final int MAX_PORT_NUMBER = 65535;
+
+    /** Words that begin a T-SQL statement other than a procedure call. */
+    static final Set<String> TSQL_STATEMENT_KEYWORDS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "ALTER", "BACKUP", "BEGIN", "BREAK", "BULK", "CHECKPOINT", "CLOSE", "COMMIT", "CONTINUE", "CREATE", "DBCC",
+            "DEALLOCATE", "DECLARE", "DELETE", "DENY", "DISABLE", "DROP", "ENABLE", "END", "EXEC", "EXECUTE", "FETCH",
+            "GOTO", "GRANT", "IF", "INSERT", "KILL", "MERGE", "OPEN", "PRINT", "RAISERROR", "READTEXT", "RECONFIGURE",
+            "RESTORE", "RETURN", "REVERT", "REVOKE", "ROLLBACK", "SAVE", "SELECT", "SET", "SETUSER", "SHUTDOWN", "THROW",
+            "TRUNCATE", "UPDATE", "UPDATETEXT", "USE", "VALUES", "WAITFOR", "WHILE", "WITH", "WRITETEXT")));
 
     private Util() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));

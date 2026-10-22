@@ -944,6 +944,10 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                 // setTimestamp with a Calendar applies the Calendar's time zone.
                 new ParameterCase("timestamp-calendar", "datetime2(3)",
                         ps -> ps.setTimestamp(1, Timestamp.valueOf(TIMESTAMP_TEXT), foreignCalendar())),
+                // Timestamp with 9-digit nanoseconds and a Calendar rounds like typed binding.
+                new ParameterCase("timestamp-calendar-nanoseconds", "datetime2(7)",
+                        ps -> ps.setTimestamp(1, Timestamp.valueOf("2024-02-13 13:14:15.123456789"),
+                                foreignCalendar())),
                 // setDate with a Calendar applies the Calendar's time zone.
                 new ParameterCase("date-calendar", "date",
                         ps -> ps.setDate(1, Date.valueOf(DATE_TEXT), foreignCalendar())),

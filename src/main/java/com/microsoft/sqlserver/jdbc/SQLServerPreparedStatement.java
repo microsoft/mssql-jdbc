@@ -1457,20 +1457,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Returns whether the SQL text calls a stored procedure with an EXEC or EXECUTE statement anywhere in it, for
-     * example SET NOCOUNT ON; EXEC p ?. Quoted text, quoted identifiers and comments (which may be nested) are
-     * skipped, and only the whole words EXEC and EXECUTE count, so exec_count, @exec and [EXEC] do not. EXECUTE AS is
-     * a context switch, not a procedure call. A GRANT EXECUTE permission statement is reported as a call; such a
-     * statement is simply sent as an RPC.
+     * Returns whether the SQL text calls a stored procedure, either with an EXEC or EXECUTE statement anywhere in it,
+     * for example SET NOCOUNT ON; EXEC p ?, or by naming the procedure as the first statement without EXEC, for
+     * example dbo.p ?. Quoted text, quoted identifiers and comments (which may be nested) are skipped, and only the
+     * whole words EXEC and EXECUTE count, so exec_count, @exec and [EXEC] do not. EXECUTE AS is a context switch, not
+     * a procedure call. A GRANT EXECUTE permission statement is reported as a call; such a statement is simply sent
+     * as an RPC.
      *
      * @param sql
      *        the SQL text
-     * @return true if the SQL text contains an EXEC or EXECUTE statement
+     * @return true if the SQL text calls a stored procedure
      */
     static boolean containsProcedureCall(String sql) {
         int len = sql.length();
         int i = 0;
         boolean afterExec = false; // the last token was EXEC or EXECUTE; the next one decides if it is a call
+        boolean atStart = true; // no token has been read yet
         while (i < len) {
             char c = sql.charAt(i);
             if (Character.isWhitespace(c)) {
@@ -1498,9 +1500,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     }
                 }
             } else if ('\'' == c || '"' == c || '[' == c) {
-                if (afterExec) {
+                // A quoted name that starts the batch is a procedure name without EXEC.
+                if (afterExec || (atStart && '\'' != c)) {
                     return true;
                 }
+                atStart = false;
                 // A doubled closing quote inside the text is an escaped quote.
                 char close = ('[' == c) ? ']' : c;
                 for (i++; i < len; i++) {
@@ -1522,12 +1526,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     if (afterExec) {
                         return true;
                     }
+                    atStart = false;
                     i++;
                 } else {
                     int length = i - start;
                     if (afterExec && !(2 == length && sql.regionMatches(true, start, "AS", 0, 2))) {
                         return true;
                     }
+                    if (atStart && (Character.isLetter(c) || '_' == c || '#' == c)
+                            && !Util.TSQL_STATEMENT_KEYWORDS.contains(sql.substring(start, i).toUpperCase(Locale.ENGLISH))) {
+                        return true;
+                    }
+                    atStart = false;
                     afterExec = (4 == length && sql.regionMatches(true, start, "EXEC", 0, 4))
                             || (7 == length && sql.regionMatches(true, start, "EXECUTE", 0, 7));
                 }
@@ -4450,6 +4460,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return new String(sqlDst, 0, dstBegin);
     }
 
+    // A marker right after SET <option> or TOP is a position that accepts a constant or a variable, not an expression.
+    private static final java.util.regex.Pattern CONSTANT_ONLY_POSITION = java.util.regex.Pattern
+            .compile("(?:\\bSET\\s+\\w+|\\bTOP)\\s*$", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Returns whether a parameter marker that follows the SQL text built so far is in a position that does not accept
+     * a CAST expression, for example SET ROWCOUNT ? or TOP ?. A Long keeps its plain literal there.
+     */
+    private static boolean isConstantOnlyPosition(CharSequence sqlBefore) {
+        int from = Math.max(0, sqlBefore.length() - 64);
+        return CONSTANT_ONLY_POSITION.matcher(sqlBefore.subSequence(from, sqlBefore.length())).find();
+    }
+
     /**
      * Replaces parameter markers '?' with actual parameter values for direct SQL
      * execution.
@@ -4501,7 +4524,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             null, false);
                 }
                 Object value = params[paramIndex].getSetterValue();
-                String literal = formatLiteralValue(params[paramIndex], value);
+                String literal;
+                if (value instanceof Long && isConstantOnlyPosition(result)) {
+                    literal = value.toString();
+                } else {
+                    literal = formatLiteralValue(params[paramIndex], value);
+                }
 
                 // A negative literal after '-' would otherwise start a '--' comment.
                 if (literal.startsWith("-") && result.length() > 0 && '-' == result.charAt(result.length() - 1)) {

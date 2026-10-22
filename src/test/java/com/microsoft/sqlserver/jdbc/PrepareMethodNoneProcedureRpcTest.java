@@ -74,6 +74,11 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 Arguments.of("EXEC AS_proc ?", true), Arguments.of("EXEC", true),
                 Arguments.of("SELECT 1; EXEC [dbo].[p] ?", true), Arguments.of("EXEC \"dbo\".p ?", true),
 
+                // A procedure named as the first statement, without EXEC.
+                Arguments.of("dbo.p ?", true), Arguments.of("p ?, ?", true), Arguments.of("[dbo].[p] ?", true),
+                Arguments.of("\"dbo\".\"p\" ?", true), Arguments.of("#p ?", true),
+                Arguments.of("/* c */ dbo.p ?", true), Arguments.of("-- c\n dbo.p ?", true),
+
                 // A GRANT EXECUTE permission statement is reported as a call and is simply sent as an RPC.
                 Arguments.of("GRANT EXECUTE ON p TO u", true),
 
@@ -91,7 +96,14 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 Arguments.of("EXECUTE /* a /* nested */ b */ -- c\n AS USER = 'u'", false),
                 Arguments.of("SET NOCOUNT ON; EXECUTE /* context switch */ AS USER = 'u'; SELECT ?", false),
                 Arguments.of("SELECT 1 FROM t WHERE c = '''EXEC'", false),
-                Arguments.of("SELECT 1 /* unterminated EXEC p", false));
+                Arguments.of("SELECT 1 /* unterminated EXEC p", false),
+
+                // Statements that start with a keyword, a parenthesis, a variable or a string are not procedure calls.
+                Arguments.of("WITH c AS (SELECT 1 AS v) SELECT v FROM c WHERE v = ?", false),
+                Arguments.of("(SELECT ?)", false), Arguments.of("INSERT INTO t VALUES (?)", false),
+                Arguments.of("SET ROWCOUNT ?", false), Arguments.of("DECLARE @v int = ?", false),
+                Arguments.of("UPDATE t SET c = ?", false), Arguments.of("'abc'", false),
+                Arguments.of("@v = ?", false));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -392,6 +404,64 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                     ResultSet rs = stmt.executeQuery("SELECT OBJECT_ID('tempdb..#kept_after_exec_as')")) {
                 assertTrue(rs.next());
                 assertFalse(null == rs.getObject(1), "EXECUTE AS must not turn the statement into an RPC");
+            }
+        }
+    }
+
+    // A procedure named as the first statement without EXEC is also a call. Its argument must stay a plain value, and
+    // the statement is sent as an RPC.
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "prepexec", "scopeTempTablesToConnection"})
+    public void testImplicitProcedureCallWithLong(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #implicit_p @v bigint AS SELECT @v");
+            for (String sql : new String[] {"#implicit_p ?", "/* c */ #implicit_p ?"}) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setLong(1, Long.MAX_VALUE);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next(), sql);
+                        assertEquals(Long.MAX_VALUE, rs.getLong(1), sql);
+                        assertFalse(rs.next(), sql);
+                    }
+                }
+            }
+        }
+    }
+
+    // SET ROWCOUNT and TOP accept a number or a variable, not a CAST expression, so a Long stays a plain literal there.
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "prepexec", "scopeTempTablesToConnection"})
+    public void testLongInConstantOnlyPosition(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode)) {
+            try (PreparedStatement ps = conn
+                    .prepareStatement("SET ROWCOUNT ?; SELECT v FROM (VALUES (1), (2), (3)) AS t(v)")) {
+                ps.setLong(1, 2L);
+                boolean hasResultSet = ps.execute();
+                while (!hasResultSet) {
+                    assertTrue(-1 != ps.getUpdateCount());
+                    hasResultSet = ps.getMoreResults();
+                }
+                try (ResultSet rs = ps.getResultSet()) {
+                    assertTrue(rs.next());
+                    assertTrue(rs.next());
+                    assertFalse(rs.next(), "SET ROWCOUNT 2 must limit the result to two rows");
+                }
+            }
+            if ("none".equals(mode)) {
+                try (PreparedStatement ps = conn
+                        .prepareStatement("SET ROWCOUNT 0; SELECT TOP ? v FROM (VALUES (1), (2), (3)) AS t(v)")) {
+                    ps.setLong(1, 2L);
+                    boolean hasResultSet = ps.execute();
+                    while (!hasResultSet) {
+                        assertTrue(-1 != ps.getUpdateCount());
+                        hasResultSet = ps.getMoreResults();
+                    }
+                    try (ResultSet rs = ps.getResultSet()) {
+                        assertTrue(rs.next());
+                        assertTrue(rs.next());
+                        assertFalse(rs.next());
+                    }
+                }
             }
         }
     }
