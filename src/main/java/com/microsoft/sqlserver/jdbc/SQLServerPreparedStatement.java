@@ -29,6 +29,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1560,11 +1561,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
 
         // A stored procedure call under prepareMethod=none is sent as an unprepared sp_executesql RPC with typed
-        // parameters. No server handle is created or cached.
+        // parameters. No server handle is created or cached. In a batch nothing has to be read back before the next
+        // entry, so the entries are combined into one request.
         if (useUnpreparedRpc) {
             buildExecSQLParams(tdsWriter);
             sendParamsByRPC(tdsWriter, params);
-            return true;
+            return !(command instanceof PrepStmtBatchExecCmd);
         }
         if (isCursorable(executeMethod)) {
             if (needsPrepare)
@@ -4379,8 +4381,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
-    // Date format for java.util.Date -> DATETIME2 conversion
-    private static final SimpleDateFormat TS_FMT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US);
+    /**
+     * Formats a java.util.Date as yyyy-MM-dd HH:mm:ss.SSS in the default time zone. SimpleDateFormat is not
+     * thread-safe, so a new instance is used per call instead of a shared static one.
+     */
+    private static String formatUtilDate(java.util.Date value) {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(value);
+    }
 
     // OUT parameter marker for replaceParameterMarkers
     static final char[] OUT = { ' ', 'O', 'U', 'T' };
@@ -4488,21 +4495,36 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 result.append(sqlSrc, srcBegin, srcEnd);
 
                 // Get parameter value and format it
-                Object value = null;
-                if (params[paramIndex] != null) {
-                    value = params[paramIndex].getSetterValue();
+                if (null == params[paramIndex] || !params[paramIndex].hasSetterDTV()) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueNotSetForParameter"));
+                    SQLServerException.makeFromDriverError(connection, this, form.format(new Object[] {paramIndex + 1}),
+                            null, false);
+                }
+                Object value = params[paramIndex].getSetterValue();
+                String literal = formatLiteralValue(params[paramIndex], value);
+
+                // A negative literal after '-' would otherwise start a '--' comment.
+                if (literal.startsWith("-") && result.length() > 0 && '-' == result.charAt(result.length() - 1)) {
+                    result.append(' ');
                 }
 
                 // Append formatted literal value
-                result.append(formatLiteralValue(value));
+                result.append(literal);
 
                 // Move past the '?' marker
                 srcBegin = srcEnd + 1;
+
+                // Keep an adjacent identifier character (for example '?and') from merging into the literal.
+                if (srcBegin < sqlSrc.length() && Character.isJavaIdentifierPart(sqlSrc.charAt(srcBegin))) {
+                    result.append(' ');
+                }
             }
 
             // Append remaining SQL after last parameter
             result.append(sqlSrc, srcBegin, sqlSrc.length());
             return result.toString();
+        } catch (SQLServerException e) {
+            throw e;
         } catch (Exception e) {
             // Try to set the cause, but if OOM occurs even this may fail
             try {
@@ -4524,59 +4546,111 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      *                      if an error occurs
      */
     String formatLiteralValue(Object value) throws SQLException {
-        // procedureName is populated when call syntax identifies a stored procedure; direct execution uses that
-        // non-null value to format procedure arguments without CAST expressions.
-        boolean isInProcedureCall = null != procedureName && isDirectSqlExecution;
+        return formatLiteralValue(value, false);
+    }
 
-        if (isInProcedureCall) {
-            if (value instanceof java.math.BigDecimal) {
-                return ((java.math.BigDecimal) value).toPlainString();
-            } else if (value instanceof java.sql.Date) {
-                return "'" + escapeSQLString(value.toString().replace("-", "")) + "'";
-            } else if (value instanceof java.sql.Time) {
-                return "'" + escapeSQLString(value.toString()) + "'";
-            } else if (value instanceof java.sql.Timestamp) {
-                return "'" + escapeSQLString(value.toString().replace(' ', 'T')) + "'";
-            } else if (value instanceof java.util.Date) {
-                return "'" + escapeSQLString(TS_FMT.format((java.util.Date) value).replace(' ', 'T')) + "'";
+    /**
+     * Formats a parameter value as a T-SQL literal for direct SQL execution. In addition to the value itself, this
+     * honors the setter's Calendar, a target JDBC type given to setObject, and a national character setter.
+     *
+     * @param param
+     *        the parameter, may be null
+     * @param value
+     *        the setter value of the parameter
+     * @return the formatted SQL literal string
+     * @throws SQLException
+     *         if an error occurs
+     */
+    private String formatLiteralValue(Parameter param, Object value) throws SQLException {
+        if (null == param || null == value) {
+            return formatLiteralValue(value, false);
+        }
+
+        boolean national = param.isNationalCharacterLiteral();
+        JDBCType jdbcType = param.getJdbcType();
+
+        // A temporal value set with a Calendar is sent as the wall-clock time in the Calendar's time zone.
+        DTV inputDTV = param.getInputDTV();
+        Calendar calendar = (null != inputDTV) ? inputDTV.getCalendar() : null;
+        if (null != calendar && (value instanceof java.sql.Timestamp || value instanceof java.sql.Time
+                || value instanceof java.sql.Date)) {
+            return formatTemporalInCalendar((java.util.Date) value, calendar);
+        }
+
+        // An integral value with a character target type is sent as text.
+        if (jdbcType.isTextual() && (value instanceof Byte || value instanceof Short || value instanceof Integer
+                || value instanceof Long)) {
+            return formatLiteralValue(value.toString(), national);
+        }
+
+        // A string, long or double with a numeric target type is converted to that type, so a long bound as INTEGER
+        // keeps int semantics instead of being sent as bigint, and a double bound as INTEGER keeps int semantics
+        // instead of float. A double literal is already a float, so float targets need no conversion.
+        if (value instanceof String || value instanceof Long || value instanceof Double) {
+            String numericType = getNumericLiteralType(jdbcType);
+            if (null != numericType && !(value instanceof Double && "FLOAT".equals(numericType))) {
+                String text = (value instanceof Long) ? value.toString() : formatLiteralValue(value, national);
+                return "CAST(" + text + " AS " + numericType + ")";
             }
-        } else {
-            if (value instanceof java.math.BigDecimal) {
-                // Use toPlainString() to avoid scientific notation
-                java.math.BigDecimal bd = (java.math.BigDecimal) value;
-                String plainStr = bd.toPlainString();
-                int precision = bd.precision();
-                int scale = bd.scale();
+        }
 
-                if (precision <= 18 && scale <= 6) {
-                    return plainStr;
-                }
-
-                // Need explicit CAST for high precision numbers
-                // Clamp to SQL Server limits: decimal(38, min(scale, 38))
-                // Ensure scale <= precision
-                int sqlPrecision = Math.min(precision, 38);
-                int sqlScale = Math.min(Math.min(scale, 38), sqlPrecision);
-                return "CAST(" + plainStr + " AS DECIMAL(" + sqlPrecision + "," + sqlScale + "))";
-            } else if (value instanceof java.sql.Date) {
-                return "CAST('" + escapeSQLString(value.toString()) + "' AS DATE)";
-            } else if (value instanceof java.sql.Time) {
-                return "CAST('" + escapeSQLString(value.toString()) + "' AS TIME)";
-            } else if (value instanceof java.sql.Timestamp) {
-                return "CAST('" + escapeSQLString(value.toString()) + "' AS DATETIME2)";
-            } else if (value instanceof java.util.Date) {
-                return "CAST('" + escapeSQLString(TS_FMT.format((java.util.Date) value)) + "' AS DATETIME2)";
+        // A long or double with a decimal target type is converted to decimal(38, scale), the type declared by typed
+        // binding. Typed binding declares a double with a scale of at least 4.
+        if ((value instanceof Long || value instanceof Double)
+                && (JDBCType.DECIMAL == jdbcType || JDBCType.NUMERIC == jdbcType)) {
+            Integer targetScale = (null != inputDTV) ? inputDTV.getScale() : null;
+            int maxPrecision = SQLServerConnection.MAX_DECIMAL_PRECISION;
+            int scale = (null == targetScale) ? 0 : targetScale;
+            if (value instanceof Double) {
+                scale = Math.max(scale, 4);
             }
+            scale = Math.max(0, Math.min(scale, maxPrecision));
+            String text = (value instanceof Long) ? value.toString() : formatLiteralValue(value, national);
+            return "CAST(" + text + " AS DECIMAL(" + maxPrecision + "," + scale + "))";
+        }
+
+        return formatLiteralValue(value, national);
+    }
+
+    private String formatLiteralValue(Object value, boolean national) throws SQLException {
+        String stringPrefix = (national || connection.sendStringParametersAsUnicode()) ? "N'" : "'";
+
+        if (value instanceof java.math.BigDecimal) {
+            // Use toPlainString() to avoid scientific notation
+            java.math.BigDecimal bd = (java.math.BigDecimal) value;
+            String plainStr = bd.toPlainString();
+            int precision = bd.precision();
+            int scale = bd.scale();
+
+            if (precision <= 18 && scale <= 6) {
+                return plainStr;
+            }
+
+            // Need explicit CAST for high precision numbers
+            // Clamp to SQL Server limits: decimal(38, min(scale, 38))
+            // Ensure scale <= precision
+            int sqlPrecision = Math.min(precision, 38);
+            int sqlScale = Math.min(Math.min(scale, 38), sqlPrecision);
+            return "CAST(" + plainStr + " AS DECIMAL(" + sqlPrecision + "," + sqlScale + "))";
+        } else if (value instanceof java.sql.Date) {
+            return "CAST('" + escapeSQLString(value.toString()) + "' AS DATE)";
+        } else if (value instanceof java.sql.Time) {
+            return castTimeLiteral(formatTime((java.sql.Time) value));
+        } else if (value instanceof java.sql.Timestamp) {
+            return "CAST('" + escapeSQLString(value.toString()) + "' AS DATETIME2)";
+        } else if (value instanceof java.util.Date) {
+            return "CAST('" + escapeSQLString(formatUtilDate((java.util.Date) value)) + "' AS DATETIME2)";
+        } else if (value instanceof Long) {
+            // An integer literal is typed as int, so keep bigint semantics in expressions.
+            return "CAST(" + value + " AS BIGINT)";
         }
 
         if (value == null) {
             return "NULL";
         } else if (value instanceof String) {
-            String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
-            return prefix + escapeSQLString((String) value) + "'";
+            return stringPrefix + escapeSQLString((String) value) + "'";
         } else if (value instanceof Character) {
-            String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
-            return prefix + escapeSQLString(value.toString()) + "'";
+            return stringPrefix + escapeSQLString(value.toString()) + "'";
         } else if (value instanceof Boolean) {
             return ((Boolean) value) ? "1" : "0";
         } else if (value instanceof Byte || value instanceof Short || value instanceof Integer
@@ -4588,8 +4662,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             Float f = (Float) value;
             // Handle special float values that cannot be converted to BigDecimal
             if (f.isInfinite() || f.isNaN()) {
-                String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
-                return prefix + escapeSQLString(f.toString()) + "'";
+                return stringPrefix + escapeSQLString(f.toString()) + "'";
             }
             // Convert Float to BigDecimal for precise representation
             return new java.math.BigDecimal(value.toString()).toPlainString();
@@ -4597,11 +4670,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             Double d = (Double) value;
             // Handle special double values that cannot be converted to BigDecimal
             if (d.isInfinite() || d.isNaN()) {
-                String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
-                return prefix + escapeSQLString(d.toString()) + "'";
+                return stringPrefix + escapeSQLString(d.toString()) + "'";
             }
-            // Convert Double to BigDecimal for precise representation
-            return new java.math.BigDecimal(value.toString()).toPlainString();
+            // Send a float literal in E notation. A plain decimal literal is typed as numeric, which cannot hold
+            // values beyond 38 digits.
+            String text = d.toString();
+            return text.indexOf('E') >= 0 ? text : text + "E0";
         } else if (value instanceof byte[]) {
             return bytesToHexLiteral((byte[]) value);
         } else if (value instanceof Blob) {
@@ -4612,12 +4686,81 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } else if (value instanceof Clob) {
             Clob c = (Clob) value;
             String s = c.getSubString(1, (int) c.length());
-            String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
-            return prefix + escapeSQLString(s) + "'";
+            return stringPrefix + escapeSQLString(s) + "'";
         } else {
             // fallback
-            String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
-            return prefix + escapeSQLString(value.toString()) + "'";
+            return stringPrefix + escapeSQLString(value.toString()) + "'";
+        }
+    }
+
+    /**
+     * Formats a java.sql.Time as HH:mm:ss, followed by the milliseconds when they are not zero.
+     */
+    private static String formatTime(java.sql.Time time) {
+        String text = time.toString();
+        long millis = Math.floorMod(time.getTime(), 1000L);
+        return (0 == millis) ? text : text + String.format(Locale.US, ".%03d", millis);
+    }
+
+    /**
+     * Converts a time of day to the type used by typed binding: datetime on 1970-01-01 when sendTimeAsDatetime is
+     * set, so milliseconds are rounded to datetime precision, and time otherwise.
+     */
+    private String castTimeLiteral(String time) {
+        if (connection.getSendTimeAsDatetime()) {
+            return "CAST('1970-01-01T" + escapeSQLString(time) + "' AS DATETIME)";
+        }
+        return "CAST('" + escapeSQLString(time) + "' AS TIME)";
+    }
+
+    /**
+     * Formats a java.sql.Date, Time, or Timestamp as the wall-clock date and time in the Calendar's time zone.
+     */
+    private String formatTemporalInCalendar(java.util.Date value, Calendar calendar) {
+        GregorianCalendar cal = new GregorianCalendar(calendar.getTimeZone(), Locale.US);
+        cal.setTimeInMillis(value.getTime());
+        String date = String.format(Locale.US, "%04d-%02d-%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1,
+                cal.get(Calendar.DAY_OF_MONTH));
+        String time = String.format(Locale.US, "%02d:%02d:%02d", cal.get(Calendar.HOUR_OF_DAY),
+                cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND));
+
+        if (value instanceof java.sql.Timestamp) {
+            String nanos = String.format(Locale.US, "%09d", ((java.sql.Timestamp) value).getNanos())
+                    .replaceAll("(\\d)0+$", "$1");
+            return "CAST('" + date + " " + time + "." + nanos + "' AS DATETIME2)";
+        } else if (value instanceof java.sql.Time) {
+            int millis = cal.get(Calendar.MILLISECOND);
+            return castTimeLiteral((0 == millis) ? time : time + String.format(Locale.US, ".%03d", millis));
+        }
+        return "CAST('" + date + "' AS DATE)";
+    }
+
+    /**
+     * Returns the SQL Server type used to convert a string literal to a numeric target JDBC type, or null if the
+     * target type is not numeric.
+     */
+    private static String getNumericLiteralType(JDBCType jdbcType) {
+        switch (jdbcType) {
+            case BIT:
+            case BOOLEAN:
+                return "BIT";
+            case TINYINT:
+                return "TINYINT";
+            case SMALLINT:
+                return "SMALLINT";
+            case INTEGER:
+                return "INT";
+            case BIGINT:
+                return "BIGINT";
+            case MONEY:
+            case SMALLMONEY: // Non-encrypted typed binding declares SMALLMONEY as money.
+                return "MONEY";
+            case REAL: // Typed binding declares REAL as float.
+            case FLOAT:
+            case DOUBLE:
+                return "FLOAT";
+            default:
+                return null;
         }
     }
 

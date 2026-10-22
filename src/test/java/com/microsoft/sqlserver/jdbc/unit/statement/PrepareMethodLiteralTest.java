@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Statement;
@@ -30,7 +31,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.List;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -43,6 +43,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -253,6 +254,164 @@ public class PrepareMethodLiteralTest extends AbstractTest {
         }
     }
 
+    /** Verifies a negative value bound after '-' is subtracted rather than forming a '--' comment. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testNegativeValueAfterMinusOperator(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true);
+                PreparedStatement ps = conn.prepareStatement("SELECT 10 -?, 10 -?, 10 -?")) {
+            ps.setInt(1, -5);
+            ps.setBigDecimal(2, new BigDecimal("-2.5"));
+            ps.setDouble(3, -1.5);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(3, rs.getMetaData().getColumnCount());
+                assertEquals(15, rs.getInt(1));
+                assertEquals(0, new BigDecimal("12.5").compareTo(rs.getBigDecimal(2)));
+                assertEquals(11.5, rs.getDouble(3));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** Verifies a negative value after '-' cannot comment out the rest of a WHERE clause and widen the result. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testNegativeValueCannotCommentOutPredicate(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #literal_rows (id int, visible bit)");
+            stmt.execute("INSERT INTO #literal_rows VALUES (2, 0)");
+            // The predicate is id = 3 AND visible = 1, so no row matches. If the trailing filter were commented out,
+            // the hidden row with id = 2 would be returned.
+            try (PreparedStatement ps = conn
+                    .prepareStatement("SELECT COUNT(*) FROM #literal_rows WHERE id = 2 -? AND visible = 1")) {
+                ps.setInt(1, -1);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(0, rs.getInt(1));
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
+    /** Verifies setLong values keep bigint semantics in arithmetic instead of overflowing as int literals. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testBigintArithmeticDoesNotOverflowInt(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); PreparedStatement ps = conn.prepareStatement("SELECT ? + ?")) {
+            ps.setLong(1, Integer.MAX_VALUE);
+            ps.setLong(2, 1L);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(Integer.MAX_VALUE + 1L, rs.getLong(1));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** Verifies a Long bound with an explicit INTEGER target keeps int semantics instead of widening to bigint. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testLongWithIntegerTargetKeepsIntSemantics(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true)) {
+            try (PreparedStatement ps = conn.prepareStatement("SELECT ?")) {
+                ps.setObject(1, (long) Integer.MAX_VALUE, Types.INTEGER);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(Types.INTEGER, rs.getMetaData().getColumnType(1));
+                    assertEquals(Integer.MAX_VALUE, rs.getInt(1));
+                    assertFalse(rs.next());
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement("SELECT ? + 1")) {
+                ps.setObject(1, (long) Integer.MAX_VALUE, Types.INTEGER);
+                assertThrows(SQLException.class, () -> {
+                    try (ResultSet rs = ps.executeQuery()) {
+                        rs.next();
+                    }
+                });
+            }
+        }
+    }
+
+    /** Verifies a Long bound with a DECIMAL or NUMERIC target keeps decimal semantics instead of bigint. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testLongWithDecimalTargetKeepsDecimalSemantics(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true);
+                PreparedStatement ps = conn.prepareStatement("SELECT ? + 1, ?")) {
+            for (int targetType : new int[] {Types.DECIMAL, Types.NUMERIC}) {
+                ps.setObject(1, Long.MAX_VALUE, targetType);
+                ps.setObject(2, 5L, targetType, 2);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(new BigDecimal("9223372036854775808"), rs.getBigDecimal(1),
+                            "targetType=" + targetType);
+                    assertEquals(new BigDecimal("5.00"), rs.getBigDecimal(2), "targetType=" + targetType);
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
+    /** Verifies a Double bound with an INTEGER target keeps int semantics instead of float. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testDoubleWithIntegerTargetKeepsIntSemantics(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true)) {
+            try (PreparedStatement ps = conn.prepareStatement("SELECT ?, ? / 2")) {
+                ps.setObject(1, 2.7, Types.INTEGER);
+                ps.setObject(2, 5.0, Types.INTEGER);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(Types.INTEGER, rs.getMetaData().getColumnType(1));
+                    assertEquals(2, rs.getInt(1));
+                    assertEquals(Types.INTEGER, rs.getMetaData().getColumnType(2));
+                    assertEquals(2, rs.getInt(2));
+                    assertFalse(rs.next());
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement("SELECT ? + 1")) {
+                ps.setObject(1, (double) Integer.MAX_VALUE, Types.INTEGER);
+                assertThrows(SQLException.class, () -> {
+                    try (ResultSet rs = ps.executeQuery()) {
+                        rs.next();
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * Verifies a Double bound with a DECIMAL or NUMERIC target keeps decimal semantics instead of float, while
+     * setDouble keeps float semantics.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testDoubleWithDecimalTargetKeepsDecimalSemantics(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true);
+                PreparedStatement ps = conn.prepareStatement("SELECT ? + 1, ?, ? + 1")) {
+            for (int targetType : new int[] {Types.DECIMAL, Types.NUMERIC}) {
+                ps.setObject(1, 1.0E20, targetType);
+                ps.setObject(2, 1.23456, targetType, 2);
+                ps.setDouble(3, 1.0E20);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    ResultSetMetaData metaData = rs.getMetaData();
+                    assertEquals(Types.DECIMAL, metaData.getColumnType(1), "targetType=" + targetType);
+                    assertEquals(0, new BigDecimal("100000000000000000001").compareTo(rs.getBigDecimal(1)),
+                            "targetType=" + targetType);
+                    // Typed binding declares a double with a scale of at least 4.
+                    assertEquals(new BigDecimal("1.2346"), rs.getBigDecimal(2), "targetType=" + targetType);
+                    assertEquals(Types.DOUBLE, metaData.getColumnType(3), "targetType=" + targetType);
+                    assertEquals(1.0E20, rs.getDouble(3), "targetType=" + targetType);
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
     /** A procedure's sql_variant argument must receive the declared decimal type, not a float literal. */
     @ParameterizedTest(name = "mode={0}")
     @MethodSource("prepareModes")
@@ -272,6 +431,23 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                         assertFalse(rs.next());
                     }
                 }
+            }
+        }
+    }
+
+    /** MONEY and SMALLMONEY targets must retain fractional arithmetic, even when bound from a Long. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testLongWithMoneyTargetKeepsFractionalArithmetic(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true);
+                PreparedStatement ps = conn.prepareStatement("SELECT ? / 2, ? / 2")) {
+            ps.setObject(1, 2147483649L, microsoft.sql.Types.MONEY);
+            ps.setObject(2, 5L, microsoft.sql.Types.SMALLMONEY);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(0, new BigDecimal("1073741824.5").compareTo(rs.getBigDecimal(1)));
+                assertEquals(0, new BigDecimal("2.5").compareTo(rs.getBigDecimal(2)));
+                assertFalse(rs.next());
             }
         }
     }
@@ -379,6 +555,33 @@ public class PrepareMethodLiteralTest extends AbstractTest {
     }
 
     /**
+     * Verifies literal formatting when the prepared SQL creates a temp table, which also enables direct execution
+     * under scopeTempTablesToConnection. In the direct modes the temp table outlives the statement.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testLiteralsInStatementThatCreatesTempTable(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); PreparedStatement ps = conn.prepareStatement(
+                "SELECT ? + 1 AS a, 10 - ? AS b, ? + 1 AS c, ? AS t INTO #literal_scope; "
+                        + "SELECT a, b, c, t FROM #literal_scope")) {
+            ps.setLong(1, Integer.MAX_VALUE);
+            ps.setInt(2, -5);
+            ps.setObject(3, Long.MAX_VALUE, Types.DECIMAL);
+            ps.setTime(4, new Time(Time.valueOf("13:14:15").getTime() + 1));
+            try (ResultSet rs = firstResultSet(ps)) {
+                assertTrue(rs.next());
+                assertEquals(2147483648L, rs.getLong(1));
+                assertEquals(15, rs.getInt(2));
+                assertEquals(new BigDecimal("9223372036854775808"), rs.getBigDecimal(3));
+                // With sendTimeAsDatetime, .001 is rounded to .000 as with typed binding.
+                assertEquals(Time.valueOf("13:14:15"), rs.getTime(4));
+                assertFalse(rs.next());
+            }
+            assertEquals(isDirectMode(mode), tempTableExists(conn, "#literal_scope"));
+        }
+    }
+
+    /**
      * A stream parameter cannot be inlined as a literal, so direct execution rejects it before anything is sent and
      * the temp table is not created. Other modes send the stream with typed binding, which drops the table when the
      * call ends. Literal parameters and a null stream still work afterwards, and keep the table on the connection in
@@ -452,6 +655,77 @@ public class PrepareMethodLiteralTest extends AbstractTest {
     }
 
     /**
+     * Verifies a REAL setObject target is converted like typed binding, which declares REAL as float, so 16777217 is
+     * not rounded to a 32-bit real. The second execution binds a stream, so direct execution falls back to RPC.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testRealTargetMatchesTypedBinding(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true);
+                PreparedStatement ps = conn.prepareStatement("SELECT ?, ?, DATALENGTH(?)")) {
+            ps.setObject(1, "16777217", Types.REAL);
+            ps.setObject(2, 16777217L, Types.REAL);
+            ps.setBytes(3, BINARY_VALUE);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(16777217.0, rs.getDouble(1));
+                assertEquals(16777217.0, rs.getDouble(2));
+                assertEquals(BINARY_VALUE.length, rs.getInt(3));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** Verifies setTime keeps milliseconds that are not on a 1/300 second tick when sendTimeAsDatetime=false. */
+    @ParameterizedTest(name = "mode={0}, callable={1}")
+    @MethodSource("callableConfigurations")
+    public void testTimeWithoutSendTimeAsDatetimeKeepsMilliseconds(String mode,
+            boolean callable) throws SQLException {
+        Time expected = new Time(Time.valueOf("13:14:15").getTime() + 1);
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            conn.unwrap(SQLServerConnection.class).setSendTimeAsDatetime(false);
+            String query = "SELECT CAST(? AS time(3))";
+            if (callable) {
+                stmt.execute("CREATE PROCEDURE #literal_time @value time(3) AS SELECT @value");
+                query = "{call #literal_time(?)}";
+            }
+            assertEquals(expected, readValue(conn, query, ps -> ps.setTime(1, expected), callable));
+        }
+    }
+
+    /** Verifies setObject's target JDBC type (VARCHAR) drives SQL semantics: string concatenation, not addition. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testSetObjectTargetTypeIsHonored(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true);
+                PreparedStatement ps = conn.prepareStatement("SELECT ? + 'x'")) {
+            ps.setObject(1, 3, Types.VARCHAR);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("3x", rs.getString(1));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** Verifies setNString and NVARCHAR setObject preserve Unicode text when sendStringParametersAsUnicode=false. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testNationalCharacterSettersWithoutUnicodeDefault(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, false);
+                PreparedStatement ps = conn.prepareStatement("SELECT ?, ?")) {
+            ps.setNString(1, UNICODE_TEXT);
+            ps.setObject(2, UNICODE_TEXT, Types.NVARCHAR);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(UNICODE_TEXT, rs.getString(1));
+                assertEquals(UNICODE_TEXT, rs.getString(2));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /**
      * Verifies that a procedure call is sent as an RPC with typed parameters, so character values keep the types of
      * typed binding: setString is varchar when sendStringParametersAsUnicode=false, and setNString stays nvarchar.
      */
@@ -474,6 +748,20 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                     assertEquals("abc", rs.getString(4));
                     assertFalse(rs.next());
                 }
+            }
+        }
+    }
+
+    /** Verifies numeric, bit, binary and NULL markers followed directly by a keyword (e.g. '?and') stay valid SQL. */
+    @ParameterizedTest(name = "{0}, mode={1}")
+    @MethodSource("adjacentKeywordCases")
+    public void testAdjacentKeywordAfterNonStringParameter(QueryCase testCase, String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); PreparedStatement ps = conn.prepareStatement(testCase.sql)) {
+            testCase.binder.bind(ps);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertFalse(rs.next());
             }
         }
     }
@@ -576,6 +864,10 @@ public class PrepareMethodLiteralTest extends AbstractTest {
 
     private static Stream<Arguments> configurations() {
         return prepareModes().flatMap(mode -> Stream.of(false, true).map(unicode -> Arguments.of(mode, unicode)));
+    }
+
+    private static Stream<Arguments> callableConfigurations() {
+        return prepareModes().flatMap(mode -> Stream.of(false, true).map(callable -> Arguments.of(mode, callable)));
     }
 
     private static Stream<Arguments> predicateCases() {
@@ -693,19 +985,28 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                     xml.setString("<root><value>1</value></root>");
                     ps.setSQLXML(1, xml);
                 })};
-        return Arrays.stream(cases)
-                .flatMap(testCase -> prepareModes().flatMap(mode -> Stream.of(false, true)
-                        .filter(callable -> callable || !LITERAL_FORMATTING_CASES.contains(testCase.name))
-                        .map(callable -> Arguments.of(testCase, mode, callable))));
+        return Arrays.stream(cases).flatMap(testCase -> prepareModes()
+                .flatMap(mode -> Stream.of(false, true).map(callable -> Arguments.of(testCase, mode, callable))));
     }
 
-    /**
-     * Cases that depend on how a value is formatted as a literal in a direct statement. This change does not alter
-     * literal formatting, so only their stored procedure (callable) variants apply, which are sent as typed RPC.
-     */
-    private static final List<String> LITERAL_FORMATTING_CASES = Arrays.asList("time-milliseconds",
-            "time-calendar-off-tick-milliseconds", "timestamp-calendar", "time-calendar", "large-double",
-            "small-double", "string-with-integer-target");
+    private static Stream<Arguments> adjacentKeywordCases() {
+        QueryCase[] cases = {
+                // Integer literal followed by 'and' must not become '5and'.
+                new QueryCase("integer", "SELECT CASE WHEN 5 = ?and 1 = 1 THEN 1 ELSE 0 END", ps -> ps.setInt(1, 5)),
+                // Decimal literal followed by 'and' must not become '5.5and'.
+                new QueryCase("decimal", "SELECT CASE WHEN 5.5 = ?and 1 = 1 THEN 1 ELSE 0 END",
+                        ps -> ps.setBigDecimal(1, new BigDecimal("5.5"))),
+                // Bit literal followed by 'and' must not become '1and'.
+                new QueryCase("boolean", "SELECT CASE WHEN 1 = ?and 1 = 1 THEN 1 ELSE 0 END",
+                        ps -> ps.setBoolean(1, true)),
+                // Hex literal followed by 'and' must not become the invalid '0x01020304and'.
+                new QueryCase("binary", "SELECT CASE WHEN 0x01020304 = ?and 1 = 1 THEN 1 ELSE 0 END",
+                        ps -> ps.setBytes(1, BINARY_VALUE)),
+                // NULL literal followed by 'is' must not become the identifier 'NULLis'.
+                new QueryCase("null", "SELECT CASE WHEN ?is null THEN 1 ELSE 0 END",
+                        ps -> ps.setNull(1, Types.INTEGER))};
+        return Arrays.stream(cases).flatMap(testCase -> prepareModes().map(mode -> Arguments.of(testCase, mode)));
+    }
 
     // Uses a zone whose offset differs from the JVM default so that an ignored Calendar is observable.
     private static Calendar foreignCalendar() {
@@ -751,6 +1052,23 @@ public class PrepareMethodLiteralTest extends AbstractTest {
         ParameterCase(String name, String sqlType, Binder binder) {
             this.name = name;
             this.sqlType = sqlType;
+            this.binder = binder;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    private static final class QueryCase {
+        final String name;
+        final String sql;
+        final Binder binder;
+
+        QueryCase(String name, String sql, Binder binder) {
+            this.name = name;
+            this.sql = sql;
             this.binder = binder;
         }
 

@@ -87,7 +87,10 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 Arguments.of("-- EXEC p\nSELECT ?", false),
                 Arguments.of("/* outer /* EXEC p */ still a comment EXEC q */ SELECT ?", false),
                 Arguments.of("EXECUTE AS USER = 'u'; SELECT ?", false), Arguments.of("EXEC AS USER = 'u'", false),
-                Arguments.of("EXECUTE /* c */ AS USER = 'u'", false), Arguments.of("SELECT 1 FROM t WHERE c = '''EXEC'", false),
+                Arguments.of("EXECUTE /* c */ AS USER = 'u'", false),
+                Arguments.of("EXECUTE /* a /* nested */ b */ -- c\n AS USER = 'u'", false),
+                Arguments.of("SET NOCOUNT ON; EXECUTE /* context switch */ AS USER = 'u'; SELECT ?", false),
+                Arguments.of("SELECT 1 FROM t WHERE c = '''EXEC'", false),
                 Arguments.of("SELECT 1 /* unterminated EXEC p", false));
     }
 
@@ -173,16 +176,16 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         assertEquals("1,2,3,4", none.rows);
     }
 
+    // Entries of an unprepared RPC batch are combined into one request, like the later entries of a prepexec batch.
+    // The server stops the request at the failing entry, so the entries before it succeed and the rest are failed.
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"{call #batch_p(?)}", "EXEC #batch_p ?"})
-    public void testProcedureCallBatchWithFailingEntryMatchesTypedBinding(String sql) throws SQLException {
-        // The procedure rejects the value 13; the other entries still run.
-        BatchResult typed = runBatch("prepexec", sql, new int[] {1, 13, 3});
-        BatchResult none = runBatch("none", sql, new int[] {1, 13, 3});
-        assertTrue(typed.failed, "typed binding must report the failing entry");
+    public void testProcedureCallBatchWithFailingEntryReportsBatchUpdateException(String sql) throws SQLException {
+        // The procedure rejects the value 13.
+        BatchResult none = runBatch("none", sql, new int[] {1, 2, 13, 4});
         assertTrue(none.failed, "direct execution must report the failing entry as a BatchUpdateException");
-        assertArrayEquals(typed.counts, none.counts);
-        assertEquals(typed.rows, none.rows);
+        assertArrayEquals(new int[] {1, 1, Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED}, none.counts);
+        assertEquals("1,2", none.rows);
     }
 
     private static final class BatchResult {
@@ -369,6 +372,26 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                     ResultSet rs = stmt.executeQuery("SELECT OBJECT_ID('tempdb..#kept_table')")) {
                 assertTrue(rs.next());
                 assertFalse(null == rs.getObject(1), "temp table created by a direct statement must stay");
+            }
+        }
+    }
+
+    // EXECUTE AS switches the security context. It is not a procedure call, so the statement stays a literal batch
+    // and a temp table it creates stays on the connection, with or without comments before AS.
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"EXECUTE AS USER = 'dbo'; SELECT ? AS v INTO #kept_after_exec_as; REVERT;",
+            "SET NOCOUNT ON; EXECUTE /* context switch */ AS USER = 'dbo'; SELECT ? AS v INTO #kept_after_exec_as; REVERT;",
+            "EXECUTE /* a /* nested */ b */ -- c\n AS USER = 'dbo'; SELECT ? AS v INTO #kept_after_exec_as; REVERT;"})
+    public void testExecuteAsKeepsTempTable(String sql) throws SQLException {
+        try (Connection conn = openConnection("none")) {
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, 1);
+                ps.execute();
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT OBJECT_ID('tempdb..#kept_after_exec_as')")) {
+                assertTrue(rs.next());
+                assertFalse(null == rs.getObject(1), "EXECUTE AS must not turn the statement into an RPC");
             }
         }
     }
