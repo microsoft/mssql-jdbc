@@ -71,7 +71,8 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 Arguments.of("SELECT 1\nEXEC p", true), Arguments.of("/* c */ EXEC p ?", true),
                 Arguments.of("-- c\nEXEC p ?", true), Arguments.of("EXEC p /* , */ ? -- , \n, ?", true),
                 Arguments.of("EXEC p /* outer /* inner */ remaining */ ?", true),
-                Arguments.of("EXEC AS_proc ?", true),
+                Arguments.of("EXEC AS_proc ?", true), Arguments.of("EXEC", true),
+                Arguments.of("SELECT 1; EXEC [dbo].[p] ?", true), Arguments.of("EXEC \"dbo\".p ?", true),
 
                 // A GRANT EXECUTE permission statement is reported as a call and is simply sent as an RPC.
                 Arguments.of("GRANT EXECUTE ON p TO u", true),
@@ -86,6 +87,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 Arguments.of("-- EXEC p\nSELECT ?", false),
                 Arguments.of("/* outer /* EXEC p */ still a comment EXEC q */ SELECT ?", false),
                 Arguments.of("EXECUTE AS USER = 'u'; SELECT ?", false), Arguments.of("EXEC AS USER = 'u'", false),
+                Arguments.of("EXECUTE /* c */ AS USER = 'u'", false), Arguments.of("SELECT 1 FROM t WHERE c = '''EXEC'", false),
                 Arguments.of("SELECT 1 /* unterminated EXEC p", false));
     }
 

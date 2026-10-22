@@ -376,16 +376,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         String prepareMethod = connection.getPrepareMethod();
 
         // A stored procedure call is never executed as a direct SQL batch. Under prepareMethod=none it is sent as an
-        // unprepared RPC, and otherwise it follows the regular prepared statement path.
-        boolean isProcedureCall = (null != procedureName) || containsProcedureCall(userSQL);
-
+        // unprepared RPC. Under scopeTempTablesToConnection it follows the regular prepared statement path. The JDBC
+        // call syntax is already rewritten to EXEC in userSQL, so one scan of userSQL covers both forms. The scan runs
+        // only for these two prepare methods.
         if (prepareMethod.equals(PrepareMethod.NONE.toString())) {
+            boolean isProcedureCall = containsProcedureCall(userSQL);
             isDirectSqlExecution = !isProcedureCall;
             useUnpreparedRpc = isProcedureCall;
             usePrepExec = false;
         } else if (prepareMethod.equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())) {
             useUnpreparedRpc = false;
-            if (!isProcedureCall && containsTemporaryTableOperations(userSQL)) {
+            if (containsTemporaryTableOperations(userSQL) && !containsProcedureCall(userSQL)) {
                 isDirectSqlExecution = true;
                 usePrepExec = false;
             } else {
@@ -1455,9 +1456,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Returns whether the SQL text calls a stored procedure with an EXEC or EXECUTE statement. Quoted text, quoted
-     * identifiers and comments (which may be nested) are skipped. EXECUTE AS is a context switch, not a procedure
-     * call. A GRANT EXECUTE permission statement is reported as a call; such a statement is simply sent as an RPC.
+     * Returns whether the SQL text calls a stored procedure with an EXEC or EXECUTE statement anywhere in it, for
+     * example SET NOCOUNT ON; EXEC p ?. Quoted text, quoted identifiers and comments (which may be nested) are
+     * skipped, and only the whole words EXEC and EXECUTE count, so exec_count, @exec and [EXEC] do not. EXECUTE AS is
+     * a context switch, not a procedure call. A GRANT EXECUTE permission statement is reported as a call; such a
+     * statement is simply sent as an RPC.
      *
      * @param sql
      *        the SQL text
@@ -1466,86 +1469,70 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     static boolean containsProcedureCall(String sql) {
         int len = sql.length();
         int i = 0;
+        boolean afterExec = false; // the last token was EXEC or EXECUTE; the next one decides if it is a call
         while (i < len) {
             char c = sql.charAt(i);
-            if ('\'' == c || '"' == c) {
-                i = skipQuoted(sql, i, c);
-            } else if ('[' == c) {
-                i = skipQuoted(sql, i, ']');
+            if (Character.isWhitespace(c)) {
+                i++;
             } else if ('-' == c && i + 1 < len && '-' == sql.charAt(i + 1)) {
                 while (i < len && '\n' != sql.charAt(i) && '\r' != sql.charAt(i)) {
                     i++;
                 }
             } else if ('/' == c && i + 1 < len && '*' == sql.charAt(i + 1)) {
-                i = skipBlockComment(sql, i);
-            } else if (isWordPart(c)) {
-                int end = skipWord(sql, i);
-                if (isExecKeyword(sql, i, end)) {
-                    int next = end;
-                    while (next < len && Character.isWhitespace(sql.charAt(next))) {
-                        next++;
+                for (int depth = 1, j = i + 2; ; ) {
+                    if (j >= len) {
+                        i = len;
+                        break;
+                    } else if (sql.startsWith("/*", j)) {
+                        depth++;
+                        j += 2;
+                    } else if (sql.startsWith("*/", j)) {
+                        j += 2;
+                        if (0 == --depth) {
+                            i = j;
+                            break;
+                        }
+                    } else {
+                        j++;
                     }
-                    int nextEnd = skipWord(sql, next);
-                    if (!(nextEnd - next == 2 && sql.regionMatches(true, next, "AS", 0, 2))) {
+                }
+            } else if ('\'' == c || '"' == c || '[' == c) {
+                if (afterExec) {
+                    return true;
+                }
+                // A doubled closing quote inside the text is an escaped quote.
+                char close = ('[' == c) ? ']' : c;
+                for (i++; i < len; i++) {
+                    if (close == sql.charAt(i)) {
+                        if (i + 1 < len && close == sql.charAt(i + 1)) {
+                            i++;
+                        } else {
+                            i++;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                int start = i;
+                while (i < len && (Character.isLetterOrDigit(sql.charAt(i)) || "_@#$".indexOf(sql.charAt(i)) >= 0)) {
+                    i++;
+                }
+                if (i == start) { // an operator or punctuation character, not a word
+                    if (afterExec) {
                         return true;
                     }
+                    i++;
+                } else {
+                    int length = i - start;
+                    if (afterExec && !(2 == length && sql.regionMatches(true, start, "AS", 0, 2))) {
+                        return true;
+                    }
+                    afterExec = (4 == length && sql.regionMatches(true, start, "EXEC", 0, 4))
+                            || (7 == length && sql.regionMatches(true, start, "EXECUTE", 0, 7));
                 }
-                i = end;
-            } else {
-                i++;
             }
         }
-        return false;
-    }
-
-    private static boolean isWordPart(char c) {
-        return Character.isLetterOrDigit(c) || '_' == c || '@' == c || '#' == c || '$' == c;
-    }
-
-    private static int skipWord(String sql, int start) {
-        int i = start;
-        while (i < sql.length() && isWordPart(sql.charAt(i))) {
-            i++;
-        }
-        return i;
-    }
-
-    private static boolean isExecKeyword(String sql, int start, int end) {
-        int length = end - start;
-        return (4 == length && sql.regionMatches(true, start, "EXEC", 0, 4))
-                || (7 == length && sql.regionMatches(true, start, "EXECUTE", 0, 7));
-    }
-
-    /** Returns the index after the closing quote of the quoted text that starts at {@code open}. */
-    private static int skipQuoted(String sql, int open, char close) {
-        int i = open + 1;
-        while (i < sql.length()) {
-            if (close == sql.charAt(i++)) {
-                if (i == sql.length() || close != sql.charAt(i)) {
-                    return i;
-                }
-                i++;
-            }
-        }
-        return i;
-    }
-
-    /** Returns the index after the block comment that starts at {@code open}. SQL Server comments can be nested. */
-    private static int skipBlockComment(String sql, int open) {
-        int depth = 1;
-        int i = open + 2;
-        while (i < sql.length() && depth > 0) {
-            if (sql.startsWith("/*", i)) {
-                depth++;
-                i += 2;
-            } else if (sql.startsWith("*/", i)) {
-                depth--;
-                i += 2;
-            } else {
-                i++;
-            }
-        }
-        return i;
+        return afterExec;
     }
 
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
