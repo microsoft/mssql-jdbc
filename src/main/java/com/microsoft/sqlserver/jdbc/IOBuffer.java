@@ -4066,6 +4066,7 @@ final class TDSWriter {
                                                                  : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
 
                 calendar = new GregorianCalendar(timeZone);
+                calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
 
                 int year = Integer.parseInt(timestampString.substring(0, 4));
                 int month = Integer.parseInt(timestampString.substring(5, 7));

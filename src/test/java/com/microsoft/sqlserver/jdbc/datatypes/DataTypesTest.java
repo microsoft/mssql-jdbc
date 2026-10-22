@@ -3,6 +3,7 @@ package com.microsoft.sqlserver.jdbc.datatypes;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
@@ -2105,6 +2106,39 @@ public class DataTypesTest extends AbstractTest {
                     assertTrue(rs.next());
                     assertEquals(1, rs.getInt(2), text);
                     assertEquals(expected, rs.getObject(1, OffsetDateTime.class));
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1500-06-15T00:00:00Z", "1582-10-04T23:30:00-08:00", "1582-10-05T00:00:00Z",
+            "1582-10-10T12:00:00Z", "1582-10-14T23:30:00.0123456-08:00", "1582-10-15T00:30:00+05:45",
+            "2000-01-01T12:00:00Z"})
+    public void testNativeDateTimeOffsetCsvPreservesGregorianDate(String text) throws Exception {
+        OffsetDateTime expected = OffsetDateTime.parse(text);
+        String csvValue = expected.format(DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss.SSSSSSS xxx"));
+        byte[] csv = ("v\n" + csvValue + "\n").getBytes(StandardCharsets.UTF_8);
+        try (Connection con = PrepUtil
+                .getConnection(connectionString + ";sendTemporalDataTypesAsStringForBulkCopy=false");
+                Statement statement = con.createStatement(); ByteArrayInputStream input = new ByteArrayInputStream(csv);
+                SQLServerBulkCSVFileRecord record = new SQLServerBulkCSVFileRecord(input, Constants.UTF8,
+                        Constants.COMMA, true);
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con)) {
+            statement.execute("CREATE TABLE #dto_native_csv (v datetimeoffset(7))");
+            record.addColumnMetadata(1, "v", microsoft.sql.Types.DATETIMEOFFSET, 0, 7);
+            bulkCopy.setDestinationTableName("#dto_native_csv");
+            bulkCopy.writeToServer(record);
+            try (PreparedStatement verify = con.prepareStatement("SELECT v, CASE WHEN v = CAST(? AS datetimeoffset(7)) "
+                    + "AND DATEPART(TZOFFSET, v) = DATEPART(TZOFFSET, CAST(? AS datetimeoffset(7))) "
+                    + "THEN 1 ELSE 0 END FROM #dto_native_csv")) {
+                verify.setString(1, csvValue);
+                verify.setString(2, csvValue);
+                try (ResultSet rs = verify.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt(2), text);
+                    assertEquals(expected, rs.getObject(1, OffsetDateTime.class));
+                    assertFalse(rs.next());
                 }
             }
         }
