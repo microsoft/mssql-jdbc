@@ -8,19 +8,31 @@ package com.microsoft.sqlserver.jdbc.unit.statement;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.StringReader;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import java.util.TimeZone;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -31,6 +43,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.jdbc.SQLServerDataTable;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.PrepUtil;
@@ -49,6 +63,7 @@ public class PrepareMethodLiteralTest extends AbstractTest {
     private static final String TIMESTAMP_TEXT = "2024-02-13 12:23:45.047";
     private static final String GUID_TEXT = "01234567-89AB-CDEF-0123-456789ABCDEF";
     private static final byte[] BINARY_VALUE = {1, 2, 3, 4};
+    private static final String UNICODE_TEXT = "caf\u00e9 \u540d\u524d";
 
     @BeforeAll
     public static void setupTests() throws Exception {
@@ -84,6 +99,10 @@ public class PrepareMethodLiteralTest extends AbstractTest {
     @ParameterizedTest(name = "{0}, mode={1}, callable={2}")
     @MethodSource("roundTripCases")
     public void testValueRoundTrip(ParameterCase testCase, String mode, boolean callable) throws SQLException {
+        // A stream or SQLXML value cannot be inlined as a literal, so direct execution rejects it. A procedure call
+        // is sent as an RPC and accepts it.
+        boolean rejectedByDirectExecution = "none".equals(mode) && !callable
+                && (testCase.name.endsWith("-stream") || "sqlxml".equals(testCase.name));
         try (Connection reference = openConnection("prepexec", true); Connection actual = openConnection(mode, true);
                 Statement stmt = actual.createStatement()) {
             // The reference uses typed binding and the default date format; direct execution must not depend on it.
@@ -94,6 +113,13 @@ public class PrepareMethodLiteralTest extends AbstractTest {
             if (callable) {
                 stmt.execute("CREATE PROCEDURE #literal_echo @value " + testCase.sqlType + " AS SELECT @value");
                 query = "{call #literal_echo(?)}";
+            }
+            if (rejectedByDirectExecution) {
+                String directQuery = query;
+                SQLException e = assertThrows(SQLException.class,
+                        () -> readValue(actual, directQuery, testCase.binder, false));
+                assertTrue(e.getMessage().contains("not supported"), e.getMessage());
+                return;
             }
             Object value = readValue(actual, query, testCase.binder, callable);
             if (expected instanceof byte[]) {
@@ -227,6 +253,300 @@ public class PrepareMethodLiteralTest extends AbstractTest {
         }
     }
 
+    /** A procedure's sql_variant argument must receive the declared decimal type, not a float literal. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testDoubleWithDecimalTargetInProcedure(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #literal_decimal_variant @v sql_variant AS SELECT "
+                    + "SQL_VARIANT_PROPERTY(@v, 'BaseType'), SQL_VARIANT_PROPERTY(@v, 'Scale'), "
+                    + "CONVERT(decimal(38,4), @v)");
+            try (PreparedStatement ps = conn.prepareCall("{call #literal_decimal_variant(?)}")) {
+                for (int targetType : new int[] {Types.DECIMAL, Types.NUMERIC}) {
+                    ps.setObject(1, 1.23456, targetType, 2);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        assertEquals("decimal", rs.getString(1), "targetType=" + targetType);
+                        assertEquals(4, rs.getInt(2), "targetType=" + targetType);
+                        assertEquals(new BigDecimal("1.2346"), rs.getBigDecimal(3), "targetType=" + targetType);
+                        assertFalse(rs.next());
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * A statement that calls a procedure is sent as an RPC, so a temp table created in the same statement is dropped
+     * when the call ends. The timestamp keeps its full precision, as with typed binding.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection"})
+    public void testProcedureCallWithTempTableDoesNotKeepConnectionScope(String mode) throws SQLException {
+        Timestamp timestamp = Timestamp.valueOf("2024-02-13 13:14:15.1234567");
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #literal_timestamp_echo @d datetime2(7) AS SELECT @d");
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "EXEC #literal_timestamp_echo ?; CREATE TABLE #literal_timestamp_scope (i int)")) {
+                ps.setTimestamp(1, timestamp);
+                boolean hasResultSet = ps.execute();
+                while (hasResultSet || -1 != ps.getUpdateCount()) {
+                    if (hasResultSet) {
+                        try (ResultSet rs = ps.getResultSet()) {
+                            assertTrue(rs.next());
+                            assertEquals(timestamp, rs.getTimestamp(1));
+                            assertFalse(rs.next());
+                        }
+                    }
+                    hasResultSet = ps.getMoreResults();
+                }
+            }
+            assertFalse(tempTableExists(conn, "#literal_timestamp_scope"));
+        }
+    }
+
+    /**
+     * An EXEC argument after another statement or a comment keeps bigint semantics, and a later expression still gets
+     * its own value, because the statement is sent as an RPC with typed parameters. The temp table created in the
+     * same statement is dropped when the call ends.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testNonLeadingProcedureArgumentsAndTempTableScope(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #literal_long_echo @v bigint AS SELECT @v");
+                for (String prefix : new String[] {"SET NOCOUNT ON; ", "/* leading ; comment */ ",
+                    "-- leading ; comment\n"}) {
+                try (PreparedStatement ps = conn.prepareStatement(prefix
+                        + "EXEC #literal_long_echo ?; SELECT ? + 1 AS total INTO #literal_nonleading")) {
+                    ps.setLong(1, 5L);
+                    ps.setLong(2, Integer.MAX_VALUE);
+                    try (ResultSet rs = firstResultSet(ps)) {
+                        assertTrue(rs.next());
+                        assertEquals(5L, rs.getLong(1));
+                        assertFalse(rs.next());
+                    }
+                    while (ps.getMoreResults() || -1 != ps.getUpdateCount()) {
+                        // Consume the SELECT INTO result before checking the table from another statement.
+                    }
+                }
+                assertFalse(tempTableExists(conn, "#literal_nonleading"), "prefix=" + prefix);
+            }
+        }
+    }
+
+    /**
+     * T-SQL statements need not be separated by semicolons. An EXEC argument that follows another statement must not
+     * be a CAST expression, while an expression in a statement that follows the EXEC still needs bigint semantics.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testProcedureArgumentsWithoutStatementSeparators(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #literal_long_echo @v bigint AS SELECT @v");
+            for (String sql : new String[] {"SET NOCOUNT ON\nEXEC #literal_long_echo ?",
+                    "BEGIN EXEC #literal_long_echo ?; END", "BEGIN EXEC #literal_long_echo @v = ? END",
+                    "IF 1 = 1 EXEC #literal_long_echo ? ELSE SELECT 0",
+                    "DECLARE @rc int\nEXEC @rc = #literal_long_echo ?"}) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setLong(1, 5L);
+                    try (ResultSet rs = firstResultSet(ps)) {
+                        assertTrue(rs.next(), sql);
+                        assertEquals(5L, rs.getLong(1), sql);
+                        assertFalse(rs.next(), sql);
+                    }
+                }
+            }
+            for (String separator : new String[] {"\n", " ", " /* ; */ "}) {
+                String sql = "EXEC #literal_long_echo ?" + separator + "SELECT ? + 1";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setLong(1, 5L);
+                    ps.setLong(2, Integer.MAX_VALUE);
+                    try (ResultSet rs = firstResultSet(ps)) {
+                        assertTrue(rs.next(), sql);
+                        assertEquals(5L, rs.getLong(1), sql);
+                        assertFalse(rs.next(), sql);
+                    }
+                    assertTrue(ps.getMoreResults(), sql);
+                    try (ResultSet rs = ps.getResultSet()) {
+                        assertTrue(rs.next(), sql);
+                        assertEquals(Integer.MAX_VALUE + 1L, rs.getLong(1), sql);
+                        assertFalse(rs.next(), sql);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * A stream parameter cannot be inlined as a literal, so direct execution rejects it before anything is sent and
+     * the temp table is not created. Other modes send the stream with typed binding, which drops the table when the
+     * call ends. Literal parameters and a null stream still work afterwards, and keep the table on the connection in
+     * the direct modes.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testStreamInStatementThatCreatesTempTable(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement();
+                PreparedStatement ps = conn.prepareStatement("CREATE TABLE #literal_rpc (v varbinary(max)); "
+                        + "INSERT INTO #literal_rpc VALUES (?); "
+                        + "SELECT (SELECT DATALENGTH(v) FROM #literal_rpc), (SELECT n FROM #literal_existing)")) {
+            stmt.execute("CREATE TABLE #literal_existing (n int); INSERT INTO #literal_existing VALUES (7)");
+            ps.setBinaryStream(1, new ByteArrayInputStream(BINARY_VALUE));
+            if (isDirectMode(mode)) {
+                SQLException e = assertThrows(SQLException.class, () -> firstResultSet(ps));
+                assertTrue(e.getMessage().contains("not supported"), e.getMessage());
+            } else {
+                try (ResultSet rs = firstResultSet(ps)) {
+                    assertTrue(rs.next());
+                    assertEquals(BINARY_VALUE.length, rs.getInt(1));
+                    assertEquals(7, rs.getInt(2));
+                    assertFalse(rs.next());
+                }
+            }
+            assertFalse(tempTableExists(conn, "#literal_rpc"));
+
+            ps.setBytes(1, BINARY_VALUE);
+            try (ResultSet rs = firstResultSet(ps)) {
+                assertTrue(rs.next());
+                assertEquals(BINARY_VALUE.length, rs.getInt(1));
+                assertEquals(7, rs.getInt(2));
+                assertFalse(rs.next());
+            }
+            assertEquals(isDirectMode(mode), tempTableExists(conn, "#literal_rpc"));
+
+            // A null stream is a NULL literal. Remove the prior table first.
+            if (tempTableExists(conn, "#literal_rpc")) {
+                stmt.execute("DROP TABLE #literal_rpc");
+            }
+            ps.setBinaryStream(1, null);
+            try (ResultSet rs = firstResultSet(ps)) {
+                assertTrue(rs.next());
+                assertNull(rs.getObject(1));
+                assertEquals(7, rs.getInt(2));
+                assertFalse(rs.next());
+            }
+            assertEquals(isDirectMode(mode), tempTableExists(conn, "#literal_rpc"), "null stream");
+        }
+    }
+
+    private static boolean isDirectMode(String mode) {
+        return "none".equals(mode) || "scopeTempTablesToConnection".equals(mode);
+    }
+
+    private static ResultSet firstResultSet(PreparedStatement ps) throws SQLException {
+        boolean isResultSet = ps.execute();
+        while (!isResultSet) {
+            assertTrue(-1 != ps.getUpdateCount(), "The statement did not return a result set.");
+            isResultSet = ps.getMoreResults();
+        }
+        return ps.getResultSet();
+    }
+
+    private static boolean tempTableExists(Connection conn, String name) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT OBJECT_ID('tempdb.." + name + "')")) {
+            assertTrue(rs.next());
+            return null != rs.getObject(1);
+        }
+    }
+
+    /**
+     * Verifies that a procedure call is sent as an RPC with typed parameters, so character values keep the types of
+     * typed binding: setString is varchar when sendStringParametersAsUnicode=false, and setNString stays nvarchar.
+     */
+    @ParameterizedTest(name = "mode={0}, unicode={1}")
+    @MethodSource("configurations")
+    public void testProcedureCallKeepsSetterCharacterTypes(String mode, boolean unicode) throws SQLException {
+        int expectedLength = unicode ? 6 : 3;
+        try (Connection conn = openConnection(mode, unicode); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #literal_lengths @a sql_variant, @b sql_variant, @c sql_variant "
+                    + "AS SELECT DATALENGTH(@a), DATALENGTH(@b), DATALENGTH(@c), CAST(@a AS nvarchar(10))");
+            try (PreparedStatement ps = conn.prepareStatement("EXEC #literal_lengths ?, ?, ?")) {
+                ps.setString(1, "abc");
+                ps.setNString(2, "abc");
+                ps.setString(3, "abc");
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(expectedLength, rs.getInt(1));
+                    assertEquals(6, rs.getInt(2));
+                    assertEquals(expectedLength, rs.getInt(3));
+                    assertEquals("abc", rs.getString(4));
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
+    /**
+     * A table-valued parameter cannot be inlined as a literal, so direct execution (prepareMethod=none) rejects it
+     * when it is a table source of a SQL statement. Other modes accept it.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testTableValuedParameter(String mode) throws SQLException {
+        String typeName = "PrepareMethodLiteralTvp_" + UUID.randomUUID().toString().replace("-", "");
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TYPE " + typeName + " AS TABLE (value int)");
+            try {
+                SQLServerDataTable table = new SQLServerDataTable();
+                table.addColumnMetadata("value", Types.INTEGER);
+                table.addRow(1);
+                table.addRow(2);
+                table.addRow(3);
+                try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) conn
+                        .prepareStatement("SELECT SUM(value) FROM ?")) {
+                    ps.setStructured(1, typeName, table);
+                    if ("none".equals(mode)) {
+                        SQLException e = assertThrows(SQLException.class, ps::executeQuery);
+                        assertTrue(e.getMessage().contains("not supported"), e.getMessage());
+                    } else {
+                        try (ResultSet rs = ps.executeQuery()) {
+                            assertTrue(rs.next());
+                            assertEquals(6, rs.getInt(1));
+                            assertFalse(rs.next());
+                        }
+                    }
+                }
+            } finally {
+                stmt.execute("DROP TYPE IF EXISTS " + typeName);
+            }
+        }
+    }
+
+    /** A table-valued parameter is passed to a procedure call, which is sent as an RPC in every mode. */
+    @ParameterizedTest(name = "mode={0}")
+    @MethodSource("prepareModes")
+    public void testTableValuedParameterInProcedureCall(String mode) throws SQLException {
+        String suffix = UUID.randomUUID().toString().replace("-", "");
+        String typeName = "PrepareMethodLiteralTvp_" + suffix;
+        String procedureName = "PrepareMethodLiteralTvpProc_" + suffix;
+        try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TYPE " + typeName + " AS TABLE (value int)");
+            try {
+                stmt.execute("CREATE PROCEDURE " + procedureName + " @t " + typeName
+                        + " READONLY AS SELECT SUM(value) FROM @t");
+                SQLServerDataTable table = new SQLServerDataTable();
+                table.addColumnMetadata("value", Types.INTEGER);
+                table.addRow(1);
+                table.addRow(2);
+                table.addRow(3);
+                try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) conn
+                        .prepareStatement("{call " + procedureName + "(?)}")) {
+                    ps.setStructured(1, typeName, table);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        assertEquals(6, rs.getInt(1));
+                        assertFalse(rs.next());
+                    }
+                }
+            } finally {
+                stmt.execute("DROP PROCEDURE IF EXISTS " + procedureName);
+                stmt.execute("DROP TYPE IF EXISTS " + typeName);
+            }
+        }
+    }
+
     private static void bindLiteralValues(PreparedStatement ps, String text) throws SQLException {
         ps.setString(1, text);
         ps.setObject(2, text, Types.VARCHAR);
@@ -313,9 +633,87 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                 new ParameterCase("sql-text-as-data", "nvarchar(200)", ps -> ps.setString(1, "x'); SELECT 99; --")),
                 new ParameterCase("null-date", "date", ps -> ps.setNull(1, Types.DATE)),
                 new ParameterCase("null-timestamp", "datetime2", ps -> ps.setNull(1, Types.TIMESTAMP)),
-                new ParameterCase("null-decimal", "decimal(38,10)", ps -> ps.setNull(1, Types.DECIMAL))};
-        return Arrays.stream(cases).flatMap(testCase -> prepareModes()
-                .flatMap(mode -> Stream.of(false, true).map(callable -> Arguments.of(testCase, mode, callable))));
+                new ParameterCase("null-decimal", "decimal(38,10)", ps -> ps.setNull(1, Types.DECIMAL)),
+                // Time with milliseconds keeps its fractional seconds.
+                new ParameterCase("time-milliseconds", "time(3)",
+                        ps -> ps.setTime(1, new Time(Time.valueOf("13:14:15").getTime() + 500))),
+                // With sendTimeAsDatetime (the default), a time is rounded to a 1/300 second tick: .001 becomes .000.
+                new ParameterCase("time-off-tick-milliseconds", "time(3)",
+                        ps -> ps.setTime(1, new Time(Time.valueOf("13:14:15").getTime() + 1))),
+                // The same rounding applies to setTime with a Calendar.
+                new ParameterCase("time-calendar-off-tick-milliseconds", "time(3)",
+                        ps -> ps.setTime(1, new Time(Time.valueOf("13:14:15").getTime() + 1), foreignCalendar())),
+                // Timestamp with 9-digit nanoseconds rounds like typed binding instead of failing to convert.
+                new ParameterCase("timestamp-nanoseconds", "datetime2(7)",
+                        ps -> ps.setTimestamp(1, Timestamp.valueOf("2024-02-13 13:14:15.123456789"))),
+                // Timestamp with 7 fractional digits converts to legacy datetime with the same rounding.
+                new ParameterCase("datetime-fractional-seconds", "datetime",
+                        ps -> ps.setTimestamp(1, Timestamp.valueOf("2024-02-13 13:14:15.1234567"))),
+                // setTimestamp with a Calendar applies the Calendar's time zone.
+                new ParameterCase("timestamp-calendar", "datetime2(3)",
+                        ps -> ps.setTimestamp(1, Timestamp.valueOf(TIMESTAMP_TEXT), foreignCalendar())),
+                // setDate with a Calendar applies the Calendar's time zone.
+                new ParameterCase("date-calendar", "date",
+                        ps -> ps.setDate(1, Date.valueOf(DATE_TEXT), foreignCalendar())),
+                // setTime with a Calendar applies the Calendar's time zone.
+                new ParameterCase("time-calendar", "time(3)",
+                        ps -> ps.setTime(1, Time.valueOf("13:14:15"), foreignCalendar())),
+                // LocalDateTime with 9-digit nanoseconds rounds like typed binding.
+                new ParameterCase("local-date-time-nanoseconds", "datetime2(7)",
+                        ps -> ps.setObject(1, LocalDateTime.of(2024, 2, 13, 13, 14, 15, 123456789))),
+                // LocalTime with 9-digit nanoseconds rounds like typed binding.
+                new ParameterCase("local-time-nanoseconds", "time(7)",
+                        ps -> ps.setObject(1, LocalTime.of(13, 14, 15, 123456789))),
+                // Double beyond the decimal(38) range is sent as a float, not an out-of-range numeric literal.
+                new ParameterCase("large-double", "float", ps -> ps.setDouble(1, 1.0E300)),
+                // Tiny double keeps its value instead of a 300-digit plain decimal literal.
+                new ParameterCase("small-double", "float", ps -> ps.setDouble(1, 1.0E-300)),
+                // setObject with an INTEGER target sends an int, so the sql_variant base type matches typed binding.
+                new ParameterCase("string-with-integer-target", "sql_variant",
+                        ps -> ps.setObject(1, "123", Types.INTEGER)),
+                // setObject with a scale argument rounds the decimal to that scale.
+                new ParameterCase("decimal-with-target-scale", "decimal(10,3)",
+                        ps -> ps.setObject(1, new BigDecimal("1.235"), Types.DECIMAL, 2)),
+                // setCharacterStream sends the Reader's content, not its toString().
+                new ParameterCase("character-stream", "nvarchar(max)",
+                        ps -> ps.setCharacterStream(1, new StringReader("stream text"))),
+                // setNCharacterStream sends the Reader's Unicode content.
+                new ParameterCase("ncharacter-stream", "nvarchar(max)",
+                        ps -> ps.setNCharacterStream(1, new StringReader(UNICODE_TEXT))),
+                // setAsciiStream sends the stream's content, not its toString().
+                new ParameterCase("ascii-stream", "varchar(max)",
+                        ps -> ps.setAsciiStream(1,
+                                new ByteArrayInputStream("ascii text".getBytes(StandardCharsets.US_ASCII)))),
+                // setBinaryStream sends the stream's bytes, not its toString().
+                new ParameterCase("binary-stream", "varbinary(max)",
+                        ps -> ps.setBinaryStream(1, new ByteArrayInputStream(BINARY_VALUE))),
+                // setSQLXML sends the XML document, not the SQLXML object's toString().
+                new ParameterCase("sqlxml", "xml", ps -> {
+                    SQLXML xml = ps.getConnection().createSQLXML();
+                    xml.setString("<root><value>1</value></root>");
+                    ps.setSQLXML(1, xml);
+                })};
+        return Arrays.stream(cases)
+                .flatMap(testCase -> prepareModes().flatMap(mode -> Stream.of(false, true)
+                        .filter(callable -> callable || !LITERAL_FORMATTING_CASES.contains(testCase.name))
+                        .map(callable -> Arguments.of(testCase, mode, callable))));
+    }
+
+    /**
+     * Cases that depend on how a value is formatted as a literal in a direct statement. This change does not alter
+     * literal formatting, so only their stored procedure (callable) variants apply, which are sent as typed RPC.
+     */
+    private static final List<String> LITERAL_FORMATTING_CASES = Arrays.asList("time-milliseconds",
+            "time-calendar-off-tick-milliseconds", "timestamp-calendar", "time-calendar", "large-double",
+            "small-double", "string-with-integer-target");
+
+    // Uses a zone whose offset differs from the JVM default so that an ignored Calendar is observable.
+    private static Calendar foreignCalendar() {
+        TimeZone zone = TimeZone.getTimeZone("Pacific/Kiritimati");
+        if (zone.getRawOffset() == TimeZone.getDefault().getRawOffset()) {
+            zone = TimeZone.getTimeZone("Pacific/Pago_Pago");
+        }
+        return Calendar.getInstance(zone);
     }
 
     private static Connection openConnection(String mode, boolean unicode) throws SQLException {

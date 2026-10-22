@@ -154,6 +154,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private final boolean isDirectSqlExecution;
 
     /**
+     * Flag indicating that this statement calls a stored procedure while prepareMethod=none. It is sent as an
+     * unprepared sp_executesql RPC with typed parameters: no server handle is created or cached, and the statement
+     * is never executed as a direct SQL batch. Calculated once in constructor.
+     */
+    private final boolean useUnpreparedRpc;
+
+    /**
      * Flag indicating whether to use sp_prepexec (true) or sp_prepare (false) for
      * prepared statement execution. Only relevant when
      * isDirectSqlExecution is false.
@@ -368,11 +375,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // don't change after construction
         String prepareMethod = connection.getPrepareMethod();
 
+        // A stored procedure call is never executed as a direct SQL batch. Under prepareMethod=none it is sent as an
+        // unprepared RPC, and otherwise it follows the regular prepared statement path.
+        boolean isProcedureCall = (null != procedureName) || containsProcedureCall(userSQL);
+
         if (prepareMethod.equals(PrepareMethod.NONE.toString())) {
-            isDirectSqlExecution = true;
+            isDirectSqlExecution = !isProcedureCall;
+            useUnpreparedRpc = isProcedureCall;
             usePrepExec = false;
         } else if (prepareMethod.equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())) {
-            if (containsTemporaryTableOperations(userSQL)) {
+            useUnpreparedRpc = false;
+            if (!isProcedureCall && containsTemporaryTableOperations(userSQL)) {
                 isDirectSqlExecution = true;
                 usePrepExec = false;
             } else {
@@ -381,9 +394,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         } else if (prepareMethod.equals(PrepareMethod.PREPEXEC.toString())) {
             isDirectSqlExecution = false;
+            useUnpreparedRpc = false;
             usePrepExec = true;
         } else {
             isDirectSqlExecution = false;
+            useUnpreparedRpc = false;
             usePrepExec = false;
         }
     }
@@ -1305,8 +1320,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // No caching when using direct SQL execution (prepareMethod=none or
         // prepareMethod=scopeTempTablesToConnection with temp table operations
-        // detected)
-        if (isDirectSqlExecution) {
+        // detected) or an unprepared RPC for a stored procedure call
+        if (isDirectSqlExecution || useUnpreparedRpc) {
             return false;
         }
 
@@ -1402,6 +1417,137 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
+    /**
+     * Checks that a parameter can be inlined as a literal in a direct SQL batch. Output parameters, table-valued
+     * parameters, streams and SQLXML values cannot, and are rejected instead of being sent with a different
+     * mechanism. Procedure calls are not executed directly, so they are not affected.
+     *
+     * @param param
+     *        the parameter, may be null
+     * @param index
+     *        the zero-based parameter index
+     * @throws SQLServerException
+     *         if the parameter cannot be inlined
+     */
+    private void checkDirectSqlParameter(Parameter param, int index) throws SQLServerException {
+        if (null == param) {
+            return;
+        }
+        String unsupportedType = null;
+        if (param.isOutput()) {
+            unsupportedType = "OUT";
+        } else if (JDBCType.TVP == param.getJdbcType()) {
+            unsupportedType = "TVP";
+        } else {
+            DTV inputDTV = param.getInputDTV();
+            if (null != inputDTV && null != inputDTV.getSetterValue()) {
+                JavaType javaType = inputDTV.getJavaType();
+                if (JavaType.INPUTSTREAM == javaType || JavaType.READER == javaType || JavaType.SQLXML == javaType) {
+                    unsupportedType = javaType.toString();
+                }
+            }
+        }
+        if (null != unsupportedType) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_directSqlParameterNotSupported"));
+            SQLServerException.makeFromDriverError(connection, this,
+                    form.format(new Object[] {index + 1, unsupportedType}), null, false);
+        }
+    }
+
+    /**
+     * Returns whether the SQL text calls a stored procedure with an EXEC or EXECUTE statement. Quoted text, quoted
+     * identifiers and comments (which may be nested) are skipped. EXECUTE AS is a context switch, not a procedure
+     * call. A GRANT EXECUTE permission statement is reported as a call; such a statement is simply sent as an RPC.
+     *
+     * @param sql
+     *        the SQL text
+     * @return true if the SQL text contains an EXEC or EXECUTE statement
+     */
+    static boolean containsProcedureCall(String sql) {
+        int len = sql.length();
+        int i = 0;
+        while (i < len) {
+            char c = sql.charAt(i);
+            if ('\'' == c || '"' == c) {
+                i = skipQuoted(sql, i, c);
+            } else if ('[' == c) {
+                i = skipQuoted(sql, i, ']');
+            } else if ('-' == c && i + 1 < len && '-' == sql.charAt(i + 1)) {
+                while (i < len && '\n' != sql.charAt(i) && '\r' != sql.charAt(i)) {
+                    i++;
+                }
+            } else if ('/' == c && i + 1 < len && '*' == sql.charAt(i + 1)) {
+                i = skipBlockComment(sql, i);
+            } else if (isWordPart(c)) {
+                int end = skipWord(sql, i);
+                if (isExecKeyword(sql, i, end)) {
+                    int next = end;
+                    while (next < len && Character.isWhitespace(sql.charAt(next))) {
+                        next++;
+                    }
+                    int nextEnd = skipWord(sql, next);
+                    if (!(nextEnd - next == 2 && sql.regionMatches(true, next, "AS", 0, 2))) {
+                        return true;
+                    }
+                }
+                i = end;
+            } else {
+                i++;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isWordPart(char c) {
+        return Character.isLetterOrDigit(c) || '_' == c || '@' == c || '#' == c || '$' == c;
+    }
+
+    private static int skipWord(String sql, int start) {
+        int i = start;
+        while (i < sql.length() && isWordPart(sql.charAt(i))) {
+            i++;
+        }
+        return i;
+    }
+
+    private static boolean isExecKeyword(String sql, int start, int end) {
+        int length = end - start;
+        return (4 == length && sql.regionMatches(true, start, "EXEC", 0, 4))
+                || (7 == length && sql.regionMatches(true, start, "EXECUTE", 0, 7));
+    }
+
+    /** Returns the index after the closing quote of the quoted text that starts at {@code open}. */
+    private static int skipQuoted(String sql, int open, char close) {
+        int i = open + 1;
+        while (i < sql.length()) {
+            if (close == sql.charAt(i++)) {
+                if (i == sql.length() || close != sql.charAt(i)) {
+                    return i;
+                }
+                i++;
+            }
+        }
+        return i;
+    }
+
+    /** Returns the index after the block comment that starts at {@code open}. SQL Server comments can be nested. */
+    private static int skipBlockComment(String sql, int open) {
+        int depth = 1;
+        int i = open + 2;
+        while (i < sql.length() && depth > 0) {
+            if (sql.startsWith("/*", i)) {
+                depth++;
+                i += 2;
+            } else if (sql.startsWith("*/", i)) {
+                depth--;
+                i += 2;
+            } else {
+                i++;
+            }
+        }
+        return i;
+    }
+
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions, TDSCommand command) throws SQLServerException {
 
@@ -1426,7 +1572,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false; // No preparation needed
         }
 
-        // Cursors don't use statement pooling.
+        // A stored procedure call under prepareMethod=none is sent as an unprepared sp_executesql RPC with typed
+        // parameters. No server handle is created or cached.
+        if (useUnpreparedRpc) {
+            buildExecSQLParams(tdsWriter);
+            sendParamsByRPC(tdsWriter, params);
+            return true;
+        }
         if (isCursorable(executeMethod)) {
             if (needsPrepare)
                 buildServerCursorPrepExecParams(tdsWriter);
@@ -3474,11 +3626,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int numBatchesPrepared = 0;
         int numBatchesExecuted = 0;
-        boolean isPrepareMethodNone = connection.getPrepareMethod().equals(PrepareMethod.NONE.toString());
         boolean isScopeTempTablesToConnectionMethod = connection.getPrepareMethod()
                 .equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString());
-        boolean isScopeTempTablesToConnection = isScopeTempTablesToConnectionMethod
-                && containsTemporaryTableOperations(userSQL);
 
         if (isSelect(userSQL)) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -3488,10 +3637,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Make sure any previous maxRows limitation on the connection is removed.
         connection.setMaxRows(0);
 
-        // For prepareMethod=NONE, always handle batch execution with literal parameter
-        // substitution (direct SQL). For scopeTempTablesToConnection, use this path with
-        // literal parameter substitution only if temp table operations are detected in the SQL.
-        if (isPrepareMethodNone || isScopeTempTablesToConnection) {
+        // Direct SQL execution handles the batch with literal parameter substitution. This is prepareMethod=none, or
+        // scopeTempTablesToConnection when temp table operations are detected in the SQL. A stored procedure call is
+        // never direct: under none each entry is sent as an unprepared RPC.
+        if (isDirectSqlExecution) {
             doExecuteExecMethodBatchCombined(batchCommand);
             return;
         } else if (isScopeTempTablesToConnectionMethod) {
@@ -4329,6 +4478,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // EXEC method: substitute actual parameter values directly into SQL
         if (params == null || params.length == 0) {
             return sqlSrc;
+        }
+
+        // Parameters that cannot be inlined as literals are rejected before anything is sent. This covers a single
+        // execution and every entry of a batch.
+        for (int i = 0; i < params.length; i++) {
+            checkDirectSqlParameter(params[i], i);
         }
 
         // Create exception before any memory allocation to avoid OOM during query
