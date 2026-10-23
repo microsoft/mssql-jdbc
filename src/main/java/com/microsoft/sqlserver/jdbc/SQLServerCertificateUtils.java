@@ -60,6 +60,11 @@ import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcePEMDecryptorProviderBuilder;
+import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8DecryptorProviderBuilder;
+import org.bouncycastle.operator.InputDecryptorProvider;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
+import org.bouncycastle.pkcs.PKCSException;
 
 
 final class SQLServerCertificateUtils {
@@ -322,6 +327,8 @@ final class SQLServerCertificateUtils {
     private static final String CLIENT_KEY = "client-key";
     // PKCS#1 format
     private static final String PEM_RSA_PRIVATE_START = "-----BEGIN RSA PRIVATE KEY-----";
+    private static final String PEM_RSA_ENCRYPTED_PRIVATE_START =
+            "-----BEGIN ENCRYPTED PRIVATE KEY-----";
     // PVK format
     private static final long PVK_MAGIC = 0xB0B5F11EL;
     private static final byte[] RSA2_MAGIC = {82, 83, 65, 50};
@@ -388,13 +395,19 @@ final class SQLServerCertificateUtils {
             Object object = pemParser.readObject();
             JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
             KeyPair kp;
-            if (object instanceof PEMEncryptedKeyPair && keyPass != null) {
+            if (object instanceof PKCS8EncryptedPrivateKeyInfo && keyPass != null) {
+                JceOpenSSLPKCS8DecryptorProviderBuilder builder = new JceOpenSSLPKCS8DecryptorProviderBuilder();
+                InputDecryptorProvider decryptorProvider = builder.build(keyPass.toCharArray());
+                return converter.getPrivateKey(((PKCS8EncryptedPrivateKeyInfo)object).decryptPrivateKeyInfo(decryptorProvider));
+            } else if (object instanceof PEMEncryptedKeyPair && keyPass != null) {
                 PEMDecryptorProvider decProv = new JcePEMDecryptorProviderBuilder().build(keyPass.toCharArray());
                 kp = converter.getKeyPair(((PEMEncryptedKeyPair) object).decryptKeyPair(decProv));
             } else {
                 kp = converter.getKeyPair((PEMKeyPair) object);
             }
             return kp.getPrivate();
+        } catch (PKCSException | OperatorCreationException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -404,6 +417,7 @@ final class SQLServerCertificateUtils {
         ByteBuffer buffer = ByteBuffer.allocate((int) f.length());
 
         try (FileInputStream in = new FileInputStream(f); FileChannel channel = in.getChannel()) {
+            channel.read(buffer);
             ((Buffer) buffer.order(ByteOrder.LITTLE_ENDIAN)).rewind();
 
             long magic = buffer.getInt() & 0xFFFFFFFFL;
@@ -469,7 +483,8 @@ final class SQLServerCertificateUtils {
 
         if (privateKeyPem.contains(PEM_PRIVATE_START)) { // PKCS#8 format
             return loadPrivateKeyFromPKCS8(privateKeyPem);
-        } else if (privateKeyPem.contains(PEM_RSA_PRIVATE_START)) { // PKCS#1 format
+        } else if (privateKeyPem.contains(PEM_RSA_PRIVATE_START) ||
+                privateKeyPem.contains(PEM_RSA_ENCRYPTED_PRIVATE_START)) { // PKCS#1 format
             return loadPrivateKeyFromPKCS1(privateKeyPem, privateKeyPassword);
         } else {
             return loadPrivateKeyFromPVK(privateKeyPemPath, privateKeyPassword);
