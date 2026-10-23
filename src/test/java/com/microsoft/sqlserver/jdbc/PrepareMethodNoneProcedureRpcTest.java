@@ -557,6 +557,30 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
+    // A LocalTime follows sendTimeAsDatetime: it is sent as datetime, which holds milliseconds and rounds to 1/300
+    // second, so the full-precision value must match typed binding, also at the end of the day.
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"13:14:15.123456789", "23:59:59.999999999", "13:14:15.001000000", "00:00:00.000000000"})
+    public void testLocalTimeMatchesTypedBinding(String text) throws SQLException {
+        java.time.LocalTime time = java.time.LocalTime.parse(text);
+        for (String type : new String[] {"time(7)", "time(3)", "datetime"}) {
+            String typed = convertedTime("prepexec", type, time);
+            assertEquals(typed, convertedTime("none", type, time), text + " as " + type);
+        }
+    }
+
+    private static String convertedTime(String mode, String type, java.time.LocalTime time) throws SQLException {
+        try (Connection conn = openConnection(mode);
+                PreparedStatement ps = conn
+                        .prepareStatement("SELECT CONVERT(varchar(40), CAST(? AS " + type + "), 121)")) {
+            ps.setObject(1, time);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                return rs.getString(1);
+            }
+        }
+    }
+
     private static Connection openConnection(String mode) throws SQLException {
         String url = TestUtils.addOrOverrideProperty(TestUtils.removeProperty(connectionString, "prepareMethod"),
                 "prepareMethod", mode);

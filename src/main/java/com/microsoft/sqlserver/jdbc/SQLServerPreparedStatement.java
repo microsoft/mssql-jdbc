@@ -4709,6 +4709,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } else if (value instanceof Long) {
             // An integer literal is typed as int, so keep bigint semantics in expressions.
             return "CAST(" + value + " AS BIGINT)";
+        } else if (value instanceof java.time.LocalTime && connection.getSendTimeAsDatetime()) {
+            // As with typed binding, a time is sent as datetime, which holds milliseconds only.
+            java.time.LocalTime time = (java.time.LocalTime) value;
+            return castTimeLiteral(String.format(Locale.US, "%02d:%02d:%02d.%03d", time.getHour(), time.getMinute(),
+                    time.getSecond(), time.getNano() / 1000000));
         }
 
         if (value == null) {
