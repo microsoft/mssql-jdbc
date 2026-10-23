@@ -4643,6 +4643,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return formatTemporalInCalendar((java.util.Date) value, calendar);
         }
 
+        // As with typed binding, a LocalTime for a TIME target is sent as datetime, which holds milliseconds only. Other
+        // targets, for example an explicit TIMESTAMP, keep the full precision.
+        if (value instanceof java.time.LocalTime && JDBCType.TIME == jdbcType && connection.getSendTimeAsDatetime()) {
+            java.time.LocalTime time = (java.time.LocalTime) value;
+            return castTimeLiteral(String.format(Locale.US, "%02d:%02d:%02d.%03d", time.getHour(), time.getMinute(),
+                    time.getSecond(), time.getNano() / 1000000));
+        }
+
         // An integral value with a character target type is sent as text.
         if (jdbcType.isTextual() && (value instanceof Byte || value instanceof Short || value instanceof Integer
                 || value instanceof Long)) {
@@ -4709,11 +4717,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } else if (value instanceof Long) {
             // An integer literal is typed as int, so keep bigint semantics in expressions.
             return "CAST(" + value + " AS BIGINT)";
-        } else if (value instanceof java.time.LocalTime && connection.getSendTimeAsDatetime()) {
-            // As with typed binding, a time is sent as datetime, which holds milliseconds only.
-            java.time.LocalTime time = (java.time.LocalTime) value;
-            return castTimeLiteral(String.format(Locale.US, "%02d:%02d:%02d.%03d", time.getHour(), time.getMinute(),
-                    time.getSecond(), time.getNano() / 1000000));
         }
 
         if (value == null) {

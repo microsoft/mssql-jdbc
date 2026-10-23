@@ -113,6 +113,8 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 Arguments.of("CREATE TRIGGER trg ON t AFTER INSERT AS EXEC dbo.inner_proc ?", false),
                 Arguments.of("CREATE FUNCTION f() RETURNS int AS BEGIN RETURN ? END", false),
                 Arguments.of("retry: SELECT ? AS v INTO #t", false),
+                Arguments.of("/* c */ retry: SELECT ? AS v INTO #t", false),
+                Arguments.of("retry: EXEC p ?", true),
                 Arguments.of("RECEIVE TOP (1) message_body FROM dbo.q; SELECT ? AS v INTO #t", false),
                 Arguments.of("SEND ON CONVERSATION ? MESSAGE TYPE m", false),
                 Arguments.of("GET CONVERSATION GROUP ? FROM dbo.q", false),
@@ -540,12 +542,13 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
-    // A leading label is not a call, so the statement stays a literal batch and keeps its temp table.
-    @ParameterizedTest(name = "mode={0}")
-    @ValueSource(strings = {"none", "scopeTempTablesToConnection"})
-    public void testLabelKeepsTempTable(String mode) throws SQLException {
+    // A leading label is not a call, so the statement stays a literal batch and keeps its temp table, also when
+    // comments sit between the label name and the colon.
+    @ParameterizedTest(name = "mode={0}, {1}")
+    @MethodSource("labelStatements")
+    public void testLabelKeepsTempTable(String mode, String label) throws SQLException {
         try (Connection conn = openConnection(mode)) {
-            try (PreparedStatement ps = conn.prepareStatement("retry: SELECT ? AS v INTO #kept_after_label")) {
+            try (PreparedStatement ps = conn.prepareStatement(label + " SELECT ? AS v INTO #kept_after_label")) {
                 ps.setInt(1, 1);
                 ps.execute();
             }
@@ -557,6 +560,11 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
+    private static Stream<Arguments> labelStatements() {
+        return Stream.of("none", "scopeTempTablesToConnection")
+                .flatMap(mode -> Stream.of("retry:", "/* c */ retry:", "-- c\n retry:").map(label -> Arguments.of(mode, label)));
+    }
+
     // A LocalTime follows sendTimeAsDatetime: it is sent as datetime, which holds milliseconds and rounds to 1/300
     // second, so the full-precision value must match typed binding, also at the end of the day.
     @ParameterizedTest(name = "{0}")
@@ -564,16 +572,26 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
     public void testLocalTimeMatchesTypedBinding(String text) throws SQLException {
         java.time.LocalTime time = java.time.LocalTime.parse(text);
         for (String type : new String[] {"time(7)", "time(3)", "datetime"}) {
-            String typed = convertedTime("prepexec", type, time);
-            assertEquals(typed, convertedTime("none", type, time), text + " as " + type);
+            String typed = convertedTime("prepexec", type, time, Types.TIME);
+            assertEquals(typed, convertedTime("none", type, time, Types.TIME), text + " as " + type);
         }
     }
 
-    private static String convertedTime(String mode, String type, java.time.LocalTime time) throws SQLException {
+    // With an explicit TIMESTAMP target the value is sent as datetime2, so the fraction is not cut to milliseconds.
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"13:14:15.1234567", "13:14:15.123456789"})
+    public void testLocalTimeWithTimestampTargetKeepsPrecision(String text) throws SQLException {
+        java.time.LocalTime time = java.time.LocalTime.parse(text);
+        String typed = convertedTime("prepexec", "time(7)", time, Types.TIMESTAMP);
+        assertEquals(typed, convertedTime("none", "time(7)", time, Types.TIMESTAMP), text);
+    }
+
+    private static String convertedTime(String mode, String type, java.time.LocalTime time,
+            int targetType) throws SQLException {
         try (Connection conn = openConnection(mode);
                 PreparedStatement ps = conn
                         .prepareStatement("SELECT CONVERT(varchar(40), CAST(? AS " + type + "), 121)")) {
-            ps.setObject(1, time);
+            ps.setObject(1, time, targetType);
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());
                 return rs.getString(1);
