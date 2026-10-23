@@ -14,7 +14,13 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -479,6 +485,8 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
         Timestamp testTimestamp = Timestamp.valueOf("2023-12-15 14:30:45.123456789");
 
         // Verify optimized formatting produces correct SQL CAST syntax
+        SQLServerConnection conn = (SQLServerConnection) pstmt.getConnection();
+        conn.setSendTimeAsDatetime(false);
         assertEquals("CAST('2023-12-15' AS DATE)", callFormatLiteralValue(pstmt, testDate));
         assertEquals("CAST('14:30:45' AS TIME)", callFormatLiteralValue(pstmt, testTime));
         assertEquals("CAST('2023-12-15 14:30:45.123456789' AS DATETIME2)",
@@ -498,6 +506,12 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
         Time endOfDay = Time.valueOf("23:59:59");
         assertEquals("CAST('00:00:00' AS TIME)", callFormatLiteralValue(pstmt, midnight));
         assertEquals("CAST('23:59:59' AS TIME)", callFormatLiteralValue(pstmt, endOfDay));
+
+        // With sendTimeAsDatetime, a time is sent as datetime on 1970-01-01, as with typed binding
+        conn.setSendTimeAsDatetime(true);
+        assertEquals("CAST('1970-01-01T14:30:45' AS DATETIME)", callFormatLiteralValue(pstmt, testTime));
+        assertEquals("CAST('1970-01-01T00:00:00' AS DATETIME)", callFormatLiteralValue(pstmt, midnight));
+        assertEquals("CAST('1970-01-01T23:59:59' AS DATETIME)", callFormatLiteralValue(pstmt, endOfDay));
     }
 
     @Test
@@ -518,6 +532,46 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
         assertEquals("CAST('2023-12-15 14:30:45.123' AS DATETIME2)", oldResult);
 
         assertNotEquals(oldResult, optimizedResult, "Optimized version preserves DATETIME2 precision (7 digits)");
+    }
+
+    /**
+     * java.util.Date literals are formatted correctly when several threads format different values at the same time.
+     */
+    @Test
+    public void testFormatLiteralValueUtilDateIsThreadSafe() throws Exception {
+        SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
+        int threadCount = 8;
+        int iterations = 2000;
+
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        try {
+            List<Future<String>> results = new ArrayList<>();
+            for (int t = 0; t < threadCount; t++) {
+                // Each thread uses a different year and time so that a shared formatter would mix up the fields.
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.clear();
+                cal.set(2001 + t * 111, t, 1 + t * 3, t * 2, t * 7, t * 5);
+                cal.set(java.util.Calendar.MILLISECOND, 100 + t);
+                java.util.Date value = cal.getTime();
+                String expected = "CAST('" + new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS",
+                        java.util.Locale.US).format(value) + "' AS DATETIME2)";
+
+                results.add(executor.submit(() -> {
+                    for (int i = 0; i < iterations; i++) {
+                        String actual = callFormatLiteralValue(pstmt, value);
+                        if (!expected.equals(actual)) {
+                            return "expected " + expected + " but was " + actual;
+                        }
+                    }
+                    return null;
+                }));
+            }
+            for (Future<String> result : results) {
+                assertNull(result.get(60, TimeUnit.SECONDS));
+            }
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     // ==================== Numeric Formatting Tests ====================
@@ -562,11 +616,12 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
     public void testFormatLiteralValueLongMinMax() throws Exception {
         SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
 
+        // Long values are cast to BIGINT so that expressions keep bigint semantics.
         // Test Long.MIN_VALUE
-        assertEquals("-9223372036854775808", callFormatLiteralValue(pstmt, Long.MIN_VALUE));
+        assertEquals("CAST(-9223372036854775808 AS BIGINT)", callFormatLiteralValue(pstmt, Long.MIN_VALUE));
 
         // Test Long.MAX_VALUE
-        assertEquals("9223372036854775807", callFormatLiteralValue(pstmt, Long.MAX_VALUE));
+        assertEquals("CAST(9223372036854775807 AS BIGINT)", callFormatLiteralValue(pstmt, Long.MAX_VALUE));
     }
 
     @Test
@@ -594,21 +649,25 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
     public void testFormatLiteralValueDoubleMinMax() throws Exception {
         SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
 
+        // Double values are sent as float literals in E notation.
         // Test Double.MIN_VALUE (smallest positive value)
         String result = callFormatLiteralValue(pstmt, Double.MIN_VALUE);
-        assertEquals(new BigDecimal(Double.toString(Double.MIN_VALUE)).toPlainString(), result);
+        assertEquals(Double.toString(Double.MIN_VALUE), result);
 
         // Test Double.MAX_VALUE
         result = callFormatLiteralValue(pstmt, Double.MAX_VALUE);
-        assertEquals(new BigDecimal(Double.toString(Double.MAX_VALUE)).toPlainString(), result);
+        assertEquals(Double.toString(Double.MAX_VALUE), result);
 
         // Test negative Double.MAX_VALUE
         result = callFormatLiteralValue(pstmt, -Double.MAX_VALUE);
-        assertEquals(new BigDecimal(Double.toString(-Double.MAX_VALUE)).toPlainString(), result);
+        assertEquals(Double.toString(-Double.MAX_VALUE), result);
 
         // Test Double.MIN_NORMAL
         result = callFormatLiteralValue(pstmt, Double.MIN_NORMAL);
-        assertEquals(new BigDecimal(Double.toString(Double.MIN_NORMAL)).toPlainString(), result);
+        assertEquals(Double.toString(Double.MIN_NORMAL), result);
+
+        // A value without an exponent gets E0 so that it is still a float literal
+        assertEquals("-1.5E0", callFormatLiteralValue(pstmt, -1.5d));
     }
 
     @Test
@@ -677,17 +736,17 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
     public void testFormatLiteralValueScientificNotationHandling() throws Exception {
         SQLServerPreparedStatement pstmt = createPreparedStatementForFormatTest();
 
-        // Test very small double that might use scientific notation
+        // Doubles use E notation, which SQL Server reads as a float literal. A plain decimal literal would be
+        // typed as numeric and cannot hold values beyond 38 digits.
+        // Test very small double
         double scientificDouble = 1.23e-100;
         String result = callFormatLiteralValue(pstmt, scientificDouble);
-        // Should not contain 'E' or 'e' (scientific notation)
-        assertTrue(!result.contains("E") && !result.contains("e"));
+        assertEquals("1.23E-100", result);
 
-        // Test very large double that might use scientific notation
+        // Test very large double
         double largeDouble = 1.23e100;
         result = callFormatLiteralValue(pstmt, largeDouble);
-        // Should not contain 'E' or 'e' (scientific notation)
-        assertTrue(!result.contains("E") && !result.contains("e"));
+        assertEquals("1.23E100", result);
     }
 
     @Test
@@ -1359,6 +1418,88 @@ public class PrepStmtDirectSQLExecutionTests extends AbstractTest {
     // ==================== prepareMethod=none Tests ====================
     // Tests for prepareMethod=none which always uses direct SQL batch execution
     // (no temp table detection required)
+
+    @ParameterizedTest
+    @CsvSource({"none,false,1", "none,false,2", "none,true,1", "none,true,2",
+            "prepexec,false,1", "prepexec,false,2", "prepexec,true,1", "prepexec,true,2"})
+    public void testUnsetParameterInBatch(String prepareMethod, boolean largeBatch, int missingParameter)
+            throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            conn.setPrepareMethod(prepareMethod);
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE missing_table SET value = ? WHERE id = ?")) {
+                ps.setInt(3 - missingParameter, 42);
+                ps.addBatch();
+
+                SQLException error = assertThrows(SQLException.class,
+                        () -> {
+                            if (largeBatch) {
+                                ps.executeLargeBatch();
+                            } else {
+                                ps.executeBatch();
+                            }
+                        });
+                assertTrue(error.getMessage().contains(Integer.toString(missingParameter)),
+                        "Expected the unset parameter's index: " + error);
+            }
+        }
+    }
+
+    @Test
+    public void testUnsetParameterInTempTableDirectBatch() throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            conn.setPrepareMethod("scopeTempTablesToConnection");
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "CREATE TABLE #unset_batch_param (value INT); INSERT INTO #unset_batch_param VALUES (?)")) {
+                ps.addBatch();
+                SQLException error = assertThrows(SQLException.class, ps::executeBatch);
+                assertTrue(error.getMessage().contains("1"), "Expected the unset parameter's index: " + error);
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testUnsetParameterInLaterDirectBatchEntry(boolean largeBatch) throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            conn.setPrepareMethod("none");
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE missing_table SET value = ? WHERE id = ?")) {
+                ps.setInt(1, 42);
+                ps.setInt(2, 1);
+                ps.addBatch();
+                ps.clearParameters();
+                ps.setInt(1, 43);
+                ps.addBatch();
+
+                SQLException error = assertThrows(SQLException.class,
+                        () -> {
+                            if (largeBatch) {
+                                ps.executeLargeBatch();
+                            } else {
+                                ps.executeBatch();
+                            }
+                        });
+                assertTrue(error.getMessage().contains("2"), "Expected the unset parameter's index: " + error);
+            }
+        }
+    }
+
+    @Test
+    public void testExplicitNullInDirectBatchIsSet() throws SQLException {
+        try (SQLServerConnection conn = (SQLServerConnection) PrepUtil.getConnection(connectionString);
+                Statement stmt = conn.createStatement()) {
+            conn.setPrepareMethod("none");
+            stmt.execute("CREATE TABLE #null_batch_param (value INT NULL)");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #null_batch_param VALUES (?)")) {
+                ps.setNull(1, Types.INTEGER);
+                ps.addBatch();
+                assertArrayEquals(new int[] {1}, ps.executeBatch());
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM #null_batch_param WHERE value IS NULL")) {
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+            }
+        }
+    }
 
     /**
      * Test prepareMethod=none with regular (non-temp) table DML/SELECT operations
