@@ -1452,9 +1452,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
         if (null != unsupportedType) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_directSqlParameterNotSupported"));
+            // The existing "{0} is not supported." message is used, so no new localized resource is needed.
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_featureNotSupported"));
             SQLServerException.makeFromDriverError(connection, this,
-                    form.format(new Object[] {index + 1, unsupportedType}), null, false);
+                    form.format(new Object[] {"Parameter number " + (index + 1) + " of type " + unsupportedType
+                            + " when the statement is executed directly (prepareMethod=none, or"
+                            + " scopeTempTablesToConnection with temporary tables)"}),
+                    null, false);
         }
     }
 

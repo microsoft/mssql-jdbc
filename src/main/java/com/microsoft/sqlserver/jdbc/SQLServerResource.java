@@ -133,7 +133,6 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_invalidTDS", "The TDS protocol stream is not valid."},
         {"R_unexpectedToken", " Unexpected token {0}."},
         {"R_selectNotPermittedinBatch", "The SELECT statement is not permitted in a batch."},
-        {"R_directSqlParameterNotSupported", "The type of parameter number {0} ({1}) is not supported when the statement is executed directly (prepareMethod=none, or scopeTempTablesToConnection with temporary tables). Call a stored procedure instead, or use another prepareMethod."},
         {"R_failedToCreateXAConnection", "Failed to create the XA control connection. Error: \"{0}\""},
         {"R_codePageNotSupported", "Codepage {0} is not supported by the Java environment."},
         {"R_unknownSortId", "SQL Server collation {0} is not supported by this driver."},
