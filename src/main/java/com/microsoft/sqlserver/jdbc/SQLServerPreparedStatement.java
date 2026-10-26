@@ -1547,8 +1547,23 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         if (atStart && (Character.isLetter(c) || '_' == c || '#' == c)
                                 && !Util.TSQL_STATEMENT_KEYWORDS.contains(word)) {
                             int next = i;
-                            while (next < len && Character.isWhitespace(sql.charAt(next))) {
-                                next++;
+                            // Skip white space and comments (block comments may be nested) before the colon.
+                            for (int depth = 0; next < len;) {
+                                if (0 == depth && sql.startsWith("--", next)) {
+                                    while (next < len && '\n' != sql.charAt(next) && '\r' != sql.charAt(next)) {
+                                        next++;
+                                    }
+                                } else if (sql.startsWith("/*", next)) {
+                                    depth++;
+                                    next += 2;
+                                } else if (depth > 0 && sql.startsWith("*/", next)) {
+                                    depth--;
+                                    next += 2;
+                                } else if (depth > 0 || Character.isWhitespace(sql.charAt(next))) {
+                                    next++;
+                                } else {
+                                    break;
+                                }
                             }
                             if (next >= len || ':' != sql.charAt(next)) {
                                 return true;
@@ -4643,12 +4658,31 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return formatTemporalInCalendar((java.util.Date) value, calendar);
         }
 
-        // As with typed binding, a LocalTime for a TIME target is sent as datetime, which holds milliseconds only. Other
-        // targets, for example an explicit TIMESTAMP, keep the full precision.
-        if (value instanceof java.time.LocalTime && JDBCType.TIME == jdbcType && connection.getSendTimeAsDatetime()) {
-            java.time.LocalTime time = (java.time.LocalTime) value;
-            return castTimeLiteral(String.format(Locale.US, "%02d:%02d:%02d.%03d", time.getHour(), time.getMinute(),
-                    time.getSecond(), time.getNano() / 1000000));
+        // A LocalTime is sent as typed binding sends it. For a TIME target with sendTimeAsDatetime it is a datetime,
+        // which holds milliseconds only: the nanoseconds are rounded half-up to the millisecond, and rounding past
+        // midnight moves to the next day. Without sendTimeAsDatetime it is a time with 100 ns precision. For a
+        // TIMESTAMP target it is a datetime2 on the base date, with the full fraction.
+        if (value instanceof java.time.LocalTime) {
+            java.time.LocalTime localTime = (java.time.LocalTime) value;
+            if (JDBCType.TIME == jdbcType && connection.getSendTimeAsDatetime()) {
+                long millis = (localTime.toNanoOfDay() + 500000) / 1000000;
+                if (millis >= 86400000L) {
+                    return "CAST('" + connection.baseYear() + "-01-02T00:00:00.000' AS DATETIME)";
+                }
+                java.time.LocalTime time = java.time.LocalTime.ofNanoOfDay(millis * 1000000);
+                return castTimeLiteral(String.format(Locale.US, "%02d:%02d:%02d.%03d", time.getHour(),
+                        time.getMinute(), time.getSecond(), time.getNano() / 1000000));
+            } else if (JDBCType.TIME == jdbcType) {
+                // A time(7) rounds to 100 ns, and stops at the end of the day instead of carrying into the next day.
+                long ticks = Math.min((localTime.toNanoOfDay() + 50) / 100, 863999999999L);
+                java.time.LocalTime time = java.time.LocalTime.ofNanoOfDay(ticks * 100);
+                return castTimeLiteral(String.format(Locale.US, "%02d:%02d:%02d.%07d", time.getHour(),
+                        time.getMinute(), time.getSecond(), time.getNano() / 100));
+            } else if (JDBCType.TIMESTAMP == jdbcType) {
+                return "CAST('" + connection.baseYear() + String.format(Locale.US, "-01-01T%02d:%02d:%02d.%09d",
+                        localTime.getHour(), localTime.getMinute(), localTime.getSecond(), localTime.getNano())
+                        + "' AS DATETIME2)";
+            }
         }
 
         // An integral value with a character target type is sent as text.
@@ -4782,7 +4816,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private String castTimeLiteral(String time) {
         if (connection.getSendTimeAsDatetime()) {
-            return "CAST('1970-01-01T" + escapeSQLString(time) + "' AS DATETIME)";
+            return "CAST('" + connection.baseYear() + "-01-01T" + escapeSQLString(time) + "' AS DATETIME)";
         }
         return "CAST('" + escapeSQLString(time) + "' AS TIME)";
     }

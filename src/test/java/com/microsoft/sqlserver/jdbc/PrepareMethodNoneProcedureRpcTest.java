@@ -113,6 +113,11 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 Arguments.of("CREATE TRIGGER trg ON t AFTER INSERT AS EXEC dbo.inner_proc ?", false),
                 Arguments.of("CREATE FUNCTION f() RETURNS int AS BEGIN RETURN ? END", false),
                 Arguments.of("retry: SELECT ? AS v INTO #t", false),
+                Arguments.of("retry /* c */ : SELECT ? AS v INTO #t", false),
+                Arguments.of("retry /*comment*/: SELECT ? INTO #labeled;", false),
+                Arguments.of("retry -- c\n : SELECT ?", false),
+                Arguments.of("retry /* a /* nested */ b */ : SELECT ?", false),
+                Arguments.of("retry /* c */ : EXEC p ?", true),
                 Arguments.of("/* c */ retry: SELECT ? AS v INTO #t", false),
                 Arguments.of("retry: EXEC p ?", true),
                 Arguments.of("RECEIVE TOP (1) message_body FROM dbo.q; SELECT ? AS v INTO #t", false),
@@ -565,30 +570,33 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 .flatMap(mode -> Stream.of("retry:", "/* c */ retry:", "-- c\n retry:").map(label -> Arguments.of(mode, label)));
     }
 
-    // A LocalTime follows sendTimeAsDatetime: it is sent as datetime, which holds milliseconds and rounds to 1/300
-    // second, so the full-precision value must match typed binding, also at the end of the day.
+    // A LocalTime is sent as typed binding sends it, for both targets and with sendTimeAsDatetime on and off. With a
+    // TIME target and sendTimeAsDatetime it is a datetime, which rounds to a millisecond and carries past midnight. With a
+    // TIMESTAMP target it is a datetime2 on the base date. The result is compared after a cast to several types, so the
+    // date part, the rounding and the end of the day are all checked.
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"13:14:15.123456789", "23:59:59.999999999", "13:14:15.001000000", "00:00:00.000000000"})
+    @ValueSource(strings = {"13:14:15.123456789", "23:59:59.999999999", "13:14:15.001000000", "00:00:00.000000000",
+            "13:14:15.001500000", "13:14:15.001700000", "13:14:15.004900000", "13:14:15.998500000",
+            "23:59:59.999499999", "23:59:59.999500000", "23:59:59.999000000", "13:14:15.1234567"})
     public void testLocalTimeMatchesTypedBinding(String text) throws SQLException {
         java.time.LocalTime time = java.time.LocalTime.parse(text);
-        for (String type : new String[] {"time(7)", "time(3)", "datetime"}) {
-            String typed = convertedTime("prepexec", type, time, Types.TIME);
-            assertEquals(typed, convertedTime("none", type, time, Types.TIME), text + " as " + type);
+        for (boolean sendTimeAsDatetime : new boolean[] {true, false}) {
+            for (int target : new int[] {Types.TIME, Types.TIMESTAMP}) {
+                for (String type : new String[] {"time(7)", "time(3)", "datetime", "datetime2(7)"}) {
+                    String typed = convertedTime("prepexec", type, time, target, sendTimeAsDatetime);
+                    assertEquals(typed, convertedTime("none", type, time, target, sendTimeAsDatetime),
+                            text + " target=" + target + " sendTimeAsDatetime=" + sendTimeAsDatetime + " as " + type);
+                }
+            }
         }
     }
 
-    // With an explicit TIMESTAMP target the value is sent as datetime2, so the fraction is not cut to milliseconds.
-    @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"13:14:15.1234567", "13:14:15.123456789"})
-    public void testLocalTimeWithTimestampTargetKeepsPrecision(String text) throws SQLException {
-        java.time.LocalTime time = java.time.LocalTime.parse(text);
-        String typed = convertedTime("prepexec", "time(7)", time, Types.TIMESTAMP);
-        assertEquals(typed, convertedTime("none", "time(7)", time, Types.TIMESTAMP), text);
-    }
-
-    private static String convertedTime(String mode, String type, java.time.LocalTime time,
-            int targetType) throws SQLException {
-        try (Connection conn = openConnection(mode);
+    private static String convertedTime(String mode, String type, java.time.LocalTime time, int targetType,
+            boolean sendTimeAsDatetime) throws SQLException {
+        String url = TestUtils.addOrOverrideProperty(TestUtils.removeProperty(connectionString, "prepareMethod"),
+                "prepareMethod", mode);
+        url = TestUtils.addOrOverrideProperty(url, "sendTimeAsDatetime", String.valueOf(sendTimeAsDatetime));
+        try (Connection conn = PrepUtil.getConnection(url);
                 PreparedStatement ps = conn
                         .prepareStatement("SELECT CONVERT(varchar(40), CAST(? AS " + type + "), 121)")) {
             ps.setObject(1, time, targetType);
