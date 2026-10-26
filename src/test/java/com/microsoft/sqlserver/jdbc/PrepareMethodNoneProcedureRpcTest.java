@@ -39,7 +39,9 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -49,6 +51,7 @@ import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
@@ -202,6 +205,115 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
+    // Under scopeTempTablesToConnection a procedure call is not sent as an unprepared RPC: it takes the mode's regular
+    // prepared path (sp_executesql on the first execution, then sp_prepexec, then sp_execute with the cached handle),
+    // with or without temporary-table operations in the SQL text. A statement with temp-table operations and no call is
+    // still a direct batch (no RPC at all).
+    private static final class ExecutionTrace {
+        final List<String> rpcs;
+        final boolean tableSurvives;
+
+        ExecutionTrace(List<String> rpcs, boolean tableSurvives) {
+            this.rpcs = rpcs;
+            this.tableSurvives = tableSurvives;
+        }
+    }
+
+    private static ExecutionTrace traceThreeExecutions(String mode, String sql, String table) throws SQLException {
+        Logger logger = Logger.getLogger(STATEMENT_LOGGER);
+        Level previousLevel = logger.getLevel();
+        ProcedureLog log = new ProcedureLog();
+        log.setLevel(Level.FINE);
+        logger.setLevel(Level.FINE);
+        logger.addHandler(log);
+        try (Connection conn = openConnection(mode); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #rpc_echo @v int AS SELECT @v");
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                for (int i = 1; i <= 3; i++) {
+                    ps.setInt(1, i);
+                    ps.execute();
+                }
+            }
+            boolean survives;
+            try (ResultSet rs = stmt.executeQuery("SELECT OBJECT_ID('tempdb.." + table + "')")) {
+                rs.next();
+                survives = null != rs.getObject(1);
+            }
+            return new ExecutionTrace(log.messages, survives);
+        } finally {
+            logger.removeHandler(log);
+            logger.setLevel(previousLevel);
+        }
+    }
+
+    private static void assertPreparedSequence(List<String> rpcs) {
+        assertEquals(3, rpcs.size(), rpcs.toString());
+        assertTrue(rpcs.get(0).startsWith("calling sp_executesql"), rpcs.toString());
+        assertTrue(rpcs.get(1).startsWith("calling sp_prepexec"), rpcs.toString());
+        assertTrue(rpcs.get(2).startsWith("calling sp_execute:"), rpcs.toString());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"EXEC #rpc_echo ?", "{call #rpc_echo(?)}", "SET NOCOUNT ON; EXEC #rpc_echo ?"})
+    public void testProcedureCallInScopeModeUsesPreparedPath(String sql) throws SQLException {
+        assertPreparedSequence(traceThreeExecutions("scopeTempTablesToConnection", sql, "#none").rpcs);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"CREATE TABLE #scope_t (i int); EXEC #rpc_echo ?",
+            "EXEC #rpc_echo ?; SELECT 1 AS a INTO #scope_t"})
+    public void testProcedureCallWithTempTableInScopeModeUsesPreparedPath(String sql) throws SQLException {
+        ExecutionTrace scope = traceThreeExecutions("scopeTempTablesToConnection", sql, "#scope_t");
+        assertPreparedSequence(scope.rpcs);
+        assertFalse(scope.tableSurvives, "a temp table created in the same statement as a call ends with the RPC");
+    }
+
+    @Test
+    public void testProcedureCallWithTempTableInNoneModeIsAlwaysUnprepared() throws SQLException {
+        ExecutionTrace none = traceThreeExecutions("none", "CREATE TABLE #scope_t (i int); EXEC #rpc_echo ?",
+                "#scope_t");
+        assertEquals(3, none.rpcs.size(), none.rpcs.toString());
+        for (String rpc : none.rpcs) {
+            assertTrue(rpc.startsWith("calling sp_executesql"), rpc);
+        }
+        assertFalse(none.tableSurvives);
+    }
+
+    @Test
+    public void testTempTableStatementWithoutCallStaysDirectInScopeMode() throws SQLException {
+        ExecutionTrace scope = traceThreeExecutions("scopeTempTablesToConnection",
+                "IF OBJECT_ID('tempdb..#scope_d') IS NOT NULL DROP TABLE #scope_d; SELECT ? AS v INTO #scope_d",
+                "#scope_d");
+        assertTrue(scope.rpcs.isEmpty(), "a direct batch makes no RPC: " + scope.rpcs);
+        assertTrue(scope.tableSurvives);
+    }
+
+    // A batch of procedure calls in scope mode takes the regular prepared batch path and gives the same rows as prepexec.
+    @Test
+    public void testProcedureCallBatchInScopeModeMatchesPrepexec() throws SQLException {
+        String typed = null;
+        for (String mode : new String[] {"prepexec", "scopeTempTablesToConnection"}) {
+            try (Connection conn = openConnection(mode); Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE #scope_log (v int)");
+                stmt.execute("CREATE PROCEDURE #scope_p @v int AS INSERT #scope_log VALUES (@v)");
+                try (PreparedStatement ps = conn.prepareStatement("EXEC #scope_p ?")) {
+                    for (int v = 1; v <= 3; v++) {
+                        ps.setInt(1, v);
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                }
+                String rows = tableRows(stmt, "#scope_log");
+                if (null == typed) {
+                    typed = rows;
+                } else {
+                    assertEquals(typed, rows);
+                }
+            }
+        }
+        assertEquals("1,2,3,", typed);
+    }
+
     /** Control: the same statement under prepexec reuses a prepared handle, so the log check is meaningful. */
     @Test
     public void testPrepexecControlUsesPreparedHandle() throws SQLException {
@@ -264,6 +376,9 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         String[] props = pooling ? new String[] {"disableStatementPooling=false", "statementPoolingCacheSize=10"}
                                  : new String[0];
         try (Connection conn = openConnection("none", props); Statement stmt = conn.createStatement()) {
+            // Error 586 needs USE to switch databases, which Azure SQL Database does not allow.
+            Assumptions.assumeFalse(586 == error && TestUtils.isAzure(conn) && !TestUtils.isAzureMI(conn),
+                    "USE cannot switch databases on Azure SQL Database");
             stmt.execute("CREATE TABLE #retry_log (v int)");
             stmt.execute("CREATE PROCEDURE #retry_p @v int AS BEGIN INSERT #retry_log VALUES (@v); "
                     + (586 == error ? RETRY_ERROR_586 : RETRY_ERROR_8179) + " END");
@@ -287,16 +402,17 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                     } else if ("largeBatch".equals(kind)) {
                         ps.executeLargeBatch();
                     }
-                } catch (BatchUpdateException e) {
-                    // Only the rows inserted are checked.
+                } catch (SQLException e) {
+                    // Depending on the server, an error raised inside the procedure can end the batch with a
+                    // BatchUpdateException or a plain SQLServerException. Only the rows inserted are checked.
                 }
             }
             StringBuilder expected = new StringBuilder();
             for (int v : values) {
                 expected.append(v).append(',');
             }
-            assertEquals(expected.toString(), tableRows(stmt, "#retry_log"),
-                    "an entry that failed inside the procedure must not be run twice");
+            String rows = tableRows(stmt, "#retry_log");
+            assertEquals(expected.toString(), rows, "an entry that failed inside the procedure must not be run twice");
         }
     }
 
@@ -779,6 +895,27 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
+    // A Timestamp or LocalDateTime bound to a DATE target is compared and converted as a date, so a value at noon
+    // matches the same day and the day end does not carry into the next day.
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"2024-01-01T12:00:00", "2024-01-01T00:00:00", "2024-01-01T23:59:59.999999999",
+            "2024-12-31T23:59:59.999999999", "0001-01-01T00:00:00", "9999-12-31T23:59:59.999999999"})
+    public void testDateTargetUsesOnlyTheDate(String text) {
+        LocalDateTime value = LocalDateTime.parse(text);
+        Binder[] binders = {ps -> ps.setObject(1, value, Types.DATE),
+                ps -> ps.setObject(1, Timestamp.valueOf(value), Types.DATE)};
+        String[] queries = {"SELECT CONVERT(varchar(40), CAST(? AS varchar(40)), 121)",
+                "SELECT CASE WHEN CAST('" + text.substring(0, 10) + "' AS date) = ? THEN 'match' ELSE 'differs' END"};
+        for (Binder binder : binders) {
+            for (String sql : queries) {
+                String typed = temporalOutcome("prepexec", sql, binder);
+                for (String mode : new String[] {"none", "scopeTempTablesToConnection"}) {
+                    assertEquals(typed, temporalOutcome(mode, sql, binder), text + " in " + mode + ": " + sql);
+                }
+            }
+        }
+    }
+
     @ParameterizedTest(name = "{0} in {1}")
     @MethodSource("daylightSavingInstants")
     public void testCalendarAroundDaylightSavingMatchesTypedBinding(String instant, String zone) {
@@ -831,6 +968,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
 
     @ParameterizedTest(name = "mode={0}, {1}")
     @MethodSource("largeArgumentCases")
+    @Tag(Constants.xSQLv12)
     public void testLargeProcedureArgumentsKeepFullContent(String mode, String kind) throws Exception {
         String ascii = largeAscii();
         String unicode = largeUnicode();
@@ -960,6 +1098,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
 
     @ParameterizedTest(name = "variant {0}")
     @ValueSource(ints = {0, 1, 2})
+    @Tag(Constants.xSQLv12)
     public void testTableValuedParameterVariantsMatchPrepexec(int variant) throws SQLException {
         String typed = tvpOutcome("prepexec", variant);
         assertEquals(typed, tvpOutcome("none", variant));
@@ -1100,6 +1239,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
     }
 
     @Test
+    @Tag(Constants.xSQLv12)
     public void testTableValuedParameterIsRejectedInDirectStatement() throws SQLException {
         String typeName = "PrepareMethodRpcTvp_" + UUID.randomUUID().toString().replace("-", "");
         try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement()) {
@@ -1119,6 +1259,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
 
     @ParameterizedTest(name = "mode={0}")
     @ValueSource(strings = {"prepexec", "none"})
+    @Tag(Constants.xSQLv12)
     public void testTableValuedParameterInProcedureCall(String mode) throws SQLException {
         String suffix = UUID.randomUUID().toString().replace("-", "");
         String typeName = "PrepareMethodRpcTvp_" + suffix;
@@ -1380,6 +1521,176 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 return rs.getString(1);
             }
         }
+    }
+
+    // Value scenarios of the conformance matrix, each run under prepexec (typed binding), none and
+    // scopeTempTablesToConnection, with sendStringParametersAsUnicode on and off. The result of none and scope must
+    // equal the prepexec result, and the prepexec result must be the expected value, so a result that is the same
+    // wrong value everywhere is also caught.
+
+    @FunctionalInterface
+    private interface ValueRun {
+        String run(Connection conn) throws SQLException;
+    }
+
+    private static String valueOutcome(String mode, boolean unicode, ValueRun run) {
+        try (Connection conn = openConnection(mode, "sendStringParametersAsUnicode=" + unicode)) {
+            return run.run(conn);
+        } catch (SQLException e) {
+            return "ERROR";
+        }
+    }
+
+    private static void assertValueMatchesTypedBinding(ValueRun run, String expected) {
+        for (boolean unicode : new boolean[] {true, false}) {
+            String typed = valueOutcome("prepexec", unicode, run);
+            assertEquals(expected, typed, "prepexec, unicode=" + unicode);
+            for (String mode : new String[] {"none", "scopeTempTablesToConnection"}) {
+                assertEquals(typed, valueOutcome(mode, unicode, run), mode + ", unicode=" + unicode);
+            }
+        }
+    }
+
+    // IN (?, ?, ?) with matching and non-matching values for int, varchar and nvarchar columns: every marker is
+    // replaced and bound to the right position, so two of the four rows match and none match the other list.
+    @ParameterizedTest(name = "column {0}")
+    @ValueSource(strings = {"i", "v", "n"})
+    public void testInListMatchesTypedBinding(String column) {
+        String[][] matching = {{"1", "3", "99"}, {"a", "c", "zz"}, {"x", "z", "zz"}};
+        String[][] nonMatching = {{"98", "99", "100"}, {"q", "r", "s"}, {"q", "r", "s"}};
+        int index = "i".equals(column) ? 0 : "v".equals(column) ? 1 : 2;
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE #in_t (i int, v varchar(10), n nvarchar(10))");
+                stmt.execute("INSERT #in_t VALUES (1,'a',N'x'),(2,'b',N'y'),(3,'c',N'z'),(4,'d',N'w')");
+            }
+            StringBuilder result = new StringBuilder();
+            String[][] lists = {matching[index], nonMatching[index]};
+            String[] labels = {"matching", "nonMatching"};
+            for (int l = 0; l < lists.length; l++) {
+                try (PreparedStatement ps = conn
+                        .prepareStatement("SELECT COUNT(*) FROM #in_t WHERE " + column + " IN (?, ?, ?)")) {
+                    for (int p = 0; p < 3; p++) {
+                        if (0 == index) {
+                            ps.setInt(p + 1, Integer.parseInt(lists[l][p]));
+                        } else {
+                            ps.setString(p + 1, lists[l][p]);
+                        }
+                    }
+                    try (ResultSet rs = ps.executeQuery()) {
+                        rs.next();
+                        result.append(labels[l]).append('=').append(rs.getInt(1)).append(' ');
+                    }
+                }
+            }
+            return result.toString();
+        };
+        assertValueMatchesTypedBinding(run, "matching=2 nonMatching=0 ");
+    }
+
+    // NaN and infinity cannot be stored in a float column through a typed parameter (the server rejects the RPC), and
+    // a direct statement cannot write them as a number either. Every mode rejects them, and nothing is stored.
+    @ParameterizedTest(name = "value {0}")
+    @ValueSource(doubles = {Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NaN})
+    public void testInfinityAndNaNAreRejectedInEveryMode(double value) {
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE #f (col float)");
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #f (col) VALUES (?)")) {
+                ps.setDouble(1, value);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                return "rejected";
+            }
+            return "stored";
+        };
+        assertValueMatchesTypedBinding(run, "rejected");
+    }
+
+    // setObject(java.util.Date) into datetime2(3): a plain java.util.Date, not a java.sql type, keeps its date, time
+    // and milliseconds.
+    @Test
+    public void testUtilDateSetObjectRoundTripsToDatetime2() {
+        java.util.Date value = new java.util.Date(Timestamp.valueOf("2026-10-15 12:23:45.123").getTime());
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE #d (col datetime2(3))");
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #d (col) VALUES (?)")) {
+                ps.setObject(1, value);
+                ps.executeUpdate();
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT CONVERT(varchar(40), col, 121) FROM #d")) {
+                rs.next();
+                return rs.getString(1);
+            }
+        };
+        assertValueMatchesTypedBinding(run, "2026-10-15 12:23:45.123");
+    }
+
+    // A UUID object and the text of a GUID give the same uniqueidentifier.
+    @ParameterizedTest(name = "asObject={0}")
+    @ValueSource(booleans = {true, false})
+    public void testUuidObjectAndGuidStringRoundTrip(boolean asObject) {
+        UUID value = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE #g (id uniqueidentifier)");
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #g (id) VALUES (?)")) {
+                if (asObject) {
+                    ps.setObject(1, value);
+                } else {
+                    ps.setString(1, value.toString());
+                }
+                ps.executeUpdate();
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT CONVERT(varchar(40), id) FROM #g")) {
+                rs.next();
+                return rs.getString(1);
+            }
+        };
+        assertValueMatchesTypedBinding(run, "123E4567-E89B-12D3-A456-426614174000");
+    }
+
+    // A batch INSERT of a string, a date and an integer stores every row, in insertion order.
+    @ParameterizedTest(name = "largeBatch={0}")
+    @ValueSource(booleans = {false, true})
+    public void testBatchInsertOfStringDateAndIntKeepsInsertionOrder(boolean largeBatch) {
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE #b (seq int IDENTITY(1,1), s varchar(20), d date, i int)");
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #b (s, d, i) VALUES (?, ?, ?)")) {
+                String[] strings = {"alpha", "beta", "gamma"};
+                String[] dates = {"2020-01-02", "2021-03-04", "2022-05-06"};
+                int[] ints = {11, 22, 33};
+                for (int row = 0; row < strings.length; row++) {
+                    ps.setString(1, strings[row]);
+                    ps.setDate(2, java.sql.Date.valueOf(dates[row]));
+                    ps.setInt(3, ints[row]);
+                    ps.addBatch();
+                }
+                if (largeBatch) {
+                    ps.executeLargeBatch();
+                } else {
+                    ps.executeBatch();
+                }
+            }
+            StringBuilder rows = new StringBuilder();
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT s, CONVERT(varchar(10), d, 120), i FROM #b ORDER BY seq")) {
+                while (rs.next()) {
+                    rows.append(rs.getString(1)).append('|').append(rs.getString(2)).append('|').append(rs.getInt(3))
+                            .append(';');
+                }
+            }
+            return rows.toString();
+        };
+        assertValueMatchesTypedBinding(run, "alpha|2020-01-02|11;beta|2021-03-04|22;gamma|2022-05-06|33;");
     }
 
     private static Connection openConnection(String mode, String... properties) throws SQLException {
