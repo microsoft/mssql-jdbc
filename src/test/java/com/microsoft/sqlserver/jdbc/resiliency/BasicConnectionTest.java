@@ -36,6 +36,8 @@ import com.microsoft.sqlserver.jdbc.TestUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -282,6 +284,64 @@ public class BasicConnectionTest extends AbstractTest {
             } catch (SQLException ex) {
                 ex.printStackTrace();
                 fail("Connection failed to clean up open resultset.");
+            }
+        }
+    }
+
+    /**
+     * After the session is killed and recovered, a statement that calls a permanent procedure keeps working under
+     * every prepare method: a direct statement, an unprepared procedure RPC and the regular prepared path, whose cached
+     * handle must not be used on the new session.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection", "prepexec"})
+    public void testProcedureCallRecoversAfterReconnect(String prepareMethod) throws SQLException {
+        String procedure = RandomUtil.getIdentifier("resProc");
+        try (Connection setup = DriverManager.getConnection(connectionString); Statement s = setup.createStatement()) {
+            s.execute("CREATE PROCEDURE [" + procedure + "] @v int AS SELECT @v");
+        }
+        try (Connection c = ResiliencyUtils.getConnection(connectionString + ";prepareMethod=" + prepareMethod);
+                PreparedStatement ps = c.prepareStatement("EXEC [" + procedure + "] ?")) {
+            for (int i = 1; i <= 2; i++) {
+                ps.setInt(1, i);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(i, rs.getInt(1));
+                }
+            }
+
+            ResiliencyUtils.killConnection(c, connectionString, 0);
+
+            // The same statement object runs again on the recovered session.
+            ps.setInt(1, 3);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(3, rs.getInt(1));
+            }
+        } finally {
+            try (Connection cleanup = DriverManager.getConnection(connectionString);
+                    Statement s = cleanup.createStatement()) {
+                TestUtils.dropProcedureIfExists("[" + procedure + "]", s);
+            }
+        }
+    }
+
+    /**
+     * A session that holds a local temporary table cannot be recovered: the server marks it unrecoverable, so the next
+     * statement fails with the documented error under every prepare method, instead of silently running on a new
+     * session without the table. Resiliency does not promise to bring session-local tables back.
+     */
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection", "prepexec"})
+    public void testSessionWithLocalTempTableIsNotRecoverable(String prepareMethod) throws SQLException {
+        try (Connection c = ResiliencyUtils.getConnection(connectionString + ";prepareMethod=" + prepareMethod);
+                Statement s = c.createStatement()) {
+            s.execute("CREATE TABLE #res_state (v int)");
+            ResiliencyUtils.killConnection(c, connectionString, 0);
+            try (ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM #res_state")) {
+                fail("A session with a local temporary table must not be recovered");
+            } catch (SQLException ex) {
+                assertTrue(ex.getMessage().matches(TestUtils.formatErrorMsg("R_crServerSessionStateNotRecoverable")));
             }
         }
     }

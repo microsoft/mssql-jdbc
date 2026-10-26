@@ -1596,6 +1596,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (isDirectSqlExecution) {
             // Build direct SQL using enhanced replaceParameterMarkersWithValues with direct values
             String directSQL = replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params, false);
+            // The prepared path appends this query so getGeneratedKeys() has a result set; so does the direct path. The
+            // line break ends a trailing line comment in the user's SQL.
+            if (bRequestedGeneratedKeys)
+                directSQL = directSQL + "\n" + IDENTITY_QUERY;
             tdsWriter.writeString(directSQL);
 
             expectPrepStmtHandle = false;
@@ -4651,6 +4655,19 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean national = param.isNationalCharacterLiteral();
         JDBCType jdbcType = param.getJdbcType();
+
+        // A Timestamp or LocalDateTime bound to a DATE target is sent as its date only, as typed binding sends it.
+        if (JDBCType.DATE == jdbcType && (value instanceof java.sql.Timestamp
+                || value instanceof java.time.LocalDateTime)) {
+            java.time.LocalDate date;
+            if (value instanceof java.time.LocalDateTime) {
+                date = ((java.time.LocalDateTime) value).toLocalDate();
+            } else {
+                date = ((java.sql.Timestamp) value).toLocalDateTime().toLocalDate();
+            }
+            return "CAST('" + String.format(Locale.US, "%04d-%02d-%02d", date.getYear(), date.getMonthValue(),
+                    date.getDayOfMonth()) + "' AS DATE)";
+        }
 
         // A temporal value set with a Calendar is sent as the wall-clock time in the Calendar's time zone.
         DTV inputDTV = param.getInputDTV();
