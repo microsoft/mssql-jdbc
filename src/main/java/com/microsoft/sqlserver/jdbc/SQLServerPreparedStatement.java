@@ -1580,38 +1580,38 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     final void setValue(int parameterIndex, JDBCType jdbcType, Object value, JavaType javaType,
             String tvpName) throws SQLServerException {
         setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, null, null, connection, false,
-                stmtColumnEncriptionSetting, parameterIndex, userSQL, tvpName);
+                stmtColumnEncriptionSetting, parameterIndex, userSQL, tvpName, isDirectSqlExecution);
     }
 
     final void setValue(int parameterIndex, JDBCType jdbcType, Object value, JavaType javaType,
             boolean forceEncrypt) throws SQLServerException {
         setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, null, null, connection,
-                forceEncrypt, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+                forceEncrypt, stmtColumnEncriptionSetting, parameterIndex, userSQL, null, isDirectSqlExecution);
     }
 
     final void setValue(int parameterIndex, JDBCType jdbcType, Object value, JavaType javaType, Integer precision,
             Integer scale, boolean forceEncrypt) throws SQLServerException {
         setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, null, precision, scale, connection,
-                forceEncrypt, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+                forceEncrypt, stmtColumnEncriptionSetting, parameterIndex, userSQL, null, isDirectSqlExecution);
     }
 
     final void setValue(int parameterIndex, JDBCType jdbcType, Object value, JavaType javaType, Calendar cal,
             boolean forceEncrypt) throws SQLServerException {
         setterGetParam(parameterIndex).setValue(jdbcType, value, javaType, null, cal, null, null, connection,
-                forceEncrypt, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+                forceEncrypt, stmtColumnEncriptionSetting, parameterIndex, userSQL, null, isDirectSqlExecution);
     }
 
     final void setStream(int parameterIndex, StreamType streamType, Object streamValue, JavaType javaType,
             long length) throws SQLServerException {
         setterGetParam(parameterIndex).setValue(streamType.getJDBCType(), streamValue, javaType,
                 new StreamSetterArgs(streamType, length), null, null, null, connection, false,
-                stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+                stmtColumnEncriptionSetting, parameterIndex, userSQL, null, isDirectSqlExecution);
     }
 
     final void setSQLXMLInternal(int parameterIndex, SQLXML value) throws SQLServerException {
         setterGetParam(parameterIndex).setValue(JDBCType.SQLXML, value, JavaType.SQLXML,
                 new StreamSetterArgs(StreamType.SQLXML, DataTypes.UNKNOWN_STREAM_LENGTH), null, null, null, connection,
-                false, stmtColumnEncriptionSetting, parameterIndex, userSQL, null);
+                false, stmtColumnEncriptionSetting, parameterIndex, userSQL, null, isDirectSqlExecution);
     }
 
     @Override
@@ -2191,7 +2191,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // typeInfo is set as null
             param.setValue(jdbcType, obj, javaType, streamSetterArgs, null, precision, scale, connection, forceEncrypt,
-                    stmtColumnEncriptionSetting, parameterIndex, userSQL, tvpName);
+                    stmtColumnEncriptionSetting, parameterIndex, userSQL, tvpName, isDirectSqlExecution);
         }
 
         // For null values, use the specified JDBC type directly, with the exception
@@ -2204,7 +2204,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
             // typeInfo is set as null
             param.setValue(jdbcType, null, JavaType.OBJECT, null, null, precision, scale, connection, false,
-                    stmtColumnEncriptionSetting, parameterIndex, userSQL, tvpName);
+                    stmtColumnEncriptionSetting, parameterIndex, userSQL, tvpName, isDirectSqlExecution);
         }
     }
 
