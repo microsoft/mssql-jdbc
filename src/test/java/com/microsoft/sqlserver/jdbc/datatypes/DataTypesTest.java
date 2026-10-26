@@ -36,6 +36,7 @@ import java.time.zone.ZoneRules;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.EnumSet;
+import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.SimpleTimeZone;
 import java.util.TimeZone;
@@ -2006,10 +2007,26 @@ public class DataTypesTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testDateTimeOffsetPreservesTimestampInstant() {
+        GregorianCalendar hybrid = new GregorianCalendar(new SimpleTimeZone(328 * 60 * 1000, "GMT+05:28"), Locale.US);
+        hybrid.clear();
+        hybrid.set(961, Calendar.JULY, 8, 23, 36, 11);
+        Timestamp timestamp = new Timestamp(hybrid.getTimeInMillis());
+        timestamp.setNanos(622345500);
+
+        OffsetDateTime expected = OffsetDateTime.parse("0961-07-13T23:36:11.6223455+05:28");
+        DateTimeOffset value = DateTimeOffset.valueOf(timestamp, 328);
+        assertEquals(expected.toInstant(), timestamp.toInstant());
+        assertEquals(timestamp, value.getTimestamp());
+        assertEquals(expected, value.getOffsetDateTime());
+        assertEquals("0961-07-13 23:36:11.6223455 +05:28", value.toString());
+    }
+
     @ParameterizedTest
     @ValueSource(ints = {3, 7})
     public void testDateTimeOffsetProlepticGregorianRoundTrip(int scale) throws Exception {
-        String[] dates = {"0001-01-01T14:00:00+14:00", "1000-01-01T00:00:00Z",
+        String[] dates = {"0001-01-01T14:00:00+14:00", "0961-07-13T23:36:11.6223455+05:28", "1000-01-01T00:00:00Z",
                 "1414-01-05T00:00:00-08:00",
                 "1500-06-15T12:00:00Z", "1500-06-15T12:00:00.1234567+05:45",
                 "1582-10-04T12:00:00Z", "1582-10-04T23:30:00-08:00",
