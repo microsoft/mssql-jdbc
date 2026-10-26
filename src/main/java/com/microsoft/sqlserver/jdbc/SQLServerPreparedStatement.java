@@ -906,7 +906,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // default schema, and
         // ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
         // 8179: Could not find prepared statement with handle %d.
-        if (needsPrepare && !isBatch)
+        // An unprepared RPC never reuses a prepared handle, so these errors are not cached-handle failures and the
+        // statement must not be executed again.
+        if (useUnpreparedRpc || (needsPrepare && !isBatch))
             return false;
         return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode())
                 && connection.isStatementPoolingEnabled();

@@ -224,6 +224,45 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         assertEquals("1,2", none.rows);
     }
 
+    // An unprepared RPC never reuses a prepared handle, so errors 586 and 8179 raised inside the procedure are not
+    // cached-handle failures and the entry must not be executed again. With statement pooling enabled, the procedure
+    // below inserts a row and then calls sp_execute with an invalid handle (error 8179). Each entry must insert once.
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"{call #retry_p(?)}", "EXEC #retry_p ?"})
+    public void testErrorsFromInsideProcedureAreNotRetriedInBatch(String sql) throws SQLException {
+        String url = TestUtils.addOrOverrideProperty(TestUtils.removeProperty(connectionString, "prepareMethod"),
+                "prepareMethod", "none");
+        url = TestUtils.addOrOverrideProperty(url, "disableStatementPooling", "false");
+        url = TestUtils.addOrOverrideProperty(url, "statementPoolingCacheSize", "10");
+        try (Connection conn = PrepUtil.getConnection(url); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #retry_log (v int)");
+            stmt.execute("CREATE PROCEDURE #retry_p @v int AS BEGIN INSERT #retry_log VALUES (@v); "
+                    + "EXEC sp_execute 999999 END");
+            int[] counts = null;
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                for (int v : new int[] {1, 2, 3}) {
+                    ps.setInt(1, v);
+                    ps.addBatch();
+                }
+                try {
+                    counts = ps.executeBatch();
+                } catch (BatchUpdateException e) {
+                    counts = e.getUpdateCounts();
+                }
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT v FROM #retry_log ORDER BY v")) {
+                StringBuilder rows = new StringBuilder();
+                while (rs.next()) {
+                    rows.append(rs.getInt(1)).append(',');
+                }
+                // Each entry runs once, whatever the server does with the error raised inside the procedure.
+                assertEquals("1,2,3,", rows.toString(),
+                        "an entry that failed inside the procedure must not be run twice, counts="
+                                + java.util.Arrays.toString(counts));
+            }
+        }
+    }
+
     private static final class BatchResult {
         int[] counts;
         String rows;
