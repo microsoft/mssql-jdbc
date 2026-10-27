@@ -29,6 +29,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -152,6 +153,18 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * detected
      */
     private final boolean isDirectSqlExecution;
+
+    /**
+     * Flag indicating that this statement calls a stored procedure while prepareMethod=none. It is sent as an
+     * unprepared sp_executesql RPC with typed parameters: no server handle is created or cached, and the statement
+     * is never executed as a direct SQL batch. Calculated once in constructor.
+     */
+    private final boolean useUnpreparedRpc;
+
+    /**
+     * Whether the last request built by doPrepExec was an sp_executesql RPC, which never uses a prepared handle.
+     */
+    private boolean isExecuteSqlUsed = false;
 
     /**
      * Flag indicating whether to use sp_prepexec (true) or sp_prepare (false) for
@@ -368,22 +381,44 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // don't change after construction
         String prepareMethod = connection.getPrepareMethod();
 
+        // A stored procedure call is never executed as a direct SQL batch. Under prepareMethod=none it is sent as an
+        // unprepared RPC. Under scopeTempTablesToConnection it follows the regular prepared statement path. The JDBC
+        // call syntax is already rewritten to EXEC in userSQL, so one scan of userSQL covers both forms. The scan runs
+        // only for these two prepare methods.
         if (prepareMethod.equals(PrepareMethod.NONE.toString())) {
-            isDirectSqlExecution = true;
+            boolean isProcedureCall = containsProcedureCall(userSQL);
+            isDirectSqlExecution = !isProcedureCall;
+            useUnpreparedRpc = isProcedureCall;
             usePrepExec = false;
+            if (loggerExternal.isLoggable(Level.FINER)) {
+                loggerExternal.finer(toString() + " prepareMethod=none: " + (isProcedureCall
+                        ? "procedure call found, executing as an unprepared RPC (sp_executesql)."
+                        : "no procedure call found, executing as a direct SQL batch."));
+            }
         } else if (prepareMethod.equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())) {
-            if (containsTemporaryTableOperations(userSQL)) {
+            useUnpreparedRpc = false;
+            // The procedure call scan runs only when the SQL text uses temporary tables.
+            boolean usesTempTables = containsTemporaryTableOperations(userSQL);
+            boolean isProcedureCall = usesTempTables && containsProcedureCall(userSQL);
+            if (usesTempTables && !isProcedureCall) {
                 isDirectSqlExecution = true;
                 usePrepExec = false;
             } else {
                 isDirectSqlExecution = false;
                 usePrepExec = true;
             }
+            if (usesTempTables && loggerExternal.isLoggable(Level.FINER)) {
+                loggerExternal.finer(toString() + " prepareMethod=scopeTempTablesToConnection: " + (isProcedureCall
+                        ? "procedure call found, executing as a prepared RPC."
+                        : "no procedure call found, executing as a direct SQL batch."));
+            }
         } else if (prepareMethod.equals(PrepareMethod.PREPEXEC.toString())) {
             isDirectSqlExecution = false;
+            useUnpreparedRpc = false;
             usePrepExec = true;
         } else {
             isDirectSqlExecution = false;
+            useUnpreparedRpc = false;
             usePrepExec = false;
         }
     }
@@ -889,7 +924,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // default schema, and
         // ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
         // 8179: Could not find prepared statement with handle %d.
-        if (needsPrepare && !isBatch)
+        // An sp_executesql RPC never reuses a prepared handle, so these errors are not cached-handle failures and the
+        // statement must not be executed again.
+        if (isExecuteSqlUsed || (needsPrepare && !isBatch))
             return false;
         return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode())
                 && connection.isStatementPoolingEnabled();
@@ -1305,8 +1342,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // No caching when using direct SQL execution (prepareMethod=none or
         // prepareMethod=scopeTempTablesToConnection with temp table operations
-        // detected)
-        if (isDirectSqlExecution) {
+        // detected) or an unprepared RPC for a stored procedure call
+        if (isDirectSqlExecution || useUnpreparedRpc) {
             return false;
         }
 
@@ -1402,11 +1439,178 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return false;
     }
 
+    /**
+     * Checks that a parameter can be inlined as a literal in a direct SQL batch. Output parameters, table-valued
+     * parameters, streams and SQLXML values cannot, and are rejected instead of being sent with a different
+     * mechanism. Procedure calls are not executed directly, so they are not affected.
+     *
+     * @param param
+     *        the parameter, may be null
+     * @param index
+     *        the zero-based parameter index
+     * @throws SQLServerException
+     *         if the parameter cannot be inlined
+     */
+    private void checkDirectSqlParameter(Parameter param, int index) throws SQLServerException {
+        if (null == param) {
+            return;
+        }
+        String unsupportedType = null;
+        if (param.isOutput()) {
+            unsupportedType = "OUT";
+        } else if (JDBCType.TVP == param.getJdbcType()) {
+            unsupportedType = "TVP";
+        } else {
+            DTV inputDTV = param.getInputDTV();
+            if (null != inputDTV && null != inputDTV.getSetterValue()) {
+                JavaType javaType = inputDTV.getJavaType();
+                if (JavaType.INPUTSTREAM == javaType || JavaType.READER == javaType || JavaType.SQLXML == javaType) {
+                    unsupportedType = javaType.toString();
+                } else if (isSubnormal(inputDTV.getSetterValue())) {
+                    // SQL Server rounds a float literal below Double.MIN_NORMAL, such as 4.9E-324, to 0. The value is
+                    // rejected instead of being silently changed.
+                    unsupportedType = "subnormal Double";
+                }
+            }
+        }
+        if (null != unsupportedType) {
+            // The existing "{0} is not supported." message is used, so no new localized resource is needed.
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_featureNotSupported"));
+            SQLServerException.makeFromDriverError(connection, this,
+                    form.format(new Object[] {"Parameter number " + (index + 1) + " of type " + unsupportedType
+                            + " when the statement is executed directly (prepareMethod=none, or"
+                            + " scopeTempTablesToConnection with temporary tables)"}),
+                    null, false);
+        }
+    }
+
+    /** Returns whether the value is a non-zero Double smaller in magnitude than Double.MIN_NORMAL. */
+    private static boolean isSubnormal(Object value) {
+        if (!(value instanceof Double)) {
+            return false;
+        }
+        double d = Math.abs((Double) value);
+        return d > 0 && d < Double.MIN_NORMAL;
+    }
+
+    /**
+     * Returns whether the SQL text calls a stored procedure, either with an EXEC or EXECUTE statement anywhere in it,
+     * for example SET NOCOUNT ON; EXEC p ?, or by naming the procedure as the first statement without EXEC, for
+     * example dbo.p ?. Quoted text, quoted identifiers and comments (which may be nested) are skipped, and only the
+     * whole words EXEC and EXECUTE count, so exec_count, @exec and [EXEC] do not. EXECUTE AS is a context switch, not
+     * a procedure call. A GRANT EXECUTE permission statement is reported as a call; such a statement is simply sent
+     * as an RPC.
+     * <p>
+     * If the scan fails with an unexpected error, the text is reported as a procedure call. The statement is then sent
+     * as an RPC through sp_executesql, which runs any SQL text with typed parameters, instead of as a direct SQL batch
+     * in which literal values could break a procedure call.
+     *
+     * @param sql
+     *        the SQL text
+     * @return true if the SQL text calls a stored procedure
+     */
+    static boolean containsProcedureCall(String sql) {
+        try {
+            return scanForProcedureCall(blankCommentsAndQuotedText(sql));
+        } catch (Exception e) {
+            // Fail safe: sp_executesql handles any statement, while literal substitution breaks procedure calls.
+            if (loggerExternal.isLoggable(Level.FINE)) {
+                loggerExternal.fine("Could not scan the SQL text for a procedure call, so it is sent as an RPC: " + e);
+            }
+            return true;
+        }
+    }
+
+    /**
+     * Scans SQL text for a procedure call; see {@link #containsProcedureCall(String)}. The text must already be
+     * blanked by {@link #blankCommentsAndQuotedText(CharSequence)}, so comments are white space, each quoted string is
+     * a single {@code '} and each quoted identifier is a single {@code "}.
+     */
+    private static boolean scanForProcedureCall(String sql) {
+        int len = sql.length();
+        int i = 0;
+        boolean afterExec = false; // the last token was EXEC or EXECUTE; the next one decides if it is a call
+        boolean atStart = true; // no token has been read yet
+        boolean afterCreate = false; // the batch starts with CREATE or ALTER; the next words say what is created
+        while (i < len) {
+            char c = sql.charAt(i);
+            if (Character.isWhitespace(c)) {
+                i++;
+            } else if ('\'' == c || '"' == c) {
+                // A quoted identifier that starts the batch is a procedure name without EXEC.
+                if (afterExec || (atStart && '"' == c)) {
+                    return true;
+                }
+                atStart = false;
+                afterCreate = false;
+                i++;
+            } else {
+                int start = i;
+                while (i < len && isIdentifierPart(sql.codePointAt(i))) {
+                    i += Character.charCount(sql.codePointAt(i));
+                }
+                if (i == start) { // an operator or punctuation character, not a word
+                    if (afterExec) {
+                        return true;
+                    }
+                    atStart = false;
+                    afterCreate = false;
+                    i++;
+                } else {
+                    int length = i - start;
+                    if (afterExec && !(2 == length && sql.regionMatches(true, start, "AS", 0, 2))) {
+                        return true;
+                    }
+                    if (atStart || afterCreate) {
+                        String word = sql.substring(start, i).toUpperCase(Locale.ENGLISH);
+                        if (afterCreate && ("PROC".equals(word) || "PROCEDURE".equals(word) || "FUNCTION".equals(word)
+                                || "TRIGGER".equals(word))) {
+                            return false; // the rest of the batch is a module body, which runs later
+                        }
+                        afterCreate = atStart ? ("CREATE".equals(word) || "ALTER".equals(word))
+                                              : ("OR".equals(word) || "ALTER".equals(word));
+                        if (atStart && (Character.isLetter(c) || '_' == c || '#' == c)
+                                && !Util.TSQL_STATEMENT_KEYWORDS.contains(word)) {
+                            int next = i;
+                            while (next < len && Character.isWhitespace(sql.charAt(next))) {
+                                next++;
+                            }
+                            if (next >= len || ':' != sql.charAt(next)) {
+                                return true;
+                            }
+                            i = next + 1; // a label, the statement after it starts the batch
+                            continue;
+                        }
+                    }
+                    atStart = false;
+                    afterExec = (4 == length && sql.regionMatches(true, start, "EXEC", 0, 4))
+                            || (7 == length && sql.regionMatches(true, start, "EXECUTE", 0, 7));
+                }
+            }
+        }
+        return afterExec;
+    }
+
+    /**
+     * Returns whether a character continues a T-SQL identifier: a letter, a digit, a combining mark, or one of
+     * {@code _ @ # $}. This matches the pattern used to find RAISERROR, so EXEC followed by a combining mark is a longer
+     * identifier, not the EXEC keyword.
+     */
+    private static boolean isIdentifierPart(int codePoint) {
+        if (Character.isLetterOrDigit(codePoint) || "_@#$".indexOf(codePoint) >= 0) {
+            return true;
+        }
+        int type = Character.getType(codePoint);
+        return Character.NON_SPACING_MARK == type || Character.COMBINING_SPACING_MARK == type
+                || Character.ENCLOSING_MARK == type;
+    }
+
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
             boolean hasExistingTypeDefinitions, TDSCommand command) throws SQLServerException {
 
         // Reset isPrepExecUsed to default before determining execution path
         isPrepExecUsed = false;
+        isExecuteSqlUsed = false;
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
 
@@ -1415,6 +1619,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (isDirectSqlExecution) {
             // Build direct SQL using enhanced replaceParameterMarkersWithValues with direct values
             String directSQL = replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params, false);
+            // The prepared path appends this query so getGeneratedKeys() has a result set; so does the direct path. The
+            // line break ends a trailing line comment in the user's SQL.
+            if (bRequestedGeneratedKeys)
+                directSQL = directSQL + "\n" + IDENTITY_QUERY;
             tdsWriter.writeString(directSQL);
 
             expectPrepStmtHandle = false;
@@ -1426,7 +1634,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false; // No preparation needed
         }
 
-        // Cursors don't use statement pooling.
+        // A stored procedure call under prepareMethod=none is sent as an unprepared sp_executesql RPC with typed
+        // parameters. No server handle is created or cached. In a batch nothing has to be read back before the next
+        // entry, so the entries are combined into one request.
+        if (useUnpreparedRpc) {
+            isExecuteSqlUsed = true;
+            buildExecSQLParams(tdsWriter);
+            sendParamsByRPC(tdsWriter, params);
+            return !(command instanceof PrepStmtBatchExecCmd);
+        }
         if (isCursorable(executeMethod)) {
             if (needsPrepare)
                 buildServerCursorPrepExecParams(tdsWriter);
@@ -1439,6 +1655,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
                 isPrepExecUsed = false;
+                isExecuteSqlUsed = true;
             } else if (needsPrepare) { // Second execution, use prepared statements since we seem to be re-using it.
                 if (usePrepExec) { // If true, we're using sp_prepexec.
                     buildPrepExecParams(tdsWriter);
@@ -3474,11 +3691,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         int numBatchesPrepared = 0;
         int numBatchesExecuted = 0;
-        boolean isPrepareMethodNone = connection.getPrepareMethod().equals(PrepareMethod.NONE.toString());
         boolean isScopeTempTablesToConnectionMethod = connection.getPrepareMethod()
                 .equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString());
-        boolean isScopeTempTablesToConnection = isScopeTempTablesToConnectionMethod
-                && containsTemporaryTableOperations(userSQL);
 
         if (isSelect(userSQL)) {
             SQLServerException.makeFromDriverError(connection, this,
@@ -3488,10 +3702,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Make sure any previous maxRows limitation on the connection is removed.
         connection.setMaxRows(0);
 
-        // For prepareMethod=NONE, always handle batch execution with literal parameter
-        // substitution (direct SQL). For scopeTempTablesToConnection, use this path with
-        // literal parameter substitution only if temp table operations are detected in the SQL.
-        if (isPrepareMethodNone || isScopeTempTablesToConnection) {
+        // Direct SQL execution handles the batch with literal parameter substitution. This is prepareMethod=none, or
+        // scopeTempTablesToConnection when temp table operations are detected in the SQL. A stored procedure call is
+        // never direct: under none each entry is sent as an unprepared RPC.
+        if (isDirectSqlExecution) {
             doExecuteExecMethodBatchCombined(batchCommand);
             return;
         } else if (isScopeTempTablesToConnectionMethod) {
@@ -4243,8 +4457,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
-    // Date format for java.util.Date -> DATETIME2 conversion
-    private static final SimpleDateFormat TS_FMT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US);
+    /**
+     * Formats a java.util.Date as yyyy-MM-dd HH:mm:ss.SSS in the default time zone. SimpleDateFormat is not
+     * thread-safe, so a new instance is used per call instead of a shared static one.
+     */
+    private static String formatUtilDate(java.util.Date value) {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(value);
+    }
 
     // OUT parameter marker for replaceParameterMarkers
     static final char[] OUT = { ' ', 'O', 'U', 'T' };
@@ -4307,6 +4526,143 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return new String(sqlDst, 0, dstBegin);
     }
 
+    // A marker right after SET <option>, TOP, or FETCH ABSOLUTE/RELATIVE is a position that accepts a constant or a
+    // variable, not an expression.
+    private static final java.util.regex.Pattern CONSTANT_ONLY_POSITION = java.util.regex.Pattern.compile(
+            "(?:\\bSET\\s+\\w+|\\bTOP|\\bFETCH\\s+(?:ABSOLUTE|RELATIVE))\\s*$",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+    private static final java.util.regex.Pattern MODULE_DEFINITION = java.util.regex.Pattern.compile(
+            "^\\s*(?:CREATE|ALTER)\\s+(?:OR\\s+ALTER\\s+)?(?:PROC|PROCEDURE|FUNCTION|TRIGGER)\\b",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+    // Matches RAISERROR as a whole T-SQL token; @, # and $ are identifier characters, so @RAISERROR or #RAISERROR do
+    // not match.
+    private static final java.util.regex.Pattern RAISERROR = java.util.regex.Pattern.compile(
+            "(?<![\\p{L}\\p{M}\\p{N}_@#$])RAISERROR(?![\\p{L}\\p{M}\\p{N}_@#$])",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Returns whether the SQL text before a parameter marker, counted from the previous marker, ends in a position that
+     * does not accept a CAST expression, for example SET ROWCOUNT ?, TOP ? or FETCH ABSOLUTE ?. A Long keeps its plain
+     * literal there. Comments and quoted text are ignored. Only the original SQL text between two markers is scanned,
+     * never the substituted values.
+     */
+    private static boolean isConstantOnlyPosition(CharSequence sqlBefore) {
+        return CONSTANT_ONLY_POSITION.matcher(blankCommentsAndQuotedText(sqlBefore)).find();
+    }
+
+    /**
+     * Returns whether every Long in the SQL text keeps its plain literal instead of a CAST expression. This is the case
+     * when the text creates or alters a procedure, function or trigger, whose body runs later and may pass a parameter
+     * to EXEC. Comments and quoted text are ignored.
+     */
+    private static boolean keepsLongsPlain(String sql) {
+        return MODULE_DEFINITION.matcher(blankCommentsAndQuotedText(sql)).find();
+    }
+
+    /**
+     * Returns whether a parameter marker that follows the given SQL text, counted from the start of the batch, is an
+     * argument of RAISERROR, whose arguments accept only constants and variables, so a Long keeps its plain literal
+     * there. This holds between the opening and closing parenthesis of RAISERROR(...), and, for the old syntax without
+     * parentheses, up to the end of the statement. Other parameters of the same batch are not affected. Comments and
+     * quoted text are ignored.
+     */
+    private static boolean isInsideRaiserrorArguments(CharSequence sqlBefore) {
+        String blanked = blankCommentsAndQuotedText(sqlBefore);
+        java.util.regex.Matcher raiserror = RAISERROR.matcher(blanked);
+        while (raiserror.find()) {
+            int i = raiserror.end();
+            while (i < blanked.length() && Character.isWhitespace(blanked.charAt(i))) {
+                i++;
+            }
+            if (i < blanked.length() && '(' == blanked.charAt(i)) {
+                int depth = 0;
+                for (; i < blanked.length(); i++) {
+                    char c = blanked.charAt(i);
+                    if ('(' == c) {
+                        depth++;
+                    } else if (')' == c && 0 == --depth) {
+                        break;
+                    }
+                }
+                if (i >= blanked.length()) { // the argument list is still open at the marker
+                    return true;
+                }
+            } else if (blanked.indexOf(';', i) < 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the SQL text with each comment replaced by a space, each quoted string replaced by a single {@code '} and
+     * each quoted identifier ({@code "name"} or {@code [name]}) replaced by a single {@code "}, so the patterns above
+     * and the procedure call scan only see SQL keywords and names. This is done with a character scan rather than a
+     * regular expression because:
+     * <ul>
+     * <li>block comments may be nested, as in <code>/* a /* b *&#47; c *&#47;</code>, and end only at the matching
+     * close;</li>
+     * <li>comment characters inside quoted text, as in {@code '--'}, do not start a comment;</li>
+     * <li>TOP or SET inside a comment or quoted text, as in {@code 'TOP'}, does not count.</li>
+     * </ul>
+     * A doubled closing quote inside quoted text is an escaped quote. An unterminated comment or quote runs to the end
+     * of the text.
+     *
+     * @param sql
+     *        the SQL text
+     * @return the SQL text with comments and quoted text blanked out
+     */
+    static String blankCommentsAndQuotedText(CharSequence sql) {
+        int len = sql.length();
+        StringBuilder out = new StringBuilder(len);
+        int i = 0;
+        while (i < len) {
+            char c = sql.charAt(i);
+            if ('-' == c && i + 1 < len && '-' == sql.charAt(i + 1)) {
+                // Line comment: runs to the end of the line.
+                while (i < len && '\n' != sql.charAt(i) && '\r' != sql.charAt(i)) {
+                    i++;
+                }
+                out.append(' ');
+            } else if ('/' == c && i + 1 < len && '*' == sql.charAt(i + 1)) {
+                // Block comment: each /* opens a level and each */ closes one; it ends when no level is open.
+                int depth = 1;
+                i += 2;
+                while (i < len && depth > 0) {
+                    if ('/' == sql.charAt(i) && i + 1 < len && '*' == sql.charAt(i + 1)) {
+                        depth++;
+                        i += 2;
+                    } else if ('*' == sql.charAt(i) && i + 1 < len && '/' == sql.charAt(i + 1)) {
+                        depth--;
+                        i += 2;
+                    } else {
+                        i++;
+                    }
+                }
+                out.append(' ');
+            } else if ('\'' == c || '"' == c || '[' == c) {
+                // Quoted text or a quoted identifier: runs to the closing quote; a doubled quote is part of the text.
+                char close = ('[' == c) ? ']' : c;
+                i++;
+                while (i < len) {
+                    if (close != sql.charAt(i)) {
+                        i++;
+                    } else if (i + 1 < len && close == sql.charAt(i + 1)) {
+                        i += 2;
+                    } else {
+                        i++;
+                        break;
+                    }
+                }
+                out.append('\'' == c ? '\'' : '"');
+            } else {
+                out.append(c);
+                i++;
+            }
+        }
+        return out.toString();
+    }
+
     /**
      * Replaces parameter markers '?' with actual parameter values for direct SQL
      * execution.
@@ -4331,6 +4687,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return sqlSrc;
         }
 
+        // Parameters that cannot be inlined as literals are rejected before anything is sent. This covers a single
+        // execution and every entry of a batch.
+        for (int i = 0; i < params.length; i++) {
+            checkDirectSqlParameter(params[i], i);
+        }
+
         // Create exception before any memory allocation to avoid OOM during query
         // creation
         SQLServerException ex = new SQLServerException("Error during parameter replacement", null);
@@ -4338,6 +4700,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         try {
             StringBuilder result = new StringBuilder(sqlSrc.length() + params.length * 20);
             int srcBegin = 0;
+            Boolean longsPlain = null; // evaluated once, and only when a Long is bound
+            boolean mayHaveRaiserror = false;
 
             for (int paramIndex = 0; paramIndex < paramPositions.length; paramIndex++) {
                 int srcEnd = paramPositions[paramIndex];
@@ -4346,21 +4710,46 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 result.append(sqlSrc, srcBegin, srcEnd);
 
                 // Get parameter value and format it
-                Object value = null;
-                if (params[paramIndex] != null) {
-                    value = params[paramIndex].getSetterValue();
+                if (null == params[paramIndex] || !params[paramIndex].hasSetterDTV()) {
+                    MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_valueNotSetForParameter"));
+                    SQLServerException.makeFromDriverError(connection, this, form.format(new Object[] {paramIndex + 1}),
+                            null, false);
+                }
+                Object value = params[paramIndex].getSetterValue();
+                String literal;
+                if (value instanceof Long && null == longsPlain) {
+                    longsPlain = keepsLongsPlain(sqlSrc);
+                    mayHaveRaiserror = RAISERROR.matcher(sqlSrc).find();
+                }
+                if (value instanceof Long && (longsPlain || isConstantOnlyPosition(sqlSrc.subSequence(srcBegin, srcEnd))
+                        || (mayHaveRaiserror && isInsideRaiserrorArguments(sqlSrc.subSequence(0, srcEnd))))) {
+                    literal = value.toString();
+                } else {
+                    literal = formatLiteralValue(params[paramIndex], value);
+                }
+
+                // A negative literal after '-' would otherwise start a '--' comment.
+                if (literal.startsWith("-") && result.length() > 0 && '-' == result.charAt(result.length() - 1)) {
+                    result.append(' ');
                 }
 
                 // Append formatted literal value
-                result.append(formatLiteralValue(value));
+                result.append(literal);
 
                 // Move past the '?' marker
                 srcBegin = srcEnd + 1;
+
+                // Keep an adjacent identifier character (for example '?and') from merging into the literal.
+                if (srcBegin < sqlSrc.length() && Character.isJavaIdentifierPart(sqlSrc.charAt(srcBegin))) {
+                    result.append(' ');
+                }
             }
 
             // Append remaining SQL after last parameter
             result.append(sqlSrc, srcBegin, sqlSrc.length());
             return result.toString();
+        } catch (SQLServerException e) {
+            throw e;
         } catch (Exception e) {
             // Try to set the cause, but if OOM occurs even this may fail
             try {
@@ -4372,69 +4761,163 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Format Java value into a T-SQL literal safe for SQL Server.
-     * This method is package-private to allow testing.
-     * 
+     * Formats a parameter value as a T-SQL literal for direct SQL execution. In addition to the value itself, this
+     * honors the setter's Calendar, a target JDBC type given to setObject, and a national character setter.
+     *
+     * @param param
+     *        the parameter, may be null
      * @param value
-     *              the value to format
+     *        the setter value of the parameter
      * @return the formatted SQL literal string
      * @throws SQLException
-     *                      if an error occurs
+     *         if an error occurs
      */
-    String formatLiteralValue(Object value) throws SQLException {
-        // procedureName is populated when call syntax identifies a stored procedure; direct execution uses that
-        // non-null value to format procedure arguments without CAST expressions.
-        boolean isInProcedureCall = null != procedureName && isDirectSqlExecution;
+    private String formatLiteralValue(Parameter param, Object value) throws SQLException {
+        if (null == param || null == value) {
+            return formatLiteralValue(value, false);
+        }
 
-        if (isInProcedureCall) {
-            if (value instanceof java.math.BigDecimal) {
-                return ((java.math.BigDecimal) value).toPlainString();
-            } else if (value instanceof java.sql.Date) {
-                return "'" + escapeSQLString(value.toString().replace("-", "")) + "'";
-            } else if (value instanceof java.sql.Time) {
-                return "'" + escapeSQLString(value.toString()) + "'";
-            } else if (value instanceof java.sql.Timestamp) {
-                return "'" + escapeSQLString(value.toString().replace(' ', 'T')) + "'";
-            } else if (value instanceof java.util.Date) {
-                return "'" + escapeSQLString(TS_FMT.format((java.util.Date) value).replace(' ', 'T')) + "'";
+        boolean national = param.isNationalCharacterLiteral();
+        JDBCType jdbcType = param.getJdbcType();
+
+        // A Timestamp or LocalDateTime bound to a DATE target is sent as its date only, as typed binding sends it.
+        if (JDBCType.DATE == jdbcType && (value instanceof java.sql.Timestamp
+                || value instanceof java.time.LocalDateTime)) {
+            java.time.LocalDate date;
+            if (value instanceof java.time.LocalDateTime) {
+                date = ((java.time.LocalDateTime) value).toLocalDate();
+            } else {
+                date = ((java.sql.Timestamp) value).toLocalDateTime().toLocalDate();
             }
-        } else {
-            if (value instanceof java.math.BigDecimal) {
-                // Use toPlainString() to avoid scientific notation
-                java.math.BigDecimal bd = (java.math.BigDecimal) value;
-                String plainStr = bd.toPlainString();
-                int precision = bd.precision();
-                int scale = bd.scale();
+            return "CAST('" + String.format(Locale.US, "%04d-%02d-%02d", date.getYear(), date.getMonthValue(),
+                    date.getDayOfMonth()) + "' AS DATE)";
+        }
 
-                if (precision <= 18 && scale <= 6) {
-                    return plainStr;
+        // A temporal value set with a Calendar is sent as the wall-clock time in the Calendar's time zone.
+        DTV inputDTV = param.getInputDTV();
+        Calendar calendar = (null != inputDTV) ? inputDTV.getCalendar() : null;
+        if (null != calendar && (value instanceof java.sql.Timestamp || value instanceof java.sql.Time
+                || value instanceof java.sql.Date)) {
+            return formatTemporalInCalendar((java.util.Date) value, calendar);
+        }
+
+        // A LocalDateTime bound to a TIME target is sent as its time of day only, as typed binding sends it.
+        if (JDBCType.TIME == jdbcType && value instanceof java.time.LocalDateTime) {
+            value = ((java.time.LocalDateTime) value).toLocalTime();
+        }
+
+        // A LocalTime is sent as typed binding sends it. For a TIME target with sendTimeAsDatetime it is a datetime,
+        // which holds milliseconds only: the nanoseconds are rounded half-up to the millisecond, and rounding past
+        // midnight moves to the next day. Without sendTimeAsDatetime it is a time with 100 ns precision. For a
+        // TIMESTAMP target it is a datetime2 on the base date, with the full fraction.
+        if (value instanceof java.time.LocalTime) {
+            java.time.LocalTime localTime = (java.time.LocalTime) value;
+            if (JDBCType.TIME == jdbcType && connection.getSendTimeAsDatetime()) {
+                long millis = (localTime.toNanoOfDay() + 500000) / 1000000;
+                if (millis >= 86400000L) {
+                    return "CAST('" + connection.baseYear() + "-01-02T00:00:00.000' AS DATETIME)";
                 }
-
-                // Need explicit CAST for high precision numbers
-                // Clamp to SQL Server limits: decimal(38, min(scale, 38))
-                // Ensure scale <= precision
-                int sqlPrecision = Math.min(precision, 38);
-                int sqlScale = Math.min(Math.min(scale, 38), sqlPrecision);
-                return "CAST(" + plainStr + " AS DECIMAL(" + sqlPrecision + "," + sqlScale + "))";
-            } else if (value instanceof java.sql.Date) {
-                return "CAST('" + escapeSQLString(value.toString()) + "' AS DATE)";
-            } else if (value instanceof java.sql.Time) {
-                return "CAST('" + escapeSQLString(value.toString()) + "' AS TIME)";
-            } else if (value instanceof java.sql.Timestamp) {
-                return "CAST('" + escapeSQLString(value.toString()) + "' AS DATETIME2)";
-            } else if (value instanceof java.util.Date) {
-                return "CAST('" + escapeSQLString(TS_FMT.format((java.util.Date) value)) + "' AS DATETIME2)";
+                java.time.LocalTime time = java.time.LocalTime.ofNanoOfDay(millis * 1000000);
+                return castTimeLiteral(String.format(Locale.US, "%02d:%02d:%02d.%03d", time.getHour(),
+                        time.getMinute(), time.getSecond(), time.getNano() / 1000000));
+            } else if (JDBCType.TIME == jdbcType) {
+                // A time(7) rounds to 100 ns, and stops at the end of the day instead of carrying into the next day.
+                long ticks = Math.min((localTime.toNanoOfDay() + 50) / 100, 863999999999L);
+                java.time.LocalTime time = java.time.LocalTime.ofNanoOfDay(ticks * 100);
+                return castTimeLiteral(String.format(Locale.US, "%02d:%02d:%02d.%07d", time.getHour(),
+                        time.getMinute(), time.getSecond(), time.getNano() / 100));
+            } else if (JDBCType.TIMESTAMP == jdbcType) {
+                return "CAST('" + connection.baseYear() + String.format(Locale.US, "-01-01T%02d:%02d:%02d.%09d",
+                        localTime.getHour(), localTime.getMinute(), localTime.getSecond(), localTime.getNano())
+                        + "' AS DATETIME2)";
             }
+        }
+
+        // An integral value with a character target type is sent as text. Typed binding does not switch integral values
+        // to a national type, so the N prefix depends only on the target type, not on sendStringParametersAsUnicode.
+        if (jdbcType.isTextual() && (value instanceof Byte || value instanceof Short || value instanceof Integer
+                || value instanceof Long)) {
+            return (national ? "N'" : "'") + value + "'";
+        }
+
+        // A string, long or double with a numeric target type is converted to that type, so a long bound as INTEGER
+        // keeps int semantics instead of being sent as bigint, and a double bound as INTEGER keeps int semantics
+        // instead of float. A double literal is already a float, so float targets need no conversion.
+        if (value instanceof String || value instanceof Long || value instanceof Double) {
+            String numericType = getNumericLiteralType(jdbcType);
+            if (null != numericType && !(value instanceof Double && "FLOAT".equals(numericType))) {
+                String text = (value instanceof Long) ? value.toString() : formatLiteralValue(value, national);
+                return "CAST(" + text + " AS " + numericType + ")";
+            }
+        }
+
+        // A long or double with a decimal target type is converted to decimal(38, scale), the type declared by typed
+        // binding. Typed binding declares a double with a scale of at least 4.
+        if ((value instanceof Long || value instanceof Double)
+                && (JDBCType.DECIMAL == jdbcType || JDBCType.NUMERIC == jdbcType)) {
+            Integer targetScale = (null != inputDTV) ? inputDTV.getScale() : null;
+            int maxPrecision = SQLServerConnection.MAX_DECIMAL_PRECISION;
+            int scale = (null == targetScale) ? 0 : targetScale;
+            if (value instanceof Double) {
+                scale = Math.max(scale, 4);
+            }
+            scale = Math.max(0, Math.min(scale, maxPrecision));
+            String text = (value instanceof Long) ? value.toString() : formatLiteralValue(value, national);
+            return "CAST(" + text + " AS DECIMAL(" + maxPrecision + "," + scale + "))";
+        }
+
+        return formatLiteralValue(value, national);
+    }
+
+    String formatLiteralValue(Object value) throws SQLException {
+        return formatLiteralValue(value, false);
+    }
+
+    private String formatLiteralValue(Object value, boolean national) throws SQLException {
+        String stringPrefix = (national || connection.sendStringParametersAsUnicode()) ? "N'" : "'";
+
+        if (value instanceof java.math.BigDecimal) {
+            // Use toPlainString() to avoid scientific notation
+            java.math.BigDecimal bd = (java.math.BigDecimal) value;
+            String plainStr = bd.toPlainString();
+            int precision = bd.precision();
+            int scale = bd.scale();
+
+            if (precision <= 18 && scale <= 6) {
+                return plainStr;
+            }
+
+            // Need explicit CAST for high precision numbers
+            // Clamp to SQL Server limits: decimal(38, min(scale, 38))
+            // Ensure scale <= precision
+            int sqlPrecision = Math.min(precision, 38);
+            int sqlScale = Math.min(Math.min(scale, 38), sqlPrecision);
+            return "CAST(" + plainStr + " AS DECIMAL(" + sqlPrecision + "," + sqlScale + "))";
+        } else if (value instanceof java.sql.Date) {
+            return "CAST('" + escapeSQLString(value.toString()) + "' AS DATE)";
+        } else if (value instanceof java.sql.Time) {
+            return castTimeLiteral(formatTime((java.sql.Time) value));
+        } else if (value instanceof java.sql.Timestamp) {
+            return "CAST('" + escapeSQLString(value.toString()) + "' AS DATETIME2)";
+        } else if (value instanceof java.util.Date) {
+            return "CAST('" + escapeSQLString(formatUtilDate((java.util.Date) value)) + "' AS DATETIME2)";
+        } else if (value instanceof java.time.LocalDateTime) {
+            // LocalDateTime.toString() drops zero seconds (13:14), which SQL Server rejects, so write every field.
+            java.time.LocalDateTime dateTime = (java.time.LocalDateTime) value;
+            return "CAST('" + String.format(Locale.US, "%04d-%02d-%02dT%02d:%02d:%02d.%09d", dateTime.getYear(),
+                    dateTime.getMonthValue(), dateTime.getDayOfMonth(), dateTime.getHour(), dateTime.getMinute(),
+                    dateTime.getSecond(), dateTime.getNano()) + "' AS DATETIME2)";
+        } else if (value instanceof Long) {
+            // An integer literal is typed as int, so keep bigint semantics in expressions.
+            return "CAST(" + value + " AS BIGINT)";
         }
 
         if (value == null) {
             return "NULL";
         } else if (value instanceof String) {
-            String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
-            return prefix + escapeSQLString((String) value) + "'";
+            return stringPrefix + escapeSQLString((String) value) + "'";
         } else if (value instanceof Character) {
-            String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
-            return prefix + escapeSQLString(value.toString()) + "'";
+            return stringPrefix + escapeSQLString(value.toString()) + "'";
         } else if (value instanceof Boolean) {
             return ((Boolean) value) ? "1" : "0";
         } else if (value instanceof Byte || value instanceof Short || value instanceof Integer
@@ -4446,8 +4929,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             Float f = (Float) value;
             // Handle special float values that cannot be converted to BigDecimal
             if (f.isInfinite() || f.isNaN()) {
-                String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
-                return prefix + escapeSQLString(f.toString()) + "'";
+                return stringPrefix + escapeSQLString(f.toString()) + "'";
             }
             // Convert Float to BigDecimal for precise representation
             return new java.math.BigDecimal(value.toString()).toPlainString();
@@ -4455,11 +4937,12 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             Double d = (Double) value;
             // Handle special double values that cannot be converted to BigDecimal
             if (d.isInfinite() || d.isNaN()) {
-                String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
-                return prefix + escapeSQLString(d.toString()) + "'";
+                return stringPrefix + escapeSQLString(d.toString()) + "'";
             }
-            // Convert Double to BigDecimal for precise representation
-            return new java.math.BigDecimal(value.toString()).toPlainString();
+            // Send a float literal in E notation. A plain decimal literal is typed as numeric, which cannot hold
+            // values beyond 38 digits.
+            String text = d.toString();
+            return text.indexOf('E') >= 0 ? text : text + "E0";
         } else if (value instanceof byte[]) {
             return bytesToHexLiteral((byte[]) value);
         } else if (value instanceof Blob) {
@@ -4470,12 +4953,81 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         } else if (value instanceof Clob) {
             Clob c = (Clob) value;
             String s = c.getSubString(1, (int) c.length());
-            String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
-            return prefix + escapeSQLString(s) + "'";
+            return stringPrefix + escapeSQLString(s) + "'";
         } else {
             // fallback
-            String prefix = connection.sendStringParametersAsUnicode() ? "N'" : "'";
-            return prefix + escapeSQLString(value.toString()) + "'";
+            return stringPrefix + escapeSQLString(value.toString()) + "'";
+        }
+    }
+
+    /**
+     * Formats a java.sql.Time as HH:mm:ss, followed by the milliseconds when they are not zero.
+     */
+    private static String formatTime(java.sql.Time time) {
+        String text = time.toString();
+        long millis = Math.floorMod(time.getTime(), 1000L);
+        return (0 == millis) ? text : text + String.format(Locale.US, ".%03d", millis);
+    }
+
+    /**
+     * Converts a time of day to the type used by typed binding: datetime on 1970-01-01 when sendTimeAsDatetime is
+     * set, so milliseconds are rounded to datetime precision, and time otherwise.
+     */
+    private String castTimeLiteral(String time) {
+        if (connection.getSendTimeAsDatetime()) {
+            return "CAST('" + connection.baseYear() + "-01-01T" + escapeSQLString(time) + "' AS DATETIME)";
+        }
+        return "CAST('" + escapeSQLString(time) + "' AS TIME)";
+    }
+
+    /**
+     * Formats a java.sql.Date, Time, or Timestamp as the wall-clock date and time in the Calendar's time zone.
+     */
+    private String formatTemporalInCalendar(java.util.Date value, Calendar calendar) {
+        GregorianCalendar cal = new GregorianCalendar(calendar.getTimeZone(), Locale.US);
+        cal.setTimeInMillis(value.getTime());
+        String date = String.format(Locale.US, "%04d-%02d-%02d", cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1,
+                cal.get(Calendar.DAY_OF_MONTH));
+        String time = String.format(Locale.US, "%02d:%02d:%02d", cal.get(Calendar.HOUR_OF_DAY),
+                cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND));
+
+        if (value instanceof java.sql.Timestamp) {
+            String nanos = String.format(Locale.US, "%09d", ((java.sql.Timestamp) value).getNanos())
+                    .replaceAll("(\\d)0+$", "$1");
+            return "CAST('" + date + " " + time + "." + nanos + "' AS DATETIME2)";
+        } else if (value instanceof java.sql.Time) {
+            int millis = cal.get(Calendar.MILLISECOND);
+            return castTimeLiteral((0 == millis) ? time : time + String.format(Locale.US, ".%03d", millis));
+        }
+        return "CAST('" + date + "' AS DATE)";
+    }
+
+    /**
+     * Returns the SQL Server type used to convert a string literal to a numeric target JDBC type, or null if the
+     * target type is not numeric.
+     */
+    private static String getNumericLiteralType(JDBCType jdbcType) {
+        switch (jdbcType) {
+            case BIT:
+            case BOOLEAN:
+                return "BIT";
+            case TINYINT:
+                return "TINYINT";
+            case SMALLINT:
+                return "SMALLINT";
+            case INTEGER:
+                return "INT";
+            case BIGINT:
+                return "BIGINT";
+            case MONEY:
+            case SMALLMONEY: // Non-encrypted typed binding declares SMALLMONEY as money.
+                return "MONEY";
+            case REAL: // Typed binding declares REAL as float.
+            case FLOAT:
+            case DOUBLE:
+                return "FLOAT";
+            default:
+                return null;
         }
     }
 

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,11 +20,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -220,6 +224,111 @@ public class StatementCancelTest extends AbstractTest {
             stmt.addBatch("INSERT INTO " + tableName + " (COL1, COL2) VALUES ('timeout_batch2', 902)");
             int[] results = stmt.executeBatch();
             assertEquals(2, results.length);
+        }
+    }
+
+    // A timeout or a cancellation under every prepare method, for a direct statement (none), the regular prepared path
+    // and a procedure call (an unprepared RPC under none). The connection stays usable, the session state (a local
+    // temporary table) is intact, and the same statement object can be executed again.
+
+    private static Connection connectWith(String prepareMethod) throws SQLException {
+        return DriverManager.getConnection(connectionString + ";prepareMethod=" + prepareMethod);
+    }
+
+    private static void createCancelFixtures(Statement stmt) throws SQLException {
+        stmt.execute("CREATE TABLE #cancel_state (v int)");
+        stmt.execute("INSERT #cancel_state VALUES (1)");
+        stmt.execute("CREATE PROCEDURE #cancel_wait @v int, @d varchar(8) AS BEGIN WAITFOR DELAY @d; SELECT @v END");
+    }
+
+    private static void assertConnectionAndSessionStateAreIntact(Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM #cancel_state")) {
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1), "the session state must survive the timeout or cancellation");
+        }
+    }
+
+    private static boolean isTimeoutOrCancel(SQLException e) {
+        String message = String.valueOf(e.getMessage());
+        return e instanceof SQLTimeoutException || message.contains("cancel") || message.contains("timeout")
+                || message.contains("timed out");
+    }
+
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection", "prepexec"})
+    public void testTimeoutOfProcedureCallLeavesConnectionUsable(String prepareMethod) throws SQLException {
+        try (Connection conn = connectWith(prepareMethod); Statement stmt = conn.createStatement()) {
+            createCancelFixtures(stmt);
+            try (PreparedStatement ps = conn.prepareStatement("EXEC #cancel_wait ?, ?")) {
+                ps.setQueryTimeout(1);
+                ps.setInt(1, 7);
+                ps.setString(2, "00:00:05");
+                long start = System.nanoTime();
+                SQLException e = assertThrows(SQLException.class, ps::execute);
+                assertTrue(isTimeoutOrCancel(e), e.getMessage());
+                assertTrue(TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start) < 4,
+                        "the timeout must end the call before the delay does");
+
+                // The same statement object runs again, with no delay.
+                ps.setString(2, "00:00:00");
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(7, rs.getInt(1));
+                }
+            }
+            assertConnectionAndSessionStateAreIntact(conn);
+        }
+    }
+
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection", "prepexec"})
+    public void testTimeoutOfPreparedStatementLeavesConnectionUsable(String prepareMethod) throws SQLException {
+        try (Connection conn = connectWith(prepareMethod); Statement stmt = conn.createStatement()) {
+            createCancelFixtures(stmt);
+            try (PreparedStatement ps = conn.prepareStatement("WAITFOR DELAY '00:00:05'; SELECT ?")) {
+                ps.setQueryTimeout(1);
+                ps.setInt(1, 7);
+                SQLException e = assertThrows(SQLException.class, ps::execute);
+                assertTrue(isTimeoutOrCancel(e), e.getMessage());
+            }
+            assertConnectionAndSessionStateAreIntact(conn);
+        }
+    }
+
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection", "prepexec"})
+    public void testCancelOfProcedureCallFromAnotherThread(String prepareMethod) throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try (Connection conn = connectWith(prepareMethod); Statement stmt = conn.createStatement()) {
+            createCancelFixtures(stmt);
+            try (PreparedStatement ps = conn.prepareStatement("EXEC #cancel_wait ?, ?")) {
+                ps.setInt(1, 7);
+                ps.setString(2, "00:00:10");
+                // cancel() does nothing until execute() has sent its request, so it is repeated until execute()
+                // returns. The loop is bounded so a request that never starts cannot hang the test.
+                AtomicBoolean executeReturned = new AtomicBoolean(false);
+                Future<Void> canceller = executor.submit(() -> {
+                    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+                    while (!executeReturned.get() && System.nanoTime() < deadline) {
+                        Thread.sleep(100);
+                        ps.cancel();
+                    }
+                    return null;
+                });
+                SQLException e;
+                try {
+                    e = assertThrows(SQLException.class, ps::execute);
+                } finally {
+                    executeReturned.set(true);
+                }
+                assertTrue(String.valueOf(e.getMessage()).contains("cancel"), e.getMessage());
+                // An exception in the cancelling thread is reported here instead of being swallowed.
+                canceller.get(5, TimeUnit.SECONDS);
+            }
+            assertConnectionAndSessionStateAreIntact(conn);
+        } finally {
+            executor.shutdownNow();
         }
     }
 }

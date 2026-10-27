@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -359,6 +360,144 @@ public class CallableStatementTest extends AESetup {
                     rs.next();
                     assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
                 }
+            }
+        }
+    }
+
+    @Test
+    public void testCallableStatementNoneAE() throws SQLException {
+        String noneConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "prepareMethod", "none");
+
+        try (Connection con = PrepUtil.getConnection(noneConnectionString, AEInfo);
+                Statement statement = con.createStatement()) {
+            TestUtils.dropProcedureIfExists(prepareMethodProcedure, statement);
+            statement.executeUpdate("create procedure " + prepareMethodProcedure + " as select 1 --");
+
+            try (Connection callCon = PrepUtil.getConnection(noneConnectionString, AEInfo);
+                    CallableStatement callableStatement = callCon
+                            .prepareCall("{call " + prepareMethodProcedure + "}")) {
+                // A procedure call is an unprepared RPC under none.
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+
+                try (ResultSet rs = callableStatement.executeQuery()) {
+                    rs.next();
+                    assertEquals(1, rs.getInt(1), TestResource.getResource("R_setDataNotEqual"));
+                }
+            }
+        }
+    }
+
+    /**
+     * Encrypted parameters of a procedure call are encrypted and decrypted under every prepare method, including the
+     * unprepared RPC of prepareMethod=none, for repeated executions and for an equality predicate on a deterministic
+     * column.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection", "prepexec"})
+    public void testEncryptedProcedureCallPerPrepareMethod(String prepareMethod) throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("AePrepareMethodTable"));
+        String insertProcedure = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("AePrepareMethodIns"));
+        String selectProcedure = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("AePrepareMethodSel"));
+        String modeConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "prepareMethod",
+                prepareMethod);
+
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
+            try {
+                stmt.execute("CREATE TABLE " + table + " (id int, "
+                        + "d int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                        + cekJks + ") NULL, "
+                        + "r varchar(20) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (ENCRYPTION_TYPE = RANDOMIZED, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = "
+                        + cekJks + ") NULL)");
+                stmt.execute("CREATE PROCEDURE " + insertProcedure + " @id int, @d int, @r varchar(20) AS INSERT "
+                        + table + " VALUES (@id, @d, @r)");
+                stmt.execute("CREATE PROCEDURE " + selectProcedure + " @d int AS SELECT id FROM " + table
+                        + " WHERE d = @d ORDER BY id");
+
+                try (Connection modeCon = PrepUtil.getConnection(modeConnectionString, AEInfo);
+                        CallableStatement insert = modeCon.prepareCall("{call " + insertProcedure + "(?,?,?)}")) {
+                    for (int i = 1; i <= 3; i++) {
+                        insert.setInt(1, i);
+                        insert.setInt(2, 100 + (i % 2));
+                        insert.setString(3, "secret" + i);
+                        insert.execute();
+                    }
+                }
+
+                try (Connection modeCon = PrepUtil.getConnection(modeConnectionString, AEInfo);
+                        CallableStatement select = modeCon.prepareCall("{call " + selectProcedure + "(?)}")) {
+                    select.setInt(1, 101);
+                    StringBuilder ids = new StringBuilder();
+                    try (ResultSet rs = select.executeQuery()) {
+                        while (rs.next()) {
+                            ids.append(rs.getInt(1)).append(',');
+                        }
+                    }
+                    assertEquals("1,3,", ids.toString(), TestResource.getResource("R_setDataNotEqual"));
+                }
+
+                // The stored values decrypt to what was sent, on a connection that uses the default prepare method.
+                try (ResultSet rs = stmt.executeQuery("SELECT id, d, r FROM " + table + " ORDER BY id")) {
+                    for (int i = 1; i <= 3; i++) {
+                        assertTrue(rs.next());
+                        assertEquals(i, rs.getInt(1));
+                        assertEquals(100 + (i % 2), rs.getInt(2));
+                        assertEquals("secret" + i, rs.getString(3));
+                    }
+                    assertTrue(!rs.next());
+                }
+            } finally {
+                TestUtils.dropProcedureIfExists(insertProcedure, stmt);
+                TestUtils.dropProcedureIfExists(selectProcedure, stmt);
+                TestUtils.dropTableIfExists(table, stmt);
+            }
+        }
+    }
+
+    /**
+     * Characterization of an ordinary statement (not a procedure call) that binds a value to an encrypted column under
+     * prepareMethod=none. The direct path sends literals and has no parameter encryption metadata, so the server
+     * rejects the statement with an operand type clash and nothing is stored. The procedure-call path works (see
+     * testEncryptedProcedureCallPerPrepareMethod).
+     */
+    @Test
+    public void testEncryptedColumnInDirectStatementIsRejectedByServer() throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("AeDirectStatementTable"));
+        try (Connection con = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement stmt = con.createStatement()) {
+            try {
+                stmt.execute("CREATE TABLE " + table + " (d int ENCRYPTED WITH (ENCRYPTION_TYPE = DETERMINISTIC, "
+                        + "ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256', COLUMN_ENCRYPTION_KEY = " + cekJks + ") NULL)");
+
+                try (Connection noneCon = PrepUtil.getConnection(
+                        TestUtils.addOrOverrideProperty(AETestConnectionString, "prepareMethod", "none"), AEInfo);
+                        PreparedStatement ps = noneCon.prepareStatement("INSERT " + table + " VALUES (?)")) {
+                    ps.setInt(1, 42);
+                    SQLException e = org.junit.jupiter.api.Assertions.assertThrows(SQLException.class, ps::execute);
+                    assertTrue(e.getMessage().contains("Operand type clash"), e.getMessage());
+                }
+
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table)) {
+                    rs.next();
+                    assertEquals(0, rs.getInt(1), "nothing is stored by the rejected statement");
+                }
+
+                // The same statement works with typed parameters.
+                try (Connection typedCon = PrepUtil.getConnection(
+                        TestUtils.addOrOverrideProperty(AETestConnectionString, "prepareMethod", "prepexec"), AEInfo);
+                        PreparedStatement ps = typedCon.prepareStatement("INSERT " + table + " VALUES (?)")) {
+                    ps.setInt(1, 42);
+                    ps.execute();
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT d FROM " + table)) {
+                    assertTrue(rs.next());
+                    assertEquals(42, rs.getInt(1));
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, stmt);
             }
         }
     }

@@ -5,6 +5,7 @@
 
 package com.microsoft.sqlserver.jdbc.configurableretry;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -15,6 +16,7 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
@@ -22,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
@@ -562,6 +566,62 @@ public class ConfigurableRetryLogicTest extends AbstractTest {
                         + ", expected min time: " + TimeUnit.SECONDS.toMillis(expectedMinTime));
             }
         }
+    }
+
+    /**
+     * Retry executions are counted through a side effect. The procedure records every attempt in a temporary table
+     * and raises error 50000 until the requested attempt, so a retried call is visible as an extra row. A retry rule
+     * for error 50000 with two retries allows three attempts: with a procedure that succeeds on the third attempt the
+     * call succeeds, with one that never succeeds it fails after exactly three attempts. A procedure is not assumed to
+     * be idempotent here: the attempts are the thing being counted. Every prepare method behaves the same, including
+     * an unprepared RPC (none).
+     */
+    private static int countRetryAttempts(String prepareMethod, int errorNumber, int succeedAtAttempt,
+            boolean[] succeeded) throws SQLException {
+        String url = TestUtils.addOrOverrideProperty(connectionString + ";prepareMethod=" + prepareMethod, "retryExec",
+                "{50000:2,1}");
+        try (Connection conn = DriverManager.getConnection(url); Statement s = conn.createStatement()) {
+            s.execute("CREATE TABLE #retry_attempts (n int)");
+            s.execute("CREATE PROCEDURE #retry_p @succeedAt int AS BEGIN SET NOCOUNT ON; INSERT #retry_attempts VALUES (1); "
+                    + "IF (SELECT COUNT(*) FROM #retry_attempts) < @succeedAt THROW " + errorNumber
+                    + ", 'transient', 1; SELECT 1; END");
+            try (PreparedStatement ps = conn.prepareStatement("EXEC #retry_p ?")) {
+                ps.setInt(1, succeedAtAttempt);
+                try {
+                    ps.execute();
+                    succeeded[0] = true;
+                } catch (SQLException e) {
+                    succeeded[0] = false;
+                    assertTrue(e.getMessage().contains("transient"), e.getMessage());
+                }
+            }
+            try (ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM #retry_attempts")) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection", "prepexec"})
+    public void testRetriedProcedureCallRunsExactlyTheAllowedAttempts(String prepareMethod) throws SQLException {
+        boolean[] succeeded = new boolean[1];
+
+        // Succeeds on the third attempt, within two retries.
+        assertEquals(3, countRetryAttempts(prepareMethod, 50000, 3, succeeded));
+        assertTrue(succeeded[0], "the third attempt succeeds");
+
+        // Never succeeds: the initial attempt and two retries, then the error is reported.
+        assertEquals(3, countRetryAttempts(prepareMethod, 50000, 99, succeeded));
+        assertFalse(succeeded[0], "the error is reported after the retries are used up");
+    }
+
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection", "prepexec"})
+    public void testErrorWithoutRetryRuleIsNotRetried(String prepareMethod) throws SQLException {
+        boolean[] succeeded = new boolean[1];
+        assertEquals(1, countRetryAttempts(prepareMethod, 50001, 99, succeeded));
+        assertFalse(succeeded[0]);
     }
 
     /**
