@@ -674,7 +674,7 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
                     assertFalse(rs.next());
                 }
             } finally {
-                stmt.execute("DROP PROCEDURE IF EXISTS " + procedureName);
+                stmt.execute("DROP PROCEDURE " + procedureName);
             }
         }
     }
