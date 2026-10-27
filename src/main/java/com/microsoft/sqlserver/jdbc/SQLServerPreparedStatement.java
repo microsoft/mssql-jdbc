@@ -27,6 +27,7 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -3743,10 +3744,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Direct SQL execution handles the batch with literal parameter substitution. This is prepareMethod=none, or
         // scopeTempTablesToConnection when temp table operations are detected in the SQL. A stored procedure call is
-        // never direct: under none each entry is sent as an unprepared RPC.
+        // never direct: under none each entry is sent as an unprepared RPC. If a parameter cannot be inlined as a
+        // literal, nothing has been sent, and the batch is sent as unprepared RPCs instead.
         if (isDirectSqlExecution) {
-            doExecuteExecMethodBatchCombined(batchCommand);
-            return;
+            try {
+                doExecuteExecMethodBatchCombined(batchCommand);
+                return;
+            } catch (SQLServerException e) {
+                if (!retryRejectedDirectSqlAsRpc())
+                    throw e;
+                Arrays.fill(batchCommand.updateCounts, Statement.EXECUTE_FAILED);
+            }
         } else if (isScopeTempTablesToConnectionMethod) {
             // scopeTempTablesToConnection is set but no temp table operations detected in
             // SQL, fall back to default prepexec method
