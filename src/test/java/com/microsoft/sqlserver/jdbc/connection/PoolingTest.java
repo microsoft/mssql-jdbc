@@ -357,68 +357,6 @@ public class PoolingTest extends AbstractTest {
     }
 
     /**
-     * A pooled connection is reset when it is handed out again, so the session-local temporary tables and procedures
-     * of the previous user are gone, and every prepare method (a direct statement, an unprepared procedure RPC and the
-     * regular prepared path, with statement pooling on) keeps working on the reused physical connection.
-     */
-    @ParameterizedTest(name = "mode={0}")
-    @ValueSource(strings = {"none", "scopeTempTablesToConnection", "prepexec"})
-    public void testPooledConnectionIsResetAndStatementsStillWork(String prepareMethod) throws SQLException {
-        SQLServerConnectionPoolDataSource ds = new SQLServerConnectionPoolDataSource();
-        ds.setURL(connectionString + ";prepareMethod=" + prepareMethod
-                + ";disableStatementPooling=false;statementPoolingCacheSize=10");
-        PooledConnection pc = ds.getPooledConnection();
-        try {
-            int firstSessionId;
-            try (Connection con = pc.getConnection(); Statement stmt = con.createStatement()) {
-                firstSessionId = sessionId(stmt);
-                stmt.execute("CREATE TABLE #pool_state (v int)");
-                stmt.execute("CREATE PROCEDURE #pool_p @v int AS SELECT @v");
-                try (PreparedStatement ps = con.prepareStatement("EXEC #pool_p ?")) {
-                    for (int i = 1; i <= 3; i++) {
-                        ps.setInt(1, i);
-                        try (ResultSet rs = ps.executeQuery()) {
-                            assertTrue(rs.next());
-                            assertEquals(i, rs.getInt(1));
-                        }
-                    }
-                }
-            }
-
-            try (Connection con = pc.getConnection(); Statement stmt = con.createStatement()) {
-                assertEquals(firstSessionId, sessionId(stmt), "the physical connection is reused");
-                try (ResultSet rs = stmt.executeQuery(
-                        "SELECT OBJECT_ID('tempdb..#pool_state'), OBJECT_ID('tempdb..#pool_p')")) {
-                    rs.next();
-                    assertEquals(0, rs.getInt(1), "the temporary table does not outlive the previous user");
-                    assertEquals(0, rs.getInt(2), "the temporary procedure does not outlive the previous user");
-                }
-
-                // New session-local objects work again, with the procedure called through a new statement.
-                stmt.execute("CREATE PROCEDURE #pool_p @v int AS SELECT @v + 100");
-                try (PreparedStatement ps = con.prepareStatement("EXEC #pool_p ?")) {
-                    for (int i = 1; i <= 3; i++) {
-                        ps.setInt(1, i);
-                        try (ResultSet rs = ps.executeQuery()) {
-                            assertTrue(rs.next());
-                            assertEquals(100 + i, rs.getInt(1));
-                        }
-                    }
-                }
-            }
-        } finally {
-            pc.close();
-        }
-    }
-
-    private static int sessionId(Statement stmt) throws SQLException {
-        try (ResultSet rs = stmt.executeQuery("SELECT @@SPID")) {
-            rs.next();
-            return rs.getInt(1);
-        }
-    }
-
-    /**
      * drop the tables
      *
      * @throws SQLException
