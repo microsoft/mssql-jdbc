@@ -4512,7 +4512,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private static final java.util.regex.Pattern MODULE_DEFINITION = java.util.regex.Pattern.compile(
             "^\\s*(?:CREATE|ALTER)\\s+(?:OR\\s+ALTER\\s+)?(?:PROC|PROCEDURE|FUNCTION|TRIGGER)\\b",
             java.util.regex.Pattern.CASE_INSENSITIVE);
-    private static final java.util.regex.Pattern RAISERROR = java.util.regex.Pattern.compile("\\bRAISERROR\\b",
+    // Matches RAISERROR as a whole T-SQL token; @, # and $ are identifier characters, so @RAISERROR or #RAISERROR do
+    // not match.
+    private static final java.util.regex.Pattern RAISERROR = java.util.regex.Pattern.compile(
+            "(?<![\\p{L}\\p{M}\\p{N}_@#$])RAISERROR(?![\\p{L}\\p{M}\\p{N}_@#$])",
             java.util.regex.Pattern.CASE_INSENSITIVE);
 
     /**

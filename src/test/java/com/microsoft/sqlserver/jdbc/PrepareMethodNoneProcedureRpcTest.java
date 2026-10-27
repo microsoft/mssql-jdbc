@@ -1426,6 +1426,15 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                     ps.execute();
                 }
             }
+            // A variable or temp table named RAISERROR is not the statement, so Longs keep their bigint CAST.
+            for (String sql : new String[] {"SELECT ? + ? AS total INTO #RAISERROR; SELECT total FROM #RAISERROR",
+                    "DECLARE @RAISERROR bigint = ? + ?; SELECT @RAISERROR"}) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setLong(1, Integer.MAX_VALUE);
+                    ps.setLong(2, 1L);
+                    assertEquals(String.valueOf(Integer.MAX_VALUE + 1L), lastResultSetFirstValue(ps), sql);
+                }
+            }
         }
     }
 

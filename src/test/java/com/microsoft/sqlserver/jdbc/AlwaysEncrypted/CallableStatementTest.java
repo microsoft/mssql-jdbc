@@ -368,12 +368,14 @@ public class CallableStatementTest extends AESetup {
     public void testCallableStatementNoneAE() throws SQLException {
         String noneConnectionString = TestUtils.addOrOverrideProperty(AETestConnectionString, "prepareMethod", "none");
 
-        try (Statement statement = PrepUtil.getConnection(noneConnectionString, AEInfo).createStatement();) {
+        try (Connection con = PrepUtil.getConnection(noneConnectionString, AEInfo);
+                Statement statement = con.createStatement()) {
             TestUtils.dropProcedureIfExists(prepareMethodProcedure, statement);
             statement.executeUpdate("create procedure " + prepareMethodProcedure + " as select 1 --");
 
-            try (CallableStatement callableStatement = PrepUtil.getConnection(noneConnectionString, AEInfo)
-                    .prepareCall("{call " + prepareMethodProcedure + "}")) {
+            try (Connection callCon = PrepUtil.getConnection(noneConnectionString, AEInfo);
+                    CallableStatement callableStatement = callCon
+                            .prepareCall("{call " + prepareMethodProcedure + "}")) {
                 // A procedure call is an unprepared RPC under none.
                 try (ResultSet rs = callableStatement.executeQuery()) {
                     rs.next();
