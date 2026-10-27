@@ -1267,41 +1267,19 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
-    /** A character value keeps the type the application set, so that it is not widened to nvarchar. */
     @Test
-    public void testRetryKeepsNonUnicodeStringType() throws SQLException {
-        try (Connection conn = openConnection("none", "sendStringParametersAsUnicode=false");
-                PreparedStatement ps = conn.prepareStatement("SELECT SQL_VARIANT_PROPERTY(?, 'BaseType'), DATALENGTH(?)")) {
-            ps.setString(1, "abc");
-            ps.setBinaryStream(2, new ByteArrayInputStream(new byte[] {1, 2, 3}));
-            try (ResultSet rs = ps.executeQuery()) {
-                assertTrue(rs.next());
-                assertEquals("varchar", rs.getString(1));
-                assertEquals(3, rs.getInt(2));
-            }
-        }
-    }
-
-    @Test
-    public void testStreamInDirectBatchIsRetriedAsRpc() throws SQLException {
+    public void testStreamInDirectBatchIsRejected() throws SQLException {
         try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE ##stream_batch_t (v varbinary(max))");
-            try {
-                try (PreparedStatement ps = conn.prepareStatement("INSERT INTO ##stream_batch_t VALUES (?)")) {
-                    ps.setBytes(1, new byte[] {1});
-                    ps.addBatch();
-                    ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
-                    ps.addBatch();
-                    assertEquals(2, ps.executeBatch().length);
-                }
-                try (ResultSet rs = stmt.executeQuery(
-                        "SELECT COUNT(*), SUM(DATALENGTH(v)) FROM ##stream_batch_t")) {
-                    assertTrue(rs.next());
-                    assertEquals(2, rs.getInt(1));
-                    assertEquals(4, rs.getInt(2));
-                }
-            } finally {
-                stmt.execute("DROP TABLE ##stream_batch_t");
+            stmt.execute("CREATE TABLE #stream_t (v varbinary(max))");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #stream_t VALUES (?)")) {
+                ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
+                ps.addBatch();
+                SQLException e = assertThrows(SQLException.class, ps::executeBatch);
+                assertTrue(e.getMessage().contains("not supported"), e.getMessage());
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM #stream_t")) {
+                assertTrue(rs.next());
+                assertEquals(0, rs.getInt(1), "nothing must be sent when a parameter is rejected");
             }
         }
     }

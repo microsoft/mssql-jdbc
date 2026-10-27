@@ -536,23 +536,6 @@ final class Parameter {
         return setterDTV.getSetterValue();
     }
 
-    /**
-     * Direct SQL execution re-tags a textual setter type as a Unicode type when the value is set. When the statement is
-     * sent as an RPC instead, this puts back the type the application set, unless sendStringParametersAsUnicode
-     * re-tags it anyway, so the parameter is declared as it would have been without direct execution.
-     */
-    void restoreSetterTypeAfterDirectSql(SQLServerConnection con) {
-        if (null == directSqlSetterType || null == setterDTV || con.sendStringParametersAsUnicode())
-            return;
-
-        JavaType javaType = setterDTV.getJavaType();
-        if (JavaType.STRING == javaType || JavaType.READER == javaType || JavaType.CLOB == javaType
-                || JavaType.OBJECT == javaType) {
-            setterDTV.setJdbcType(directSqlSetterType);
-        }
-        directSqlSetterType = null;
-    }
-
     boolean hasSetterDTV() {
         return null != setterDTV;
     }
