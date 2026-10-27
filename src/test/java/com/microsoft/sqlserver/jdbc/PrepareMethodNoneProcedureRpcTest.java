@@ -91,10 +91,11 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 Arguments.of("\"dbo\".\"p\" ?", true), Arguments.of("#p ?", true),
                 Arguments.of("/* c */ dbo.p ?", true), Arguments.of("-- c\n dbo.p ?", true),
 
-                // GRANT, DENY and REVOKE name EXECUTE as a permission, not a call.
-                Arguments.of("GRANT EXECUTE ON p TO u", false), Arguments.of("DENY EXECUTE ON p TO u", false),
-                Arguments.of("REVOKE EXECUTE ON p FROM u", false),
-                Arguments.of("GRANT SELECT, EXECUTE ON SCHEMA::dbo TO u", false),
+                // A permission statement that names EXECUTE is reported as a call and is simply sent as an RPC through
+                // sp_executesql, which runs it unchanged.
+                Arguments.of("GRANT EXECUTE ON p TO u", true), Arguments.of("DENY EXECUTE ON p TO u", true),
+                Arguments.of("REVOKE EXECUTE ON p FROM u", true),
+                Arguments.of("GRANT SELECT, EXECUTE ON SCHEMA::dbo TO u", true),
                 Arguments.of("GRANT EXECUTE ON p TO u; EXEC p ?", true),
 
                 // Not procedure calls.

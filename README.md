@@ -169,10 +169,16 @@ Projects that require either of the two features need to explicitly declare the 
 ***Please note*** as of the v6.2.2, the way to construct a `SQLServerColumnEncryptionAzureKeyVaultProvider` object has changed. Please refer to this [Wiki](https://github.com/Microsoft/mssql-jdbc/wiki/New-Constructor-Definition-for-SQLServerColumnEncryptionAzureKeyVaultProvider-after-6.2.2-Release) page for more information.
 
 
-### ANTLR runtime dependency
-The driver uses *antlr4-runtime* to scan SQL text when creating a prepared statement, for example with the 'useFmtOnly' property or with 'prepareMethod=none'. It is a required dependency: Maven and Gradle add it automatically. If you add the driver JAR to the class path by hand, add the matching *antlr4-runtime* JAR too:
+### 'useFmtOnly' connection property Dependencies
+When setting 'useFmtOnly' property to 'true' for establishing a connection or creating a prepared statement, *antlr-runtime* dependency is required to be added in your project's POM file.  Please see the following snippet: 
 
 ```xml
+<dependency>
+	<groupId>com.microsoft.sqlserver</groupId>
+	<artifactId>mssql-jdbc</artifactId>
+	<version>14.1.0.jre11-preview</version>
+</dependency>
+
 <dependency>
 	<groupId>org.antlr</groupId>
 	<artifactId>antlr4-runtime</artifactId>
