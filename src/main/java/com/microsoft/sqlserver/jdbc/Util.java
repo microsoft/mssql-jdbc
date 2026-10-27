@@ -15,7 +15,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
@@ -38,6 +41,15 @@ final class Util {
     final static String WSID_NOT_AVAILABLE = ""; // default string when WSID is not available
 
     final static String ACTIVITY_ID_TRACE_PROPERTY = "com.microsoft.sqlserver.jdbc.traceactivity";
+
+    /** Words that begin a T-SQL statement other than a procedure call. */
+    static final Set<String> TSQL_STATEMENT_KEYWORDS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "ALTER", "BACKUP", "BEGIN", "BREAK", "BULK", "CHECKPOINT", "CLOSE", "COMMIT", "CONTINUE", "CREATE", "DBCC",
+            "DEALLOCATE", "DECLARE", "DELETE", "DENY", "DISABLE", "DROP", "ENABLE", "END", "EXEC", "EXECUTE", "FETCH",
+            "GOTO", "GRANT", "IF", "INSERT", "KILL", "MERGE", "OPEN", "PRINT", "RAISERROR", "READTEXT", "RECONFIGURE",
+            "RESTORE", "RETURN", "REVERT", "REVOKE", "ROLLBACK", "SAVE", "SELECT", "SET", "SETUSER", "SHUTDOWN", "THROW",
+            "TRUNCATE", "UPDATE", "UPDATETEXT", "USE", "VALUES", "WAITFOR", "WHILE", "WITH", "WRITETEXT", "RECEIVE",
+            "SEND", "GET", "MOVE", "ADD", "COPY")));
 
     private Util() {
         throw new UnsupportedOperationException(SQLServerException.getErrString("R_notSupported"));

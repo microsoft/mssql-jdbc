@@ -66,6 +66,10 @@ final class Parameter {
     // set length of value for variable length type (String)
     private int valueLength = 0;
 
+    // Direct SQL execution only: the JDBC type requested by the setter, before character values are re-tagged as
+    // national types for literal formatting. A national type keeps the N prefix on the literal.
+    private JDBCType directSqlSetterType = null;
+
     private boolean forceEncryption = false;
 
     // The java.sql.Types value passed to defineParameterType(). Non-zero indicates
@@ -183,6 +187,16 @@ final class Parameter {
     }
 
     /**
+     * Returns true if, for direct SQL execution, the setter requested a national character type.
+     *
+     * @return Per the description.
+     */
+    boolean isNationalCharacterLiteral() {
+        return JDBCType.NCHAR == directSqlSetterType || JDBCType.NVARCHAR == directSqlSetterType
+                || JDBCType.LONGNVARCHAR == directSqlSetterType || JDBCType.NCLOB == directSqlSetterType;
+    }
+
+    /**
      * Used when sendStringParametersAsUnicode=true to derive the appropriate National Character Set JDBC type
      * corresponding to the specified JDBC type.
      */
@@ -294,6 +308,7 @@ final class Parameter {
         clonedParam.cryptoMeta = cryptoMeta;
         clonedParam.jdbcTypeSetByUser = jdbcTypeSetByUser;
         clonedParam.valueLength = valueLength;
+        clonedParam.directSqlSetterType = directSqlSetterType;
         clonedParam.userProvidesPrecision = userProvidesPrecision;
         clonedParam.userProvidesScale = userProvidesScale;
         clonedParam.defineParameterTypeSqlType = defineParameterTypeSqlType;
@@ -474,7 +489,9 @@ final class Parameter {
         // the value with the appropriate corresponding Unicode type.
         // JavaType.OBJECT == javaType when calling setNull()
         // Direct SQL also uses Unicode types internally to preserve text instead of encoded bytes.
-        // Literal formatting still uses the connection's Unicode setting to choose the N prefix.
+        // Literal formatting still uses the connection's Unicode setting to choose the N prefix, unless the setter
+        // requested a national character type. The setter's type is recorded before the re-tagging below.
+        directSqlSetterType = isDirectSqlExecution ? jdbcType : null;
         if ((con.sendStringParametersAsUnicode() || isDirectSqlExecution) && (JavaType.STRING == javaType
                 || JavaType.READER == javaType || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
             jdbcType = getSSPAUJDBCType(jdbcType);
@@ -517,6 +534,10 @@ final class Parameter {
 
     Object getSetterValue() {
         return setterDTV.getSetterValue();
+    }
+
+    boolean hasSetterDTV() {
+        return null != setterDTV;
     }
 
     int getInt(TDSReader tdsReader, SQLServerStatement statement) throws SQLServerException {
