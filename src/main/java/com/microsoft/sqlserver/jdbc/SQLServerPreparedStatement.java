@@ -1512,7 +1512,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     static boolean containsProcedureCall(String sql) {
         try {
             return scanForProcedureCall(blankCommentsAndQuotedText(sql));
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             // Fail safe: sp_executesql handles any statement, while literal substitution breaks procedure calls.
             if (loggerExternal.isLoggable(Level.FINE)) {
                 loggerExternal.fine("Could not scan the SQL text for a procedure call, so it is sent as an RPC: " + e);
