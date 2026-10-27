@@ -4552,30 +4552,90 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return new String(sqlDst, 0, dstBegin);
     }
 
-    // A marker right after SET <option> or TOP is a position that accepts a constant or a variable, not an expression.
-    private static final java.util.regex.Pattern CONSTANT_ONLY_POSITION = java.util.regex.Pattern
-            .compile("(?:\\bSET\\s+\\w+|\\bTOP)\\s*$", java.util.regex.Pattern.CASE_INSENSITIVE);
-    private static final java.util.regex.Pattern SQL_COMMENT = java.util.regex.Pattern
-            .compile("/\\*.*?\\*/|--[^\\r\\n]*", java.util.regex.Pattern.DOTALL);
-    private static final java.util.regex.Pattern MODULE_DEFINITION = java.util.regex.Pattern.compile(
-            "^\\s*(?:CREATE|ALTER)\\s+(?:OR\\s+ALTER\\s+)?(?:PROC|PROCEDURE|FUNCTION|TRIGGER)\\b",
-            java.util.regex.Pattern.CASE_INSENSITIVE);
-
     /**
-     * Returns whether the SQL text before a parameter marker, counted from the previous marker, ends in a position that
-     * does not accept a CAST expression, for example SET ROWCOUNT ? or TOP ?. A Long keeps its plain literal there.
-     * Comments are ignored. Only the original SQL text between two markers is scanned, never the substituted values.
+     * Returns, for each parameter marker, whether a bound Long must be written as a plain literal such as {@code 5}
+     * instead of {@code CAST(5 AS bigint)}, because the position accepts only a constant or a variable. That is the
+     * case:
+     * <ul>
+     * <li>right after TOP, as in {@code SELECT TOP ? * FROM t};</li>
+     * <li>right after SET and an option name, as in {@code SET ROWCOUNT ?};</li>
+     * <li>everywhere in a batch that starts with {@code CREATE|ALTER PROCEDURE|FUNCTION|TRIGGER}, because the body
+     * runs later and may pass the value to EXEC.</li>
+     * </ul>
+     * The text is split into tokens by {@link SQLServerLexer}, so TOP or SET inside comments, quoted text or quoted
+     * identifiers does not count, and comment or quote characters inside quoted text, such as {@code '--'}, do not
+     * hide the rest of the batch. If the text cannot be scanned, every marker gets a plain literal, which is valid in
+     * any position that accepts a constant.
+     *
+     * @param sql
+     *        the SQL text
+     * @param paramPositions
+     *        the character positions of the parameter markers, in ascending order
+     * @return one entry per marker; true means a Long is written as a plain literal
      */
-    private static boolean isConstantOnlyPosition(CharSequence sqlBefore) {
-        return CONSTANT_ONLY_POSITION.matcher(SQL_COMMENT.matcher(sqlBefore).replaceAll(" ")).find();
+    private static boolean[] findPlainLongMarkers(String sql, int[] paramPositions) {
+        boolean[] plainLong = new boolean[paramPositions.length];
+        try {
+            scanForPlainLongMarkers(sql, paramPositions, plainLong);
+        } catch (RuntimeException e) {
+            if (loggerExternal.isLoggable(Level.FINE)) {
+                loggerExternal.fine("Could not scan the SQL text for TOP or SET positions, so Long parameters are sent"
+                        + " as plain literals: " + e);
+            }
+            java.util.Arrays.fill(plainLong, true);
+        }
+        return plainLong;
     }
 
-    /**
-     * Returns whether the SQL text creates or alters a procedure, function or trigger. Its body runs later and may
-     * pass a parameter to EXEC, where a CAST expression is not valid, so a Long keeps its plain literal there.
-     */
-    private static boolean isModuleDefinition(String sql) {
-        return MODULE_DEFINITION.matcher(SQL_COMMENT.matcher(sql).replaceAll(" ")).find();
+    private static void scanForPlainLongMarkers(String sql, int[] paramPositions, boolean[] plainLong) {
+        SQLServerLexer lexer = new SQLServerLexer(CharStreams.fromString(sql));
+        // Unrecognized characters are skipped; the default listener would print them to the console.
+        lexer.removeErrorListeners();
+
+        // 1. A module definition: CREATE [OR ALTER] or ALTER, then PROC, PROCEDURE, FUNCTION or TRIGGER.
+        Token token = lexer.nextToken();
+        String word = token.getText().toUpperCase(Locale.ENGLISH);
+        if ("CREATE".equals(word) || "ALTER".equals(word)) {
+            token = lexer.nextToken();
+            word = token.getText().toUpperCase(Locale.ENGLISH);
+            if ("OR".equals(word)) {
+                token = lexer.nextToken(); // ALTER
+                token = lexer.nextToken();
+                word = token.getText().toUpperCase(Locale.ENGLISH);
+            }
+            if ("PROC".equals(word) || "PROCEDURE".equals(word) || "FUNCTION".equals(word)
+                    || "TRIGGER".equals(word)) {
+                java.util.Arrays.fill(plainLong, true);
+                return;
+            }
+        }
+
+        // 2. Each marker is checked against the two tokens before it. The lexer counts positions in code points, while
+        // paramPositions counts UTF-16 chars, so both are tracked to map a token back to its marker.
+        Token previous = null; // the token right before the current one
+        Token beforePrevious = null; // the token before that
+        int codePoint = 0;
+        int charIndex = 0;
+        while (Token.EOF != token.getType()) {
+            if (SQLServerLexer.PARAMETER == token.getType() && null != previous) {
+                boolean afterTop = "TOP".equalsIgnoreCase(previous.getText());
+                boolean afterSetOption = null != beforePrevious && "SET".equalsIgnoreCase(beforePrevious.getText())
+                        && isWord(previous.getText());
+                if (afterTop || afterSetOption) {
+                    while (codePoint < token.getStartIndex()) {
+                        charIndex += Character.charCount(sql.codePointAt(charIndex));
+                        codePoint++;
+                    }
+                    int marker = java.util.Arrays.binarySearch(paramPositions, charIndex);
+                    if (marker >= 0) {
+                        plainLong[marker] = true;
+                    }
+                }
+            }
+            beforePrevious = previous;
+            previous = token;
+            token = lexer.nextToken();
+        }
     }
 
     /**
@@ -4615,7 +4675,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         try {
             StringBuilder result = new StringBuilder(sqlSrc.length() + params.length * 20);
             int srcBegin = 0;
-            Boolean moduleDefinition = null; // evaluated once, and only when a Long is bound
+            boolean[] plainLong = null; // evaluated once, and only when a Long is bound
 
             for (int paramIndex = 0; paramIndex < paramPositions.length; paramIndex++) {
                 int srcEnd = paramPositions[paramIndex];
@@ -4631,11 +4691,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
                 Object value = params[paramIndex].getSetterValue();
                 String literal;
-                if (value instanceof Long && null == moduleDefinition) {
-                    moduleDefinition = isModuleDefinition(sqlSrc);
+                if (value instanceof Long && null == plainLong) {
+                    plainLong = findPlainLongMarkers(sqlSrc, paramPositions);
                 }
-                if (value instanceof Long
-                        && (moduleDefinition || isConstantOnlyPosition(sqlSrc.subSequence(srcBegin, srcEnd)))) {
+                if (value instanceof Long && plainLong[paramIndex]) {
                     literal = value.toString();
                 } else {
                     literal = formatLiteralValue(params[paramIndex], value);

@@ -91,8 +91,11 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 Arguments.of("\"dbo\".\"p\" ?", true), Arguments.of("#p ?", true),
                 Arguments.of("/* c */ dbo.p ?", true), Arguments.of("-- c\n dbo.p ?", true),
 
-                // A GRANT EXECUTE permission statement is reported as a call and is simply sent as an RPC.
-                Arguments.of("GRANT EXECUTE ON p TO u", true),
+                // GRANT, DENY and REVOKE name EXECUTE as a permission, not a call.
+                Arguments.of("GRANT EXECUTE ON p TO u", false), Arguments.of("DENY EXECUTE ON p TO u", false),
+                Arguments.of("REVOKE EXECUTE ON p FROM u", false),
+                Arguments.of("GRANT SELECT, EXECUTE ON SCHEMA::dbo TO u", false),
+                Arguments.of("GRANT EXECUTE ON p TO u; EXEC p ?", true),
 
                 // Not procedure calls.
                 Arguments.of("SELECT ?", false), Arguments.of("SELECT 'EXEC p', ?", false),
@@ -1386,7 +1389,10 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
             if ("none".equals(mode)) {
                 for (String sql : new String[] {"SET ROWCOUNT 0; SELECT TOP ? v FROM (VALUES (1), (2), (3)) AS t(v)",
                         "SET ROWCOUNT 0; SELECT TOP /* limit */ ? v FROM (VALUES (1), (2), (3)) AS t(v)",
-                        "SET ROWCOUNT 0; SELECT TOP" + spaces + "? v FROM (VALUES (1), (2), (3)) AS t(v)"}) {
+                        "SET ROWCOUNT 0; SELECT TOP" + spaces + "? v FROM (VALUES (1), (2), (3)) AS t(v)",
+                        // A '--' in quoted text, or a nested comment, before the marker must not hide TOP.
+                        "SET ROWCOUNT 0; DECLARE @s varchar(9) = '--'; SELECT TOP ? v FROM (VALUES (1), (2)) AS t(v)",
+                        "SET ROWCOUNT 0; SELECT TOP /* a /* b */ c */ ? v FROM (VALUES (1), (2), (3)) AS t(v)"}) {
                     try (PreparedStatement ps = conn.prepareStatement(sql)) {
                         ps.setLong(1, 2L);
                         assertEquals(2, countRows(ps), sql);
