@@ -4809,6 +4809,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return formatLiteralValue(value, national);
     }
 
+    String formatLiteralValue(Object value) throws SQLException {
+        return formatLiteralValue(value, false);
+    }
+
     private String formatLiteralValue(Object value, boolean national) throws SQLException {
         String stringPrefix = (national || connection.sendStringParametersAsUnicode()) ? "N'" : "'";
 
