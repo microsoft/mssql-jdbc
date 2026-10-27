@@ -100,10 +100,8 @@ public class PrepareMethodLiteralTest extends AbstractTest {
     @ParameterizedTest(name = "{0}, mode={1}, callable={2}")
     @MethodSource("roundTripCases")
     public void testValueRoundTrip(ParameterCase testCase, String mode, boolean callable) throws SQLException {
-        // A stream or SQLXML value cannot be inlined as a literal, so direct execution rejects it. A procedure call
-        // is sent as an RPC and accepts it.
-        boolean rejectedByDirectExecution = "none".equals(mode) && !callable
-                && (testCase.name.endsWith("-stream") || "sqlxml".equals(testCase.name));
+        // A stream or SQLXML value cannot be inlined as a literal. Direct execution catches the rejection and sends the
+        // statement as an unprepared RPC, so the value is still accepted.
         try (Connection reference = openConnection("prepexec", true); Connection actual = openConnection(mode, true);
                 Statement stmt = actual.createStatement()) {
             // The reference uses typed binding and the default date format; direct execution must not depend on it.
@@ -114,13 +112,6 @@ public class PrepareMethodLiteralTest extends AbstractTest {
             if (callable) {
                 stmt.execute("CREATE PROCEDURE #literal_echo @value " + testCase.sqlType + " AS SELECT @value");
                 query = "{call #literal_echo(?)}";
-            }
-            if (rejectedByDirectExecution) {
-                String directQuery = query;
-                SQLException e = assertThrows(SQLException.class,
-                        () -> readValue(actual, directQuery, testCase.binder, false));
-                assertTrue(e.getMessage().contains("not supported"), e.getMessage());
-                return;
             }
             Object value = readValue(actual, query, testCase.binder, callable);
             if (expected instanceof byte[]) {
@@ -582,10 +573,11 @@ public class PrepareMethodLiteralTest extends AbstractTest {
     }
 
     /**
-     * A stream parameter cannot be inlined as a literal, so direct execution rejects it before anything is sent and
-     * the temp table is not created. Other modes send the stream with typed binding, which drops the table when the
-     * call ends. Literal parameters and a null stream still work afterwards, and keep the table on the connection in
-     * the direct modes.
+     * A stream parameter cannot be inlined as a literal. A statement that creates a temp table is not retried as an
+     * RPC, because the table would be dropped when the call ends, so direct execution rejects it before anything is
+     * sent and the temp table is not created. Other modes send the stream with typed binding, which drops the table
+     * when the call ends. Literal parameters and a null stream still work afterwards, and keep the table on the
+     * connection in the direct modes.
      */
     @ParameterizedTest(name = "mode={0}")
     @MethodSource("prepareModes")
@@ -767,8 +759,8 @@ public class PrepareMethodLiteralTest extends AbstractTest {
     }
 
     /**
-     * A table-valued parameter cannot be inlined as a literal, so direct execution (prepareMethod=none) rejects it
-     * when it is a table source of a SQL statement. Other modes accept it.
+     * A table-valued parameter cannot be inlined as a literal. Direct execution (prepareMethod=none) catches the
+     * rejection and sends the statement as an unprepared RPC, so every mode accepts it.
      */
     @ParameterizedTest(name = "mode={0}")
     @MethodSource("prepareModes")
@@ -785,15 +777,10 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                 try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) conn
                         .prepareStatement("SELECT SUM(value) FROM ?")) {
                     ps.setStructured(1, typeName, table);
-                    if ("none".equals(mode)) {
-                        SQLException e = assertThrows(SQLException.class, ps::executeQuery);
-                        assertTrue(e.getMessage().contains("not supported"), e.getMessage());
-                    } else {
-                        try (ResultSet rs = ps.executeQuery()) {
-                            assertTrue(rs.next());
-                            assertEquals(6, rs.getInt(1));
-                            assertFalse(rs.next());
-                        }
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        assertEquals(6, rs.getInt(1));
+                        assertFalse(rs.next());
                     }
                 }
             } finally {

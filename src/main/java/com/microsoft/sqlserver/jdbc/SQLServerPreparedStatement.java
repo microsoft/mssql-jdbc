@@ -27,6 +27,7 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -151,15 +152,24 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * - prepareMethod=none (always direct SQL), or
      * - prepareMethod=scopeTempTablesToConnection AND temp table operations are
      * detected
+     * It is cleared when a parameter that cannot be inlined as a literal is found, see
+     * retryRejectedDirectSqlAsRpc().
      */
-    private final boolean isDirectSqlExecution;
+    private boolean isDirectSqlExecution;
 
     /**
-     * Flag indicating that this statement calls a stored procedure while prepareMethod=none. It is sent as an
-     * unprepared sp_executesql RPC with typed parameters: no server handle is created or cached, and the statement
-     * is never executed as a direct SQL batch. Calculated once in constructor.
+     * Flag indicating that this statement is sent as an unprepared sp_executesql RPC with typed parameters: no server
+     * handle is created or cached, and the statement is never executed as a direct SQL batch. It is set in the
+     * constructor for a stored procedure call while prepareMethod=none, and later when a direct SQL statement has a
+     * parameter that cannot be inlined as a literal, see retryRejectedDirectSqlAsRpc().
      */
-    private final boolean useUnpreparedRpc;
+    private boolean useUnpreparedRpc;
+
+    /**
+     * Set by checkDirectSqlParameter() when it rejects a parameter, so that the caller can tell this rejection from
+     * any other exception.
+     */
+    private boolean directSqlParameterRejected = false;
 
     /**
      * Whether the last request built by doPrepExec was an sp_executesql RPC, which never uses a prepared handle.
@@ -885,6 +895,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     //
                     connection.invalidateEnclaveSessionCache();
                 }
+                if (retryRejectedDirectSqlAsRpc()) {
+                    // A parameter cannot be inlined as a literal and nothing was sent. Run the statement again as an
+                    // RPC, with the parameter types the application set.
+                    hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
+                    endCreationToFirstPacketTracking();
+                    startCreationToFirstPacketTracking();
+                    continue;
+                }
                 if (retryBasedOnFailedReuseOfCachedHandle(e, attempt, needsPrepare, false)) {
                     // Reset tracking for retry - end first to clear any incomplete scope
                     // from failed attempt before starting fresh tracking
@@ -1440,9 +1458,55 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
+     * Called when executing a statement directly failed. If the failure is the rejection of a parameter that cannot be
+     * inlined as a literal (see checkDirectSqlParameter), and nothing has been sent yet, the statement is switched to an
+     * unprepared sp_executesql RPC, which sends every parameter with a typed value, and the caller runs it again. The
+     * switch lasts for the life of the statement. A statement that creates a temporary table is not switched, because
+     * the table would be dropped at the end of the RPC; it keeps the rejection.
+     *
+     * @return true if the statement was switched and must be executed again, false if the exception must be thrown
+     * @throws SQLServerException
+     *         if the parameter types cannot be restored
+     */
+    private boolean retryRejectedDirectSqlAsRpc() throws SQLServerException {
+        boolean rejected = directSqlParameterRejected;
+        directSqlParameterRejected = false;
+        if (!rejected || !isDirectSqlExecution || containsTemporaryTableOperations(userSQL)) {
+            return false;
+        }
+
+        isDirectSqlExecution = false;
+        useUnpreparedRpc = true;
+
+        // Direct execution re-tagged textual parameters as Unicode types when they were set. Restore the types the
+        // application set, so that they are sent as they would have been without direct execution.
+        if (null != inOutParam) {
+            for (Parameter param : inOutParam) {
+                if (null != param)
+                    param.restoreSetterTypeAfterDirectSql(connection);
+            }
+        }
+        if (null != batchParamValues) {
+            for (Parameter[] entry : batchParamValues) {
+                for (Parameter param : entry) {
+                    if (null != param)
+                        param.restoreSetterTypeAfterDirectSql(connection);
+                }
+            }
+        }
+
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.finer(toString()
+                    + " a parameter cannot be inlined as a literal, executing as an unprepared RPC (sp_executesql).");
+        }
+        return true;
+    }
+
+    /**
      * Checks that a parameter can be inlined as a literal in a direct SQL batch. Output parameters, table-valued
-     * parameters, streams and SQLXML values cannot, and are rejected instead of being sent with a different
-     * mechanism. Procedure calls are not executed directly, so they are not affected.
+     * parameters, streams and SQLXML values cannot. The exception is caught by the execute methods, which then send
+     * the statement as an unprepared RPC, see retryRejectedDirectSqlAsRpc(). Procedure calls are not executed
+     * directly, so they are not affected.
      *
      * @param param
      *        the parameter, may be null
@@ -1474,6 +1538,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
         if (null != unsupportedType) {
+            directSqlParameterRejected = true;
             // The existing "{0} is not supported." message is used, so no new localized resource is needed.
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_featureNotSupported"));
             SQLServerException.makeFromDriverError(connection, this,
@@ -3704,10 +3769,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Direct SQL execution handles the batch with literal parameter substitution. This is prepareMethod=none, or
         // scopeTempTablesToConnection when temp table operations are detected in the SQL. A stored procedure call is
-        // never direct: under none each entry is sent as an unprepared RPC.
+        // never direct: under none each entry is sent as an unprepared RPC. If a parameter cannot be inlined as a
+        // literal, nothing has been sent, and the batch is sent as unprepared RPCs instead.
         if (isDirectSqlExecution) {
-            doExecuteExecMethodBatchCombined(batchCommand);
-            return;
+            try {
+                doExecuteExecMethodBatchCombined(batchCommand);
+                return;
+            } catch (SQLServerException e) {
+                if (!retryRejectedDirectSqlAsRpc())
+                    throw e;
+                Arrays.fill(batchCommand.updateCounts, Statement.EXECUTE_FAILED);
+            }
         } else if (isScopeTempTablesToConnectionMethod) {
             // scopeTempTablesToConnection is set but no temp table operations detected in
             // SQL, fall back to default prepexec method
@@ -4689,6 +4761,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Parameters that cannot be inlined as literals are rejected before anything is sent. This covers a single
         // execution and every entry of a batch.
+        directSqlParameterRejected = false;
         for (int i = 0; i < params.length; i++) {
             checkDirectSqlParameter(params[i], i);
         }
