@@ -1093,8 +1093,8 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                     }
                 }
             } finally {
-                stmt.execute("DROP PROCEDURE IF EXISTS " + procedureName);
-                stmt.execute("DROP TYPE IF EXISTS " + typeName);
+                dropIfExists(stmt, "PROCEDURE", procedureName);
+                dropIfExists(stmt, "TYPE", typeName);
             }
         }
     }
@@ -1255,7 +1255,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                     assertTrue(e.getMessage().contains("not supported"), e.getMessage());
                 }
             } finally {
-                stmt.execute("DROP TYPE IF EXISTS " + typeName);
+                dropIfExists(stmt, "TYPE", typeName);
             }
         }
     }
@@ -1281,8 +1281,8 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                     }
                 }
             } finally {
-                stmt.execute("DROP PROCEDURE IF EXISTS " + procedureName);
-                stmt.execute("DROP TYPE IF EXISTS " + typeName);
+                dropIfExists(stmt, "PROCEDURE", procedureName);
+                dropIfExists(stmt, "TYPE", typeName);
             }
         }
     }
@@ -1380,7 +1380,8 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         String spaces = new String(new char[100]).replace('\0', ' ');
         try (Connection conn = openConnection(mode)) {
             for (String sql : new String[] {"SET ROWCOUNT ?; " + rows, "SET ROWCOUNT /* limit */ ?; " + rows,
-                    "SET ROWCOUNT -- limit\n ?; " + rows, "SET ROWCOUNT" + spaces + "?; " + rows}) {
+                    "SET ROWCOUNT -- limit\n ?; " + rows, "SET ROWCOUNT" + spaces + "?; " + rows,
+                    "SET ROWCOUNT /* outer /* inner */ tail */ ?; " + rows}) {
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setLong(1, 2L);
                     assertEquals(2, countRows(ps), sql);
@@ -1396,6 +1397,48 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                     try (PreparedStatement ps = conn.prepareStatement(sql)) {
                         ps.setLong(1, 2L);
                         assertEquals(2, countRows(ps), sql);
+                    }
+                }
+            }
+        }
+    }
+
+    // A nested comment between CREATE and PROC must not hide the module definition: the body still gets a plain
+    // literal, because a CAST expression is not valid as an EXEC argument.
+    @Test
+    public void testModuleDefinitionWithNestedComment() throws SQLException {
+        try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE PROCEDURE #echo_nested @v bigint AS SELECT @v");
+            try (PreparedStatement ps = conn
+                    .prepareStatement("CREATE /* a /* b */ c */ PROCEDURE #probe_nested AS EXEC #echo_nested ?")) {
+                ps.setLong(1, 7L);
+                ps.execute();
+            }
+            try (ResultSet rs = stmt.executeQuery("EXEC #probe_nested")) {
+                assertTrue(rs.next());
+                assertEquals(7L, rs.getLong(1));
+            }
+        }
+    }
+
+    // A subnormal double such as 4.9E-324 is written as a literal that SQL Server rounds to 0, so the direct path
+    // rejects it instead of storing a different value. Typed modes send the exact bits and keep the value.
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "prepexec"})
+    public void testSubnormalDouble(String mode) throws SQLException {
+        double[] values = {Double.MIN_VALUE, -Double.MIN_VALUE, Math.nextDown(Double.MIN_NORMAL)};
+        try (Connection conn = openConnection(mode)) {
+            for (double value : values) {
+                try (PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS float)")) {
+                    ps.setDouble(1, value);
+                    if ("none".equals(mode)) {
+                        SQLException e = assertThrows(SQLException.class, ps::executeQuery);
+                        assertTrue(e.getMessage().contains("subnormal"), e.getMessage());
+                    } else {
+                        try (ResultSet rs = ps.executeQuery()) {
+                            assertTrue(rs.next());
+                            assertEquals(value, rs.getDouble(1));
+                        }
                     }
                 }
             }
@@ -1925,6 +1968,13 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
             }
         };
         assertValueMatchesTypedBinding(run, "a|b|c");
+    }
+
+    // DROP ... IF EXISTS needs SQL Server 2016; OBJECT_ID and TYPE_ID work on every supported version, also for names
+    // with a schema.
+    private static void dropIfExists(Statement stmt, String kind, String name) throws SQLException {
+        String exists = "TYPE".equals(kind) ? "TYPE_ID" : "OBJECT_ID";
+        stmt.execute("IF " + exists + "(N'" + name.replace("'", "''") + "') IS NOT NULL DROP " + kind + " " + name);
     }
 
     private static Connection openConnection(String mode, String... properties) throws SQLException {

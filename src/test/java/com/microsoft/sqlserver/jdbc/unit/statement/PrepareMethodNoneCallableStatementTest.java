@@ -436,9 +436,9 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
                 }
             } finally {
                 // Test identifiers contain an apostrophe, which TestUtils.dropFunctionWithSchemaIfExists does not escape.
-                stmt.execute("DROP TABLE IF EXISTS " + tableName);
-                stmt.execute("DROP FUNCTION IF EXISTS " + tableFunction);
-                stmt.execute("DROP FUNCTION IF EXISTS " + scalarFunction);
+                dropIfExists(stmt, "TABLE", tableName);
+                dropIfExists(stmt, "FUNCTION", tableFunction);
+                dropIfExists(stmt, "FUNCTION", scalarFunction);
             }
         }
     }
@@ -557,7 +557,7 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
                 cs.execute();
                 assertEquals(42, cs.getInt(1));
             } finally {
-                stmt.execute("DROP FUNCTION IF EXISTS " + functionName);
+                dropIfExists(stmt, "FUNCTION", functionName);
             }
         }
     }
@@ -674,7 +674,7 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
                     assertFalse(rs.next());
                 }
             } finally {
-                stmt.execute("DROP PROCEDURE " + procedureName);
+                dropIfExists(stmt, "PROCEDURE", procedureName);
             }
         }
     }
@@ -682,6 +682,12 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
     private static SQLServerConnection openConnection(String prepareMethod) throws SQLException {
         return (SQLServerConnection) PrepUtil
                 .getConnection(TestUtils.addOrOverrideProperty(connectionString, "prepareMethod", prepareMethod));
+    }
+
+    // DROP ... IF EXISTS needs SQL Server 2016; OBJECT_ID works on every supported version, also for names with a
+    // schema, brackets or an apostrophe.
+    private static void dropIfExists(Statement stmt, String kind, String name) throws SQLException {
+        stmt.execute("IF OBJECT_ID(N'" + name.replace("'", "''") + "') IS NOT NULL DROP " + kind + " " + name);
     }
 
     private void assertInputRoundTrip(String sqlType, CallableParameterSetter setter, ResultSetVerifier verifier)

@@ -106,12 +106,12 @@
 			<version>${azure-core-http-netty.version}</version>
 			<optional>true</optional>
 		</dependency>
-		<!-- dependencies for ANTLR -->
+		<!-- dependencies for ANTLR: required by useFmtOnly and by procedure call and TOP ? detection under
+			prepareMethod=none -->
 		<dependency>
 			<groupId>org.antlr</groupId>
 			<artifactId>antlr4-runtime</artifactId>
 			<version>${antlr-runtime.version}</version>
-			<optional>true</optional>
 		</dependency>
 		<!-- dependencies for AAS Enclave Provider -->
 		<dependency>

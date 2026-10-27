@@ -797,7 +797,7 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                     }
                 }
             } finally {
-                stmt.execute("DROP TYPE IF EXISTS " + typeName);
+                TestUtils.dropTypeIfExists(typeName, stmt);
             }
         }
     }
@@ -829,8 +829,8 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                     }
                 }
             } finally {
-                stmt.execute("DROP PROCEDURE IF EXISTS " + procedureName);
-                stmt.execute("DROP TYPE IF EXISTS " + typeName);
+                TestUtils.dropProcedureIfExists(procedureName, stmt);
+                TestUtils.dropTypeIfExists(typeName, stmt);
             }
         }
     }

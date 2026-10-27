@@ -1464,6 +1464,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 JavaType javaType = inputDTV.getJavaType();
                 if (JavaType.INPUTSTREAM == javaType || JavaType.READER == javaType || JavaType.SQLXML == javaType) {
                     unsupportedType = javaType.toString();
+                } else if (isSubnormal(inputDTV.getSetterValue())) {
+                    // SQL Server rounds a float literal below Double.MIN_NORMAL, such as 4.9E-324, to 0. The value is
+                    // rejected instead of being silently changed.
+                    unsupportedType = "subnormal Double";
                 }
             }
         }
@@ -1476,6 +1480,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             + " scopeTempTablesToConnection with temporary tables)"}),
                     null, false);
         }
+    }
+
+    /** Returns whether the value is a non-zero Double smaller in magnitude than Double.MIN_NORMAL. */
+    private static boolean isSubnormal(Object value) {
+        if (!(value instanceof Double)) {
+            return false;
+        }
+        double d = Math.abs((Double) value);
+        return d > 0 && d < Double.MIN_NORMAL;
     }
 
     /**
