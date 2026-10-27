@@ -1544,7 +1544,9 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
     private static void assertValueMatchesTypedBinding(ValueRun run, String expected) {
         for (boolean unicode : new boolean[] {true, false}) {
             String typed = valueOutcome("prepexec", unicode, run);
-            assertEquals(expected, typed, "prepexec, unicode=" + unicode);
+            if (null != expected) {
+                assertEquals(expected, typed, "prepexec, unicode=" + unicode);
+            }
             for (String mode : new String[] {"none", "scopeTempTablesToConnection"}) {
                 assertEquals(typed, valueOutcome(mode, unicode, run), mode + ", unicode=" + unicode);
             }
@@ -1691,6 +1693,232 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
             return rows.toString();
         };
         assertValueMatchesTypedBinding(run, "alpha|2020-01-02|11;beta|2021-03-04|22;gamma|2022-05-06|33;");
+    }
+
+    // Design scenario P1: OUT before IN, multiple OUT parameters, a return value followed by multiple IN parameters, and
+    // mixed IN/INOUT/OUT. Every output and return value is read, so a wrong marker-to-parameter association shows up.
+    @Test
+    public void testOutParameterLayoutsMatchTypedBinding() {
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE PROCEDURE #out_first @o int OUTPUT, @i int AS SET @o = @i * 2");
+                stmt.execute("CREATE PROCEDURE #multi_out @i int, @o1 int OUTPUT, @o2 int OUTPUT AS "
+                        + "BEGIN SET @o1 = @i + 1; SET @o2 = @i + 2 END");
+                stmt.execute("CREATE PROCEDURE #add_values @a int, @b int AS RETURN @a + @b");
+                stmt.execute("CREATE PROCEDURE #mixed @i int, @io int OUTPUT, @o int OUTPUT AS "
+                        + "BEGIN SET @o = @i + @io; SET @io = @io * 2 END");
+            }
+            StringBuilder result = new StringBuilder();
+            try (CallableStatement cs = conn.prepareCall("{call #out_first(?,?)}")) {
+                cs.registerOutParameter(1, Types.INTEGER);
+                cs.setInt(2, 21);
+                cs.execute();
+                result.append(cs.getInt(1)).append('|');
+            }
+            try (CallableStatement cs = conn.prepareCall("{call #multi_out(?,?,?)}")) {
+                cs.setInt(1, 7);
+                cs.registerOutParameter(2, Types.INTEGER);
+                cs.registerOutParameter(3, Types.INTEGER);
+                cs.execute();
+                result.append(cs.getInt(2)).append(',').append(cs.getInt(3)).append('|');
+            }
+            try (CallableStatement cs = conn.prepareCall("{? = call #add_values(?,?)}")) {
+                cs.registerOutParameter(1, Types.INTEGER);
+                cs.setInt(2, 20);
+                cs.setInt(3, 30);
+                cs.execute();
+                result.append(cs.getInt(1)).append('|');
+            }
+            try (CallableStatement cs = conn.prepareCall("{call #mixed(?,?,?)}")) {
+                cs.setInt(1, 10);
+                cs.setInt(2, 5);
+                cs.registerOutParameter(2, Types.INTEGER);
+                cs.registerOutParameter(3, Types.INTEGER);
+                cs.execute();
+                result.append(cs.getInt(2)).append(',').append(cs.getInt(3));
+            }
+            return result.toString();
+        };
+        for (String mode : new String[] {"none", "scopeTempTablesToConnection", "prepexec"}) {
+            assertEquals("42|8,9|50|10,15", valueOutcome(mode, true, run), mode);
+        }
+    }
+
+    // Design scenario P2: several temporal arguments of a procedure call, mixed with a string and an integer.
+    @Test
+    public void testMultipleTemporalProcedureArgumentsMatchTypedBinding() {
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE PROCEDURE #two_dates @a date, @b date, @s varchar(10), @n int AS "
+                        + "SELECT CONVERT(varchar(10), @a, 120) + '|' + CONVERT(varchar(10), @b, 120) + '|' + @s + '|' "
+                        + "+ CAST(@n AS varchar(10))");
+                stmt.execute("CREATE PROCEDURE #three_datetimes @a datetime, @b datetime, @c datetime, @s varchar(8) "
+                        + "AS SELECT CONVERT(varchar(23), @a, 121) + '|' + CONVERT(varchar(23), @b, 121) + '|' "
+                        + "+ CONVERT(varchar(23), @c, 121) + '|' + @s");
+            }
+            StringBuilder result = new StringBuilder();
+            try (CallableStatement cs = conn.prepareCall("{call #two_dates(?,?,?,?)}")) {
+                cs.setDate(1, java.sql.Date.valueOf("2026-07-29"));
+                cs.setDate(2, java.sql.Date.valueOf("2026-07-19"));
+                cs.setString(3, "ACCT-ALL");
+                cs.setInt(4, 0);
+                try (ResultSet rs = cs.executeQuery()) {
+                    rs.next();
+                    result.append(rs.getString(1)).append(';');
+                }
+            }
+            try (CallableStatement cs = conn.prepareCall("{call #three_datetimes(?,?,?,?)}")) {
+                cs.setTimestamp(1, Timestamp.valueOf("2026-07-29 00:00:00.0"));
+                cs.setTimestamp(2, Timestamp.valueOf("2026-07-29 00:00:00.0"));
+                cs.setTimestamp(3, Timestamp.valueOf("2025-07-29 00:00:00.0"));
+                cs.setString(4, "NAV");
+                try (ResultSet rs = cs.executeQuery()) {
+                    rs.next();
+                    result.append(rs.getString(1));
+                }
+            }
+            return result.toString();
+        };
+        assertValueMatchesTypedBinding(run, "2026-07-29|2026-07-19|ACCT-ALL|0;"
+                + "2026-07-29 00:00:00.000|2026-07-29 00:00:00.000|2025-07-29 00:00:00.000|NAV");
+    }
+
+    // Design scenario L7: a marker directly followed by a keyword (user_name = ?and portfolio_code = 'X'). The statement
+    // must run and return the intended row, also when strings are not sent as Unicode.
+    @Test
+    public void testMarkerAdjacentToKeywordReturnsTheIntendedRows() {
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE #permission_test (perm_type varchar(20), user_name varchar(30), "
+                        + "portfolio_code varchar(10))");
+                stmt.execute("INSERT #permission_test VALUES ('READ','svc_user','X'), ('READ','svc_user','Y'), "
+                        + "('WRITE','svc_user','X'), ('READ','other','X')");
+            }
+            StringBuilder rows = new StringBuilder();
+            try (PreparedStatement ps = conn.prepareStatement("SELECT portfolio_code FROM #permission_test "
+                    + "WHERE perm_type = ? AND user_name = ?and portfolio_code = 'X'")) {
+                ps.setString(1, "READ");
+                ps.setString(2, "svc_user");
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        rows.append(rs.getString(1)).append(',');
+                    }
+                }
+            }
+            return rows.toString();
+        };
+        assertValueMatchesTypedBinding(run, "X,");
+    }
+
+    // Design scenarios L4 and L6: the explicit JDBC target type wins over the Java type. An Integer bound as VARCHAR
+    // is character data, and a String bound as INTEGER is a number; the stored values are read back and used in
+    // character and numeric expressions, so an implicit conversion cannot hide a wrong literal type.
+    @Test
+    public void testExplicitJdbcTargetTypesKeepCharacterAndNumericSemantics() {
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE #target_type_test (text_value varchar(20), int_value int)");
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #target_type_test (text_value) VALUES (?)")) {
+                ps.setObject(1, Integer.valueOf(7777777), Types.VARCHAR);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #target_type_test (int_value) VALUES (?)")) {
+                ps.setObject(1, "7777777", Types.INTEGER);
+                ps.executeUpdate();
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT MAX(text_value + 'x'), MAX(int_value + 1) "
+                            + "FROM #target_type_test")) {
+                rs.next();
+                return rs.getString(1) + "|" + rs.getString(2);
+            }
+        };
+        assertValueMatchesTypedBinding(run, "7777777x|7777778");
+    }
+
+    // Design scenario T1: setObject(java.sql.Date) into a date column and a String bound to a datetimeoffset column.
+    @Test
+    public void testSetObjectSqlDateAndDatetimeoffsetStringRoundTrip() {
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE #temporal_test (d date, dto datetimeoffset)");
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #temporal_test (d) VALUES (?)")) {
+                ps.setObject(1, java.sql.Date.valueOf("2026-10-15"));
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #temporal_test (dto) VALUES (?)")) {
+                ps.setString(1, "2026-10-15 12:23:45.1234567 +05:30");
+                ps.executeUpdate();
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT MAX(CONVERT(varchar(10), d, 120)), "
+                            + "MAX(CAST(dto AS varchar(40))) FROM #temporal_test")) {
+                rs.next();
+                return rs.getString(1) + "|" + rs.getString(2);
+            }
+        };
+        assertValueMatchesTypedBinding(run, "2026-10-15|2026-10-15 12:23:45.1234567 +05:30");
+    }
+
+    // Design scenario L1: inferred setObject(Integer) and setObject(BigDecimal) stored in typed columns and read back.
+    @Test
+    public void testInferredSetObjectIntegerAndBigDecimalRoundTrip() {
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE #inferred_test (i int, d decimal(10,4))");
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #inferred_test (i, d) VALUES (?, ?)")) {
+                ps.setObject(1, Integer.valueOf(42));
+                ps.setObject(2, new java.math.BigDecimal("123456.7890"));
+                ps.executeUpdate();
+            }
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT i, d FROM #inferred_test")) {
+                rs.next();
+                return rs.getInt(1) + "|" + rs.getBigDecimal(2).toPlainString();
+            }
+        };
+        assertValueMatchesTypedBinding(run, "42|123456.7890");
+    }
+
+    // Design scenario R13: generated key of a single INSERT into a session-local identity table with a String value.
+    @Test
+    public void testGeneratedKeyOfSessionLocalIdentityTableMatchesTypedBinding() {
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE #generated_key_test (id INT IDENTITY(1,1) PRIMARY KEY, value VARCHAR(32))");
+            }
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #generated_key_test(value) VALUES (?)",
+                    Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, "GK");
+                int count = ps.executeUpdate();
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    return "count=" + count + " key=" + (keys.next() ? keys.getInt(1) : -1);
+                }
+            }
+        };
+        assertValueMatchesTypedBinding(run, "count=1 key=1");
+    }
+
+    // Design scenario L12: IN (?, ?, ?) does not prove marker order, so the order of three markers is checked with a
+    // shape that is sensitive to it.
+    @Test
+    public void testMarkerOrderIsPreserved() {
+        ValueRun run = conn -> {
+            try (PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS varchar(5)) + '|' + "
+                    + "CAST(? AS varchar(5)) + '|' + CAST(? AS varchar(5))")) {
+                ps.setString(1, "a");
+                ps.setString(2, "b");
+                ps.setString(3, "c");
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    return rs.getString(1);
+                }
+            }
+        };
+        assertValueMatchesTypedBinding(run, "a|b|c");
     }
 
     private static Connection openConnection(String mode, String... properties) throws SQLException {
