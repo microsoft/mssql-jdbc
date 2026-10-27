@@ -36,6 +36,9 @@ import java.util.Map.Entry;
 import java.util.Vector;
 import java.util.logging.Level;
 
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.Token;
+
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
 
@@ -385,14 +388,27 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             isDirectSqlExecution = !isProcedureCall;
             useUnpreparedRpc = isProcedureCall;
             usePrepExec = false;
+            if (loggerExternal.isLoggable(Level.FINER)) {
+                loggerExternal.finer(toString() + " prepareMethod=none: " + (isProcedureCall
+                        ? "procedure call found, executing as an unprepared RPC (sp_executesql)."
+                        : "no procedure call found, executing as a direct SQL batch."));
+            }
         } else if (prepareMethod.equals(PrepareMethod.SCOPE_TEMP_TABLES_TO_CONNECTION.toString())) {
             useUnpreparedRpc = false;
-            if (containsTemporaryTableOperations(userSQL) && !containsProcedureCall(userSQL)) {
+            // The procedure call scan runs only when the SQL text uses temporary tables.
+            boolean usesTempTables = containsTemporaryTableOperations(userSQL);
+            boolean isProcedureCall = usesTempTables && containsProcedureCall(userSQL);
+            if (usesTempTables && !isProcedureCall) {
                 isDirectSqlExecution = true;
                 usePrepExec = false;
             } else {
                 isDirectSqlExecution = false;
                 usePrepExec = true;
+            }
+            if (usesTempTables && loggerExternal.isLoggable(Level.FINER)) {
+                loggerExternal.finer(toString() + " prepareMethod=scopeTempTablesToConnection: " + (isProcedureCall
+                        ? "procedure call found, executing as a prepared RPC."
+                        : "no procedure call found, executing as a direct SQL batch."));
             }
         } else if (prepareMethod.equals(PrepareMethod.PREPEXEC.toString())) {
             isDirectSqlExecution = false;
@@ -1463,127 +1479,158 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Returns whether the SQL text calls a stored procedure, either with an EXEC or EXECUTE statement anywhere in it,
-     * for example SET NOCOUNT ON; EXEC p ?, or by naming the procedure as the first statement without EXEC, for
-     * example dbo.p ?. Quoted text, quoted identifiers and comments (which may be nested) are skipped, and only the
-     * whole words EXEC and EXECUTE count, so exec_count, @exec and [EXEC] do not. EXECUTE AS is a context switch, not
-     * a procedure call. A GRANT EXECUTE permission statement is reported as a call; such a statement is simply sent
-     * as an RPC.
+     * Returns whether the SQL text calls a stored procedure. A call is either an EXEC or EXECUTE statement anywhere in
+     * the batch, for example {@code SET NOCOUNT ON; EXEC p ?}, or a procedure name used as the first statement without
+     * EXEC, for example {@code dbo.p ?}.
+     * <p>
+     * The text is split into tokens by {@link SQLServerLexer}, which already skips white space and comments (including
+     * nested block comments) and returns quoted text and quoted identifiers as single tokens. So only the whole words
+     * EXEC and EXECUTE count: {@code exec_count}, {@code @exec}, {@code 'EXEC'} and {@code [EXEC]} do not. The
+     * following are not procedure calls:
+     * <ul>
+     * <li>{@code EXECUTE AS ...}: a security context switch.</li>
+     * <li>{@code GRANT|DENY|REVOKE ... EXECUTE ...}: a permission name.</li>
+     * <li>{@code CREATE|ALTER PROCEDURE|FUNCTION|TRIGGER ...}: the rest of the batch is a module body that runs
+     * later.</li>
+     * </ul>
+     * If the text cannot be scanned, it is reported as a procedure call. The statement is then sent as an RPC through
+     * sp_executesql, which runs any SQL text with typed parameters, instead of as a direct SQL batch with literal
+     * values.
      *
      * @param sql
-     *        the SQL text
-     * @return true if the SQL text calls a stored procedure
+     *        the SQL text, with JDBC call syntax already rewritten to EXEC
+     * @return true if the SQL text calls a stored procedure, or could not be scanned
      */
     static boolean containsProcedureCall(String sql) {
-        int len = sql.length();
-        int i = 0;
-        boolean afterExec = false; // the last token was EXEC or EXECUTE; the next one decides if it is a call
-        boolean atStart = true; // no token has been read yet
+        try {
+            return scanForProcedureCall(sql);
+        } catch (RuntimeException e) {
+            // Fail safe: sp_executesql handles any statement, while literal substitution breaks procedure calls.
+            if (loggerExternal.isLoggable(Level.FINE)) {
+                loggerExternal.fine("Could not scan the SQL text for a procedure call, so it is sent as an RPC: " + e);
+            }
+            return true;
+        }
+    }
+
+    /**
+     * Returns whether the token before EXECUTE shows that EXECUTE names a permission rather than starting a statement,
+     * as in GRANT EXECUTE, GRANT SELECT, EXECUTE or REVOKE GRANT OPTION FOR EXECUTE.
+     */
+    private static boolean isPermissionContext(Token previous) {
+        if (null == previous) {
+            return false;
+        }
+        if (SQLServerLexer.COMMA == previous.getType()) {
+            return true;
+        }
+        String word = previous.getText();
+        return "GRANT".equalsIgnoreCase(word) || "DENY".equalsIgnoreCase(word) || "REVOKE".equalsIgnoreCase(word)
+                || "FOR".equalsIgnoreCase(word);
+    }
+
+    /** Returns whether the token text is a single word: letters, digits, _, @, # or $. */
+    private static boolean isWord(String text) {
+        if (text.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (!Character.isLetterOrDigit(c) && "_@#$".indexOf(c) < 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean scanForProcedureCall(String sql) {
+        SQLServerLexer lexer = new SQLServerLexer(CharStreams.fromString(sql));
+        // Unrecognized characters are reported to the error listeners and then skipped. The default listener prints to
+        // the console, so it is removed; skipping them does not change the result.
+        lexer.removeErrorListeners();
+
+        boolean afterExec = false; // the previous token was EXEC or EXECUTE; the current one decides if it is a call
+        boolean atStart = true; // no token has been read yet, so the current token starts the batch
         boolean afterCreate = false; // the batch starts with CREATE or ALTER; the next words say what is created
-        while (i < len) {
-            char c = sql.charAt(i);
-            if (Character.isWhitespace(c)) {
-                i++;
-            } else if ('-' == c && i + 1 < len && '-' == sql.charAt(i + 1)) {
-                while (i < len && '\n' != sql.charAt(i) && '\r' != sql.charAt(i)) {
-                    i++;
-                }
-            } else if ('/' == c && i + 1 < len && '*' == sql.charAt(i + 1)) {
-                for (int depth = 1, j = i + 2; ; ) {
-                    if (j >= len) {
-                        i = len;
-                        break;
-                    } else if (sql.startsWith("/*", j)) {
-                        depth++;
-                        j += 2;
-                    } else if (sql.startsWith("*/", j)) {
-                        j += 2;
-                        if (0 == --depth) {
-                            i = j;
-                            break;
-                        }
-                    } else {
-                        j++;
-                    }
-                }
-            } else if ('\'' == c || '"' == c || '[' == c) {
-                // A quoted name that starts the batch is a procedure name without EXEC.
-                if (afterExec || (atStart && '\'' != c)) {
+        Token previous = null;
+
+        // Tokens are read one at a time, with one token of lookahead, so the scan stops as soon as it has an answer.
+        Token token = lexer.nextToken();
+        while (Token.EOF != token.getType()) {
+            Token next = lexer.nextToken();
+            int type = token.getType();
+            String text = token.getText();
+
+            // 1. Quoted text ('...', N'...') and quoted identifiers ("..." or [...]).
+            if (SQLServerLexer.STRING == type || SQLServerLexer.DOUBLE_LITERAL == type
+                    || SQLServerLexer.SQUARE_LITERAL == type) {
+                // EXEC [dbo].[p] is a call. A quoted identifier that starts the batch is a procedure name without
+                // EXEC, as in [dbo].[p] ?, while text in single quotes cannot start a statement.
+                if (afterExec || (atStart && SQLServerLexer.STRING != type)) {
                     return true;
                 }
                 atStart = false;
                 afterCreate = false;
-                // A doubled closing quote inside the text is an escaped quote.
-                char close = ('[' == c) ? ']' : c;
-                for (i++; i < len; i++) {
-                    if (close == sql.charAt(i)) {
-                        if (i + 1 < len && close == sql.charAt(i + 1)) {
-                            i++;
-                        } else {
-                            i++;
-                            break;
-                        }
-                    }
+            } else if (SQLServerLexer.SINGLE_QUOTE == type || SQLServerLexer.DOUBLE_QUOTE == type
+                    || SQLServerLexer.LS_BRACKET == type) {
+                // 2. An opening quote without a closing one: the rest of the text is inside the quote. The server
+                // rejects such SQL; it is reported as a call only if EXEC came right before it.
+                return afterExec;
+            } else if (SQLServerLexer.DIVIDE == type && SQLServerLexer.STAR == next.getType()
+                    && token.getStopIndex() + 1 == next.getStartIndex()) {
+                // 3. A block comment without its closing */, which the lexer returns as the tokens / and *: the rest of
+                // the text is inside the comment.
+                return afterExec;
+            } else if (!isWord(text)) {
+                // 4. An operator, punctuation, a parameter marker or a number such as 1.5. After EXEC this is a call,
+                // as in EXEC (@sql) or EXEC @rc = p.
+                if (afterExec) {
+                    return true;
                 }
+                atStart = false;
+                afterCreate = false;
             } else {
-                int start = i;
-                while (i < len && (Character.isLetterOrDigit(sql.charAt(i)) || "_@#$".indexOf(sql.charAt(i)) >= 0)) {
-                    i++;
+                // 5. A word: a keyword, a name, a variable or an integer.
+                // After EXEC any word other than AS is the procedure name or a variable holding it.
+                if (afterExec && !"AS".equalsIgnoreCase(text)) {
+                    return true;
                 }
-                if (i == start) { // an operator or punctuation character, not a word
-                    if (afterExec) {
-                        return true;
+                if (atStart || afterCreate) {
+                    String word = text.toUpperCase(Locale.ENGLISH);
+                    // CREATE [OR ALTER] PROC|PROCEDURE|FUNCTION|TRIGGER: an EXEC in the body runs later, not now.
+                    if (afterCreate && ("PROC".equals(word) || "PROCEDURE".equals(word) || "FUNCTION".equals(word)
+                            || "TRIGGER".equals(word))) {
+                        return false;
                     }
-                    atStart = false;
-                    afterCreate = false;
-                    i++;
-                } else {
-                    int length = i - start;
-                    if (afterExec && !(2 == length && sql.regionMatches(true, start, "AS", 0, 2))) {
-                        return true;
-                    }
-                    if (atStart || afterCreate) {
-                        String word = sql.substring(start, i).toUpperCase(Locale.ENGLISH);
-                        if (afterCreate && ("PROC".equals(word) || "PROCEDURE".equals(word) || "FUNCTION".equals(word)
-                                || "TRIGGER".equals(word))) {
-                            return false; // the rest of the batch is a module body, which runs later
+                    afterCreate = atStart ? ("CREATE".equals(word) || "ALTER".equals(word))
+                                          : ("OR".equals(word) || "ALTER".equals(word));
+                    // A name that starts the batch and is not a statement keyword is a procedure name without EXEC,
+                    // as in dbo.p ? or sp_who. A name followed by a colon is a label instead; the statement after the
+                    // label then starts the batch.
+                    char first = text.charAt(0);
+                    if (atStart && (Character.isLetter(first) || '_' == first || '#' == first)
+                            && !Util.TSQL_STATEMENT_KEYWORDS.contains(word)) {
+                        if (SQLServerLexer.COLON != next.getType()) {
+                            return true;
                         }
-                        afterCreate = atStart ? ("CREATE".equals(word) || "ALTER".equals(word))
-                                              : ("OR".equals(word) || "ALTER".equals(word));
-                        if (atStart && (Character.isLetter(c) || '_' == c || '#' == c)
-                                && !Util.TSQL_STATEMENT_KEYWORDS.contains(word)) {
-                            int next = i;
-                            // Skip white space and comments (block comments may be nested) before the colon.
-                            for (int depth = 0; next < len;) {
-                                if (0 == depth && sql.startsWith("--", next)) {
-                                    while (next < len && '\n' != sql.charAt(next) && '\r' != sql.charAt(next)) {
-                                        next++;
-                                    }
-                                } else if (sql.startsWith("/*", next)) {
-                                    depth++;
-                                    next += 2;
-                                } else if (depth > 0 && sql.startsWith("*/", next)) {
-                                    depth--;
-                                    next += 2;
-                                } else if (depth > 0 || Character.isWhitespace(sql.charAt(next))) {
-                                    next++;
-                                } else {
-                                    break;
-                                }
-                            }
-                            if (next >= len || ':' != sql.charAt(next)) {
-                                return true;
-                            }
-                            i = next + 1; // a label, the statement after it starts the batch
-                            continue;
-                        }
+                        previous = next;
+                        token = lexer.nextToken(); // skip the colon
+                        continue;
                     }
-                    atStart = false;
-                    afterExec = (4 == length && sql.regionMatches(true, start, "EXEC", 0, 4))
-                            || (7 == length && sql.regionMatches(true, start, "EXECUTE", 0, 7));
                 }
+                atStart = false;
+                // EXECUTE right after GRANT, DENY, REVOKE, FOR or a comma is a permission name, not a statement.
+                afterExec = ("EXEC".equalsIgnoreCase(text) || "EXECUTE".equalsIgnoreCase(text))
+                        && !isPermissionContext(previous);
+                previous = token;
+                token = next;
+                continue;
             }
+            afterExec = false;
+            previous = token;
+            token = next;
         }
+        // A batch that ends with EXEC or EXECUTE, such as SELECT 1; EXEC, is reported as a call; the server rejects it.
         return afterExec;
     }
 
