@@ -1506,7 +1506,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     static boolean containsProcedureCall(String sql) {
         try {
-            return scanForProcedureCall(sql);
+            return scanForProcedureCall(blankCommentsAndQuotedText(sql));
         } catch (RuntimeException e) {
             // Fail safe: sp_executesql handles any statement, while literal substitution breaks procedure calls.
             if (loggerExternal.isLoggable(Level.FINE)) {
@@ -1516,7 +1516,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
-    /** Scans the SQL text for a procedure call; see {@link #containsProcedureCall(String)}. */
+    /**
+     * Scans SQL text for a procedure call; see {@link #containsProcedureCall(String)}. The text must already be
+     * blanked by {@link #blankCommentsAndQuotedText(CharSequence)}, so comments are white space, each quoted string is
+     * a single {@code '} and each quoted identifier is a single {@code "}.
+     */
     private static boolean scanForProcedureCall(String sql) {
         int len = sql.length();
         int i = 0;
@@ -1527,47 +1531,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             char c = sql.charAt(i);
             if (Character.isWhitespace(c)) {
                 i++;
-            } else if ('-' == c && i + 1 < len && '-' == sql.charAt(i + 1)) {
-                while (i < len && '\n' != sql.charAt(i) && '\r' != sql.charAt(i)) {
-                    i++;
-                }
-            } else if ('/' == c && i + 1 < len && '*' == sql.charAt(i + 1)) {
-                for (int depth = 1, j = i + 2; ; ) {
-                    if (j >= len) {
-                        i = len;
-                        break;
-                    } else if (sql.startsWith("/*", j)) {
-                        depth++;
-                        j += 2;
-                    } else if (sql.startsWith("*/", j)) {
-                        j += 2;
-                        if (0 == --depth) {
-                            i = j;
-                            break;
-                        }
-                    } else {
-                        j++;
-                    }
-                }
-            } else if ('\'' == c || '"' == c || '[' == c) {
-                // A quoted name that starts the batch is a procedure name without EXEC.
-                if (afterExec || (atStart && '\'' != c)) {
+            } else if ('\'' == c || '"' == c) {
+                // A quoted identifier that starts the batch is a procedure name without EXEC.
+                if (afterExec || (atStart && '"' == c)) {
                     return true;
                 }
                 atStart = false;
                 afterCreate = false;
-                // A doubled closing quote inside the text is an escaped quote.
-                char close = ('[' == c) ? ']' : c;
-                for (i++; i < len; i++) {
-                    if (close == sql.charAt(i)) {
-                        if (i + 1 < len && close == sql.charAt(i + 1)) {
-                            i++;
-                        } else {
-                            i++;
-                            break;
-                        }
-                    }
-                }
+                i++;
             } else {
                 int start = i;
                 while (i < len && (Character.isLetterOrDigit(sql.charAt(i)) || "_@#$".indexOf(sql.charAt(i)) >= 0)) {
@@ -1596,23 +1567,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         if (atStart && (Character.isLetter(c) || '_' == c || '#' == c)
                                 && !Util.TSQL_STATEMENT_KEYWORDS.contains(word)) {
                             int next = i;
-                            // Skip white space and comments (block comments may be nested) before the colon.
-                            for (int depth = 0; next < len;) {
-                                if (0 == depth && sql.startsWith("--", next)) {
-                                    while (next < len && '\n' != sql.charAt(next) && '\r' != sql.charAt(next)) {
-                                        next++;
-                                    }
-                                } else if (sql.startsWith("/*", next)) {
-                                    depth++;
-                                    next += 2;
-                                } else if (depth > 0 && sql.startsWith("*/", next)) {
-                                    depth--;
-                                    next += 2;
-                                } else if (depth > 0 || Character.isWhitespace(sql.charAt(next))) {
-                                    next++;
-                                } else {
-                                    break;
-                                }
+                            while (next < len && Character.isWhitespace(sql.charAt(next))) {
+                                next++;
                             }
                             if (next >= len || ':' != sql.charAt(next)) {
                                 return true;
@@ -4574,9 +4530,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     /**
-     * Returns the SQL text with each comment replaced by a space and each quoted string or quoted identifier replaced
-     * by a single quote character, so the patterns above only see SQL keywords. This is done with a character scan
-     * rather than a regular expression because:
+     * Returns the SQL text with each comment replaced by a space, each quoted string replaced by a single {@code '} and
+     * each quoted identifier ({@code "name"} or {@code [name]}) replaced by a single {@code "}, so the patterns above
+     * and the procedure call scan only see SQL keywords and names. This is done with a character scan rather than a
+     * regular expression because:
      * <ul>
      * <li>block comments may be nested, as in <code>/* a /* b *&#47; c *&#47;</code>, and end only at the matching
      * close;</li>
@@ -4632,7 +4589,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         break;
                     }
                 }
-                out.append('\'');
+                out.append('\'' == c ? '\'' : '"');
             } else {
                 out.append(c);
                 i++;
@@ -4734,20 +4691,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
             throw ex;
         }
-    }
-
-    /**
-     * Format Java value into a T-SQL literal safe for SQL Server.
-     * This method is package-private to allow testing.
-     * 
-     * @param value
-     *              the value to format
-     * @return the formatted SQL literal string
-     * @throws SQLException
-     *                      if an error occurs
-     */
-    String formatLiteralValue(Object value) throws SQLException {
-        return formatLiteralValue(value, false);
     }
 
     /**
