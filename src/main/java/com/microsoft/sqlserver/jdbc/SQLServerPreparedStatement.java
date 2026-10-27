@@ -4504,29 +4504,36 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         return new String(sqlDst, 0, dstBegin);
     }
 
-    // A marker right after SET <option> or TOP is a position that accepts a constant or a variable, not an expression.
-    private static final java.util.regex.Pattern CONSTANT_ONLY_POSITION = java.util.regex.Pattern
-            .compile("(?:\\bSET\\s+\\w+|\\bTOP)\\s*$", java.util.regex.Pattern.CASE_INSENSITIVE);
+    // A marker right after SET <option>, TOP, or FETCH ABSOLUTE/RELATIVE is a position that accepts a constant or a
+    // variable, not an expression.
+    private static final java.util.regex.Pattern CONSTANT_ONLY_POSITION = java.util.regex.Pattern.compile(
+            "(?:\\bSET\\s+\\w+|\\bTOP|\\bFETCH\\s+(?:ABSOLUTE|RELATIVE))\\s*$",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
     private static final java.util.regex.Pattern MODULE_DEFINITION = java.util.regex.Pattern.compile(
             "^\\s*(?:CREATE|ALTER)\\s+(?:OR\\s+ALTER\\s+)?(?:PROC|PROCEDURE|FUNCTION|TRIGGER)\\b",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+    private static final java.util.regex.Pattern RAISERROR = java.util.regex.Pattern.compile("\\bRAISERROR\\b",
             java.util.regex.Pattern.CASE_INSENSITIVE);
 
     /**
      * Returns whether the SQL text before a parameter marker, counted from the previous marker, ends in a position that
-     * does not accept a CAST expression, for example SET ROWCOUNT ? or TOP ?. A Long keeps its plain literal there.
-     * Comments and quoted text are ignored. Only the original SQL text between two markers is scanned, never the
-     * substituted values.
+     * does not accept a CAST expression, for example SET ROWCOUNT ?, TOP ? or FETCH ABSOLUTE ?. A Long keeps its plain
+     * literal there. Comments and quoted text are ignored. Only the original SQL text between two markers is scanned,
+     * never the substituted values.
      */
     private static boolean isConstantOnlyPosition(CharSequence sqlBefore) {
         return CONSTANT_ONLY_POSITION.matcher(blankCommentsAndQuotedText(sqlBefore)).find();
     }
 
     /**
-     * Returns whether the SQL text creates or alters a procedure, function or trigger. Its body runs later and may
-     * pass a parameter to EXEC, where a CAST expression is not valid, so a Long keeps its plain literal there.
+     * Returns whether every Long in the SQL text keeps its plain literal instead of a CAST expression. This is the case
+     * when the text creates or alters a procedure, function or trigger, whose body runs later and may pass a parameter
+     * to EXEC, or when it calls RAISERROR, whose arguments accept only constants and variables. Comments and quoted
+     * text are ignored.
      */
-    private static boolean isModuleDefinition(String sql) {
-        return MODULE_DEFINITION.matcher(blankCommentsAndQuotedText(sql)).find();
+    private static boolean keepsLongsPlain(String sql) {
+        String blanked = blankCommentsAndQuotedText(sql);
+        return MODULE_DEFINITION.matcher(blanked).find() || RAISERROR.matcher(blanked).find();
     }
 
     /**
@@ -4635,7 +4642,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         try {
             StringBuilder result = new StringBuilder(sqlSrc.length() + params.length * 20);
             int srcBegin = 0;
-            Boolean moduleDefinition = null; // evaluated once, and only when a Long is bound
+            Boolean longsPlain = null; // evaluated once, and only when a Long is bound
 
             for (int paramIndex = 0; paramIndex < paramPositions.length; paramIndex++) {
                 int srcEnd = paramPositions[paramIndex];
@@ -4651,11 +4658,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 }
                 Object value = params[paramIndex].getSetterValue();
                 String literal;
-                if (value instanceof Long && null == moduleDefinition) {
-                    moduleDefinition = isModuleDefinition(sqlSrc);
+                if (value instanceof Long && null == longsPlain) {
+                    longsPlain = keepsLongsPlain(sqlSrc);
                 }
                 if (value instanceof Long
-                        && (moduleDefinition || isConstantOnlyPosition(sqlSrc.subSequence(srcBegin, srcEnd)))) {
+                        && (longsPlain || isConstantOnlyPosition(sqlSrc.subSequence(srcBegin, srcEnd)))) {
                     literal = value.toString();
                 } else {
                     literal = formatLiteralValue(params[paramIndex], value);
@@ -4734,6 +4741,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return formatTemporalInCalendar((java.util.Date) value, calendar);
         }
 
+        // A LocalDateTime bound to a TIME target is sent as its time of day only, as typed binding sends it.
+        if (JDBCType.TIME == jdbcType && value instanceof java.time.LocalDateTime) {
+            value = ((java.time.LocalDateTime) value).toLocalTime();
+        }
+
         // A LocalTime is sent as typed binding sends it. For a TIME target with sendTimeAsDatetime it is a datetime,
         // which holds milliseconds only: the nanoseconds are rounded half-up to the millisecond, and rounding past
         // midnight moves to the next day. Without sendTimeAsDatetime it is a time with 100 ns precision. For a
@@ -4761,10 +4773,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
 
-        // An integral value with a character target type is sent as text.
+        // An integral value with a character target type is sent as text. Typed binding does not switch integral values
+        // to a national type, so the N prefix depends only on the target type, not on sendStringParametersAsUnicode.
         if (jdbcType.isTextual() && (value instanceof Byte || value instanceof Short || value instanceof Integer
                 || value instanceof Long)) {
-            return formatLiteralValue(value.toString(), national);
+            return (national ? "N'" : "'") + value + "'";
         }
 
         // A string, long or double with a numeric target type is converted to that type, so a long bound as INTEGER

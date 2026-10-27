@@ -1404,6 +1404,84 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
+    // FETCH ABSOLUTE/RELATIVE and RAISERROR arguments accept a constant or a variable, not a CAST expression, so a Long
+    // stays a plain literal there. RAISERROR keeps every Long in the batch plain, because its arguments are not
+    // recognised by position.
+    @Test
+    public void testLongInFetchAndRaiserror() throws SQLException {
+        try (Connection conn = openConnection("none")) {
+            for (String fetch : new String[] {"FETCH ABSOLUTE ? FROM c", "FETCH FIRST FROM c; FETCH RELATIVE ? FROM c",
+                    "FETCH ABSOLUTE /* row */ ? FROM c"}) {
+                String sql = "SET NOCOUNT ON; DECLARE c CURSOR LOCAL SCROLL FOR SELECT v FROM (VALUES (10), (20), (30))"
+                        + " AS t(v); OPEN c; " + fetch + "; CLOSE c; DEALLOCATE c";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setLong(1, fetch.contains("RELATIVE") ? 1L : 2L);
+                    assertEquals("20", lastResultSetFirstValue(ps), sql);
+                }
+            }
+            for (String sql : new String[] {"RAISERROR('m', 10, ?)",
+                    "SET NOCOUNT ON; DECLARE @v bigint = ?; RAISERROR('m', 10, 1)"}) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setLong(1, 1L);
+                    ps.execute();
+                }
+            }
+        }
+    }
+
+    // A LocalDateTime bound to a TIME target is sent as its time of day, as typed binding sends it.
+    @ParameterizedTest(name = "sendTimeAsDatetime={0}")
+    @ValueSource(booleans = {true, false})
+    public void testLocalDateTimeWithTimeTarget(boolean sendTimeAsDatetime) throws SQLException {
+        LocalDateTime value = LocalDateTime.of(2024, 5, 6, 7, 8, 9, 123000000);
+        String property = "sendTimeAsDatetime=" + sendTimeAsDatetime;
+        String expected;
+        try (Connection conn = openConnection("prepexec", property);
+                PreparedStatement ps = conn.prepareStatement("SELECT CONVERT(varchar(40), ?, 121)")) {
+            ps.setObject(1, value, Types.TIME);
+            expected = lastResultSetFirstValue(ps);
+        }
+        assertFalse(expected.startsWith("2024"), expected);
+        try (Connection conn = openConnection("none", property);
+                PreparedStatement ps = conn.prepareStatement("SELECT CONVERT(varchar(40), ?, 121)")) {
+            ps.setObject(1, value, Types.TIME);
+            assertEquals(expected, lastResultSetFirstValue(ps));
+        }
+    }
+
+    // An integral value bound to a character target is sent as varchar or nvarchar according to the target type,
+    // whatever sendStringParametersAsUnicode is, as typed binding sends it.
+    @ParameterizedTest(name = "sendStringParametersAsUnicode={0}")
+    @ValueSource(booleans = {true, false})
+    public void testIntegralValueWithCharacterTarget(boolean unicode) throws SQLException {
+        try (Connection conn = openConnection("none", "sendStringParametersAsUnicode=" + unicode);
+                PreparedStatement ps = conn.prepareStatement(
+                        "SELECT CAST(SQL_VARIANT_PROPERTY(?, 'BaseType') AS varchar(20)) + ':' + CAST(DATALENGTH(?) AS"
+                                + " varchar(10))")) {
+            ps.setObject(1, 123, Types.VARCHAR);
+            ps.setObject(2, 123L, Types.VARCHAR);
+            assertEquals("varchar:3", lastResultSetFirstValue(ps));
+            ps.setObject(1, 123, Types.NVARCHAR);
+            ps.setObject(2, 123L, Types.NVARCHAR);
+            assertEquals("nvarchar:6", lastResultSetFirstValue(ps));
+        }
+    }
+
+    private static String lastResultSetFirstValue(PreparedStatement ps) throws SQLException {
+        String value = null;
+        boolean hasResultSet = ps.execute();
+        while (hasResultSet || -1 != ps.getUpdateCount()) {
+            if (hasResultSet) {
+                try (ResultSet rs = ps.getResultSet()) {
+                    assertTrue(rs.next());
+                    value = rs.getString(1);
+                }
+            }
+            hasResultSet = ps.getMoreResults();
+        }
+        return value;
+    }
+
     // A nested comment between CREATE and PROC must not hide the module definition: the body still gets a plain
     // literal, because a CAST expression is not valid as an EXEC argument.
     @Test

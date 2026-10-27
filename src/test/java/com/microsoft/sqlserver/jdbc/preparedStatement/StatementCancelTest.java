@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -304,12 +305,23 @@ public class StatementCancelTest extends AbstractTest {
             try (PreparedStatement ps = conn.prepareStatement("EXEC #cancel_wait ?, ?")) {
                 ps.setInt(1, 7);
                 ps.setString(2, "00:00:10");
+                // cancel() does nothing until execute() has sent its request, so it is repeated until execute()
+                // returns. The loop is bounded so a request that never starts cannot hang the test.
+                AtomicBoolean executeReturned = new AtomicBoolean(false);
                 Future<Void> canceller = executor.submit(() -> {
-                    Thread.sleep(500);
-                    ps.cancel();
+                    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+                    while (!executeReturned.get() && System.nanoTime() < deadline) {
+                        Thread.sleep(100);
+                        ps.cancel();
+                    }
                     return null;
                 });
-                SQLException e = assertThrows(SQLException.class, ps::execute);
+                SQLException e;
+                try {
+                    e = assertThrows(SQLException.class, ps::execute);
+                } finally {
+                    executeReturned.set(true);
+                }
                 assertTrue(String.valueOf(e.getMessage()).contains("cancel"), e.getMessage());
                 // An exception in the cancelling thread is reported here instead of being swallowed.
                 canceller.get(5, TimeUnit.SECONDS);
