@@ -162,6 +162,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private final boolean useUnpreparedRpc;
 
     /**
+     * Whether the last request built by doPrepExec was an sp_executesql RPC, which never uses a prepared handle.
+     */
+    private boolean isExecuteSqlUsed = false;
+
+    /**
      * Flag indicating whether to use sp_prepexec (true) or sp_prepare (false) for
      * prepared statement execution. Only relevant when
      * isDirectSqlExecution is false.
@@ -919,9 +924,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // default schema, and
         // ANSI_NULLS and QUOTED_IDENTIFIER set options are not changed since the handle is prepared.
         // 8179: Could not find prepared statement with handle %d.
-        // An unprepared RPC never reuses a prepared handle, so these errors are not cached-handle failures and the
+        // An sp_executesql RPC never reuses a prepared handle, so these errors are not cached-handle failures and the
         // statement must not be executed again.
-        if (useUnpreparedRpc || (needsPrepare && !isBatch))
+        if (isExecuteSqlUsed || (needsPrepare && !isBatch))
             return false;
         return 1 == attempt && (586 == e.getErrorCode() || 8179 == e.getErrorCode())
                 && connection.isStatementPoolingEnabled();
@@ -1591,6 +1596,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         // Reset isPrepExecUsed to default before determining execution path
         isPrepExecUsed = false;
+        isExecuteSqlUsed = false;
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
 
@@ -1618,6 +1624,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // parameters. No server handle is created or cached. In a batch nothing has to be read back before the next
         // entry, so the entries are combined into one request.
         if (useUnpreparedRpc) {
+            isExecuteSqlUsed = true;
             buildExecSQLParams(tdsWriter);
             sendParamsByRPC(tdsWriter, params);
             return !(command instanceof PrepStmtBatchExecCmd);
@@ -1634,6 +1641,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
                 isPrepExecUsed = false;
+                isExecuteSqlUsed = true;
             } else if (needsPrepare) { // Second execution, use prepared statements since we seem to be re-using it.
                 if (usePrepExec) { // If true, we're using sp_prepexec.
                     buildPrepExecParams(tdsWriter);

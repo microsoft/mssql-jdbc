@@ -351,7 +351,8 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
 
     // An unprepared RPC never reuses a prepared handle, so errors 586 and 8179 raised inside the procedure are not
     // cached-handle failures and the entry must not be executed again, with or without statement pooling, for a single
-    // execution, executeBatch and executeLargeBatch. The procedure inserts a row and then raises the error, so every
+    // execution, executeBatch and executeLargeBatch. This holds for prepareMethod=none and for the first, sp_executesql
+    // execution under scopeTempTablesToConnection. The procedure inserts a row and then raises the error, so every
     // extra execution is visible as an extra row. Error 8179: sp_execute with an unknown handle. Error 586: a handle
     // prepared in one database and executed after USE of another.
     private static final String RETRY_ERROR_8179 = "EXEC sp_execute 999999";
@@ -361,11 +362,16 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
 
     private static Stream<Arguments> retryCases() {
         List<Arguments> cases = new ArrayList<>();
-        for (String sql : new String[] {"{call #retry_p(?)}", "EXEC #retry_p ?"}) {
+        // Under scopeTempTablesToConnection the first execution is also an sp_executesql, with or without a temp table
+        // created by the same statement.
+        String[][] modeAndSql = {{"none", "{call #retry_p(?)}"}, {"none", "EXEC #retry_p ?"},
+                {"scopeTempTablesToConnection", "{call #retry_p(?)}"},
+                {"scopeTempTablesToConnection", "CREATE TABLE #retry_scope (i int); EXEC #retry_p ?"}};
+        for (String[] ms : modeAndSql) {
             for (boolean pooling : new boolean[] {true, false}) {
                 for (String kind : new String[] {"single", "batch", "largeBatch"}) {
                     for (int error : new int[] {8179, 586}) {
-                        cases.add(Arguments.of(sql, pooling, kind, error));
+                        cases.add(Arguments.of(ms[0], ms[1], pooling, kind, error));
                     }
                 }
             }
@@ -373,21 +379,28 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         return cases.stream();
     }
 
-    @ParameterizedTest(name = "{0}, pooling={1}, {2}, error {3}")
+    @ParameterizedTest(name = "{0}, {1}, pooling={2}, {3}, error {4}")
     @MethodSource("retryCases")
-    public void testErrorsFromInsideProcedureAreNotRetried(String sql, boolean pooling, String kind,
+    public void testErrorsFromInsideProcedureAreNotRetried(String mode, String sql, boolean pooling, String kind,
             int error) throws SQLException {
         String[] props = pooling ? new String[] {"disableStatementPooling=false", "statementPoolingCacheSize=10"}
                                  : new String[0];
-        try (Connection conn = openConnection("none", props); Statement stmt = conn.createStatement()) {
+        // A session-local temp table is lost when the connection is closed, which the prepared path does after a failed
+        // batch entry, so the entries are logged in a regular table that a second connection reads.
+        String logTable = "mssqljdbc_retry_" + UUID.randomUUID().toString().replace("-", "");
+        // A unique procedure name makes the SQL text new to the connection, so the first execution is an sp_executesql
+        // even when statement pooling has cached the parsed SQL of an earlier case.
+        String proc = "#retry_p" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String statement = sql.replace("#retry_p", proc);
+        try (Connection conn = openConnection(mode, props); Statement stmt = conn.createStatement()) {
             // Error 586 needs USE to switch databases, which Azure SQL Database does not allow.
             Assumptions.assumeFalse(586 == error && TestUtils.isAzure(conn) && !TestUtils.isAzureMI(conn),
                     "USE cannot switch databases on Azure SQL Database");
-            stmt.execute("CREATE TABLE #retry_log (v int)");
-            stmt.execute("CREATE PROCEDURE #retry_p @v int AS BEGIN INSERT #retry_log VALUES (@v); "
+            stmt.execute("CREATE TABLE " + logTable + " (v int)");
+            stmt.execute("CREATE PROCEDURE " + proc + " @v int AS BEGIN INSERT " + logTable + " VALUES (@v); "
                     + (586 == error ? RETRY_ERROR_586 : RETRY_ERROR_8179) + " END");
             int[] values = "single".equals(kind) ? new int[] {1} : new int[] {1, 2, 3};
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (PreparedStatement ps = conn.prepareStatement(statement)) {
                 for (int v : values) {
                     ps.setInt(1, v);
                     if ("single".equals(kind)) {
@@ -411,12 +424,27 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                     // BatchUpdateException or a plain SQLServerException. Only the rows inserted are checked.
                 }
             }
-            StringBuilder expected = new StringBuilder();
-            for (int v : values) {
-                expected.append(v).append(',');
+            try (Connection reader = openConnection("prepexec"); Statement readStmt = reader.createStatement()) {
+                String rows = tableRows(readStmt, logTable);
+                if ("none".equals(mode)) {
+                    StringBuilder expected = new StringBuilder();
+                    for (int v : values) {
+                        expected.append(v).append(',');
+                    }
+                    assertEquals(expected.toString(), rows,
+                            "an entry that failed inside the procedure must not be run twice");
+                } else {
+                    // The first execution of a statement is an sp_executesql, which never reuses a handle, so the
+                    // first entry must have run exactly once. Later entries may use a prepared handle, where the
+                    // driver cannot tell an error raised inside the procedure from a stale handle.
+                    assertEquals(1, Arrays.stream(rows.split(",")).filter("1"::equals).count(),
+                            "the first entry must run exactly once: " + rows);
+                }
+            } finally {
+                try (Connection cleanup = openConnection("prepexec"); Statement cleanupStmt = cleanup.createStatement()) {
+                    TestUtils.dropTableIfExists(logTable, cleanupStmt);
+                }
             }
-            String rows = tableRows(stmt, "#retry_log");
-            assertEquals(expected.toString(), rows, "an entry that failed inside the procedure must not be run twice");
         }
     }
 
