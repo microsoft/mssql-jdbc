@@ -1546,8 +1546,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 i++;
             } else {
                 int start = i;
-                while (i < len && (Character.isLetterOrDigit(sql.charAt(i)) || "_@#$".indexOf(sql.charAt(i)) >= 0)) {
-                    i++;
+                while (i < len && isIdentifierPart(sql.codePointAt(i))) {
+                    i += Character.charCount(sql.codePointAt(i));
                 }
                 if (i == start) { // an operator or punctuation character, not a word
                     if (afterExec) {
@@ -1589,6 +1589,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
         }
         return afterExec;
+    }
+
+    /**
+     * Returns whether a character continues a T-SQL identifier: a letter, a digit, a combining mark, or one of
+     * {@code _ @ # $}. This matches the pattern used to find RAISERROR, so EXEC followed by a combining mark is a longer
+     * identifier, not the EXEC keyword.
+     */
+    private static boolean isIdentifierPart(int codePoint) {
+        if (Character.isLetterOrDigit(codePoint) || "_@#$".indexOf(codePoint) >= 0) {
+            return true;
+        }
+        int type = Character.getType(codePoint);
+        return Character.NON_SPACING_MARK == type || Character.COMBINING_SPACING_MARK == type
+                || Character.ENCLOSING_MARK == type;
     }
 
     private boolean doPrepExec(TDSWriter tdsWriter, Parameter[] params, boolean hasNewTypeDefinitions,
@@ -4539,12 +4553,45 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     /**
      * Returns whether every Long in the SQL text keeps its plain literal instead of a CAST expression. This is the case
      * when the text creates or alters a procedure, function or trigger, whose body runs later and may pass a parameter
-     * to EXEC, or when it calls RAISERROR, whose arguments accept only constants and variables. Comments and quoted
-     * text are ignored.
+     * to EXEC. Comments and quoted text are ignored.
      */
     private static boolean keepsLongsPlain(String sql) {
-        String blanked = blankCommentsAndQuotedText(sql);
-        return MODULE_DEFINITION.matcher(blanked).find() || RAISERROR.matcher(blanked).find();
+        return MODULE_DEFINITION.matcher(blankCommentsAndQuotedText(sql)).find();
+    }
+
+    /**
+     * Returns whether a parameter marker that follows the given SQL text, counted from the start of the batch, is an
+     * argument of RAISERROR, whose arguments accept only constants and variables, so a Long keeps its plain literal
+     * there. This holds between the opening and closing parenthesis of RAISERROR(...), and, for the old syntax without
+     * parentheses, up to the end of the statement. Other parameters of the same batch are not affected. Comments and
+     * quoted text are ignored.
+     */
+    private static boolean isInsideRaiserrorArguments(CharSequence sqlBefore) {
+        String blanked = blankCommentsAndQuotedText(sqlBefore);
+        java.util.regex.Matcher raiserror = RAISERROR.matcher(blanked);
+        while (raiserror.find()) {
+            int i = raiserror.end();
+            while (i < blanked.length() && Character.isWhitespace(blanked.charAt(i))) {
+                i++;
+            }
+            if (i < blanked.length() && '(' == blanked.charAt(i)) {
+                int depth = 0;
+                for (; i < blanked.length(); i++) {
+                    char c = blanked.charAt(i);
+                    if ('(' == c) {
+                        depth++;
+                    } else if (')' == c && 0 == --depth) {
+                        break;
+                    }
+                }
+                if (i >= blanked.length()) { // the argument list is still open at the marker
+                    return true;
+                }
+            } else if (blanked.indexOf(';', i) < 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -4654,6 +4701,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             StringBuilder result = new StringBuilder(sqlSrc.length() + params.length * 20);
             int srcBegin = 0;
             Boolean longsPlain = null; // evaluated once, and only when a Long is bound
+            boolean mayHaveRaiserror = false;
 
             for (int paramIndex = 0; paramIndex < paramPositions.length; paramIndex++) {
                 int srcEnd = paramPositions[paramIndex];
@@ -4671,9 +4719,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 String literal;
                 if (value instanceof Long && null == longsPlain) {
                     longsPlain = keepsLongsPlain(sqlSrc);
+                    mayHaveRaiserror = RAISERROR.matcher(sqlSrc).find();
                 }
-                if (value instanceof Long
-                        && (longsPlain || isConstantOnlyPosition(sqlSrc.subSequence(srcBegin, srcEnd)))) {
+                if (value instanceof Long && (longsPlain || isConstantOnlyPosition(sqlSrc.subSequence(srcBegin, srcEnd))
+                        || (mayHaveRaiserror && isInsideRaiserrorArguments(sqlSrc.subSequence(0, srcEnd))))) {
                     literal = value.toString();
                 } else {
                     literal = formatLiteralValue(params[paramIndex], value);

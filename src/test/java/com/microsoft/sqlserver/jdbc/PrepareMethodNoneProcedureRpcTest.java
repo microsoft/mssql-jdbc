@@ -103,6 +103,8 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 Arguments.of("SELECT 'it''s EXEC p', ?", false), Arguments.of("SELECT [EXEC] FROM t WHERE c = ?", false),
                 Arguments.of("SELECT \"EXEC\" FROM t WHERE c = ?", false),
                 Arguments.of("SELECT exec_count FROM t WHERE c = ?", false),
+                Arguments.of("SELECT ? AS EXEC\u0301 INTO #comb", false),
+                Arguments.of("SELECT ? AS EXECUTE\u0301", false),
                 Arguments.of("SELECT executed FROM t WHERE c = ?", false), Arguments.of("SELECT @exec, ?", false),
                 Arguments.of("SELECT #exec FROM t WHERE c = ?", false), Arguments.of("/* EXEC p */ SELECT ?", false),
                 Arguments.of("-- EXEC p\nSELECT ?", false),
@@ -1433,8 +1435,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
     }
 
     // FETCH ABSOLUTE/RELATIVE and RAISERROR arguments accept a constant or a variable, not a CAST expression, so a Long
-    // stays a plain literal there. RAISERROR keeps every Long in the batch plain, because its arguments are not
-    // recognised by position.
+    // stays a plain literal there. Only the arguments of RAISERROR are affected, not the rest of the batch.
     @Test
     public void testLongInFetchAndRaiserror() throws SQLException {
         try (Connection conn = openConnection("none")) {
@@ -1462,6 +1463,68 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                     ps.setLong(2, 1L);
                     assertEquals(String.valueOf(Integer.MAX_VALUE + 1L), lastResultSetFirstValue(ps), sql);
                 }
+            }
+        }
+    }
+
+    // A batch that has RAISERROR keeps the normal formatting for every parameter outside the RAISERROR arguments: a Long
+    // is a bigint (so Long.MAX_VALUE + 1 overflows as in typed binding), and a JDBC target type given to setObject is
+    // honored (DECIMAL keeps the fraction of a division, VARCHAR gives the length of the text).
+    @Test
+    public void testParametersOutsideRaiserrorKeepNormalFormatting() {
+        ValueRun targets = conn -> {
+            try (PreparedStatement ps = conn
+                    .prepareStatement("RAISERROR(N'n', 0, ?) WITH NOWAIT; SELECT ? / 4, DATALENGTH(?)")) {
+                ps.setLong(1, 7L);
+                ps.setObject(2, 7L, Types.DECIMAL, 2);
+                ps.setObject(3, 12345L, Types.VARCHAR);
+                return lastResultSetColumns(ps, 2);
+            }
+        };
+        ValueRun overflow = conn -> {
+            try (PreparedStatement ps = conn
+                    .prepareStatement("RAISERROR(N'n', 0, ?) WITH NOWAIT; SELECT ? + 1")) {
+                ps.setLong(1, 1L);
+                ps.setLong(2, Long.MAX_VALUE);
+                return lastResultSetColumns(ps, 1);
+            }
+        };
+        assertValueMatchesTypedBinding(targets, null);
+        assertValueMatchesTypedBinding(overflow, "ERROR");
+    }
+
+    private static String lastResultSetColumns(PreparedStatement ps, int columns) throws SQLException {
+        String value = null;
+        boolean hasResultSet = ps.execute();
+        while (hasResultSet || -1 != ps.getUpdateCount()) {
+            if (hasResultSet) {
+                try (ResultSet rs = ps.getResultSet()) {
+                    assertTrue(rs.next());
+                    StringBuilder row = new StringBuilder();
+                    for (int c = 1; c <= columns; c++) {
+                        row.append(rs.getString(c)).append('|');
+                    }
+                    value = row.toString();
+                }
+            }
+            hasResultSet = ps.getMoreResults();
+        }
+        return value;
+    }
+
+    // A combining mark after EXEC continues the identifier, so EXEC followed by U+0301 is a column name and not the
+    // EXEC keyword. The statement stays a direct batch and its temp table stays on the connection.
+    @ParameterizedTest(name = "mode={0}")
+    @ValueSource(strings = {"none", "scopeTempTablesToConnection"})
+    public void testCombiningMarkAfterExecIsNotAProcedureCall(String mode) throws SQLException {
+        try (Connection conn = openConnection(mode)) {
+            try (PreparedStatement ps = conn.prepareStatement("SELECT ? AS EXEC\u0301 INTO #comb")) {
+                ps.setInt(1, 7);
+                ps.execute();
+            }
+            try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery("SELECT * FROM #comb")) {
+                assertTrue(rs.next(), "the temp table must stay on the connection");
+                assertEquals(7, rs.getInt(1));
             }
         }
     }
