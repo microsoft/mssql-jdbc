@@ -1277,7 +1277,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                     ps.addBatch();
                     ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
                     ps.addBatch();
-                    assertEquals(2, ps.executeBatch().length);
+                    assertArrayEquals(new int[] {1, 1}, ps.executeBatch());
                 }
                 try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*), SUM(DATALENGTH(v)) FROM ##stream_batch_t")) {
                     assertTrue(rs.next());
@@ -1286,6 +1286,61 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 }
             } finally {
                 stmt.execute("DROP TABLE ##stream_batch_t");
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testRpcRetryPreservesCharacterParameterTypes(boolean unicode) throws SQLException {
+        try (Connection conn = openConnection("none", "sendStringParametersAsUnicode=" + unicode);
+                PreparedStatement ps = conn.prepareStatement(
+                        "SELECT DATALENGTH(?), DATALENGTH(?), DATALENGTH(?), DATALENGTH(?), DATALENGTH(?)")) {
+            for (int attempt = 0; attempt < 2; attempt++) {
+                ps.setString(1, "abc");
+                ps.setCharacterStream(2, new StringReader("abc"), 3);
+                ps.setNString(3, "abc");
+                ps.setNull(4, Types.VARCHAR);
+                ps.setBinaryStream(5, new ByteArrayInputStream(new byte[] {1, 2, 3}));
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(unicode ? 6 : 3, rs.getInt(1));
+                    assertEquals(unicode ? 6 : 3, rs.getInt(2));
+                    assertEquals(6, rs.getInt(3));
+                    assertNull(rs.getObject(4));
+                    assertEquals(3, rs.getInt(5));
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testBatchRpcRetryPreservesCharacterParameterTypes() throws SQLException {
+        try (Connection conn = openConnection("none", "sendStringParametersAsUnicode=false");
+                Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #retry_lengths (textLength int, binaryLength int)");
+            try (PreparedStatement ps = conn
+                    .prepareStatement("INSERT INTO #retry_lengths VALUES (DATALENGTH(?), DATALENGTH(?))")) {
+                ps.setString(1, "abc");
+                ps.setBytes(2, new byte[] {1});
+                ps.addBatch();
+                ps.setBinaryStream(2, new ByteArrayInputStream(new byte[] {1, 2}));
+                ps.addBatch();
+                assertArrayEquals(new int[] {1, 1}, ps.executeBatch());
+
+                // The current bindings must also be restored, even when only the stream is rebound after the batch.
+                ps.setBinaryStream(2, new ByteArrayInputStream(new byte[] {1, 2, 3}));
+                assertEquals(1, ps.executeUpdate());
+            }
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT textLength, binaryLength FROM #retry_lengths ORDER BY binaryLength")) {
+                for (int i = 1; i <= 3; i++) {
+                    assertTrue(rs.next());
+                    assertEquals(3, rs.getInt(1));
+                    assertEquals(i, rs.getInt(2));
+                }
+                assertFalse(rs.next());
             }
         }
     }

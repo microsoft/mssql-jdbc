@@ -633,6 +633,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         String[] typeDefinitions = new String[nCols];
         for (int i = 0; i < nCols; i++) {
             Parameter param = params[i];
+            if (useUnpreparedRpc) {
+                param.restoreRpcType(connection);
+            }
             param.renewDefinition = renewDefinition;
             String typeDefinition = param.getTypeDefinition(connection, resultsReader());
             if (null == typeDefinition) {
@@ -1462,6 +1465,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * unprepared sp_executesql RPC, which sends every parameter with a typed value, and the caller runs it again. The
      * switch lasts for the life of the statement. A statement that creates a temporary table is not switched, because
      * the table would be dropped at the end of the RPC; it keeps the rejection.
+     * Parameter types and encoding conversions are restored when building the RPC parameter definitions, including
+     * for each queued batch entry and any current bindings reused after a batch.
      *
      * @return true if the statement was switched and must be executed again, false if the exception must be thrown
      */
