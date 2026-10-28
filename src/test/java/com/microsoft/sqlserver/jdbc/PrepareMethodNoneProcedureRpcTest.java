@@ -1290,6 +1290,37 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
+    @Test
+    public void testTenBinaryStreamsInDirectBatchAreRetriedAsRpc() throws SQLException {
+        byte[][] values = new byte[10][];
+        int[] expectedCounts = new int[values.length];
+        Arrays.fill(expectedCounts, 1);
+        for (int i = 0; i < values.length; i++) {
+            values[i] = new byte[i + 1];
+            Arrays.fill(values[i], (byte) (i + 1));
+        }
+
+        try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #stream_batch_rows (id int PRIMARY KEY, v varbinary(max))");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #stream_batch_rows VALUES (?, ?)")) {
+                for (int i = 0; i < values.length; i++) {
+                    ps.setInt(1, i);
+                    ps.setBinaryStream(2, new ByteArrayInputStream(values[i]));
+                    ps.addBatch();
+                }
+                assertArrayEquals(expectedCounts, ps.executeBatch());
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT id, v FROM #stream_batch_rows ORDER BY id")) {
+                for (int i = 0; i < values.length; i++) {
+                    assertTrue(rs.next(), "Missing batch row " + i);
+                    assertEquals(i, rs.getInt(1));
+                    assertArrayEquals(values[i], rs.getBytes(2), "Unexpected bytes in batch row " + i);
+                }
+                assertFalse(rs.next(), "The batch must insert exactly ten rows");
+            }
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     public void testRpcRetryPreservesCharacterParameterTypes(boolean unicode) throws SQLException {
