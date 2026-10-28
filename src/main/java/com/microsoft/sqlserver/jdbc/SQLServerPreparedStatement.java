@@ -1405,20 +1405,32 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private ArrayList<byte[]> enclaveCEKs;
 
-    private static final String SQL_IDENTIFIER_PATTERN = "(?:\\[(?:\\]\\]|[^\\]])*\\]|\"(?:\"\"|[^\"])*\"|[\\p{L}\\p{N}\\p{M}_@#$]+)";
-    private static final java.util.regex.Pattern SQL_TOKEN_PATTERN = java.util.regex.Pattern
-            .compile(SQL_IDENTIFIER_PATTERN + "|\\S");
-    private static final java.util.regex.Pattern LOCAL_TEMP_TABLE_NAME_PATTERN = java.util.regex.Pattern
-            .compile("\\s*(?:(?:" + SQL_IDENTIFIER_PATTERN + ")?\\s*\\.\\s*){0,3}"
-                    + "(?:#(?!#)[\\p{L}\\p{N}\\p{M}_@#$]*|\\[#(?!#)(?:\\]\\]|[^\\]])*\\]|\"#(?!#)(?:\"\"|[^\"])*\")"
-                    + "(?![\\p{L}\\p{N}\\p{M}_@#$]|\\s*\\.)");
+    // Pre-compiled regex pattern for temporary table detection (performance
+    // optimization)
+    // This pattern uses alternation to:
+    // 1. Match and skip string literals ('...' including escaped quotes '')
+    // 2. Capture actual temp table operations in group 1
+    // Matches valid SQL Server local temp table operations (excluding global temp
+    // tables with ##):
+    // - CREATE TABLE #temp (local temp table - single #)
+    // - SELECT ... INTO #temp (local temp table - single #)
+    // Excludes: CREATE TABLE ##temp (global temp tables - double ##)
+    // Note: SQL Server does NOT support CREATE TEMP/TEMPORARY/GLOBAL TABLE keywords
+    private static final java.util.regex.Pattern TEMP_TABLE_PATTERN = java.util.regex.Pattern.compile(
+            "'(?:''|[^'])*'" + // Match string literals (to skip them)
+                    "|" +
+                    "(\\b(?:" + // Group 1: Actual temp table patterns
+                    "create\\s+table\\s+(?:#(?!#)\\w+|\\[#(?!#)[^\\]]+\\])" + "|" + // CREATE TABLE #temp (not ##)
+                    "select\\b[^;]*?\\binto\\s+(?:#(?!#)\\w+|\\[#(?!#)[^\\]]+\\])" + // SELECT INTO #temp (not ##)
+                    "))",
+                    java.util.regex.Pattern.CASE_INSENSITIVE);
 
     /**
-     * Detects CREATE TABLE and SELECT INTO statements that create local temporary tables, including qualified and
-     * quoted names. Comments and string contents are ignored, and quoted identifiers are treated as single tokens.
+     * Detects if the SQL statement contains temporary table operations.
+     * This method uses a pre-compiled regex pattern that skips string literals
+     * to avoid false positives (e.g., 'CREATE TABLE #temp' inside a string).
      * 
-     * @param sql
-     *        The SQL statement to analyze
+     * @param sql The SQL statement to analyze
      * @return true if temporary table operations are detected, false otherwise
      */
     boolean containsTemporaryTableOperations(String sql) {
@@ -1431,27 +1443,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false;
         }
 
-        String text = blankCommentsAndQuotedText(sql, true);
-        java.util.regex.Matcher tokens = SQL_TOKEN_PATTERN.matcher(text);
-        java.util.regex.Matcher tableName = LOCAL_TEMP_TABLE_NAME_PATTERN.matcher(text);
-        String previous = "";
-        boolean inSelect = false;
-        while (tokens.find()) {
-            String token = tokens.group();
-            if ("SELECT".equalsIgnoreCase(token)) {
-                inSelect = true;
-            } else if (";".equals(token) || "INSERT".equalsIgnoreCase(token) || "UPDATE".equalsIgnoreCase(token)
-                    || "DELETE".equalsIgnoreCase(token) || "MERGE".equalsIgnoreCase(token)
-                    || "CREATE".equalsIgnoreCase(token)) {
-                inSelect = false;
+        // Use pre-compiled pattern that skips string literals and captures temp table
+        // operations
+        java.util.regex.Matcher matcher = TEMP_TABLE_PATTERN.matcher(sql);
+        while (matcher.find()) {
+            // If group 1 matched (temp table pattern, not string literal), return true
+            if (matcher.group(1) != null) {
+                return true;
             }
-            if (("TABLE".equalsIgnoreCase(token) && "CREATE".equalsIgnoreCase(previous))
-                    || ("INTO".equalsIgnoreCase(token) && inSelect)) {
-                if (tableName.region(tokens.end(), text.length()).lookingAt()) {
-                    return true;
-                }
-            }
-            previous = token;
+            // Otherwise it was a string literal match - continue looking
         }
         return false;
     }
@@ -4677,10 +4677,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @return the SQL text with comments and quoted text blanked out
      */
     static String blankCommentsAndQuotedText(CharSequence sql) {
-        return blankCommentsAndQuotedText(sql, false);
-    }
-
-    private static String blankCommentsAndQuotedText(CharSequence sql, boolean preserveQuotedIdentifiers) {
         int len = sql.length();
         StringBuilder out = new StringBuilder(len);
         int i = 0;
@@ -4711,7 +4707,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             } else if ('\'' == c || '"' == c || '[' == c) {
                 // Quoted text or a quoted identifier: runs to the closing quote; a doubled quote is part of the text.
                 char close = ('[' == c) ? ']' : c;
-                int start = i;
                 i++;
                 while (i < len) {
                     if (close != sql.charAt(i)) {
@@ -4723,11 +4718,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         break;
                     }
                 }
-                if (preserveQuotedIdentifiers && '\'' != c) {
-                    out.append(sql, start, i);
-                } else {
-                    out.append('\'' == c ? '\'' : '"');
-                }
+                out.append('\'' == c ? '\'' : '"');
             } else {
                 out.append(c);
                 i++;

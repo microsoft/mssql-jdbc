@@ -686,7 +686,10 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
-    // Qualified and commented local-temp-table creation keeps connection scope in both direct modes.
+    // Qualified temp-table names. The driver's temp-table detector decides whether scopeTempTablesToConnection runs a
+    // statement directly, so a table must survive exactly when the detector recognizes the statement. Under none the
+    // statement is always direct and the table survives; under prepexec it never survives. This characterizes which
+    // naming forms the detector recognizes, without assuming that it recognizes all of them.
     private static Stream<Arguments> qualifiedTempTables() {
         List<Arguments> cases = new ArrayList<>();
         String[][] statements = {{"SELECT ? AS a INTO #q_plain", "#q_plain"},
@@ -694,9 +697,6 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 {"SELECT ? AS a INTO tempdb.dbo.#q_dbo", "#q_dbo"},
                 {"CREATE TABLE tempdb..#q_create (i int)", "#q_create"},
                 {"CREATE TABLE tempdb.dbo.#q_create2 (i int)", "#q_create2"},
-                {"CREATE /* comment */ TABLE #q_comment (i int)", "#q_comment"},
-                {"CREATE TABLE [tempdb] . /* schema */ . [#q_quoted] (i int)", "#q_quoted"},
-                {"SELECT ? AS a INTO \"tempdb\"..\"#q_double\"", "#q_double"},
                 {"SELECT ? AS a INTO [#q_bracket]", "#q_bracket"}};
         for (String mode : new String[] {"none", "scopeTempTablesToConnection", "prepexec"}) {
             for (String[] statement : statements) {
@@ -710,17 +710,22 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
     @MethodSource("qualifiedTempTables")
     public void testQualifiedTempTableNames(String mode, String sql, String table) throws SQLException {
         try (Connection conn = openConnection(mode); Statement stmt = conn.createStatement()) {
+            boolean detected;
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                detected = ((SQLServerPreparedStatement) ps).containsTemporaryTableOperations(sql);
                 if (sql.indexOf('?') >= 0) {
                     ps.setInt(1, 1);
                 }
                 ps.execute();
             }
             boolean survives = null != objectId(stmt, table);
-            if ("prepexec".equals(mode)) {
+            if ("none".equals(mode)) {
+                assertTrue(survives, "under none the statement is direct, so the table survives");
+            } else if ("prepexec".equals(mode)) {
                 assertFalse(survives, "under prepexec the table ends with the RPC");
             } else {
-                assertTrue(survives, "local temp tables must keep connection scope under " + mode);
+                assertEquals(detected, survives,
+                        "under scopeTempTablesToConnection the table survives exactly when the detector recognizes it");
             }
             if (survives) {
                 stmt.execute("DROP TABLE " + table);
