@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,6 +21,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -272,4 +275,98 @@ public class StatementRegressionLegacyTest extends AbstractTest {
             assertEquals(100, count);
         }
     }
+
+    // Generated keys, update counts and stored rows under every prepare method. The prepared path (prepexec, and
+    // scopeTempTablesToConnection for a statement without temp-table operations) appends a SCOPE_IDENTITY() query to
+    // the statement, and so does the direct path (prepareMethod=none, and scopeTempTablesToConnection with temp-table
+    // SQL), so the keys, update counts and stored rows are the same everywhere. After executeBatch the keys are not
+    // available in any mode.
+
+    private static String insertOutcome(String prepareMethod, String table, boolean batch) throws SQLException {
+        StringBuilder outcome = new StringBuilder();
+        try (Connection conn = DriverManager.getConnection(connectionString + ";prepareMethod=" + prepareMethod);
+                Statement stmt = conn.createStatement()) {
+            try {
+                stmt.executeUpdate("CREATE TABLE " + table + " (id int IDENTITY(10,5) PRIMARY KEY, v int)");
+                try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table + " (v) VALUES (?)",
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    for (int v = 1; v <= 3; v++) {
+                        ps.setInt(1, v);
+                        if (batch) {
+                            ps.addBatch();
+                        } else {
+                            outcome.append("count=").append(ps.executeUpdate());
+                            try (ResultSet keys = ps.getGeneratedKeys()) {
+                                outcome.append(" key=").append(keys.next() ? keys.getLong(1) : -1).append(';');
+                            } catch (SQLException e) {
+                                outcome.append(" keys unavailable;");
+                            }
+                        }
+                    }
+                    if (batch) {
+                        outcome.append("counts=").append(java.util.Arrays.toString(ps.executeBatch()));
+                    }
+                }
+                outcome.append(" rows=");
+                try (ResultSet rs = stmt.executeQuery("SELECT id, v FROM " + table + " ORDER BY id")) {
+                    while (rs.next()) {
+                        outcome.append(rs.getInt(1)).append(':').append(rs.getInt(2)).append(',');
+                    }
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, stmt);
+            }
+        }
+        return outcome.toString();
+    }
+
+    @ParameterizedTest(name = "batch={0}")
+    @ValueSource(booleans = {false, true})
+    public void testGeneratedKeysAndRowsOnThePreparedPath(boolean batch) throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GenKeyTab"));
+        String typed = insertOutcome("prepexec", table, batch);
+        String expected = batch ? "counts=[1, 1, 1] rows=10:1,15:2,20:3,"
+                                : "count=1 key=10;count=1 key=15;count=1 key=20; rows=10:1,15:2,20:3,";
+        assertEquals(expected, typed);
+        // scopeTempTablesToConnection without temp-table SQL is the same prepared path.
+        assertEquals(typed, insertOutcome("scopeTempTablesToConnection", table, batch));
+    }
+
+    @ParameterizedTest(name = "batch={0}")
+    @ValueSource(booleans = {false, true})
+    public void testDirectInsertReturnsGeneratedKeysLikeTypedBinding(boolean batch) throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GenKeyTab"));
+        String expected = batch ? "counts=[1, 1, 1] rows=10:1,15:2,20:3,"
+                                : "count=1 key=10;count=1 key=15;count=1 key=20; rows=10:1,15:2,20:3,";
+        assertEquals(expected, insertOutcome("none", table, batch));
+    }
+
+    // A direct insert whose SQL ends with a line comment still returns its key: the generated-key query goes on a
+    // new line.
+    @Test
+    public void testGeneratedKeyWithTrailingLineCommentInDirectMode() throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GenKeyTab"));
+        try (Connection conn = DriverManager.getConnection(connectionString + ";prepareMethod=none");
+                Statement stmt = conn.createStatement()) {
+            try {
+                stmt.executeUpdate("CREATE TABLE " + table + " (id int IDENTITY(10,5) PRIMARY KEY, v int)");
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "INSERT INTO " + table + " (v) VALUES (?) -- trailing comment",
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setInt(1, 1);
+                    assertEquals(1, ps.executeUpdate());
+                    try (ResultSet keys = ps.getGeneratedKeys()) {
+                        assertTrue(keys.next());
+                        assertEquals(10, keys.getLong(1));
+                    }
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, stmt);
+            }
+        }
+    }
+
+    // Not covered: getGeneratedKeys() for a multi-statement direct batch (for example CREATE TABLE ...; INSERT ...).
+    // The server returns the key, but the driver's direct path does not hand the result set to getGeneratedKeys(),
+    // while the prepared path does. Single INSERT statements, the case that matters for identity columns, work.
 }
