@@ -1366,7 +1366,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
-    /** A statement that creates a temporary table is not retried as an RPC, because the table would be dropped. */
+    /** Retrying local-temp-table creation uses RPC scope and executes earlier SQL only once. */
     @ParameterizedTest
     @ValueSource(strings = {"CREATE TABLE #stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
             "CREATE /* comment */ TABLE #stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
@@ -1375,23 +1375,53 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
             "CREATE TABLE [tempdb] . /* schema */ . [#stream_reject] (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
             "CREATE -- comment\n TABLE #stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
             "SELECT ? AS v INTO /* comment */ tempdb..#stream_reject", "SELECT ? AS v INTO [tempdb]..[#stream_reject]"})
-    public void testStreamInTempTableStatementIsStillRejected(String sql) throws SQLException {
+    public void testStreamInTempTableStatementIsRetriedAsRpc(String sql) throws SQLException {
         for (boolean batch : new boolean[] {false, true}) {
             try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement();
                     PreparedStatement ps = conn.prepareStatement("INSERT INTO #retry_side_effect VALUES (1); " + sql)) {
                 stmt.execute("CREATE TABLE #retry_side_effect (v int)");
                 ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
-                SQLException e;
                 if (batch) {
                     ps.addBatch();
-                    e = assertThrows(SQLException.class, ps::executeBatch);
+                    assertArrayEquals(new int[] {1}, ps.executeBatch());
                 } else {
-                    e = assertThrows(SQLException.class, ps::execute);
+                    assertFalse(ps.execute());
                 }
-                assertTrue(e.getMessage().contains("not supported"), e.getMessage());
+                assertNull(objectId(stmt, "#stream_reject"), "The new local temp table has RPC scope");
                 try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM #retry_side_effect")) {
                     assertTrue(rs.next());
-                    assertEquals(0, rs.getInt(1), "Rejection must happen before any SQL is sent");
+                    assertEquals(1, rs.getInt(1), "Earlier SQL must execute exactly once");
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testRpcRetryWithScalarSubqueryAndOutputIntoExistingTempTable(boolean batch) throws SQLException {
+        try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #output_data (v varbinary(max), n int); "
+                    + "INSERT INTO #output_data VALUES (0x00, 0); CREATE TABLE #out (n int)");
+            try (PreparedStatement ps = conn
+                    .prepareStatement("UPDATE #output_data SET v = ?, n = (SELECT 1) OUTPUT inserted.n INTO #out")) {
+                byte[] value = {1, 2, 3};
+                ps.setBinaryStream(1, new ByteArrayInputStream(value));
+                if (batch) {
+                    ps.addBatch();
+                    assertArrayEquals(new int[] {1}, ps.executeBatch());
+                } else {
+                    assertEquals(1, ps.executeUpdate());
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT v, n FROM #output_data")) {
+                    assertTrue(rs.next());
+                    assertArrayEquals(value, rs.getBytes(1));
+                    assertEquals(1, rs.getInt(2));
+                    assertFalse(rs.next());
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT n FROM #out")) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt(1));
+                    assertFalse(rs.next());
                 }
             }
         }

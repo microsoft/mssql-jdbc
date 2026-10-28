@@ -1460,8 +1460,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * Called when executing a statement directly failed. If the failure is the rejection of a parameter that cannot be
      * inlined as a literal (see checkDirectSqlParameter), and nothing has been sent yet, the statement is switched to an
      * unprepared sp_executesql RPC, which sends every parameter with a typed value, and the caller runs it again. The
-     * switch lasts for the life of the statement. A statement that creates a temporary table is not switched, because
-     * the table would be dropped at the end of the RPC; it keeps the rejection.
+     * switch lasts for the life of the statement, regardless of temporary-table operations. Local temporary tables
+     * created by the SQL have RPC scope and are dropped when the RPC ends; existing connection-scoped tables remain
+     * accessible.
      * Parameter types and encoding conversions are restored once at this transition, for both the current bindings
      * and any queued batch entries, before rebuilding RPC parameter definitions.
      *
@@ -1472,7 +1473,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean retryRejectedDirectSqlAsRpc() throws SQLServerException {
         boolean rejected = directSqlParameterRejected;
         directSqlParameterRejected = false;
-        if (!rejected || !isDirectSqlExecution || containsTemporaryTableOperations(userSQL)) {
+        if (!rejected || !isDirectSqlExecution) {
             return false;
         }
 

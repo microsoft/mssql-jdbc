@@ -573,11 +573,9 @@ public class PrepareMethodLiteralTest extends AbstractTest {
     }
 
     /**
-     * A stream parameter cannot be inlined as a literal. A statement that creates a temp table is not retried as an
-     * RPC, because the table would be dropped when the call ends, so direct execution rejects it before anything is
-     * sent and the temp table is not created. Other modes send the stream with typed binding, which drops the table
-     * when the call ends. Literal parameters and a null stream still work afterwards, and keep the table on the
-     * connection in the direct modes.
+     * A stream parameter switches direct execution to RPC even when the statement creates a local temp table.
+     * The table has RPC scope on the first execution and subsequent executions with inlineable or null values.
+     * A local temp table created earlier on the connection remains accessible.
      */
     @ParameterizedTest(name = "mode={0}, create={1}")
     @MethodSource("tempTableCreationCases")
@@ -588,16 +586,11 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                         + "SELECT (SELECT DATALENGTH(v) FROM #literal_rpc), (SELECT n FROM #literal_existing)")) {
             stmt.execute("CREATE TABLE #literal_existing (n int); INSERT INTO #literal_existing VALUES (7)");
             ps.setBinaryStream(1, new ByteArrayInputStream(BINARY_VALUE));
-            if (isDirectMode(mode)) {
-                SQLException e = assertThrows(SQLException.class, () -> firstResultSet(ps));
-                assertTrue(e.getMessage().contains("not supported"), e.getMessage());
-            } else {
-                try (ResultSet rs = firstResultSet(ps)) {
-                    assertTrue(rs.next());
-                    assertEquals(BINARY_VALUE.length, rs.getInt(1));
-                    assertEquals(7, rs.getInt(2));
-                    assertFalse(rs.next());
-                }
+            try (ResultSet rs = firstResultSet(ps)) {
+                assertTrue(rs.next());
+                assertEquals(BINARY_VALUE.length, rs.getInt(1));
+                assertEquals(7, rs.getInt(2));
+                assertFalse(rs.next());
             }
             assertFalse(tempTableExists(conn, "#literal_rpc"));
 
@@ -608,12 +601,8 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                 assertEquals(7, rs.getInt(2));
                 assertFalse(rs.next());
             }
-            assertEquals(isDirectMode(mode), tempTableExists(conn, "#literal_rpc"));
+            assertFalse(tempTableExists(conn, "#literal_rpc"));
 
-            // A null stream is a NULL literal. Remove the prior table first.
-            if (tempTableExists(conn, "#literal_rpc")) {
-                stmt.execute("DROP TABLE #literal_rpc");
-            }
             ps.setBinaryStream(1, null);
             try (ResultSet rs = firstResultSet(ps)) {
                 assertTrue(rs.next());
@@ -621,7 +610,7 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                 assertEquals(7, rs.getInt(2));
                 assertFalse(rs.next());
             }
-            assertEquals(isDirectMode(mode), tempTableExists(conn, "#literal_rpc"), "null stream");
+            assertFalse(tempTableExists(conn, "#literal_rpc"), "null stream");
         }
     }
 
