@@ -57,8 +57,9 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 /**
  * A statement that calls a stored procedure is never executed as a direct SQL batch. Under prepareMethod=none it is
- * sent as an unprepared RPC with typed parameters, and parameters that cannot be inlined as literals in a direct
- * statement (OUT parameters, table-valued parameters, streams and SQLXML) are rejected instead of falling back to RPC.
+ * sent as an unprepared RPC with typed parameters. A direct statement with parameters that cannot be inlined as literals
+ * (OUT parameters, table-valued parameters, streams and SQLXML) catches the rejection and is then sent as an unprepared
+ * RPC.
  */
 @RunWith(JUnitPlatform.class)
 public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
@@ -1207,40 +1208,272 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         return result;
     }
 
-    // Parameters that cannot be inlined as literals: rejected in a direct statement, accepted in a procedure call.
+    // Parameters that cannot be inlined as literals: a direct statement catches the rejection and is sent as an
+    // unprepared RPC, as is a procedure call.
 
     @Test
-    public void testOutParameterOnNonProcedureStatementIsRejected() throws SQLException {
+    public void testOutParameterOnNonProcedureStatementIsRetriedAsRpc() throws SQLException {
         try (Connection conn = openConnection("none"); CallableStatement cs = conn.prepareCall("SELECT ?")) {
             cs.registerOutParameter(1, Types.INTEGER);
-            SQLException e = assertThrows(SQLException.class, cs::execute);
-            assertTrue(e.getMessage().contains("not supported"), e.getMessage());
+            assertTrue(cs.execute());
+            try (ResultSet rs = cs.getResultSet()) {
+                assertTrue(rs.next());
+            }
         }
     }
 
     @Test
-    public void testStreamIsRejectedInDirectStatement() throws SQLException {
+    public void testStreamInDirectStatementIsRetriedAsRpc() throws SQLException {
         try (Connection conn = openConnection("none");
                 PreparedStatement ps = conn.prepareStatement("SELECT DATALENGTH(?)")) {
             ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
-            SQLException e = assertThrows(SQLException.class, ps::executeQuery);
-            assertTrue(e.getMessage().contains("not supported"), e.getMessage());
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(3, rs.getInt(1));
+            }
+        }
+    }
+
+    /** After the retry the statement keeps being sent as an unprepared RPC, also for values that could be inlined. */
+    @Test
+    public void testStatementStaysOnRpcAfterRetry() throws SQLException {
+        Logger logger = Logger.getLogger(STATEMENT_LOGGER);
+        Level previousLevel = logger.getLevel();
+        ProcedureLog log = new ProcedureLog();
+        log.setLevel(Level.FINE);
+        logger.setLevel(Level.FINE);
+        logger.addHandler(log);
+        try (Connection conn = openConnection("none");
+                PreparedStatement ps = conn.prepareStatement("SELECT DATALENGTH(?)")) {
+            ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(3, rs.getInt(1));
+            }
+            for (int i = 0; i < 2; i++) {
+                ps.setBytes(1, new byte[] {1, 2, 3, 4});
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(4, rs.getInt(1));
+                }
+            }
+        } finally {
+            logger.removeHandler(log);
+            logger.setLevel(previousLevel);
+        }
+        assertEquals(3, log.messages.size(), log.messages.toString());
+        for (String message : log.messages) {
+            assertTrue(message.startsWith("calling sp_executesql"), message);
         }
     }
 
     @Test
-    public void testStreamInDirectBatchIsRejected() throws SQLException {
+    public void testStreamInDirectBatchIsRetriedAsRpc() throws SQLException {
         try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE #stream_t (v varbinary(max))");
-            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #stream_t VALUES (?)")) {
-                ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
-                ps.addBatch();
-                SQLException e = assertThrows(SQLException.class, ps::executeBatch);
-                assertTrue(e.getMessage().contains("not supported"), e.getMessage());
+            stmt.execute("CREATE TABLE ##stream_batch_t (v varbinary(max))");
+            try {
+                try (PreparedStatement ps = conn.prepareStatement("INSERT INTO ##stream_batch_t VALUES (?)")) {
+                    ps.setBytes(1, new byte[] {1});
+                    ps.addBatch();
+                    ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
+                    ps.addBatch();
+                    assertArrayEquals(new int[] {1, 1}, ps.executeBatch());
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*), SUM(DATALENGTH(v)) FROM ##stream_batch_t")) {
+                    assertTrue(rs.next());
+                    assertEquals(2, rs.getInt(1));
+                    assertEquals(4, rs.getInt(2));
+                }
+            } finally {
+                stmt.execute("DROP TABLE ##stream_batch_t");
             }
-            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM #stream_t")) {
+        }
+    }
+
+    @Test
+    public void testTenBinaryStreamsInDirectBatchAreRetriedAsRpc() throws SQLException {
+        byte[][] values = new byte[10][];
+        int[] expectedCounts = new int[values.length];
+        Arrays.fill(expectedCounts, 1);
+        for (int i = 0; i < values.length; i++) {
+            values[i] = new byte[i + 1];
+            Arrays.fill(values[i], (byte) (i + 1));
+        }
+
+        try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #stream_batch_rows (id int PRIMARY KEY, v varbinary(max))");
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO #stream_batch_rows VALUES (?, ?)")) {
+                for (int i = 0; i < values.length; i++) {
+                    ps.setInt(1, i);
+                    ps.setBinaryStream(2, new ByteArrayInputStream(values[i]));
+                    ps.addBatch();
+                }
+                assertArrayEquals(expectedCounts, ps.executeBatch());
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT id, v FROM #stream_batch_rows ORDER BY id")) {
+                for (int i = 0; i < values.length; i++) {
+                    assertTrue(rs.next(), "Missing batch row " + i);
+                    assertEquals(i, rs.getInt(1));
+                    assertArrayEquals(values[i], rs.getBytes(2), "Unexpected bytes in batch row " + i);
+                }
+                assertFalse(rs.next(), "The batch must insert exactly ten rows");
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testRpcRetryPreservesCharacterParameterTypes(boolean unicode) throws SQLException {
+        try (Connection conn = openConnection("none", "sendStringParametersAsUnicode=" + unicode);
+                PreparedStatement ps = conn.prepareStatement(
+                        "SELECT DATALENGTH(?), DATALENGTH(?), DATALENGTH(?), DATALENGTH(?), DATALENGTH(?)")) {
+            for (int attempt = 0; attempt < 2; attempt++) {
+                ps.setString(1, "abc");
+                ps.setCharacterStream(2, new StringReader("abc"), 3);
+                ps.setNString(3, "abc");
+                ps.setNull(4, Types.VARCHAR);
+                ps.setBinaryStream(5, new ByteArrayInputStream(new byte[] {1, 2, 3}));
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(unicode ? 6 : 3, rs.getInt(1));
+                    assertEquals(unicode ? 6 : 3, rs.getInt(2));
+                    assertEquals(6, rs.getInt(3));
+                    assertNull(rs.getObject(4));
+                    assertEquals(3, rs.getInt(5));
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testBatchRpcRetryPreservesCharacterParameterTypes() throws SQLException {
+        try (Connection conn = openConnection("none", "sendStringParametersAsUnicode=false");
+                Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #retry_lengths (textLength int, binaryLength int)");
+            try (PreparedStatement ps = conn
+                    .prepareStatement("INSERT INTO #retry_lengths VALUES (DATALENGTH(?), DATALENGTH(?))")) {
+                ps.setString(1, "abc");
+                ps.setBytes(2, new byte[] {1});
+                ps.addBatch();
+                ps.setBinaryStream(2, new ByteArrayInputStream(new byte[] {1, 2}));
+                ps.addBatch();
+                assertArrayEquals(new int[] {1, 1}, ps.executeBatch());
+
+                // The current bindings must also be restored, even when only the stream is rebound after the batch.
+                ps.setBinaryStream(2, new ByteArrayInputStream(new byte[] {1, 2, 3}));
+                assertEquals(1, ps.executeUpdate());
+            }
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT textLength, binaryLength FROM #retry_lengths ORDER BY binaryLength")) {
+                for (int i = 1; i <= 3; i++) {
+                    assertTrue(rs.next());
+                    assertEquals(3, rs.getInt(1));
+                    assertEquals(i, rs.getInt(2));
+                }
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void testSingleRpcRetryRestoresQueuedBatchParameters() throws SQLException {
+        try (Connection conn = openConnection("none", "sendStringParametersAsUnicode=false");
+                Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #queued_retry_lengths (textLength int, binaryLength int)");
+            try (PreparedStatement ps = conn
+                    .prepareStatement("INSERT INTO #queued_retry_lengths VALUES (DATALENGTH(?), DATALENGTH(?))")) {
+                ps.setString(1, "abc");
+                ps.setBytes(2, new byte[] {1});
+                ps.addBatch();
+                ps.setBinaryStream(2, new ByteArrayInputStream(new byte[] {1, 2}));
+                assertEquals(1, ps.executeUpdate());
+                assertArrayEquals(new int[] {1}, ps.executeBatch());
+            }
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT textLength, binaryLength FROM #queued_retry_lengths ORDER BY binaryLength")) {
+                for (int i = 1; i <= 2; i++) {
+                    assertTrue(rs.next());
+                    assertEquals(3, rs.getInt(1));
+                    assertEquals(i, rs.getInt(2));
+                }
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** Retrying local-temp-table creation uses RPC scope and executes earlier SQL only once. */
+    @ParameterizedTest
+    @ValueSource(strings = {"CREATE TABLE #stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
+            "CREATE /* comment */ TABLE #stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
+            "CREATE TABLE /* outer /* nested */ comment */ #stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
+            "CREATE TABLE tempdb..#stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
+            "CREATE TABLE [tempdb] . /* schema */ . [#stream_reject] (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
+            "CREATE -- comment\n TABLE #stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
+            "SELECT ? AS v INTO /* comment */ tempdb..#stream_reject", "SELECT ? AS v INTO [tempdb]..[#stream_reject]"})
+    public void testStreamInTempTableStatementIsRetriedAsRpc(String sql) throws SQLException {
+        for (boolean batch : new boolean[] {false, true}) {
+            try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement();
+                    PreparedStatement ps = conn.prepareStatement("INSERT INTO #retry_side_effect VALUES (1); " + sql)) {
+                stmt.execute("CREATE TABLE #retry_side_effect (v int)");
+                ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
+                if (batch) {
+                    ps.addBatch();
+                    assertArrayEquals(new int[] {1}, ps.executeBatch());
+                } else {
+                    assertFalse(ps.execute());
+                }
+                assertNull(objectId(stmt, "#stream_reject"), "The new local temp table has RPC scope");
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM #retry_side_effect")) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt(1), "Earlier SQL must execute exactly once");
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testRpcRetryWithScalarSubqueryAndOutputIntoExistingTempTable(boolean batch) throws SQLException {
+        try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #output_data (v varbinary(max), n int); "
+                    + "INSERT INTO #output_data VALUES (0x00, 0); CREATE TABLE #out (n int)");
+            try (PreparedStatement ps = conn
+                    .prepareStatement("UPDATE #output_data SET v = ?, n = (SELECT 1) OUTPUT inserted.n INTO #out")) {
+                byte[] value = {1, 2, 3};
+                ps.setBinaryStream(1, new ByteArrayInputStream(value));
+                if (batch) {
+                    ps.addBatch();
+                    assertArrayEquals(new int[] {1}, ps.executeBatch());
+                } else {
+                    assertEquals(1, ps.executeUpdate());
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT v, n FROM #output_data")) {
+                    assertTrue(rs.next());
+                    assertArrayEquals(value, rs.getBytes(1));
+                    assertEquals(1, rs.getInt(2));
+                    assertFalse(rs.next());
+                }
+                try (ResultSet rs = stmt.executeQuery("SELECT n FROM #out")) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt(1));
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"SELECT DATALENGTH(?) /* CREATE TABLE #ignored */",
+            "SELECT DATALENGTH(?) -- CREATE TABLE #ignored", "SELECT DATALENGTH(?), 'INTO #ignored'",
+            "SELECT DATALENGTH(?) AS [INTO #ignored]"})
+    public void testTempTableTextDoesNotPreventRpcRetry(String sql) throws SQLException {
+        try (Connection conn = openConnection("none"); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
+            try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());
-                assertEquals(0, rs.getInt(1), "nothing must be sent when a parameter is rejected");
+                assertEquals(3, rs.getInt(1));
+                assertFalse(rs.next());
             }
         }
     }
@@ -1274,7 +1507,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
 
     @Test
     @Tag(Constants.xSQLv12)
-    public void testTableValuedParameterIsRejectedInDirectStatement() throws SQLException {
+    public void testTableValuedParameterInDirectStatementIsRetriedAsRpc() throws SQLException {
         String typeName = "PrepareMethodRpcTvp_" + UUID.randomUUID().toString().replace("-", "");
         try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement()) {
             stmt.execute("CREATE TYPE " + typeName + " AS TABLE (value int)");
@@ -1282,8 +1515,10 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 try (SQLServerPreparedStatement ps = (SQLServerPreparedStatement) conn
                         .prepareStatement("SELECT SUM(value) FROM ?")) {
                     ps.setStructured(1, typeName, tvpWithRows());
-                    SQLException e = assertThrows(SQLException.class, ps::executeQuery);
-                    assertTrue(e.getMessage().contains("not supported"), e.getMessage());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        assertTrue(rs.getInt(1) > 0);
+                    }
                 }
             } finally {
                 dropIfExists(stmt, "TYPE", typeName);
@@ -1601,7 +1836,8 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
     }
 
     // A subnormal double such as 4.9E-324 is written as a literal that SQL Server rounds to 0, so the direct path
-    // rejects it instead of storing a different value. Typed modes send the exact bits and keep the value.
+    // catches the rejection and sends the statement as an unprepared RPC, which sends the exact bits and keeps the
+    // value, as the typed modes do.
     @ParameterizedTest(name = "mode={0}")
     @ValueSource(strings = {"none", "prepexec"})
     public void testSubnormalDouble(String mode) throws SQLException {
@@ -1610,14 +1846,9 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
             for (double value : values) {
                 try (PreparedStatement ps = conn.prepareStatement("SELECT CAST(? AS float)")) {
                     ps.setDouble(1, value);
-                    if ("none".equals(mode)) {
-                        SQLException e = assertThrows(SQLException.class, ps::executeQuery);
-                        assertTrue(e.getMessage().contains("subnormal"), e.getMessage());
-                    } else {
-                        try (ResultSet rs = ps.executeQuery()) {
-                            assertTrue(rs.next());
-                            assertEquals(value, rs.getDouble(1));
-                        }
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        assertEquals(value, rs.getDouble(1));
                     }
                 }
             }
