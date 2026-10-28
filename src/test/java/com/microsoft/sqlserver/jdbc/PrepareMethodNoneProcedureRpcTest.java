@@ -686,10 +686,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
-    // Qualified temp-table names. The driver's temp-table detector decides whether scopeTempTablesToConnection runs a
-    // statement directly, so a table must survive exactly when the detector recognizes the statement. Under none the
-    // statement is always direct and the table survives; under prepexec it never survives. This characterizes which
-    // naming forms the detector recognizes, without assuming that it recognizes all of them.
+    // Qualified and commented local-temp-table creation keeps connection scope in both direct modes.
     private static Stream<Arguments> qualifiedTempTables() {
         List<Arguments> cases = new ArrayList<>();
         String[][] statements = {{"SELECT ? AS a INTO #q_plain", "#q_plain"},
@@ -697,6 +694,9 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
                 {"SELECT ? AS a INTO tempdb.dbo.#q_dbo", "#q_dbo"},
                 {"CREATE TABLE tempdb..#q_create (i int)", "#q_create"},
                 {"CREATE TABLE tempdb.dbo.#q_create2 (i int)", "#q_create2"},
+                {"CREATE /* comment */ TABLE #q_comment (i int)", "#q_comment"},
+                {"CREATE TABLE [tempdb] . /* schema */ . [#q_quoted] (i int)", "#q_quoted"},
+                {"SELECT ? AS a INTO \"tempdb\"..\"#q_double\"", "#q_double"},
                 {"SELECT ? AS a INTO [#q_bracket]", "#q_bracket"}};
         for (String mode : new String[] {"none", "scopeTempTablesToConnection", "prepexec"}) {
             for (String[] statement : statements) {
@@ -710,22 +710,17 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
     @MethodSource("qualifiedTempTables")
     public void testQualifiedTempTableNames(String mode, String sql, String table) throws SQLException {
         try (Connection conn = openConnection(mode); Statement stmt = conn.createStatement()) {
-            boolean detected;
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                detected = ((SQLServerPreparedStatement) ps).containsTemporaryTableOperations(sql);
                 if (sql.indexOf('?') >= 0) {
                     ps.setInt(1, 1);
                 }
                 ps.execute();
             }
             boolean survives = null != objectId(stmt, table);
-            if ("none".equals(mode)) {
-                assertTrue(survives, "under none the statement is direct, so the table survives");
-            } else if ("prepexec".equals(mode)) {
+            if ("prepexec".equals(mode)) {
                 assertFalse(survives, "under prepexec the table ends with the RPC");
             } else {
-                assertEquals(detected, survives,
-                        "under scopeTempTablesToConnection the table survives exactly when the detector recognizes it");
+                assertTrue(survives, "local temp tables must keep connection scope under " + mode);
             }
             if (survives) {
                 stmt.execute("DROP TABLE " + table);
@@ -1345,15 +1340,75 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
-    /** A statement that creates a temporary table is not retried as an RPC, because the table would be dropped. */
     @Test
-    public void testStreamInTempTableStatementIsStillRejected() throws SQLException {
-        try (Connection conn = openConnection("none");
-                PreparedStatement ps = conn
-                        .prepareStatement("CREATE TABLE #stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)")) {
+    public void testSingleRpcRetryRestoresQueuedBatchParameters() throws SQLException {
+        try (Connection conn = openConnection("none", "sendStringParametersAsUnicode=false");
+                Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #queued_retry_lengths (textLength int, binaryLength int)");
+            try (PreparedStatement ps = conn
+                    .prepareStatement("INSERT INTO #queued_retry_lengths VALUES (DATALENGTH(?), DATALENGTH(?))")) {
+                ps.setString(1, "abc");
+                ps.setBytes(2, new byte[] {1});
+                ps.addBatch();
+                ps.setBinaryStream(2, new ByteArrayInputStream(new byte[] {1, 2}));
+                assertEquals(1, ps.executeUpdate());
+                assertArrayEquals(new int[] {1}, ps.executeBatch());
+            }
+            try (ResultSet rs = stmt
+                    .executeQuery("SELECT textLength, binaryLength FROM #queued_retry_lengths ORDER BY binaryLength")) {
+                for (int i = 1; i <= 2; i++) {
+                    assertTrue(rs.next());
+                    assertEquals(3, rs.getInt(1));
+                    assertEquals(i, rs.getInt(2));
+                }
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    /** A statement that creates a temporary table is not retried as an RPC, because the table would be dropped. */
+    @ParameterizedTest
+    @ValueSource(strings = {"CREATE TABLE #stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
+            "CREATE /* comment */ TABLE #stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
+            "CREATE TABLE /* outer /* nested */ comment */ #stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
+            "CREATE TABLE tempdb..#stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
+            "CREATE TABLE [tempdb] . /* schema */ . [#stream_reject] (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
+            "CREATE -- comment\n TABLE #stream_reject (v varbinary(max)); INSERT INTO #stream_reject VALUES (?)",
+            "SELECT ? AS v INTO /* comment */ tempdb..#stream_reject", "SELECT ? AS v INTO [tempdb]..[#stream_reject]"})
+    public void testStreamInTempTableStatementIsStillRejected(String sql) throws SQLException {
+        for (boolean batch : new boolean[] {false, true}) {
+            try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement();
+                    PreparedStatement ps = conn.prepareStatement("INSERT INTO #retry_side_effect VALUES (1); " + sql)) {
+                stmt.execute("CREATE TABLE #retry_side_effect (v int)");
+                ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
+                SQLException e;
+                if (batch) {
+                    ps.addBatch();
+                    e = assertThrows(SQLException.class, ps::executeBatch);
+                } else {
+                    e = assertThrows(SQLException.class, ps::execute);
+                }
+                assertTrue(e.getMessage().contains("not supported"), e.getMessage());
+                try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM #retry_side_effect")) {
+                    assertTrue(rs.next());
+                    assertEquals(0, rs.getInt(1), "Rejection must happen before any SQL is sent");
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"SELECT DATALENGTH(?) /* CREATE TABLE #ignored */",
+            "SELECT DATALENGTH(?) -- CREATE TABLE #ignored", "SELECT DATALENGTH(?), 'INTO #ignored'",
+            "SELECT DATALENGTH(?) AS [INTO #ignored]"})
+    public void testTempTableTextDoesNotPreventRpcRetry(String sql) throws SQLException {
+        try (Connection conn = openConnection("none"); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
-            SQLException e = assertThrows(SQLException.class, ps::execute);
-            assertTrue(e.getMessage().contains("not supported"), e.getMessage());
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(3, rs.getInt(1));
+                assertFalse(rs.next());
+            }
         }
     }
 

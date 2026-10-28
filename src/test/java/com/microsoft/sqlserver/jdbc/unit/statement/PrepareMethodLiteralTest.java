@@ -579,11 +579,11 @@ public class PrepareMethodLiteralTest extends AbstractTest {
      * when the call ends. Literal parameters and a null stream still work afterwards, and keep the table on the
      * connection in the direct modes.
      */
-    @ParameterizedTest(name = "mode={0}")
-    @MethodSource("prepareModes")
-    public void testStreamInStatementThatCreatesTempTable(String mode) throws SQLException {
+    @ParameterizedTest(name = "mode={0}, create={1}")
+    @MethodSource("tempTableCreationCases")
+    public void testStreamInStatementThatCreatesTempTable(String mode, String createTable) throws SQLException {
         try (Connection conn = openConnection(mode, true); Statement stmt = conn.createStatement();
-                PreparedStatement ps = conn.prepareStatement("CREATE TABLE #literal_rpc (v varbinary(max)); "
+                PreparedStatement ps = conn.prepareStatement(createTable + " (v varbinary(max)); "
                         + "INSERT INTO #literal_rpc VALUES (?); "
                         + "SELECT (SELECT DATALENGTH(v) FROM #literal_rpc), (SELECT n FROM #literal_existing)")) {
             stmt.execute("CREATE TABLE #literal_existing (n int); INSERT INTO #literal_existing VALUES (7)");
@@ -623,6 +623,13 @@ public class PrepareMethodLiteralTest extends AbstractTest {
             }
             assertEquals(isDirectMode(mode), tempTableExists(conn, "#literal_rpc"), "null stream");
         }
+    }
+
+    private static Stream<Arguments> tempTableCreationCases() {
+        return Arrays.stream(MODES)
+                .flatMap(mode -> Stream.of("CREATE TABLE #literal_rpc", "CREATE /* comment */ TABLE #literal_rpc",
+                        "CREATE TABLE /* comment */ #literal_rpc", "CREATE TABLE tempdb..#literal_rpc",
+                        "CREATE TABLE [tempdb]..[#literal_rpc]").map(sql -> Arguments.of(mode, sql)));
     }
 
     private static boolean isDirectMode(String mode) {

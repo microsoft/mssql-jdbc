@@ -633,9 +633,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         String[] typeDefinitions = new String[nCols];
         for (int i = 0; i < nCols; i++) {
             Parameter param = params[i];
-            if (useUnpreparedRpc) {
-                param.restoreRpcType(connection);
-            }
             param.renewDefinition = renewDefinition;
             String typeDefinition = param.getTypeDefinition(connection, resultsReader());
             if (null == typeDefinition) {
@@ -1408,32 +1405,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private ArrayList<byte[]> enclaveCEKs;
 
-    // Pre-compiled regex pattern for temporary table detection (performance
-    // optimization)
-    // This pattern uses alternation to:
-    // 1. Match and skip string literals ('...' including escaped quotes '')
-    // 2. Capture actual temp table operations in group 1
-    // Matches valid SQL Server local temp table operations (excluding global temp
-    // tables with ##):
-    // - CREATE TABLE #temp (local temp table - single #)
-    // - SELECT ... INTO #temp (local temp table - single #)
-    // Excludes: CREATE TABLE ##temp (global temp tables - double ##)
-    // Note: SQL Server does NOT support CREATE TEMP/TEMPORARY/GLOBAL TABLE keywords
-    private static final java.util.regex.Pattern TEMP_TABLE_PATTERN = java.util.regex.Pattern.compile(
-            "'(?:''|[^'])*'" + // Match string literals (to skip them)
-                    "|" +
-                    "(\\b(?:" + // Group 1: Actual temp table patterns
-                    "create\\s+table\\s+(?:#(?!#)\\w+|\\[#(?!#)[^\\]]+\\])" + "|" + // CREATE TABLE #temp (not ##)
-                    "select\\b[^;]*?\\binto\\s+(?:#(?!#)\\w+|\\[#(?!#)[^\\]]+\\])" + // SELECT INTO #temp (not ##)
-                    "))",
-                    java.util.regex.Pattern.CASE_INSENSITIVE);
+    private static final String SQL_IDENTIFIER_PATTERN = "(?:\\[(?:\\]\\]|[^\\]])*\\]|\"(?:\"\"|[^\"])*\"|[\\p{L}\\p{N}\\p{M}_@#$]+)";
+    private static final java.util.regex.Pattern SQL_TOKEN_PATTERN = java.util.regex.Pattern
+            .compile(SQL_IDENTIFIER_PATTERN + "|\\S");
+    private static final java.util.regex.Pattern LOCAL_TEMP_TABLE_NAME_PATTERN = java.util.regex.Pattern
+            .compile("\\s*(?:(?:" + SQL_IDENTIFIER_PATTERN + ")?\\s*\\.\\s*){0,3}"
+                    + "(?:#(?!#)[\\p{L}\\p{N}\\p{M}_@#$]*|\\[#(?!#)(?:\\]\\]|[^\\]])*\\]|\"#(?!#)(?:\"\"|[^\"])*\")"
+                    + "(?![\\p{L}\\p{N}\\p{M}_@#$]|\\s*\\.)");
 
     /**
-     * Detects if the SQL statement contains temporary table operations.
-     * This method uses a pre-compiled regex pattern that skips string literals
-     * to avoid false positives (e.g., 'CREATE TABLE #temp' inside a string).
+     * Detects CREATE TABLE and SELECT INTO statements that create local temporary tables, including qualified and
+     * quoted names. Comments and string contents are ignored, and quoted identifiers are treated as single tokens.
      * 
-     * @param sql The SQL statement to analyze
+     * @param sql
+     *        The SQL statement to analyze
      * @return true if temporary table operations are detected, false otherwise
      */
     boolean containsTemporaryTableOperations(String sql) {
@@ -1446,15 +1431,27 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false;
         }
 
-        // Use pre-compiled pattern that skips string literals and captures temp table
-        // operations
-        java.util.regex.Matcher matcher = TEMP_TABLE_PATTERN.matcher(sql);
-        while (matcher.find()) {
-            // If group 1 matched (temp table pattern, not string literal), return true
-            if (matcher.group(1) != null) {
-                return true;
+        String text = blankCommentsAndQuotedText(sql, true);
+        java.util.regex.Matcher tokens = SQL_TOKEN_PATTERN.matcher(text);
+        java.util.regex.Matcher tableName = LOCAL_TEMP_TABLE_NAME_PATTERN.matcher(text);
+        String previous = "";
+        boolean inSelect = false;
+        while (tokens.find()) {
+            String token = tokens.group();
+            if ("SELECT".equalsIgnoreCase(token)) {
+                inSelect = true;
+            } else if (";".equals(token) || "INSERT".equalsIgnoreCase(token) || "UPDATE".equalsIgnoreCase(token)
+                    || "DELETE".equalsIgnoreCase(token) || "MERGE".equalsIgnoreCase(token)
+                    || "CREATE".equalsIgnoreCase(token)) {
+                inSelect = false;
             }
-            // Otherwise it was a string literal match - continue looking
+            if (("TABLE".equalsIgnoreCase(token) && "CREATE".equalsIgnoreCase(previous))
+                    || ("INTO".equalsIgnoreCase(token) && inSelect)) {
+                if (tableName.region(tokens.end(), text.length()).lookingAt()) {
+                    return true;
+                }
+            }
+            previous = token;
         }
         return false;
     }
@@ -1465,21 +1462,35 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * unprepared sp_executesql RPC, which sends every parameter with a typed value, and the caller runs it again. The
      * switch lasts for the life of the statement. A statement that creates a temporary table is not switched, because
      * the table would be dropped at the end of the RPC; it keeps the rejection.
-     * Parameter types and encoding conversions are restored when building the RPC parameter definitions, including
-     * for each queued batch entry and any current bindings reused after a batch.
+     * Parameter types and encoding conversions are restored once at this transition, for both the current bindings
+     * and any queued batch entries, before rebuilding RPC parameter definitions.
      *
      * @return true if the statement was switched and must be executed again, false if the exception must be thrown
+     * @throws SQLServerException
+     *         if a parameter cannot be restored for RPC execution
      */
-    private boolean retryRejectedDirectSqlAsRpc() {
+    private boolean retryRejectedDirectSqlAsRpc() throws SQLServerException {
         boolean rejected = directSqlParameterRejected;
         directSqlParameterRejected = false;
         if (!rejected || !isDirectSqlExecution || containsTemporaryTableOperations(userSQL)) {
             return false;
         }
 
+        restoreRpcTypes(inOutParam);
+        if (null != batchParamValues) {
+            for (Parameter[] params : batchParamValues) {
+                restoreRpcTypes(params);
+            }
+        }
         isDirectSqlExecution = false;
         useUnpreparedRpc = true;
         return true;
+    }
+
+    private void restoreRpcTypes(Parameter[] params) throws SQLServerException {
+        for (Parameter param : params) {
+            param.restoreRpcType(connection);
+        }
     }
 
     /**
@@ -4665,6 +4676,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * @return the SQL text with comments and quoted text blanked out
      */
     static String blankCommentsAndQuotedText(CharSequence sql) {
+        return blankCommentsAndQuotedText(sql, false);
+    }
+
+    private static String blankCommentsAndQuotedText(CharSequence sql, boolean preserveQuotedIdentifiers) {
         int len = sql.length();
         StringBuilder out = new StringBuilder(len);
         int i = 0;
@@ -4695,6 +4710,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             } else if ('\'' == c || '"' == c || '[' == c) {
                 // Quoted text or a quoted identifier: runs to the closing quote; a doubled quote is part of the text.
                 char close = ('[' == c) ? ']' : c;
+                int start = i;
                 i++;
                 while (i < len) {
                     if (close != sql.charAt(i)) {
@@ -4706,7 +4722,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         break;
                     }
                 }
-                out.append('\'' == c ? '\'' : '"');
+                if (preserveQuotedIdentifiers && '\'' != c) {
+                    out.append(sql, start, i);
+                } else {
+                    out.append('\'' == c ? '\'' : '"');
+                }
             } else {
                 out.append(c);
                 i++;
