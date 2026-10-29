@@ -11,6 +11,9 @@ import java.math.RoundingMode;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Calendar;
 import java.util.Random;
 
@@ -634,20 +637,15 @@ public class RandomData {
             providedTimeZoneInMinutes = -840;
         }
 
-        Timestamp tsMax = Timestamp.valueOf(tsMinMax);
-
-        Calendar cal = Calendar.getInstance();
-        long offset = cal.get(Calendar.ZONE_OFFSET); // in milliseconds
-
-        // max Timestamp + difference of current time zone and GMT - provided time zone in milliseconds
-        tsMax = new Timestamp(tsMax.getTime() + offset - (providedTimeZoneInMinutes * 60 * 1000));
+        OffsetDateTime boundary = LocalDateTime.parse(tsMinMax.replace(' ', 'T'))
+                .atOffset(ZoneOffset.ofTotalSeconds(providedTimeZoneInMinutes * 60));
 
         if (maxOrMin.toLowerCase().equals("max")) {
             int precisionDigits = buildPrecision(precision, "9");
-            tsMax.setNanos(precisionDigits);
+            boundary = boundary.withNano(precisionDigits);
         }
 
-        return microsoft.sql.DateTimeOffset.valueOf(tsMax, providedTimeZoneInMinutes);
+        return microsoft.sql.DateTimeOffset.valueOf(boundary);
     }
 
     private static Integer pickInt(boolean nullable, int max, int min) {
