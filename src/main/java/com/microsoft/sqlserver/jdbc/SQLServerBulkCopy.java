@@ -3523,7 +3523,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
             if (ta.isSupported(ChronoField.YEAR))
                 taYear = ta.get(ChronoField.YEAR);
 
-            Calendar cal = new GregorianCalendar(new SimpleTimeZone(taOffsetSec * 1000, ""));
+            GregorianCalendar cal = new GregorianCalendar(new SimpleTimeZone(taOffsetSec * 1000, ""));
+            if (microsoft.sql.Types.DATETIMEOFFSET == srcJdbcType) {
+                cal.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
+            }
             cal.clear();
             cal.set(Calendar.HOUR_OF_DAY, taHour);
             cal.set(Calendar.MINUTE, taMin);
@@ -3595,7 +3598,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         }
 
         // If we are here value is non-null.
-        Calendar cal;
+        GregorianCalendar cal;
 
         // Get the temporal values from the formatter
         DateTimeFormatter dateTimeFormatter = srcColumnMetadata.get(srcColOrdinal).dateTimeFormatter;
@@ -3688,6 +3691,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                             totalOffset = -totalOffset;
                     }
                     cal = new GregorianCalendar(new SimpleTimeZone(totalOffset * 60 * 1000, ""), Locale.US);
+                    cal.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
                     cal.clear();
                     cal.set(Calendar.HOUR_OF_DAY, hour);
                     cal.set(Calendar.MINUTE, minute);
@@ -3773,6 +3777,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 subSecondNanos = dtoValue.getTimestamp().getNanos();
                 int minutesOffset = dtoValue.getMinutesOffset();
                 calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+                calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
                 calendar.setLenient(true);
                 calendar.clear();
                 calendar.setTimeInMillis(utcMillis);

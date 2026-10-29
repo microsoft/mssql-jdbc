@@ -22,6 +22,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -33,6 +35,8 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -551,6 +555,31 @@ public class SQLServerBulkCopyTest extends AbstractTest {
                 any(JDBCType.class), any());
 
         bulkCopy.close();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1500-06-15T00:00:00Z", "1582-10-10T12:00:00.1234567+05:45"})
+    public void testEncryptedDateTimeOffsetCalendar(String text) throws Exception {
+        OffsetDateTime expected = OffsetDateTime.parse(text);
+        Method method = SQLServerBulkCopy.class.getDeclaredMethod("getEncryptedTemporalBytes", TDSWriter.class,
+                JDBCType.class, Object.class, int.class);
+        method.setAccessible(true);
+
+        try (SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(connectionString)) {
+            method.invoke(bulkCopy, mockTdsWriter, JDBCType.DATETIMEOFFSET, DateTimeOffset.valueOf(expected), 7);
+            ArgumentCaptor<GregorianCalendar> calendar = ArgumentCaptor.forClass(GregorianCalendar.class);
+            verify(mockTdsWriter).writeEncryptedScaledTemporal(calendar.capture(), eq(expected.getNano()), eq(7),
+                    eq(SSType.DATETIMEOFFSET), eq((short) (expected.getOffset().getTotalSeconds() / 60)), isNull());
+            GregorianCalendar actual = calendar.getValue();
+            OffsetDateTime utc = expected.withOffsetSameInstant(ZoneOffset.UTC);
+            assertEquals(utc.getYear(), actual.get(Calendar.YEAR));
+            assertEquals(utc.getMonthValue() - 1, actual.get(Calendar.MONTH));
+            assertEquals(utc.getDayOfMonth(), actual.get(Calendar.DAY_OF_MONTH));
+            assertEquals(utc.getHour(), actual.get(Calendar.HOUR_OF_DAY));
+            assertEquals(utc.getMinute(), actual.get(Calendar.MINUTE));
+            assertEquals(utc.getSecond(), actual.get(Calendar.SECOND));
+            assertEquals(GregorianChange.PURE_CHANGE_DATE, actual.getGregorianChange());
+        }
     }
 
     @Test
