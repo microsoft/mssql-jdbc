@@ -197,6 +197,27 @@ final class Parameter {
     }
 
     /**
+     * Restores normal RPC binding after direct SQL execution promoted a character value for literal formatting.
+     * Rebuilds the DTV to apply the usual encoding conversions without mutating values shared with batch entries.
+     */
+    void restoreRpcType(SQLServerConnection con) throws SQLServerException {
+        if (null == directSqlSetterType) {
+            return;
+        }
+        if (null != setterDTV && !con.sendStringParametersAsUnicode()
+                && directSqlSetterType != setterDTV.getJdbcType()) {
+            DTV rpcDTV = new DTV();
+            rpcDTV.setValue(con.getDatabaseCollation(), directSqlSetterType, setterDTV.getSetterValue(),
+                    setterDTV.getJavaType(), setterDTV.getStreamSetterArgs(), setterDTV.getCalendar(),
+                    setterDTV.getScale(), con, forceEncryption);
+            rpcDTV.sendStringParametersAsUnicode = false;
+            inputDTV = setterDTV = rpcDTV;
+            typeDefinition = null;
+        }
+        directSqlSetterType = null;
+    }
+
+    /**
      * Used when sendStringParametersAsUnicode=true to derive the appropriate National Character Set JDBC type
      * corresponding to the specified JDBC type.
      */
