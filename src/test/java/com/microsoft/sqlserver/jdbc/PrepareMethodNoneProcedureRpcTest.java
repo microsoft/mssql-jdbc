@@ -2765,6 +2765,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
 
     @ParameterizedTest(name = "savepoints across RPC transition, prepareOnFirst={0}")
     @ValueSource(booleans = {false, true})
+    @Tag(Constants.xAzureSQLDW)
     public void testSavepointsAcrossDirectRpcTransition(boolean prepareOnFirst) throws SQLException {
         for (String mode : new String[] {"prepexec", "none"}) {
             try (Connection con = openConnection(mode, prepareOnFirst); Statement stmt = con.createStatement()) {
