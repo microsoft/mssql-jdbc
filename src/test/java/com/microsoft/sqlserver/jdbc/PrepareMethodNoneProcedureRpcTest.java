@@ -8,24 +8,37 @@ package com.microsoft.sqlserver.jdbc;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.sql.BatchUpdateException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.Date;
+import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
+import java.sql.SQLWarning;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.MessageFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,6 +56,7 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -50,6 +64,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
 import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
@@ -2378,6 +2393,666 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
             }
         };
         assertValueMatchesTypedBinding(run, "a|b|c");
+    }
+
+    // Statement reuse and metadata parity across direct and RPC execution.
+
+    private static SQLServerConnection openMetadataConnection(String mode) throws SQLException {
+        return (SQLServerConnection) openConnection(mode, "disableStatementPooling=true", "statementPoolingCacheSize=0",
+                "columnEncryptionSetting=Disabled", "sendStringParametersAsUnicode=true", "useFmtOnly=false");
+    }
+
+    @ParameterizedTest(name = "mixed bindings, prepareOnFirst={0}")
+    @ValueSource(booleans = {true, false})
+    public void testRepeatedBindingsAndPreparedHandles(boolean prepareOnFirst) throws SQLException {
+        String sql = "SELECT CAST(? AS nvarchar(64)), CAST(? AS bigint), CAST(? AS decimal(19,4)), "
+                + "CAST(? AS int), CAST(? AS date), CAST(? AS datetime2(7))";
+        String[] texts = {"ordinary", "O'Brien", "caf\u00e9 \u540d\u524d"};
+        long[] integers = {4294967296L, -4294967296L, 9223372036854775806L};
+        String[] decimals = {"12345.6700", "-23456.7800", "34567.8900"};
+        try (SQLServerConnection actual = openMetadataConnection("none");
+                SQLServerConnection reference = openMetadataConnection("prepexec")) {
+            actual.setEnablePrepareOnFirstPreparedStatementCall(prepareOnFirst);
+            reference.setEnablePrepareOnFirstPreparedStatementCall(prepareOnFirst);
+            assertFalse(actual.isStatementPoolingEnabled());
+            assertFalse(reference.isStatementPoolingEnabled());
+            try (SQLServerPreparedStatement direct = (SQLServerPreparedStatement) actual.prepareStatement(sql);
+                    SQLServerPreparedStatement rpc = (SQLServerPreparedStatement) reference.prepareStatement(sql)) {
+                int preparedHandle = 0;
+                assertEquals(0, direct.getPreparedStatementHandle());
+                assertEquals(0, rpc.getPreparedStatementHandle());
+                for (int execution = 0; execution < 3; execution++) {
+                    BigDecimal decimal = new BigDecimal(decimals[execution]);
+                    Date date = Date.valueOf(LocalDate.of(2024, 2, 13).plusDays(execution));
+                    Timestamp timestamp = Timestamp.valueOf("2024-02-13 12:23:45.1234567");
+                    timestamp.setNanos(123456700 + execution * 100);
+                    for (SQLServerPreparedStatement ps : new SQLServerPreparedStatement[] {direct, rpc}) {
+                        ps.setString(1, texts[execution]);
+                        ps.setLong(2, integers[execution]);
+                        ps.setBigDecimal(3, decimal);
+                        ps.setNull(4, Types.INTEGER);
+                        ps.setDate(5, date);
+                        ps.setTimestamp(6, timestamp);
+                    }
+                    try (ResultSet expected = rpc.executeQuery(); ResultSet result = direct.executeQuery()) {
+                        assertTrue(expected.next());
+                        assertTrue(result.next());
+                        Object[] values = {texts[execution], integers[execution], decimal, null, date, timestamp};
+                        for (int column = 1; column <= values.length; column++) {
+                            assertEquals(values[column - 1], expected.getObject(column), "Reference column " + column);
+                            assertEquals(expected.getObject(column), result.getObject(column),
+                                    "Execution " + execution + ", column " + column);
+                        }
+                        assertFalse(expected.next());
+                        assertFalse(result.next());
+                    }
+                    // The prepared handle is returned after the result set, not in the row metadata.
+                    assertFalse(rpc.getMoreResults());
+                    assertEquals(-1, rpc.getUpdateCount());
+                    assertFalse(direct.getMoreResults());
+                    assertEquals(-1, direct.getUpdateCount());
+                    assertEquals(0, direct.getPreparedStatementHandle(), "none must never prepare");
+                    int handle = rpc.getPreparedStatementHandle();
+                    if (!prepareOnFirst && 0 == execution) {
+                        assertEquals(0, handle, "The first prepexec execution must remain unprepared");
+                    } else {
+                        assertTrue(handle > 0, "prepexec must acquire a server handle");
+                        if (0 == preparedHandle) {
+                            preparedHandle = handle;
+                        }
+                        assertEquals(preparedHandle, handle, "Rebinding must reuse the prepared handle");
+                    }
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "result metadata across stream fallback, prepareOnFirst={0}")
+    @ValueSource(booleans = {true, false})
+    public void testResultMetadataAcrossDirectRpcTransition(boolean prepareOnFirst) throws SQLException, IOException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("none_result_metadata"));
+        byte[][] values = {{1, 2}, {3, 4}, {5, 6}};
+        String sql = "SELECT payload AS binary_label, amount AS decimal_label, label AS text_label FROM " + table
+                + " WHERE payload = ?";
+        try (SQLServerConnection actual = openMetadataConnection("none");
+                SQLServerConnection reference = openMetadataConnection("prepexec");
+                Statement setup = actual.createStatement()) {
+            actual.setEnablePrepareOnFirstPreparedStatementCall(prepareOnFirst);
+            reference.setEnablePrepareOnFirstPreparedStatementCall(prepareOnFirst);
+            setup.executeUpdate("CREATE TABLE " + table
+                    + " (payload varbinary(32) NOT NULL, amount decimal(19,4) NULL, label nvarchar(40) NOT NULL)");
+            try {
+                setup.executeUpdate("INSERT INTO " + table
+                        + " VALUES (0x0102,1.2500,N'first'),(0x0304,2.5000,N'second'),(0x0506,3.7500,N'third')");
+                try (SQLServerPreparedStatement direct = (SQLServerPreparedStatement) actual.prepareStatement(sql);
+                        SQLServerPreparedStatement rpc = (SQLServerPreparedStatement) reference.prepareStatement(sql);
+                        Statement schema = reference.createStatement()) {
+                    List<List<Object>> before;
+                    try (ResultSet rs = schema.executeQuery("SELECT payload AS binary_label, amount AS decimal_label, "
+                            + "label AS text_label FROM " + table + " WHERE 1 = 0")) {
+                        before = resultMetadata(rs.getMetaData());
+                        assertFalse(rs.next());
+                    }
+                    for (int execution = 0; execution < 3; execution++) {
+                        // A non-null stream forces an unprepared RPC for none; the final bytes keep that RPC route.
+                        try (ByteArrayInputStream directStream = new ByteArrayInputStream(values[execution]);
+                                ByteArrayInputStream rpcStream = new ByteArrayInputStream(values[execution])) {
+                            if (1 == execution) {
+                                direct.setBinaryStream(1, directStream, values[execution].length);
+                                rpc.setBinaryStream(1, rpcStream, values[execution].length);
+                            } else {
+                                direct.setBytes(1, values[execution]);
+                                rpc.setBytes(1, values[execution]);
+                            }
+                            try (ResultSet expected = rpc.executeQuery(); ResultSet result = direct.executeQuery()) {
+                                assertEquals(before, resultMetadata(expected.getMetaData()));
+                                assertEquals(before, resultMetadata(result.getMetaData()), "Execution " + execution);
+                                assertEquals(before, resultMetadata(direct.getMetaData()));
+                                assertTrue(expected.next());
+                                assertTrue(result.next());
+                                assertArrayEquals(values[execution], expected.getBytes(1));
+                                assertArrayEquals(expected.getBytes(1), result.getBytes(1));
+                                assertEquals(expected.getBigDecimal(2), result.getBigDecimal(2));
+                                assertEquals(expected.getString(3), result.getString(3));
+                                assertFalse(expected.next());
+                                assertFalse(result.next());
+                            }
+                        }
+                        assertEquals(0, direct.getPreparedStatementHandle(), "RPC fallback must not prepare none");
+                    }
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, setup);
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "parameter metadata, prepareOnFirst={0}")
+    @ValueSource(booleans = {true, false})
+    public void testParameterMetadataBeforeAndAfterExecution(boolean prepareOnFirst) throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("none_parameter_metadata"));
+        long[] values = {4294967296L, -4294967296L, 9223372036854775806L};
+        try (SQLServerConnection actual = openMetadataConnection("none");
+                SQLServerConnection reference = openMetadataConnection("prepexec");
+                Statement setup = actual.createStatement()) {
+            actual.setEnablePrepareOnFirstPreparedStatementCall(prepareOnFirst);
+            reference.setEnablePrepareOnFirstPreparedStatementCall(prepareOnFirst);
+            // Use a real local table: sp_describe_undeclared_parameters cannot reliably describe temp tables.
+            setup.executeUpdate("CREATE TABLE " + table + " (id bigint NOT NULL)");
+            try {
+                setup.executeUpdate(
+                        "INSERT INTO " + table + " VALUES (4294967296),(-4294967296),(9223372036854775806)");
+                String sql = "SELECT id FROM " + table + " WHERE id = ?";
+                try (SQLServerPreparedStatement direct = (SQLServerPreparedStatement) actual.prepareStatement(sql);
+                        SQLServerPreparedStatement rpc = (SQLServerPreparedStatement) reference.prepareStatement(sql)) {
+                    ParameterMetaData before = rpc.getParameterMetaData();
+                    assertEquals(1, before.getParameterCount());
+                    assertEquals(Types.BIGINT, before.getParameterType(1));
+                    assertEquals("bigint", before.getParameterTypeName(1));
+                    assertEquals(Long.class.getName(), before.getParameterClassName(1));
+                    assertEquals(19, before.getPrecision(1));
+                    assertEquals(0, before.getScale(1));
+                    assertTrue(before.isSigned(1));
+                    assertEquals(ParameterMetaData.parameterModeIn, before.getParameterMode(1));
+                    for (int execution = -1; execution < 3; execution++) {
+                        for (SQLServerPreparedStatement ps : new SQLServerPreparedStatement[] {direct, rpc}) {
+                            if (execution >= 0) {
+                                ps.setLong(1, values[execution]);
+                                try (ResultSet rs = ps.executeQuery()) {
+                                    assertTrue(rs.next());
+                                    assertEquals(values[execution], rs.getLong(1));
+                                    assertFalse(rs.next());
+                                }
+                            }
+                            // Force refresh so this verifies server metadata, not just the connection's cached object.
+                            ParameterMetaData metadata = ps.getParameterMetaData(true);
+                            assertEquals(before.getParameterCount(), metadata.getParameterCount());
+                            assertEquals(before.getParameterType(1), metadata.getParameterType(1));
+                            assertEquals(before.getParameterTypeName(1), metadata.getParameterTypeName(1));
+                            assertEquals(before.getParameterClassName(1), metadata.getParameterClassName(1));
+                            assertEquals(before.getPrecision(1), metadata.getPrecision(1));
+                            assertEquals(before.getScale(1), metadata.getScale(1));
+                            assertEquals(before.isNullable(1), metadata.isNullable(1));
+                            assertEquals(before.isSigned(1), metadata.isSigned(1));
+                            assertEquals(before.getParameterMode(1), metadata.getParameterMode(1));
+                        }
+                        assertEquals(0, direct.getPreparedStatementHandle());
+                    }
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, setup);
+            }
+        }
+    }
+
+    private static List<List<Object>> resultMetadata(ResultSetMetaData metadata) throws SQLException {
+        assertNotNull(metadata);
+        List<List<Object>> columns = new ArrayList<>();
+        for (int column = 1; column <= metadata.getColumnCount(); column++) {
+            columns.add(Arrays.asList(metadata.getColumnType(column), metadata.getColumnTypeName(column),
+                    metadata.getColumnClassName(column), metadata.getPrecision(column), metadata.getScale(column),
+                    metadata.getColumnDisplaySize(column), metadata.isNullable(column),
+                    metadata.getColumnLabel(column)));
+        }
+        return columns;
+    }
+
+    // Error chains, warnings and savepoints across direct and RPC execution.
+
+    @ParameterizedTest(name = "error={0}, prepareOnFirst={1}")
+    @MethodSource("serverErrors")
+    public void testServerErrorDetailsAndStatementReuse(int errorCode, boolean prepareOnFirst) throws SQLException {
+        List<String> expected = serverErrorOutcome("prepexec", prepareOnFirst, errorCode);
+        assertEquals(expected, serverErrorOutcome("none", prepareOnFirst, errorCode));
+    }
+
+    private static Stream<Arguments> serverErrors() {
+        return Stream.of(245, 8134, 2627)
+                .flatMap(code -> Stream.of(false, true).map(prepareOnFirst -> Arguments.of(code, prepareOnFirst)));
+    }
+
+    private static List<String> serverErrorOutcome(String mode, boolean prepareOnFirst,
+            int errorCode) throws SQLException {
+        try (Connection con = openConnection(mode, prepareOnFirst); Statement stmt = con.createStatement()) {
+            stmt.execute("SET ANSI_WARNINGS ON; SET ARITHABORT ON; SET ARITHIGNORE OFF; "
+                    + "CREATE TABLE #error_rows (id int PRIMARY KEY)");
+            String sql = 245 == errorCode ? "SELECT CONVERT(int, ?)"
+                                          : 8134 == errorCode ? "SELECT 12 / ?" : "INSERT #error_rows VALUES (?)";
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                // Warm the same statement so prepareOnFirst=false also reaches sp_prepexec before the error.
+                for (int value : new int[] {1, 2}) {
+                    bindErrorValue(ps, errorCode, value, false);
+                    if (2627 == errorCode) {
+                        assertEquals(1, ps.executeUpdate());
+                    } else {
+                        try (ResultSet rs = ps.executeQuery()) {
+                            assertTrue(rs.next());
+                            assertEquals(245 == errorCode ? value : 12 / value, rs.getInt(1));
+                            assertFalse(rs.next());
+                        }
+                    }
+                }
+                bindErrorValue(ps, errorCode, 1, true);
+                SQLException error = assertThrows(SQLException.class, () -> {
+                    if (2627 == errorCode) {
+                        ps.executeUpdate();
+                    } else {
+                        // Conversion and arithmetic errors may arrive only when the first row is consumed.
+                        try (ResultSet rs = ps.executeQuery()) {
+                            while (rs.next()) {
+                                rs.getInt(1);
+                            }
+                        }
+                    }
+                });
+                assertEquals(errorCode, error.getErrorCode());
+                assertNotNull(error.getSQLState());
+                List<String> details = exceptionDetails(error);
+                bindErrorValue(ps, errorCode, 3, false);
+                if (2627 == errorCode) {
+                    assertEquals(1, ps.executeUpdate());
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM #error_rows")) {
+                        assertTrue(rs.next());
+                        assertEquals(3, rs.getInt(1), "The failed insert must not add a row");
+                    }
+                } else {
+                    try (ResultSet rs = ps.executeQuery()) {
+                        assertTrue(rs.next());
+                        assertEquals(245 == errorCode ? 3 : 4, rs.getInt(1));
+                        assertFalse(rs.next());
+                    }
+                }
+                return details;
+            }
+        }
+    }
+
+    private static void bindErrorValue(PreparedStatement ps, int errorCode, int value,
+            boolean fail) throws SQLException {
+        if (245 == errorCode) {
+            ps.setString(1, fail ? "not-an-integer" : Integer.toString(value));
+        } else {
+            ps.setInt(1, fail && 8134 == errorCode ? 0 : value);
+        }
+    }
+
+    @ParameterizedTest(name = "largeBatch={0}, prepareOnFirst={1}")
+    @MethodSource("batchConfigurations")
+    public void testProcedureBatchErrorChainMatchesPreparedExecution(boolean largeBatch,
+            boolean prepareOnFirst) throws SQLException {
+        assertEquals(batchErrorOutcome("prepexec", prepareOnFirst, largeBatch),
+                batchErrorOutcome("none", prepareOnFirst, largeBatch));
+    }
+
+    private static Stream<Arguments> batchConfigurations() {
+        return Stream.of(false, true)
+                .flatMap(large -> Stream.of(false, true).map(prepareOnFirst -> Arguments.of(large, prepareOnFirst)));
+    }
+
+    private static List<String> batchErrorOutcome(String mode, boolean prepareOnFirst,
+            boolean largeBatch) throws SQLException {
+        try (Connection con = openConnection(mode, prepareOnFirst); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #batch_errors (id int)");
+            stmt.execute("CREATE PROCEDURE #batch_error_p @id int AS BEGIN "
+                    + "IF @id = 13 THROW 50000, 'expected batch failure', 1; INSERT #batch_errors VALUES (@id) END");
+            try (PreparedStatement ps = con.prepareStatement("EXEC #batch_error_p ?")) {
+                for (int id : new int[] {1, 2, 13, 4}) {
+                    ps.setInt(1, id);
+                    ps.addBatch();
+                }
+                BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> {
+                    if (largeBatch) {
+                        ps.executeLargeBatch();
+                    } else {
+                        ps.executeBatch();
+                    }
+                });
+                assertEquals(50000, error.getErrorCode());
+                assertArrayEquals(new long[] {1, 1, Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED},
+                        error.getLargeUpdateCounts());
+                List<String> details = exceptionDetails(error);
+                try (ResultSet rs = stmt.executeQuery("SELECT id FROM #batch_errors ORDER BY id")) {
+                    for (int id : new int[] {1, 2}) {
+                        assertTrue(rs.next());
+                        assertEquals(id, rs.getInt(1));
+                    }
+                    assertFalse(rs.next());
+                }
+                ps.clearBatch();
+                ps.setInt(1, 5);
+                assertEquals(1, ps.executeUpdate(), "The statement must remain usable after the failed batch");
+                return details;
+            }
+        }
+    }
+
+    private static List<String> exceptionDetails(SQLException error) {
+        List<String> details = new ArrayList<>();
+        for (SQLException current = error; null != current; current = current.getNextException()) {
+            assertTrue(details.size() < 10, "The exception chain must terminate");
+            details.add(current.getClass().getName() + ":" + current.getSQLState() + ":" + current.getErrorCode());
+        }
+        return details;
+    }
+
+    @ParameterizedTest(name = "warnings, prepareOnFirst={0}")
+    @ValueSource(booleans = {false, true})
+    public void testWarningDetailsAndClearWarnings(boolean prepareOnFirst) throws SQLException {
+        assertEquals(warningOutcome("prepexec", prepareOnFirst), warningOutcome("none", prepareOnFirst));
+    }
+
+    private static List<String> warningOutcome(String mode, boolean prepareOnFirst) throws SQLException {
+        List<String> details = new ArrayList<>();
+        try (Connection con = openConnection(mode, prepareOnFirst);
+                PreparedStatement ps = con.prepareStatement("PRINT 'prepare-none-warning'; SELECT CAST(? AS int)")) {
+            for (int value = 1; value <= 3; value++) {
+                ps.setInt(1, value);
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(value, rs.getInt(1));
+                    assertFalse(rs.next());
+                }
+                SQLWarning warning = ps.getWarnings();
+                assertNotNull(warning);
+                assertEquals("prepare-none-warning", warning.getMessage());
+                details.addAll(exceptionDetails(warning));
+                ps.clearWarnings();
+                assertNull(ps.getWarnings());
+            }
+        }
+        return details;
+    }
+
+    @ParameterizedTest(name = "savepoints across RPC transition, prepareOnFirst={0}")
+    @ValueSource(booleans = {false, true})
+    public void testSavepointsAcrossDirectRpcTransition(boolean prepareOnFirst) throws SQLException {
+        for (String mode : new String[] {"prepexec", "none"}) {
+            try (Connection con = openConnection(mode, prepareOnFirst); Statement stmt = con.createStatement()) {
+                stmt.execute("CREATE TABLE #savepoint_rows (id int PRIMARY KEY, payload varbinary(8))");
+                con.setAutoCommit(false);
+                try (PreparedStatement ps = con.prepareStatement("INSERT #savepoint_rows VALUES (?, ?)")) {
+                    insert(ps, 1, false);
+                    Savepoint beforeRpc = con.setSavepoint("before_rpc");
+                    insert(ps, 2, true);
+                    con.rollback(beforeRpc);
+                    insert(ps, 3, false);
+                    Savepoint beforeBatch = con.setSavepoint("before_batch");
+                    for (int id : new int[] {4, 5}) {
+                        ps.setInt(1, id);
+                        if (5 == id) {
+                            ps.setBinaryStream(2, new ByteArrayInputStream(new byte[] {(byte) id}));
+                        } else {
+                            ps.setBytes(2, new byte[] {(byte) id});
+                        }
+                        ps.addBatch();
+                    }
+                    assertArrayEquals(new int[] {1, 1}, ps.executeBatch());
+                    con.rollback(beforeBatch);
+                    con.commit();
+                    insert(ps, 6, true);
+                    con.rollback();
+                    try (ResultSet rs = stmt.executeQuery("SELECT id, payload FROM #savepoint_rows ORDER BY id")) {
+                        for (int id : new int[] {1, 3}) {
+                            assertTrue(rs.next(), mode);
+                            assertEquals(id, rs.getInt(1), mode);
+                            assertArrayEquals(new byte[] {(byte) id}, rs.getBytes(2), mode);
+                        }
+                        assertFalse(rs.next(), mode);
+                    }
+                } finally {
+                    con.rollback();
+                    con.setAutoCommit(true);
+                }
+            }
+        }
+    }
+
+    private static void insert(PreparedStatement ps, int id, boolean stream) throws SQLException {
+        ps.setInt(1, id);
+        if (stream) {
+            ps.setBinaryStream(2, new ByteArrayInputStream(new byte[] {(byte) id}));
+        } else {
+            ps.setBytes(2, new byte[] {(byte) id});
+        }
+        assertEquals(1, ps.executeUpdate());
+    }
+
+    private static Connection openConnection(String mode, boolean prepareOnFirst) throws SQLException {
+        return openConnection(mode, "disableStatementPooling=true", "statementPoolingCacheSize=0",
+                "columnEncryptionSetting=Disabled", "enablePrepareOnFirstPreparedStatementCall=" + prepareOnFirst,
+                "useBulkCopyForBatchInsert=false", "retryExec=");
+    }
+
+    // Stream-send failures and timeout recovery on the same statement and connection.
+
+    private static final String IO_FAILURE = "prepare-none-stream-failure";
+    private static final String TEXT = "a\u540d\u00e9Z!";
+    private static final byte[] BYTES = {0, 1, (byte) 0xFF, 127, 42};
+
+    @ParameterizedTest(name = "mode={0}, reader={1}, batch={2}")
+    @MethodSource("executionCases")
+    @Timeout(90)
+    public void testIOExceptionRecovery(String mode, boolean reader, boolean batch) throws SQLException {
+        try (Connection con = openStreamRecoveryConnection(mode); Statement stmt = con.createStatement()) {
+            createTable(stmt, reader);
+            try (PreparedStatement ps = con.prepareStatement("INSERT INTO #stream_recovery VALUES (?, ?)")) {
+                seed(ps, reader);
+                ps.setInt(1, 1);
+                if (reader) {
+                    ps.setCharacterStream(2, new FailingReader(), 4);
+                } else {
+                    ps.setBinaryStream(2, new FailingInputStream(), 4);
+                }
+                SQLException error = assertThrows(SQLException.class, () -> execute(ps, batch));
+                assertEquals("22000", error.getSQLState());
+                assertEquals(0, error.getErrorCode());
+                assertEquals(MessageFormat.format(SQLServerException.getErrString("R_errorReadingStream"),
+                        new IOException(IO_FAILURE).toString()), error.getMessage());
+                recoverAndCheck(con, ps, reader, batch);
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "mode={0}, reader={1}, batch={2}, actualLength={3}")
+    @MethodSource("lengthCases")
+    @Timeout(90)
+    public void testDeclaredLengthMismatchRecovery(String mode, boolean reader, boolean batch,
+            int actualLength) throws SQLException {
+        try (Connection con = openStreamRecoveryConnection(mode); Statement stmt = con.createStatement()) {
+            createTable(stmt, reader);
+            try (PreparedStatement ps = con.prepareStatement("INSERT INTO #stream_recovery VALUES (?, ?)")) {
+                seed(ps, reader);
+                ps.setInt(1, 1);
+                bindStream(ps, 2, reader, actualLength, 4);
+                SQLException error = assertThrows(SQLException.class, () -> execute(ps, batch));
+                assertEquals("22026", error.getSQLState());
+                assertEquals(0, error.getErrorCode());
+                assertEquals(MessageFormat.format(SQLServerException.getErrString("R_mismatchedStreamLength"), 4,
+                        actualLength), error.getMessage());
+                recoverAndCheck(con, ps, reader, batch);
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "mode={0}, reader={1}")
+    @MethodSource("streamCases")
+    @Timeout(90)
+    public void testQueryTimeoutAfterRpcTransition(String mode, boolean reader) throws SQLException {
+        try (Connection con = openStreamRecoveryConnection(mode);
+                PreparedStatement ps = con.prepareStatement("WAITFOR DELAY ?; SELECT DATALENGTH(?)")) {
+            ps.setString(1, "00:00:00");
+            bindLiteral(ps, reader);
+            assertLength(ps, reader);
+            // Same statement: literal execution, successful RPC, timeout with a fresh stream, successful RPC.
+            bindStream(ps, 2, reader, 5, 5);
+            assertLength(ps, reader);
+            ps.setString(1, "00:00:10");
+            bindStream(ps, 2, reader, 5, 5);
+            ps.setQueryTimeout(1);
+            SQLTimeoutException error = assertThrows(SQLTimeoutException.class, () -> {
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                }
+            });
+            assertEquals(SQLServerException.getErrString("R_queryTimedOut"), error.getMessage());
+            assertEquals("HY008", error.getSQLState());
+            assertEquals(0, error.getErrorCode());
+            assertFalse(con.isClosed());
+            ps.setQueryTimeout(10);
+            ps.setString(1, "00:00:00");
+            bindStream(ps, 2, reader, 5, 5);
+            assertLength(ps, reader);
+            try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT 42")) {
+                assertTrue(rs.next());
+                assertEquals(42, rs.getInt(1));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    private static Stream<Arguments> streamCases() {
+        return Stream.of("prepexec", "none")
+                .flatMap(mode -> Stream.of(false, true).map(reader -> Arguments.of(mode, reader)));
+    }
+
+    private static Stream<Arguments> executionCases() {
+        return streamCases().flatMap(
+                args -> Stream.of(false, true).map(batch -> Arguments.of(args.get()[0], args.get()[1], batch)));
+    }
+
+    private static Stream<Arguments> lengthCases() {
+        return executionCases().flatMap(args -> Stream.of(3, 5)
+                .map(length -> Arguments.of(args.get()[0], args.get()[1], args.get()[2], length)));
+    }
+
+    private static Connection openStreamRecoveryConnection(String mode) throws SQLException {
+        return openConnection(mode, "columnEncryptionSetting=Disabled", "disableStatementPooling=true",
+                "statementPoolingCacheSize=0", "enablePrepareOnFirstPreparedStatementCall=true",
+                "useBulkCopyForBatchInsert=false", "sendStringParametersAsUnicode=true", "packetSize=4096",
+                "queryTimeout=10", "cancelQueryTimeout=5", "socketTimeout=20000", "retryExec=");
+    }
+
+    private static void createTable(Statement stmt, boolean reader) throws SQLException {
+        stmt.execute(
+                "CREATE TABLE #stream_recovery (id int, value " + (reader ? "nvarchar(max)" : "varbinary(max)") + ")");
+    }
+
+    private static void bindLiteral(PreparedStatement ps, boolean reader) throws SQLException {
+        if (reader) {
+            ps.setString(2, TEXT);
+        } else {
+            ps.setBytes(2, BYTES);
+        }
+    }
+
+    private static void seed(PreparedStatement ps, boolean reader) throws SQLException {
+        ps.setInt(1, 0);
+        bindLiteral(ps, reader);
+        assertEquals(1, ps.executeUpdate());
+    }
+
+    private static void bindStream(PreparedStatement ps, int index, boolean reader, int actualLength,
+            int declaredLength) throws SQLException {
+        if (reader) {
+            ps.setCharacterStream(index, new StringReader(TEXT.substring(0, actualLength)), declaredLength);
+        } else {
+            ps.setBinaryStream(index, new ByteArrayInputStream(BYTES, 0, actualLength), declaredLength);
+        }
+    }
+
+    private static void execute(PreparedStatement ps, boolean batch) throws SQLException {
+        if (batch) {
+            ps.addBatch();
+            assertArrayEquals(new int[] {1}, ps.executeBatch());
+        } else {
+            assertEquals(1, ps.executeUpdate());
+        }
+    }
+
+    private static void recoverAndCheck(Connection con, PreparedStatement ps, boolean reader,
+            boolean batch) throws SQLException {
+        // These tiny, known-length values fail before any packet is sent. TDSWriter.error interrupts the
+        // incomplete request; TDSCommand.onRequestComplete discards it without expecting an attention ack.
+        // This is the recoverable prepexec contract, not a claim about arbitrary partially sent LOBs.
+        assertFalse(con.isClosed());
+        assertFalse(ps.isClosed());
+        ps.clearBatch();
+        assertRows(con, reader, 0);
+        for (int id = 2; id <= 3; id++) {
+            ps.setInt(1, id);
+            bindStream(ps, 2, reader, 5, 5);
+            execute(ps, batch);
+        }
+        assertRows(con, reader, 0, 2, 3);
+    }
+
+    private static void assertRows(Connection con, boolean reader, int... ids) throws SQLException {
+        try (Statement stmt = con.createStatement(); ResultSet rs = stmt
+                .executeQuery("SELECT id, CONVERT(varbinary(max), value) FROM #stream_recovery ORDER BY id")) {
+            for (int id : ids) {
+                assertTrue(rs.next());
+                assertEquals(id, rs.getInt(1));
+                assertArrayEquals(reader ? TEXT.getBytes(StandardCharsets.UTF_16LE) : BYTES, rs.getBytes(2));
+            }
+            assertFalse(rs.next(), "No failed, duplicate, or ghost rows may survive");
+        }
+    }
+
+    private static void assertLength(PreparedStatement ps, boolean reader) throws SQLException {
+        try (ResultSet rs = ps.executeQuery()) {
+            assertTrue(rs.next());
+            assertEquals(reader ? 10 : 5, rs.getInt(1));
+            assertFalse(rs.next());
+        }
+    }
+
+    private static final class FailingInputStream extends InputStream {
+        private int position;
+
+        @Override
+        public int read() throws IOException {
+            if (position == 3) {
+                throw new IOException(IO_FAILURE);
+            }
+            return BYTES[position++] & 0xFF;
+        }
+
+        @Override
+        public int read(byte[] buffer, int offset, int length) throws IOException {
+            if (length == 0) {
+                return 0;
+            }
+            if (position == 3) {
+                throw new IOException(IO_FAILURE);
+            }
+            int count = Math.min(length, 3 - position);
+            System.arraycopy(BYTES, position, buffer, offset, count);
+            position += count;
+            return count;
+        }
+    }
+
+    private static final class FailingReader extends Reader {
+        private int position;
+
+        @Override
+        public int read(char[] buffer, int offset, int length) throws IOException {
+            if (length == 0) {
+                return 0;
+            }
+            if (position == 3) {
+                throw new IOException(IO_FAILURE);
+            }
+            int count = Math.min(length, 3 - position);
+            TEXT.getChars(position, position + count, buffer, offset);
+            position += count;
+            return count;
+        }
+
+        @Override
+        public void close() {
+            // No resources; stream ownership and reuse after failure are deliberately not asserted.
+        }
     }
 
     // DROP ... IF EXISTS needs SQL Server 2016; OBJECT_ID and TYPE_ID work on every supported version, also for names
