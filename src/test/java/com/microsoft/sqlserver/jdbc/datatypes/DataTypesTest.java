@@ -3,6 +3,7 @@ package com.microsoft.sqlserver.jdbc.datatypes;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
@@ -38,6 +39,9 @@ import java.util.TimeZone;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -1972,6 +1976,63 @@ public class DataTypesTest extends AbstractTest {
                 }
             }
             TestUtils.dropTableIfExists(escapedTableName, stmt);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {"1000-01-01T00:00:00Z", "1500-06-15T12:00:00Z", "1582-10-04T12:00:00Z", "2000-01-01T12:00:00Z"})
+    public void testIssue3072DateTimeOffsetParameterStorage(String text) throws Exception {
+        verifyDateTimeOffsetParameterStorage(text, 7);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0001-01-01T14:00:00+14:00,7", "9999-12-31T09:59:59-14:00,7", "1500-06-15T12:00:00.1234567+05:45,7",
+            "1500-06-15T12:00:00.1234567-08:00,7", "1582-10-04T23:30:00-08:00,7", "1582-10-05T00:00:00Z,7",
+            "1582-10-10T12:00:00+05:45,7", "1582-10-14T23:30:00-08:00,7", "1582-10-15T00:30:00+14:00,7",
+            "2000-02-29T12:00:00.1234567+05:45,7", "1500-06-15T12:00:00.1234567+05:45,3",
+            "1500-06-15T12:00:00.1235567-08:00,3", "1582-10-04T23:59:59.9999999Z,3"})
+    public void testDateTimeOffsetParameterStorageOffsetsAndPrecision(String text, int scale) throws Exception {
+        verifyDateTimeOffsetParameterStorage(text, scale);
+    }
+
+    private void verifyDateTimeOffsetParameterStorage(String text, int scale) throws Exception {
+        OffsetDateTime input = OffsetDateTime.parse(text);
+        OffsetDateTime expected = input;
+        if (3 == scale) {
+            expected = input.truncatedTo(ChronoUnit.MILLIS);
+            if (input.getNano() % 1000000 >= 500000) {
+                expected = expected.plusNanos(1000000);
+            }
+        }
+        String sqlType = "datetimeoffset(" + scale + ")";
+        try (Connection con = getConnection(); Statement statement = con.createStatement()) {
+            statement.execute("CREATE TABLE #dto_parameter_storage (v " + sqlType + ")");
+            try (PreparedStatement insert = con.prepareStatement("INSERT INTO #dto_parameter_storage VALUES (?)");
+                    PreparedStatement verify = con.prepareStatement(
+                            "SELECT CONVERT(varchar(40), v, 127), " + "CASE WHEN v = CAST(? AS " + sqlType
+                                    + ") THEN 1 ELSE 0 END, " + "DATEPART(TZOFFSET, v) FROM #dto_parameter_storage")) {
+                for (int binding = 0; binding < 3; binding++) {
+                    statement.executeUpdate("DELETE FROM #dto_parameter_storage");
+                    if (0 == binding) {
+                        insert.setObject(1, input);
+                    } else if (1 == binding) {
+                        insert.setObject(1, DateTimeOffset.valueOf(input));
+                    } else {
+                        ((SQLServerPreparedStatement) insert).setDateTimeOffset(1, DateTimeOffset.valueOf(input));
+                    }
+                    assertEquals(1, insert.executeUpdate());
+                    verify.setString(1, text);
+                    try (ResultSet rs = verify.executeQuery()) {
+                        String context = text + ", scale=" + scale + ", binding=" + binding;
+                        assertTrue(context, rs.next());
+                        assertEquals(expected.toInstant(), OffsetDateTime.parse(rs.getString(1)).toInstant(), context);
+                        assertEquals(1, rs.getInt(2), context);
+                        assertEquals(input.getOffset().getTotalSeconds() / 60, rs.getInt(3), context);
+                        assertFalse(rs.next(), context);
+                    }
+                }
+            }
         }
     }
 
