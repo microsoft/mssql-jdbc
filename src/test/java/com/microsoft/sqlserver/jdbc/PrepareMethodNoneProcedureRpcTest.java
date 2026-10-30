@@ -2765,7 +2765,8 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
 
     @ParameterizedTest(name = "savepoints across RPC transition, prepareOnFirst={0}")
     @ValueSource(booleans = {false, true})
-    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDW)
+
     public void testSavepointsAcrossDirectRpcTransition(boolean prepareOnFirst) throws SQLException {
         for (String mode : new String[] {"prepexec", "none"}) {
             try (Connection con = openConnection(mode, prepareOnFirst); Statement stmt = con.createStatement()) {
@@ -2877,6 +2878,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
 
     @ParameterizedTest(name = "mode={0}, reader={1}")
     @MethodSource("streamCases")
+    @Tag(Constants.xAzureSQLDW)
     @Timeout(90)
     public void testQueryTimeoutAfterRpcTransition(String mode, boolean reader) throws SQLException {
         try (Connection con = openStreamRecoveryConnection(mode);
