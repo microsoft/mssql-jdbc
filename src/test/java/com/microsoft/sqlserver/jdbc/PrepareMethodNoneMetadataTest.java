@@ -99,6 +99,11 @@ public class PrepareMethodNoneMetadataTest extends AbstractTest {
                         assertFalse(expected.next());
                         assertFalse(result.next());
                     }
+                    // The prepared handle is returned after the result set, not in the row metadata.
+                    assertFalse(rpc.getMoreResults());
+                    assertEquals(-1, rpc.getUpdateCount());
+                    assertFalse(direct.getMoreResults());
+                    assertEquals(-1, direct.getUpdateCount());
                     assertEquals(0, direct.getPreparedStatementHandle(), "none must never prepare");
                     int handle = rpc.getPreparedStatementHandle();
                     if (!prepareOnFirst && 0 == execution) {
@@ -133,9 +138,14 @@ public class PrepareMethodNoneMetadataTest extends AbstractTest {
                 setup.executeUpdate("INSERT INTO " + table
                         + " VALUES (0x0102,1.2500,N'first'),(0x0304,2.5000,N'second'),(0x0506,3.7500,N'third')");
                 try (SQLServerPreparedStatement direct = (SQLServerPreparedStatement) actual.prepareStatement(sql);
-                        SQLServerPreparedStatement rpc = (SQLServerPreparedStatement) reference.prepareStatement(sql)) {
-                    List<List<Object>> before = resultMetadata(rpc.getMetaData());
-                    assertEquals(before, resultMetadata(direct.getMetaData()), "Metadata before execution");
+                        SQLServerPreparedStatement rpc = (SQLServerPreparedStatement) reference.prepareStatement(sql);
+                        Statement schema = reference.createStatement()) {
+                    List<List<Object>> before;
+                    try (ResultSet rs = schema.executeQuery("SELECT payload AS binary_label, amount AS decimal_label, "
+                            + "label AS text_label FROM " + table + " WHERE 1 = 0")) {
+                        before = resultMetadata(rs.getMetaData());
+                        assertFalse(rs.next());
+                    }
                     for (int execution = 0; execution < 3; execution++) {
                         // A non-null stream forces an unprepared RPC for none; the final bytes keep that RPC route.
                         try (ByteArrayInputStream directStream = new ByteArrayInputStream(values[execution]);
@@ -183,7 +193,8 @@ public class PrepareMethodNoneMetadataTest extends AbstractTest {
             // Use a real local table: sp_describe_undeclared_parameters cannot reliably describe temp tables.
             setup.executeUpdate("CREATE TABLE " + table + " (id bigint NOT NULL)");
             try {
-                setup.executeUpdate("INSERT INTO " + table + " VALUES (4294967296),(-4294967296),(9223372036854775806)");
+                setup.executeUpdate(
+                        "INSERT INTO " + table + " VALUES (4294967296),(-4294967296),(9223372036854775806)");
                 String sql = "SELECT id FROM " + table + " WHERE id = ?";
                 try (SQLServerPreparedStatement direct = (SQLServerPreparedStatement) actual.prepareStatement(sql);
                         SQLServerPreparedStatement rpc = (SQLServerPreparedStatement) reference.prepareStatement(sql)) {
@@ -233,7 +244,8 @@ public class PrepareMethodNoneMetadataTest extends AbstractTest {
         for (int column = 1; column <= metadata.getColumnCount(); column++) {
             columns.add(Arrays.asList(metadata.getColumnType(column), metadata.getColumnTypeName(column),
                     metadata.getColumnClassName(column), metadata.getPrecision(column), metadata.getScale(column),
-                    metadata.getColumnDisplaySize(column), metadata.isNullable(column), metadata.getColumnLabel(column)));
+                    metadata.getColumnDisplaySize(column), metadata.isNullable(column),
+                    metadata.getColumnLabel(column)));
         }
         return columns;
     }

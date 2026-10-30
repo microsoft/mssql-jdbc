@@ -55,17 +55,17 @@ public class PrepareMethodNoneErrorAndTransactionTest extends AbstractTest {
     }
 
     private static Stream<Arguments> serverErrors() {
-        return Stream.of(245, 8134, 2627).flatMap(code -> Stream.of(false, true)
-                .map(prepareOnFirst -> Arguments.of(code, prepareOnFirst)));
+        return Stream.of(245, 8134, 2627)
+                .flatMap(code -> Stream.of(false, true).map(prepareOnFirst -> Arguments.of(code, prepareOnFirst)));
     }
 
-    private static List<String> serverErrorOutcome(String mode, boolean prepareOnFirst, int errorCode)
-            throws SQLException {
+    private static List<String> serverErrorOutcome(String mode, boolean prepareOnFirst,
+            int errorCode) throws SQLException {
         try (Connection con = openConnection(mode, prepareOnFirst); Statement stmt = con.createStatement()) {
             stmt.execute("SET ANSI_WARNINGS ON; SET ARITHABORT ON; SET ARITHIGNORE OFF; "
                     + "CREATE TABLE #error_rows (id int PRIMARY KEY)");
             String sql = 245 == errorCode ? "SELECT CONVERT(int, ?)"
-                                         : 8134 == errorCode ? "SELECT 12 / ?" : "INSERT #error_rows VALUES (?)";
+                                          : 8134 == errorCode ? "SELECT 12 / ?" : "INSERT #error_rows VALUES (?)";
             try (PreparedStatement ps = con.prepareStatement(sql)) {
                 // Warm the same statement so prepareOnFirst=false also reaches sp_prepexec before the error.
                 for (int value : new int[] {1, 2}) {
@@ -81,7 +81,18 @@ public class PrepareMethodNoneErrorAndTransactionTest extends AbstractTest {
                     }
                 }
                 bindErrorValue(ps, errorCode, 1, true);
-                SQLException error = assertThrows(SQLException.class, ps::execute);
+                SQLException error = assertThrows(SQLException.class, () -> {
+                    if (2627 == errorCode) {
+                        ps.executeUpdate();
+                    } else {
+                        // Conversion and arithmetic errors may arrive only when the first row is consumed.
+                        try (ResultSet rs = ps.executeQuery()) {
+                            while (rs.next()) {
+                                rs.getInt(1);
+                            }
+                        }
+                    }
+                });
                 assertEquals(errorCode, error.getErrorCode());
                 assertNotNull(error.getSQLState());
                 List<String> details = exceptionDetails(error);
@@ -104,8 +115,8 @@ public class PrepareMethodNoneErrorAndTransactionTest extends AbstractTest {
         }
     }
 
-    private static void bindErrorValue(PreparedStatement ps, int errorCode, int value, boolean fail)
-            throws SQLException {
+    private static void bindErrorValue(PreparedStatement ps, int errorCode, int value,
+            boolean fail) throws SQLException {
         if (245 == errorCode) {
             ps.setString(1, fail ? "not-an-integer" : Integer.toString(value));
         } else {
@@ -115,19 +126,19 @@ public class PrepareMethodNoneErrorAndTransactionTest extends AbstractTest {
 
     @ParameterizedTest(name = "largeBatch={0}, prepareOnFirst={1}")
     @MethodSource("batchConfigurations")
-    public void testProcedureBatchErrorChainMatchesPreparedExecution(boolean largeBatch, boolean prepareOnFirst)
-            throws SQLException {
+    public void testProcedureBatchErrorChainMatchesPreparedExecution(boolean largeBatch,
+            boolean prepareOnFirst) throws SQLException {
         assertEquals(batchErrorOutcome("prepexec", prepareOnFirst, largeBatch),
                 batchErrorOutcome("none", prepareOnFirst, largeBatch));
     }
 
     private static Stream<Arguments> batchConfigurations() {
-        return Stream.of(false, true).flatMap(large -> Stream.of(false, true)
-                .map(prepareOnFirst -> Arguments.of(large, prepareOnFirst)));
+        return Stream.of(false, true)
+                .flatMap(large -> Stream.of(false, true).map(prepareOnFirst -> Arguments.of(large, prepareOnFirst)));
     }
 
-    private static List<String> batchErrorOutcome(String mode, boolean prepareOnFirst, boolean largeBatch)
-            throws SQLException {
+    private static List<String> batchErrorOutcome(String mode, boolean prepareOnFirst,
+            boolean largeBatch) throws SQLException {
         try (Connection con = openConnection(mode, prepareOnFirst); Statement stmt = con.createStatement()) {
             stmt.execute("CREATE TABLE #batch_errors (id int)");
             stmt.execute("CREATE PROCEDURE #batch_error_p @id int AS BEGIN "

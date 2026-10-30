@@ -87,8 +87,8 @@ public class PrepareMethodNoneStreamRecoveryTest extends AbstractTest {
                 SQLException error = assertThrows(SQLException.class, () -> execute(ps, batch));
                 assertEquals("22026", error.getSQLState());
                 assertEquals(0, error.getErrorCode());
-                assertEquals(MessageFormat.format(SQLServerException.getErrString("R_mismatchedStreamLength"),
-                        4, actualLength), error.getMessage());
+                assertEquals(MessageFormat.format(SQLServerException.getErrString("R_mismatchedStreamLength"), 4,
+                        actualLength), error.getMessage());
                 recoverAndCheck(con, ps, reader, batch);
             }
         }
@@ -130,13 +130,13 @@ public class PrepareMethodNoneStreamRecoveryTest extends AbstractTest {
     }
 
     private static Stream<Arguments> streamCases() {
-        return Stream.of("prepexec", "none").flatMap(mode -> Stream.of(false, true)
-                .map(reader -> Arguments.of(mode, reader)));
+        return Stream.of("prepexec", "none")
+                .flatMap(mode -> Stream.of(false, true).map(reader -> Arguments.of(mode, reader)));
     }
 
     private static Stream<Arguments> executionCases() {
-        return streamCases().flatMap(args -> Stream.of(false, true)
-                .map(batch -> Arguments.of(args.get()[0], args.get()[1], batch)));
+        return streamCases().flatMap(
+                args -> Stream.of(false, true).map(batch -> Arguments.of(args.get()[0], args.get()[1], batch)));
     }
 
     private static Stream<Arguments> lengthCases() {
@@ -149,8 +149,8 @@ public class PrepareMethodNoneStreamRecoveryTest extends AbstractTest {
         String[][] properties = {{"columnEncryptionSetting", "Disabled"}, {"disableStatementPooling", "true"},
                 {"statementPoolingCacheSize", "0"}, {"enablePrepareOnFirstPreparedStatementCall", "true"},
                 {"useBulkCopyForBatchInsert", "false"}, {"sendStringParametersAsUnicode", "true"},
-                {"packetSize", "4096"}, {"queryTimeout", "10"}, {"cancelQueryTimeout", "5"},
-                {"socketTimeout", "20000"}, {"retryExec", ""}};
+                {"packetSize", "4096"}, {"queryTimeout", "10"}, {"cancelQueryTimeout", "5"}, {"socketTimeout", "20000"},
+                {"retryExec", ""}};
         for (String[] property : properties) {
             url = TestUtils.addOrOverrideProperty(url, property[0], property[1]);
         }
@@ -158,8 +158,8 @@ public class PrepareMethodNoneStreamRecoveryTest extends AbstractTest {
     }
 
     private static void createTable(Statement stmt, boolean reader) throws SQLException {
-        stmt.execute("CREATE TABLE #stream_recovery (id int, value "
-                + (reader ? "nvarchar(max)" : "varbinary(max)") + ")");
+        stmt.execute(
+                "CREATE TABLE #stream_recovery (id int, value " + (reader ? "nvarchar(max)" : "varbinary(max)") + ")");
     }
 
     private static void bindLiteral(PreparedStatement ps, boolean reader) throws SQLException {
@@ -212,8 +212,8 @@ public class PrepareMethodNoneStreamRecoveryTest extends AbstractTest {
     }
 
     private static void assertRows(Connection con, boolean reader, int... ids) throws SQLException {
-        try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery(
-                "SELECT id, CONVERT(varbinary(max), value) FROM #stream_recovery ORDER BY id")) {
+        try (Statement stmt = con.createStatement(); ResultSet rs = stmt
+                .executeQuery("SELECT id, CONVERT(varbinary(max), value) FROM #stream_recovery ORDER BY id")) {
             for (int id : ids) {
                 assertTrue(rs.next());
                 assertEquals(id, rs.getInt(1));
