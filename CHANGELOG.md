@@ -3,6 +3,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [13.6.2] Stable Release
+
+### Fixed
+
+- **Fix non-Unicode string literals in direct SQL execution** [#3076](https://github.com/microsoft/mssql-jdbc/pull/3076)
+  - **What was fixed**: Preserved character values as character literals during direct execution when `sendStringParametersAsUnicode=false`, instead of incorrectly formatting them as binary literals.
+  - **Who benefits**: Applications using `prepareMethod=none` or direct SQL execution with non-Unicode string parameters.
+  - **Impact**: Keeps `VARCHAR` semantics and conversion behavior correct without changing normal prepared execution.
+
+- **Add prepareMethod=none RPC support for procedures** [#3085](https://github.com/microsoft/mssql-jdbc/pull/3085)
+  - **What was fixed**: Added RPC execution support for direct procedure calls when `prepareMethod=none` is used, including safe formatting for temporal and decimal arguments.
+  - **Who benefits**: Applications calling stored procedures with `prepareMethod=none` and procedure arguments that require RPC-style execution.
+  - **Impact**: Prevents invalid `EXEC` argument formatting and improves compatibility for direct stored-procedure execution.
+
+- **Retry direct SQL execution as RPC when a parameter cannot be inlined** [#3086](https://github.com/microsoft/mssql-jdbc/pull/3086)
+  - **What was fixed**: When a parameter could not be safely inlined during direct SQL execution, the driver retried the call using RPC execution instead of failing.
+  - **Who benefits**: Applications running `prepareMethod=none` statements whose parameters cannot be serialized inline.
+  - **Impact**: Preserves successful execution for valid cases that would otherwise error on the direct SQL path.
+
 ## [13.6.1] Stable Release
 
 ### Fixed
