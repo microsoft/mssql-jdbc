@@ -1619,6 +1619,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
     // getGeneratedKeys after executeBatch is not supported in any mode, so only single executions are compared.
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"stream", "bytes"})
+    @Tag(Constants.xAzureSQLDW)
     public void testGeneratedKeysOfRegularTableMatchTypedBinding(String kind) {
         String table = "none_gk_" + UUID.randomUUID().toString().replace("-", "");
         ValueRun run = conn -> {
