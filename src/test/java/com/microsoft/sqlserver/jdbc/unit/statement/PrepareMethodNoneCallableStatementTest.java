@@ -86,6 +86,15 @@ public class PrepareMethodNoneCallableStatementTest extends AbstractTest {
     }
 
     @Test
+    public void testSmallDateTimeInput() throws SQLException {
+        Timestamp expected = Timestamp.valueOf("2026-10-07 13:14:00.0");
+        assertInputRoundTrip("smalldatetime", cs -> cs.setTimestamp(1, expected),
+                rs -> assertEquals(expected, rs.getTimestamp(1)));
+        assertInputRoundTrip("smalldatetime", cs -> cs.setNull(1, Types.TIMESTAMP),
+                rs -> assertNull(rs.getTimestamp(1)));
+    }
+
+    @Test
     public void testUtilDateInput() throws SQLException {
         java.util.Date value = new java.util.Date(Timestamp.valueOf("2026-10-07 00:00:00.123").getTime());
         Timestamp expected = new Timestamp(value.getTime());

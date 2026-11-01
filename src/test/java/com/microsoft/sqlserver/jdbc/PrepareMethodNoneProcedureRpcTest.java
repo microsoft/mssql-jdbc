@@ -1505,6 +1505,147 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         }
     }
 
+    private static byte[] largeStreamBytes(String kind, int size, int seed) {
+        if ("binary".equals(kind)) {
+            byte[] data = new byte[size];
+            new java.util.Random(seed).nextBytes(data);
+            return data;
+        }
+        boolean unicode = "unicode".equals(kind);
+        int chars = unicode ? size / 2 : size;
+        StringBuilder text = new StringBuilder(chars);
+        for (int i = 0; i < chars; i++) {
+            text.append(unicode ? (char) ('\u00C0' + (i + seed) % 64) : (char) ('a' + (i + seed) % 26));
+        }
+        return text.toString().getBytes(unicode ? StandardCharsets.UTF_16LE : StandardCharsets.US_ASCII);
+    }
+
+    private static String largeStreamColumn(String kind) {
+        return "binary".equals(kind) ? "b" : "ascii".equals(kind) ? "s" : "n";
+    }
+
+    private static void bindLargeStream(PreparedStatement ps, int index, String kind, byte[] bytes,
+            boolean bounded) throws SQLException {
+        if ("binary".equals(kind)) {
+            if (bounded) {
+                ps.setBinaryStream(index, new ByteArrayInputStream(bytes), bytes.length);
+            } else {
+                ps.setBinaryStream(index, new ByteArrayInputStream(bytes));
+            }
+        } else if ("ascii".equals(kind)) {
+            Reader reader = new StringReader(new String(bytes, StandardCharsets.US_ASCII));
+            if (bounded) {
+                ps.setCharacterStream(index, reader, bytes.length);
+            } else {
+                ps.setCharacterStream(index, reader);
+            }
+        } else {
+            String text = new String(bytes, StandardCharsets.UTF_16LE);
+            if (bounded) {
+                ps.setNCharacterStream(index, new StringReader(text), text.length());
+            } else {
+                ps.setNCharacterStream(index, new StringReader(text));
+            }
+        }
+    }
+
+    private static void assertLargeStreamStored(Statement stmt, String kind, String where, byte[] expected)
+            throws Exception {
+        String column = largeStreamColumn(kind);
+        try (ResultSet rs = stmt.executeQuery("SELECT DATALENGTH(" + column + "), HASHBYTES('SHA2_256', " + column
+                + ") FROM #large_stream WHERE " + where)) {
+            assertTrue(rs.next());
+            assertEquals(expected.length, rs.getInt(1));
+            assertArrayEquals(MessageDigest.getInstance("SHA-256").digest(expected), rs.getBytes(2));
+            assertFalse(rs.next());
+        }
+    }
+
+    private static Stream<Arguments> largeStreamCases() {
+        List<Arguments> cases = new ArrayList<>();
+        for (String kind : new String[] {"binary", "ascii", "unicode"}) {
+            for (int size : new int[] {64 * 1024, 1024 * 1024, 16 * 1024 * 1024}) {
+                for (boolean bounded : new boolean[] {true, false}) {
+                    cases.add(Arguments.of(kind, size, bounded));
+                }
+            }
+        }
+        return cases.stream();
+    }
+
+    // A large stream cannot be inlined, so the retry as RPC must deliver every byte.
+    @ParameterizedTest(name = "{0}, {1} bytes, bounded={2}")
+    @MethodSource("largeStreamCases")
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.largeStream)
+    public void testLargeStreamInDirectStatementKeepsContent(String kind, int size, boolean bounded)
+            throws Exception {
+        byte[] expected = largeStreamBytes(kind, size, 1);
+        try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #large_stream (id int, b varbinary(max), s varchar(max), n nvarchar(max))");
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO #large_stream (id, " + largeStreamColumn(kind) + ") VALUES (1, ?)")) {
+                bindLargeStream(ps, 1, kind, expected, bounded);
+                assertEquals(1, ps.executeUpdate());
+            }
+            assertLargeStreamStored(stmt, kind, "id = 1", expected);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"binary", "ascii", "unicode"})
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.largeStream)
+    public void testLargeStreamsInDirectBatchKeepContent(String kind) throws Exception {
+        byte[] first = largeStreamBytes(kind, 1024 * 1024, 1);
+        byte[] second = largeStreamBytes(kind, 1024 * 1024, 2);
+        try (Connection conn = openConnection("none"); Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE #large_stream (id int, b varbinary(max), s varchar(max), n nvarchar(max))");
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO #large_stream (id, " + largeStreamColumn(kind) + ") VALUES (?, ?)")) {
+                ps.setInt(1, 1);
+                bindLargeStream(ps, 2, kind, first, false);
+                ps.addBatch();
+                ps.setInt(1, 2);
+                bindLargeStream(ps, 2, kind, second, true);
+                ps.addBatch();
+                assertArrayEquals(new int[] {1, 1}, ps.executeBatch());
+            }
+            assertLargeStreamStored(stmt, kind, "id = 1", first);
+            assertLargeStreamStored(stmt, kind, "id = 2", second);
+        }
+    }
+
+    // getGeneratedKeys after executeBatch is not supported in any mode, so only single executions are compared.
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"stream", "bytes"})
+    public void testGeneratedKeysOfRegularTableMatchTypedBinding(String kind) {
+        String table = "none_gk_" + UUID.randomUUID().toString().replace("-", "");
+        ValueRun run = conn -> {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE " + table + " (id int IDENTITY(1,1) PRIMARY KEY, v varbinary(max))");
+                try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table + " (v) VALUES (?)",
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    StringBuilder result = new StringBuilder();
+                    for (int i = 0; i < 2; i++) {
+                        if ("stream".equals(kind)) {
+                            ps.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1, 2, 3}));
+                        } else {
+                            ps.setBytes(1, new byte[] {1, 2, 3});
+                        }
+                        result.append("count=").append(ps.executeUpdate()).append(" keys=");
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            result.append(keys.next() ? keys.getInt(1) : -1).append(';');
+                        }
+                    }
+                    return result.toString();
+                } finally {
+                    dropIfExists(stmt, "TABLE", table);
+                }
+            }
+        };
+        assertValueMatchesTypedBinding(run, "count=1 keys=1;count=1 keys=2;");
+    }
     @ParameterizedTest(name = "mode={0}")
     @ValueSource(strings = {"prepexec", "none"})
     public void testStreamInProcedureCall(String mode) throws SQLException {
@@ -2878,7 +3019,8 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
 
     @ParameterizedTest(name = "mode={0}, reader={1}")
     @MethodSource("streamCases")
-    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDW)
+
     @Timeout(90)
     public void testQueryTimeoutAfterRpcTransition(String mode, boolean reader) throws SQLException {
         try (Connection con = openStreamRecoveryConnection(mode);
