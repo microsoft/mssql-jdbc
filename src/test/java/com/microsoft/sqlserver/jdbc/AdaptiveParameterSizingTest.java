@@ -145,7 +145,7 @@ public class AdaptiveParameterSizingTest {
         Parameter parameter = new Parameter(false, true);
         parameter.setValue(JDBCType.VARBINARY, new ByteArrayInputStream(new byte[20]), JavaType.INPUTSTREAM,
                 new StreamSetterArgs(StreamType.BINARY, 20), null, null, null, connection, false,
-                SQLServerStatementColumnEncryptionSetting.DISABLED, 1, "SELECT ?", null);
+                SQLServerStatementColumnEncryptionSetting.DISABLED, 1, "SELECT ?", null, false);
         assertEquals("varbinary(8000)", parameter.getTypeDefinition(connection, null));
         assertEquals(10, parameter.getLengthHistory().resolveLength(JDBCType.VARBINARY, 10, 0));
         when(connection.getDatabaseCollation()).thenReturn(null);
@@ -180,7 +180,7 @@ public class AdaptiveParameterSizingTest {
     private static void set(Parameter parameter, SQLServerConnection connection, JDBCType type, Object value,
             Integer hint) throws SQLServerException {
         parameter.setValue(type, value, null == value ? JavaType.OBJECT : JavaType.of(value), null, null, null, hint,
-                connection, false, SQLServerStatementColumnEncryptionSetting.DISABLED, 1, "SELECT ?", null);
+                connection, false, SQLServerStatementColumnEncryptionSetting.DISABLED, 1, "SELECT ?", null, false);
     }
 
     private static String repeated(int length) {
