@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -29,6 +30,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 
 
 public class AdaptiveParameterSizingConnectionTest extends AbstractTest {
@@ -179,6 +181,8 @@ public class AdaptiveParameterSizingConnectionTest extends AbstractTest {
     }
 
     @ParameterizedTest
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
     @CsvSource({"true,USE_CONNECTION_SETTING", "false,ENABLED", "true,DISABLED", "true,RESULTSET_ONLY"})
     public void testAEPlaintextBatchPreservesLegacySizing(boolean connectionAE,
             SQLServerStatementColumnEncryptionSetting setting) throws Exception {
