@@ -128,6 +128,7 @@ enum SSType {
     DATE(Category.DATE, "date", JDBCType.DATE),
     TIME(Category.TIME, "time", JDBCType.TIME),
     DATETIME2(Category.DATETIME2, "datetime2", JDBCType.TIMESTAMP),
+    /** SQL Server {@code datetimeoffset} type. The canonical Java mapping is {@link java.time.OffsetDateTime}. */
     DATETIMEOFFSET(Category.DATETIMEOFFSET, "datetimeoffset", JDBCType.DATETIMEOFFSET),
     SMALLMONEY(Category.NUMERIC, "smallmoney", JDBCType.SMALLMONEY),
     MONEY(Category.NUMERIC, "money", JDBCType.MONEY),

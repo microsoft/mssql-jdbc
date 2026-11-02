@@ -318,6 +318,15 @@ public class DBResultSet extends AbstractParentWrapper implements AutoCloseable 
                         " unexpected DATETIMEOFFSET value, expected: " + expectedData + " ,received: " + retrieved);
                 break;
 
+            case java.sql.Types.TIMESTAMP_WITH_TIMEZONE:
+                Object actualOffsetDateTime = retrieved instanceof microsoft.sql.DateTimeOffset
+                        ? ((microsoft.sql.DateTimeOffset) retrieved).getOffsetDateTime()
+                        : retrieved;
+                assertTrue(
+                        ((microsoft.sql.DateTimeOffset) expectedData).getOffsetDateTime().equals(actualOffsetDateTime),
+                        " unexpected DATETIMEOFFSET value, expected: " + expectedData + " ,received: " + retrieved);
+                break;
+
             case java.sql.Types.BINARY:
                 assertTrue(TestUtils.parseByte((byte[]) expectedData, (byte[]) retrieved),
                         " unexpected BINARY value, expected: " + expectedData + " ,received: " + retrieved);
