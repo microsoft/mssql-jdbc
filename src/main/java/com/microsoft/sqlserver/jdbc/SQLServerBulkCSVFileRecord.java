@@ -73,6 +73,16 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
      */
     private static final String loggerClassName = "SQLServerBulkCSVFileRecord";
 
+    /*
+     * Formatter to remove the decimal part as SQL Server floors the
+     * decimal in integer types
+     */
+    private static final DecimalFormat DECIMAL_FORMATTER;
+    static {
+        DECIMAL_FORMATTER = new DecimalFormat("#");
+        DECIMAL_FORMATTER.setRoundingMode(RoundingMode.DOWN);
+    }
+
     /**
      * Constructs a simple reader to parse data from a delimited file with the given encoding.
      * 
@@ -341,22 +351,14 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                          * data (say "10") is to be inserted into an numeric column. Our implementation does the same.
                          */
                         case Types.INTEGER: {
-                            // Formatter to remove the decimal part as SQL Server floors the decimal in integer types.
-                            DecimalFormat decimalFormatter = new DecimalFormat("#");
-                            decimalFormatter.setRoundingMode(RoundingMode.DOWN);
-                            String formatedfInput = decimalFormatter
-                                    .format(Double.parseDouble(data[pair.getKey() - 1]));
+                            String formatedfInput = DECIMAL_FORMATTER.format(Double.parseDouble(data[pair.getKey() - 1]));
                             dataRow[pair.getKey() - 1] = Integer.valueOf(formatedfInput);
                             break;
                         }
 
                         case Types.TINYINT:
                         case Types.SMALLINT: {
-                            // Formatter to remove the decimal part as SQL Server floors the decimal in integer types.
-                            DecimalFormat decimalFormatter = new DecimalFormat("#");
-                            decimalFormatter.setRoundingMode(RoundingMode.DOWN);
-                            String formatedfInput = decimalFormatter
-                                    .format(Double.parseDouble(data[pair.getKey() - 1]));
+                            String formatedfInput = DECIMAL_FORMATTER.format(Double.parseDouble(data[pair.getKey() - 1]));
                             dataRow[pair.getKey() - 1] = Short.valueOf(formatedfInput);
                             break;
                         }
@@ -385,13 +387,11 @@ public class SQLServerBulkCSVFileRecord extends SQLServerBulkRecord implements j
                         }
 
                         case Types.BIT: {
-                            // "true" => 1, "false" => 0. Any non-zero value (integer/double) => 1, 0/0.0 => 0
-                            try {
-                                dataRow[pair.getKey()
-                                        - 1] = (0 == Double.parseDouble(data[pair.getKey() - 1])) ? Boolean.FALSE
-                                                                                                  : Boolean.TRUE;
-                            } catch (NumberFormatException e) {
-                                dataRow[pair.getKey() - 1] = Boolean.parseBoolean(data[pair.getKey() - 1]);
+                            String stringData = data[pair.getKey() - 1];
+                            if ("0".equals(stringData) || "0.0".equals(stringData) || "false".equalsIgnoreCase(stringData)) {
+                                dataRow[pair.getKey() - 1] = Boolean.FALSE;
+                            } else {
+                                dataRow[pair.getKey() - 1] = Boolean.TRUE;
                             }
                             break;
                         }
