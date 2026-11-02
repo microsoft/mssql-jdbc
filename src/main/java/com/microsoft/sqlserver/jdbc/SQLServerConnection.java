@@ -836,6 +836,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
     private int stringParameterDefaultLength = SQLServerDriverIntProperty.STRING_PARAMETER_DEFAULT_LENGTH
             .getDefaultValue();
+    private final transient Lock stringParameterDefaultLengthWarningsLock = new ReentrantLock();
     private EnumSet<SSType> stringParameterDefaultLengthWarnings;
 
     /**
@@ -881,10 +882,17 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
 
         if (connectionlogger.isLoggable(Level.WARNING)) {
-            if (null == stringParameterDefaultLengthWarnings) {
-                stringParameterDefaultLengthWarnings = EnumSet.noneOf(SSType.class);
+            boolean logWarning;
+            stringParameterDefaultLengthWarningsLock.lock();
+            try {
+                if (null == stringParameterDefaultLengthWarnings) {
+                    stringParameterDefaultLengthWarnings = EnumSet.noneOf(SSType.class);
+                }
+                logWarning = stringParameterDefaultLengthWarnings.add(family);
+            } finally {
+                stringParameterDefaultLengthWarningsLock.unlock();
             }
-            if (stringParameterDefaultLengthWarnings.add(family)) {
+            if (logWarning) {
                 MessageFormat form = new MessageFormat(
                         SQLServerException.getErrString("R_stringParameterDefaultLengthExceedsBound"));
                 Object[] msgArgs = {family.toString(), Integer.toString(limit)};

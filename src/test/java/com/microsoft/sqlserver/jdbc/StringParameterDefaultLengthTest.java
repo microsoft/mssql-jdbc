@@ -21,8 +21,14 @@ import java.io.ObjectOutputStream;
 import java.sql.DriverPropertyInfo;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -213,6 +219,64 @@ public class StringParameterDefaultLengthTest {
         } finally {
             logger.removeHandler(handler);
             logger.setLevel(previousLevel);
+        }
+    }
+
+    @Test
+    public void testConcurrentBoundWarningsOncePerFamily() throws Exception {
+        Logger logger = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.SQLServerConnection");
+        Level previousLevel = logger.getLevel();
+        List<LogRecord> warnings = Collections.synchronizedList(new ArrayList<>());
+        Handler handler = warningHandler(warnings);
+        ExecutorService workers = Executors.newFixedThreadPool(12);
+        JDBCType[] types = {JDBCType.CHAR, JDBCType.VARCHAR, JDBCType.NCHAR, JDBCType.NVARCHAR, JDBCType.BINARY,
+                JDBCType.VARBINARY};
+        logger.addHandler(handler);
+        logger.setLevel(Level.WARNING);
+        try {
+            for (int round = 0; round < 25; round++) {
+                try (SQLServerConnection connection = new SQLServerConnection("property-test")) {
+                    SQLServerException exception = assertThrows(SQLServerException.class,
+                            () -> connection.connect(parsingProperties("8001"), null));
+                    assertEquals(MessageFormat.format(SQLServerException.getErrString("R_invalidPacketSize"), "1"),
+                            exception.getMessage());
+                    warnings.clear();
+                    CountDownLatch ready = new CountDownLatch(12);
+                    CountDownLatch start = new CountDownLatch(1);
+                    List<Future<?>> results = new ArrayList<>();
+                    for (int worker = 0; worker < 12; worker++) {
+                        final JDBCType firstType = types[worker % types.length];
+                        results.add(workers.submit(() -> {
+                            ready.countDown();
+                            assertTrue(start.await(10, TimeUnit.SECONDS));
+                            connection.getStringParameterDefaultLength(firstType);
+                            for (int row = 0; row < 100; row++) {
+                                for (JDBCType type : types) {
+                                    int expected = type == JDBCType.NCHAR || type == JDBCType.NVARCHAR ? 4000 : 8000;
+                                    assertEquals(expected, connection.getStringParameterDefaultLength(type));
+                                }
+                            }
+                            return null;
+                        }));
+                    }
+                    try {
+                        assertTrue(ready.await(10, TimeUnit.SECONDS));
+                    } finally {
+                        start.countDown();
+                    }
+                    for (Future<?> result : results) {
+                        result.get(10, TimeUnit.SECONDS);
+                    }
+                    assertEquals(3, warnings.size(), "round " + round);
+                    assertEquals(3, warnings.stream().map(LogRecord::getMessage).distinct().count());
+                    assertEquals(8001, connection.getStringParameterDefaultLength());
+                }
+            }
+        } finally {
+            workers.shutdownNow();
+            logger.removeHandler(handler);
+            logger.setLevel(previousLevel);
+            assertTrue(workers.awaitTermination(10, TimeUnit.SECONDS));
         }
     }
 
