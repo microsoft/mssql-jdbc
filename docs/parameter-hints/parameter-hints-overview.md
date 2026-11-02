@@ -9,7 +9,8 @@ This document describes the parameter length hint mechanisms available in mssql-
 `stringParameterDefaultLength` is registered as a normal connection URL, `java.util.Properties`,
 and DataSource property. A positive value enables adaptive declaration sizing for character and
 binary **input-only parameters** on prepared and callable statements, including named and ordinal
-setters. Omission keeps legacy sizing. Explicit declarations and hints retain precedence.
+setters when Always Encrypted is disabled for parameters. Omission keeps legacy sizing.
+Explicit declarations and hints retain precedence.
 
 | Configuration | Connect-time behavior |
 |---|---|
@@ -49,7 +50,9 @@ retain established observations. Different ordinals and new statements have inde
 even if the new statement reuses a cached prepared handle. Only lengths are shared across an
 ordinal's batch snapshots; existing DTV snapshot and explicit-hint behavior remains unchanged.
 
-Precedence is enforced `defineParameterType()` declaration, then usable positive explicit
+Always Encrypted is checked first: when enabled for parameters, the statement retains its
+original workflow and bypasses this setting, including for unencrypted columns.
+For other statements, precedence is enforced `defineParameterType()` declaration, then usable positive explicit
 `setObject` hint, then the adaptive connection default, then legacy sizing. Explicit hints are
 not combined with the floor using `max` and do not update default history. Non-positive explicit
 hints are unusable, so eligible values can use the connection default. Existing sticky MAX
@@ -60,8 +63,10 @@ declarations remain authoritative.
 - **Registered OUT/INOUT parameters retain existing sizing**, including existing explicit-hint
   behavior. Input values cannot predict the size of returned values, so this connection default
   never narrows output buffers or records output history. Callable input-only parameters do adapt.
-- Always Encrypted declarations remain authoritative. Unencrypted parameters identified during
-  encryption metadata renewal can use adaptive sizing.
+- Statements with Always Encrypted enabled for parameters do not allocate adaptive history or
+  use this connection default, even when metadata identifies a parameter as unencrypted. Both
+  connection-level and statement-level AE settings are honored. Statement overrides that disable
+  parameter encryption (`DISABLED` or `RESULTSET_ONLY`) allow eligible inputs to use adaptive sizing.
 - Streams and values whose lengths cannot be measured safely retain legacy sizing. Explicit
   LONG/LOB types and other unrelated types do not participate in adaptive history.
 - Bulk copy continues using destination-column metadata. `prepareMethod=none` continues sending

@@ -208,7 +208,7 @@ final class Parameter {
 
     Parameter(boolean honorAE, boolean trackLengthHistory) {
         this(honorAE);
-        if (trackLengthHistory) {
+        if (trackLengthHistory && !honorAE) {
             lengthHistory = new LengthHistory();
         }
     }
@@ -778,10 +778,9 @@ final class Parameter {
         }
 
         private Integer getConnectionDefaultLength(DTV dtv) throws SQLServerException {
-            // Never infer an output buffer length from an input value, or replace an explicit/AE declaration.
-            if (null == param.lengthHistory || param.isOutput() || 0 != param.defineParameterTypeSqlType
-                    || (null != dtv.getScale() && dtv.getScale() > 0) || (param.shouldHonorAEForParameter
-                            && !(null == param.getCryptoMetadata() && param.renewDefinition))) {
+            // AE-enabled statements retain their original workflow, even for metadata-confirmed plaintext inputs.
+            if (param.shouldHonorAEForParameter || null == param.lengthHistory || param.isOutput()
+                    || 0 != param.defineParameterTypeSqlType || (null != dtv.getScale() && dtv.getScale() > 0)) {
                 return null;
             }
 

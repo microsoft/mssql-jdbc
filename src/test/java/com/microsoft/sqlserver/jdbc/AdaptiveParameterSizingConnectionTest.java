@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -175,6 +176,72 @@ public class AdaptiveParameterSizingConnectionTest extends AbstractTest {
                 }
             }
         }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"true,USE_CONNECTION_SETTING", "false,ENABLED", "true,DISABLED", "true,RESULTSET_ONLY"})
+    public void testAEPlaintextBatchPreservesLegacySizing(boolean connectionAE,
+            SQLServerStatementColumnEncryptionSetting setting) throws Exception {
+        for (JDBCType type : new JDBCType[] {JDBCType.VARCHAR, JDBCType.NVARCHAR, JDBCType.VARBINARY}) {
+            List<String> legacy = plaintextBatchDefinitions(0, connectionAE, setting, type);
+            List<String> configured = plaintextBatchDefinitions(10, connectionAE, setting, type);
+            if (setting == SQLServerStatementColumnEncryptionSetting.ENABLED
+                    || setting == SQLServerStatementColumnEncryptionSetting.USE_CONNECTION_SETTING && connectionAE) {
+                assertEquals(legacy, configured, type.toString());
+            } else {
+                String family = type.toString().toLowerCase(Locale.ENGLISH);
+                assertEquals(Arrays.asList(family + "(10)", family + "(13)", family + "(13)", family + "(max)",
+                        family + "(max)"), configured);
+            }
+        }
+    }
+
+    private static List<String> plaintextBatchDefinitions(int floor, boolean connectionAE,
+            SQLServerStatementColumnEncryptionSetting setting, JDBCType type) throws Exception {
+        SQLServerDataSource source = new SQLServerDataSource();
+        source.setURL(connectionString);
+        source.setStringParameterDefaultLength(floor);
+        source.setSendStringParametersAsUnicode(false);
+        source.setColumnEncryptionSetting(connectionAE ? "Enabled" : "Disabled");
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("AdaptiveAEPlaintext"));
+        String family = type.toString().toLowerCase(Locale.ENGLISH);
+        int[] lengths = {1, 13, 2, type == JDBCType.NVARCHAR ? 4001 : 8001, 2};
+        List<String> definitions = new ArrayList<>();
+        try (SQLServerConnection connection = (SQLServerConnection) source.getConnection();
+                Statement setup = connection.createStatement()) {
+            try {
+                setup.execute("CREATE TABLE " + table + " (id int IDENTITY, payload " + family + "(max))");
+                try (SQLServerPreparedStatement statement = (SQLServerPreparedStatement) connection.prepareStatement(
+                        "INSERT INTO " + table + " (payload) VALUES (?)", Statement.NO_GENERATED_KEYS, setting)) {
+                    for (int length : lengths) {
+                        set(statement, type, length);
+                        statement.addBatch();
+                    }
+                    List<Parameter[]> rows = new ArrayList<>(statement.batchParamValues);
+                    assertArrayEquals(new int[] {1, 1, 1, 1, 1}, statement.executeBatch());
+                    for (Parameter[] row : rows) {
+                        definitions.add(definition(row[0]));
+                        if (Util.shouldHonorAEForParameters(setting, connection)) {
+                            assertNull(row[0].getLengthHistory());
+                        }
+                    }
+                }
+                try (ResultSet result = setup.executeQuery("SELECT payload FROM " + table + " ORDER BY id")) {
+                    for (int length : lengths) {
+                        assertTrue(result.next());
+                        if (type.isBinary()) {
+                            assertArrayEquals(new byte[length], result.getBytes(1));
+                        } else {
+                            assertEquals(repeated(length), result.getString(1));
+                        }
+                    }
+                    assertFalse(result.next());
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, setup);
+            }
+        }
+        return definitions;
     }
 
     @ParameterizedTest

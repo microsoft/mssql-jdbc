@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 - **Add Adaptive Input Parameter Sizing** [#3071](https://github.com/microsoft/mssql-jdbc/pull/3071)
   - **What was added**: The `stringParameterDefaultLength` connection/DataSource property, with exact per-parameter growth and shared batch history for character and binary input declarations.
   - **Who benefits**: Applications wanting smaller input declarations without specifying a hint on every setter.
-  - **Impact**: Disabled by default. Explicit hints, registered OUT/INOUT sizing, Always Encrypted declarations, and large-value MAX handling remain authoritative.
+  - **Impact**: Disabled by default and bypassed for statements with Always Encrypted enabled for parameters, including those targeting unencrypted columns. Explicit hints, registered OUT/INOUT sizing, and large-value MAX handling remain authoritative.
 
 ## [14.1.0] Preview Release
 

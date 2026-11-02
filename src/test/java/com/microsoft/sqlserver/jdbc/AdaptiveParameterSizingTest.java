@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -108,7 +109,7 @@ public class AdaptiveParameterSizingTest {
     }
 
     @Test
-    public void testOutputAndEncryptedParametersRetainExistingSizing() throws Exception {
+    public void testOutputParametersRetainExistingSizing() throws Exception {
         SQLServerConnection connection = connection(false, 10);
         Parameter output = new Parameter(false, true);
         set(output, connection, JDBCType.NVARCHAR, "x", null);
@@ -118,13 +119,27 @@ public class AdaptiveParameterSizingTest {
         set(output, connection, JDBCType.NVARCHAR, "x", null);
         assertEquals("nvarchar(4000)", output.getTypeDefinition(connection, null));
         assertEquals(10, output.getLengthHistory().resolveLength(JDBCType.NVARCHAR, 10, 0));
-        Parameter encrypted = new Parameter(true, true);
-        set(encrypted, connection, JDBCType.NVARCHAR, repeated(13), null);
-        assertEquals("nvarchar(13)", encrypted.getTypeDefinition(connection, null));
-        assertEquals(10, encrypted.getLengthHistory().resolveLength(JDBCType.NVARCHAR, 10, 0));
-        encrypted.renewDefinition = true;
-        assertEquals("nvarchar(13)", encrypted.getTypeDefinition(connection, null));
-        assertEquals(13, encrypted.getLengthHistory().resolveLength(JDBCType.NVARCHAR, 10, 0));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = JDBCType.class, names = {"CHAR", "VARCHAR", "NCHAR", "NVARCHAR", "BINARY", "VARBINARY"})
+    public void testAEDeclarationPassesPreserveLegacySizing(JDBCType type) throws Exception {
+        SQLServerConnection connection = connection(false, 10);
+        Parameter parameter = new Parameter(true, true);
+        Parameter legacy = new Parameter(true);
+        int largeLength = type == JDBCType.NCHAR || type == JDBCType.NVARCHAR ? 4001 : 8001;
+        for (int length : new int[] {1, 13, 2, largeLength, 2}) {
+            Object value = type.isBinary() ? new byte[length] : repeated(length);
+            set(parameter, connection, type, value, null);
+            set(legacy, connection, type, value, null);
+            Parameter row = parameter.cloneForBatch();
+            Parameter legacyRow = legacy.cloneForBatch();
+            assertEquals(legacyRow.getTypeDefinition(connection, null), row.getTypeDefinition(connection, null));
+            row.renewDefinition = legacyRow.renewDefinition = true;
+            assertEquals(legacyRow.getTypeDefinition(connection, null), row.getTypeDefinition(connection, null));
+            assertNull(row.getLengthHistory());
+        }
+        assertNull(parameter.getLengthHistory());
     }
 
     @Test

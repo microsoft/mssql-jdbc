@@ -28,15 +28,22 @@ public class ParameterLengthHistoryTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    public void testBatchClonesShareHistoryBeforeFirstObservation(boolean honorAE) {
-        Parameter parameter = new Parameter(honorAE, true);
+    public void testAEParametersDoNotAllocateHistory(boolean trackLengthHistory) {
+        Parameter parameter = new Parameter(true, trackLengthHistory);
+        assertNull(parameter.getLengthHistory());
+        assertNull(parameter.cloneForBatch().getLengthHistory());
+    }
+
+    @Test
+    public void testBatchClonesShareHistoryBeforeFirstObservation() {
+        Parameter parameter = new Parameter(false, true);
         Parameter first = parameter.cloneForBatch();
         Parameter second = parameter.cloneForBatch();
         Parameter.LengthHistory history = parameter.getLengthHistory();
         assertSame(history, first.getLengthHistory());
         assertSame(history, second.getLengthHistory());
         assertSame(history, first.cloneForBatch().getLengthHistory());
-        assertNotSame(history, new Parameter(honorAE, true).getLengthHistory());
+        assertNotSame(history, new Parameter(false, true).getLengthHistory());
 
         assertEquals(11, first.getLengthHistory().resolveLength(JDBCType.VARCHAR, 10, 11));
         assertEquals(13, second.getLengthHistory().resolveLength(JDBCType.VARCHAR, 10, 13));

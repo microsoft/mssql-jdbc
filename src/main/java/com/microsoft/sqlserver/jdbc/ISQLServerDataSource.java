@@ -557,8 +557,9 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * History grows during declaration resolution, is shared with batch snapshots, and survives clearParameters
      * and clearBatch. New statements start fresh. Explicit defineParameterType declarations and usable positive
      * setObject length hints take precedence without updating this history. Registered OUT/INOUT parameters retain
-     * existing sizing to avoid narrowing returned values. Always Encrypted declarations, streams with unmeasurable
-     * values, and explicitly unbounded types retain their existing behavior. Large actual values are not truncated
+     * existing sizing to avoid narrowing returned values. Statements with Always Encrypted enabled for parameters
+     * bypass this setting entirely, including parameters targeting unencrypted columns. Streams with unmeasurable
+     * values and explicitly unbounded types retain their existing behavior. Large actual values are not truncated
      * to the configured floor.
      * </p>
      * The default implementation does nothing, retaining compatibility with third-party implementations.
