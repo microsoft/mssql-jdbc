@@ -2006,13 +2006,15 @@ public class DataTypesTest extends AbstractTest {
             }
         }
         String sqlType = "datetimeoffset(" + scale + ")";
+        boolean inputInCutoverGap = isInHybridCutoverGap(input);
+        boolean storedInCutoverGap = isInHybridCutoverGap(expected);
         try (Connection con = getConnection(); Statement statement = con.createStatement()) {
             statement.execute("CREATE TABLE #dto_parameter_storage (v " + sqlType + ")");
             try (PreparedStatement insert = con.prepareStatement("INSERT INTO #dto_parameter_storage VALUES (?)");
-                    PreparedStatement verify = con.prepareStatement(
-                            "SELECT CONVERT(varchar(40), v, 127), " + "CASE WHEN v = CAST(? AS " + sqlType
-                                    + ") THEN 1 ELSE 0 END, " + "DATEPART(TZOFFSET, v) FROM #dto_parameter_storage")) {
-                for (int binding = 0; binding < 3; binding++) {
+                    PreparedStatement verify = con.prepareStatement("SELECT CONVERT(varchar(40), v, 127), "
+                            + "CASE WHEN v = CAST(? AS " + sqlType + ") THEN 1 ELSE 0 END, "
+                            + "DATEPART(TZOFFSET, v), v FROM #dto_parameter_storage")) {
+                for (int binding = 0; binding < (inputInCutoverGap ? 1 : 3); binding++) {
                     statement.executeUpdate("DELETE FROM #dto_parameter_storage");
                     if (0 == binding) {
                         insert.setObject(1, input);
@@ -2029,11 +2031,22 @@ public class DataTypesTest extends AbstractTest {
                         assertEquals(expected.toInstant(), OffsetDateTime.parse(rs.getString(1)).toInstant(), context);
                         assertEquals(1, rs.getInt(2), context);
                         assertEquals(input.getOffset().getTotalSeconds() / 60, rs.getInt(3), context);
+                        if (!storedInCutoverGap) {
+                            assertEquals(expected, rs.getObject(4, OffsetDateTime.class), context);
+                            assertEquals(expected, ((SQLServerResultSet) rs).getDateTimeOffset(4).getOffsetDateTime(),
+                                    context);
+                        }
                         assertFalse(rs.next(), context);
                     }
                 }
             }
         }
+    }
+
+    // DateTimeOffset uses the hybrid calendar, which has no 1582-10-05 through 1582-10-14 UTC dates.
+    private static boolean isInHybridCutoverGap(OffsetDateTime value) {
+        LocalDate utcDate = value.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
+        return !utcDate.isBefore(LocalDate.of(1582, 10, 5)) && !utcDate.isAfter(LocalDate.of(1582, 10, 14));
     }
 
     static LocalDateTime getUnstorableValue() throws Exception {

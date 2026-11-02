@@ -746,7 +746,7 @@ final class DTV {
                     // time zone is UTC. For other values, the calendar's time zone is a local time zone.
                     calendar = new GregorianCalendar(timeZone, Locale.US);
 
-                    if (JavaType.OFFSETDATETIME == javaType || JavaType.DATETIMEOFFSET == javaType) {
+                    if (JavaType.OFFSETDATETIME == javaType) {
                         calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
                     }
 
