@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.sql.Connection;
@@ -112,9 +113,25 @@ class SQLServerQueryNotificationListenerTest {
         assertEquals("key", notification.getUserData());
         InOrder order = Mockito.inOrder(receiveStatement, endConversationStatement, connection);
         order.verify(receiveStatement).executeQuery("receive");
+        Mockito.verify(receiveStatement).setQueryTimeout(0);
         order.verify(connection).prepareStatement("END CONVERSATION ?");
         order.verify(endConversationStatement).executeUpdate();
         order.verify(connection).commit();
+    }
+
+    @Test
+    void stopCancelsActiveReceiveStatement() throws Exception {
+        DataSource dataSource = Mockito.mock(DataSource.class);
+        Statement statement = Mockito.mock(Statement.class);
+        SQLServerQueryNotificationListener listener =
+                new SQLServerQueryNotificationListener(dataSource, "queue", Runnable::run);
+        Field receiveStatement = SQLServerQueryNotificationListener.class.getDeclaredField("receiveStatement");
+        receiveStatement.setAccessible(true);
+        receiveStatement.set(listener, statement);
+
+        listener.stop();
+
+        Mockito.verify(statement).cancel();
     }
 
     @Test

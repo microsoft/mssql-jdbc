@@ -52,7 +52,7 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
     private final AtomicBoolean started = new AtomicBoolean();
     private final AtomicBoolean running = new AtomicBoolean();
 
-    private volatile Connection receiveConnection;
+    private volatile Statement receiveStatement;
     private volatile Thread receiveThread;
     private volatile SQLServerException lastException;
 
@@ -173,7 +173,7 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
     /** Stops the receive loop and releases its dedicated connection and driver-owned executor. */
     public synchronized void stop() {
         running.set(false);
-        closeReceiveConnection();
+        cancelReceiveStatement();
         Thread thread = receiveThread;
         if (null != thread) {
             thread.interrupt();
@@ -192,7 +192,6 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
         try {
             while (running.get()) {
                 try (Connection connection = dataSource.getConnection()) {
-                    receiveConnection = connection;
                     connection.setAutoCommit(false);
                     receive(connection);
                 } catch (SQLException e) {
@@ -200,8 +199,6 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
                         reportError(toSQLServerException(e));
                         waitBeforeReconnect();
                     }
-                } finally {
-                    receiveConnection = null;
                 }
             }
         } finally {
@@ -230,13 +227,18 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
             String conversationHandle = null;
             String messageType = null;
             String payload = null;
-            try (Statement statement = connection.createStatement();
-                    ResultSet resultSet = statement.executeQuery(receiveSql)) {
-                if (resultSet.next()) {
-                    conversationHandle = resultSet.getString(1);
-                    messageType = resultSet.getString(2);
-                    payload = resultSet.getString(3);
+            try (Statement statement = connection.createStatement()) {
+                receiveStatement = statement;
+                statement.setQueryTimeout(0);
+                try (ResultSet resultSet = statement.executeQuery(receiveSql)) {
+                    if (resultSet.next()) {
+                        conversationHandle = resultSet.getString(1);
+                        messageType = resultSet.getString(2);
+                        payload = resultSet.getString(3);
+                    }
                 }
+            } finally {
+                receiveStatement = null;
             }
 
             if (null != conversationHandle) {
@@ -326,14 +328,14 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
         }
     }
 
-    private void closeReceiveConnection() {
-        Connection connection = receiveConnection;
-        if (null != connection) {
+    private void cancelReceiveStatement() {
+        Statement statement = receiveStatement;
+        if (null != statement) {
             try {
-                connection.close();
+                statement.cancel();
             } catch (SQLException e) {
                 if (logger.isLoggable(Level.FINER)) {
-                    logger.log(Level.FINER, "Error closing Query Notification receive connection.", e);
+                    logger.log(Level.FINER, "Error cancelling Query Notification receive statement.", e);
                 }
             }
         }
