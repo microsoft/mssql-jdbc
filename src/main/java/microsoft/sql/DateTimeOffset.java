@@ -5,9 +5,10 @@
 
 package microsoft.sql;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -85,7 +86,14 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
      */
     private DateTimeOffset(java.time.OffsetDateTime offsetDateTime) {
         int hundredNanos = ((offsetDateTime.getNano() + 50) / 100);
-        this.utcMillis = (offsetDateTime.toEpochSecond() * 1000) + (hundredNanos / HUNDRED_NANOS_PER_SECOND * 1000);
+        // Like values read from the server, utcMillis holds the UTC wall fields in the default hybrid calendar.
+        LocalDateTime utc = offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime()
+                .plusSeconds(hundredNanos / HUNDRED_NANOS_PER_SECOND);
+        GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"), Locale.US);
+        calendar.clear();
+        calendar.set(utc.getYear(), utc.getMonthValue() - 1, utc.getDayOfMonth(), utc.getHour(), utc.getMinute(),
+                utc.getSecond());
+        this.utcMillis = calendar.getTimeInMillis();
         this.nanos = 100 * (hundredNanos % HUNDRED_NANOS_PER_SECOND);
         this.minutesOffset = offsetDateTime.getOffset().getTotalSeconds() / 60;
     }
@@ -258,29 +266,17 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
      * @return OffsetDateTime equivalent to this DateTimeOffset object.
      */
     public java.time.OffsetDateTime getOffsetDateTime() {
-        // Format the offset as +hh:mm or -hh:mm. Zero offset is formatted as +00:00.
-        String formattedOffset = (minutesOffset < 0) ?
-                String.format(Locale.US, "-%1$02d:%2$02d", -minutesOffset / 60, -minutesOffset % 60) :
-                    String.format(Locale.US, "+%1$02d:%2$02d", minutesOffset / 60, minutesOffset % 60);
-
-        // Create a Calendar instance with the time zone set to GMT plus the formatted offset
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT" + formattedOffset), Locale.US);
-        // Initialize the calendar with the UTC milliseconds value
+        // Offset-local hybrid fields can be Julian-only dates such as 1500-02-29, so read UTC fields first.
+        GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"), Locale.US);
         calendar.setTimeInMillis(utcMillis);
-
-        // Extract the date and time components from the calendar
         int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH) + 1; // Calendar.MONTH is zero-based
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
-        int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        int minute = calendar.get(Calendar.MINUTE);
-        int second = calendar.get(Calendar.SECOND);
-
-        // Create the ZoneOffset from the minutesOffset
-        ZoneOffset offset = ZoneOffset.ofTotalSeconds(minutesOffset * 60);
-
-        // Create and return the OffsetDateTime
-        return OffsetDateTime.of(year, month, day, hour, minute, second, nanos, offset);
+        if (GregorianCalendar.BC == calendar.get(Calendar.ERA)) {
+            year = 1 - year;
+        }
+        LocalDateTime utc = LocalDateTime.of(year, calendar.get(Calendar.MONTH) + 1,
+                calendar.get(Calendar.DAY_OF_MONTH), calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE),
+                calendar.get(Calendar.SECOND), nanos);
+        return utc.atOffset(ZoneOffset.UTC).withOffsetSameInstant(ZoneOffset.ofTotalSeconds(minutesOffset * 60));
     }
     
     
