@@ -67,16 +67,23 @@ public interface ISQLServerStatement extends java.sql.Statement, Serializable {
      * @param request
      *        the Query Notification request, or {@code null}
      * @throws SQLServerException
-     *         if the statement is closed
+     *         if the statement is closed or the implementation does not support Query Notifications
      */
-    void setQueryNotificationRequest(SQLServerQueryNotificationRequest request) throws SQLServerException;
+    default void setQueryNotificationRequest(SQLServerQueryNotificationRequest request) throws SQLServerException {
+        SQLServerException.makeFromDriverError(null, this, SQLServerException.getErrString("R_notSupported"), null,
+                false);
+    }
 
     /**
      * Returns the SQL Server Query Notification request configured for this statement.
      *
      * @return the configured request, or {@code null}
      * @throws SQLServerException
-     *         if the statement is closed
+     *         if the statement is closed or the implementation does not support Query Notifications
      */
-    SQLServerQueryNotificationRequest getQueryNotificationRequest() throws SQLServerException;
+    default SQLServerQueryNotificationRequest getQueryNotificationRequest() throws SQLServerException {
+        SQLServerException.makeFromDriverError(null, this, SQLServerException.getErrString("R_notSupported"), null,
+                false);
+        return null;
+    }
 }

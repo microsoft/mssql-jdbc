@@ -17,6 +17,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -144,18 +145,21 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
             SQLServerException.makeFromDriverError(null, this,
                     SQLServerException.getErrString("R_invalidQueryNotificationListenerArgument"), null, false);
         }
-        listeners.computeIfAbsent(userData, key -> new CopyOnWriteArrayList<>()).addIfAbsent(listener);
+        listeners.compute(userData, (key, registered) -> {
+            CopyOnWriteArrayList<ISQLServerQueryNotificationListener> updated = null == registered
+                                                                                 ? new CopyOnWriteArrayList<>()
+                                                                                 : registered;
+            updated.addIfAbsent(listener);
+            return updated;
+        });
     }
 
     /** Removes a callback registration. */
     public void unregister(String userData, ISQLServerQueryNotificationListener listener) {
-        List<ISQLServerQueryNotificationListener> registered = listeners.get(userData);
-        if (null != registered) {
+        listeners.computeIfPresent(userData, (key, registered) -> {
             registered.remove(listener);
-            if (registered.isEmpty()) {
-                listeners.remove(userData, registered);
-            }
-        }
+            return registered.isEmpty() ? null : registered;
+        });
     }
 
     public boolean isRunning() {
@@ -168,10 +172,7 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
 
     /** Stops the receive loop and releases its dedicated connection and driver-owned executor. */
     public void stop() {
-        if (!running.getAndSet(false)) {
-            return;
-        }
-
+        running.set(false);
         closeReceiveConnection();
         Thread thread = receiveThread;
         if (null != thread) {
@@ -188,18 +189,23 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
     }
 
     private void receiveLoop() {
-        while (running.get()) {
-            try (Connection connection = dataSource.getConnection()) {
-                receiveConnection = connection;
-                receive(connection);
-            } catch (SQLException e) {
-                if (running.get()) {
-                    reportError(toSQLServerException(e));
-                    waitBeforeReconnect();
+        try {
+            while (running.get()) {
+                try (Connection connection = dataSource.getConnection()) {
+                    receiveConnection = connection;
+                    connection.setAutoCommit(false);
+                    receive(connection);
+                } catch (SQLException e) {
+                    if (running.get()) {
+                        reportError(toSQLServerException(e));
+                        waitBeforeReconnect();
+                    }
+                } finally {
+                    receiveConnection = null;
                 }
-            } finally {
-                receiveConnection = null;
             }
+        } finally {
+            running.set(false);
         }
     }
 
@@ -209,24 +215,51 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
                 + RECEIVE_TIMEOUT_MILLISECONDS;
 
         while (running.get()) {
-            try (Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(receiveSql)) {
-                if (!resultSet.next()) {
-                    continue;
-                }
+            SQLServerQueryNotification notification = receiveNext(connection, receiveSql);
+            if (null != notification) {
+                dispatch(notification);
+            }
+        }
+    }
 
-                String conversationHandle = resultSet.getString(1);
-                String messageType = resultSet.getString(2);
-                String payload = resultSet.getString(3);
-                endConversation(connection, conversationHandle);
-
-                if (QUERY_NOTIFICATION_MESSAGE_TYPE.equalsIgnoreCase(messageType)) {
-                    try {
-                        dispatch(SQLServerQueryNotificationParser.parse(payload));
-                    } catch (SQLServerException e) {
-                        reportError(e);
-                    }
+    SQLServerQueryNotification receiveNext(Connection connection, String receiveSql) throws SQLException {
+        SQLServerQueryNotification notification = null;
+        SQLServerException parseException = null;
+        boolean committed = false;
+        try {
+            String conversationHandle = null;
+            String messageType = null;
+            String payload = null;
+            try (Statement statement = connection.createStatement();
+                    ResultSet resultSet = statement.executeQuery(receiveSql)) {
+                if (resultSet.next()) {
+                    conversationHandle = resultSet.getString(1);
+                    messageType = resultSet.getString(2);
+                    payload = resultSet.getString(3);
                 }
             }
+
+            if (null != conversationHandle) {
+                if (QUERY_NOTIFICATION_MESSAGE_TYPE.equalsIgnoreCase(messageType)) {
+                    try {
+                        notification = SQLServerQueryNotificationParser.parse(payload);
+                    } catch (SQLServerException e) {
+                        parseException = e;
+                    }
+                }
+                endConversation(connection, conversationHandle);
+            }
+            connection.commit();
+            committed = true;
+            if (null != parseException) {
+                throw parseException;
+            }
+            return notification;
+        } catch (SQLException e) {
+            if (!committed) {
+                rollback(connection, e);
+            }
+            throw e;
         }
     }
 
@@ -244,7 +277,7 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
         }
 
         for (ISQLServerQueryNotificationListener listener : registered) {
-            callbackExecutor.execute(() -> {
+            executeCallback(() -> {
                 try {
                     listener.onNotification(notification);
                 } catch (RuntimeException e) {
@@ -260,7 +293,7 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
         lastException = exception;
         for (List<ISQLServerQueryNotificationListener> registered : listeners.values()) {
             for (ISQLServerQueryNotificationListener listener : registered) {
-                callbackExecutor.execute(() -> {
+                executeCallback(() -> {
                     try {
                         listener.onError(exception);
                     } catch (RuntimeException e) {
@@ -270,6 +303,18 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
                     }
                 });
             }
+        }
+    }
+
+    private void executeCallback(Runnable callback) {
+        try {
+            callbackExecutor.execute(callback);
+        } catch (RejectedExecutionException e) {
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "Query Notification callback executor rejected a callback; running inline.",
+                        e);
+            }
+            callback.run();
         }
     }
 
@@ -334,13 +379,31 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
     public static void dropServiceBrokerObjects(DataSource dataSource, String queueName, String serviceName)
             throws SQLException {
         validateProvisioningArguments(dataSource, queueName, serviceName);
-        try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
-            if (objectExists(connection, "SELECT 1 FROM sys.services WHERE name = ?", serviceName)) {
-                statement.executeUpdate("DROP SERVICE " + Util.escapeSQLId(serviceName));
+        try (Connection connection = dataSource.getConnection()) {
+            boolean originalAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try (Statement statement = connection.createStatement()) {
+                if (objectExists(connection, "SELECT 1 FROM sys.services WHERE name = ?", serviceName)) {
+                    statement.executeUpdate("DROP SERVICE " + Util.escapeSQLId(serviceName));
+                }
+                if (objectExists(connection, "SELECT 1 FROM sys.service_queues WHERE name = ?", queueName)) {
+                    statement.executeUpdate("DROP QUEUE " + Util.escapeSQLId(queueName));
+                }
+                connection.commit();
+            } catch (SQLException e) {
+                rollback(connection, e);
+                throw e;
+            } finally {
+                connection.setAutoCommit(originalAutoCommit);
             }
-            if (objectExists(connection, "SELECT 1 FROM sys.service_queues WHERE name = ?", queueName)) {
-                statement.executeUpdate("DROP QUEUE " + Util.escapeSQLId(queueName));
-            }
+        }
+    }
+
+    private static void rollback(Connection connection, SQLException originalException) {
+        try {
+            connection.rollback();
+        } catch (SQLException rollbackException) {
+            originalException.addSuppressed(rollbackException);
         }
     }
 

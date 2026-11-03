@@ -6,13 +6,22 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.mockito.Mockito;
 
 
@@ -47,5 +56,108 @@ class SQLServerQueryNotificationListenerTest {
                 new SQLServerQueryNotificationListener(dataSource, "queue", Runnable::run);
         assertThrows(SQLServerException.class, () -> listener.register(null, notification -> {}));
         assertThrows(SQLServerException.class, () -> listener.register("key", null));
+    }
+
+    @Test
+    void fallsBackToInlineCallbackWhenExecutorRejects() throws SQLServerException {
+        DataSource dataSource = Mockito.mock(DataSource.class);
+        Executor rejectingExecutor = command -> {
+            throw new RejectedExecutionException("rejected");
+        };
+        SQLServerQueryNotificationListener listener =
+                new SQLServerQueryNotificationListener(dataSource, "queue", rejectingExecutor);
+        AtomicInteger callbackCount = new AtomicInteger();
+        listener.register("key", notification -> callbackCount.incrementAndGet());
+
+        listener.dispatch(new SQLServerQueryNotification("key", "change", "data", "insert", 1, 2));
+
+        assertEquals(1, callbackCount.get());
+    }
+
+    @Test
+    void commitsReceiveAndConversationBeforeReturningNotification() throws Exception {
+        DataSource dataSource = Mockito.mock(DataSource.class);
+        Connection connection = Mockito.mock(Connection.class);
+        Statement receiveStatement = Mockito.mock(Statement.class);
+        PreparedStatement endConversationStatement = Mockito.mock(PreparedStatement.class);
+        ResultSet resultSet = Mockito.mock(ResultSet.class);
+        SQLServerQueryNotificationListener listener =
+                new SQLServerQueryNotificationListener(dataSource, "queue", Runnable::run);
+        String payload = "<QueryNotification id=\"1\" type=\"change\" source=\"data\" info=\"insert\" "
+                + "database_id=\"2\"><Message>key</Message></QueryNotification>";
+
+        Mockito.when(connection.createStatement()).thenReturn(receiveStatement);
+        Mockito.when(receiveStatement.executeQuery("receive")).thenReturn(resultSet);
+        Mockito.when(resultSet.next()).thenReturn(true);
+        Mockito.when(resultSet.getString(1)).thenReturn("conversation");
+        Mockito.when(resultSet.getString(2))
+                .thenReturn("http://schemas.microsoft.com/SQL/Notifications/QueryNotification");
+        Mockito.when(resultSet.getString(3)).thenReturn(payload);
+        Mockito.when(connection.prepareStatement("END CONVERSATION ?")).thenReturn(endConversationStatement);
+
+        SQLServerQueryNotification notification = listener.receiveNext(connection, "receive");
+
+        assertEquals("key", notification.getUserData());
+        InOrder order = Mockito.inOrder(receiveStatement, endConversationStatement, connection);
+        order.verify(receiveStatement).executeQuery("receive");
+        order.verify(connection).prepareStatement("END CONVERSATION ?");
+        order.verify(endConversationStatement).executeUpdate();
+        order.verify(connection).commit();
+    }
+
+    @Test
+    void rollsBackReceiveWhenConversationCleanupFails() throws Exception {
+        DataSource dataSource = Mockito.mock(DataSource.class);
+        Connection connection = Mockito.mock(Connection.class);
+        Statement receiveStatement = Mockito.mock(Statement.class);
+        PreparedStatement endConversationStatement = Mockito.mock(PreparedStatement.class);
+        ResultSet resultSet = Mockito.mock(ResultSet.class);
+        SQLServerQueryNotificationListener listener =
+                new SQLServerQueryNotificationListener(dataSource, "queue", Runnable::run);
+
+        Mockito.when(connection.createStatement()).thenReturn(receiveStatement);
+        Mockito.when(receiveStatement.executeQuery("receive")).thenReturn(resultSet);
+        Mockito.when(resultSet.next()).thenReturn(true);
+        Mockito.when(resultSet.getString(1)).thenReturn("conversation");
+        Mockito.when(resultSet.getString(2)).thenReturn("other-message-type");
+        Mockito.when(connection.prepareStatement("END CONVERSATION ?")).thenReturn(endConversationStatement);
+        SQLException cleanupException = new SQLException("cleanup failed");
+        Mockito.when(endConversationStatement.executeUpdate()).thenThrow(cleanupException);
+
+        SQLException thrown = assertThrows(SQLException.class, () -> listener.receiveNext(connection, "receive"));
+
+        assertSame(cleanupException, thrown);
+        Mockito.verify(connection).rollback();
+        Mockito.verify(connection, Mockito.never()).commit();
+    }
+
+    @Test
+    void dropBrokerObjectsCommitsAndRestoresAutoCommit() throws Exception {
+        DataSource dataSource = Mockito.mock(DataSource.class);
+        Connection connection = Mockito.mock(Connection.class);
+        Statement statement = Mockito.mock(Statement.class);
+        PreparedStatement serviceCheck = Mockito.mock(PreparedStatement.class);
+        PreparedStatement queueCheck = Mockito.mock(PreparedStatement.class);
+        ResultSet serviceResult = Mockito.mock(ResultSet.class);
+        ResultSet queueResult = Mockito.mock(ResultSet.class);
+
+        Mockito.when(dataSource.getConnection()).thenReturn(connection);
+        Mockito.when(connection.getAutoCommit()).thenReturn(false);
+        Mockito.when(connection.createStatement()).thenReturn(statement);
+        Mockito.when(connection.prepareStatement("SELECT 1 FROM sys.services WHERE name = ?"))
+                .thenReturn(serviceCheck);
+        Mockito.when(connection.prepareStatement("SELECT 1 FROM sys.service_queues WHERE name = ?"))
+                .thenReturn(queueCheck);
+        Mockito.when(serviceCheck.executeQuery()).thenReturn(serviceResult);
+        Mockito.when(queueCheck.executeQuery()).thenReturn(queueResult);
+        Mockito.when(serviceResult.next()).thenReturn(false);
+        Mockito.when(queueResult.next()).thenReturn(false);
+
+        SQLServerQueryNotificationListener.dropServiceBrokerObjects(dataSource, "queue", "service");
+
+        InOrder order = Mockito.inOrder(connection);
+        order.verify(connection).setAutoCommit(false);
+        order.verify(connection).commit();
+        order.verify(connection).setAutoCommit(false);
     }
 }

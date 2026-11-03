@@ -6,12 +6,25 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.lang.reflect.Method;
 
 import org.junit.jupiter.api.Test;
 
 
 class SQLServerQueryNotificationRequestTest {
+    @Test
+    void statementExtensionMethodsRemainBinaryCompatibleDefaults() throws NoSuchMethodException {
+        Method setter = ISQLServerStatement.class.getMethod("setQueryNotificationRequest",
+                SQLServerQueryNotificationRequest.class);
+        Method getter = ISQLServerStatement.class.getMethod("getQueryNotificationRequest");
+
+        assertTrue(setter.isDefault());
+        assertTrue(getter.isDefault());
+    }
+
     @Test
     void constructorPreservesValues() throws SQLServerException {
         SQLServerQueryNotificationRequest request = new SQLServerQueryNotificationRequest("cache-key",
