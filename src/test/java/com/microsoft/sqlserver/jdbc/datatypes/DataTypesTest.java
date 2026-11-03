@@ -1950,6 +1950,13 @@ public class DataTypesTest extends AbstractTest {
         assertEquals(expected, DateTimeOffset.valueOf(roundUp).getOffsetDateTime());
         assertEquals(expected, DateTimeOffset.valueOf(roundDown).getOffsetDateTime());
     }
+
+    @Test
+    public void testDateTimeOffsetValueOfOffsetDateTimeRoundsAcrossJulianLeapDay() {
+        OffsetDateTime roundUp = OffsetDateTime.parse("1500-02-28T23:59:59.99999995Z");
+
+        assertEquals(OffsetDateTime.parse("1500-03-01T00:00:00Z"), DateTimeOffset.valueOf(roundUp).getOffsetDateTime());
+    }
     
     @Test
     public void testPreGregorianDateTime() throws Exception {
@@ -1990,7 +1997,7 @@ public class DataTypesTest extends AbstractTest {
     @CsvSource({"0001-01-01T14:00:00+14:00,7", "9999-12-31T09:59:59-14:00,7", "1500-06-15T12:00:00.1234567+05:45,7",
             "1500-06-15T12:00:00.1234567-08:00,7", "1582-10-04T23:30:00-08:00,7", "1582-10-05T00:00:00Z,7",
             "1582-10-10T12:00:00+05:45,7", "1582-10-14T23:30:00-08:00,7", "1582-10-15T00:30:00+14:00,7",
-            "2000-02-29T12:00:00.1234567+05:45,7", "1500-06-15T12:00:00.1234567+05:45,3",
+            "1500-03-01T00:30:00+14:00,7", "1500-02-28T23:30:00-08:00,7", "2000-02-29T12:00:00.1234567+05:45,7", "1500-06-15T12:00:00.1234567+05:45,3",
             "1500-06-15T12:00:00.1235567-08:00,3", "1582-10-04T23:59:59.9999999Z,3"})
     public void testDateTimeOffsetParameterStorageOffsetsAndPrecision(String text, int scale) throws Exception {
         verifyDateTimeOffsetParameterStorage(text, scale);

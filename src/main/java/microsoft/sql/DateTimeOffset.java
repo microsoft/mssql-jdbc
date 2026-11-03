@@ -87,12 +87,13 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
     private DateTimeOffset(java.time.OffsetDateTime offsetDateTime) {
         int hundredNanos = ((offsetDateTime.getNano() + 50) / 100);
         // Like values read from the server, utcMillis holds the UTC wall fields in the default hybrid calendar.
-        LocalDateTime utc = offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime();
+        LocalDateTime utc = offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime()
+                .plusSeconds(hundredNanos / HUNDRED_NANOS_PER_SECOND);
         GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"), Locale.US);
         calendar.clear();
         calendar.set(utc.getYear(), utc.getMonthValue() - 1, utc.getDayOfMonth(), utc.getHour(), utc.getMinute(),
                 utc.getSecond());
-        this.utcMillis = calendar.getTimeInMillis() + (hundredNanos / HUNDRED_NANOS_PER_SECOND * 1000);
+        this.utcMillis = calendar.getTimeInMillis();
         this.nanos = 100 * (hundredNanos % HUNDRED_NANOS_PER_SECOND);
         this.minutesOffset = offsetDateTime.getOffset().getTotalSeconds() / 60;
     }
