@@ -50,7 +50,7 @@ public class SQLServerQueryNotificationIntegrationTest extends AbstractTest {
             brokerObjectsCreated = true;
 
             String options = "service=" + serviceName + ";local database=" + testConnection.getCatalog();
-            AtomicReference<SQLServerException> listenerError = new AtomicReference<>();
+            AtomicReference<Throwable> listenerError = new AtomicReference<>();
             listener = new SQLServerQueryNotificationListener(dataSource, queueName, Runnable::run);
 
             CountDownLatch statementNotification = new CountDownLatch(1);
@@ -98,7 +98,7 @@ public class SQLServerQueryNotificationIntegrationTest extends AbstractTest {
             }
             try (Connection cleanupConnection = dataSource.getConnection();
                     Statement cleanup = cleanupConnection.createStatement()) {
-                cleanup.executeUpdate("DROP TABLE IF EXISTS " + escapedTableName);
+                TestUtils.dropTableWithSchemaIfExists(escapedTableName, cleanup);
             }
         }
     }
@@ -112,7 +112,7 @@ public class SQLServerQueryNotificationIntegrationTest extends AbstractTest {
     }
 
     private static void awaitCount(CountDownLatch latch, long expectedRemaining,
-            AtomicReference<SQLServerException> error, String message) throws Exception {
+            AtomicReference<Throwable> error, String message) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(NOTIFICATION_TIMEOUT_SECONDS);
         while (latch.getCount() > expectedRemaining && System.nanoTime() < deadline) {
             if (null != error.get()) {
@@ -120,10 +120,13 @@ public class SQLServerQueryNotificationIntegrationTest extends AbstractTest {
             }
             Thread.sleep(50);
         }
+        if (null != error.get()) {
+            fail(error.get());
+        }
         assertTrue(latch.getCount() <= expectedRemaining, message);
     }
 
-    private static void awaitNotification(CountDownLatch latch, AtomicReference<SQLServerException> error,
+    private static void awaitNotification(CountDownLatch latch, AtomicReference<Throwable> error,
             String message) throws Exception {
         assertTrue(latch.await(NOTIFICATION_TIMEOUT_SECONDS, TimeUnit.SECONDS), message);
         if (null != error.get()) {
@@ -141,16 +144,25 @@ public class SQLServerQueryNotificationIntegrationTest extends AbstractTest {
 
     private static final class TestNotificationListener implements ISQLServerQueryNotificationListener {
         private final CountDownLatch latch;
-        private final AtomicReference<SQLServerException> error;
+        private final AtomicReference<Throwable> error;
 
-        private TestNotificationListener(CountDownLatch latch, AtomicReference<SQLServerException> error) {
+        private TestNotificationListener(CountDownLatch latch, AtomicReference<Throwable> error) {
             this.latch = latch;
             this.error = error;
         }
 
         @Override
         public void onNotification(SQLServerQueryNotification notification) {
-            latch.countDown();
+            if ("change".equalsIgnoreCase(notification.getType())
+                    && "data".equalsIgnoreCase(notification.getSource())
+                    && "update".equalsIgnoreCase(notification.getInfo())) {
+                latch.countDown();
+            } else {
+                error.compareAndSet(null,
+                        new AssertionError("Unexpected Query Notification: type=" + notification.getType()
+                                + ", source=" + notification.getSource() + ", info=" + notification.getInfo()));
+                latch.countDown();
+            }
         }
 
         @Override
