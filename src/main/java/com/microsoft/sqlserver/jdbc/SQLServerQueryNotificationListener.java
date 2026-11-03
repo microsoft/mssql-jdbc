@@ -177,6 +177,7 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
         Thread thread = receiveThread;
         if (null != thread) {
             thread.interrupt();
+            waitForReceiveThread(thread);
         }
         if (null != ownedCallbackExecutor) {
             ownedCallbackExecutor.shutdown();
@@ -338,6 +339,24 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
                     logger.log(Level.FINER, "Error cancelling Query Notification receive statement.", e);
                 }
             }
+        }
+    }
+
+    private void waitForReceiveThread(Thread thread) {
+        if (thread == Thread.currentThread()) {
+            return;
+        }
+
+        boolean interrupted = false;
+        while (thread.isAlive()) {
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                interrupted = true;
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
         }
     }
 

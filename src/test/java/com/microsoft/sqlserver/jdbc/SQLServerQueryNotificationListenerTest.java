@@ -6,6 +6,7 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,8 +19,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
@@ -132,6 +135,35 @@ class SQLServerQueryNotificationListenerTest {
         listener.stop();
 
         Mockito.verify(statement).cancel();
+    }
+
+    @Test
+    void stopWaitsForReceiveThreadToTerminate() throws Exception {
+        DataSource dataSource = Mockito.mock(DataSource.class);
+        SQLServerQueryNotificationListener listener =
+                new SQLServerQueryNotificationListener(dataSource, "queue", Runnable::run);
+        CountDownLatch started = new CountDownLatch(1);
+        Thread receiveThread = new Thread(() -> {
+            started.countDown();
+            try {
+                Thread.sleep(TimeUnit.SECONDS.toMillis(30));
+            } catch (InterruptedException e) {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        });
+        Field receiveThreadField = SQLServerQueryNotificationListener.class.getDeclaredField("receiveThread");
+        receiveThreadField.setAccessible(true);
+        receiveThreadField.set(listener, receiveThread);
+        receiveThread.start();
+        assertTrue(started.await(5, TimeUnit.SECONDS));
+
+        listener.stop();
+
+        assertFalse(receiveThread.isAlive());
     }
 
     @Test
