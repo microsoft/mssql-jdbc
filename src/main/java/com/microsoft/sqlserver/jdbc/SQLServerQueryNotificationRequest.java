@@ -20,7 +20,7 @@ public final class SQLServerQueryNotificationRequest implements Serializable {
     private static final long serialVersionUID = 5076534975097907508L;
 
     static final int MAX_STRING_LENGTH = 32767;
-    static final int MAX_TIMEOUT_SECONDS = 4294967;
+    static final int MAX_TIMEOUT_SECONDS = Integer.MAX_VALUE;
 
     private final String userData;
     private final String options;
@@ -87,10 +87,6 @@ public final class SQLServerQueryNotificationRequest implements Serializable {
      */
     public int getTimeout() {
         return timeout;
-    }
-
-    int getTimeoutMilliseconds() {
-        return timeout * 1000;
     }
 
     int getHeaderLength() {

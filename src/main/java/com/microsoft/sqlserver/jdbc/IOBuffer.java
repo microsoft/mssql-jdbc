@@ -3481,7 +3481,7 @@ final class TDSWriter {
                 writeString(queryNotificationRequest.getUserData());
                 writeShort((short) (2 * queryNotificationRequest.getOptions().length()));
                 writeString(queryNotificationRequest.getOptions());
-                writeInt(queryNotificationRequest.getTimeoutMilliseconds());
+                writeInt(queryNotificationRequest.getTimeout());
             }
             writeInt(TDS.MARS_HEADER_LENGTH); // MARS header length (DWORD)
             writeShort((short) 2); // allHeaders.HeaderType(MARS header) (USHORT)

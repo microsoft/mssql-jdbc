@@ -8,7 +8,10 @@ package com.microsoft.sqlserver.jdbc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,6 +29,15 @@ import org.mockito.Mockito;
 
 
 class SQLServerQueryNotificationListenerTest {
+    @Test
+    void synchronizesStartupAndShutdown() throws NoSuchMethodException {
+        Method start = SQLServerQueryNotificationListener.class.getMethod("start");
+        Method stop = SQLServerQueryNotificationListener.class.getMethod("stop");
+
+        assertTrue(Modifier.isSynchronized(start.getModifiers()));
+        assertTrue(Modifier.isSynchronized(stop.getModifiers()));
+    }
+
     @Test
     void dispatchesRegisteredNotificationsAndSupportsUnregister() throws SQLServerException {
         DataSource dataSource = Mockito.mock(DataSource.class);
@@ -146,7 +158,8 @@ class SQLServerQueryNotificationListenerTest {
         Mockito.when(connection.createStatement()).thenReturn(statement);
         Mockito.when(connection.prepareStatement("SELECT 1 FROM sys.services WHERE name = ?"))
                 .thenReturn(serviceCheck);
-        Mockito.when(connection.prepareStatement("SELECT 1 FROM sys.service_queues WHERE name = ?"))
+        Mockito.when(connection.prepareStatement(
+                "SELECT 1 FROM sys.service_queues WHERE object_id = OBJECT_ID(?)"))
                 .thenReturn(queueCheck);
         Mockito.when(serviceCheck.executeQuery()).thenReturn(serviceResult);
         Mockito.when(queueCheck.executeQuery()).thenReturn(queueResult);
@@ -159,5 +172,6 @@ class SQLServerQueryNotificationListenerTest {
         order.verify(connection).setAutoCommit(false);
         order.verify(connection).commit();
         order.verify(connection).setAutoCommit(false);
+        Mockito.verify(queueCheck).setString(1, "[queue]");
     }
 }

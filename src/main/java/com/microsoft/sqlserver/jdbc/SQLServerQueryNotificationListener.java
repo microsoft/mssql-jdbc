@@ -119,7 +119,7 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
 
     private void verifyQueue() throws SQLServerException {
         try (Connection connection = dataSource.getConnection()) {
-            if (!objectExists(connection, "SELECT 1 FROM sys.service_queues WHERE name = ?", queueName)) {
+            if (!queueExists(connection, escapedQueueName)) {
                 SQLServerException.makeFromDriverError(null, this,
                         SQLServerException.getErrString("R_queryNotificationQueueNotFound"), null, false);
             }
@@ -171,7 +171,7 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
     }
 
     /** Stops the receive loop and releases its dedicated connection and driver-owned executor. */
-    public void stop() {
+    public synchronized void stop() {
         running.set(false);
         closeReceiveConnection();
         Thread thread = receiveThread;
@@ -358,7 +358,7 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
             boolean originalAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
             try (Statement statement = connection.createStatement()) {
-                if (!objectExists(connection, "SELECT 1 FROM sys.service_queues WHERE name = ?", queueName)) {
+                if (!queueExists(connection, escapedQueueName)) {
                     statement.executeUpdate("CREATE QUEUE " + escapedQueueName);
                 }
                 if (!objectExists(connection, "SELECT 1 FROM sys.services WHERE name = ?", serviceName)) {
@@ -386,7 +386,7 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
                 if (objectExists(connection, "SELECT 1 FROM sys.services WHERE name = ?", serviceName)) {
                     statement.executeUpdate("DROP SERVICE " + Util.escapeSQLId(serviceName));
                 }
-                if (objectExists(connection, "SELECT 1 FROM sys.service_queues WHERE name = ?", queueName)) {
+                if (queueExists(connection, Util.escapeSQLId(queueName))) {
                     statement.executeUpdate("DROP QUEUE " + Util.escapeSQLId(queueName));
                 }
                 connection.commit();
@@ -414,6 +414,11 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
                 return resultSet.next();
             }
         }
+    }
+
+    private static boolean queueExists(Connection connection, String escapedQueueName) throws SQLException {
+        return objectExists(connection, "SELECT 1 FROM sys.service_queues WHERE object_id = OBJECT_ID(?)",
+                escapedQueueName);
     }
 
     private static void validateProvisioningArguments(DataSource dataSource, String queueName, String serviceName)
