@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   - **What was added**: The `stringParameterDefaultLength` connection/DataSource property, with exact per-parameter growth and shared batch history for character and binary input declarations.
   - **Who benefits**: Applications wanting smaller input declarations without specifying a hint on every setter.
   - **Impact**: Disabled by default and bypassed for statements with Always Encrypted enabled for parameters, including those targeting unencrypted columns. Explicit hints, registered OUT/INOUT sizing, and large-value MAX handling remain authoritative.
+  - **Direct SQL compatibility**: Literal-only execution does not grow adaptive history. Existing `prepareMethod=none` fallback to unprepared RPC uses restored parameter types and row-ordered adaptive sizing without creating a prepared handle.
 
 ## [14.1.0] Preview Release
 

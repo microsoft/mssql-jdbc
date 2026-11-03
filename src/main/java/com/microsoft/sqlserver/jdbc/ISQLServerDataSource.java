@@ -554,13 +554,15 @@ public interface ISQLServerDataSource extends javax.sql.CommonDataSource {
      * </p>
      * <p>
      * Each prepared or callable input parameter retains its largest observed length separately per effective family.
-     * History grows during declaration resolution, is shared with batch snapshots, and survives clearParameters
+     * History grows during RPC declaration resolution, is shared with batch snapshots, and survives clearParameters
      * and clearBatch. New statements start fresh. Explicit defineParameterType declarations and usable positive
      * setObject length hints take precedence without updating this history. Registered OUT/INOUT parameters retain
      * existing sizing to avoid narrowing returned values. Statements with Always Encrypted enabled for parameters
      * bypass this setting entirely, including parameters targeting unencrypted columns. Streams with unmeasurable
      * values and explicitly unbounded types retain their existing behavior. Large actual values are not truncated
-     * to the configured floor.
+     * to the configured floor. Successful literal SQL execution does not grow adaptive history. If
+     * prepareMethod=none falls back to unprepared RPC, eligible inputs use this setting after restoring RPC types;
+     * no prepared handle is introduced.
      * </p>
      * The default implementation does nothing, retaining compatibility with third-party implementations.
      * {@link SQLServerDataSource} overrides this method to store the setting.

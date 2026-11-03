@@ -44,7 +44,7 @@ established history without shrinking it. Large actual values continue using LON
 the configured floor never truncates data. A bounded input promoted to MAX by its actual length
 also retains that observation across subsequent batch snapshots.
 
-History grows at declaration resolution, not at setter or `addBatch()` time. Overwritten values
+History grows at RPC declaration resolution, not at setter or `addBatch()` time. Overwritten values
 and discarded batch rows therefore do not increase it. `clearParameters()` and `clearBatch()`
 retain established observations. Different ordinals and new statements have independent history,
 even if the new statement reuses a cached prepared handle. Only lengths are shared across an
@@ -69,8 +69,30 @@ declarations remain authoritative.
   parameter encryption (`DISABLED` or `RESULTSET_ONLY`) allow eligible inputs to use adaptive sizing.
 - Streams and values whose lengths cannot be measured safely retain legacy sizing. Explicit
   LONG/LOB types and other unrelated types do not participate in adaptive history.
-- Bulk copy continues using destination-column metadata. `prepareMethod=none` continues sending
-  literal SQL; this setting does not change literal formatting or introduce prepared handles.
+- Bulk copy continues using destination-column metadata.
+- Successful literal SQL execution under `prepareMethod=none` does not grow adaptive history,
+  even if an internal declaration pass precedes literal formatting. If an unsupported literal
+  parameter (for example, a stream) triggers the existing fallback to unprepared `sp_executesql`,
+  eligible inputs use adaptive sizing after their normal RPC types are restored. The stream itself
+  retains legacy sizing. Subsequent executions remain unprepared RPCs; no prepared handle is created.
+  Procedure calls that already use RPC under `none` can also use adaptive sizing.
+- A parameter bound as native `JDBCType.JSON` does not contribute to character/binary adaptive
+  history; its existing declaration and large-value handling are unchanged. JSON text bound as
+  VARCHAR/NVARCHAR follows the ordinary character policy. In particular, the three-argument
+  `setObject(index, value, microsoft.sql.Types.JSON)` overload infers the type of a non-null String;
+  specifying JSON there is not equivalent to retaining a native JSON binding through another overload.
+
+For example, with floor 10, a successful literal execution containing a 31-character input does
+not raise adaptive history. If a later execution binds a one-character input alongside a stream,
+the existing RPC fallback declares the eligible input with length 10, then grows it to 13 and
+keeps 13 for subsequent lengths 13 and 2. With Unicode sending disabled, restored VARCHAR uses
+encoded bytes, not the temporary Unicode representation used for literal formatting. Existing
+sticky MAX declarations remain authoritative; skipping adaptive observations does not reset them.
+
+Fallback batches resolve snapshots in row order without a pre-scan. For NVARCHAR lengths
+`1, 13, 2, 4001, 2` with floor 10, declarations are `10, 13, 13, MAX, MAX` for both batch APIs.
+Fallback does not change explicit-hint precedence, AE/output exclusions, or existing retry and
+temporary-table scope rules.
 
 ### Example
 
