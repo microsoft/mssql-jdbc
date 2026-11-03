@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -352,6 +353,153 @@ public class AdaptiveParameterSizingConnectionTest extends AbstractTest {
                 assertEquals(0, statement.getPreparedStatementHandle());
             }
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testLiteralExecutionThenRpcFallbackRetainsOnlyRpcHistory(boolean unicode) throws Exception {
+        try (SQLServerConnection connection = openConnection(10, unicode)) {
+            connection.setPrepareMethod("none");
+            try (SQLServerPreparedStatement statement = (SQLServerPreparedStatement) connection
+                    .prepareStatement("SELECT ?, ?")) {
+                statement.setString(1, repeated(31));
+                statement.setBytes(2, new byte[] {7});
+                try (ResultSet result = statement.executeQuery()) {
+                    assertTrue(result.next());
+                    assertEquals(repeated(31), result.getString(1));
+                }
+                assertFalse(unpreparedRpc(statement));
+                assertEquals(10, statement.inOutParam[0].getLengthHistory().resolveLength(JDBCType.NVARCHAR, 10, 0));
+                assertEquals(10, statement.inOutParam[0].getLengthHistory().resolveLength(JDBCType.VARCHAR, 10, 0));
+                int[] lengths = {1, 13, 2};
+                int[] expected = {10, 13, 13};
+                for (int i = 0; i < lengths.length; i++) {
+                    statement.setString(1, repeated(lengths[i]));
+                    statement.setBinaryStream(2, new ByteArrayInputStream(new byte[] {7}), 1);
+                    try (ResultSet result = statement.executeQuery()) {
+                        assertTrue(result.next());
+                        assertEquals(repeated(lengths[i]), result.getString(1));
+                        assertArrayEquals(new byte[] {7}, result.getBytes(2));
+                    }
+                    assertTrue(unpreparedRpc(statement));
+                    assertEquals((unicode ? "nvarchar(" : "varchar(") + expected[i] + ")",
+                            definition(statement.inOutParam[0]));
+                    assertEquals("varbinary(max)", definition(statement.inOutParam[1]));
+                    assertEquals(0, statement.getPreparedStatementHandle());
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+    public void testRpcFallbackBatchGrowthAndMax(boolean unicode, boolean largeBatch) throws Exception {
+        int[] lengths = {1, 13, 2, unicode ? 4001 : 8001, 2};
+        String[] expected = {"10", "13", "13", "max", "max"};
+        try (SQLServerConnection connection = openConnection(10, unicode);
+                Statement setup = connection.createStatement()) {
+            setup.execute(
+                    "CREATE TABLE #AdaptiveRpcBatch (id int IDENTITY, payload nvarchar(max), data varbinary(max))");
+            connection.setPrepareMethod("none");
+            try (SQLServerPreparedStatement statement = (SQLServerPreparedStatement) connection
+                    .prepareStatement("INSERT INTO #AdaptiveRpcBatch (payload, data) VALUES (?, ?)")) {
+                for (int length : lengths) {
+                    statement.setString(1, repeated(length));
+                    statement.setBinaryStream(2, new ByteArrayInputStream(new byte[] {7}), 1);
+                    statement.addBatch();
+                }
+                List<Parameter[]> rows = new ArrayList<>(statement.batchParamValues);
+                if (largeBatch) {
+                    assertArrayEquals(new long[] {1, 1, 1, 1, 1}, statement.executeLargeBatch());
+                } else {
+                    assertArrayEquals(new int[] {1, 1, 1, 1, 1}, statement.executeBatch());
+                }
+                assertTrue(unpreparedRpc(statement));
+                assertEquals(0, statement.getPreparedStatementHandle());
+                for (int i = 0; i < lengths.length; i++) {
+                    assertEquals((unicode ? "nvarchar(" : "varchar(") + expected[i] + ")", definition(rows.get(i)[0]),
+                            "row " + i);
+                }
+            }
+            try (ResultSet result = setup.executeQuery("SELECT payload, data FROM #AdaptiveRpcBatch ORDER BY id")) {
+                for (int length : lengths) {
+                    assertTrue(result.next());
+                    assertEquals(repeated(length), result.getString(1));
+                    assertArrayEquals(new byte[] {7}, result.getBytes(2));
+                }
+                assertFalse(result.next());
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 100})
+    public void testRpcFallbackPreservesHintsAndDisabledDefault(int floor) throws Exception {
+        try (SQLServerConnection connection = openConnection(floor, true)) {
+            connection.setPrepareMethod("none");
+            try (SQLServerPreparedStatement statement = (SQLServerPreparedStatement) connection
+                    .prepareStatement("SELECT ?, ?")) {
+                int[] lengths = {1, 213, 1};
+                int[] expected = {5, 213, floor == 0 ? 4000 : floor};
+                for (int i = 0; i < lengths.length; i++) {
+                    if (i < 2) {
+                        statement.setObject(1, repeated(lengths[i]), Types.NVARCHAR, 5);
+                    } else {
+                        statement.setNString(1, "x");
+                    }
+                    statement.setBinaryStream(2, new ByteArrayInputStream(new byte[] {7}), 1);
+                    try (ResultSet result = statement.executeQuery()) {
+                        assertTrue(result.next());
+                        assertEquals(repeated(lengths[i]), result.getString(1));
+                    }
+                    assertEquals("nvarchar(" + expected[i] + ")", definition(statement.inOutParam[0]));
+                    assertTrue(unpreparedRpc(statement));
+                    assertEquals(0, statement.getPreparedStatementHandle());
+                }
+                statement.defineParameterType(1, Types.NVARCHAR, 7);
+                statement.setObject(1, "x", Types.NVARCHAR, 3);
+                statement.setBinaryStream(2, new ByteArrayInputStream(new byte[] {7}), 1);
+                try (ResultSet result = statement.executeQuery()) {
+                    assertTrue(result.next());
+                    assertEquals("x", result.getString(1));
+                }
+                assertEquals("nvarchar(7)", definition(statement.inOutParam[0]));
+                statement.setNString(1, repeated(8));
+                statement.setBinaryStream(2, new ByteArrayInputStream(new byte[] {7}), 1);
+                assertThrows(SQLServerException.class, statement::executeQuery);
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testJsonTextUsesCharacterSizingDuringRpcFallback(boolean unicode) throws Exception {
+        try (SQLServerConnection connection = openConnection(10, unicode)) {
+            connection.setPrepareMethod("none");
+            try (SQLServerPreparedStatement statement = (SQLServerPreparedStatement) connection
+                    .prepareStatement("SELECT ?, ?")) {
+                int expected = 10;
+                for (String value : new String[] {"{}", "{\"v\":\"" + repeated(21) + "\"}", "{not json", "", null}) {
+                    statement.setObject(1, value, microsoft.sql.Types.JSON);
+                    statement.setBinaryStream(2, new ByteArrayInputStream(new byte[] {7}), 1);
+                    expected = Math.max(expected, null == value ? 0 : value.length());
+                    try (ResultSet result = statement.executeQuery()) {
+                        assertTrue(result.next());
+                        assertEquals(value, result.getString(1));
+                    }
+                    assertEquals((unicode ? "nvarchar(" : "varchar(") + expected + ")",
+                            definition(statement.inOutParam[0]));
+                    assertTrue(unpreparedRpc(statement));
+                    assertEquals(0, statement.getPreparedStatementHandle());
+                }
+            }
+        }
+    }
+
+    private static boolean unpreparedRpc(SQLServerPreparedStatement statement) throws Exception {
+        Field field = SQLServerPreparedStatement.class.getDeclaredField("useUnpreparedRpc");
+        field.setAccessible(true);
+        return field.getBoolean(statement);
     }
 
     private static SQLServerConnection openConnection(int floor, boolean unicode) throws Exception {

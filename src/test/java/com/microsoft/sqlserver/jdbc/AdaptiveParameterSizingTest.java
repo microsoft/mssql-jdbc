@@ -168,6 +168,140 @@ public class AdaptiveParameterSizingTest {
         assertEquals("varchar(8000)", parameter.getTypeDefinition(connection, null));
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testDirectSqlDoesNotGrowHistoryBeforeRpcRestoration(boolean unicode) throws Exception {
+        SQLServerConnection connection = connection(unicode, 10);
+        Parameter parameter = new Parameter(false, true);
+        parameter.setValue(JDBCType.VARCHAR, repeated(31), JavaType.STRING, null, null, null, null, connection, false,
+                SQLServerStatementColumnEncryptionSetting.DISABLED, 1, "SELECT ?", null, true);
+        parameter.getTypeDefinition(connection, null);
+        assertEquals(10, parameter.getLengthHistory().resolveLength(JDBCType.NVARCHAR, 10, 0));
+        assertEquals(10, parameter.getLengthHistory().resolveLength(JDBCType.VARCHAR, 10, 0));
+        parameter.restoreRpcType(connection);
+        assertEquals(unicode ? "nvarchar(31)" : "varchar(31)", parameter.getTypeDefinition(connection, null));
+        if (!unicode) {
+            set(parameter, connection, JDBCType.NVARCHAR, "x", null);
+            assertEquals("nvarchar(10)", parameter.getTypeDefinition(connection, null));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testDirectSqlMaxObservationIsSharedOnlyAfterRpcRestoration(boolean unicode) throws Exception {
+        SQLServerConnection connection = connection(unicode, 10);
+        for (JDBCType type : new JDBCType[] {JDBCType.VARCHAR, JDBCType.NVARCHAR, JDBCType.VARBINARY}) {
+            Parameter parameter = new Parameter(false, true);
+            boolean national = type == JDBCType.NVARCHAR || type == JDBCType.VARCHAR && unicode;
+            JDBCType effectiveType = national ? JDBCType.NVARCHAR : type;
+            int length = national ? 4001 : 8001;
+            Object value = type.isBinary() ? new byte[length] : repeated(length);
+            parameter.setValue(type, value, JavaType.of(value), null, null, null, null, connection, false,
+                    SQLServerStatementColumnEncryptionSetting.DISABLED, 1, "SELECT ?", null, true);
+            Parameter large = parameter.cloneForBatch();
+            // Single execution resolves declarations before discovering that literal substitution is unavailable.
+            large.getTypeDefinition(connection, null);
+            assertEquals(10, parameter.getLengthHistory().resolveLength(effectiveType, 10, 0));
+            set(parameter, connection, type, type.isBinary() ? new byte[1] : "x", null);
+            Parameter small = parameter.cloneForBatch();
+            large.restoreRpcType(connection);
+            String family = effectiveType.toString().toLowerCase(java.util.Locale.ENGLISH);
+            assertEquals(family + "(max)", large.getTypeDefinition(connection, null));
+            assertEquals(family + "(max)", small.getTypeDefinition(connection, null));
+        }
+    }
+
+    @Test
+    public void testRpcRestorationUsesEncodedByteLengthAndPreservesHints() throws Exception {
+        SQLServerConnection connection = connection(false, 1);
+        Parameter parameter = new Parameter(false, true);
+        parameter.setValue(JDBCType.VARCHAR, "\uD83D\uDE00", JavaType.STRING, null, null, null, null, connection, false,
+                SQLServerStatementColumnEncryptionSetting.DISABLED, 1, "SELECT ?", null, true);
+        parameter.getTypeDefinition(connection, null);
+        parameter.restoreRpcType(connection);
+        assertEquals("varchar(4)", parameter.getTypeDefinition(connection, null));
+        assertEquals(1, parameter.getLengthHistory().resolveLength(JDBCType.NVARCHAR, 1, 0));
+
+        parameter.setValue(JDBCType.VARCHAR, repeated(31), JavaType.STRING, null, null, null, 5, connection, false,
+                SQLServerStatementColumnEncryptionSetting.DISABLED, 1, "SELECT ?", null, true);
+        parameter.getTypeDefinition(connection, null);
+        parameter.restoreRpcType(connection);
+        assertEquals(Integer.valueOf(5), parameter.getInputDTV().getScale());
+        assertEquals("varchar(31)", parameter.getTypeDefinition(connection, null));
+        assertEquals(4, parameter.getLengthHistory().resolveLength(JDBCType.VARCHAR, 1, 0));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testRpcFallbackUnusableHintsNullsAndUnboundedTypes(boolean unicode) throws Exception {
+        SQLServerConnection connection = connection(unicode, 10);
+        for (Integer hint : new Integer[] {null, 0, -1}) {
+            Parameter parameter = new Parameter(false, true);
+            parameter.setValue(JDBCType.NVARCHAR, repeated(13), JavaType.STRING, null, null, null, hint, connection,
+                    false, SQLServerStatementColumnEncryptionSetting.DISABLED, 1, "SELECT ?", null, true);
+            parameter.getTypeDefinition(connection, null);
+            parameter.restoreRpcType(connection);
+            assertEquals("nvarchar(13)", parameter.getTypeDefinition(connection, null));
+            set(parameter, connection, JDBCType.NVARCHAR, null, null);
+            assertEquals("nvarchar(13)", parameter.getTypeDefinition(connection, null));
+        }
+        Parameter parameter = new Parameter(false, true);
+        parameter.setValue(JDBCType.LONGNVARCHAR, repeated(31), JavaType.STRING, null, null, null, null, connection,
+                false, SQLServerStatementColumnEncryptionSetting.DISABLED, 1, "SELECT ?", null, true);
+        Parameter row = parameter.cloneForBatch();
+        row.getTypeDefinition(connection, null);
+        row.restoreRpcType(connection);
+        assertEquals("nvarchar(max)", row.getTypeDefinition(connection, null));
+        assertEquals(10, parameter.getLengthHistory().resolveLength(JDBCType.NVARCHAR, 10, 0));
+        set(parameter, connection, JDBCType.NVARCHAR, "", null);
+        assertEquals("nvarchar(10)", parameter.getTypeDefinition(connection, null));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testRpcFallbackPreservesAEAndOutputExclusions(boolean ae) throws Exception {
+        SQLServerConnection connection = connection(true, 10);
+        Parameter parameter = new Parameter(ae, true);
+        Parameter legacy = new Parameter(ae);
+        for (Parameter input : new Parameter[] {parameter, legacy}) {
+            if (!ae) {
+                input.registerForOutput(JDBCType.NVARCHAR, connection);
+            }
+            input.setValue(JDBCType.NVARCHAR, repeated(31), JavaType.STRING, null, null, null, null, connection, false,
+                    SQLServerStatementColumnEncryptionSetting.DISABLED, 1, "SELECT ?", null, true);
+            input.getTypeDefinition(connection, null);
+            input.restoreRpcType(connection);
+        }
+        assertEquals(legacy.getTypeDefinition(connection, null), parameter.getTypeDefinition(connection, null));
+        if (ae) {
+            assertNull(parameter.getLengthHistory());
+        } else {
+            assertEquals(10, parameter.getLengthHistory().resolveLength(JDBCType.NVARCHAR, 10, 0));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testJsonBindingRetainsLegacySizingWithoutCharacterHistory(boolean direct) throws Exception {
+        SQLServerConnection connection = connection(true, 10);
+        for (String value : new String[] {null, "{}", "{\"v\":\"" + repeated(4001) + "\"}"}) {
+            Parameter parameter = new Parameter(false, true);
+            Parameter legacy = new Parameter(false);
+            for (Parameter input : new Parameter[] {parameter, legacy}) {
+                input.setValue(JDBCType.JSON, value, null == value ? JavaType.OBJECT : JavaType.STRING, null, null,
+                        null, null, connection, false, SQLServerStatementColumnEncryptionSetting.DISABLED, 1,
+                        "SELECT ?", null, direct);
+                input.getTypeDefinition(connection, null);
+                if (direct) {
+                    input.restoreRpcType(connection);
+                }
+            }
+            assertEquals(legacy.getTypeDefinition(connection, null), parameter.getTypeDefinition(connection, null));
+            assertEquals(10, parameter.getLengthHistory().resolveLength(JDBCType.NVARCHAR, 10, 0));
+            assertEquals(10, parameter.getLengthHistory().resolveLength(JDBCType.VARCHAR, 10, 0));
+        }
+    }
+
     private static SQLServerConnection connection(boolean unicode, int floor) throws SQLServerException {
         SQLServerConnection connection = mock(SQLServerConnection.class);
         SQLCollation collation = mock(SQLCollation.class);

@@ -83,6 +83,7 @@ final class Parameter {
     private int defineParameterTypeLengthHint = 0;
 
     private LengthHistory lengthHistory;
+    private JDBCType lengthHistoryJdbcType = JDBCType.UNKNOWN;
 
     LengthHistory getLengthHistory() {
         return lengthHistory;
@@ -384,6 +385,7 @@ final class Parameter {
         clonedParam.defineParameterTypeLengthHint = defineParameterTypeLengthHint;
         // Initialize on the original parameter so all snapshots share the same observations.
         clonedParam.lengthHistory = lengthHistory;
+        clonedParam.lengthHistoryJdbcType = lengthHistoryJdbcType;
         return clonedParam;
     }
 
@@ -562,10 +564,14 @@ final class Parameter {
         // Direct SQL also uses Unicode types internally to preserve text instead of encoded bytes.
         // Literal formatting still uses the connection's Unicode setting to choose the N prefix, unless the setter
         // requested a national character type. The setter's type is recorded before the re-tagging below.
+        JDBCType rpcJdbcType = jdbcType;
         directSqlSetterType = isDirectSqlExecution ? jdbcType : null;
         if ((con.sendStringParametersAsUnicode() || isDirectSqlExecution) && (JavaType.STRING == javaType
                 || JavaType.READER == javaType || JavaType.CLOB == javaType || JavaType.OBJECT == javaType)) {
             jdbcType = getSSPAUJDBCType(jdbcType);
+            if (con.sendStringParametersAsUnicode()) {
+                rpcJdbcType = jdbcType;
+            }
         }
 
         DTV newDTV = new DTV();
@@ -577,6 +583,10 @@ final class Parameter {
         }
 
         inputDTV = setterDTV = newDTV;
+        if (null != lengthHistory) {
+            // Keep the RPC family across literal-only retagging and repeated LONG promotion during resolution.
+            lengthHistoryJdbcType = rpcJdbcType;
+        }
     }
 
     boolean isNull() {
@@ -639,8 +649,7 @@ final class Parameter {
         GetTypeDefinitionOp(Parameter param, SQLServerConnection con) {
             this.param = param;
             this.con = con;
-            // Retain the effective family before executeOp promotes large values to LONG types.
-            inputJdbcType = param.getJdbcType();
+            inputJdbcType = param.lengthHistoryJdbcType;
         }
 
         private Integer getApplicationSpecifiedLengthHint(DTV dtv) throws SQLServerException {
@@ -779,7 +788,9 @@ final class Parameter {
 
         private Integer getConnectionDefaultLength(DTV dtv) throws SQLServerException {
             // AE-enabled statements retain their original workflow, even for metadata-confirmed plaintext inputs.
-            if (param.shouldHonorAEForParameter || null == param.lengthHistory || param.isOutput()
+            // Literal-only declaration passes must not observe values before RPC types have been restored.
+            if (param.shouldHonorAEForParameter || null == param.lengthHistory || null != param.directSqlSetterType
+                    || param.isOutput()
                     || 0 != param.defineParameterTypeSqlType || (null != dtv.getScale() && dtv.getScale() > 0)) {
                 return null;
             }
