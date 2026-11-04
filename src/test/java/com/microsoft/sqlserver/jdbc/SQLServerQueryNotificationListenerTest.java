@@ -7,6 +7,7 @@ package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -120,6 +121,34 @@ class SQLServerQueryNotificationListenerTest {
         order.verify(connection).prepareStatement("END CONVERSATION ?");
         order.verify(endConversationStatement).executeUpdate();
         order.verify(connection).commit();
+    }
+
+    @Test
+    void reportsInvalidPayloadWithoutReconnecting() throws Exception {
+        DataSource dataSource = Mockito.mock(DataSource.class);
+        Connection connection = Mockito.mock(Connection.class);
+        Statement receiveStatement = Mockito.mock(Statement.class);
+        PreparedStatement endConversationStatement = Mockito.mock(PreparedStatement.class);
+        ResultSet resultSet = Mockito.mock(ResultSet.class);
+        ISQLServerQueryNotificationListener callback = Mockito.mock(ISQLServerQueryNotificationListener.class);
+        SQLServerQueryNotificationListener listener =
+                new SQLServerQueryNotificationListener(dataSource, "queue", Runnable::run);
+        listener.register("key", callback);
+
+        Mockito.when(connection.createStatement()).thenReturn(receiveStatement);
+        Mockito.when(receiveStatement.executeQuery("receive")).thenReturn(resultSet);
+        Mockito.when(resultSet.next()).thenReturn(true);
+        Mockito.when(resultSet.getString(1)).thenReturn("conversation");
+        Mockito.when(resultSet.getString(2))
+                .thenReturn("http://schemas.microsoft.com/SQL/Notifications/QueryNotification");
+        Mockito.when(resultSet.getString(3)).thenReturn("<invalid/>");
+        Mockito.when(connection.prepareStatement("END CONVERSATION ?")).thenReturn(endConversationStatement);
+
+        SQLServerQueryNotification notification = listener.receiveNext(connection, "receive");
+
+        assertNull(notification);
+        Mockito.verify(connection).commit();
+        Mockito.verify(callback).onError(Mockito.any(SQLServerException.class));
     }
 
     @Test

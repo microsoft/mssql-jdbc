@@ -243,7 +243,7 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
             }
 
             if (null != conversationHandle) {
-                if (QUERY_NOTIFICATION_MESSAGE_TYPE.equalsIgnoreCase(messageType)) {
+                if (QUERY_NOTIFICATION_MESSAGE_TYPE.equals(messageType)) {
                     try {
                         notification = SQLServerQueryNotificationParser.parse(payload);
                     } catch (SQLServerException e) {
@@ -255,7 +255,8 @@ public final class SQLServerQueryNotificationListener implements AutoCloseable {
             connection.commit();
             committed = true;
             if (null != parseException) {
-                throw parseException;
+                reportError(parseException);
+                return null;
             }
             return notification;
         } catch (SQLException e) {

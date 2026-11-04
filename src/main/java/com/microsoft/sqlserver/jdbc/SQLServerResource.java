@@ -72,7 +72,7 @@ public final class SQLServerResource extends ListResourceBundle {
         {"R_invalidPortNumber", "The port number {0} is not valid."},
         {"R_invalidTimeOut", "The timeout {0} is not valid."},
         {"R_invalidQueryNotificationArgument", "The Query Notification argument {0} must contain between 1 and {1} characters."},
-        {"R_invalidQueryNotificationTimeout", "The Query Notification timeout must be between 0 and 4294967 seconds."},
+        {"R_invalidQueryNotificationTimeout", "The Query Notification timeout must be between 0 and 2147483647 seconds."},
         {"R_invalidQueryNotificationPayload", "The Service Broker Query Notification payload is invalid."},
         {"R_invalidQueryNotificationListenerArgument", "A Query Notification listener argument is null or empty."},
         {"R_queryNotificationListenerAlreadyStarted", "The Query Notification listener has already been started."},

@@ -1,4 +1,3 @@
-
 # Running Sample Applications
 
 The [querynotification](querynotification/README.md) sample explains how to register and consume low-level SQL Server
