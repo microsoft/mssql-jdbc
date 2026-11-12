@@ -1997,13 +1997,20 @@ public class DataTypesTest extends AbstractTest {
     @CsvSource({"0001-01-01T14:00:00+14:00,7", "9999-12-31T09:59:59-14:00,7", "1500-06-15T12:00:00.1234567+05:45,7",
             "1500-06-15T12:00:00.1234567-08:00,7", "1582-10-04T23:30:00-08:00,7", "1582-10-05T00:00:00Z,7",
             "1582-10-10T12:00:00+05:45,7", "1582-10-14T23:30:00-08:00,7", "1582-10-15T00:30:00+14:00,7",
-            "1500-03-01T00:30:00+14:00,7", "1500-02-28T23:30:00-08:00,7", "2000-02-29T12:00:00.1234567+05:45,7", "1500-06-15T12:00:00.1234567+05:45,3",
-            "1500-06-15T12:00:00.1235567-08:00,3", "1582-10-04T23:59:59.9999999Z,3"})
+            "1500-03-01T00:30:00+14:00,7", "1500-02-28T23:30:00-08:00,7", "2000-02-29T12:00:00.1234567+05:45,7",
+            "1500-06-15T12:00:00.1234567+05:45,3", "1500-06-15T12:00:00.1235567-08:00,3",
+            "1582-10-04T23:59:59.9999999Z,3"})
     public void testDateTimeOffsetParameterStorageOffsetsAndPrecision(String text, int scale) throws Exception {
         verifyDateTimeOffsetParameterStorage(text, scale);
     }
 
     private void verifyDateTimeOffsetParameterStorage(String text, int scale) throws Exception {
+        for (String prepareMethod : new String[] {"none", "prepexec"}) {
+            verifyDateTimeOffsetParameterStorage(text, scale, prepareMethod);
+        }
+    }
+
+    private void verifyDateTimeOffsetParameterStorage(String text, int scale, String prepareMethod) throws Exception {
         OffsetDateTime input = OffsetDateTime.parse(text);
         OffsetDateTime expected = input;
         if (3 == scale) {
@@ -2015,7 +2022,9 @@ public class DataTypesTest extends AbstractTest {
         String sqlType = "datetimeoffset(" + scale + ")";
         boolean inputInCutoverGap = isInHybridCutoverGap(input);
         boolean storedInCutoverGap = isInHybridCutoverGap(expected);
-        try (Connection con = getConnection(); Statement statement = con.createStatement()) {
+        String url = TestUtils.addOrOverrideProperty(connectionString, "prepareMethod", prepareMethod);
+        url = TestUtils.addOrOverrideProperty(url, "enablePrepareOnFirstPreparedStatementCall", "true");
+        try (Connection con = PrepUtil.getConnection(url); Statement statement = con.createStatement()) {
             statement.execute("CREATE TABLE #dto_parameter_storage (v " + sqlType + ")");
             try (PreparedStatement insert = con.prepareStatement("INSERT INTO #dto_parameter_storage VALUES (?)");
                     PreparedStatement verify = con.prepareStatement("SELECT CONVERT(varchar(40), v, 127), "
@@ -2033,7 +2042,8 @@ public class DataTypesTest extends AbstractTest {
                     assertEquals(1, insert.executeUpdate());
                     verify.setString(1, text);
                     try (ResultSet rs = verify.executeQuery()) {
-                        String context = text + ", scale=" + scale + ", binding=" + binding;
+                        String context = text + ", scale=" + scale + ", binding=" + binding + ", prepareMethod="
+                                + prepareMethod;
                         assertTrue(context, rs.next());
                         assertEquals(expected.toInstant(), OffsetDateTime.parse(rs.getString(1)).toInstant(), context);
                         assertEquals(1, rs.getInt(2), context);
