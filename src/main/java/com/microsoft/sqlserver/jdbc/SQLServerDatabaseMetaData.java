@@ -363,17 +363,23 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         checkClosed();
         String orgCat = null;
         orgCat = switchCatalogs(catalog);
-        SQLServerResultSet rs = null;
+        SQLServerStatement statement = null;
         try {
-            SQLServerStatement statement = (SQLServerStatement) connection.createStatement();
-            statement.closeOnCompletion();
-            rs = statement.executeQueryInternal(query);
-        } finally {
-            if (null != orgCat) {
-                connection.setCatalog(orgCat);
+            try {
+                statement = (SQLServerStatement) connection.createStatement();
+                statement.closeOnCompletion();
+                return statement.executeQueryInternal(query);
+            } finally {
+                if (null != orgCat) {
+                    connection.setCatalog(orgCat);
+                }
             }
+        } catch (SQLException e) {
+            if (null != statement) {
+                statement.close();
+            }
+            throw e;
         }
-        return rs;
     }
 
     /**
@@ -1713,11 +1719,16 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     loggerExternal.finer("sp_statistics failed, falling back to sys.indexes: " + e.getMessage());
                 }
                 
-                PreparedStatement fallbackPstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(INDEX_INFO_QUERY_DW);
-                fallbackPstmt.setString(1, table);
-                fallbackPstmt.setString(2, schema);
-                fallbackPstmt.closeOnCompletion();
-                return fallbackPstmt.executeQuery();
+                PreparedStatement fallbackPstmt = this.connection.prepareStatement(INDEX_INFO_QUERY_DW);
+                try {
+                    fallbackPstmt.closeOnCompletion();
+                    fallbackPstmt.setString(1, table);
+                    fallbackPstmt.setString(2, schema);
+                    return fallbackPstmt.executeQuery();
+                } catch (SQLException fallbackException) {
+                    fallbackPstmt.close();
+                    throw fallbackException;
+                }
             }
             return userRs;
         }
