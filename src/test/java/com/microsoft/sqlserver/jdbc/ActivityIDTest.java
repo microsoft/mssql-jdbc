@@ -6,10 +6,16 @@ package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.ref.WeakReference;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
@@ -20,6 +26,33 @@ import com.microsoft.sqlserver.testframework.AbstractTest;
 
 @RunWith(JUnitPlatform.class)
 public class ActivityIDTest extends AbstractTest {
+
+    @Test
+    public void testOpenOnShortLivedThreadAndCloseOnAnotherThread() throws Exception {
+        List<WeakReference<ActivityId>> activities = new ArrayList<>();
+        try {
+            for (int i = 0; i < 10; i++) {
+                FutureTask<SQLServerConnection> task = new FutureTask<>(() -> {
+                    SQLServerConnection con = getConnection();
+                    activities.add(new WeakReference<>(ActivityCorrelator.getCurrent()));
+                    return con;
+                });
+                Thread opener = new Thread(task, "activity-test-connection-adder");
+                opener.start();
+                try (SQLServerConnection con = task.get(60, TimeUnit.SECONDS)) {
+                    opener.join(10000);
+                    assertFalse("Connection-opening thread should have terminated.", opener.isAlive());
+                    try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT 1")) {
+                        assertTrue(rs.next());
+                        assertEquals(1, rs.getInt(1));
+                    }
+                }
+            }
+            ActivityCorrelatorTest.assertActivitiesCollected(activities);
+        } finally {
+            ActivityCorrelator.cleanupActivityId();
+        }
+    }
 
     @Test
     public void testActivityID() throws Exception {
