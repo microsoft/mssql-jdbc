@@ -1563,8 +1563,10 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
             if (this.connection.isAzureDW()) {
                 return getIndexInfoAzureDW(arguments, table, schema);
             } else {
+                PreparedStatement pstmt = null;
                 try {
-                    PreparedStatement pstmt = (SQLServerPreparedStatement) this.connection.prepareStatement(INDEX_INFO_COMBINED_QUERY);
+                    pstmt = this.connection.prepareStatement(INDEX_INFO_COMBINED_QUERY);
+                    pstmt.closeOnCompletion();
                     pstmt.setString(1, arguments[0]);  // table name for sp_statistics
                     pstmt.setString(2, arguments[1]);  // schema name for sp_statistics
                     pstmt.setString(3, arguments[2]);  // catalog for sp_statistics
@@ -1576,6 +1578,9 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
 
                     return pstmt.executeQuery();
                 } catch (SQLException e) {
+                    if (null != pstmt) {
+                        pstmt.close();
+                    }
                     if (loggerExternal.isLoggable(Level.FINER)) {
                         loggerExternal.finer("INDEX_INFO_COMBINED_QUERY failed, falling back to sp_statistics: " + e.getMessage());
                     }
