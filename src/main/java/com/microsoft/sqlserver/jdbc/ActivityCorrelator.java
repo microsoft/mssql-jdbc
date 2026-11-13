@@ -5,6 +5,8 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.lang.ref.WeakReference;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.UUID;
 
 
@@ -13,12 +15,24 @@ import java.util.UUID;
  */
 final class ActivityCorrelator {
 
-    // Tie activity lifetime to its thread: pooled connections can be closed by a different thread,
-    // so connection-close cleanup alone cannot release a terminated opener's activity.
-    private static final ThreadLocal<ActivityId> activityId = ThreadLocal.withInitial(ActivityId::new);
+    // Pooled connections may be closed by another thread, so state must follow the opener's lifetime.
+    // Strongly retain only JDK-loaded objects to avoid pinning an application class loader on a live container thread.
+    // Weakly cache the driver wrapper; UUID and sequence survive its collection in the primitive array.
+    private static final ThreadLocal<SimpleEntry<long[], WeakReference<ActivityId>>> activityId = ThreadLocal
+            .withInitial(() -> {
+                UUID id = UUID.randomUUID();
+                long[] state = {id.getMostSignificantBits(), id.getLeastSignificantBits(), 0};
+                return new SimpleEntry<>(state, new WeakReference<>(new ActivityId(state)));
+            });
 
     static ActivityId getCurrent() {
-        return activityId.get();
+        SimpleEntry<long[], WeakReference<ActivityId>> entry = activityId.get();
+        ActivityId current = entry.getValue().get();
+        if (current == null) {
+            current = new ActivityId(entry.getKey());
+            entry.setValue(new WeakReference<>(current));
+        }
+        return current;
     }
 
     // Increment the Sequence number of the ActivityId
@@ -40,15 +54,14 @@ final class ActivityCorrelator {
 
 class ActivityId {
     private final UUID id;
-    private long sequence;
+    // UUID most/least significant bits and sequence, shared with the thread-local JDK-only holder.
+    private final long[] state;
     // Cache the string since it gets frequently referenced.
     private String cachedToString;
 
-    ActivityId() {
-        id = UUID.randomUUID();
-        // getNext() is called during prelogin and will be the logical "first call" after
-        // instantiation, incrementing this to >= 1 before any activity logs are written.
-        sequence = 0;
+    ActivityId(long[] state) {
+        this.state = state;
+        id = new UUID(state[0], state[1]);
     }
 
     UUID getId() {
@@ -57,20 +70,20 @@ class ActivityId {
 
     long getSequence() {
         // Edge case: A new thread re-uses an existing connection. Ensure sequence > 0.
-        if (sequence == 0L) {
-            ++sequence;
+        if (state[2] == 0L) {
+            ++state[2];
         }
 
-        return sequence;
+        return state[2];
     }
 
     ActivityId getIncrement() {
         cachedToString = null;
-        if (sequence < 0xffffffffl) // to get to 32-bit unsigned
+        if (state[2] < 0xffffffffl) // to get to 32-bit unsigned
         {
-            ++sequence;
+            ++state[2];
         } else {
-            sequence = 0;
+            state[2] = 0;
         }
 
         return this;

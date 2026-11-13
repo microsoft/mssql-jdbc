@@ -29,12 +29,13 @@ public class ActivityIDTest extends AbstractTest {
 
     @Test
     public void testOpenOnShortLivedThreadAndCloseOnAnotherThread() throws Exception {
-        List<WeakReference<ActivityId>> activities = new ArrayList<>();
+        List<WeakReference<long[]>> activities = new ArrayList<>();
         try {
             for (int i = 0; i < 10; i++) {
                 FutureTask<SQLServerConnection> task = new FutureTask<>(() -> {
                     SQLServerConnection con = getConnection();
-                    activities.add(new WeakReference<>(ActivityCorrelator.getCurrent()));
+                    activities.add(new WeakReference<>(
+                            ActivityCorrelatorTest.getActivityState(ActivityCorrelator.getCurrent())));
                     return con;
                 });
                 Thread opener = new Thread(task, "activity-test-connection-adder");

@@ -16,7 +16,11 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -110,9 +114,7 @@ public class ActivityCorrelatorTest {
     @Test
     public void testSequenceWraparound() throws Exception {
         ActivityId activity = ActivityCorrelator.getCurrent();
-        Field sequence = ActivityId.class.getDeclaredField("sequence");
-        sequence.setAccessible(true);
-        sequence.setLong(activity, 0xffffffffL);
+        getActivityState(activity)[2] = 0xffffffffL;
         assertEquals(activity.getId() + "-4294967295", activity.toString());
         assertSame(activity, ActivityCorrelator.getNext());
         assertEquals(activity.getId() + "-1", activity.toString());
@@ -120,11 +122,11 @@ public class ActivityCorrelatorTest {
 
     @Test
     public void testTerminatedThreadsReleaseActivitiesWithoutCleanup() throws Exception {
-        List<WeakReference<ActivityId>> activities = new ArrayList<>();
+        List<WeakReference<long[]>> activities = new ArrayList<>();
         List<Thread> workers = new ArrayList<>();
         for (int i = 0; i < 32; i++) {
-            FutureTask<WeakReference<ActivityId>> task = new FutureTask<>(
-                    () -> new WeakReference<>(ActivityCorrelator.getNext()));
+            FutureTask<WeakReference<long[]>> task = new FutureTask<>(
+                    () -> new WeakReference<>(getActivityState(ActivityCorrelator.getNext())));
             Thread worker = new Thread(task);
             workers.add(worker);
             worker.start();
@@ -140,7 +142,74 @@ public class ActivityCorrelatorTest {
         }
     }
 
-    static void assertActivitiesCollected(List<WeakReference<ActivityId>> activities) throws InterruptedException {
+    @Test
+    public void testLiveWorkerPreservesActivityAfterWrapperCollection() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            UUID id = executor.submit(() -> ActivityCorrelator.getNext().getId()).get(10, TimeUnit.SECONDS);
+            WeakReference<ActivityId> wrapper = executor
+                    .submit(() -> new WeakReference<>(ActivityCorrelator.getCurrent())).get(10, TimeUnit.SECONDS);
+            assertCollected(Collections.singletonList(wrapper), "The driver wrapper must only be weakly retained.");
+            executor.submit(() -> {
+                ActivityId current = ActivityCorrelator.getCurrent();
+                assertEquals(id, current.getId());
+                assertEquals(1L, current.getSequence());
+                assertEquals(id + "-1", current.toString());
+                assertSame(current, ActivityCorrelator.getNext());
+                assertEquals(2L, current.getSequence());
+                assertEquals(id + "-2", current.toString());
+            }).get(10, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void testLiveWorkerDoesNotRetainApplicationClassLoader() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Thread worker = executor.submit(Thread::currentThread).get(10, TimeUnit.SECONDS);
+            WeakReference<ClassLoader> loader = createIsolatedActivity(executor);
+            assertCollected(Collections.singletonList(loader),
+                    "Activity on a live container thread must not retain an undeployed application's class loader.");
+            assertTrue(worker.isAlive());
+            assertSame(worker, executor.submit(Thread::currentThread).get(10, TimeUnit.SECONDS));
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS));
+        }
+    }
+
+    private static WeakReference<ClassLoader> createIsolatedActivity(ExecutorService executor) throws Exception {
+        URL classes = ActivityCorrelator.class.getProtectionDomain().getCodeSource().getLocation();
+        try (URLClassLoader loader = new URLClassLoader(new URL[] {classes}, null)) {
+            Class<?> correlator = Class.forName(ActivityCorrelator.class.getName(), true, loader);
+            Method getNext = correlator.getDeclaredMethod("getNext");
+            getNext.setAccessible(true);
+            executor.submit(() -> {
+                getNext.invoke(null);
+                return null;
+            }).get(10, TimeUnit.SECONDS);
+            Method cleanup = correlator.getDeclaredMethod("cleanupActivityId");
+            cleanup.setAccessible(true);
+            cleanup.invoke(null);
+            return new WeakReference<>(loader);
+        }
+    }
+
+    static long[] getActivityState(ActivityId activity) throws ReflectiveOperationException {
+        Field state = ActivityId.class.getDeclaredField("state");
+        state.setAccessible(true);
+        return (long[]) state.get(activity);
+    }
+
+    static void assertActivitiesCollected(List<WeakReference<long[]>> activities) throws InterruptedException {
+        assertCollected(activities, "Activity state from a terminated thread must not remain strongly reachable.");
+    }
+
+    private static void assertCollected(List<? extends WeakReference<?>> references,
+            String message) throws InterruptedException {
         // With explicit GC disabled, incidental young collections cannot establish that older activities leaked.
         List<String> vmArguments = ManagementFactory.getRuntimeMXBean().getInputArguments();
         assumeTrue(
@@ -148,15 +217,15 @@ public class ActivityCorrelatorTest {
                 "Explicit GC is disabled; cannot reliably verify activity reclamation.");
         WeakReference<Object> control = new WeakReference<>(new Object());
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-        while (activities.stream().anyMatch(reference -> reference.get() != null) && System.nanoTime() < deadline) {
+        while (references.stream().anyMatch(reference -> reference.get() != null) && System.nanoTime() < deadline) {
             System.gc();
             Thread.sleep(50);
         }
         // System.gc() may be ignored; retained values only demonstrate a leak if collection was observed.
-        assumeTrue(control.get() == null || activities.stream().anyMatch(reference -> reference.get() == null),
+        assumeTrue(control.get() == null || references.stream().anyMatch(reference -> reference.get() == null),
                 "No garbage collection observed; cannot verify activity reclamation.");
-        for (WeakReference<ActivityId> activity : activities) {
-            assertNull(activity.get(), "Activity from a terminated thread must not remain strongly reachable.");
+        for (WeakReference<?> reference : references) {
+            assertNull(reference.get(), message);
         }
     }
 }
