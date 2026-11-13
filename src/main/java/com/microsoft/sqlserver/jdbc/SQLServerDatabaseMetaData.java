@@ -697,6 +697,8 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
      * This function tries to use sp_columns_170 first and falls back to sp_columns_100 if the server does not have it.
      * The outcome is cached on the connection, so sp_columns_170 is probed at most once per connection rather than on
      * every call.
+     * For compatibility, the DATA_TYPE for datetimeoffset remains {@code microsoft.sql.Types.DATETIMEOFFSET},
+     * unlike the standard type reported by result-set metadata.
      * 
      * @param catalog
      *                a catalog name; "" retrieves those without a catalog; null
@@ -2187,6 +2189,14 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
         return "CURDATE,CURTIME,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,HOUR,MINUTE,MONTH,MONTHNAME,NOW,QUARTER,SECOND,TIMESTAMPADD,TIMESTAMPDIFF,WEEK,YEAR";
     }
 
+    /**
+     * Returns supported SQL types. For compatibility, datetimeoffset retains the
+     * {@code microsoft.sql.Types.DATETIMEOFFSET} DATA_TYPE in this result.
+     *
+     * @return the supported SQL types
+     * @throws SQLException
+     *         if a database access error occurs
+     */
     @Override
     public java.sql.ResultSet getTypeInfo() throws SQLException {
         if (loggerExternal.isLoggable(Level.FINER) && Util.isActivityTraceOn()) {

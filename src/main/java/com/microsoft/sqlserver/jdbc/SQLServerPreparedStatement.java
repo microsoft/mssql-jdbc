@@ -2373,8 +2373,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), targetJDBCType,
             (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
                 || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
-                || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
-                || Reader.class.isInstance(x) || microsoft.sql.Types.VECTOR == targetSqlType
+                        || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType
+                        || java.sql.Types.TIMESTAMP_WITH_TIMEZONE == targetSqlType || InputStream.class.isInstance(x)
+                        || Reader.class.isInstance(x) || microsoft.sql.Types.VECTOR == targetSqlType
                 || JDBCType.CHAR == targetJDBCType || JDBCType.VARCHAR == targetJDBCType
                 || JDBCType.NCHAR == targetJDBCType || JDBCType.NVARCHAR == targetJDBCType
                 || JDBCType.BINARY == targetJDBCType || JDBCType.VARBINARY == targetJDBCType)
@@ -2646,6 +2647,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
+    /**
+     * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime)} instead.
+     */
+    @Deprecated(since = "13.5.0")
     @Override
     public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
@@ -2657,6 +2662,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
+    /**
+     * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime, int)} instead.
+     */
+    @Deprecated(since = "13.5.0")
     @Override
     public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x, int scale) throws SQLServerException {
         if (loggerExternal.isLoggable(Level.FINER))
@@ -2668,6 +2677,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
     }
 
+    /**
+     * @deprecated Use {@link #setOffsetDateTime(int, java.time.OffsetDateTime, int, boolean)} instead.
+     */
+    @Deprecated(since = "13.5.0")
     @Override
     public final void setDateTimeOffset(int n, microsoft.sql.DateTimeOffset x, int scale,
             boolean forceEncrypt) throws SQLServerException {
@@ -2678,6 +2691,41 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         setValue(n, JDBCType.DATETIMEOFFSET, x, JavaType.DATETIMEOFFSET, null, scale, forceEncrypt);
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "setDateTimeOffset");
+        }
+    }
+
+    @Override
+    public final void setOffsetDateTime(int n, java.time.OffsetDateTime x) throws SQLServerException {
+        if (loggerExternal.isLoggable(Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime", new Object[] {n, x});
+        checkClosed();
+        setValue(n, JDBCType.TIMESTAMP_WITH_TIMEZONE, x, JavaType.OFFSETDATETIME, false);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
+        }
+    }
+
+    @Override
+    public final void setOffsetDateTime(int n, java.time.OffsetDateTime x, int scale) throws SQLServerException {
+        if (loggerExternal.isLoggable(Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime", new Object[] {n, x, scale});
+        checkClosed();
+        setValue(n, JDBCType.TIMESTAMP_WITH_TIMEZONE, x, JavaType.OFFSETDATETIME, null, scale, false);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
+        }
+    }
+
+    @Override
+    public final void setOffsetDateTime(int n, java.time.OffsetDateTime x, int scale,
+            boolean forceEncrypt) throws SQLServerException {
+        if (loggerExternal.isLoggable(Level.FINER))
+            loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime",
+                    new Object[] {n, x, scale, forceEncrypt});
+        checkClosed();
+        setValue(n, JDBCType.TIMESTAMP_WITH_TIMEZONE, x, JavaType.OFFSETDATETIME, null, scale, forceEncrypt);
+        if (loggerExternal.isLoggable(Level.FINER)) {
+            loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
         }
     }
 

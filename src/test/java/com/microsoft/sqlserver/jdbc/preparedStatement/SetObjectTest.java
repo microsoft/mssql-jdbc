@@ -5,6 +5,7 @@
 package com.microsoft.sqlserver.jdbc.preparedStatement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -25,6 +26,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
+import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.AbstractTest;
@@ -41,6 +43,81 @@ public class SetObjectTest extends AbstractTest {
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
+    }
+
+    @Test
+    public void testDateTimeOffsetMetadataRoundTripAndUpperBound() throws SQLException {
+        OffsetDateTime upperBound = OffsetDateTime.parse("9999-12-31T23:59:59.999999999Z");
+        OffsetDateTime expected = OffsetDateTime.parse("9999-12-31T23:59:59.999999900Z");
+        try (Connection con = getConnection(); Statement stmt = con.createStatement();
+                ResultSet source = stmt.executeQuery("SELECT CAST('2024-01-02T03:04:05+05:30' AS datetimeoffset)")) {
+            assertTrue(source.next());
+            Object value = source.getObject(1);
+            assertEquals(DateTimeOffset.class.getName(), source.getMetaData().getColumnClassName(1));
+            assertTrue(value instanceof DateTimeOffset);
+            try (PreparedStatement copy = con.prepareStatement("SELECT CAST(? AS datetimeoffset)")) {
+                copy.setObject(1, value, source.getMetaData().getColumnType(1));
+                try (ResultSet result = copy.executeQuery()) {
+                    assertTrue(result.next());
+                    assertEquals(value, result.getObject(1));
+                }
+                copy.setObject(1, value, java.sql.Types.TIMESTAMP_WITH_TIMEZONE, 7);
+                try (ResultSet result = copy.executeQuery()) {
+                    assertTrue(result.next());
+                    assertEquals(value, result.getObject(1));
+                }
+            }
+            try (SQLServerPreparedStatement p = (SQLServerPreparedStatement) con
+                    .prepareStatement("SELECT CAST(? AS datetimeoffset)")) {
+                p.setOffsetDateTime(1, upperBound);
+                try (SQLServerResultSet result = (SQLServerResultSet) p.executeQuery()) {
+                    assertTrue(result.next());
+                    assertEquals(expected, result.getOffsetDateTime(1));
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testDateTimeOffsetBulkCopyAndDiscoveryMetadata() throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(tableName);
+        OffsetDateTime expected = OffsetDateTime.parse("2024-01-02T03:04:05.0000001+05:30");
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE " + table + " (id int identity primary key, dto datetimeoffset(7))");
+            try {
+                try (ResultSet metadata = con.getMetaData().getColumns(null, null, tableName, "dto")) {
+                    assertTrue(metadata.next());
+                    assertEquals(microsoft.sql.Types.DATETIMEOFFSET, metadata.getInt("DATA_TYPE"));
+                }
+                try (Statement sourceStatement = con.createStatement();
+                        ResultSet source = sourceStatement.executeQuery(
+                                "SELECT CAST('2024-01-02T03:04:05.0000001+05:30' AS datetimeoffset(7)) AS dto");
+                        SQLServerBulkCopy copy = new SQLServerBulkCopy(con)) {
+                    copy.setDestinationTableName(table);
+                    copy.addColumnMapping("dto", "dto");
+                    copy.writeToServer(source);
+                }
+                try (ResultSet result = stmt.executeQuery("SELECT dto FROM " + table)) {
+                    assertTrue(result.next());
+                    assertEquals(expected, result.getObject(1, OffsetDateTime.class));
+                }
+                OffsetDateTime updated = OffsetDateTime.parse("2024-06-07T08:09:10.0000002-04:00");
+                try (Statement updateStatement = con.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE,
+                        ResultSet.CONCUR_UPDATABLE);
+                        SQLServerResultSet result = (SQLServerResultSet) updateStatement
+                                .executeQuery("SELECT id, dto FROM " + table)) {
+                    assertTrue(result.next());
+                    result.updateOffsetDateTime("dto", updated);
+                    result.updateRow();
+                }
+                try (ResultSet result = stmt.executeQuery("SELECT dto FROM " + table)) {
+                    assertTrue(result.next());
+                    assertEquals(updated, result.getObject(1, OffsetDateTime.class));
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, stmt);
+            }
+        }
     }
 
     /**
@@ -205,13 +282,18 @@ public class SetObjectTest extends AbstractTest {
                         pstmt.setObject(2, dateTimeOffset);
                         pstmt.executeUpdate();
 
-                        // Set DateTimeOffset
+                        // Set OffsetDateTime (new API)
                         pstmt.setInt(1, 4);
+                        pstmt.setOffsetDateTime(2, offsetDateTime);
+                        pstmt.executeUpdate();
+
+                        // Set DateTimeOffset (legacy API)
+                        pstmt.setInt(1, 5);
                         pstmt.setDateTimeOffset(2, dateTimeOffset);
                         pstmt.executeUpdate();
 
                         // Set String
-                        pstmt.setInt(1, 5);
+                        pstmt.setInt(1, 6);
                         pstmt.setString(2, expectedDTOString);
                         pstmt.executeUpdate();
                     }
@@ -219,7 +301,7 @@ public class SetObjectTest extends AbstractTest {
                     String query = "SELECT dto FROM " + AbstractSQLGenerator.escapeIdentifier(tableName);
                     verifyDateTimeOffsetValues(stmt, query, dateTimeOffset, offsetDateTime, expectedDTOString, sqlDto);
 
-                    for (int i = 1; i <= 5; i++) {
+                    for (int i = 1; i <= 6; i++) {
                         query = "SELECT dto FROM " + AbstractSQLGenerator.escapeIdentifier(tableName) + " WHERE id = "
                                 + i + " AND dto = '" + sqlDto + "'";
                         verifyDateTimeOffsetValues(stmt, query, dateTimeOffset, offsetDateTime, expectedDTOString,
@@ -244,6 +326,9 @@ public class SetObjectTest extends AbstractTest {
 
                 assertEquals(dateTimeOffset, rs.getObject(1, DateTimeOffset.class));
                 assertEquals(expectedDTOString, rs.getObject(1, DateTimeOffset.class).toString());
+
+                assertEquals(offsetDateTime, rs.getOffsetDateTime(1));
+                assertEquals(sqlDto, rs.getOffsetDateTime(1).toString());
 
                 assertEquals(offsetDateTime, rs.getObject(1, OffsetDateTime.class));
                 assertEquals(sqlDto, rs.getObject(1, OffsetDateTime.class).toString());
