@@ -1957,7 +1957,43 @@ public class DataTypesTest extends AbstractTest {
 
         assertEquals(OffsetDateTime.parse("1500-03-01T00:00:00Z"), DateTimeOffset.valueOf(roundUp).getOffsetDateTime());
     }
-    
+
+    @ParameterizedTest
+    @CsvSource({"1500-03-01T01:00:00.1234567+14:00,840", "1500-02-28T23:30:00.1234567-08:00,-480"})
+    public void testDateTimeOffsetTimestampJulianLeapDay(String text, int minutesOffset) throws Exception {
+        OffsetDateTime expected = OffsetDateTime.parse(text);
+        Calendar calendar = new java.util.GregorianCalendar(new SimpleTimeZone(minutesOffset * 60 * 1000, ""),
+                Locale.US);
+        calendar.clear();
+        calendar.set(expected.getYear(), expected.getMonthValue() - 1, expected.getDayOfMonth(), expected.getHour(),
+                expected.getMinute(), expected.getSecond());
+        Timestamp timestamp = new Timestamp(calendar.getTimeInMillis());
+        timestamp.setNanos(expected.getNano());
+        DateTimeOffset value = DateTimeOffset.valueOf(timestamp, minutesOffset);
+        assertEquals(expected, value.getOffsetDateTime());
+
+        String url = TestUtils.addOrOverrideProperty(connectionString, "prepareMethod", "none");
+        try (Connection conn = PrepUtil.getConnection(url); PreparedStatement stmt = conn
+                .prepareStatement("SELECT CONVERT(varchar(40), ?, 127), DATEPART(TZOFFSET, ?)")) {
+            for (int binding = 0; binding < 2; binding++) {
+                if (0 == binding) {
+                    stmt.setObject(1, value);
+                    stmt.setObject(2, value);
+                } else {
+                    ((SQLServerPreparedStatement) stmt).setDateTimeOffset(1, value);
+                    ((SQLServerPreparedStatement) stmt).setDateTimeOffset(2, value);
+                }
+                try (ResultSet rs = stmt.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(expected.toInstant(), OffsetDateTime.parse(rs.getString(1)).toInstant(),
+                            text + ", binding=" + binding);
+                    assertEquals(minutesOffset, rs.getInt(2));
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
     @Test
     public void testPreGregorianDateTime() throws Exception {
         try (Connection conn = getConnection();

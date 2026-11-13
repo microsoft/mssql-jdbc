@@ -267,11 +267,29 @@ public final class DateTimeOffset implements java.io.Serializable, java.lang.Com
      */
     public java.time.OffsetDateTime getOffsetDateTime() {
         // Offset-local hybrid fields can be Julian-only dates such as 1500-02-29, so read UTC fields first.
-        GregorianCalendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"), Locale.US);
+        Calendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"), Locale.US);
         calendar.setTimeInMillis(utcMillis);
         int year = calendar.get(Calendar.YEAR);
         if (GregorianCalendar.BC == calendar.get(Calendar.ERA)) {
             year = 1 - year;
+        }
+        // Timestamp-based values can have a Julian-only UTC leap day; keep their offset-local conversion.
+        if (Calendar.FEBRUARY == calendar.get(Calendar.MONTH) && 29 == calendar.get(Calendar.DAY_OF_MONTH)
+                && !java.time.Year.isLeap(year)) {
+            String formattedOffset = (minutesOffset < 0) ? String.format(Locale.US, "-%1$02d:%2$02d",
+                    -minutesOffset / 60, -minutesOffset % 60)
+                                                         : String.format(Locale.US, "+%1$02d:%2$02d",
+                                                                 minutesOffset / 60, minutesOffset % 60);
+            calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT" + formattedOffset), Locale.US);
+            calendar.setTimeInMillis(utcMillis);
+            year = calendar.get(Calendar.YEAR);
+            if (GregorianCalendar.BC == calendar.get(Calendar.ERA)) {
+                year = 1 - year;
+            }
+            return java.time.OffsetDateTime.of(year, calendar.get(Calendar.MONTH) + 1,
+                    calendar.get(Calendar.DAY_OF_MONTH), calendar.get(Calendar.HOUR_OF_DAY),
+                    calendar.get(Calendar.MINUTE), calendar.get(Calendar.SECOND), nanos,
+                    ZoneOffset.ofTotalSeconds(minutesOffset * 60));
         }
         LocalDateTime utc = LocalDateTime.of(year, calendar.get(Calendar.MONTH) + 1,
                 calendar.get(Calendar.DAY_OF_MONTH), calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE),
