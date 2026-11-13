@@ -279,6 +279,7 @@ final class DTV {
         } else if (impl.isNull()) {
             return null;
         }
+
         return impl.getValue(this, jdbcType, scale, streamGetterArgs, cal, typeInfo, cryptoMetadata, tdsReader,
                 statement);
     }
