@@ -87,6 +87,19 @@ public class SQLServerPreparedStatementUnitTest {
         verify(second).close();
     }
 
+    @Test
+    public void testMetadataRetryAfterStatementCreationFailure() throws SQLException {
+        when(connection.createStatement()).thenThrow(new SQLServerException("Statement creation failed", null))
+                .thenReturn(second);
+        try (SQLServerPreparedStatement statement = prepare("SELECT ? AS value")) {
+            assertSame(metadata, statement.getMetaData());
+            verify(connection, times(2)).createStatement();
+            verify(second).executeQueryInternal("set fmtonly on SELECT null AS value\nset fmtonly off");
+            verify(second, never()).close();
+        }
+        verify(second).close();
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     public void testMetadataTimeoutPropagationAndParentOwnership(boolean retry) throws SQLException {

@@ -1563,11 +1563,12 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
          */
         
         String orgCat = null;
+        ResultSet rs = null;
         try {
             orgCat = switchCatalogs(cat);
             
             if (this.connection.isAzureDW()) {
-                return getIndexInfoAzureDW(arguments, table, schema);
+                rs = getIndexInfoAzureDW(arguments, table, schema);
             } else {
                 PreparedStatement pstmt = null;
                 try {
@@ -1582,7 +1583,7 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     pstmt.setString(7, table);         // table name for columnstore query
                     pstmt.setString(8, schema);        // schema name for columnstore query
 
-                    return pstmt.executeQuery();
+                    rs = pstmt.executeQuery();
                 } catch (SQLException e) {
                     if (null != pstmt) {
                         pstmt.close();
@@ -1590,13 +1591,22 @@ public final class SQLServerDatabaseMetaData implements java.sql.DatabaseMetaDat
                     if (loggerExternal.isLoggable(Level.FINER)) {
                         loggerExternal.finer("INDEX_INFO_COMBINED_QUERY failed, falling back to sp_statistics: " + e.getMessage());
                     }
-                    return getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_STATISTICS, arguments,
+                    rs = getResultSetWithProvidedColumnNames(cat, CallableHandles.SP_STATISTICS, arguments,
                             getIndexInfoColumnNames);
                 }
             }
+            return rs;
         } finally {
             if (null != orgCat) {
-                connection.setCatalog(orgCat);
+                try {
+                    connection.setCatalog(orgCat);
+                } catch (SQLServerException e) {
+                    // The caller never receives rs, so release it and its close-on-completion statement here.
+                    if (null != rs) {
+                        rs.close();
+                    }
+                    throw e;
+                }
             }
         }
     }

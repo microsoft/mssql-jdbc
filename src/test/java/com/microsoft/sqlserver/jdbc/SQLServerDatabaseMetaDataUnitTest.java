@@ -141,6 +141,51 @@ public class SQLServerDatabaseMetaDataUnitTest {
         verify(storedProcedure).close();
     }
 
+    static Stream<Arguments> indexInfoCatalogRestorationCases() {
+        return Stream.of("combined", "regularFallback", "azureCombined", "azureFallback")
+                .flatMap(path -> Stream.of(Arguments.of(path, false), Arguments.of(path, true)));
+    }
+
+    @ParameterizedTest
+    @MethodSource("indexInfoCatalogRestorationCases")
+    public void testIndexInfoCatalogRestorationClosesResult(String path, boolean restoreFails) throws SQLException {
+        SQLServerConnection connection = mock(SQLServerConnection.class);
+        SQLServerPreparedStatement first = mock(SQLServerPreparedStatement.class);
+        SQLServerPreparedStatement second = mock(SQLServerPreparedStatement.class);
+        SQLServerCallableStatement callable = mock(SQLServerCallableStatement.class);
+        SQLServerResultSet storedProcedureResult = mock(SQLServerResultSet.class);
+        SQLServerResultSet resultSet = mock(SQLServerResultSet.class);
+        SQLServerException restoreFailure = new SQLServerException("Catalog restoration failed", null);
+        boolean azureDW = path.startsWith("azure");
+        when(connection.getCatalog()).thenReturn("original", "requested");
+        when(connection.isAzureDW()).thenReturn(azureDW);
+        when(connection.prepareStatement(anyString())).thenReturn(first, second);
+        when(connection.prepareCall(anyString())).thenReturn(callable);
+        when(first.executeQuery()).thenReturn(azureDW ? storedProcedureResult : resultSet);
+        when(second.executeQuery()).thenReturn(resultSet);
+        when(callable.executeQueryInternal()).thenReturn(resultSet);
+        if (path.endsWith("Fallback")) {
+            when(first.executeQuery()).thenThrow(new SQLServerException("Primary query failed", null));
+        }
+        if (restoreFails) {
+            doThrow(restoreFailure).when(connection).setCatalog("original");
+        }
+
+        SQLServerDatabaseMetaData metadata = new SQLServerDatabaseMetaData(connection);
+        if (restoreFails) {
+            assertSame(restoreFailure, assertThrows(SQLServerException.class,
+                    () -> metadata.getIndexInfo("requested", "dbo", "t1", false, false)));
+            InOrder order = inOrder(connection, resultSet);
+            order.verify(connection).setCatalog("original");
+            order.verify(resultSet).close();
+        } else {
+            assertSame(resultSet, metadata.getIndexInfo("requested", "dbo", "t1", false, false));
+            verify(connection).setCatalog("original");
+            verify(resultSet, never()).close();
+        }
+        verify(connection).setCatalog("requested");
+    }
+
     static Stream<Arguments> internalQueryCleanupCases() {
         return Stream.of("create", "completion", "execute", "timeout", "success")
                 .flatMap(stage -> Stream.of(Arguments.of(stage, false), Arguments.of(stage, true)));
