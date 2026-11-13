@@ -2092,8 +2092,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         setObject(setterGetParam(parameterIndex), x, JavaType.of(x), targetJDBCType,
             (java.sql.Types.NUMERIC == targetSqlType || java.sql.Types.DECIMAL == targetSqlType
                 || java.sql.Types.TIMESTAMP == targetSqlType || java.sql.Types.TIME == targetSqlType
-                || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType || InputStream.class.isInstance(x)
-                || Reader.class.isInstance(x) || microsoft.sql.Types.VECTOR == targetSqlType
+                        || microsoft.sql.Types.DATETIMEOFFSET == targetSqlType
+                        || java.sql.Types.TIMESTAMP_WITH_TIMEZONE == targetSqlType || InputStream.class.isInstance(x)
+                        || Reader.class.isInstance(x) || microsoft.sql.Types.VECTOR == targetSqlType
                 || JDBCType.CHAR == targetJDBCType || JDBCType.VARCHAR == targetJDBCType
                 || JDBCType.NCHAR == targetJDBCType || JDBCType.NVARCHAR == targetJDBCType
                 || JDBCType.BINARY == targetJDBCType || JDBCType.VARBINARY == targetJDBCType)
@@ -2417,8 +2418,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime", new Object[] {n, x});
         checkClosed();
-        setValue(n, JDBCType.DATETIMEOFFSET,
-                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, false);
+        setValue(n, JDBCType.TIMESTAMP_WITH_TIMEZONE, x, JavaType.OFFSETDATETIME, false);
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
         }
@@ -2429,9 +2429,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime", new Object[] {n, x, scale});
         checkClosed();
-        setValue(n, JDBCType.DATETIMEOFFSET,
-                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, null, scale,
-                false);
+        setValue(n, JDBCType.TIMESTAMP_WITH_TIMEZONE, x, JavaType.OFFSETDATETIME, null, scale, false);
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
         }
@@ -2444,9 +2442,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime",
                     new Object[] {n, x, scale, forceEncrypt});
         checkClosed();
-        setValue(n, JDBCType.DATETIMEOFFSET,
-                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, null, scale,
-                forceEncrypt);
+        setValue(n, JDBCType.TIMESTAMP_WITH_TIMEZONE, x, JavaType.OFFSETDATETIME, null, scale, forceEncrypt);
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
         }

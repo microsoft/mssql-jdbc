@@ -2309,8 +2309,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
         if (loggerExternal.isLoggable(Level.FINER))
             loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime", new Object[] {parameterName, value});
         checkClosed();
-        setValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET,
-                (value == null) ? null : microsoft.sql.DateTimeOffset.valueOf(value), JavaType.DATETIMEOFFSET, false);
+        setValue(findColumn(parameterName), JDBCType.TIMESTAMP_WITH_TIMEZONE, value, JavaType.OFFSETDATETIME, false);
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
         }
@@ -2323,8 +2322,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime",
                     new Object[] {parameterName, value, scale});
         checkClosed();
-        setValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET,
-                (value == null) ? null : microsoft.sql.DateTimeOffset.valueOf(value), JavaType.DATETIMEOFFSET, null,
+        setValue(findColumn(parameterName), JDBCType.TIMESTAMP_WITH_TIMEZONE, value, JavaType.OFFSETDATETIME, null,
                 scale, false);
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");
@@ -2338,8 +2336,7 @@ public class SQLServerCallableStatement extends SQLServerPreparedStatement imple
             loggerExternal.entering(getClassNameLogging(), "setOffsetDateTime",
                     new Object[] {parameterName, value, forceEncrypt});
         checkClosed();
-        setValue(findColumn(parameterName), JDBCType.DATETIMEOFFSET,
-                (value == null) ? null : microsoft.sql.DateTimeOffset.valueOf(value), JavaType.DATETIMEOFFSET, null,
+        setValue(findColumn(parameterName), JDBCType.TIMESTAMP_WITH_TIMEZONE, value, JavaType.OFFSETDATETIME, null,
                 scale, forceEncrypt);
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "setOffsetDateTime");

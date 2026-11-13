@@ -3241,7 +3241,7 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                     return sourceResultSet.getObject(srcColOrdinal, DateTimeOffset.class);
 
                 case java.sql.Types.TIMESTAMP_WITH_TIMEZONE:
-                    return sourceResultSet.getObject(srcColOrdinal, DateTimeOffset.class);
+                    return sourceResultSet.getObject(srcColOrdinal, OffsetDateTime.class);
 
                 case microsoft.sql.Types.SQL_VARIANT:
                     return sourceResultSet.getObject(srcColOrdinal);
@@ -3331,6 +3331,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         if ((null != destCryptoMeta) && (null != colValue)) {
             JDBCType baseSrcJdbcType = (null != srcCryptoMeta) ? srcColumnMetadata
                     .get(srcColOrdinal).cryptoMeta.baseTypeInfo.getSSType().getJDBCType() : JDBCType.of(srcJdbcType);
+
+            if (null != sourceResultSet && JDBCType.TIMESTAMP_WITH_TIMEZONE == baseSrcJdbcType) {
+                baseSrcJdbcType = JDBCType.DATETIMEOFFSET;
+            }
 
             if (JDBCType.TIMESTAMP == baseSrcJdbcType) {
                 if (SSType.DATETIME == destSSType) {
@@ -3672,10 +3676,18 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 return tdsWriter.getEncryptedDateTimeAsBytes(calendar, subSecondNanos, srcTemporalJdbcType, null);
 
             case DATETIMEOFFSET:
-                microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) colValue;
-                utcMillis = dtoValue.getTimestamp().getTime();
-                subSecondNanos = dtoValue.getTimestamp().getNanos();
-                int minutesOffset = dtoValue.getMinutesOffset();
+                int minutesOffset;
+                if (colValue instanceof OffsetDateTime) {
+                    OffsetDateTime value = (OffsetDateTime) colValue;
+                    utcMillis = value.toEpochSecond() * 1000;
+                    subSecondNanos = value.getNano();
+                    minutesOffset = value.getOffset().getTotalSeconds() / 60;
+                } else {
+                    DateTimeOffset value = (DateTimeOffset) colValue;
+                    utcMillis = value.getTimestamp().getTime();
+                    subSecondNanos = value.getTimestamp().getNanos();
+                    minutesOffset = value.getMinutesOffset();
+                }
                 calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
                 calendar.setLenient(true);
                 calendar.clear();

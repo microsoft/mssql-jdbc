@@ -342,7 +342,6 @@ public final class SQLServerResultSetMetaData implements ISQLServerResultSetMeta
             sqlType = rs.getColumn(column).getTypeInfo().getSSType();
         }
 
-        return (SSType.DATETIMEOFFSET == sqlType) ? JDBCType.TIMESTAMP_WITH_TIMEZONE.className()
-                : sqlType.getJDBCType().className();
+        return sqlType.getJDBCType().className();
     }
 }

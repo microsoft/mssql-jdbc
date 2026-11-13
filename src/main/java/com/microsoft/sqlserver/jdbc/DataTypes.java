@@ -589,7 +589,9 @@ enum JavaType {
 
         DATE(JavaType.DATE, EnumSet.of(JDBCType.DATE)),
 
-        DATETIMEOFFSET(JavaType.DATETIMEOFFSET, EnumSet.of(JDBCType.DATETIMEOFFSET)),
+        DATETIMEOFFSET(JavaType.DATETIMEOFFSET, EnumSet.of(JDBCType.DATETIMEOFFSET, JDBCType.TIMESTAMP_WITH_TIMEZONE)),
+
+        OFFSETDATETIME(JavaType.OFFSETDATETIME, EnumSet.of(JDBCType.DATETIMEOFFSET, JDBCType.TIMESTAMP_WITH_TIMEZONE)),
 
         DOUBLE(JavaType.DOUBLE, EnumSet.of(JDBCType.DOUBLE)),
 
@@ -814,7 +816,8 @@ enum JDBCType {
                 JDBCType.Category.LONG_NCHARACTER)),
 
         DATETIMEOFFSET(JDBCType.Category.DATETIMEOFFSET, EnumSet.of(JDBCType.Category.DATE, JDBCType.Category.TIME,
-                JDBCType.Category.TIMESTAMP, JDBCType.Category.DATETIMEOFFSET)),
+                JDBCType.Category.TIMESTAMP, JDBCType.Category.DATETIMEOFFSET,
+                JDBCType.Category.TIMESTAMP_WITH_TIMEZONE)),
 
         SQLXML(JDBCType.Category.SQLXML, EnumSet.of(JDBCType.Category.SQLXML)),
 

@@ -80,7 +80,7 @@ public class DataTypesTest extends AbstractTest {
         datetime2("yyyy-mm-dd hh:mm:ss", 7, java.sql.Types.TIMESTAMP, "java.sql.Timestamp"),
 
         datetimeoffset("yyyy-mm-dd hh:mm:ss +hh:mm", 7, microsoft.sql.Types.DATETIMEOFFSET,
-                "microsoft.sql.DateTimeOffset", java.sql.Types.TIMESTAMP_WITH_TIMEZONE, "java.time.OffsetDateTime");
+                       "microsoft.sql.DateTimeOffset", java.sql.Types.TIMESTAMP_WITH_TIMEZONE, "microsoft.sql.DateTimeOffset");
 
         final int basePrecision;
         final int maxPrecision;

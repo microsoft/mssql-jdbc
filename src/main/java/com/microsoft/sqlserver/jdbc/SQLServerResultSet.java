@@ -4377,8 +4377,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             loggerExternal.entering(getClassNameLogging(), "updateOffsetDateTime", new Object[] {index, x});
 
         checkClosed();
-        updateValue(index, JDBCType.DATETIMEOFFSET,
-                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, false);
+        updateValue(index, JDBCType.TIMESTAMP_WITH_TIMEZONE, x, JavaType.OFFSETDATETIME, false);
 
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "updateOffsetDateTime");
@@ -4391,9 +4390,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             loggerExternal.entering(getClassNameLogging(), "updateOffsetDateTime", new Object[] {index, x, scale});
 
         checkClosed();
-        updateValue(index, JDBCType.DATETIMEOFFSET,
-                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, null, scale,
-                false);
+        updateValue(index, JDBCType.TIMESTAMP_WITH_TIMEZONE, x, JavaType.OFFSETDATETIME, null, scale, false);
 
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "updateOffsetDateTime");
@@ -4408,9 +4405,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     new Object[] {index, x, scale, forceEncrypt});
 
         checkClosed();
-        updateValue(index, JDBCType.DATETIMEOFFSET,
-                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, null, scale,
-                forceEncrypt);
+        updateValue(index, JDBCType.TIMESTAMP_WITH_TIMEZONE, x, JavaType.OFFSETDATETIME, null, scale, forceEncrypt);
 
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "updateOffsetDateTime");
@@ -5409,8 +5404,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
             loggerExternal.entering(getClassNameLogging(), "updateOffsetDateTime", new Object[] {columnName, x});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.DATETIMEOFFSET,
-                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, false);
+        updateValue(findColumn(columnName), JDBCType.TIMESTAMP_WITH_TIMEZONE, x, JavaType.OFFSETDATETIME, false);
 
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "updateOffsetDateTime");
@@ -5424,8 +5418,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     new Object[] {columnName, x, scale});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.DATETIMEOFFSET,
-                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, null, scale,
+        updateValue(findColumn(columnName), JDBCType.TIMESTAMP_WITH_TIMEZONE, x, JavaType.OFFSETDATETIME, null, scale,
                 false);
 
         if (loggerExternal.isLoggable(Level.FINER)) {
@@ -5441,8 +5434,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
                     new Object[] {columnName, x, scale, forceEncrypt});
 
         checkClosed();
-        updateValue(findColumn(columnName), JDBCType.DATETIMEOFFSET,
-                (x == null) ? null : microsoft.sql.DateTimeOffset.valueOf(x), JavaType.DATETIMEOFFSET, null, scale,
+        updateValue(findColumn(columnName), JDBCType.TIMESTAMP_WITH_TIMEZONE, x, JavaType.OFFSETDATETIME, null, scale,
                 forceEncrypt);
 
         if (loggerExternal.isLoggable(Level.FINER)) {
