@@ -3677,18 +3677,19 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
 
             case DATETIMEOFFSET:
                 int minutesOffset;
+                calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
                 if (colValue instanceof OffsetDateTime) {
                     OffsetDateTime value = (OffsetDateTime) colValue;
                     utcMillis = value.toEpochSecond() * 1000;
                     subSecondNanos = value.getNano();
                     minutesOffset = value.getOffset().getTotalSeconds() / 60;
+                    calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
                 } else {
                     DateTimeOffset value = (DateTimeOffset) colValue;
                     utcMillis = value.getTimestamp().getTime();
                     subSecondNanos = value.getTimestamp().getNanos();
                     minutesOffset = value.getMinutesOffset();
                 }
-                calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
                 calendar.setLenient(true);
                 calendar.clear();
                 calendar.setTimeInMillis(utcMillis);

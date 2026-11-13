@@ -4121,6 +4121,8 @@ final class TDSWriter {
     void writeOffsetDateTimeWithTimezone(OffsetDateTime offsetDateTimeValue, int scale) throws SQLServerException {
         int minutesOffset = offsetDateTimeValue.getOffset().getTotalSeconds() / 60;
         GregorianCalendar calendar = new GregorianCalendar(UTC.timeZone, Locale.US);
+        // java.time uses Gregorian rules even before the historical Julian/Gregorian cutover.
+        calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
         calendar.setLenient(true);
         calendar.clear();
         calendar.setTimeInMillis(offsetDateTimeValue.toEpochSecond() * 1000);
