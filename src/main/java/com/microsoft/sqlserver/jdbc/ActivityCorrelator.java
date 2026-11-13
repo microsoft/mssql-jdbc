@@ -5,29 +5,20 @@
 
 package com.microsoft.sqlserver.jdbc;
 
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * ActivityCorrelator provides the APIs to access the ActivityId in a map
+ * ActivityCorrelator provides access to the current thread's ActivityId.
  */
 final class ActivityCorrelator {
 
-    private static Map<Long, ActivityId> activityIdMap = new ConcurrentHashMap<Long, ActivityId>();
+    // Tie activity lifetime to its thread: pooled connections can be closed by a different thread,
+    // so connection-close cleanup alone cannot release a terminated opener's activity.
+    private static final ThreadLocal<ActivityId> activityId = ThreadLocal.withInitial(ActivityId::new);
 
     static ActivityId getCurrent() {
-        // get the value, not reference
-        @SuppressWarnings("deprecation")
-        long uniqueThreadId = Thread.currentThread().getId();
-
-        // Since the Id for each thread is unique, this assures that the below if statement is run only once per thread.
-        if (!activityIdMap.containsKey(uniqueThreadId)) {
-            activityIdMap.put(uniqueThreadId, new ActivityId());
-        }
-
-        return activityIdMap.get(uniqueThreadId);
+        return activityId.get();
     }
 
     // Increment the Sequence number of the ActivityId
@@ -42,13 +33,7 @@ final class ActivityCorrelator {
     private ActivityCorrelator() {}
 
     static void cleanupActivityId() {
-        // remove the ActivityId that belongs to this thread.
-        @SuppressWarnings("deprecation")
-        long uniqueThreadId = Thread.currentThread().getId();
-
-        if (activityIdMap.containsKey(uniqueThreadId)) {
-            activityIdMap.remove(uniqueThreadId);
-        }
+        activityId.remove();
     }
 }
 
