@@ -11,7 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -139,11 +141,20 @@ public class ActivityCorrelatorTest {
     }
 
     static void assertActivitiesCollected(List<WeakReference<ActivityId>> activities) throws InterruptedException {
+        // With explicit GC disabled, incidental young collections cannot establish that older activities leaked.
+        List<String> vmArguments = ManagementFactory.getRuntimeMXBean().getInputArguments();
+        assumeTrue(
+                vmArguments.lastIndexOf("-XX:+DisableExplicitGC") <= vmArguments.lastIndexOf("-XX:-DisableExplicitGC"),
+                "Explicit GC is disabled; cannot reliably verify activity reclamation.");
+        WeakReference<Object> control = new WeakReference<>(new Object());
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         while (activities.stream().anyMatch(reference -> reference.get() != null) && System.nanoTime() < deadline) {
             System.gc();
             Thread.sleep(50);
         }
+        // System.gc() may be ignored; retained values only demonstrate a leak if collection was observed.
+        assumeTrue(control.get() == null || activities.stream().anyMatch(reference -> reference.get() == null),
+                "No garbage collection observed; cannot verify activity reclamation.");
         for (WeakReference<ActivityId> activity : activities) {
             assertNull(activity.get(), "Activity from a terminated thread must not remain strongly reachable.");
         }

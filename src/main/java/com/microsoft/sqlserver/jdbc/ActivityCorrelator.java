@@ -13,6 +13,8 @@ import java.util.UUID;
  */
 final class ActivityCorrelator {
 
+    // Tie activity lifetime to its thread: pooled connections can be closed by a different thread,
+    // so connection-close cleanup alone cannot release a terminated opener's activity.
     private static final ThreadLocal<ActivityId> activityId = ThreadLocal.withInitial(ActivityId::new);
 
     static ActivityId getCurrent() {
