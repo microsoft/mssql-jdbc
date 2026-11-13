@@ -4966,6 +4966,16 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return "CAST('" + escapeSQLString(value.toString()) + "' AS DATETIME2)";
         } else if (value instanceof java.util.Date) {
             return "CAST('" + escapeSQLString(formatUtilDate((java.util.Date) value)) + "' AS DATETIME2)";
+        } else if (value instanceof microsoft.sql.DateTimeOffset) {
+            java.time.OffsetDateTime dateTime = ((microsoft.sql.DateTimeOffset) value).getOffsetDateTime();
+            return "CAST('" + String.format(Locale.US, "%04d-%02d-%02dT%02d:%02d:%02d.%07d%s", dateTime.getYear(),
+                    dateTime.getMonthValue(), dateTime.getDayOfMonth(), dateTime.getHour(), dateTime.getMinute(),
+                    dateTime.getSecond(), dateTime.getNano() / 100, dateTime.getOffset().getId())
+                    + "' AS DATETIMEOFFSET)";
+        } else if (value instanceof java.time.OffsetDateTime) {
+            return "CAST('"
+                    + java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME.format((java.time.OffsetDateTime) value)
+                    + "' AS DATETIMEOFFSET)";
         } else if (value instanceof java.time.LocalDateTime) {
             // LocalDateTime.toString() drops zero seconds (13:14), which SQL Server rejects, so write every field.
             java.time.LocalDateTime dateTime = (java.time.LocalDateTime) value;
