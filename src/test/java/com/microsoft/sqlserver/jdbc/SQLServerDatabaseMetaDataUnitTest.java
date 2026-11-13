@@ -17,12 +17,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
@@ -96,6 +98,148 @@ public class SQLServerDatabaseMetaDataUnitTest {
         order.verify(fallback).executeQueryInternal();
         verify(fallback, never()).close();
         verify(resultSet, never()).close();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"completion", "bindTable", "bindSchema", "execute", "timeout", "success"})
+    public void testIndexInfoAzureDWFallbackCleanup(String stage) throws SQLException {
+        SQLServerConnection connection = mock(SQLServerConnection.class);
+        SQLServerPreparedStatement storedProcedure = mock(SQLServerPreparedStatement.class);
+        SQLServerPreparedStatement fallback = mock(SQLServerPreparedStatement.class);
+        SQLServerResultSet resultSet = mock(SQLServerResultSet.class);
+        SQLException failure = "timeout".equals(stage) ? new SQLTimeoutException("Fallback timed out")
+                                                       : new SQLServerException("Fallback failed", null);
+        when(connection.isAzureDW()).thenReturn(true);
+        when(connection.prepareStatement(anyString())).thenReturn(storedProcedure, fallback);
+        when(storedProcedure.executeQuery()).thenThrow(new SQLServerException("Stored procedure failed", null));
+        when(fallback.executeQuery()).thenReturn(resultSet);
+        if ("completion".equals(stage)) {
+            doThrow(failure).when(fallback).closeOnCompletion();
+        } else if ("bindTable".equals(stage)) {
+            doThrow(failure).when(fallback).setString(1, "t1");
+        } else if ("bindSchema".equals(stage)) {
+            doThrow(failure).when(fallback).setString(2, "dbo");
+        } else if (!"success".equals(stage)) {
+            when(fallback.executeQuery()).thenThrow(failure);
+        }
+
+        SQLServerDatabaseMetaData metadata = new SQLServerDatabaseMetaData(connection);
+        if ("success".equals(stage)) {
+            assertSame(resultSet, metadata.getIndexInfo(null, "dbo", "t1", false, false));
+            verify(fallback).closeOnCompletion();
+            verify(fallback).setString(1, "t1");
+            verify(fallback).setString(2, "dbo");
+            verify(fallback).executeQuery();
+            verify(fallback, never()).close();
+            verify(resultSet, never()).close();
+        } else {
+            assertSame(failure,
+                    assertThrows(SQLException.class, () -> metadata.getIndexInfo(null, "dbo", "t1", false, false)));
+            verify(fallback).close();
+        }
+        verify(connection).prepareStatement("EXEC sp_statistics ?,?,?,?,?,?;");
+        verify(storedProcedure).close();
+    }
+
+    static Stream<Arguments> indexInfoCatalogRestorationCases() {
+        return Stream.of("combined", "regularFallback", "azureCombined", "azureFallback")
+                .flatMap(path -> Stream.of(Arguments.of(path, false), Arguments.of(path, true)));
+    }
+
+    @ParameterizedTest
+    @MethodSource("indexInfoCatalogRestorationCases")
+    public void testIndexInfoCatalogRestorationClosesResult(String path, boolean restoreFails) throws SQLException {
+        SQLServerConnection connection = mock(SQLServerConnection.class);
+        SQLServerPreparedStatement first = mock(SQLServerPreparedStatement.class);
+        SQLServerPreparedStatement second = mock(SQLServerPreparedStatement.class);
+        SQLServerCallableStatement callable = mock(SQLServerCallableStatement.class);
+        SQLServerResultSet storedProcedureResult = mock(SQLServerResultSet.class);
+        SQLServerResultSet resultSet = mock(SQLServerResultSet.class);
+        SQLServerException restoreFailure = new SQLServerException("Catalog restoration failed", null);
+        boolean azureDW = path.startsWith("azure");
+        when(connection.getCatalog()).thenReturn("original", "requested");
+        when(connection.isAzureDW()).thenReturn(azureDW);
+        when(connection.prepareStatement(anyString())).thenReturn(first, second);
+        when(connection.prepareCall(anyString())).thenReturn(callable);
+        when(first.executeQuery()).thenReturn(azureDW ? storedProcedureResult : resultSet);
+        when(second.executeQuery()).thenReturn(resultSet);
+        when(callable.executeQueryInternal()).thenReturn(resultSet);
+        if (path.endsWith("Fallback")) {
+            when(first.executeQuery()).thenThrow(new SQLServerException("Primary query failed", null));
+        }
+        if (restoreFails) {
+            doThrow(restoreFailure).when(connection).setCatalog("original");
+        }
+
+        SQLServerDatabaseMetaData metadata = new SQLServerDatabaseMetaData(connection);
+        if (restoreFails) {
+            assertSame(restoreFailure, assertThrows(SQLServerException.class,
+                    () -> metadata.getIndexInfo("requested", "dbo", "t1", false, false)));
+            InOrder order = inOrder(connection, resultSet);
+            order.verify(connection).setCatalog("original");
+            order.verify(resultSet).close();
+        } else {
+            assertSame(resultSet, metadata.getIndexInfo("requested", "dbo", "t1", false, false));
+            verify(connection).setCatalog("original");
+            verify(resultSet, never()).close();
+        }
+        verify(connection).setCatalog("requested");
+    }
+
+    static Stream<Arguments> internalQueryCleanupCases() {
+        return Stream.of("create", "completion", "execute", "timeout", "success")
+                .flatMap(stage -> Stream.of(Arguments.of(stage, false), Arguments.of(stage, true)));
+    }
+
+    @ParameterizedTest
+    @MethodSource("internalQueryCleanupCases")
+    public void testInternalQueryCleanupAndCatalogRestoration(String stage, boolean restoreFails) throws SQLException {
+        SQLServerConnection connection = mock(SQLServerConnection.class);
+        SQLServerStatement statement = mock(SQLServerStatement.class);
+        SQLServerResultSet resultSet = mock(SQLServerResultSet.class);
+        SQLException queryFailure = "timeout".equals(stage) ? new SQLTimeoutException(
+                "Query timed out") : new SQLServerException("Query setup or execution failed", null);
+        SQLServerException restoreFailure = new SQLServerException("Catalog restoration failed", null);
+        when(connection.getCatalog()).thenReturn("original");
+        when(connection.createStatement()).thenReturn(statement);
+        when(statement.executeQueryInternal(anyString())).thenReturn(resultSet);
+        if ("create".equals(stage)) {
+            when(connection.createStatement()).thenThrow(queryFailure);
+        } else if ("completion".equals(stage)) {
+            doThrow(queryFailure).when(statement).closeOnCompletion();
+        } else if (!"success".equals(stage)) {
+            when(statement.executeQueryInternal(anyString())).thenThrow(queryFailure);
+        }
+        if (restoreFails) {
+            doThrow(restoreFailure).when(connection).setCatalog("original");
+        }
+
+        SQLServerDatabaseMetaData metadata = new SQLServerDatabaseMetaData(connection);
+        boolean success = "success".equals(stage) && !restoreFails;
+        if (success) {
+            assertSame(resultSet, metadata.getPseudoColumns("other", null, null, null));
+            verify(resultSet, never()).close();
+        } else {
+            SQLException expected = restoreFails ? restoreFailure : queryFailure;
+            assertSame(expected,
+                    assertThrows(SQLException.class, () -> metadata.getPseudoColumns("other", null, null, null)));
+        }
+
+        InOrder order = inOrder(connection, statement);
+        order.verify(connection).setCatalog("other");
+        order.verify(connection).createStatement();
+        if (!"create".equals(stage)) {
+            order.verify(statement).closeOnCompletion();
+            if (!"completion".equals(stage)) {
+                order.verify(statement).executeQueryInternal(anyString());
+            }
+        }
+        order.verify(connection).setCatalog("original");
+        if (success || "create".equals(stage)) {
+            verify(statement, never()).close();
+        } else {
+            order.verify(statement).close();
+        }
     }
 
     static Stream<Arguments> schemaQueryCases() {
