@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -94,6 +95,39 @@ class ParameterDirectSqlRetryTest {
         original.restoreRpcType(con);
         assertEquals(JDBCType.VARCHAR, original.getJdbcType());
         assertArrayEquals((byte[]) batch.getSetterValue(), (byte[]) original.getSetterValue());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = JDBCType.class, names = {"VARCHAR", "NVARCHAR"})
+    void testExecutionLocalClonePreservesRetainedLiteralMetadata(JDBCType type) throws SQLServerException {
+        SQLServerConnection con = connection(false);
+        Parameter original = parameter(con, type, "a\u20ac", JavaType.STRING, null, true);
+        Parameter queued = original.cloneForBatch();
+        Parameter execution = queued.cloneForBatch();
+        DTV originalValue = original.getInputDTV();
+        execution.restoreRpcType(con);
+        execution.getTypeDefinition(con, null);
+
+        assertSame(originalValue, original.getInputDTV());
+        assertSame(originalValue, queued.getInputDTV());
+        assertEquals(JDBCType.NVARCHAR == type, original.isNationalCharacterLiteral());
+        assertEquals(original.isNationalCharacterLiteral(), queued.isNationalCharacterLiteral());
+        assertEquals(JDBCType.NVARCHAR, original.getJdbcType());
+        assertEquals("a\u20ac", original.getSetterValue());
+        assertEquals(type, execution.getJdbcType());
+    }
+
+    @Test
+    void testExecutionLocalCloneRetainsForceEncryption() throws SQLServerException {
+        SQLServerConnection con = connection(false);
+        Parameter original = parameter(con, JDBCType.VARCHAR, "abc", JavaType.STRING, null, true);
+        original.setForceEncryption(true);
+        Parameter queued = original.cloneForBatch();
+        Parameter execution = queued.cloneForBatch();
+        execution.restoreRpcType(con);
+        assertTrue(queued.getForceEncryption());
+        assertTrue(execution.getForceEncryption());
+        assertTrue(original.getForceEncryption());
     }
 
     @Test

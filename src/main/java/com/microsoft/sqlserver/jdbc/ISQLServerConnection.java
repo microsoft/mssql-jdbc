@@ -311,6 +311,11 @@ public interface ISQLServerConnection extends java.sql.Connection {
 
     /**
      * Sets the behavior for the prepare method. {@link PrepareMethod}
+     * <p>
+     * Otherwise-direct {@code executeBatch()} and {@code executeLargeBatch()} executions under {@code none} or
+     * {@code scopeTempTablesToConnection} use grouped, unprepared {@code sp_executesql} RPCs. Local temporary tables
+     * created inside an entry are dropped when that RPC completes, even with {@code scopeTempTablesToConnection}.
+     * Tables created beforehand on the connection remain accessible. Non-batch direct execution is unchanged.
      *
      * @param prepareMethod
      *        Changes the setting as per description

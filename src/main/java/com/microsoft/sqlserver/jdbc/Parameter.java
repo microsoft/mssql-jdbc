@@ -327,6 +327,7 @@ final class Parameter {
         clonedParam.setterDTV = setterDTV;
         clonedParam.inputDTV = inputDTV;
         clonedParam.cryptoMeta = cryptoMeta;
+        clonedParam.forceEncryption = forceEncryption;
         clonedParam.jdbcTypeSetByUser = jdbcTypeSetByUser;
         clonedParam.valueLength = valueLength;
         clonedParam.directSqlSetterType = directSqlSetterType;

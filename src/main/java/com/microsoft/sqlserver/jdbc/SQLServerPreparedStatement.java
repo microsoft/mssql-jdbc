@@ -27,7 +27,6 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -145,7 +144,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     private boolean useBulkCopyForBatchInsert;
 
     /**
-     * Flag indicating whether this statement will use direct SQL execution
+     * Flag indicating whether non-batch execution of this statement will use direct SQL execution
      * (PKT_QUERY)
      * instead of prepared statements (PKT_RPC). Calculated once in constructor
      * based on:
@@ -1140,9 +1139,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeRPCStringUnicode(preparedSQL);
     }
 
-    private void buildExecSQLParams(TDSWriter tdsWriter) throws SQLServerException {
+    private void buildExecSQLParams(TDSWriter tdsWriter, boolean directBatch) throws SQLServerException {
+        // Existing prepared batches expose counts, not generated keys. Omit only our injected query so entry
+        // completion can reject user result sets without confusing them with a generated-keys result.
+        String sql = directBatch && bRequestedGeneratedKeys
+                                                            ? preparedSQL.substring(0,
+                                                                    preparedSQL.length() - IDENTITY_QUERY.length())
+                                                            : preparedSQL;
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
-            getStatementLogger().fine(toString() + ": calling sp_executesql: SQL:" + preparedSQL);
+            getStatementLogger().fine(toString() + ": calling sp_executesql: SQL:" + sql);
 
         expectPrepStmtHandle = false;
         executedSqlDirectly = true;
@@ -1153,13 +1158,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeShort(TDS.PROCID_SP_EXECUTESQL);
         tdsWriter.writeByte((byte) 0); // RPC procedure option 1
         tdsWriter.writeByte((byte) 0); // RPC procedure option 2
-        tdsWriter.sendEnclavePackage(preparedSQL, enclaveCEKs);
+        tdsWriter.sendEnclavePackage(sql, enclaveCEKs);
 
         // No handle used.
         resetPrepStmtHandle(false);
 
         // <stmt> IN
-        tdsWriter.writeRPCStringUnicode(preparedSQL);
+        tdsWriter.writeRPCStringUnicode(sql);
 
         // <formal parameter defn> IN
         if (preparedTypeDefinitions.length() > 0)
@@ -1671,9 +1676,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
 
-        // For prepareMethod=none or scopeTempTablesToConnection with temp tables,
-        // isDirectSqlExecution was set in constructor - use direct SQL
-        if (isDirectSqlExecution) {
+        // Keep direct execution for single calls only. Batches need an RPC boundary for each parameter set.
+        if (isDirectSqlExecution && !(command instanceof PrepStmtBatchExecCmd)) {
             // Build direct SQL using enhanced replaceParameterMarkersWithValues with direct values
             String directSQL = replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params, false);
             // The prepared path appends this query so getGeneratedKeys() has a result set; so does the direct path. The
@@ -1691,12 +1695,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false; // No preparation needed
         }
 
-        // A stored procedure call under prepareMethod=none is sent as an unprepared sp_executesql RPC with typed
-        // parameters. No server handle is created or cached. In a batch nothing has to be read back before the next
-        // entry, so the entries are combined into one request.
-        if (useUnpreparedRpc) {
+        // Direct-mode batch entries use the same unprepared RPC framing as procedure calls. No handle or per-entry
+        // preparation response is needed, so the existing batch loop groups the RPCs into one request.
+        if (useUnpreparedRpc || (isDirectSqlExecution && command instanceof PrepStmtBatchExecCmd)) {
             isExecuteSqlUsed = true;
-            buildExecSQLParams(tdsWriter);
+            buildExecSQLParams(tdsWriter, isDirectSqlExecution && command instanceof PrepStmtBatchExecCmd);
             sendParamsByRPC(tdsWriter, params);
             return !(command instanceof PrepStmtBatchExecCmd);
         }
@@ -1709,7 +1712,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
             // First execution, use sp_executesql, optimizing for assumption we will not re-use statement.
             if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
-                buildExecSQLParams(tdsWriter);
+                buildExecSQLParams(tdsWriter, false);
                 isExecutedAtLeastOnce = true;
                 isPrepExecUsed = false;
                 isExecuteSqlUsed = true;
@@ -3062,6 +3065,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // Transform the SQLException into a BatchUpdateException with the update counts.
                 if (null != batchCommand.batchException) {
+                    if (isDirectSqlExecution) {
+                        throw batchCommand.toBatchUpdateException();
+                    }
                     throw new BatchUpdateException(batchCommand.batchException.getMessage(),
                             batchCommand.batchException.getSQLState(), batchCommand.batchException.getErrorCode(),
                             updateCounts);
@@ -3251,6 +3257,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // Transform the SQLException into a BatchUpdateException with the update counts.
                 if (null != batchCommand.batchException) {
+                    if (isDirectSqlExecution) {
+                        throw batchCommand.toBatchUpdateException();
+                    }
                     DriverJDBCVersion.throwBatchUpdateException(batchCommand.batchException, updateCounts);
                 }
             }
@@ -3725,6 +3734,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             this.stmt = stmt;
         }
 
+        final BatchUpdateException toBatchUpdateException() {
+            BatchUpdateException error = new BatchUpdateException(batchException.getMessage(),
+                    batchException.getSQLState(), batchException.getErrorCode(), updateCounts, batchException);
+            error.setNextException(batchException);
+            return error;
+        }
+
         final boolean doExecute() throws SQLServerException {
             stmt.doExecutePreparedStatementBatch(this);
             return true;
@@ -3759,20 +3775,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         // Make sure any previous maxRows limitation on the connection is removed.
         connection.setMaxRows(0);
 
-        // Direct SQL execution handles the batch with literal parameter substitution. This is prepareMethod=none, or
-        // scopeTempTablesToConnection when temp table operations are detected in the SQL. A stored procedure call is
-        // never direct: under none each entry is sent as an unprepared RPC. If a parameter cannot be inlined as a
-        // literal, nothing has been sent, and the batch is sent as unprepared RPCs instead.
-        if (isDirectSqlExecution) {
-            try {
-                doExecuteExecMethodBatchCombined(batchCommand);
-                return;
-            } catch (SQLServerException e) {
-                if (!retryRejectedDirectSqlAsRpc())
-                    throw e;
-                Arrays.fill(batchCommand.updateCounts, Statement.EXECUTE_FAILED);
-            }
-        } else if (isScopeTempTablesToConnectionMethod) {
+        // Otherwise-direct batches are selected up front for grouped, unprepared RPC execution below.
+        if (!isDirectSqlExecution && isScopeTempTablesToConnectionMethod) {
             // scopeTempTablesToConnection is set but no temp table operations detected in
             // SQL, fall back to default prepexec method
             if (getStatementLogger().isLoggable(Level.FINER)) {
@@ -3786,6 +3790,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         }
         // Create the parameter array that we'll use for all the items in this batch.
         Parameter[] batchParam = new Parameter[inOutParam.length];
+
+        if (isDirectSqlExecution) {
+            // RPC bindings/SQL differ from retained direct bindings, including character and encryption metadata.
+            preparedTypeDefinitions = null;
+            encryptionMetadataIsRetrieved = false;
+            cryptoMetaBatch.clear();
+        }
 
         TDSWriter tdsWriter = null;
         
@@ -3802,7 +3813,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // Fill in the parameter values for this batch
                     Parameter[] paramValues = batchParamValues.get(numBatchesPrepared);
                     assert paramValues.length == batchParam.length;
-                    System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
+                    if (isDirectSqlExecution) {
+                        for (int i = 0; i < paramValues.length; i++) {
+                            // Restoring RPC types clears literal metadata; retain it on the current/queued bindings.
+                            batchParam[i] = paramValues[i].cloneForBatch();
+                            batchParam[i].restoreRpcType(connection);
+                        }
+                    } else {
+                        System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
+                    }
 
                     boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
                     boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
@@ -3922,7 +3941,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                         // Get the first result from the batch. If there is no result for this batch
                                         // then bail, leaving EXECUTE_FAILED in the current and remaining slots of
                                         // the update count array.
-                                        if (!getNextResult(true))
+                                        if (!(isDirectSqlExecution ? getNextBatchRpcResult() : getNextResult(true)))
                                             return;
 
                                         // If sp_prepare was executed, but a handle doesn't exist that means
@@ -3963,7 +3982,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                         // If the failure was severe enough to close the connection or roll back a
                                         // manual transaction, then propagate the error up as a SQLServerException
                                         // now, rather than continue with the batch.
-                                        if (connection.isSessionUnAvailable() || connection.rolledBackTransaction())
+                                        if (connection.isSessionUnAvailable() || connection.rolledBackTransaction()
+                                                || (isDirectSqlExecution && SQLState.STATEMENT_CANCELED
+                                                        .getSQLStateCode().equals(e.getSQLState())))
                                             throw e;
 
                                         // Retry if invalid handle exception.
@@ -3979,6 +4000,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                         updateCount = Statement.EXECUTE_FAILED;
                                         if (null == batchCommand.batchException)
                                             batchCommand.batchException = e;
+                                        else if (isDirectSqlExecution)
+                                            batchCommand.batchException.setNextException(e);
 
                                         String sqlState = batchCommand.batchException.getSQLState();
                                         if (null != sqlState
@@ -4005,6 +4028,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 assert numBatchesExecuted == numBatchesPrepared;
                             }
                         } catch (SQLException e) {
+                            if (isDirectSqlExecution
+                                    && (connection.isSessionUnAvailable() || connection.rolledBackTransaction()
+                                            || SQLState.STATEMENT_CANCELED.getSQLStateCode().equals(e.getSQLState()))) {
+                                throw e;
+                            }
                             if (connection.isAEv2() && (e.getErrorCode() == SQLServerException.INVAID_ENCLAVE_SESSION_HANDLE_ERROR)) {
                                 //If the exception received is as below then just invalidate the cache 
                                 //code = '33195', SQL state = 'S0001': Internal enclave error. Enclave was provided with an invalid session handle. For more information, contact Customer Support Services..
@@ -4028,128 +4056,57 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         break;
                     }
                 }
+                if (isDirectSqlExecution && null != batchCommand.batchException)
+                    executeScope.setException(batchCommand.batchException);
             } catch (SQLServerException e) {
                 executeScope.setException(e);
                 throw e;
+            } finally {
+                if (isDirectSqlExecution) {
+                    encryptionMetadataIsRetrieved = false;
+                    cryptoMetaBatch.clear();
+                }
             }
         }
     }
 
-
     /**
-     * Executes batch using EXEC method by combining all batch entries into a single
-     * SQL script. For each batch entry, the entire userSQL is repeated with all
-     * parameter markers replaced by their values, then all entries are
-     * concatenated.
-     * 
-     * @param batchCommand the batch command context
-     * @throws SQLServerException if execution fails
+     * Consumes one otherwise-direct batch entry through its RPC boundary. Unlike cleanup via processBatch(), this
+     * must report trailing result sets and errors even when an earlier DML statement has already supplied a count.
      */
-    final void doExecuteExecMethodBatchCombined(PrepStmtBatchExecCmd batchCommand)
-            throws SQLServerException {
-        final int numBatches = batchParamValues.size();
-        batchCommand.updateCounts = new long[numBatches];
-
-        try {
-            // Build the combined SQL script by repeating the entire userSQL for each batch
-            StringBuilder sqlScript = new StringBuilder();
-
-            for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
-                Parameter[] batchParams = batchParamValues.get(batchIdx);
-
-                // Replace all parameter markers in the entire userSQL with values from this
-                // batch
-                String expandedSQL = replaceParameterMarkersWithValues(
-                        userSQL, userSQLParamPositions, batchParams, false);
-
-                sqlScript.append(expandedSQL);
-
-                // End any trailing line comment before the separator and the next batch entry.
-                if (batchIdx < numBatches - 1) {
-                    sqlScript.append("\n;");
+    private boolean getNextBatchRpcResult() throws SQLServerException {
+        boolean hasResult = false;
+        long lastUpdateCount = -1;
+        SQLServerException failure = null;
+        while (moreResults) {
+            boolean unexpectedResultSet = false;
+            try {
+                if (!getNextResult(true))
+                    break;
+                hasResult = true;
+                if (null != resultSet) {
+                    unexpectedResultSet = true;
+                    SQLServerException.makeFromDriverError(connection, this,
+                            SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
                 }
-            }
-
-            // Execute the combined SQL script
-            TDSWriter tdsWriter = batchCommand.startRequest(TDS.PKT_QUERY);
-            tdsWriter.writeString(sqlScript.toString());
-
-            // End request build time tracking
-            endCreationToFirstPacketTracking();
-
-            // Track batch execution time
-            try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
-                    PerformanceLog.perfLoggerStatement,
-                    connection,
-                    getStatementID(),
-                    this,
-                    userSQL,
-                    PerformanceActivity.STATEMENT_EXECUTE)) {
-                try {
-                    // Track server roundtrip time
-                    startFirstPacketToFirstResponseTracking();
-                    try {
-                        ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
-                    } finally {
-                        endFirstPacketToFirstResponseTracking();
-                    }
-
-                    startResults();
-
-                    // Initialize update counts to failed by default
-                    for (int i = 0; i < numBatches; i++) {
-                        batchCommand.updateCounts[i] = Statement.EXECUTE_FAILED;
-                    }
-
-                    // Process results for each batch entry
-                    for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
-                        try {
-                            boolean isResultSet = getNextResult(true);
-
-                            if (isResultSet) {
-                                batchCommand.updateCounts[batchIdx] = 1;
-                                if (null != resultSet) {
-                                    resultSet.close();
-                                    resultSet = null;
-                                }
-                            } else {
-                                long updateCount = getUpdateCount();
-                                batchCommand.updateCounts[batchIdx] = updateCount;
-                            }
-                        } catch (SQLException e) {
-                            batchCommand.updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
-
-                            if (null == batchCommand.batchException) {
-                                batchCommand.batchException = new SQLServerException(
-                                        e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
-                            }
-                        }
-                    }
-                    // If we had any batch failures, throw BatchUpdateException with update counts
-                    if (null != batchCommand.batchException) {
-                        int[] updateCounts = new int[batchCommand.updateCounts.length];
-                        for (int i = 0; i < batchCommand.updateCounts.length; i++) {
-                            updateCounts[i] = (int) batchCommand.updateCounts[i];
-                        }
-
-                        BatchUpdateException batchException = new BatchUpdateException(
-                                batchCommand.batchException.getMessage(),
-                                batchCommand.batchException.getSQLState(),
-                                batchCommand.batchException.getErrorCode(), updateCounts);
-
-                        throw new SQLServerException(batchException.getMessage(),
-                                batchException.getSQLState(),
-                                batchException.getErrorCode(), batchException);
-                    }
-                } catch (SQLServerException e) {
-                    executeScope.setException(e);
+                if (-1 != updateCount)
+                    lastUpdateCount = updateCount;
+            } catch (SQLServerException e) {
+                if (connection.isSessionUnAvailable() || connection.rolledBackTransaction() || (!unexpectedResultSet
+                        && SQLServerException.DRIVER_ERROR_FROM_DATABASE != e.getDriverErrorCode())) {
                     throw e;
                 }
+                if (null == failure)
+                    failure = e;
+                else
+                    failure.setNextException(e);
             }
-
-        } catch (SQLException e) {
-            throw new SQLServerException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
         }
+        clearLastResult();
+        updateCount = lastUpdateCount;
+        if (null != failure)
+            throw failure;
+        return hasResult;
     }
 
     @Override

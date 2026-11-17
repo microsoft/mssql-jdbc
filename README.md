@@ -122,6 +122,29 @@ One can see all dependencies including Transitive Dependency by executing follow
 mvn dependency:tree
 ```
 
+### Batch execution with `prepareMethod=none` or `scopeTempTablesToConnection`
+
+`PreparedStatement.executeBatch()` and `executeLargeBatch()` send otherwise-direct statements as unprepared
+`sp_executesql` RPCs, selected before execution. Each parameter set has its own RPC boundary; RPCs are grouped into
+the existing batched request, without a preparation round trip per entry or prepared handles. Parameters use typed
+RPC binding rather than SQL literals, including the configured `sendStringParametersAsUnicode` behavior.
+Non-batch direct execution, prepared execution modes, and the optional Bulk Copy batch-insert path are unchanged.
+
+**Temporary-table scope limitation:** local temporary tables **created inside a batch entry disappear when that
+entry's RPC completes**. They cannot be referenced by later entries or after the batch. This applies even with
+`prepareMethod=scopeTempTablesToConnection`. It extends the existing restriction for procedure-call and
+unsupported-literal RPC execution to all otherwise-direct batches. Create a temporary table beforehand on the
+connection (for example with `Statement.execute`) if batch entries or later statements must share it; those
+connection-scoped tables remain accessible. Use non-batch direct execution when table creation must retain
+connection scope.
+
+The returned array contains one status per parameter set: its last update count, `Statement.SUCCESS_NO_INFO`
+when no count is available (such as `SET NOCOUNT ON`), or `Statement.EXECUTE_FAILED` for a failed entry.
+Compound entries are consumed through their RPC boundary, so trailing errors and unexpected result sets fail
+the batch rather than disappearing during cleanup. As with the existing prepared RPC batch path, batch APIs
+return counts only; generated keys are not exposed by `getGeneratedKeys()` after a batch. Single-execution
+generated keys are unchanged.
+
 ### Azure Key Vault and Azure Active Directory Authentication Dependencies
 Projects that require either of the two features need to explicitly declare the dependency in their pom file.
 

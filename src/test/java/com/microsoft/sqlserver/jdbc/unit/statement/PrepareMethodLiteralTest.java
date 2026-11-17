@@ -238,7 +238,14 @@ public class PrepareMethodLiteralTest extends AbstractTest {
                     }
                     stmt.executeUpdate("DELETE FROM #literal_results");
                     if (createInPreparedSql) {
-                        stmt.executeUpdate("DROP TABLE #literal_marker");
+                        if (batch) {
+                            try (ResultSet rs = stmt.executeQuery("SELECT OBJECT_ID('tempdb..#literal_marker')")) {
+                                assertTrue(rs.next());
+                                assertNull(rs.getObject(1), "Tables created by batch entries have RPC scope");
+                            }
+                        } else {
+                            stmt.executeUpdate("DROP TABLE #literal_marker");
+                        }
                     }
                 }
             }
