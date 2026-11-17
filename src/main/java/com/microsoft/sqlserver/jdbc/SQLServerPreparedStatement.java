@@ -4108,9 +4108,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             continue;
 
                         if (null != resultSet) {
-                            // Discard without public cursor limits or scroll buffering, but preserve row errors.
+                            // ResultSet.close() is cleanup-only and can suppress row errors. Read to the end first.
                             try {
-                                resultSet.discardFetchBufferWithErrors();
+                                while (resultSet.next());
                             } finally {
                                 resultSet.close();
                                 resultSet = null;

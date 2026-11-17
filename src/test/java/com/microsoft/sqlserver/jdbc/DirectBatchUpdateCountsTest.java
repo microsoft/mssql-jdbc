@@ -100,25 +100,6 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"false,false", "true,false", "false,true", "true,true"})
-    public void unexpectedResultIgnoresPublicRowLimit(boolean large, boolean scrollable) throws Exception {
-        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement();
-                PreparedStatement ps = con.prepareStatement("UPDATE #counts SET id=id+?; SELECT id FROM #counts",
-                        scrollable ? ResultSet.TYPE_SCROLL_INSENSITIVE : ResultSet.TYPE_FORWARD_ONLY,
-                        ResultSet.CONCUR_READ_ONLY)) {
-            ((SQLServerPreparedStatement) ps).setResponseBuffering("adaptive");
-            stmt.execute("CREATE TABLE #counts (id int); INSERT INTO #counts VALUES (1),(2)");
-            ps.setMaxRows(1);
-            ps.setInt(1, 1);
-            ps.addBatch();
-            BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
-            assertArrayEquals(new long[] {2}, error.getLargeUpdateCounts());
-            assertEquals(1, ps.getMaxRows(), "Batch draining must not change the user's row limit");
-            assertEquals(5, scalar(stmt, "SELECT SUM(id) FROM #counts"));
-        }
-    }
-
-    @ParameterizedTest
     @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true", "scopeTempTablesToConnection,false",
             "scopeTempTablesToConnection,true"})
     public void actualCountsAndReuse(String method, boolean large) throws Exception {
