@@ -3193,6 +3193,7 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
 
     @ParameterizedTest(name = "{0}, large={1}")
     @MethodSource("batchRpcModes")
+    @Tag(Constants.xAzureSQLDW)
     public void testBatchRpcTimeoutIsNotSuccess(String mode, boolean large) throws SQLException {
         try (Connection con = openBatchRpcConnection(mode); Statement stmt = con.createStatement()) {
             stmt.execute("CREATE TABLE #timeout (v int)");
