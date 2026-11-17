@@ -3064,7 +3064,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 if (null != batchCommand.batchException) {
                     throw new BatchUpdateException(batchCommand.batchException.getMessage(),
                             batchCommand.batchException.getSQLState(), batchCommand.batchException.getErrorCode(),
-                            updateCounts, batchCommand.batchException);
+                            updateCounts);
 
                 }
             }
@@ -3251,9 +3251,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
                 // Transform the SQLException into a BatchUpdateException with the update counts.
                 if (null != batchCommand.batchException) {
-                    throw new BatchUpdateException(batchCommand.batchException.getMessage(),
-                            batchCommand.batchException.getSQLState(), batchCommand.batchException.getErrorCode(),
-                            updateCounts, batchCommand.batchException);
+                    DriverJDBCVersion.throwBatchUpdateException(batchCommand.batchException, updateCounts);
                 }
             }
 
@@ -3729,14 +3727,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         final boolean doExecute() throws SQLServerException {
             stmt.doExecutePreparedStatementBatch(this);
-            // Resolve lazy chaining while this execution still owns the statement, then sever every reference.
-            // Inspecting a saved batch exception must never advance a subsequent execution on the same statement.
-            for (SQLException error = batchException; null != error;) {
-                SQLException next = error.getNextException();
-                if (error instanceof SQLServerException)
-                    ((SQLServerException) error).setSourceStatement(null);
-                error = next;
-            }
             return true;
         }
 
@@ -4051,109 +4041,98 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * SQL script. For each batch entry, the entire userSQL is repeated with all
      * parameter markers replaced by their values, then all entries are
      * concatenated.
-     * Counts are assigned by result position; arbitrary compound or conditional SQL does not expose
-     * parameter-set boundaries. The entire response must be processed even after all count slots are filled.
      * 
-     * @param batchCommand
-     *        the batch command context
-     * @throws SQLServerException
-     *         if execution fails
+     * @param batchCommand the batch command context
+     * @throws SQLServerException if execution fails
      */
     final void doExecuteExecMethodBatchCombined(PrepStmtBatchExecCmd batchCommand)
             throws SQLServerException {
         final int numBatches = batchParamValues.size();
-        Arrays.fill(batchCommand.updateCounts, Statement.EXECUTE_FAILED);
+        batchCommand.updateCounts = new long[numBatches];
 
-        // Expand every entry before sending anything, preserving unsupported-parameter RPC fallback.
-        StringBuilder sqlScript = new StringBuilder();
-        for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
-            Parameter[] batchParams = batchParamValues.get(batchIdx);
-            sqlScript.append(replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, batchParams, false));
-            // End any trailing line comment before the separator and the next batch entry.
-            if (batchIdx < numBatches - 1) {
-                sqlScript.append("\n;");
-            }
-        }
+        try {
+            // Build the combined SQL script by repeating the entire userSQL for each batch
+            StringBuilder sqlScript = new StringBuilder();
 
-        resetForReexecute();
-        executedSqlDirectly = true;
-        expectPrepStmtHandle = false;
-        expectCursorOutParams = false;
-        outParamIndexAdjustment = 0;
-        TDSWriter tdsWriter = batchCommand.startRequest(TDS.PKT_QUERY);
-        tdsWriter.writeString(sqlScript.toString());
-        endCreationToFirstPacketTracking();
+            for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
+                Parameter[] batchParams = batchParamValues.get(batchIdx);
 
-        try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(PerformanceLog.perfLoggerStatement,
-                connection, getStatementID(), this, userSQL, PerformanceActivity.STATEMENT_EXECUTE)) {
-            try {
-                startFirstPacketToFirstResponseTracking();
-                try {
-                    ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
-                } finally {
-                    endFirstPacketToFirstResponseTracking();
+                // Replace all parameter markers in the entire userSQL with values from this
+                // batch
+                String expandedSQL = replaceParameterMarkersWithValues(
+                        userSQL, userSQLParamPositions, batchParams, false);
+
+                sqlScript.append(expandedSQL);
+
+                // End any trailing line comment before the separator and the next batch entry.
+                if (batchIdx < numBatches - 1) {
+                    sqlScript.append("\n;");
                 }
+            }
 
-                // Language-batch results do not identify parameter sets. These positions correspond to entries
-                // only when each entry produces one result. Never assign a late error to the last entry merely
-                // because the array is full.
-                int resultIndex = 0;
-                SQLServerException interruptException = null;
-                while (!batchCommand.getProcessedResponse()) {
-                    boolean unexpectedResultSet = false;
-                    // A logical end-of-results (e.g. a non-DML DONE) need not be token EOF.
-                    startResults();
+            // Execute the combined SQL script
+            TDSWriter tdsWriter = batchCommand.startRequest(TDS.PKT_QUERY);
+            tdsWriter.writeString(sqlScript.toString());
+
+            // End request build time tracking
+            endCreationToFirstPacketTracking();
+
+            // Track batch execution time
+            try (PerformanceLog.Scope executeScope = PerformanceLog.createScope(
+                    PerformanceLog.perfLoggerStatement,
+                    connection,
+                    getStatementID(),
+                    this,
+                    userSQL,
+                    PerformanceActivity.STATEMENT_EXECUTE)) {
+                try {
+                    // Track server roundtrip time
+                    startFirstPacketToFirstResponseTracking();
                     try {
-                        if (!getNextResult(true))
-                            continue;
+                        ensureExecuteResultsReader(batchCommand.startResponse(getIsResponseBufferingAdaptive()));
+                    } finally {
+                        endFirstPacketToFirstResponseTracking();
+                    }
 
-                        if (null != resultSet) {
-                            // ResultSet.close() is cleanup-only and can suppress row errors. Read to the end first.
-                            try {
-                                while (resultSet.next());
-                            } finally {
+                    startResults();
+
+                    // Initialize update counts to failed by default
+                    for (int i = 0; i < numBatches; i++) {
+                        batchCommand.updateCounts[i] = Statement.EXECUTE_FAILED;
+                    }
+
+                    // Process results for each batch entry
+                    for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
+                        try {
+                            // getNextResult returns true for an update count as well as for a ResultSet.
+                            if (!getNextResult(true))
+                                break;
+                            if (null != resultSet) {
                                 resultSet.close();
                                 resultSet = null;
                             }
-                            unexpectedResultSet = true;
-                            SQLServerException.makeFromDriverError(connection, this,
-                                    SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
-                        }
+                            batchCommand.updateCounts[batchIdx] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
+                                                                                      : updateCount;
+                        } catch (SQLServerException e) {
+                            if (connection.isSessionUnAvailable() || connection.rolledBackTransaction())
+                                throw e;
 
-                        if (resultIndex < numBatches) {
-                            batchCommand.updateCounts[resultIndex] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
-                                                                                         : updateCount;
-                        }
-                        resultIndex++;
-                    } catch (SQLServerException e) {
-                        if (connection.isSessionUnAvailable() || connection.rolledBackTransaction())
-                            throw e;
-                        if (SQLState.STATEMENT_CANCELED.getSQLStateCode().equals(e.getSQLState())) {
-                            interruptException = e;
-                            continue;
-                        }
-                        if (!unexpectedResultSet
-                                && SQLServerException.DRIVER_ERROR_FROM_DATABASE != e.getDriverErrorCode())
-                            throw e;
+                            batchCommand.updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
 
-                        // Failed and unexecuted slots remain failed. Retain errors even after the array is full;
-                        // cleanup-only processResults() would discard database errors.
-                        resultIndex++;
-                        if (null == batchCommand.batchException)
-                            batchCommand.batchException = e;
-                        else
-                            batchCommand.batchException.setNextException(e);
+                            if (null == batchCommand.batchException) {
+                                batchCommand.batchException = e;
+                            }
+                        }
                     }
+                    // executeBatch and executeLargeBatch turn batchException into a BatchUpdateException.
+                } catch (SQLServerException e) {
+                    executeScope.setException(e);
+                    throw e;
                 }
-                clearLastResult();
-                if (null != interruptException)
-                    throw interruptException;
-                if (null != batchCommand.batchException)
-                    executeScope.setException(batchCommand.batchException);
-            } catch (SQLServerException e) {
-                executeScope.setException(e);
-                throw e;
             }
+
+        } catch (SQLException e) {
+            throw new SQLServerException(e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
         }
     }
 

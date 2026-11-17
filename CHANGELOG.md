@@ -49,9 +49,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Fixed
 
-- **Correct Update Counts and Observe Late Errors in Direct Prepared-Statement Batches**
-  - **What was fixed**: `executeBatch()` and `executeLargeBatch()` now retain actual server counts instead of hard-coded `1` under `prepareMethod=none` and the direct `scopeTempTablesToConnection` path. Successful results without counts use `SUCCESS_NO_INFO`. Recoverable failures are reported through `BatchUpdateException`, including errors or unexpected result sets after the count array is full.
-  - **Impact**: Retains combined language-batch execution and connection-scoped temporary tables. Compound or conditional entries can produce variable numbers of results, so counts remain result-position based, not reliable per-entry counts or error identities. A late failure can therefore accompany an array containing only non-negative counts. See [direct batch count limitations](docs/direct-batch-update-counts.md). Session, transaction rollback, cancellation and timeout failures retain their exception behavior.
+- **Correct Update Counts in Direct Prepared-Statement Batches**
+  - **What was fixed**: `executeBatch()` and `executeLargeBatch()` under `prepareMethod=none`, and the direct path of `scopeTempTablesToConnection`, reported `1` for every successful entry. They now return the server's count, including `0` and multi-row counts, `SUCCESS_NO_INFO` when no count is available, and `EXECUTE_FAILED` for failed or unexecuted entries. Recoverable failures throw `BatchUpdateException` with these counts.
+  - **Impact**: Combined language-batch execution and connection-scoped temporary tables are unchanged. Counts are assigned by result position, so they are reliable only when each entry produces one result, such as a single `INSERT`, `UPDATE`, `DELETE` or `MERGE`. See [direct batch count limitations](docs/direct-batch-update-counts.md).
 
 - **Prevent Silent Loss of Trailing SQL in Bulk Copy Batch Inserts** [#3037](https://github.com/microsoft/mssql-jdbc/pull/3037)
   - **What was fixed**: Detected query hints, additional `VALUES` tuples, and other meaningful SQL after the first values tuple and persistently routed those statements through normal batch execution.

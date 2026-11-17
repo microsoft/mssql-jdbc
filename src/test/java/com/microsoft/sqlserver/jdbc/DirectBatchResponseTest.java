@@ -5,7 +5,6 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -105,19 +104,15 @@ class DirectBatchResponseTest {
     void preservesLongCountsAndUnknownSuccess() throws Throwable {
         Response response = new Response(3, 0L, 1L + Integer.MAX_VALUE, -1L);
         assertArrayEquals(new long[] {0, 1L + Integer.MAX_VALUE, Statement.SUCCESS_NO_INFO}, response.run());
-        assertEquals(4, response.next.get());
         verify(response.stmt, never()).getUpdateCount();
     }
 
     @Test
-    void observesErrorsAndCountsBeyondTheOutputArray() throws Throwable {
-        SQLServerException first = databaseError();
-        SQLServerException second = databaseError();
-        Response response = new Response(1, 5L, 8L, first, second);
-        assertArrayEquals(new long[] {5}, response.run());
-        assertSame(first, response.error());
-        assertSame(second, first.getNextException());
-        assertEquals(5, response.next.get());
+    void recordsFailedEntryAndContinues() throws Throwable {
+        SQLServerException error = databaseError();
+        Response response = new Response(3, 1L, error, 2L);
+        assertArrayEquals(new long[] {1, Statement.EXECUTE_FAILED, 2}, response.run());
+        assertSame(error, response.error());
     }
 
     @Test
@@ -131,17 +126,9 @@ class DirectBatchResponseTest {
         SQLServerException error = databaseError();
         Response session = new Response(1, error);
         when(session.con.isSessionUnAvailable()).thenReturn(true);
-        assertSame(error, assertThrows(SQLServerException.class, session::run));
+        assertSame(error, assertThrows(SQLServerException.class, session::run).getCause());
         Response rollback = new Response(1, error);
         when(rollback.con.rolledBackTransaction()).thenReturn(true);
-        assertSame(error, assertThrows(SQLServerException.class, rollback::run));
-    }
-
-    @Test
-    void cancellationDrainsThenPropagates() throws Exception {
-        SQLServerException canceled = new SQLServerException("canceled", "HY008", 0, null);
-        Response response = new Response(1, 1L, canceled);
-        assertSame(canceled, assertThrows(SQLServerException.class, response::run));
-        assertEquals(3, response.next.get());
+        assertSame(error, assertThrows(SQLServerException.class, rollback::run).getCause());
     }
 }

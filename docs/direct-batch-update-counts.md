@@ -8,49 +8,38 @@ to `sp_executesql`.
 
 ## Count and failure behavior
 
-For entries producing one result each, `executeBatch()` and `executeLargeBatch()`
-report actual server counts, including zero and multi-row counts. A successful
-result with no count is `Statement.SUCCESS_NO_INFO` (`-2`), not `1` or `-1`.
-Large-batch counts use the driver's `long` count without narrowing through
-`getUpdateCount()`. Failed or unexecuted positions remain
-`Statement.EXECUTE_FAILED` (`-3`) where the result sequence identifies them.
+Each result read from the response is assigned to the next batch entry:
 
-The driver processes the entire response, not just as many results as there are
-array slots. Recoverable database errors and unexpected result sets fail the
-batch through `BatchUpdateException`, including errors after all slots have
-been filled. Its cause retains the original SQL exception and additional
-observed errors in that exception's `getNextException()` chain. The chain is
-finalized and detached from the statement before it is returned, so inspecting
-a saved exception cannot consume results from a later execution. Session failures,
-transaction rollback, cancellation and timeout are not converted into successful
-batch results or ordinary recoverable batch failures.
+- an update count is reported as returned, including `0` and multi-row counts;
+- a successful result without a count, such as under `SET NOCOUNT ON`, is
+  `Statement.SUCCESS_NO_INFO` (`-2`);
+- a recoverable error marks that entry `Statement.EXECUTE_FAILED` (`-3`), and
+  `executeBatch()` / `executeLargeBatch()` throw `BatchUpdateException` with the
+  counts;
+- entries without a result, for example after an error that aborts the rest of
+  the batch, stay `Statement.EXECUTE_FAILED`.
 
-## Important attribution limitation
+Session failures and transaction rollbacks are thrown immediately instead of
+being reported as entry failures.
 
-**This is not general per-entry count or error attribution, nor parity with
-`prepexec`.** Language-batch completion tokens identify SQL results, not JDBC
-parameter sets. Compound SQL, conditional branches, loops and triggers can
-produce different numbers of counts per entry. The returned array contains the
-first observed result positions, up to the number of submitted entries; later
-results are consumed for completion and errors, not aggregated into entry totals.
+## Limitations
 
-For example, one submitted entry containing an update of three rows followed by
-an update of one row returns `[3]`, not an invented total `[4]`. With several
-entries, results from the first entry can occupy slots an application might
-otherwise interpret as later entries. Neither static SQL-statement counting nor
-draining the response recovers the missing boundaries.
+**Counts are reliable only when each entry produces exactly one result**, such as
+a single `INSERT`, `UPDATE`, `DELETE` or `MERGE` without an `OUTPUT` result set.
+The server's responses identify SQL statements, not JDBC parameter sets, so:
 
-Similarly, `INSERT ...; RAISERROR(...)` can produce a valid count before the
-error. A single-entry batch can throw `BatchUpdateException` with `[1]`. The
-driver does not overwrite that count with `EXECUTE_FAILED` and pretend to know
-which entry owns an unlabelled late error. **Always handle the exception even
-when every returned count is non-negative.** Confirm persisted state or explicitly
-roll back according to the application's transaction policy.
+- compound or conditional entries (`INSERT ...; UPDATE ...`, `IF ... UPDATE ...`)
+  produce a variable number of results, and results from one entry can fill the
+  slots of later entries;
+- only as many results are read as there are entries. A result set, or an error
+  raised after an entry's count, can go unreported;
+- an error that aborts the batch, such as a conversion failure, `THROW` or
+  `XACT_ABORT`, also stops all later entries, which would still run under
+  `prepexec`;
+- T-SQL that must be unique or alone in a batch, such as `DECLARE` of the same
+  variable, `GOTO` labels, or `CREATE VIEW`, fails when entries are combined.
 
-A combined language batch can abort subsequent entries differently from grouped
-RPCs. Already submitted SQL is never replayed to recover counts. Use `prepexec`
-when reliable per-entry boundaries are required, subject to that mode's scope
-semantics, or execute entries individually if separate round trips are acceptable.
+Use `prepexec` when entries contain more than one statement.
 
 ## Routing and scope
 

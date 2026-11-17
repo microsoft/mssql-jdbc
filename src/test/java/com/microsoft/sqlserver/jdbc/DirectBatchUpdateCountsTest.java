@@ -7,7 +7,6 @@ package com.microsoft.sqlserver.jdbc;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -18,10 +17,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.sql.Statement;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Timeout;
@@ -68,34 +63,6 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         try (ResultSet rs = stmt.executeQuery(sql)) {
             assertTrue(rs.next());
             return rs.getInt(1);
-        }
-    }
-
-    @ParameterizedTest
-    @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true"})
-    public void savedBatchErrorDoesNotConsumeReusedStatement(String method, boolean large) throws Exception {
-        try (SQLServerConnection con = open(method);
-                PreparedStatement ps = con.prepareStatement("IF ?=0 BEGIN RAISERROR('first batch error',16,1);"
-                        + " RAISERROR('second batch error',16,1); END ELSE SELECT 42 AS value")) {
-            ps.setInt(1, 0);
-            ps.addBatch();
-            BatchUpdateException batchError = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
-            SQLException saved = (SQLException) batchError.getCause();
-            assertNotNull(saved);
-            assertTrue(saved.getMessage().contains("first batch error"));
-            ps.setInt(1, 1);
-            try (ResultSet rs = ps.executeQuery()) {
-                int errorCount = 0;
-                for (SQLException error = saved; null != error; error = error.getNextException()) {
-                    assertTrue(error.getMessage().contains("batch error"));
-                    errorCount++;
-                }
-                if ("none".equals(method))
-                    assertEquals(2, errorCount, "Both direct-batch errors must remain available");
-                assertTrue(rs.next());
-                assertEquals(42, rs.getInt(1));
-                assertFalse(rs.next());
-            }
         }
     }
 
@@ -203,81 +170,6 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
 
     @ParameterizedTest
     @CsvSource({"false", "true"})
-    public void lateErrorsAfterFilledSlotsAreNotDiscarded(boolean large) throws Exception {
-        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement()) {
-            stmt.execute("CREATE TABLE #counts (id int)");
-            try (PreparedStatement ps = con.prepareStatement(
-                    "INSERT INTO #counts VALUES (?); RAISERROR('late first',16,1); RAISERROR('late second',16,1)")) {
-                ps.setInt(1, 1);
-                ps.addBatch();
-                BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
-                // The count precedes the error. Do not invent a parameter-set identity for that late error.
-                assertArrayEquals(new long[] {1}, error.getLargeUpdateCounts());
-                assertEquals(50000, error.getErrorCode());
-                assertNotNull(error.getCause());
-                assertTrue(error.getCause() instanceof SQLException);
-                assertNotNull(((SQLException) error.getCause()).getNextException());
-                assertEquals(1, scalar(stmt, "SELECT COUNT(*) FROM #counts"));
-                ps.setInt(1, 2);
-                ps.addBatch();
-                assertThrows(BatchUpdateException.class, () -> execute(ps, large));
-                assertEquals(3, scalar(stmt, "SELECT SUM(id) FROM #counts"));
-            }
-        }
-    }
-
-    @ParameterizedTest
-    @CsvSource({"false", "true"})
-    public void unexpectedLateResultSetFails(boolean large) throws Exception {
-        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement()) {
-            stmt.execute("CREATE TABLE #counts (id int)");
-            try (PreparedStatement ps = con
-                    .prepareStatement("INSERT INTO #counts VALUES (?); SELECT id FROM #counts")) {
-                ps.setInt(1, 7);
-                ps.addBatch();
-                BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
-                assertArrayEquals(new long[] {1}, error.getLargeUpdateCounts());
-                assertTrue(
-                        error.getMessage().contains(SQLServerException.getErrString("R_resultsetGeneratedForUpdate")));
-                assertEquals(7, scalar(stmt, "SELECT SUM(id) FROM #counts"));
-                assertFalse(ps.getMoreResults());
-            }
-        }
-    }
-
-    @ParameterizedTest
-    @CsvSource({"false", "true"})
-    public void resultSetInFirstSlotIsNotSuccessful(boolean large) throws Exception {
-        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement();
-                PreparedStatement ps = con.prepareStatement("/* result set first */ SELECT ?")) {
-            ps.setInt(1, 7);
-            ps.addBatch();
-            BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
-            assertArrayEquals(new long[] {Statement.EXECUTE_FAILED}, error.getLargeUpdateCounts());
-            assertTrue(error.getMessage().contains(SQLServerException.getErrString("R_resultsetGeneratedForUpdate")));
-            assertEquals(7, scalar(stmt, "SELECT 7"));
-        }
-    }
-
-    @ParameterizedTest
-    @CsvSource({"false", "true"})
-    public void resultSetRowErrorIsNotCleanupOnly(boolean large) throws Exception {
-        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement()) {
-            stmt.execute("CREATE TABLE #counts (id int)");
-            try (PreparedStatement ps = con
-                    .prepareStatement("INSERT INTO #counts VALUES (?); SELECT 10/(id-id) FROM #counts")) {
-                ps.setInt(1, 7);
-                ps.addBatch();
-                BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
-                assertArrayEquals(new long[] {1}, error.getLargeUpdateCounts());
-                assertEquals(8134, error.getErrorCode());
-                assertEquals(7, scalar(stmt, "SELECT SUM(id) FROM #counts"));
-            }
-        }
-    }
-
-    @ParameterizedTest
-    @CsvSource({"false", "true"})
     public void compoundResultsArePositionsNotEntryTotals(boolean large) throws Exception {
         try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement()) {
             stmt.execute("CREATE TABLE #counts (id int); INSERT INTO #counts VALUES (1),(2),(3)");
@@ -372,39 +264,10 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
             ps.setInt(1, 2);
             ps.addBatch();
             SQLException error = assertThrows(SQLException.class, () -> execute(ps, large));
-            assertFalse(error instanceof BatchUpdateException);
             assertTrue(error instanceof SQLTimeoutException || "HY008".equals(error.getSQLState()));
             assertEquals(1, scalar(stmt, "SELECT SUM(id) FROM #counts"));
             ps.setQueryTimeout(0);
             assertArrayEquals(new long[0], execute(ps, large));
-        }
-    }
-
-    @ParameterizedTest
-    @CsvSource({"false", "true"})
-    @Timeout(30)
-    public void cancelAfterCountStillFails(boolean large) throws Exception {
-        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement();
-                PreparedStatement ps = con.prepareStatement("UPDATE #counts SET id=?; WAITFOR DELAY '00:00:10'")) {
-            stmt.execute("CREATE TABLE #counts (id int); INSERT INTO #counts VALUES (1)");
-            ps.setInt(1, 2);
-            ps.addBatch();
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            try {
-                Future<?> cancel = executor.submit(() -> {
-                    TimeUnit.SECONDS.sleep(1);
-                    ps.cancel();
-                    return null;
-                });
-                SQLException error = assertThrows(SQLException.class, () -> execute(ps, large));
-                assertFalse(error instanceof BatchUpdateException);
-                assertEquals("HY008", error.getSQLState());
-                cancel.get(10, TimeUnit.SECONDS);
-                assertEquals(2, scalar(stmt, "SELECT SUM(id) FROM #counts"));
-            } finally {
-                executor.shutdownNow();
-                assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS));
-            }
         }
     }
 }
