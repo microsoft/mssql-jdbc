@@ -19,7 +19,9 @@ The driver processes the entire response, not just as many results as there are
 array slots. Recoverable database errors and unexpected result sets fail the
 batch through `BatchUpdateException`, including errors after all slots have
 been filled. Its cause retains the original SQL exception and additional
-observed errors in that exception's `getNextException()` chain. Session failures,
+observed errors in that exception's `getNextException()` chain. The chain is
+finalized and detached from the statement before it is returned, so inspecting
+a saved exception cannot consume results from a later execution. Session failures,
 transaction rollback, cancellation and timeout are not converted into successful
 batch results or ordinary recoverable batch failures.
 

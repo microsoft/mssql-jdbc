@@ -6,17 +6,21 @@ package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -63,7 +67,10 @@ class DirectBatchResponseTest {
                 Object result = results[index];
                 if (result instanceof SQLServerException)
                     throw (SQLServerException) result;
-                stmt.updateCount = (Long) result;
+                if (result instanceof SQLServerResultSet)
+                    stmt.resultSet = (SQLServerResultSet) result;
+                else
+                    stmt.updateCount = (Long) result;
                 return true;
             }).when(stmt).getNextResult(true);
         }
@@ -143,5 +150,44 @@ class DirectBatchResponseTest {
         Response response = new Response(1, 1L, canceled);
         assertSame(canceled, assertThrows(SQLServerException.class, response::run));
         assertEquals(3, response.next.get());
+    }
+
+    @Test
+    void scrollableDiscardReleasesAndDoesNotRecreateBufferMarks() throws Throwable {
+        SQLServerResultSet rs = mock(SQLServerResultSet.class, CALLS_REAL_METHODS);
+        SQLServerStatement stmt = mock(SQLServerStatement.class);
+        TDSReader reader = mock(TDSReader.class);
+        ScrollWindow window = mock(ScrollWindow.class);
+        when(stmt.getSQLResultSetType()).thenReturn(SQLServerResultSet.TYPE_SS_SCROLL_STATIC);
+        when(reader.mark()).thenReturn(mock(TDSReaderMark.class));
+        when(reader.readUnsignedByte()).thenReturn(TDS.TDS_ROW);
+        set(SQLServerResultSet.class, rs, "stmt", stmt);
+        set(SQLServerResultSet.class, rs, "tdsReader", reader);
+        set(SQLServerResultSet.class, rs, "scrollWindow", window);
+        Class<?> bufferType = Arrays.stream(SQLServerResultSet.class.getDeclaredClasses())
+                .filter(c -> "FetchBuffer".equals(c.getSimpleName())).findFirst().get();
+        Constructor<?> constructor = bufferType.getDeclaredConstructor(SQLServerResultSet.class);
+        constructor.setAccessible(true);
+        Object buffer = constructor.newInstance(rs);
+        set(SQLServerResultSet.class, rs, "fetchBuffer", buffer);
+        assertNotNull(field(buffer, "startMark"), "Scrollable results initially retain a buffer mark");
+        TDSTokenHandler handler = (TDSTokenHandler) field(buffer, "fetchBufferTokenHandler");
+        AtomicInteger rows = new AtomicInteger();
+        doReturn(false).when(rs).next();
+        doAnswer(invocation -> {
+            assertNull(field(buffer, "startMark"), "Discard must release the initial and previous row marks");
+            if (rows.getAndIncrement() == 100)
+                return false;
+            handler.onRow(reader);
+            assertNull(field(buffer, "startMark"), "Discard must not restart scroll buffering");
+            return true;
+        }).when(rs).fetchBufferNext();
+        doNothing().when(rs).close();
+        Response response = new Response(1, rs);
+        response.run();
+        assertEquals(101, rows.get());
+        verify(window).clear();
+        verify(rs, never()).next();
+        assertEquals(SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), response.error().getMessage());
     }
 }

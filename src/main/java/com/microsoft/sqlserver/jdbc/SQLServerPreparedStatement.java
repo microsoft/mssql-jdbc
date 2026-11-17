@@ -3729,6 +3729,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         final boolean doExecute() throws SQLServerException {
             stmt.doExecutePreparedStatementBatch(this);
+            // Resolve lazy chaining while this execution still owns the statement, then sever every reference.
+            // Inspecting a saved batch exception must never advance a subsequent execution on the same statement.
+            for (SQLException error = batchException; null != error;) {
+                SQLException next = error.getNextException();
+                if (error instanceof SQLServerException)
+                    ((SQLServerException) error).setSourceStatement(null);
+                error = next;
+            }
             return true;
         }
 
@@ -4100,9 +4108,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             continue;
 
                         if (null != resultSet) {
-                            // ResultSet.close() is cleanup-only and can suppress row errors. Read to the end first.
+                            // Discard without public cursor limits or scroll buffering, but preserve row errors.
                             try {
-                                while (resultSet.next());
+                                resultSet.discardFetchBufferWithErrors();
                             } finally {
                                 resultSet.close();
                                 resultSet = null;

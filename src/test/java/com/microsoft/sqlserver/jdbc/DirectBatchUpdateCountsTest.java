@@ -72,6 +72,53 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
     }
 
     @ParameterizedTest
+    @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true"})
+    public void savedBatchErrorDoesNotConsumeReusedStatement(String method, boolean large) throws Exception {
+        try (SQLServerConnection con = open(method);
+                PreparedStatement ps = con.prepareStatement("IF ?=0 BEGIN RAISERROR('first batch error',16,1);"
+                        + " RAISERROR('second batch error',16,1); END ELSE SELECT 42 AS value")) {
+            ps.setInt(1, 0);
+            ps.addBatch();
+            BatchUpdateException batchError = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
+            SQLException saved = (SQLException) batchError.getCause();
+            assertNotNull(saved);
+            assertTrue(saved.getMessage().contains("first batch error"));
+            ps.setInt(1, 1);
+            try (ResultSet rs = ps.executeQuery()) {
+                int errorCount = 0;
+                for (SQLException error = saved; null != error; error = error.getNextException()) {
+                    assertTrue(error.getMessage().contains("batch error"));
+                    errorCount++;
+                }
+                if ("none".equals(method))
+                    assertEquals(2, errorCount, "Both direct-batch errors must remain available");
+                assertTrue(rs.next());
+                assertEquals(42, rs.getInt(1));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false,false", "true,false", "false,true", "true,true"})
+    public void unexpectedResultIgnoresPublicRowLimit(boolean large, boolean scrollable) throws Exception {
+        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement();
+                PreparedStatement ps = con.prepareStatement("UPDATE #counts SET id=id+?; SELECT id FROM #counts",
+                        scrollable ? ResultSet.TYPE_SCROLL_INSENSITIVE : ResultSet.TYPE_FORWARD_ONLY,
+                        ResultSet.CONCUR_READ_ONLY)) {
+            ((SQLServerPreparedStatement) ps).setResponseBuffering("adaptive");
+            stmt.execute("CREATE TABLE #counts (id int); INSERT INTO #counts VALUES (1),(2)");
+            ps.setMaxRows(1);
+            ps.setInt(1, 1);
+            ps.addBatch();
+            BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
+            assertArrayEquals(new long[] {2}, error.getLargeUpdateCounts());
+            assertEquals(1, ps.getMaxRows(), "Batch draining must not change the user's row limit");
+            assertEquals(5, scalar(stmt, "SELECT SUM(id) FROM #counts"));
+        }
+    }
+
+    @ParameterizedTest
     @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true", "scopeTempTablesToConnection,false",
             "scopeTempTablesToConnection,true"})
     public void actualCountsAndReuse(String method, boolean large) throws Exception {

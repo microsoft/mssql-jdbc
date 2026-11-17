@@ -6281,9 +6281,11 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
         /** Location in the TDS response of the start of the fetch buffer */
         private TDSReaderMark startMark;
+        private boolean discarding;
 
-        final void clearStartMark() {
+        final void discard() {
             startMark = null;
+            discarding = true;
         }
 
         private RowType fetchBufferCurrentRowType = RowType.UNKNOWN;
@@ -6299,7 +6301,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
         }
 
         final void ensureStartMark() {
-            if (null == startMark && !isForwardOnly()) {
+            if (!discarding && null == startMark && !isForwardOnly()) {
                 if (logger.isLoggable(java.util.logging.Level.FINEST))
                     logger.finest(super.toString() + " Setting fetch buffer start mark");
 
@@ -6324,6 +6326,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
          * buffer to allow the fetch buffer to be scrolled back to the beginning.
          */
         final void init() {
+            discarding = false;
             startMark = (0 == serverCursorId && !isForwardOnly()) ? tdsReader.mark() : null;
             fetchBufferCurrentRowType = RowType.UNKNOWN;
             done = false;
@@ -6501,11 +6504,26 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
      * considered to be discarded.
      */
     private void discardFetchBuffer() {
+        try {
+            discardFetchBufferWithErrors();
+        } catch (SQLServerException e) {
+            if (logger.isLoggable(Level.FINER))
+                logger.finer(this + " Encountered exception discarding fetch buffer: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Discards rows without cursor movement or retained scroll marks, propagating errors to execution callers.
+     *
+     * @throws SQLServerException
+     *         if reading or discarding a row fails
+     */
+    final void discardFetchBufferWithErrors() throws SQLServerException {
         // fills blobs before discarding anything
         fillLOBs();
 
-        // Clear the TDSReader mark at the start of the fetch buffer
-        fetchBuffer.clearStartMark();
+        // Release the initial mark and prevent row tokens from establishing a new one during discard.
+        fetchBuffer.discard();
 
         // Clear all row TDSReader marks in the scroll window
         if (null != scrollWindow)
@@ -6513,12 +6531,7 @@ public class SQLServerResultSet implements ISQLServerResultSet, java.io.Serializ
 
         // Once there are no TDSReader marks left referring to the fetch buffer
         // contents, process the remainder of the current row and all subsequent rows.
-        try {
-            while (fetchBufferNext());
-        } catch (SQLServerException e) {
-            if (logger.isLoggable(Level.FINER))
-                logger.finer(this + " Encountered exception discarding fetch buffer: " + e.getMessage());
-        }
+        while (fetchBufferNext());
     }
 
     /**
