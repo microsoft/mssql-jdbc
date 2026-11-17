@@ -170,9 +170,19 @@ Route `executeBatch()` and `executeLargeBatch()` away from combined direct SQL a
 
 - Send **one `sp_executesql` RPC per parameter set, grouped into a batched RPC request**, using the existing RPC batch delimiters. This is not a separate round trip per entry, and it is not one `sp_executesql` wrapper around the whole concatenated script; the latter would retain the attribution problem.
 - Reuse `useUnpreparedRpc`, typed parameter restoration/binding, and existing RPC result/count/error handling. Do not prepare or cache server handles. RPC completion supplies the per-entry boundaries needed to handle compound SQL consistently with the existing RPC path.
-- Select this routing **before sending anything**, when batch execution is known. A fallback-style transition like unsupported-type handling is acceptable only if it occurs before submission; do not first execute direct SQL and then retry it as RPC.
+- Select this routing **before sending any part of the batch request to SQL Server**, when `executeBatch()` or `executeLargeBatch()` is called. Proposal 2 should choose grouped RPC execution immediately; it does not need to try direct SQL first.
 - Preserve single-statement execution behavior when the same PreparedStatement is later used outside a batch. Define whether the batch-only routing state is temporary rather than blindly copying the unsupported-type fallback's lifetime-long transition.
 - Verify full response completion, compound/count-selection behavior, unexpected result sets, errors, cancellation, and large counts through the existing RPC machinery; reuse is not a claim that every corner case has already been validated.
+
+**What "fallback before submission" means:** the existing unsupported-type fallback rejects a parameter locally while building the literal SQL, before any of the combined script has been sent. The driver can then discard that local construction and build an RPC request instead. Although this is described as a retry, it retries request construction, not an already submitted SQL execution. Proposal 2 may reuse the type-restoration/RPC machinery, but batch detection itself is sufficient to choose RPC up front.
+
+```text
+Proposal 2:       executeBatch() -> choose RPC -> build grouped RPCs -> send
+Safe fallback:   build literal SQL locally -> unsupported type -> build RPCs -> send
+Not safe:        send direct SQL -> receive an error/counts -> resend entries as RPCs
+```
+
+For example, `UPDATE counters SET value = value + 1 WHERE id = ?` may already have succeeded for earlier entries when a later entry fails. Resending the batch as RPCs could increment those rows twice. The restriction therefore applies as soon as any request data has been transmitted, even if the driver has not received a response or cannot tell whether execution occurred. It concerns this routing fallback; it is not a change to separately configured retry policies.
 
 **Limitation: RPC scope, the same class of limitation already accepted for procedure calls under `none` and for parameters that cannot be inlined.** Existing connection-scoped temporary tables remain accessible inside `sp_executesql`. A local temporary table created inside an RPC can be used within that entry, but is dropped when the RPC ends: later entries or statements cannot use it. Other constructs relying on shared language-batch scope, such as local variables spanning entries, also change behavior.
 
