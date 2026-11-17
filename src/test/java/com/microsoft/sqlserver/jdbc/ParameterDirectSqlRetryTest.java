@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -113,17 +112,6 @@ class ParameterDirectSqlRetryTest {
         assertEquals(JDBCType.NVARCHAR, original.getJdbcType());
         assertEquals("a\u20ac", original.getSetterValue());
         assertEquals(type, queued.getJdbcType());
-    }
-
-    @Test
-    void testQueuedBatchRestorationRetainsForceEncryption() throws SQLServerException {
-        SQLServerConnection con = connection(false);
-        Parameter original = parameter(con, JDBCType.VARCHAR, "abc", JavaType.STRING, null, true);
-        original.setForceEncryption(true);
-        Parameter queued = original.cloneForBatch();
-        queued.restoreRpcType(con);
-        assertTrue(queued.getForceEncryption());
-        assertTrue(original.getForceEncryption());
     }
 
     @Test

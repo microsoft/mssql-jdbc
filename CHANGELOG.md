@@ -50,7 +50,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Fixed
 
 - **Return Per-Entry Update Counts for Otherwise-Direct PreparedStatement Batches**
-  - **What was fixed**: Select grouped, unprepared `sp_executesql` RPCs up front for `executeBatch()` and `executeLargeBatch()` with `prepareMethod=none`, or the direct path of `scopeTempTablesToConnection`. Each parameter set retains its boundary, typed binding, actual update count, and trailing error/result-set detection, without prepared handles or a preparation round trip per entry.
+  - **What was fixed**: `executeBatch()` and `executeLargeBatch()` with `prepareMethod=none`, or the direct path of `scopeTempTablesToConnection`, returned `1` for every entry. These batches are now sent as grouped, unprepared `sp_executesql` RPCs, as procedure calls already are, and return the same per-entry update counts and `BatchUpdateException` as `prepexec`. No prepared handles are created.
   - **Who benefits**: Applications batching multi-row, zero-row, compound, or `NOCOUNT` statements in these modes.
   - **Impact**: Local temporary tables created inside a batch entry now have RPC scope and disappear at that entry's completion, **including with `scopeTempTablesToConnection`**. They cannot be shared with later entries or accessed after the batch. Non-batch direct execution, prepared-mode execution, and Bulk Copy batch inserts are unchanged.
   - **Application action required**: Create shared temporary tables beforehand on the connection using `Statement.execute`, then run batch DML against them, or retain non-batch direct execution for connection-scoped table creation.

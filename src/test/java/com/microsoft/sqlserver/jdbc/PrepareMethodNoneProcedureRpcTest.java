@@ -2878,7 +2878,8 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
 
     @ParameterizedTest(name = "mode={0}, reader={1}")
     @MethodSource("streamCases")
-    @Tag(Constants.xAzureSQLDW)
+    @Tag(Constants.xAzureSQLDW)
+
     @Timeout(90)
     public void testQueryTimeoutAfterRpcTransition(String mode, boolean reader) throws SQLException {
         try (Connection con = openStreamRecoveryConnection(mode);
@@ -3055,6 +3056,290 @@ public class PrepareMethodNoneProcedureRpcTest extends AbstractTest {
         @Override
         public void close() {
             // No resources; stream ownership and reuse after failure are deliberately not asserted.
+        }
+    }
+
+    // A batch that would otherwise run as direct SQL is sent as grouped, unprepared sp_executesql RPCs, like a procedure
+    // call, and reports counts and failures through the same RPC batch loop as prepexec.
+
+    private static Stream<Arguments> batchRpcModes() {
+        return Stream.of("none", "scopeTempTablesToConnection")
+                .flatMap(mode -> Stream.of(false, true).map(large -> Arguments.of(mode, large)));
+    }
+
+    private static Connection openBatchRpcConnection(String mode) throws SQLException {
+        return openConnection(mode, "useBulkCopyForBatchInsert=false", "disableStatementPooling=false",
+                "statementPoolingCacheSize=10", "enablePrepareOnFirstPreparedStatementCall=true",
+                "sendStringParametersAsUnicode=false", "columnEncryptionSetting=Disabled", "retryExec=");
+    }
+
+    // The never-taken CREATE TABLE makes scopeTempTablesToConnection select the direct path.
+    private static String batchRpcSql(String mode, String sql) {
+        return "none".equals(mode) ? sql : "IF 1=0 CREATE TABLE #routing_marker (v int); " + sql;
+    }
+
+    private static long[] executeBatchRpc(PreparedStatement ps, boolean large) throws SQLException {
+        if (large) {
+            return ps.executeLargeBatch();
+        }
+        return Arrays.stream(ps.executeBatch()).asLongStream().toArray();
+    }
+
+    private static int batchRpcScalar(Statement stmt, String sql) throws SQLException {
+        try (ResultSet rs = stmt.executeQuery(sql)) {
+            assertTrue(rs.next());
+            return rs.getInt(1);
+        }
+    }
+
+    @ParameterizedTest(name = "{0}, large={1}")
+    @MethodSource("batchRpcModes")
+    public void testBatchRpcExactCountsAndCompoundEntries(String mode, boolean large) throws SQLException {
+        try (Connection con = openBatchRpcConnection(mode); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #counts (v int); INSERT INTO #counts VALUES (1),(2),(3),(4),(5)");
+            try (PreparedStatement ps = con.prepareStatement(batchRpcSql(mode, "DELETE TOP (?) FROM #counts"))) {
+                for (int count : new int[] {2, 0, 3, 5}) {
+                    ps.setInt(1, count);
+                    ps.addBatch();
+                }
+                assertArrayEquals(new long[] {2, 0, 3, 0}, executeBatchRpc(ps, large));
+                assertEquals(0, batchRpcScalar(stmt, "SELECT COUNT(*) FROM #counts"));
+            }
+            // A compound entry reports its last count.
+            try (PreparedStatement ps = con.prepareStatement(
+                    batchRpcSql(mode, "INSERT INTO #counts VALUES (?),(?); UPDATE #counts SET v=v+10 WHERE v=1"))) {
+                for (int value : new int[] {1, 3}) {
+                    ps.setInt(1, value);
+                    ps.setInt(2, value + 1);
+                    ps.addBatch();
+                }
+                assertArrayEquals(new long[] {1, 0}, executeBatchRpc(ps, large));
+                assertEquals(20, batchRpcScalar(stmt, "SELECT SUM(v) FROM #counts"));
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "{0}, large={1}")
+    @MethodSource("batchRpcModes")
+    public void testBatchRpcNoCountAndLocalTempTableScope(String mode, boolean large) throws SQLException {
+        try (Connection con = openBatchRpcConnection(mode); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #parent (v int)");
+            try (PreparedStatement ps = con
+                    .prepareStatement("SET NOCOUNT ON; CREATE TABLE #child (v int); INSERT INTO #child VALUES (?); "
+                            + "INSERT INTO #parent SELECT v FROM #child")) {
+                for (int value : new int[] {1, 2}) {
+                    ps.setInt(1, value);
+                    ps.addBatch();
+                }
+                assertArrayEquals(new long[] {Statement.SUCCESS_NO_INFO, Statement.SUCCESS_NO_INFO},
+                        executeBatchRpc(ps, large));
+                // A table created by an entry has RPC scope; a table created beforehand stays visible.
+                assertEquals(3, batchRpcScalar(stmt, "SELECT SUM(v) FROM #parent"));
+                assertEquals(0, batchRpcScalar(stmt, "SELECT COALESCE(OBJECT_ID('tempdb..#child'),0)"));
+            } finally {
+                stmt.execute("SET NOCOUNT OFF");
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "{0}, large={1}")
+    @MethodSource("batchRpcModes")
+    public void testBatchRpcFailedEntriesReportExecuteFailed(String mode, boolean large) throws SQLException {
+        try (Connection con = openBatchRpcConnection(mode); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #errors (v int PRIMARY KEY)");
+            try (PreparedStatement ps = con.prepareStatement(batchRpcSql(mode, "INSERT INTO #errors VALUES (?)"))) {
+                for (int value : new int[] {1, 1, 2}) {
+                    ps.setInt(1, value);
+                    ps.addBatch();
+                }
+                BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> executeBatchRpc(ps, large));
+                assertEquals(2627, error.getErrorCode());
+                assertArrayEquals(new long[] {1, Statement.EXECUTE_FAILED, 1}, error.getLargeUpdateCounts());
+            }
+            try (PreparedStatement ps = con.prepareStatement(
+                    batchRpcSql(mode, "INSERT INTO #errors VALUES (?); RAISERROR('trailing batch failure',16,1)"))) {
+                for (int value : new int[] {3, 4}) {
+                    ps.setInt(1, value);
+                    ps.addBatch();
+                }
+                BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> executeBatchRpc(ps, large));
+                assertTrue(error.getMessage().contains("trailing batch failure"));
+                assertArrayEquals(new long[] {Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED},
+                        error.getLargeUpdateCounts());
+            }
+            assertEquals(4, batchRpcScalar(stmt, "SELECT COUNT(*) FROM #errors"));
+        }
+    }
+
+    @ParameterizedTest(name = "{0}, large={1}")
+    @MethodSource("batchRpcModes")
+    public void testBatchRpcTransactionAbortingFailureIsPropagated(String mode, boolean large) throws SQLException {
+        try (Connection con = openBatchRpcConnection(mode); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #rollback (v int PRIMARY KEY)");
+            con.setAutoCommit(false);
+            stmt.execute("SET XACT_ABORT ON");
+            try (PreparedStatement ps = con.prepareStatement(batchRpcSql(mode, "INSERT INTO #rollback VALUES (?)"))) {
+                for (int value : new int[] {1, 1, 2}) {
+                    ps.setInt(1, value);
+                    ps.addBatch();
+                }
+                assertThrows(SQLException.class, () -> executeBatchRpc(ps, large));
+                assertEquals(0, batchRpcScalar(stmt, "SELECT COUNT(*) FROM #rollback"));
+            } finally {
+                con.rollback();
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "{0}, large={1}")
+    @MethodSource("batchRpcModes")
+    public void testBatchRpcTimeoutIsNotSuccess(String mode, boolean large) throws SQLException {
+        try (Connection con = openBatchRpcConnection(mode); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #timeout (v int)");
+            try (PreparedStatement ps = con
+                    .prepareStatement(batchRpcSql(mode, "INSERT INTO #timeout VALUES (?); WAITFOR DELAY '00:00:05'"))) {
+                ps.setQueryTimeout(1);
+                ps.setInt(1, 1);
+                ps.addBatch();
+                SQLException error = assertThrows(SQLException.class, () -> executeBatchRpc(ps, large));
+                assertEquals(SQLState.STATEMENT_CANCELED.getSQLStateCode(), error.getSQLState());
+                assertEquals(1, batchRpcScalar(stmt, "SELECT COUNT(*) FROM #timeout"));
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "{0}, large={1}")
+    @MethodSource("batchRpcModes")
+    public void testBatchRpcTypedBindingsAndDirectReuseWithoutRebinding(String mode,
+            boolean large) throws SQLException {
+        try (Connection con = openBatchRpcConnection(mode); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #chars (v varchar(20), n nvarchar(20), t varchar(20), nt varchar(20))");
+            String sql = batchRpcSql(mode,
+                    "INSERT INTO #chars VALUES (?, ?, CONVERT(varchar(20),SQL_VARIANT_PROPERTY(?, 'BaseType')), "
+                            + "CONVERT(varchar(20),SQL_VARIANT_PROPERTY(?, 'BaseType')))");
+            try (PreparedStatement ps = con.prepareStatement(sql)) {
+                ps.setString(1, "a\u20ac");
+                ps.setNString(2, "\u4e2d");
+                ps.setString(3, "a");
+                ps.setNString(4, "\u4e2d");
+                ps.addBatch();
+                assertArrayEquals(new long[] {1}, executeBatchRpc(ps, large));
+                assertEquals(1, ps.executeUpdate());
+                try (ResultSet rs = stmt.executeQuery("SELECT v, n, t, nt FROM #chars")) {
+                    for (int row = 0; row < 2; row++) {
+                        assertTrue(rs.next());
+                        assertEquals("a\u20ac", rs.getString(1));
+                        assertEquals("\u4e2d", rs.getNString(2));
+                        assertEquals("varchar", rs.getString(3));
+                        assertEquals("nvarchar", rs.getString(4));
+                    }
+                    assertFalse(rs.next());
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "{0}, large={1}")
+    @MethodSource("batchRpcModes")
+    public void testBatchRpcGeneratedKeysMatchPrepexec(String mode, boolean large) throws SQLException {
+        for (String prepareMode : new String[] {"prepexec", mode}) {
+            try (Connection con = openBatchRpcConnection(prepareMode); Statement stmt = con.createStatement()) {
+                stmt.execute("CREATE TABLE #identities (id int IDENTITY, v int)");
+                try (PreparedStatement ps = con.prepareStatement(
+                        batchRpcSql(prepareMode, "INSERT INTO #identities VALUES (?)"),
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    for (int value : new int[] {1, 2}) {
+                        ps.setInt(1, value);
+                        ps.addBatch();
+                    }
+                    assertArrayEquals(new long[] {1, 1}, executeBatchRpc(ps, large), prepareMode);
+                    assertThrows(SQLException.class, ps::getGeneratedKeys, prepareMode);
+                    assertEquals(1, ps.executeUpdate());
+                    try (ResultSet keys = ps.getGeneratedKeys()) {
+                        assertTrue(keys.next());
+                        assertEquals(3, keys.getInt(1));
+                    }
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "{0}, large={1}")
+    @MethodSource("batchRpcModes")
+    public void testBatchRpcStreamAndParameterlessEntries(String mode, boolean large) throws SQLException {
+        try (Connection con = openBatchRpcConnection(mode); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #streams (v varbinary(20))");
+            try (PreparedStatement ps = con.prepareStatement(batchRpcSql(mode, "INSERT INTO #streams VALUES (?)"))) {
+                for (String value : new String[] {"one", "two"}) {
+                    byte[] bytes = value.getBytes(StandardCharsets.US_ASCII);
+                    ps.setBinaryStream(1, new ByteArrayInputStream(bytes), bytes.length);
+                    ps.addBatch();
+                }
+                assertArrayEquals(new long[] {1, 1}, executeBatchRpc(ps, large));
+            }
+            try (PreparedStatement ps = con.prepareStatement(batchRpcSql(mode, "UPDATE #streams SET v=0x01"))) {
+                ps.addBatch();
+                ps.addBatch();
+                assertArrayEquals(new long[] {2, 2}, executeBatchRpc(ps, large));
+                assertEquals(2, batchRpcScalar(stmt, "SELECT SUM(DATALENGTH(v)) FROM #streams"));
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "{0}, large={1}")
+    @MethodSource("batchRpcModes")
+    public void testBatchRpcIsOneGroupedRequestAndNonBatchKeepsDirectScope(String mode,
+            boolean large) throws SQLException {
+        Logger logger = Logger.getLogger(STATEMENT_LOGGER);
+        Level previous = logger.getLevel();
+        Logger commands = Logger.getLogger("com.microsoft.sqlserver.jdbc.internals.TDS.Command");
+        Level previousCommands = commands.getLevel();
+        List<String> calls = new ArrayList<>();
+        List<String> requests = new ArrayList<>();
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                if (record.getMessage().contains(": calling sp_")) {
+                    calls.add(record.getMessage());
+                }
+                if (record.getMessage().contains("executeBatch")
+                        && record.getMessage().contains(": starting request...")) {
+                    requests.add(record.getMessage());
+                }
+            }
+
+            @Override
+            public void flush() {}
+
+            @Override
+            public void close() {}
+        };
+        logger.setLevel(Level.FINE);
+        logger.addHandler(handler);
+        commands.setLevel(Level.FINEST);
+        commands.addHandler(handler);
+        try (Connection con = openBatchRpcConnection(mode); Statement stmt = con.createStatement();
+                SQLServerPreparedStatement ps = (SQLServerPreparedStatement) con
+                        .prepareStatement("CREATE TABLE #local (v int); INSERT INTO #local VALUES (?)")) {
+            for (int i = 0; i < 3; i++) {
+                ps.setInt(1, i);
+                ps.addBatch();
+            }
+            assertArrayEquals(new long[] {1, 1, 1}, executeBatchRpc(ps, large));
+            assertEquals(3, calls.size());
+            assertEquals(1, requests.size(), requests.toString());
+            for (String call : calls) {
+                assertTrue(call.contains("calling sp_executesql"), call);
+            }
+            assertEquals(0, ps.getPreparedStatementHandle());
+            assertEquals(0, batchRpcScalar(stmt, "SELECT COALESCE(OBJECT_ID('tempdb..#local'),0)"));
+            ps.executeUpdate();
+            assertEquals(1, batchRpcScalar(stmt, "SELECT COUNT(*) FROM #local"));
+        } finally {
+            logger.removeHandler(handler);
+            logger.setLevel(previous);
+            commands.removeHandler(handler);
+            commands.setLevel(previousCommands);
         }
     }
 
