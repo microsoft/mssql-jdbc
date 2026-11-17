@@ -35,6 +35,7 @@ final class OtlpConfiguration implements Supplier<Map<String, String>>, AutoClos
     private final String authority;
     private final ClassLoader callbackLoader;
     private final LongSupplier clock;
+    private final boolean callbackEveryExport;
     private volatile boolean closed;
     private volatile String staticBearer;
     private volatile String cachedBearer;
@@ -49,9 +50,30 @@ final class OtlpConfiguration implements Supplier<Map<String, String>>, AutoClos
     }
 
     OtlpConfiguration(Properties configuration, LongSupplier clock) {
+        this(configuration, clock, null, false);
+    }
+
+    static OtlpConfiguration forUserEndpoint(Properties options, ClassLoader loader, LongSupplier clock) {
+        // Translate only the core's allowlisted user options. Never import demo headers or SQL credentials.
+        Properties configuration = new Properties();
+        configuration.setProperty("otelEndpoint", options.getProperty("otelEndpoint"));
+        configuration.setProperty("otelServiceName", "mssql-jdbc");
+        configuration.setProperty("otelJdbcMetricsEnabled", "true");
+        String callback = options.getProperty("otelAccessTokenCallback");
+        if (callback != null) {
+            configuration.setProperty("otelAccessTokenCallbackClass", callback);
+            configuration.setProperty("otelTokenScope", options.getProperty("otelEndpoint"));
+            configuration.setProperty("otelTokenAuthority", "");
+        }
+        return new OtlpConfiguration(configuration, clock, loader, true);
+    }
+
+    private OtlpConfiguration(Properties configuration, LongSupplier clock, ClassLoader capturedLoader,
+            boolean userEndpoint) {
         Objects.requireNonNull(configuration, "configuration");
         this.clock = clock;
-        endpoint = normalizeEndpoint(configuration);
+        callbackEveryExport = userEndpoint;
+        endpoint = normalizeEndpoint(configuration, userEndpoint);
         metricsEndpoint = endpoint.substring(0, endpoint.length() - "/v1/traces".length()) + "/v1/metrics";
         serviceName = boundedText(configuration.getProperty("otelServiceName", "mssql-jdbc-connection-demo"), 256);
         metricsEnabled = flag(configuration, "otelJdbcMetricsEnabled");
@@ -70,16 +92,22 @@ final class OtlpConfiguration implements Supplier<Map<String, String>>, AutoClos
         if (callbackClass != null) {
             boundedText(callbackClass, 512);
             boundedText(scope, MAX_HEADER_VALUE);
-            boundedText(authority, MAX_HEADER_VALUE);
+            if (!userEndpoint) {
+                boundedText(authority, MAX_HEADER_VALUE);
+            }
         } else {
             String token = configuration.getProperty("otelBearerToken");
             staticBearer = token == null ? null : bearer(token);
         }
-        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        ClassLoader loader = userEndpoint ? capturedLoader : Thread.currentThread().getContextClassLoader();
         callbackLoader = loader == null ? OtlpConfiguration.class.getClassLoader() : loader;
     }
 
     static String normalizeEndpoint(Properties properties) {
+        return normalizeEndpoint(properties, false);
+    }
+
+    private static String normalizeEndpoint(Properties properties, boolean userEndpoint) {
         String raw = properties.getProperty("otelEndpoint");
         try {
             if (raw == null || raw.length() > 4096) {
@@ -98,7 +126,7 @@ final class OtlpConfiguration implements Supplier<Map<String, String>>, AutoClos
             boolean localHttp = flag(properties, "otelAllowInsecureLocalEndpoint") && loopback;
             boolean developmentHttp = flag(properties, "otelAllowInsecureDevelopmentEndpoint") && developmentHost;
             if (!"https".equalsIgnoreCase(uri.getScheme())
-                    && !("http".equalsIgnoreCase(uri.getScheme()) && (localHttp || developmentHttp))) {
+                    && !("http".equalsIgnoreCase(uri.getScheme()) && (userEndpoint || localHttp || developmentHttp))) {
                 throw new IllegalArgumentException();
             }
             String path = uri.getRawPath();
@@ -202,11 +230,11 @@ final class OtlpConfiguration implements Supplier<Map<String, String>>, AutoClos
         if (now < retryAt) {
             throw unavailable();
         }
-        if (cachedBearer != null && now < refreshAt && now < expiresAt) {
+        if (!callbackEveryExport && cachedBearer != null && now < refreshAt && now < expiresAt) {
             return cachedBearer;
         }
         try {
-            // Even provider construction is deferred to the BatchSpanProcessor worker, never create() or JDBC.
+            // Even provider construction is deferred to an export worker, never create() or JDBC.
             if (callback == null) {
                 callback = Class.forName(callbackClass, true, callbackLoader)
                         .asSubclass(SQLServerAccessTokenCallback.class).getConstructor().newInstance();
@@ -221,7 +249,9 @@ final class OtlpConfiguration implements Supplier<Map<String, String>>, AutoClos
             long lifetime = Math.subtractExact(expiresAt, now);
             // Refresh 20% early, capped at one minute. A fixed multi-minute skew breaks short-lived tokens.
             refreshAt = expiresAt - Math.max(1, Math.min(60_000, lifetime / 5));
-            cachedBearer = value;
+            // Automatic user routes ask the callback for every HTTP message, regardless of token lifetime.
+            // Preserve the legacy programmatic adapter's credential cache.
+            cachedBearer = callbackEveryExport ? null : value;
             retryAt = 0;
             return value;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError | ServiceConfigurationError e) {

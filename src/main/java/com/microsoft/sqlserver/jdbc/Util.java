@@ -426,6 +426,7 @@ final class Util {
                             if (logger.isLoggable(Level.FINE)) {
                                 if (!name.equals(SQLServerDriverStringProperty.USER.toString())) {
                                     if (!name.toLowerCase(Locale.ENGLISH).contains("password")
+                                            && !name.startsWith("otel")
                                             && !name.toLowerCase(Locale.ENGLISH).contains("keystoresecret")) {
                                         logger.fine("Property:" + name + " Value:" + value);
                                     } else {
@@ -475,6 +476,7 @@ final class Util {
                             if (null != name) {
                                 if (logger.isLoggable(Level.FINE)) {
                                     if (!name.equals(SQLServerDriverStringProperty.USER.toString())
+                                            && !name.startsWith("otel")
                                             && !name.equals(SQLServerDriverStringProperty.PASSWORD.toString()))
                                         logger.fine("Property:" + name + " Value:" + value);
                                 }
@@ -544,7 +546,7 @@ final class Util {
                 name = SQLServerDriver.getNormalizedPropertyName(name, logger);
                 if (null != name) {
                     if (logger.isLoggable(Level.FINE)) {
-                        if (!name.equals(SQLServerDriverStringProperty.USER.toString())
+                        if (!name.equals(SQLServerDriverStringProperty.USER.toString()) && !name.startsWith("otel")
                                 && !name.equals(SQLServerDriverStringProperty.PASSWORD.toString())
                                 && !name.equals(SQLServerDriverStringProperty.KEY_STORE_SECRET.toString()))
                             logger.fine("Property:" + name + " Value:" + value);

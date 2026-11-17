@@ -21,14 +21,18 @@ class PerformanceLog {
 
     private static volatile Registration registration;
 
-    private static final class Registration {
+    static final class Registration {
         final PerformanceLogCallback callback;
         final boolean useNanos;
         final boolean lifecycleEnabled;
 
         Registration(PerformanceLogCallback callback) {
+            this(callback, true);
+        }
+
+        Registration(PerformanceLogCallback callback, boolean legacy) {
             this.callback = callback;
-            useNanos = callback.useNanoseconds();
+            useNanos = legacy && callback.useNanoseconds();
             boolean enabled = false;
             try {
                 enabled = callback.getClass().getMethod("publish", PerformanceLogEvent.class)
@@ -78,6 +82,7 @@ class PerformanceLog {
         private final boolean enabled;
         private final boolean useNanos;
         private final PerformanceLogCallback lifecycleCallback;
+        private final PerformanceLogCallback userOtelCallback;
         private final ConnectionPerformanceState.Node lifecycle;
         private final StatementPerformanceState.Node statementLifecycle;
         private boolean closed;
@@ -90,6 +95,7 @@ class PerformanceLog {
             enabled = false;
             useNanos = false;
             lifecycleCallback = null;
+            userOtelCallback = null;
             lifecycle = null;
             statementLifecycle = null;
             closed = true;
@@ -106,12 +112,15 @@ class PerformanceLog {
             this(logger, con, statementId, stmt, userSql, activity, true);
         }
 
-        private Scope(Logger logger, SQLServerConnection con, int statementId,
-            SQLServerStatement stmt, String userSql, PerformanceActivity activity, boolean allowLifecycle) {
+        private Scope(Logger logger, SQLServerConnection con, int statementId, SQLServerStatement stmt, String userSql,
+                PerformanceActivity activity, boolean allowLifecycle) {
             Registration registered = registration;
+            Registration userOtel = con == null ? null : con.getUserOtelRegistration();
             this.enabled = !activity.isLifecycleOnly() && (logger.isLoggable(Level.FINE) || registered != null);
             this.useNanos = registered != null && registered.useNanos;
             lifecycleCallback = registered == null || !registered.lifecycleEnabled ? null : registered.callback;
+            userOtelCallback = userOtel == null || !userOtel.lifecycleEnabled ? null : userOtel.callback;
+            boolean lifecycleEnabled = lifecycleCallback != null || userOtelCallback != null;
 
             if (enabled) {
                 this.logger = logger;
@@ -123,21 +132,27 @@ class PerformanceLog {
 
             }
             // Lifecycle-only statement scopes are not legacy-enabled, but still need callback-scoped metadata.
-            if (registered != null && stmt != null) {
+            if ((registered != null || userOtelCallback != null) && stmt != null) {
                 this.stmtHandle = stmt;
                 this.userSql = userSql;
             }
-                lifecycle = allowLifecycle && lifecycleCallback != null && statementId == 0 && stmt == null
+            lifecycle = allowLifecycle && lifecycleEnabled && statementId == 0 && stmt == null
                     && activity.connectionPhase() != null
-                    && (con == null || !con.getSessionRecovery().isReconnectRunning())
+                    && (con == null || !con.getSessionRecovery()
+                            .isReconnectRunning())
                     && (activity == PerformanceActivity.CONNECTION || ConnectionPerformanceState.current(con) != null)
-                        ? ConnectionPerformanceState.enter(con, activity) : null;
-                    statementLifecycle = allowLifecycle && lifecycleCallback != null && statementId != 0 && stmt != null
-                        && activity.statementPhase() != null
-                        && (activity == PerformanceActivity.STATEMENT_INVOCATION
+                                                                                                                       ? ConnectionPerformanceState
+                                                                                                                               .enter(con,
+                                                                                                                                       activity)
+                                                                                                                       : null;
+            statementLifecycle = allowLifecycle && lifecycleEnabled && statementId != 0 && stmt != null
+                    && activity.statementPhase() != null
+                    && (activity == PerformanceActivity.STATEMENT_INVOCATION
                             || StatementPerformanceState.current(stmt) != null)
-                            ? StatementPerformanceState.enter(stmt, activity, userSql) : null;
-                    if (lifecycle != null && lifecycleCallback != null) {
+                                                                                ? StatementPerformanceState.enter(stmt,
+                                                                                        activity, userSql)
+                                                                                : null;
+            if (lifecycle != null) {
                 lifecycle.scope = this;
                 boolean started = false;
                 try {
@@ -150,7 +165,7 @@ class PerformanceLog {
                     }
                 }
             }
-            if (statementLifecycle != null && lifecycleCallback != null) {
+            if (statementLifecycle != null) {
                 statementLifecycle.scope = this;
                 boolean started = false;
                 try {
@@ -178,30 +193,33 @@ class PerformanceLog {
         }
 
         private void notifyLifecycle(boolean end) {
-            if (lifecycleCallback != null) {
-                try {
-                    PerformanceLogEvent event = lifecycle.event(end);
-                    lifecycleCallback.publish(event);
-                } catch (Exception | LinkageError | ServiceConfigurationError e) {
-                    // SDK/exporter failures are not SQL errors. Do not log their messages or throwable objects.
-                    logCallbackFailure();
-                }
-            }
+            PerformanceLogEvent event = lifecycle.event(end);
+            publishLifecycle(lifecycleCallback, event);
+            publishLifecycle(userOtelCallback, event);
         }
 
         private void notifyStatementLifecycle(boolean end) {
-            if (lifecycleCallback != null) {
+            try {
+                // Expose the same callback-scoped SQL/type accessors as legacy statement publication. The
+                // callback must sanitize or discard SQL synchronously; lifecycle snapshots never retain it.
+                currentUserSql.set(userSql);
+                currentStatementType.set(deriveStatementType(stmtHandle));
+                PerformanceLogEvent event = statementLifecycle.event(end);
+                publishLifecycle(lifecycleCallback, event);
+                publishLifecycle(userOtelCallback, event);
+            } finally {
+                currentUserSql.remove();
+                currentStatementType.remove();
+            }
+        }
+
+        private void publishLifecycle(PerformanceLogCallback callback, PerformanceLogEvent event) {
+            if (callback != null) {
                 try {
-                    // Expose the same callback-scoped SQL/type accessors as legacy statement publication. The
-                    // callback must sanitize or discard SQL synchronously; lifecycle snapshots never retain it.
-                    currentUserSql.set(userSql);
-                    currentStatementType.set(deriveStatementType(stmtHandle));
-                    lifecycleCallback.publish(statementLifecycle.event(end));
+                    callback.publish(event);
                 } catch (Exception | LinkageError | ServiceConfigurationError e) {
+                    // Isolate each route independently; application failures must not suppress endpoint events.
                     logCallbackFailure();
-                } finally {
-                    currentUserSql.remove();
-                    currentStatementType.remove();
                 }
             }
         }
@@ -255,6 +273,7 @@ class PerformanceLog {
                 return;
             }
 
+            // Legacy publication selects the current callback at close; only lifecycle boundaries capture it.
             Registration registered = registration;
             PerformanceLogCallback callback = registered == null ? null : registered.callback;
             if (callback != null) {
@@ -313,14 +332,13 @@ class PerformanceLog {
     }
 
     static boolean isConnectionLifecycleActive(SQLServerConnection con) {
-        Registration registered = registration;
-        return registered != null && registered.lifecycleEnabled
-                && (con == null || !con.getSessionRecovery().isReconnectRunning())
+        return (con == null || !con.getSessionRecovery().isReconnectRunning())
                 && ConnectionPerformanceState.current(con) != null;
     }
 
     static Scope createConnectionOpenScope(SQLServerConnection con, boolean newOpen) {
-        if (registration == null && !perfLoggerConnection.isLoggable(Level.FINE)) {
+        if (registration == null && (con == null || con.getUserOtelRegistration() == null)
+                && !perfLoggerConnection.isLoggable(Level.FINE)) {
             return Scope.NOOP;
         }
         return new Scope(perfLoggerConnection, con, 0, null, null, PerformanceActivity.CONNECTION, newOpen);
@@ -391,7 +409,8 @@ class PerformanceLog {
     }
 
     public static Scope createScope(Logger logger, SQLServerConnection con, PerformanceActivity activity) {
-        if (registration == null && !logger.isLoggable(Level.FINE)) {
+        if (registration == null && (con == null || con.getUserOtelRegistration() == null)
+                && !logger.isLoggable(Level.FINE)) {
             return Scope.NOOP;
         }
         return new Scope(logger, con, activity);

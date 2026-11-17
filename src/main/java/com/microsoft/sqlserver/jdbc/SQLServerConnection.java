@@ -2411,18 +2411,37 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         return connect(properties, null, url, driver);
     }
 
+    // Per physical connection, never globally registered and never closed with the SQL connection.
+    private transient PerformanceLog.Registration userOtelRegistration;
+
+    PerformanceLog.Registration getUserOtelRegistration() {
+        return userOtelRegistration;
+    }
+
     private Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection, String url,
             SQLServerDriver driver) throws SQLServerException {
+        SQLServerException configurationFailure = null;
+        try {
+            if (null != driver) {
+                propsIn = driver.parseAndMergeProperties(url, propsIn);
+                if (null == propsIn) {
+                    return null;
+                }
+            }
+            if (propsIn != null) {
+                userOtelRegistration = UserOtelConfiguration.create(propsIn);
+            }
+        } catch (SQLServerException e) {
+            // Preserve application lifecycle diagnostics for parsing/validation failures too.
+            configurationFailure = e;
+        }
         try (PerformanceLog.Scope connectScope = PerformanceLog.createConnectionOpenScope(this,
-            propsIn != null || driver != null);
+                propsIn != null || driver != null);
                 PerformanceLog.Scope configurationScope = PerformanceLog.createConnectionScope(this,
                         PerformanceActivity.CONNECTION_CONFIGURATION)) {
             try {
-                if (null != driver) {
-                    propsIn = driver.parseAndMergeProperties(url, propsIn);
-                    if (null == propsIn) {
-                        return null;
-                    }
+                if (configurationFailure != null) {
+                    throw configurationFailure;
                 }
                 int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
                 if (propsIn != null) {

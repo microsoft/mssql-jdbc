@@ -308,6 +308,69 @@ class PerformanceLogLifecycleTest {
     }
 
     @Test
+    void unregisterKeepsRootAndChildBoundariesButStopsLegacyPublication() throws Exception {
+        Collector c = new Collector();
+        PerformanceLog.registerCallback(c);
+        SQLServerConnection con = new SQLServerConnection("test");
+        try (PerformanceLog.Scope root = PerformanceLog.createScope(LOGGER, con, PerformanceActivity.CONNECTION);
+                PerformanceLog.Scope child = PerformanceLog.createScope(LOGGER, con, PerformanceActivity.PRELOGIN)) {
+            PerformanceLog.unregisterCallback();
+        }
+        assertEquals(Arrays.asList("start:connection.open", "start:prelogin", "end:prelogin", "end:connection.open"),
+                c.order);
+        assertTrue(c.published.isEmpty());
+        assertNull(PerformanceLog.getConnectionPhase(con));
+    }
+
+    @Test
+    void dualCallbacksKeepRootAndChildSnapshotsWhenRegistrationChanges() throws Exception {
+        Collector first = new Collector() {
+            @Override
+            public void publish(PerformanceLogEvent event) throws Exception {
+                super.publish(event);
+                throw new Exception("Callback failure must not suppress the user route");
+            }
+        };
+        Collector user = new Collector() {
+            @Override
+            public boolean useNanoseconds() {
+                throw new AssertionError("User lifecycle callbacks must not select legacy duration units");
+            }
+        };
+        AtomicReference<PerformanceLog.Registration> userRegistration = new AtomicReference<>(
+                new PerformanceLog.Registration(user, false));
+        SQLServerConnection con = new SQLServerConnection("test") {
+            @Override
+            PerformanceLog.Registration getUserOtelRegistration() {
+                return userRegistration.get();
+            }
+        };
+        Collector second = new Collector();
+        PerformanceLog.registerCallback(first);
+        try (PerformanceLog.Scope root = PerformanceLog.createScope(LOGGER, con, PerformanceActivity.CONNECTION);
+                PerformanceLog.Scope child = PerformanceLog.createScope(LOGGER, con, PerformanceActivity.PRELOGIN)) {
+            PerformanceLog.unregisterCallback();
+            PerformanceLog.registerCallback(second);
+            userRegistration.set(null);
+        }
+        assertEquals(Arrays.asList("start:connection.open", "start:prelogin", "end:prelogin", "end:connection.open"),
+                first.order);
+        assertEquals(first.order, user.order);
+        assertTrue(first.published.isEmpty());
+        assertTrue(user.published.isEmpty());
+        assertTrue(second.starts.isEmpty());
+        assertTrue(second.ends.isEmpty());
+        assertEquals(Arrays.asList(PerformanceActivity.PRELOGIN, PerformanceActivity.CONNECTION), second.published);
+        for (int i = 0; i < first.starts.size(); i++) {
+            assertSame(first.starts.get(i), user.starts.get(i));
+            assertSame(first.ends.get(i), user.ends.get(i));
+            assertEquals(first.starts.get(i).getScopeId(), first.ends.get(1 - i).getScopeId());
+        }
+        assertEquals(first.starts.get(0).getScopeId(), first.starts.get(1).getParentScopeId());
+        assertNull(PerformanceLog.getConnectionPhase(con));
+    }
+
+    @Test
     void statementScopeUsesOnlyLegacyPublish() throws Exception {
         SQLServerConnection con = new SQLServerConnection("test");
         Exception original = new SQLException("statement failure");
