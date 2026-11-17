@@ -1139,13 +1139,13 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         tdsWriter.writeRPCStringUnicode(preparedSQL);
     }
 
-    private void buildExecSQLParams(TDSWriter tdsWriter, boolean directBatch) throws SQLServerException {
+    private void buildExecSQLParams(TDSWriter tdsWriter) throws SQLServerException {
         // Existing prepared batches expose counts, not generated keys. Omit only our injected query so entry
         // completion can reject user result sets without confusing them with a generated-keys result.
-        String sql = directBatch && bRequestedGeneratedKeys
-                                                            ? preparedSQL.substring(0,
-                                                                    preparedSQL.length() - IDENTITY_QUERY.length())
-                                                            : preparedSQL;
+        String sql = preparedSQL;
+        if (isDirectSqlExecution && EXECUTE_BATCH == executeMethod && bRequestedGeneratedKeys) {
+            sql = sql.substring(0, sql.length() - IDENTITY_QUERY.length());
+        }
         if (getStatementLogger().isLoggable(java.util.logging.Level.FINE))
             getStatementLogger().fine(toString() + ": calling sp_executesql: SQL:" + sql);
 
@@ -1676,8 +1676,15 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean needsPrepare = (hasNewTypeDefinitions && hasExistingTypeDefinitions) || !hasPreparedStatementHandle();
 
-        // Keep direct execution for single calls only. Batches need an RPC boundary for each parameter set.
-        if (isDirectSqlExecution && !(command instanceof PrepStmtBatchExecCmd)) {
+        // Otherwise-direct batches use the same unprepared RPC path as procedure calls and unsupported parameters.
+        if (useUnpreparedRpc || (isDirectSqlExecution && command instanceof PrepStmtBatchExecCmd)) {
+            isExecuteSqlUsed = true;
+            buildExecSQLParams(tdsWriter);
+            sendParamsByRPC(tdsWriter, params);
+            return !(command instanceof PrepStmtBatchExecCmd);
+        }
+
+        if (isDirectSqlExecution) {
             // Build direct SQL using enhanced replaceParameterMarkersWithValues with direct values
             String directSQL = replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params, false);
             // The prepared path appends this query so getGeneratedKeys() has a result set; so does the direct path. The
@@ -1695,14 +1702,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             return false; // No preparation needed
         }
 
-        // Direct-mode batch entries use the same unprepared RPC framing as procedure calls. No handle or per-entry
-        // preparation response is needed, so the existing batch loop groups the RPCs into one request.
-        if (useUnpreparedRpc || (isDirectSqlExecution && command instanceof PrepStmtBatchExecCmd)) {
-            isExecuteSqlUsed = true;
-            buildExecSQLParams(tdsWriter, isDirectSqlExecution && command instanceof PrepStmtBatchExecCmd);
-            sendParamsByRPC(tdsWriter, params);
-            return !(command instanceof PrepStmtBatchExecCmd);
-        }
         if (isCursorable(executeMethod)) {
             if (needsPrepare)
                 buildServerCursorPrepExecParams(tdsWriter);
@@ -1712,7 +1711,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             // Move overhead of needing to do prepare & unprepare to only use cases that need more than one execution.
             // First execution, use sp_executesql, optimizing for assumption we will not re-use statement.
             if (needsPrepare && !connection.getEnablePrepareOnFirstPreparedStatementCall() && !isExecutedAtLeastOnce) {
-                buildExecSQLParams(tdsWriter, false);
+                buildExecSQLParams(tdsWriter);
                 isExecutedAtLeastOnce = true;
                 isPrepExecUsed = false;
                 isExecuteSqlUsed = true;
@@ -3792,6 +3791,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
         Parameter[] batchParam = new Parameter[inOutParam.length];
 
         if (isDirectSqlExecution) {
+            // addBatch() already cloned these parameters. Restore those clones, not the current direct bindings.
+            for (Parameter[] params : batchParamValues) {
+                restoreRpcTypes(params);
+            }
             // RPC bindings/SQL differ from retained direct bindings, including character and encryption metadata.
             preparedTypeDefinitions = null;
             encryptionMetadataIsRetrieved = false;
@@ -3813,15 +3816,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // Fill in the parameter values for this batch
                     Parameter[] paramValues = batchParamValues.get(numBatchesPrepared);
                     assert paramValues.length == batchParam.length;
-                    if (isDirectSqlExecution) {
-                        for (int i = 0; i < paramValues.length; i++) {
-                            // Restoring RPC types clears literal metadata; retain it on the current/queued bindings.
-                            batchParam[i] = paramValues[i].cloneForBatch();
-                            batchParam[i].restoreRpcType(connection);
-                        }
-                    } else {
-                        System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
-                    }
+                    System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
 
                     boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
                     boolean hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);

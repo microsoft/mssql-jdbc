@@ -99,34 +99,30 @@ class ParameterDirectSqlRetryTest {
 
     @ParameterizedTest
     @EnumSource(value = JDBCType.class, names = {"VARCHAR", "NVARCHAR"})
-    void testExecutionLocalClonePreservesRetainedLiteralMetadata(JDBCType type) throws SQLServerException {
+    void testQueuedBatchRestorationPreservesCurrentLiteralMetadata(JDBCType type) throws SQLServerException {
         SQLServerConnection con = connection(false);
         Parameter original = parameter(con, type, "a\u20ac", JavaType.STRING, null, true);
         Parameter queued = original.cloneForBatch();
-        Parameter execution = queued.cloneForBatch();
         DTV originalValue = original.getInputDTV();
-        execution.restoreRpcType(con);
-        execution.getTypeDefinition(con, null);
+        queued.restoreRpcType(con);
+        queued.getTypeDefinition(con, null);
 
         assertSame(originalValue, original.getInputDTV());
-        assertSame(originalValue, queued.getInputDTV());
         assertEquals(JDBCType.NVARCHAR == type, original.isNationalCharacterLiteral());
-        assertEquals(original.isNationalCharacterLiteral(), queued.isNationalCharacterLiteral());
+        assertFalse(queued.isNationalCharacterLiteral());
         assertEquals(JDBCType.NVARCHAR, original.getJdbcType());
         assertEquals("a\u20ac", original.getSetterValue());
-        assertEquals(type, execution.getJdbcType());
+        assertEquals(type, queued.getJdbcType());
     }
 
     @Test
-    void testExecutionLocalCloneRetainsForceEncryption() throws SQLServerException {
+    void testQueuedBatchRestorationRetainsForceEncryption() throws SQLServerException {
         SQLServerConnection con = connection(false);
         Parameter original = parameter(con, JDBCType.VARCHAR, "abc", JavaType.STRING, null, true);
         original.setForceEncryption(true);
         Parameter queued = original.cloneForBatch();
-        Parameter execution = queued.cloneForBatch();
-        execution.restoreRpcType(con);
+        queued.restoreRpcType(con);
         assertTrue(queued.getForceEncryption());
-        assertTrue(execution.getForceEncryption());
         assertTrue(original.getForceEncryption());
     }
 
