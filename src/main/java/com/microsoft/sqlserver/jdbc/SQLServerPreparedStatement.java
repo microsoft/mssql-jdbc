@@ -4124,7 +4124,8 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             batchCommand.updateCounts[batchIdx] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
                                                                                       : updateCount;
                         } catch (SQLServerException e) {
-                            if (connection.isSessionUnAvailable() || connection.rolledBackTransaction())
+                            if (connection.isSessionUnAvailable() || connection.rolledBackTransaction()
+                                    || SQLServerException.ERROR_QUERY_TIMEOUT == e.getDriverErrorCode())
                                 throw e;
 
                             batchCommand.updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
