@@ -4071,6 +4071,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
 
             // Execute the combined SQL script
+            executedSqlDirectly = true;
+            expectCursorOutParams = false;
+            expectPrepStmtHandle = false;
+            outParamIndexAdjustment = 0;
             TDSWriter tdsWriter = batchCommand.startRequest(TDS.PKT_QUERY);
             tdsWriter.writeString(sqlScript.toString());
 
@@ -4108,8 +4112,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             if (!getNextResult(true))
                                 break;
                             if (null != resultSet) {
-                                resultSet.close();
-                                resultSet = null;
+                                try {
+                                    resultSet.discardFetchBufferWithErrors();
+                                } finally {
+                                    resultSet.close();
+                                    resultSet = null;
+                                }
+                                SQLServerException.makeFromDriverError(connection, this,
+                                        SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
                             }
                             batchCommand.updateCounts[batchIdx] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
                                                                                       : updateCount;
