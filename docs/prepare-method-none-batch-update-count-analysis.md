@@ -17,6 +17,8 @@ The customer report covers multi-row DML (`DELETE TOP(5)` → `[1]` instead of `
 
 Probe: `NoneBatchProbe.java` (temporary, not committed), run against `target/classes` built from the current base, on the configured test server.
 
+Two alternative proposals are under consideration: **(1) fix direct-path update counts while documenting the limits of concatenated result attribution**, or **(2) route batches through batched unprepared `sp_executesql` RPCs**, reusing the execution boundaries and response handling already used for procedure calls and unsupported parameter types. Both preserve batching; neither proposal executes each entry in a separate client/server round trip. See §5 for the trade-offs. The local patch and validation recorded in §7 apply only to the initial proposal 1 prototype, not to a complete implementation of either proposal.
+
 ### Severity
 
 The zero-row case is the most serious. ORMs and data-access layers check batch counts to detect concurrent modification. For example, Hibernate expects `1` for a versioned `UPDATE … WHERE id = ? AND version = ?`, and Spring `batchUpdate` callers inspect the returned array. Under `none`, a stale update that changed **no** rows reports `1`, so the application can treat a lost update as successful. This goes beyond the reported issue that multi-row counts are wrong.
@@ -50,9 +52,10 @@ Related defects in the same method (found during this analysis):
 | R4 | Batch errors are thrown as `SQLServerException` wrapping a `BatchUpdateException`, then re-wrapped by the outer `catch (SQLException)` | Callers do not get `BatchUpdateException` or `getUpdateCounts()`; behavior differs from `prepexec` |
 | R5 | No `isSessionUnAvailable()` / `rolledBackTransaction()` check | Unlike the RPC and `Statement` batch paths, the loop continues after a fatal error |
 | R6 | Uses `getUpdateCount()` (int, throws `R_updateCountOutofRange`) | `executeLargeBatch()` cannot report counts > `Integer.MAX_VALUE` |
-| R7 | Exactly one `getNextResult` per entry and no draining of leftover results | Compound SQL (N statements per entry) produces N counts per entry, so counts are misaligned and trailing results are left on the statement |
+| R7 | Exactly one `getNextResult` per entry, without reliable parameter-set boundaries | Compound and conditional SQL can produce a variable number of results per entry, so counts and errors can be assigned to the wrong entry |
+| R8 | Result processing stops after filling the count array, without error-aware response completion | Trailing errors, such as `INSERT …; THROW …`, can be missed before the API reports success |
 
-The correct pattern already exists in [`SQLServerStatement.executeBatch`](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerStatement.java#L2286-L2305). It also reads a language batch: `if (!getNextResult(true)) break;`, rejects `resultSet`, and maps `-1 → SUCCESS_NO_INFO`.
+The basic count-mapping pattern already exists in [`SQLServerStatement.executeBatch`](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerStatement.java#L2286-L2305). It also reads a language batch: `if (!getNextResult(true)) break;`, rejects `resultSet`, and maps `-1 → SUCCESS_NO_INFO`. Reusing that pattern alone does not establish parameter-set boundaries or ensure trailing errors are reported.
 
 ## 3. Why the existing tests missed it
 
@@ -75,14 +78,17 @@ The batch tests on the direct path all use fixtures where the hard-coded `1` hap
 
 ### 4.1 Principles
 
-- **Differential oracle:** for every case, compare `none` (and `scopeTempTablesToConnection` with temp-table SQL) with `prepexec` on identically seeded data. Do not hard-code `1`.
+- **Differential oracle:** compare successful execution with `prepexec` on identically seeded data. For proposal 1, record unsupported result-attribution cases explicitly rather than claiming general parity. For either proposal, document legitimate error-path continuation/abort differences instead of requiring identical outcomes in every scenario.
+- **Verify routing:** a reference to an existing `#temp` table does not select direct execution under `scopeTempTablesToConnection`. Its current detector recognizes local-temp-table creation (`CREATE TABLE #…` or `SELECT … INTO #…`). Assert the actual execution path, and verify RPC routing for proposal 2.
 - **Exact values:** assert the full `int[]` / `long[]` and the persisted rows. Do not assert only the length.
 - **Both APIs:** cover `executeBatch()` and `executeLargeBatch()` for every case.
 - **No new test classes:** add to existing suites, following the #3091 review feedback.
 
 ### 4.2 New parity cases: `PrepStmtDirectSQLExecutionTests` (direct-path suite)
 
-A single parameterized test `testBatchUpdateCountsMatchPrepexec(mode, shape, largeBatch)` with mode ∈ {`none`, `scopeTempTablesToConnection`}, control `prepexec`. All cases use `#temp` tables, so scope mode also takes the direct path.
+A parameterized test `testBatchUpdateCountsMatchPrepexec(mode, shape, largeBatch)` with mode ∈ {`none`, `scopeTempTablesToConnection`}, control `prepexec`. For `none`, existing `#temp` tables can be seeded separately. For scope-mode direct-path coverage, use SQL that actually creates a local temporary table and verify routing; ordinary DML against an existing `#temp` table falls back to prepared RPC execution. Keep these routing-specific fixtures separate from simple-DML cases so incidental DDL counts do not hide incorrect attribution.
+
+The expected values below are parity targets, not a claim that proposal 1 can satisfy every shape. In particular, C10 and variable-result cases require reliable entry boundaries, which the limited direct-path fix does not provide.
 
 | ID | Shape (per entry) | Entries | Expected (= `prepexec`) | Catches |
 |---|---|---|---|---|
@@ -94,14 +100,17 @@ A single parameterized test `testBatchUpdateCountsMatchPrepexec(mode, shape, lar
 | C6 | Mixed counts in one batch | 4 | e.g. `[0, 5, 1, 0]` | R1 + per-entry alignment |
 | C7 | Versioned update, stale version | 2 | `[1, 0]` | Lost-update scenario |
 | C8 | `SET NOCOUNT ON; UPDATE …; SET NOCOUNT OFF` | 2 | `[-2, -2]` | R2 |
-| C9 | DML on table with `AFTER` trigger doing its own DML | 2 | outer counts only (`[1, 2]`) | Trigger `DONEINPROC` filtering |
+| C9 | DML on table with `AFTER` trigger doing its own DML, with trigger counts different from outer counts | 2 | outer counts only (`[1, 2]`) | Trigger `DONEINPROC` filtering |
 | C10 | Compound `INSERT …; UPDATE …` | 2 | `[1, 2]` | R7 |
 | C11 | Single-row `INSERT` (regression guard) | 5 | `[1,1,1,1,1]` | No regression |
-| C12 | Second batch reuse on same statement after C10 | 1 | correct; no stale results | R7 draining |
+| C12 | Second batch reuse on same statement after C10 | 1 | correct; no stale results | Response completion |
+| C13 | `IF ? = 1 UPDATE …; UPDATE … WHERE id = ?` with both branch outcomes | 2 | One count per parameter set according to the RPC oracle; document proposal 1 limitation | R7 variable-result attribution |
+| C14 | Create a local `#temp` table in an entry, then access it after the batch | 1 | Proposal 1 preserves connection scope; proposal 2 drops the RPC-created table at RPC completion | Scope compatibility |
+| C15 | DML against a local `#temp` table created beforehand on the connection | 2 | Exact counts and table remains accessible under either proposal | Existing-table visibility |
 
 ### 4.3 Error and status cases (same suite)
 
-| ID | Scenario | Expected (parity with `prepexec`) | Catches |
+| ID | Scenario | Expected / comparison with `prepexec` | Catches |
 |---|---|---|---|
 | E1 | PK violation in entry 2 of 3 | `BatchUpdateException`, `[1, -3, 1]`, rows 1 and 3 persisted | R4 |
 | E2 | Same as E1 via `executeLargeBatch` | `BatchUpdateException.getLargeUpdateCounts()` `[1, -3, 1]` | R4, R6 |
@@ -109,6 +118,10 @@ A single parameterized test `testBatchUpdateCountsMatchPrepexec(mode, shape, lar
 | E4 | Error in manual transaction that the server rolls back | `SQLServerException` propagated immediately; connection state correct | R5 |
 | E5 | Severity ≥ 20 / killed session mid-batch | Propagated immediately, no further parsing | R5 |
 | E6 | Existing `testBatchCombinedWithErrorsWithNone` | Strengthen to assert `BatchUpdateException` and exact counts | G3 |
+| E7 | A count followed by `THROW`, including after the count array would be full | Report the trailing failure before returning; do not claim exact entry attribution without boundaries | R7, R8 |
+| E8 | DML with `OUTPUT`, or compound DML followed by `SELECT` | Unexpected result set is an error; remaining results must not silently become the next entry's outcome | R7, R8 |
+| E9 | Cancellation and query timeout during the batch | Respect existing cancellation/timeout behavior, process required attention acknowledgement, and verify connection reuse | Completion and interrupt handling |
+| E10 | Recoverable and aborting errors in first, middle, and last entries | Compare counts, execution of later entries, and persisted/rolled-back state; document mode differences | Error continuation |
 
 ### 4.4 Parameterize existing count-contract tests
 
@@ -117,7 +130,7 @@ A single parameterized test `testBatchUpdateCountsMatchPrepexec(mode, shape, lar
 
 ### 4.5 Fast unit-level guard (no server)
 
-Add a Mockito/stub test in which `getNextResult` returns `true` with `updateCount = 5`, `0`, or `-1`, and `false` (exhausted). Assert that the mapped array is `[5]`, `[0]`, `[SUCCESS_NO_INFO]`, and `EXECUTE_FAILED`. This locks the classification logic independently of the server.
+Add a Mockito/stub test in which `getNextResult` returns `true` with `updateCount = 5`, `0`, or `-1`, and `false` (exhausted). Assert that the mapped array is `[5]`, `[0]`, `[SUCCESS_NO_INFO]`, and `EXECUTE_FAILED`. Also exercise a count greater than `Integer.MAX_VALUE` through `executeLargeBatch()` and `BatchUpdateException.getLargeUpdateCounts()`. These guards cover count preservation, not server-side entry attribution. Add a response sequence with an error after the expected counts to ensure completion does not suppress it.
 
 ### 4.6 Validation matrix
 
@@ -128,78 +141,85 @@ Run the six existing `none` suites plus the updated `MultiStatementResultTravers
 - SQL Server 2019+
 - Azure SQL, if available
 
-## 5. Fix plan
+## 5. Two alternative proposals
 
-### Phase 1: correct result mapping (hotfix candidate for 13.6.x)
+**Preserve batching in both proposals.** Do not execute one client/server round trip per entry. The decision is whether to retain one concatenated language batch with explicitly limited attribution, or send one unprepared `sp_executesql` RPC per parameter set grouped into a batched RPC request.
 
-Rewrite the loop in `doExecuteExecMethodBatchCombined` to follow `SQLServerStatement.executeBatch` and the RPC batch path:
+### Proposal 1: fix direct-path update counts and highlight limitations
 
-```java
-for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
-    try {
-        if (!getNextResult(true))
-            break;                                   // R3: remaining entries stay EXECUTE_FAILED
-        if (null != resultSet) {
-            resultSet.close();
-            resultSet = null;
-            SQLServerException.makeFromDriverError(connection, this,
-                    SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
-        }
-        batchCommand.updateCounts[batchIdx] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
-                                                                   : updateCount;   // R1, R2, R6
-    } catch (SQLServerException e) {
-        if (connection.isSessionUnAvailable() || connection.rolledBackTransaction())
-            throw e;                                 // R5
-        batchCommand.updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
-        if (null == batchCommand.batchException)
-            batchCommand.batchException = e;
-    }
-}
-// R4: return normally; executeBatch/executeLargeBatch already convert batchException into BatchUpdateException
-```
-
-Details:
+Keep literal expansion and the combined `PKT_QUERY` request. Correct basic result mapping in `doExecuteExecMethodBatchCombined` using the existing Statement/RPC batch patterns:
 
 - Read the `updateCount` field (`long`) directly, not `getUpdateCount()` (R6).
+- Replace the hard-coded `1` with the actual count (R1), and map a successful unknown count (`-1`) to `SUCCESS_NO_INFO` (R2).
+- Leave entries without execution results as `EXECUTE_FAILED` when processing reaches exhaustion (R3). Validate terminal-token/error sequences; absence of a count alone does not establish that an entry was unexecuted.
+- Reject actual result sets with `R_resultsetGeneratedForUpdate` rather than silently treating them as success.
 - Remove the local `BatchUpdateException` construction and the outer `catch (SQLException)` re-wrap. Leave `batchCommand.batchException` set so that the existing code in `executeBatch` / `executeLargeBatch` throws a `BatchUpdateException` with counts, as `prepexec` does (R4).
-- Make sure returning normally does not interact with the `retryRejectedDirectSqlAsRpc()` fallback. That fallback must still apply only to pre-send literal rejection.
-- **Compatibility note:** under `none`, batch failures will throw `BatchUpdateException` instead of `SQLServerException`. Both are `SQLException`, but code that catches `SQLServerException` specifically will no longer catch them. This change follows the JDBC specification and matches `prepexec`. Mention it in the CHANGELOG.
+- Immediately propagate session-unavailable and rolled-back-transaction errors (R5), and preserve cancellation/timeout handling.
+- Preserve `retryRejectedDirectSqlAsRpc()` only for rejection detected before any SQL is sent. Never retry a partially executed batch to recover counts.
+- **Process the remaining response before reporting completion (R8).** Filling the count array does not complete the batch. Observe trailing errors, transaction/session changes, and required attention acknowledgements. A cleanup-only drain is insufficient: `processResults()` intentionally suppresses some database errors. Completion must report errors even when the expected count slots are already filled.
 
-### Phase 2: compound SQL per entry (R7) — design decision required
+**Limitations:** this is a limited correction, not general `prepexec` parity. Statement completion tokens do not label JDBC parameter sets. Compound SQL, conditional execution, loops, triggers, and unexpected result sets can make the number of results per entry vary. Neither draining leftover results nor statically counting SQL statements establishes reliable entry boundaries.
 
-Under a language batch, each top-level DML statement emits its own `DONE`. This is unlike RPC, where inner `DONEINPROC` tokens are folded into one count per entry. Options:
+For example, concatenating two executions of `IF ? = 1 UPDATE t SET v = 10; UPDATE t SET v = 20 WHERE id = ?` can yield counts `1, 5, 1` when the first entry skips the conditional update and the second executes it. The counts do not encode the grouping `[1]`, `[5, 1]`. A later error is similarly not necessarily attributable to the next output-array slot. Document these limitations explicitly; do not claim that a better consumption loop alone resolves R7.
 
-| Option | Description | Trade-off |
+**Trade-off:** preserves current direct-SQL scope and minimizes execution-model changes, but cannot promise correct per-entry counts/error attribution for arbitrary compound or conditional SQL. A combined language batch can also abort later entries differently from batched RPC execution.
+
+### Proposal 2: use batched unprepared `sp_executesql` whenever it is a batch
+
+Route `executeBatch()` and `executeLargeBatch()` away from combined direct SQL and into the existing unprepared RPC batch path, including statements that would otherwise be direct under `none` or `scopeTempTablesToConnection`. Keep non-batch routing unchanged.
+
+- Send **one `sp_executesql` RPC per parameter set, grouped into a batched RPC request**, using the existing RPC batch delimiters. This is not a separate round trip per entry, and it is not one `sp_executesql` wrapper around the whole concatenated script; the latter would retain the attribution problem.
+- Reuse `useUnpreparedRpc`, typed parameter restoration/binding, and existing RPC result/count/error handling. Do not prepare or cache server handles. RPC completion supplies the per-entry boundaries needed to handle compound SQL consistently with the existing RPC path.
+- Select this routing **before sending anything**, when batch execution is known. A fallback-style transition like unsupported-type handling is acceptable only if it occurs before submission; do not first execute direct SQL and then retry it as RPC.
+- Preserve single-statement execution behavior when the same PreparedStatement is later used outside a batch. Define whether the batch-only routing state is temporary rather than blindly copying the unsupported-type fallback's lifetime-long transition.
+- Verify full response completion, compound/count-selection behavior, unexpected result sets, errors, cancellation, and large counts through the existing RPC machinery; reuse is not a claim that every corner case has already been validated.
+
+**Limitation: RPC scope, the same class of limitation already accepted for procedure calls under `none` and for parameters that cannot be inlined.** Existing connection-scoped temporary tables remain accessible inside `sp_executesql`. A local temporary table created inside an RPC can be used within that entry, but is dropped when the RPC ends: later entries or statements cannot use it. Other constructs relying on shared language-batch scope, such as local variables spanning entries, also change behavior.
+
+For example:
+
+```sql
+-- One batch entry, followed by an application query on the same connection:
+CREATE TABLE #items (id INT);
+INSERT INTO #items VALUES (42);
+
+-- Executed after executeBatch() returns:
+SELECT id FROM #items;
+```
+
+With direct execution, the final query returns `42`. If the entry runs inside `sp_executesql`, the final query fails because `#items` was dropped at RPC completion. Creating `#items` beforehand on the connection avoids this scope issue.
+
+This is not a new kind of fallback restriction, but routing every batch through RPC expands where it applies, including batches under `scopeTempTablesToConnection`. Document batch execution as an exception to connection-scoped temp-table creation rather than silently promising the old lifetime. Compare error continuation/abort behavior with the RPC baseline; do not promise identical execution outcomes to the old combined language batch.
+
+### Proposal comparison and decision
+
+| Aspect | Proposal 1: direct-path count fix | Proposal 2: batched `sp_executesql` |
 |---|---|---|
-| A | Route `PreparedStatement` SQL that contains multiple statements to unprepared RPC (`sp_executesql`) under `none`, as is already done for procedure calls | Exact `prepexec` parity. Temp tables created inside the SQL would no longer outlive the call, which conflicts with the `scopeTempTablesToConnection` purpose; apply only when no temp-table DDL is present. |
-| B | Keep the direct path and drain leftover results after the loop; document the mapping as implementation-defined (as for `Statement.executeBatch` compound items) | Minimal; counts for compound entries remain misaligned |
-| C | Count top-level statements per entry with the existing SQL parser and consume N results per entry (report last) | Exact counts, but depends on parser correctness (comments, `GO`-less control flow, `IF … BEGIN … END`) |
+| Batching | Retains the combined language request | Retains grouped RPC batching; no per-entry round trips |
+| Simple DML counts | Correct actual counts instead of hard-coded `1` | Uses existing RPC batch handling |
+| Compound/conditional entry boundaries | Unresolved in the general case; explicit limitation | RPC execution boundaries identify each parameter set |
+| Response completion | Requires error-aware completion beyond the initial loop | Reuse and verify existing RPC completion/error handling |
+| Local temp tables created by an entry | Retain connection lifetime | RPC-scoped, like existing procedure/unsupported-type routing |
+| Main trade-off | Smaller execution change, limited count/error attribution | Reliable entry boundaries, broader application of the existing scope limitation |
 
-**Recommendation:** ship Phase 1 with B's drain step in the hotfix. Choose between A and C for the next minor release after team discussion.
+These are alternatives, not sequential phases. Proposal 1 is the limited compatibility-preserving option. Proposal 2 is the stronger entry-boundary solution if batch-wide acceptance of the existing RPC-scope limitation is chosen. Do not implement per-entry round trips, static SQL-statement counting, or post-execution retry as a substitute.
 
-### Phase 3: hardening and process
-
-- Add the `prepareMethod` dimension to the JDBC batch count-contract tests (§4.4), so any future execution path inherits them.
-- Add a review checklist item: "new execution path ⇒ run batch/update-count contract suite across all `prepareMethod` values".
-- Add a CHANGELOG entry (Fixed: incorrect `executeBatch`/`executeLargeBatch` update counts and missing `BatchUpdateException` under `prepareMethod=none`).
-- Customer guidance until the fix ships:
-  - Use `prepareMethod=prepexec` (default) for batches whose counts matter.
-  - Otherwise, use `executeUpdate` per entry.
+For either choice, add a CHANGELOG entry describing corrected counts, `BatchUpdateException` handling for recoverable batch failures, and the selected proposal's limitations. Fatal/session/rollback and timeout handling retain their appropriate exception behavior; not every failure becomes a `BatchUpdateException`. Until a fix ships, use `prepexec` for batches whose counts matter, or `executeUpdate` per entry where appropriate.
 
 ## 6. Work items
 
 | # | Item | Owner | Depends on |
 |---|---|---|---|
-| 1 | Failing tests C1–C12, E1–E6, unit guard (§4) | — | — |
-| 2 | Phase 1 fix + drain | — | 1 |
-| 3 | Parameterize `MultiStatementResultTraversalTest` batch section | — | 2 |
-| 4 | CHANGELOG + 13.6.x backport | — | 2 |
-| 5 | Phase 2 design decision (A vs C) | Team | 2 |
-| 6 | Validate with customer harness | — | 2 |
+| 1 | Choose proposal 1 with explicit attribution limits, or proposal 2 accepting existing RPC-scope limitations for all batches | Team | — |
+| 2 | Add failing tests from §4, with verified routing and proposal-specific expectations | — | 1 |
+| 3 | Implement the chosen proposal, including error-aware response completion | — | 2 |
+| 4 | Extend `MultiStatementResultTraversalTest` and run the validation matrix, including same-statement batch/non-batch reuse | — | 3 |
+| 5 | Update CHANGELOG and compatibility guidance; consider a 13.6.x backport after validation | — | 4 |
+| 6 | Validate with customer harness | — | 3 |
 
-## 7. Local fix (Phase 1)
+## 7. Historical local prototype (proposal 1 count mapping only)
 
-Implemented in the local worktree `C:\work\jdbc\repos\mssql-jdbc-nonebatchcounts`. It is not committed or pushed. It addresses R1–R6. R7 (compound SQL per entry) remains Phase 2.
+The original analysis reports a prototype in the local worktree `C:\work\jdbc\repos\mssql-jdbc-nonebatchcounts`, uncommitted and unpushed at that time. The diff and results below are retained as historical evidence, not as implementation in this documentation PR or fresh validation of the revised proposals. The prototype corrects basic mapping/error handling for the tested shapes, but does not establish general R3–R5 correctness without entry boundaries. R7 remains unresolved, and the diff does not implement the error-aware completion required for R8.
 
 ### 7.1 Driver diff: `SQLServerPreparedStatement.doExecuteExecMethodBatchCombined`
 
@@ -372,15 +392,15 @@ Most of the line churn comes from removing the outer `try { … } catch (SQLExce
      }
 ```
 
-How the change maps to the defects:
+How the prototype changes map to the defects (subject to the entry-attribution and completion limitations above):
 
 | Defect | Change |
 |---|---|
 | R1 | `true` from `getNextResult` no longer means "ResultSet"; the count comes from the `updateCount` field |
 | R2 | `-1` maps to `SUCCESS_NO_INFO` |
-| R3 | `break` when results are exhausted, so remaining entries keep `EXECUTE_FAILED` |
-| R4 | The local `BatchUpdateException` wrapping is removed; `executeBatch`/`executeLargeBatch` raise a real `BatchUpdateException` with counts, as for `prepexec` |
-| R5 | Session-unavailable / rolled-back-transaction errors propagate immediately |
+| R3 | Exhaustion leaves remaining slots as `EXECUTE_FAILED`; terminal-token sequences and entry attribution still need verification |
+| R4 | Removes wrapping for errors observed by the loop; trailing errors are not covered by this diff |
+| R5 | Session-unavailable / rolled-back-transaction errors propagate if observed; response completion is still required |
 | R6 | Reads the `long` `updateCount` field, not `getUpdateCount()` |
 | — | A `ResultSet` in a batch is an entry error (`R_resultsetGeneratedForUpdate`), as on the RPC path |
 
@@ -397,14 +417,16 @@ How the change maps to the defects:
 - `testDirectBatchErrorReportsBatchUpdateExceptionLikePrepexec` (2 cases): a PK violation produces `BatchUpdateException` with `[1, -3, 1]` and two persisted rows in both modes.
 - `testDirectBatchAbortingErrorReportsExecuteFailed` (2 cases): after a conversion error, unexecuted entries report `EXECUTE_FAILED` and never `-1`, consistent with the persisted rows.
 
-### 7.3 Validation
+### 7.3 Previously reported prototype validation
+
+These are the original author's reported results for the limited prototype. They were not rerun for this document revision and do not establish coverage for proposal 2, verified scope-mode direct routing, general compound/conditional attribution, trailing-error completion, cancellation, or counts above `Integer.MAX_VALUE`.
 
 | Profile | Suite | Result |
 |---|---|---|
 | `jre17` / JDK 25 | `PrepStmtDirectSQLExecutionTests` | 86 run, 0 failures, 0 errors, 0 skipped |
 | `jre8` / JDK 11 (clean) | `PrepStmtDirectSQLExecutionTests`, `PrepareMethodNoneProcedureRpcTest`, `PrepareMethodLiteralTest`, `ParameterDirectSqlRetryTest`, `PrepareMethodNoneCallableStatementTest`, `SQLServerPreparedStatementTempTableTest`, `BatchExecutionWithBulkCopyTest` | 1,557 run, 0 failures, 0 errors, 0 skipped |
 
-Remaining before a PR:
+Remaining before an implementation PR, in addition to the revised work items in §6:
 
 - Run the full `none` suite set on `jre17`.
 - Run `MultiStatementResultTraversalTest`. Its `@Nested` classes were not selected by the `-Dtest` filter.
