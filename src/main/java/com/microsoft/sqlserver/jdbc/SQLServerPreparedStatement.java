@@ -1813,7 +1813,11 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      */
     private SQLServerResultSet buildExecuteMetaData() throws SQLServerException, SQLTimeoutException {
         String fmtSQL = userSQL;
- 
+
+        if (null != internalStmt) {
+            internalStmt.close();
+            internalStmt = null;
+        }
         SQLServerResultSet emptyResultSet = null;
         try {
             internalStmt = (SQLServerStatement) connection.createStatement();
@@ -1824,6 +1828,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 //try by replacing ? characters in case that was an issue 
                        try {
                           fmtSQL = replaceMarkerWithNull(fmtSQL);
+                          if (null != internalStmt) {
+                              internalStmt.close();
+                              internalStmt = null;
+                          }
                           internalStmt = (SQLServerStatement) connection.createStatement();
                           emptyResultSet = internalStmt.executeQueryInternal("set fmtonly on " + fmtSQL + "\nset fmtonly off");
                        } catch (SQLServerException ex) {

@@ -276,6 +276,38 @@ public class PreparedStatementTest extends AbstractTest {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"SELECT 1 AS value", "SELECT ? AS value"})
+    public void testRepeatedFmtOnlyMetadataStatementOwnership(String sql) throws Exception {
+        Field internalStatement = SQLServerPreparedStatement.class.getDeclaredField("internalStmt");
+        internalStatement.setAccessible(true);
+        try (Connection con = getConnection()) {
+            Statement current;
+            try (SQLServerPreparedStatement statement = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                ResultSetMetaData earlierMetadata = statement.getMetaData();
+                assertNotNull(earlierMetadata);
+                current = (Statement) internalStatement.get(statement);
+                assertNotNull(current);
+                assertFalse(current.isClosed());
+                for (int i = 0; i < 3; i++) {
+                    Statement previous = current;
+                    ResultSetMetaData metadata = statement.getMetaData();
+                    assertNotNull(metadata);
+                    assertEquals(1, metadata.getColumnCount());
+                    assertTrue(previous.isClosed(), "Repeated metadata lookup must close the replaced statement");
+                    current = (Statement) internalStatement.get(statement);
+                    assertNotNull(current);
+                    assertNotSame(previous, current);
+                    assertFalse(current.isClosed(), "Current metadata statement must remain parent-owned");
+                    assertEquals(1, earlierMetadata.getColumnCount());
+                    assertEquals("value", earlierMetadata.getColumnName(1));
+                    assertEquals(Types.INTEGER, earlierMetadata.getColumnType(1));
+                }
+            }
+            assertTrue(current.isClosed(), "Closing the parent must close its current metadata statement");
+        }
+    }
+
     @Test
     public void testPreparedStatementParamNameSpacingWithMultipleParams() throws SQLException {
         int paramNameCount = 105;
