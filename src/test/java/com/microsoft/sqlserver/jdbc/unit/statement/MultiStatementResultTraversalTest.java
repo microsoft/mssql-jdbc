@@ -4,12 +4,14 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.BatchUpdateException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -3307,6 +3309,29 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
      */
     @Nested
     public class PrepareMethodNoneCompoundContracts {
+
+        @Test
+        public void directBatchFailureThenExecuteTraversesAllResults() throws SQLException {
+            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+                    Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE #batch_reuse (id int)");
+                try (PreparedStatement ps = conn
+                        .prepareStatement("INSERT INTO #batch_reuse VALUES (?); SELECT id FROM #batch_reuse")) {
+                    ps.setInt(1, 7);
+                    ps.addBatch();
+                    BatchUpdateException error = assertThrows(BatchUpdateException.class, ps::executeLargeBatch);
+                    assertArrayEquals(new long[] {1}, error.getLargeUpdateCounts());
+                    // Reuse retained bindings after the batch's unexpected result set has been consumed.
+                    Traversal result = traverseAllResults(ps, ps.execute());
+                    assertEquals(Arrays.asList(1), result.updateCounts);
+                    assertEquals(Arrays.asList(2), result.resultSetRowCounts);
+                    try (ResultSet rs = stmt.executeQuery("SELECT SUM(id) FROM #batch_reuse")) {
+                        assertTrue(rs.next());
+                        assertEquals(14, rs.getInt(1));
+                    }
+                }
+            }
+        }
 
         /**
          * {@code prepareMethod=none} with deep compound (DELETE;INSERT;UPDATE;INSERT;SELECT) —
