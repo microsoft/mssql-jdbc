@@ -49,10 +49,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Fixed
 
-- **Correct Update Counts in Direct Prepared-Statement Batches**
-  - **What was fixed**: `executeBatch()` and `executeLargeBatch()` under `prepareMethod=none`, and the direct path of `scopeTempTablesToConnection`, reported `1` for every successful entry. They now return the server's count, including `0` and multi-row counts, `SUCCESS_NO_INFO` when no count is available, and `EXECUTE_FAILED` for failed or unexecuted entries. Recoverable failures throw `BatchUpdateException` with these counts.
-  - **Impact**: Combined language-batch execution and connection-scoped temporary tables are unchanged. Counts are assigned by result position, so they are reliable only when each entry produces one result, such as a single `INSERT`, `UPDATE`, `DELETE` or `MERGE`. See [direct batch count limitations](docs/direct-batch-update-counts.md).
-
 - **Prevent Silent Loss of Trailing SQL in Bulk Copy Batch Inserts** [#3037](https://github.com/microsoft/mssql-jdbc/pull/3037)
   - **What was fixed**: Detected query hints, additional `VALUES` tuples, and other meaningful SQL after the first values tuple and persistently routed those statements through normal batch execution.
   - **Who benefits**: Applications using `useBulkCopyForBatchInsert=true` with query hints, multi-row inserts, or trailing comments.
