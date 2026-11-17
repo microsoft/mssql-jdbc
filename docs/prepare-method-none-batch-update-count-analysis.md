@@ -202,7 +202,7 @@ This is not a new kind of fallback restriction, but routing every batch through 
 | Local temp tables created by an entry | Retain connection lifetime | RPC-scoped, like existing procedure/unsupported-type routing |
 | Main trade-off | Smaller execution change, limited count/error attribution | Reliable entry boundaries, broader application of the existing scope limitation |
 
-These are alternatives, not sequential phases. Proposal 1 is the limited compatibility-preserving option. Proposal 2 is the stronger entry-boundary solution if batch-wide acceptance of the existing RPC-scope limitation is chosen. Do not implement per-entry round trips, static SQL-statement counting, or post-execution retry as a substitute.
+These are alternatives, not sequential phases. Proposal 1 is the limited compatibility-preserving option. Proposal 2 is the stronger entry-boundary solution if batch-wide acceptance of the existing RPC-scope limitation is chosen. Do not implement per-entry round trips, static SQL-statement counting, or post-execution retry as a substitute. See §8 for proposed code-change excerpts for each alternative.
 
 For either choice, add a CHANGELOG entry describing corrected counts, `BatchUpdateException` handling for recoverable batch failures, and the selected proposal's limitations. Fatal/session/rollback and timeout handling retain their appropriate exception behavior; not every failure becomes a `BatchUpdateException`. Until a fix ships, use `prepexec` for batches whose counts matter, or `executeUpdate` per entry where appropriate.
 
@@ -432,3 +432,147 @@ Remaining before an implementation PR, in addition to the revised work items in 
 - Run `MultiStatementResultTraversalTest`. Its `@Nested` classes were not selected by the `-Dtest` filter.
 - Check whether the `SEVERE ... unexpected TDS_RETURN_VALUE` lines logged during the `jre8` run also appear without this fix. All tests in that run passed.
 - Add a CHANGELOG entry noting that `none` batch failures now throw `BatchUpdateException`.
+
+## 8. Proposed code-change diffs for review
+
+These are **illustrative implementation diffs, not compiled or server-validated patches**. Only this Markdown document is changed by this PR. The excerpts use method-context hunk headers rather than apply-ready line ranges. Proposal 1 builds on the historical diff in §7.1; proposal 2 is an alternative against the current driver source, not a change to apply on top of proposal 1. Neither excerpt includes the tests required by §4.
+
+### 8.1 Proposal 1: actual counts plus error-aware completion
+
+First apply the count-mapping/exception-unwrapping changes shown in §7.1. Those changes remove the outer `catch (SQLException)` wrapper, retain the combined SQL request, and let the public APIs construct `BatchUpdateException`. Replace that prototype's bounded result loop with the following review draft.
+
+The important distinction is between the number of output slots and response completion: keep consuming after all slots have been filled. Restart result traversal when necessary to reach token EOF, rather than treating an intermediate logical end-of-results as physical response completion. Record late database errors without inventing an entry index for results beyond the array. Preserve additional observed errors in the exception chain.
+
+```diff
+--- a/src/main/java/com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement.java
++++ b/src/main/java/com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement.java
+@@ doExecuteExecMethodBatchCombined: replace the result loop from the §7.1 prototype
+-                for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
++                int resultIndex = 0;
++                SQLServerException interruptException = null;
++                while (!batchCommand.getProcessedResponse()) {
++                    boolean unexpectedResultSet = false;
++                    startResults();
+                     try {
+                         if (!getNextResult(true))
+-                            break;
++                            continue;
+
+                         if (null != resultSet) {
+-                            resultSet.close();
+-                            resultSet = null;
++                            unexpectedResultSet = true;
+                             SQLServerException.makeFromDriverError(connection, this,
+                                     SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
+                         }
+
+-                        batchCommand.updateCounts[batchIdx] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
+-                                                                                  : updateCount;
++                        if (resultIndex < numBatches) {
++                            batchCommand.updateCounts[resultIndex] = (-1 == updateCount)
++                                    ? Statement.SUCCESS_NO_INFO : updateCount;
++                        }
++                        resultIndex++;
+                     } catch (SQLServerException e) {
+                         if (connection.isSessionUnAvailable() || connection.rolledBackTransaction())
+                             throw e;
+
+-                        batchCommand.updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
+-                        if (null == batchCommand.batchException)
++                        if (SQLState.STATEMENT_CANCELED.getSQLStateCode().equals(e.getSQLState())) {
++                            interruptException = e;
++                            continue;
++                        }
++                        if (!unexpectedResultSet
++                                && SQLServerException.DRIVER_ERROR_FROM_DATABASE != e.getDriverErrorCode()) {
++                            throw e;
++                        }
++                        if (resultIndex < numBatches) {
++                            batchCommand.updateCounts[resultIndex] = Statement.EXECUTE_FAILED;
++                        }
++                        resultIndex++;
++                        if (null == batchCommand.batchException) {
+                             batchCommand.batchException = e;
++                        } else {
++                            batchCommand.batchException.setNextException(e);
++                        }
+                     }
+                 }
++                clearLastResult();
++                if (null != interruptException)
++                    throw interruptException;
++                if (null != batchCommand.batchException)
++                    executeScope.setException(batchCommand.batchException);
+                 // executeBatch and executeLargeBatch turn batchCommand.batchException into a BatchUpdateException.
+```
+
+**What this draft does not solve:** `resultIndex` is a result position, not a recovered parameter-set identity. It provides exact counts only when the observed result sequence corresponds to entries. Extra counts from compound SQL are consumed but not correctly grouped; an error after an intermediate count can still have ambiguous per-entry attribution. A trailing error must fail the batch even if every returned count slot is non-negative; do not arbitrarily overwrite the last slot as if its origin were known.
+
+**Completion review required before implementation:** reaching token EOF must be verified alongside the command's attention-acknowledgement lifecycle, transaction/session changes, and result-set cleanup. Cancellation/timeout must not be converted into normal success. Test the `startResults()`/EOF progression with intermediate DONE tokens and interrupts so the loop neither stops early nor reprocesses tokens. The existing public exception construction must also be reviewed if preserving the complete exception chain is required; recording a chain on `batchException` alone does not guarantee callers receive it.
+
+This is a larger completion change than the historical §7 prototype. Its correctness and the proposal 1 attribution limitations must be assessed separately; the historical test results do not validate this draft.
+
+### 8.2 Proposal 2: select unprepared RPC for direct-mode batches before submission
+
+The following draft routes statements that would otherwise use direct SQL into the existing grouped RPC batch path. Modes already using prepared RPCs retain their existing behavior. Within the affected modes, routing is based on the batch command, so the statement's direct/non-batch flags do not need a lifetime-long switch.
+
+For typed binding, restore RPC types on execution-local parameter clones. Do not change the original current bindings: `restoreRpcType()` clears literal-formatting metadata, and the same PreparedStatement may later execute directly without rebinding. Reuse the existing `cloneForBatch()` and `restoreRpcType()` facilities rather than temporarily changing flags and assuming that restores parameter state too.
+
+```diff
+--- a/src/main/java/com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement.java
++++ b/src/main/java/com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement.java
+@@ doPrepExec: do not render literal SQL for a batch command
+-        if (isDirectSqlExecution) {
++        if (isDirectSqlExecution && !(command instanceof PrepStmtBatchExecCmd)) {
+             // Build direct SQL using enhanced replaceParameterMarkersWithValues with direct values
+             String directSQL = replaceParameterMarkersWithValues(userSQL, userSQLParamPositions, params, false);
+@@ doPrepExec: reuse unprepared RPC construction for each direct-mode batch entry
+-        // A stored procedure call under prepareMethod=none is sent as an unprepared sp_executesql RPC with typed
+-        // parameters. No server handle is created or cached. In a batch nothing has to be read back before the next
+-        // entry, so the entries are combined into one request.
+-        if (useUnpreparedRpc) {
++        // Direct-mode batch entries use the same unprepared RPC framing as procedure calls.
++        if (useUnpreparedRpc || (isDirectSqlExecution && command instanceof PrepStmtBatchExecCmd)) {
+             isExecuteSqlUsed = true;
+             buildExecSQLParams(tdsWriter);
+             sendParamsByRPC(tdsWriter, params);
+             return !(command instanceof PrepStmtBatchExecCmd);
+         }
+@@ doExecutePreparedStatementBatch: bypass combined language execution
+-        // Direct SQL execution handles the batch with literal parameter substitution. This is prepareMethod=none, or
+-        // scopeTempTablesToConnection when temp table operations are detected in the SQL. A stored procedure call is
+-        // never direct: under none each entry is sent as an unprepared RPC. If a parameter cannot be inlined as a
+-        // literal, nothing has been sent, and the batch is sent as unprepared RPCs instead.
+-        if (isDirectSqlExecution) {
+-            try {
+-                doExecuteExecMethodBatchCombined(batchCommand);
+-                return;
+-            } catch (SQLServerException e) {
+-                if (!retryRejectedDirectSqlAsRpc())
+-                    throw e;
+-                Arrays.fill(batchCommand.updateCounts, Statement.EXECUTE_FAILED);
+-            }
+-        } else if (isScopeTempTablesToConnectionMethod) {
++        // Direct-mode entries proceed through the grouped, unprepared RPC path below.
++        if (!isDirectSqlExecution && isScopeTempTablesToConnectionMethod) {
+             // scopeTempTablesToConnection is set but no temp table operations detected in
+             // SQL, fall back to default prepexec method
+@@ doExecutePreparedStatementBatch: restore typed bindings without mutating retained direct bindings
+                     Parameter[] paramValues = batchParamValues.get(numBatchesPrepared);
+                     assert paramValues.length == batchParam.length;
+-                    System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
++                    if (isDirectSqlExecution) {
++                        for (int i = 0; i < paramValues.length; i++) {
++                            batchParam[i] = paramValues[i].cloneForBatch();
++                            batchParam[i].restoreRpcType(connection);
++                        }
++                    } else {
++                        System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
++                    }
+```
+
+**Why batching is retained:** the existing `doExecutePreparedStatementBatch` loop writes `NBATCH_STATEMENT_DELIMITER` between RPC entries. `doPrepExec` returns `false` for unprepared batch RPCs, so this path does not force a preparation response or a round trip after every entry. The existing `reuseCachedHandle` guard already excludes `isDirectSqlExecution` and `useUnpreparedRpc`; the draft does not introduce handle caching.
+
+**Follow-through before implementation:** remove the now-unused combined-execution helper if no caller remains, update direct-path comments/Javadoc and scope guidance, and exercise the existing RPC result/completion handling rather than assuming it covers every case. In particular, verify compound entries with trailing errors and unexpected result sets before claiming parity. Verify generated keys, statement pooling, encryption metadata, typed character conversion with `sendStringParametersAsUnicode=false`, explicit national-character setters, streams/unsupported types, and batch-to-single-execution reuse without rebinding. Execution-local clones preserve the originals' literal metadata but do not make consumable streams reusable.
+
+**Accepted scope trade-off to document:** local temporary tables created inside an entry are RPC-scoped, just as in existing procedure-call/unsupported-type routing. Applying this routing to all otherwise-direct batches broadens that existing limitation, including `scopeTempTablesToConnection` batches. Tables created beforehand on the connection remain accessible. Do not retry direct SQL after submission; this proposal chooses RPC before execution.
