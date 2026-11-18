@@ -4513,6 +4513,107 @@ abstract class MultiStatementResultTraversalTestBase extends AbstractTest {
                 }
             }
         }
+
+        @Test
+        public void preparedStatementExecuteBatchWithMultiRowUpdateThenInsertSelectThenUpdate() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBCompUpdateFirst"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 0), (2, 0), (3, 0), (4, 0)");
+
+                    try (PreparedStatement ps = conn.prepareStatement("UPDATE " + table
+                            + " SET c2 = c2 + 1 WHERE c1 <= ?; INSERT INTO " + table + " SELECT ?, c2 FROM " + table
+                            + " WHERE c1 = 4; UPDATE " + table + " SET c2 = c2 + 10")) {
+                        ps.setInt(1, 2);
+                        ps.setInt(2, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 3);
+                        ps.setInt(2, 6);
+                        ps.addBatch();
+                        int[] counts = ps.executeBatch();
+
+                        assertEquals(2, counts.length, "executeBatch must return one count per parameter set");
+                        assertEquals(5, counts[0], "item 0 updates 2, inserts 1, then updates 5 rows");
+                        assertEquals(6, counts[1], "item 1 updates 3, inserts 1, then updates 6 rows");
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table + " WHERE c2 >= 20")) {
+                        assertTrue(rs.next());
+                        assertEquals(6, rs.getInt(1), "all six rows must reflect the final UPDATE");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchWithMultiRowDeleteThenUpdate() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBCompDeleteFirst"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate(
+                            "INSERT INTO " + table + " VALUES (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0)");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "DELETE FROM " + table + " WHERE c1 <= ?; UPDATE " + table + " SET c2 = c2 + 1")) {
+                        ps.setInt(1, 2);
+                        ps.addBatch();
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        int[] counts = ps.executeBatch();
+
+                        assertEquals(2, counts.length, "executeBatch must return one count per parameter set");
+                        assertEquals(4, counts[0], "item 0 deletes 2 rows, then updates the 4 survivors");
+                        assertEquals(1, counts[1], "item 1 deletes 3 rows, then updates the sole survivor");
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT c1, c2 FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(6, rs.getInt(1), "row 6 must survive both DELETEs");
+                        assertEquals(2, rs.getInt(2), "the survivor must be updated by both entries");
+                        assertFalse(rs.next(), "no other rows should remain");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchWithMultiRowInsertThenDeleteThenUpdate() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBCompInsertFirst"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    try (PreparedStatement ps = conn
+                            .prepareStatement("INSERT INTO " + table + " VALUES (?, 0), (?, 1), (?, 2); DELETE FROM "
+                                    + table + " WHERE c2 = 0; UPDATE " + table + " SET c2 = c2 + 10")) {
+                        for (int item = 1; item <= 2; item++) {
+                            ps.setInt(1, item);
+                            ps.setInt(2, item);
+                            ps.setInt(3, item);
+                            ps.addBatch();
+                        }
+                        int[] counts = ps.executeBatch();
+
+                        assertEquals(2, counts.length, "executeBatch must return one count per parameter set");
+                        assertEquals(2, counts[0], "item 0 inserts 3, deletes 1, then updates 2 rows");
+                        assertEquals(4, counts[1], "item 1 inserts 3, deletes 1, then updates 4 rows");
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table + " WHERE c2 >= 11")) {
+                        assertTrue(rs.next());
+                        assertEquals(4, rs.getInt(1), "four inserted rows must survive and be updated");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
     }
 
     // =========================================================================================
