@@ -1,5 +1,42 @@
 # User-owned OpenTelemetry endpoint
 
+## Related design specifications and implementation status
+
+Read this current automatic-route contract together with these design documents:
+
+| Design document | Coverage |
+| --- | --- |
+| [Connection error categories and span contract](mssql-jdbc-connection-error-category-mapping.md) | Source-grounded connection error taxonomy, connection lifecycle spans, error evidence, and proposed extensions. |
+| [Performance activity metrics proposal](mssql-jdbc-performance-activity-metrics-proposal.md) | Metric instruments, bounded dimensions, activity identities, retry accounting, histogram boundaries, SDK ownership, and acceptance criteria. |
+| [Statement spans proposal](mssql-jdbc-statement-spans-proposal.md) | Invocation/attempt/phase spans, statement attributes, sampling, sanitized SQL policy, and diagnostic events. |
+
+**These documents are not yet implemented exactly by the automatic user-endpoint
+route. In particular, not all proposed metrics are emitted.** This contract records
+current behavior; it is not an approval to drop requirements from the proposals or
+a claim that their acceptance criteria have all passed. Differences must be resolved
+explicitly before claiming conformance. The older programmatic adapter is a separate
+path; its capabilities do not prove support on the `otelEndpoint` route.
+
+### Known differences requiring reconciliation
+
+| Area | Design specification | Current automatic route / remaining gap |
+| --- | --- | --- |
+| Metric instruments | Metrics proposal §3.1 requires count, duration, error count, and **retry count**. | Count, duration, and error count exist. **`db.client.operation.retry.count` is missing.** Attempt activity counts are not a substitute for the proposed root retry counter. |
+| Metric dimensions and identities | Metrics proposal §3.2 and §4 specify `mssql.performance.activity` with stable dotted names, `mssql.operation.kind`, bounded outcome/type/protocol/authentication/retry-reason dimensions, and schema version. | Only `mssql.activity` (raw enum name) and `mssql.activity.type` are attached. The proposed keys and additional breakdowns are **not implemented** on this route. Do not query one schema as if it were the other. |
+| Histogram boundaries | Metrics proposal §5.3 specifies 17 explicit boundaries from 0.1 ms through 30,000 ms, recorded in seconds. | Durations are recorded in seconds, but the histogram uses SDK defaults without the proposed explicit boundary advice. |
+| Error accounting | Metrics proposal §3.1 and §5.5 define terminal `failure`, `timeout`, and `canceled` outcomes. | The error counter currently tests the captured `hasException()` flag; there is no metric outcome dimension. Proposal-level outcome equivalence needs separate verification. |
+| SDK/configuration ownership | Metrics proposal §3, §6, and §7 describe an application-supplied SDK, driver-version scope, opt-in metric configuration, and application-controlled resources. | The automatic route owns a private SDK, scope `com.microsoft.sqlserver.jdbc.user-endpoint`, fixed service resource, and a 60-second metric reader. Metrics are enabled by `otelEndpoint`, independently of span level/thresholds. |
+| Statement sampling | Statement proposal MVP decision and § sampling guidance keep the application sampler authoritative. | The automatic route uses a private always-on sampler with level/threshold tree selection, even with an unsampled application parent. These are different policies. |
+| Statement SQL metadata | Statement proposal § root attributes permits conditional, root-only sanitized `db.query.text`. | The automatic route always removes `db.query.text`, including already-masked SQL. The demo must show it as unavailable. |
+| Diagnostic events | Connection/statement designs describe structured retry, timeout, and authentication diagnostics in addition to originating errors. | Originating `mssql.driver.error` events are replayed; the separate lifecycle diagnostic-event list is not. Full event-contract conformance is not claimed. |
+| Connection trace population and extensions | Connection design describes a failed-open diagnostic MVP and proposed additional lifecycle work, including logical pool acquisition/reset. | Levels and thresholds select automatic-route trees, including successful roots at level 2. Logical pool checkout/reset and session-recovery reconnect trees are not implemented by this route. |
+| Dashboard/acceptance coverage | Metrics proposal §8 and §11 include outcome distribution, maximum duration, and broader cardinality/outcome validation. | The current metric schema cannot supply the proposed outcome breakdown or an exact maximum. The dashboard leaves unsupported fields unavailable; a successful demo/test run is not completion of all proposal acceptance criteria. |
+
+Source evidence: [automatic SDK/instrument setup](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryProvider.java#L431-L484),
+[metric projection and span replay](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryProvider.java#L501-L590),
+and the [separate programmatic metric implementation](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/PerformanceActivityMetrics.java).
+The tables below remain the authoritative description of what this route currently exports.
+
 ## Scope and activation
 
 This document describes the current automatic, per-physical-connection user telemetry route, not a released-version availability guarantee. It sends OTLP/HTTP protobuf metrics and optional connection/statement span trees to an application-selected collector. It does not send OpenTelemetry log records.
