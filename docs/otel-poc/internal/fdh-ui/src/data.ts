@@ -1,4 +1,4 @@
-export type FailurePhase = 'Configuration' | 'DNS' | 'Login';
+export type FailurePhase = string;
 
 export type Span = {
   name: string;
@@ -36,7 +36,7 @@ export type ConnectionFailure = {
 export type StatementFailure = {
   id: string;
   time: string;
-  statementType: 'Statement' | 'PreparedStatement';
+  statementType: string;
   operation: string;
   maskedSql: string;
   category: string;
@@ -52,19 +52,19 @@ export type PerformanceMetric = {
   activity: string;
   label: string;
   kind: 'Connection' | 'Statement';
-  count: number;
-  successRate: number;
-  errors: number;
-  p50: number;
-  p95: number;
-  p99: number;
-  max: number;
+  count: number | null;
+  successRate: number | null;
+  errors: number | null;
+  p50: number | null;
+  p95: number | null;
+  p99: number | null;
+  max: number | null;
 };
 
 export type ThroughputPoint = {
   label: string;
-  connections: number;
-  statements: number;
+  connections: number | null;
+  statements: number | null;
 };
 
 const phaseCounts: Array<[FailurePhase, number]> = [

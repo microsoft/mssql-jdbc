@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
   Input,
@@ -27,11 +27,15 @@ import {
   FailurePhase,
   PerformanceMetric,
   StatementFailure,
-  failures,
-  performanceMetrics,
-  statementFailures,
-  throughputPoints,
+  ThroughputPoint,
 } from './data';
+import { emptyTelemetry, loadTelemetry } from './live';
+
+const formatNumber = (value: number | null | undefined, digits = 1) =>
+  value == null || !Number.isFinite(value) ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: digits });
+const milliseconds = (value: number | null | undefined) => value == null ? '—' : `${formatNumber(value)} ms`;
+const utcTime = (time: string) => new Date(time).toLocaleTimeString('en-GB', { timeZone: 'UTC', hour12: false });
+const statementLabel = (kind: string) => ({ statement: 'Statement', prepared_statement: 'PreparedStatement', callable_statement: 'CallableStatement' } as Record<string, string>)[kind] ?? kind;
 
 const phaseColor: Record<FailurePhase, string> = {
   DNS: '#117865',
@@ -66,10 +70,11 @@ function MetricCard({ label, value, delta, tone }: { label: string; value: strin
 }
 
 function Distribution({ data }: { data: ConnectionFailure[] }) {
-  const counts = (['DNS', 'Configuration', 'Login'] as FailurePhase[]).map(phase => ({
+  const counts = [...new Set(data.map(item => item.phase))].map(phase => ({
     phase,
     count: data.filter(item => item.phase === phase).length,
   }));
+  const top = [...counts].sort((a, b) => b.count - a.count)[0];
   const max = Math.max(...counts.map(item => item.count), 1);
   return (
     <div className="panel distribution-panel">
@@ -86,7 +91,7 @@ function Distribution({ data }: { data: ConnectionFailure[] }) {
             <div className="bar-group" key={item.phase}>
               <div className="bar-value">{item.count}</div>
               <div className="bar-track">
-                <div className="bar-fill" style={{ height: `${Math.max((item.count / max) * 100, 4)}%`, background: phaseColor[item.phase] }} />
+                <div className="bar-fill" style={{ height: `${(item.count / max) * 100}%`, background: phaseColor[item.phase] ?? '#0f6cbd' }} />
               </div>
               <div className="bar-label">{item.phase}</div>
             </div>
@@ -94,10 +99,10 @@ function Distribution({ data }: { data: ConnectionFailure[] }) {
         </div>
         <div className="insight-card">
           <span className="insight-kicker">Top issue</span>
-          <strong>{counts.sort((a, b) => b.count - a.count)[0].phase}</strong>
-          <span>{Math.round((counts[0].count / Math.max(data.length, 1)) * 100)}% of filtered failures</span>
+          <strong>{top?.phase ?? 'No failures'}</strong>
+          <span>{top ? `${Math.round((top.count / data.length) * 100)}% of filtered failures` : 'No matching traces'}</span>
           <div className="mini-rule" />
-          <span className="insight-note">Customer-facing mock data</span>
+          <span className="insight-note">Local Jaeger traces</span>
         </div>
       </div>
     </div>
@@ -105,9 +110,11 @@ function Distribution({ data }: { data: ConnectionFailure[] }) {
 }
 
 function Activity({ data }: { data: ConnectionFailure[] }) {
-  const points = data.slice(0, 32).reverse().map((item, index) => ({
-    x: index * (560 / 31),
-    y: 104 - Math.min(item.duration / 2.5, 90),
+  const recent = data.slice(0, 32).reverse();
+  const maxDuration = Math.max(...recent.map(item => item.duration), 1);
+  const points = recent.map((item, index) => ({
+    x: index * (560 / Math.max(recent.length - 1, 1)),
+    y: 112 - (item.duration / maxDuration) * 90,
   }));
   const line = points.map(point => `${point.x},${point.y}`).join(' ');
   return (
@@ -117,7 +124,7 @@ function Activity({ data }: { data: ConnectionFailure[] }) {
           <h3>Connection failure duration</h3>
           <p>End-to-end latency for recent failed connection attempts</p>
         </div>
-        <span className="period-chip">Last 24 hours</span>
+        <span className="period-chip">0–{formatNumber(maxDuration)} ms</span>
       </div>
       <svg className="activity-chart" viewBox="0 0 560 130" preserveAspectRatio="none" role="img" aria-label="Connection duration chart">
         <defs>
@@ -129,6 +136,7 @@ function Activity({ data }: { data: ConnectionFailure[] }) {
         {[25, 65, 105].map(y => <line key={y} x1="0" x2="560" y1={y} y2={y} className="chart-grid" />)}
         <polygon points={`0,120 ${line} 560,120`} fill="url(#area)" />
         <polyline points={line} fill="none" stroke="#5b5fc7" strokeWidth="2.3" />
+        {points.map((point, index) => <circle key={index} cx={point.x} cy={point.y} r="3" fill="#5b5fc7"><title>{milliseconds(recent[index].duration)}</title></circle>)}
       </svg>
       <div className="chart-axis"><span>Earlier</span><span>Recent</span></div>
     </div>
@@ -136,7 +144,7 @@ function Activity({ data }: { data: ConnectionFailure[] }) {
 }
 
 function StatementDistribution({ data }: { data: StatementFailure[] }) {
-  const categories = ['Constraint violation', 'Query syntax & semantics'];
+  const categories = [...new Set(data.map(item => item.category))];
   const counts = categories.map(category => ({
     category,
     count: data.filter(item => item.category === category).length,
@@ -162,7 +170,7 @@ function StatementDistribution({ data }: { data: StatementFailure[] }) {
                   className="bar-fill"
                   style={{
                     height: `${Math.max((item.count / max) * 100, 4)}%`,
-                    background: statementCategoryColor[item.category],
+                    background: statementCategoryColor[item.category] ?? '#5b5fc7',
                   }}
                 />
               </div>
@@ -172,8 +180,8 @@ function StatementDistribution({ data }: { data: StatementFailure[] }) {
         </div>
         <div className="insight-card statement-insight-card">
           <span className="insight-kicker">Top category</span>
-          <strong>{top.category}</strong>
-          <span>{Math.round((top.count / Math.max(data.length, 1)) * 100)}% of statement failures</span>
+          <strong>{top?.category ?? 'No failures'}</strong>
+          <span>{top ? `${Math.round((top.count / data.length) * 100)}% of statement failures` : 'No matching traces'}</span>
           <div className="mini-rule" />
           <span className="insight-note">Stable, message-independent classification</span>
         </div>
@@ -183,9 +191,11 @@ function StatementDistribution({ data }: { data: StatementFailure[] }) {
 }
 
 function StatementActivity({ data }: { data: StatementFailure[] }) {
-  const points = data.slice(0, 32).reverse().map((item, index) => ({
-    x: index * (560 / 31),
-    y: 108 - Math.min(item.duration, 94),
+  const recent = data.slice(0, 32).reverse();
+  const maxDuration = Math.max(...recent.map(item => item.duration), 1);
+  const points = recent.map((item, index) => ({
+    x: index * (560 / Math.max(recent.length - 1, 1)),
+    y: 112 - (item.duration / maxDuration) * 90,
   }));
   const line = points.map(point => `${point.x},${point.y}`).join(' ');
   return (
@@ -195,7 +205,7 @@ function StatementActivity({ data }: { data: StatementFailure[] }) {
           <h3>Statement failure duration</h3>
           <p>End-to-end latency for recent failed SQL executions</p>
         </div>
-        <span className="period-chip">Last 24 hours</span>
+        <span className="period-chip">0–{formatNumber(maxDuration)} ms</span>
       </div>
       <svg className="activity-chart" viewBox="0 0 560 130" preserveAspectRatio="none" role="img" aria-label="Statement failure duration chart">
         <defs>
@@ -207,21 +217,25 @@ function StatementActivity({ data }: { data: StatementFailure[] }) {
         {[25, 65, 105].map(y => <line key={y} x1="0" x2="560" y1={y} y2={y} className="chart-grid" />)}
         <polygon points={`0,120 ${line} 560,120`} fill="url(#statement-area)" />
         <polyline points={line} fill="none" stroke="#c50f1f" strokeWidth="2.3" />
+        {points.map((point, index) => <circle key={index} cx={point.x} cy={point.y} r="3" fill="#c50f1f"><title>{milliseconds(recent[index].duration)}</title></circle>)}
       </svg>
       <div className="chart-axis"><span>Earlier</span><span>Recent</span></div>
     </div>
   );
 }
 
-function PerformanceThroughput() {
-  const maxStatements = Math.max(...throughputPoints.map(point => point.statements), 1);
-  const maxConnections = Math.max(...throughputPoints.map(point => point.connections), 1);
-  const statementLine = throughputPoints.map((point, index) =>
-    `${index * (560 / 31)},${112 - (point.statements / maxStatements) * 82}`,
-  ).join(' ');
-  const connectionLine = throughputPoints.map((point, index) =>
-    `${index * (560 / 31)},${112 - (point.connections / maxConnections) * 82}`,
-  ).join(' ');
+function PerformanceThroughput({ throughputPoints }: { throughputPoints: ThroughputPoint[] }) {
+  const max = Math.max(...throughputPoints.flatMap(point => [point.statements ?? 0, point.connections ?? 0]), 1);
+  const path = (kind: 'statements' | 'connections') => {
+    let gap = true;
+    return throughputPoints.map((point, index) => {
+      const value = point[kind];
+      if (value === null) { gap = true; return ''; }
+      const command = gap ? 'M' : 'L';
+      gap = false;
+      return `${command}${index * 560 / Math.max(throughputPoints.length - 1, 1)},${112 - value / max * 82}`;
+    }).join(' ');
+  };
   return (
     <div className="panel activity-panel metrics-throughput-panel">
       <div className="panel-title-row">
@@ -230,10 +244,10 @@ function PerformanceThroughput() {
       </div>
       <svg className="activity-chart" viewBox="0 0 560 130" preserveAspectRatio="none" role="img" aria-label="Connection and statement throughput chart">
         {[25, 65, 105].map(y => <line key={y} x1="0" x2="560" y1={y} y2={y} className="chart-grid" />)}
-        <polyline points={statementLine} fill="none" stroke="#5b5fc7" strokeWidth="2.4" />
-        <polyline points={connectionLine} fill="none" stroke="#117865" strokeWidth="2.4" />
+        <path d={path('statements')} fill="none" stroke="#5b5fc7" strokeWidth="2.4" />
+        <path d={path('connections')} fill="none" stroke="#117865" strokeWidth="2.4" />
       </svg>
-      <div className="chart-axis"><span>Earlier</span><span>Recent</span></div>
+      <div className="chart-axis"><span>Last 24 hours · 5-minute rate · shared scale 0–{formatNumber(max)} / min</span><span>Recent</span></div>
     </div>
   );
 }
@@ -244,7 +258,7 @@ function ActivityLatency({ title, subtitle, metrics, tone }: {
   metrics: PerformanceMetric[];
   tone: string;
 }) {
-  const max = Math.max(...metrics.map(metric => metric.p95), 1);
+  const max = Math.max(...metrics.map(metric => metric.p95 ?? 0), 1);
   return (
     <div className="panel metrics-latency-panel">
       <div className="panel-title-row"><div><h3>{title}</h3><p>{subtitle}</p></div><span className="period-chip">p95 · ms</span></div>
@@ -252,8 +266,8 @@ function ActivityLatency({ title, subtitle, metrics, tone }: {
         {metrics.map(metric => (
           <div className="latency-row" key={metric.activity}>
             <span>{metric.label}</span>
-            <div className="latency-track"><i style={{ width: `${Math.max((metric.p95 / max) * 100, 2)}%`, background: tone }} /></div>
-            <strong>{metric.p95.toFixed(metric.p95 < 10 ? 1 : 0)}</strong>
+            <div className="latency-track"><i style={{ width: `${((metric.p95 ?? 0) / max) * 100}%`, background: tone }} /></div>
+            <strong>{formatNumber(metric.p95)}</strong>
           </div>
         ))}
       </div>
@@ -261,27 +275,30 @@ function ActivityLatency({ title, subtitle, metrics, tone }: {
   );
 }
 
-function PerformanceMetricsDashboard() {
-  const connectionRoot = performanceMetrics.find(metric => metric.activity === 'connection.open')!;
-  const statementRoot = performanceMetrics.find(metric => metric.activity === 'statement.execute')!;
+function PerformanceMetricsDashboard({ performanceMetrics, throughputPoints }: {
+  performanceMetrics: PerformanceMetric[];
+  throughputPoints: ThroughputPoint[];
+}) {
+  const connectionRoot = performanceMetrics.find(metric => metric.activity === 'connection.open');
+  const statementRoot = performanceMetrics.find(metric => metric.activity === 'statement.execute');
   const connectionStages = performanceMetrics.filter(metric => metric.kind === 'Connection' && !metric.activity.endsWith('.open'));
   const statementStages = performanceMetrics.filter(metric => metric.kind === 'Statement'
     && !['statement.execute', 'statement.attempt'].includes(metric.activity));
-  const current = throughputPoints.at(-1)!;
+  const current = throughputPoints.at(-1);
   return (
     <section className="performance-dashboard">
       <div className="statement-analysis-header performance-analysis-header">
         <div><h2>Performance metrics</h2><p>SDK-aggregated metrics from existing lifecycle END events—not only failures.</p></div>
-        <span className="period-chip">60-second SDK export</span>
+        <span className="period-chip">Live Prometheus · last 24 hours</span>
       </div>
       <section className="metrics performance-metrics">
-        <MetricCard label="Connection opens / min" value={current.connections.toLocaleString()} delta={`${connectionRoot.successRate.toFixed(2)}% successful`} tone="#117865" />
-        <MetricCard label="Statement executions / min" value={current.statements.toLocaleString()} delta={`${statementRoot.successRate.toFixed(3)}% successful`} tone="#5b5fc7" />
-        <MetricCard label="Connection p95" value={`${connectionRoot.p95} ms`} delta="Physical open latency" tone="#c239b3" />
-        <MetricCard label="Statement p95" value={`${statementRoot.p95} ms`} delta="JDBC execute invocation" tone="#c50f1f" />
+        <MetricCard label="Connection opens / min" value={formatNumber(current?.connections)} delta={`${formatNumber(connectionRoot?.successRate)}% successful · 24h`} tone="#117865" />
+        <MetricCard label="Statement executions / min" value={formatNumber(current?.statements)} delta={`${formatNumber(statementRoot?.successRate)}% successful · 24h`} tone="#5b5fc7" />
+        <MetricCard label="Connection p95" value={milliseconds(connectionRoot?.p95)} delta="Physical open latency · estimate" tone="#c239b3" />
+        <MetricCard label="Statement p95" value={milliseconds(statementRoot?.p95)} delta="JDBC execute invocation · estimate" tone="#c50f1f" />
       </section>
       <section className="charts-grid performance-top-grid">
-        <PerformanceThroughput />
+        <PerformanceThroughput throughputPoints={throughputPoints} />
         <ActivityLatency title="Connection lifecycle latency" subtitle="Independent p95 for each measured phase" metrics={connectionStages} tone="#117865" />
       </section>
       <section className="charts-grid performance-bottom-grid">
@@ -292,28 +309,28 @@ function PerformanceMetricsDashboard() {
             <div><strong>All operations</strong><span>Successes, failures, timeouts, and cancellations</span></div>
             <div><strong>OpenTelemetry SDK aggregation</strong><span>One count and duration observation per completed activity</span></div>
             <div><strong>Bounded cardinality</strong><span>No SQL, IDs, server names, exception text, or trace context</span></div>
-            <div><strong>Failure diagnostics stay separate</strong><span>Detailed traces above remain failure-only</span></div>
+            <div><strong>Failure diagnostics stay separate</strong><span>Only failed root traces are displayed above</span></div>
           </div>
         </div>
       </section>
       <section className="panel table-panel aggregate-metrics-panel">
         <div className="panel-title-row table-title-row">
           <div><h3>Performance activity aggregates</h3><p>Counts and percentiles calculated independently for each activity.</p></div>
-          <span className="period-chip">Last 60 minutes</span>
+          <span className="period-chip">Last 24 hours · histogram estimates</span>
         </div>
         <div className="data-table-wrap aggregate-table-wrap">
           <table className="data-table aggregate-table">
             <thead><tr><th>Activity</th><th>Kind</th><th>Count</th><th>Success rate</th><th>Errors</th><th>p50</th><th>p95</th><th>p99</th><th>Max</th></tr></thead>
             <tbody>{performanceMetrics.map(metric => (
               <tr key={metric.activity}>
-                <td><code className="metric-activity">{metric.activity}</code></td><td>{metric.kind}</td><td>{metric.count.toLocaleString()}</td>
-                <td>{metric.successRate.toFixed(metric.successRate > 99.99 ? 3 : 2)}%</td><td>{metric.errors.toLocaleString()}</td>
-                <td>{metric.p50} ms</td><td><strong>{metric.p95} ms</strong></td><td>{metric.p99} ms</td><td>{metric.max} ms</td>
+                <td><code className="metric-activity">{metric.activity}</code></td><td>{metric.kind}</td><td>{formatNumber(metric.count)}</td>
+                <td>{metric.successRate === null ? '—' : `${formatNumber(metric.successRate, 3)}%`}</td><td>{formatNumber(metric.errors)}</td>
+                <td>{milliseconds(metric.p50)}</td><td><strong>{milliseconds(metric.p95)}</strong></td><td>{milliseconds(metric.p99)}</td><td title="Exact maximum is not emitted by the histogram">{milliseconds(metric.max)}</td>
               </tr>
             ))}</tbody>
           </table>
         </div>
-        <div className="table-footer"><span>{performanceMetrics.length} bounded activity series</span><span>Mock aggregate data · includes successful operations</span></div>
+        <div className="table-footer"><span>{performanceMetrics.length} bounded activity series</span><span>Counter increases · includes successes · — = unavailable</span></div>
       </section>
     </section>
   );
@@ -402,7 +419,7 @@ function StatementDetailDrawer({ statement, onClose }: { statement: StatementFai
     <div className="drawer-backdrop" onMouseDown={event => event.currentTarget === event.target && onClose()}>
       <aside className="detail-drawer">
         <header className="drawer-header">
-          <div><div className="eyebrow">Failed SQL execution</div><h2>{statement.statementType}</h2><code>{statement.id}</code></div>
+          <div><div className="eyebrow">Failed SQL execution</div><h2>{statementLabel(statement.statementType)}</h2><code>{statement.id}</code></div>
           <Button appearance="subtle" icon={<DismissRegular />} onClick={onClose} aria-label="Close details" />
         </header>
         <div className="drawer-summary">
@@ -432,6 +449,32 @@ function StatementDetailDrawer({ statement, onClose }: { statement: StatementFai
 }
 
 export function App() {
+  const [telemetry, setTelemetry] = useState(emptyTelemetry);
+  const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState('');
+  const refreshing = useRef(false);
+  const refresh = useCallback(async () => {
+    if (refreshing.current) return;
+    refreshing.current = true;
+    setLoading(true);
+    try { setTelemetry(await loadTelemetry()); }
+    catch { setNotice('Telemetry could not be loaded. Refresh to retry.'); }
+    finally { refreshing.current = false; setLoading(false); }
+  }, []);
+  useEffect(() => {
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 30000);
+    return () => window.clearInterval(timer);
+  }, [refresh]);
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setSelected(null); setSelectedStatement(null); }
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, []);
+  const { failures, statementFailures, performanceMetrics, throughputPoints } = telemetry;
+  const tracesReady = Boolean(telemetry.loadedAt) && !telemetry.warnings.some(warning => warning.startsWith('Jaeger traces unavailable'));
   const [phase, setPhase] = useState('All');
   const [region, setRegion] = useState('All');
   const [search, setSearch] = useState('');
@@ -443,11 +486,11 @@ export function App() {
     (phase === 'All' || item.phase === phase)
     && (region === 'All' || item.region === region)
     && (!search || `${item.id} ${item.errorType} ${item.category}`.toLowerCase().includes(search.toLowerCase())),
-  ), [phase, region, search]);
+  ), [failures, phase, region, search]);
 
   const loginCount = filtered.filter(item => item.phase === 'Login').length;
   const avgDuration = filtered.length ? Math.round(filtered.reduce((sum, item) => sum + item.duration, 0) / filtered.length) : 0;
-  const preparedStatementCount = statementFailures.filter(item => item.statementType === 'PreparedStatement').length;
+  const preparedStatementCount = statementFailures.filter(item => item.statementType === 'prepared_statement').length;
   const statementAvgDuration = statementFailures.length
     ? Math.round(statementFailures.reduce((sum, item) => sum + item.duration, 0) / statementFailures.length)
     : 0;
@@ -479,19 +522,21 @@ export function App() {
         <button className="rail-item rail-bottom"><SettingsRegular /><span>Settings</span></button>
       </nav>
       <main className="workspace">
-        <div className="breadcrumb"><span>SQL drivers</span><ChevronRightRegular /><span>Customer orders API</span><ChevronRightRegular /><strong>Connection telemetry</strong></div>
+        <div className="breadcrumb"><span>SQL drivers</span><ChevronRightRegular /><span>Local SQL Server demo</span><ChevronRightRegular /><strong>Connection telemetry</strong></div>
         <section className="page-header">
           <div>
             <div className="title-line"><h1>Connection telemetry</h1><span className="preview-badge">Customer preview</span></div>
             <p>Explore failed SQL connection attempts, lifecycle timing, and sanitized driver diagnostics.</p>
           </div>
-          <div className="header-actions"><span className="updated">Updated just now</span><Button icon={<ArrowClockwiseRegular />}>Refresh</Button><Button appearance="primary">Share view</Button></div>
+          <div className="header-actions"><span className="updated" aria-live="polite">{loading ? 'Refreshing…' : `Updated ${utcTime(telemetry.loadedAt || new Date().toISOString())} UTC`}</span><Button disabled={loading} onClick={() => void refresh()} icon={<ArrowClockwiseRegular />}>Refresh</Button><Button appearance="primary" onClick={() => { void navigator.clipboard.writeText(window.location.href).then(() => setNotice('View link copied. This dashboard is local to this machine.'), () => setNotice('Could not copy the link. Copy the address from the browser.')); }}>Share view</Button></div>
         </section>
+        <details className="telemetry-note" open={telemetry.warnings.some(warning => warning.includes('unavailable')) || undefined}><summary>Live local telemetry · last 24 hours · refreshes every 30 seconds · collection limits</summary>{telemetry.warnings.map(warning => <p key={warning}>{warning}</p>)}<p>SQL text and unreported regions are not available on this telemetry route. No mock values are displayed.</p></details>
+        {notice && <div className="telemetry-note" role="status">{notice}<Button appearance="subtle" onClick={() => setNotice('')} icon={<DismissRegular />} aria-label="Dismiss message" /></div>}
         <section className="metrics">
-          <MetricCard label="Failed connections" value={filtered.length.toLocaleString()} delta="Last 24 hours" tone="#c50f1f" />
-          <MetricCard label="Login failures" value={loginCount.toLocaleString()} delta={`${Math.round(loginCount / Math.max(filtered.length, 1) * 100)}% of failures`} tone="#c239b3" />
-          <MetricCard label="Average duration" value={`${avgDuration} ms`} delta="Across filtered attempts" tone="#5b5fc7" />
-          <MetricCard label="Affected regions" value={String(new Set(filtered.map(item => item.region)).size)} delta="Mock customer estate" tone="#117865" />
+          <MetricCard label="Failed connections" value={tracesReady ? filtered.length.toLocaleString() : '—'} delta="Returned traces · last 24 hours" tone="#c50f1f" />
+          <MetricCard label="Login failures" value={tracesReady ? loginCount.toLocaleString() : '—'} delta={`${Math.round(loginCount / Math.max(filtered.length, 1) * 100)}% of returned failures`} tone="#c239b3" />
+          <MetricCard label="Average duration" value={tracesReady && filtered.length ? `${avgDuration} ms` : '—'} delta="Across filtered attempts" tone="#5b5fc7" />
+          <MetricCard label="Affected regions" value={filtered.some(item => item.region !== 'Not emitted') ? String(new Set(filtered.filter(item => item.region !== 'Not emitted').map(item => item.region)).size) : '—'} delta="Only emitted cloud.region values" tone="#117865" />
         </section>
         <section className="charts-grid"><Distribution data={filtered} /><Activity data={filtered} /></section>
         <section className="panel table-panel">
@@ -501,10 +546,10 @@ export function App() {
               <Input value={search} onChange={(_, data) => setSearch(data.value)} contentBefore={<SearchRegular />} placeholder="Search GUID or error" />
               <FilterRegular />
               <Select value={phase} onChange={(_, data) => setPhase(data.value)} aria-label="Failure phase">
-                <option>All</option><option>Configuration</option><option>DNS</option><option>Login</option>
+                <option>All</option>{[...new Set(failures.map(item => item.phase))].map(value => <option key={value}>{value}</option>)}
               </Select>
               <Select value={region} onChange={(_, data) => setRegion(data.value)} aria-label="Region">
-                <option>All</option><option>East US</option><option>West Europe</option><option>Southeast Asia</option>
+                <option>All</option>{[...new Set(failures.map(item => item.region))].map(value => <option key={value}>{value}</option>)}
               </Select>
             </div>
           </div>
@@ -513,28 +558,29 @@ export function App() {
               <thead><tr><th>Time (UTC)</th><th>Connection ID</th><th>Phase</th><th>Error type</th><th>Source</th><th>Region</th><th>Duration</th><th /></tr></thead>
               <tbody>
                 {filtered.slice(0, 40).map(item => (
-                  <tr key={item.id} onClick={() => setSelected(item)}>
-                    <td>{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</td>
+                  <tr key={`${item.id}-${item.time}`} tabIndex={0} role="button" aria-label={`Inspect ${item.phase} connection failure`} onKeyDown={event => (event.key === 'Enter' || event.key === ' ') && (event.preventDefault(), setSelected(item))} onClick={() => setSelected(item)}>
+                    <td title={item.time}>{utcTime(item.time)}</td>
                     <td><code className="guid">{item.id}</code></td>
-                    <td><span className="phase-pill"><i style={{ background: phaseColor[item.phase] }} />{item.phase}</span></td>
+                    <td><span className="phase-pill"><i style={{ background: phaseColor[item.phase] ?? '#0f6cbd' }} />{item.phase}</span></td>
                     <td><span className="error-type">{item.errorType}</span></td>
                     <td>{item.source}</td><td>{item.region}</td><td>{item.duration} ms</td><td><ChevronRightRegular /></td>
                   </tr>
                 ))}
+                {!filtered.length && <tr><td colSpan={8} className="empty-state">{loading ? 'Loading connection failures…' : 'No matching failed connection traces returned.'}</td></tr>}
               </tbody>
             </table>
           </div>
-          <div className="table-footer"><span>Showing {Math.min(filtered.length, 40)} of {filtered.length} failures</span><span>Mock data · no customer identifiers</span></div>
+          <div className="table-footer"><span>Showing {Math.min(filtered.length, 40)} of {filtered.length} returned failures</span><span>Live Jaeger data · last 24 hours</span></div>
         </section>
         <section className="statement-analysis-header">
           <div><h2>Statement error analysis</h2><p>Category trends for failed Statement and PreparedStatement executions.</p></div>
           <span className="period-chip">{statementFailures.length} failures</span>
         </section>
         <section className="metrics statement-metrics">
-          <MetricCard label="Failed statements" value={statementFailures.length.toLocaleString()} delta="Last 24 hours" tone="#c50f1f" />
-          <MetricCard label="PreparedStatement failures" value={preparedStatementCount.toLocaleString()} delta={`${Math.round(preparedStatementCount / Math.max(statementFailures.length, 1) * 100)}% of failures`} tone="#5b5fc7" />
-          <MetricCard label="Average duration" value={`${statementAvgDuration} ms`} delta="Across failed executions" tone="#c239b3" />
-          <MetricCard label="Error categories" value={String(statementCategoryCount)} delta="Stable driver classification" tone="#117865" />
+          <MetricCard label="Failed statements" value={tracesReady ? statementFailures.length.toLocaleString() : '—'} delta="Returned traces · last 24 hours" tone="#c50f1f" />
+          <MetricCard label="PreparedStatement failures" value={tracesReady ? preparedStatementCount.toLocaleString() : '—'} delta={`${Math.round(preparedStatementCount / Math.max(statementFailures.length, 1) * 100)}% of returned failures`} tone="#5b5fc7" />
+          <MetricCard label="Average duration" value={tracesReady && statementFailures.length ? `${statementAvgDuration} ms` : '—'} delta="Across failed executions" tone="#c239b3" />
+          <MetricCard label="Error categories" value={tracesReady ? String(statementCategoryCount) : '—'} delta="Stable driver classification" tone="#117865" />
         </section>
         <section className="charts-grid statement-charts-grid">
           <StatementDistribution data={statementFailures} />
@@ -542,25 +588,25 @@ export function App() {
         </section>
         <section className="panel table-panel statement-panel">
           <div className="panel-title-row table-title-row">
-            <div><h3>Statement and prepared-statement errors</h3><p>Masked SQL preserves query shape while removing literal values and comments.</p></div>
+            <div><h3>Statement and prepared-statement errors</h3><p>Live driver failures. SQL text is deliberately not emitted by this telemetry route.</p></div>
             <span className="period-chip">{statementFailures.length} failures</span>
           </div>
           <div className="data-table-wrap">
             <table className="data-table">
               <thead><tr><th>Time (UTC)</th><th>Statement type</th><th>Operation</th><th>Masked SQL</th><th>Category</th><th>Error type</th><th>Duration</th><th /></tr></thead>
               <tbody>{statementFailures.slice(0, 40).map(item => (
-                <tr key={item.id} onClick={() => setSelectedStatement(item)}>
-                  <td>{new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</td>
-                  <td><span className="phase-pill"><i style={{ background: item.statementType === 'PreparedStatement' ? '#5b5fc7' : '#117865' }} />{item.statementType}</span></td>
+                <tr key={`${item.id}-${item.time}`} tabIndex={0} role="button" aria-label={`Inspect ${item.statementType} failure`} onKeyDown={event => (event.key === 'Enter' || event.key === ' ') && (event.preventDefault(), setSelectedStatement(item))} onClick={() => setSelectedStatement(item)}>
+                  <td title={item.time}>{utcTime(item.time)}</td>
+                  <td><span className="phase-pill"><i style={{ background: item.statementType === 'prepared_statement' ? '#5b5fc7' : '#117865' }} />{statementLabel(item.statementType)}</span></td>
                   <td>{item.operation}</td><td><code className="query-text">{item.maskedSql}</code></td><td>{item.category}</td>
                   <td><span className="error-type">{item.errorType}</span></td><td>{item.duration} ms</td><td><ChevronRightRegular /></td>
                 </tr>
-              ))}</tbody>
+              ))}{!statementFailures.length && <tr><td colSpan={8} className="empty-state">{loading ? 'Loading statement failures…' : 'No failed statement traces returned.'}</td></tr>}</tbody>
             </table>
           </div>
-          <div className="table-footer"><span>Showing {Math.min(statementFailures.length, 40)} of {statementFailures.length} failures</span><span>Literal values and comments masked</span></div>
+          <div className="table-footer"><span>Showing {Math.min(statementFailures.length, 40)} of {statementFailures.length} returned failures</span><span>SQL text not emitted · last 24 hours</span></div>
         </section>
-        <PerformanceMetricsDashboard />
+        <PerformanceMetricsDashboard performanceMetrics={performanceMetrics} throughputPoints={throughputPoints} />
       </main>
       {selected && <DetailDrawer connection={selected} onClose={() => setSelected(null)} />}
       {selectedStatement && <StatementDetailDrawer statement={selectedStatement} onClose={() => setSelectedStatement(null)} />}

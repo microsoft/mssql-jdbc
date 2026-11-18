@@ -1,5 +1,11 @@
 # Agent-run local user-endpoint OpenTelemetry demo
 
+> **For the complete, runnable local demo**, use the [checked-in demo runner and
+> guide](otel-poc/user-endpoint-demo/README.md), or invoke `/user-otel-demo` in
+> Copilot Agent mode. It includes local SQL Server and the screenshot-style live
+> dashboard. The manual materialization workflow below is an alternative; do not
+> run both stacks on the same host ports.
+
 ## Contract and safety gate
 
 This is a **runbook, not an executed demo**. No installation, image pull, build, SQL connection, or runtime verification is implied by this document. A future agent should execute it only when asked to run the demo. Create the generated files below **outside the checkout**, in one disposable temporary directory. Do not scaffold a new Maven project, edit driver sources, register a performance callback, or install a Java agent.
