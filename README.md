@@ -252,16 +252,6 @@ Here are our Top 15 contributors from the community:
 - mnhubspot 
 
 
-## Local OpenTelemetry demo
-
-To try this branch's automatic user-endpoint telemetry with a local SQL Server,
-Collector, Prometheus, Jaeger, Grafana, and a live diagnostics dashboard, see the
-[complete demo guide](docs/otel-poc/user-endpoint-demo/README.md). In Copilot Agent
-mode, invoke `/user-otel-demo` to check prerequisites and run the verified workflow.
-No cloud account or existing database is required; Docker Linux containers,
-PowerShell 7, JDK 21, Maven, native x64 hardware, and SQL Server license acceptance
-are required.
-
 ## License
 The Microsoft JDBC Driver for SQL Server is licensed under the MIT license. See the [LICENSE](https://github.com/Microsoft/mssql-jdbc/blob/master/LICENSE) file for more details.
 
