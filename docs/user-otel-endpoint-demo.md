@@ -43,7 +43,7 @@ Read these current sources again if the branch changes:
 | [Statement implementation](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerStatement.java#L267-L368) and [activities](../src/main/java/com/microsoft/sqlserver/jdbc/PerformanceActivity.java) | Execute invocation/attempt scopes; timing is not total result-set consumption. |
 | [Feature reference](user-otel-endpoint.md) | Detailed privacy, bounds, authentication and ownership caveats. |
 
-Do **not** substitute the existing failure-only `ConnectionErrorDemo`: its programmatic adapter/manual callback and metrics-disabled setup do not exercise this automatic route.
+Use `UserEndpointDemo` to exercise the automatic user-supplied endpoint route. Do not register a programmatic adapter or manual callback in place of that route.
 
 ### Metrics and Prometheus translation
 

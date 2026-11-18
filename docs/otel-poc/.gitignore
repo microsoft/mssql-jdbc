@@ -1,7 +1,5 @@
 .env
 .env.*
-!.env.example
-!.env.cloud.example
 *.pfx
 *.p12
 *.pem
@@ -13,6 +11,3 @@
 evidence/
 .cloud/
 secrets/
-internal/portainer/
-internal/mise/*.local.json
-internal/delta-bulk-loader/*.local.json

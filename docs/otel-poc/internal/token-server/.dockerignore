@@ -1,5 +1,0 @@
-**
-!Dockerfile
-!.dockerignore
-!token_server.py
-!entrypoint.sh
