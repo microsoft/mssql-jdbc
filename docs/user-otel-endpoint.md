@@ -2,7 +2,8 @@
 
 ## Related design specifications and implementation status
 
-Read this current automatic-route contract together with these design documents:
+The following three documents are the **authoritative design specifications**.
+Read this current automatic-route implementation contract alongside them:
 
 | Design document | Coverage |
 | --- | --- |
@@ -10,32 +11,32 @@ Read this current automatic-route contract together with these design documents:
 | [Performance activity metrics proposal](mssql-jdbc-performance-activity-metrics-proposal.md) | Metric instruments, bounded dimensions, activity identities, retry accounting, histogram boundaries, SDK ownership, and acceptance criteria. |
 | [Statement spans proposal](mssql-jdbc-statement-spans-proposal.md) | Invocation/attempt/phase spans, statement attributes, sampling, sanitized SQL policy, and diagnostic events. |
 
-**These documents are not yet implemented exactly by the automatic user-endpoint
-route. In particular, not all proposed metrics are emitted.** This contract records
-current behavior; it is not an approval to drop requirements from the proposals or
-a claim that their acceptance criteria have all passed. Differences must be resolved
-explicitly before claiming conformance. The older programmatic adapter is a separate
-path; its capabilities do not prove support on the `otelEndpoint` route.
+The automatic route now shares the four-instrument metric projection, honors an
+unsampled parent, exports approved root-only masked SQL, and replays allowlisted
+diagnostics. This describes the current in-progress source, not a released-version
+guarantee or a claim that every proposal acceptance criterion has passed. The older
+programmatic adapter remains a separate configuration path.
 
-### Known differences requiring reconciliation
+### Reconciled gaps and remaining design differences
 
 | Area | Design specification | Current automatic route / remaining gap |
 | --- | --- | --- |
-| Metric instruments | Metrics proposal §3.1 requires count, duration, error count, and **retry count**. | Count, duration, and error count exist. **`db.client.operation.retry.count` is missing.** Attempt activity counts are not a substitute for the proposed root retry counter. |
-| Metric dimensions and identities | Metrics proposal §3.2 and §4 specify `mssql.performance.activity` with stable dotted names, `mssql.operation.kind`, bounded outcome/type/protocol/authentication/retry-reason dimensions, and schema version. | Only `mssql.activity` (raw enum name) and `mssql.activity.type` are attached. The proposed keys and additional breakdowns are **not implemented** on this route. Do not query one schema as if it were the other. |
-| Histogram boundaries | Metrics proposal §5.3 specifies 17 explicit boundaries from 0.1 ms through 30,000 ms, recorded in seconds. | Durations are recorded in seconds, but the histogram uses SDK defaults without the proposed explicit boundary advice. |
-| Error accounting | Metrics proposal §3.1 and §5.5 define terminal `failure`, `timeout`, and `canceled` outcomes. | The error counter currently tests the captured `hasException()` flag; there is no metric outcome dimension. Proposal-level outcome equivalence needs separate verification. |
-| SDK/configuration ownership | Metrics proposal §3, §6, and §7 describe an application-supplied SDK, driver-version scope, opt-in metric configuration, and application-controlled resources. | The automatic route owns a private SDK, scope `com.microsoft.sqlserver.jdbc.user-endpoint`, fixed service resource, and a 60-second metric reader. Metrics are enabled by `otelEndpoint`, independently of span level/thresholds. |
-| Statement sampling | Statement proposal MVP decision and § sampling guidance keep the application sampler authoritative. | The automatic route uses a private always-on sampler with level/threshold tree selection, even with an unsampled application parent. These are different policies. |
-| Statement SQL metadata | Statement proposal § root attributes permits conditional, root-only sanitized `db.query.text`. | The automatic route always removes `db.query.text`, including already-masked SQL. The demo must show it as unavailable. |
-| Diagnostic events | Connection/statement designs describe structured retry, timeout, and authentication diagnostics in addition to originating errors. | Originating `mssql.driver.error` events are replayed; the separate lifecycle diagnostic-event list is not. Full event-contract conformance is not claimed. |
+| Metric instruments | Metrics proposal §3.1 requires count, duration, error count, and retry count. | Implemented through shared `PerformanceActivityMetrics`; retries count additional attempts actually begun, on roots only. |
+| Metric dimensions and identities | Metrics proposal §3.2 and §4 specify stable dotted activity names and bounded dimensions. | Implemented: `mssql.performance.activity`, operation kind/outcome, statement type/protocol, connection authentication method, retry reason, and schema version, with instrument-specific applicability below. |
+| Histogram boundaries | Metrics proposal §5.3 specifies 17 explicit boundaries from 0.1 ms through 30,000 ms. | Implemented as explicit histogram boundary advice in seconds, not SDK default buckets. |
+| Error accounting | Metrics proposal §3.1 and §5.5 define terminal `failure`, `timeout`, and `canceled` outcomes. | The shared projection resolves bounded terminal outcomes and increments error count for every non-success outcome; count/duration retain the outcome dimension. Exhaustive path validation remains separate. |
+| SDK/configuration ownership | Metrics proposal §3, §6, and §7 describe an application-supplied SDK, opt-in metric configuration, and application-controlled resources. | Intentional automatic-route difference: `otelEndpoint` owns transport selection and enables metrics in a private SDK with fixed `service.name=mssql-jdbc` and a 60-second reader. Scope is now `com.microsoft.sqlserver.jdbc` with driver version. Application/global exporter settings do not configure this route. |
+| Statement sampling | Statement proposal keeps the application sampler authoritative. | Parent sampling is honored with `parentBased(alwaysOn())` and whole-tree suppression for a valid unsampled parent; metrics remain eligible. The private SDK does not invoke an application's custom sampler: absent a valid parent, it samples eligible new roots. |
+| Statement SQL metadata | Statement proposal permits conditional root-only masked `db.query.text`. | Implemented through the bounded lexical sanitizer using callback-scoped SQL at root END. The proposal's implementation sequence mentions START; the current callback availability/ownership boundary is END. Raw SQL is never queued. |
+| Diagnostic events | Connection/statement designs describe structured retry, timeout, and authentication diagnostics in addition to originating errors. | Implemented root diagnostic replay with independent name/value allowlists, timestamps within the root, and a 128-event replay bound; origin errors remain on their originating spans. Only actually captured approved events are exported. |
 | Connection trace population and extensions | Connection design describes a failed-open diagnostic MVP and proposed additional lifecycle work, including logical pool acquisition/reset. | Levels and thresholds select automatic-route trees, including successful roots at level 2. Logical pool checkout/reset and session-recovery reconnect trees are not implemented by this route. |
-| Dashboard/acceptance coverage | Metrics proposal §8 and §11 include outcome distribution, maximum duration, and broader cardinality/outcome validation. | The current metric schema cannot supply the proposed outcome breakdown or an exact maximum. The dashboard leaves unsupported fields unavailable; a successful demo/test run is not completion of all proposal acceptance criteria. |
+| Dashboard/acceptance coverage | Metrics proposal §8 and §11 include outcome distribution, maximum duration, and broader cardinality/outcome validation. | Live/Grafana dashboards query outcome counts, root retries, per-activity means and percentiles. Exact maximum remains unavailable through classic Prometheus histograms. Source alignment and demo checks do not establish exhaustive acceptance, high-cardinality stress, or deployment parity. |
 
-Source evidence: [automatic SDK/instrument setup](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryProvider.java#L431-L484),
-[metric projection and span replay](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryProvider.java#L501-L590),
-and the [separate programmatic metric implementation](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/PerformanceActivityMetrics.java).
-The tables below remain the authoritative description of what this route currently exports.
+Source evidence: [automatic SDK setup and span replay](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryProvider.java),
+[shared metric projection](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/PerformanceActivityMetrics.java),
+[core END metadata enrichment](../src/main/java/com/microsoft/sqlserver/jdbc/PerformanceLog.java),
+and [live dashboard projection](otel-poc/internal/fdh-ui/src/live.ts).
+The sections below describe the current automatic route without changing the specifications.
 
 ## Scope and activation
 
@@ -74,7 +75,7 @@ String getters return `null` when unset; the level getter returns `0`. Setters s
 
 These are the five automatic-route options. Do not substitute `otelAccessTokenCallbackClass` or assume that programmatic/demo properties such as `otelHeaders`, `otelBearerToken`, `otelTokenScope`, `otelTokenAuthority`, `otelJdbcMetricsEnabled`, or insecure-endpoint flags configure this route. Only the five allowlisted options reach the SPI; SQL credentials do not.
 
-Sources: [driver option declarations](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerDriver.java), [DataSource API](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerDataSource.java#L1588-L1693), [validation tests](../src/test/java/com/microsoft/sqlserver/jdbc/UserOtelPropertiesTest.java).
+Sources: [driver option declarations](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerDriver.java), [DataSource API](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerDataSource.java), [validation tests](../src/test/java/com/microsoft/sqlserver/jdbc/UserOtelPropertiesTest.java).
 
 ### Endpoint paths and transport security
 
@@ -96,7 +97,7 @@ Eligibility still requires a complete admitted tree and a root duration **strict
 
 These are whole-tree decisions, not per-activity slow-span filters. Once a root qualifies, its captured descendants are retained regardless of their individual durations. A failed child or failed retry attempt does not by itself qualify a successful root at level `1`; failure-looking outcome metadata is not a substitute for the captured root failure flag. No partial tree is intentionally exported to satisfy a filter.
 
-Span selection is independent of the application's sampling decision: the private tracer provider uses `Sampler.alwaysOn()`. An unsampled application parent does not override level/threshold eligibility. Only the parent's `SpanContext` is captured at root start; the application context, baggage, and thread-local state are not retained or installed by the export worker.
+Span selection also honors the captured parent's sampled flag. The private tracer provider uses `Sampler.parentBased(Sampler.alwaysOn())`; a valid unsampled application parent suppresses the entire connection or statement tree, even if its level/threshold qualifies. With no valid parent, eligible roots are sampled. This honors parent context, not arbitrary application SDK sampler configuration. Only the parent's `SpanContext` is captured at root start; the application context, baggage, and thread-local state are not retained or installed by the export worker.
 
 Metrics are **unsampled and independent of span level and duration thresholds**. This does not make them lossless: bounded ingestion, unavailable transports, failed exports, and shutdown can still lose observations or delivery.
 
@@ -104,24 +105,39 @@ Sources: [route filtering and tree admission](../mssql-jdbc-otel/src/main/java/c
 
 ## Metrics actually emitted
 
-The automatic route records the following instruments for **each ingested lifecycle END event**, including roots, attempts, and phase activities. START events are not counted. Legacy callback overloads are no-ops on this route, avoiding duplicate observations.
+The automatic route uses shared `PerformanceActivityMetrics` for each ingested lifecycle END with a supported activity and nonnegative duration, including roots, attempts, and phases. START and unsupported legacy-only wrappers are not counted. Legacy callback overloads are no-ops on this route, avoiding duplicate observations.
 
 | Instrument | Kind | Unit | Observation |
 | --- | --- | --- | --- |
-| `db.client.operation.count` | Long counter | `{operation}` | Add `1` for every accepted END event. |
-| `db.client.operation.error.count` | Long counter | `{error}` | Add `1` when that END event has a captured failure. |
-| `db.client.operation.duration` | Double histogram | `s` | Event duration in nanoseconds divided by `1,000,000,000`, clamped to at least zero. |
+| `db.client.operation.count` | Long counter | `{operation}` | Add `1` per supported END, with terminal outcome. |
+| `db.client.operation.error.count` | Long counter | `{error}` | Add `1` for terminal `failure`, `timeout`, or `canceled`; no outcome dimension. |
+| `db.client.operation.duration` | Double histogram | `s` | Nonnegative END duration in nanoseconds divided by `1,000,000,000`, with terminal outcome. |
+| `db.client.operation.retry.count` | Long counter | `{retry}` | Add `attempt_count - 1` when greater than zero, only on connection-open or statement-invocation root END; no outcome dimension. |
 
-The only metric point dimensions explicitly attached by this route are:
+Bounded metric point dimensions match the metrics proposal:
 
-- `mssql.activity`: the `PerformanceActivity` enum name, for example `CONNECTION`, `DNS`, `STATEMENT_INVOCATION`, or `STATEMENT_FIRST_SERVER_RESPONSE`.
-- `mssql.activity.type`: `connection` when the event's statement ID is zero, otherwise `statement`.
+| Dimension | Applicability / values |
+| --- | --- |
+| `mssql.performance.activity` | All instruments; stable dotted identities in metrics proposal §4, such as `connection.open`, `connection.dns`, `statement.execute`, `statement.first_response`, and `statement.server_call.prepare` / `.prepexec` / `.execute`. |
+| `mssql.operation.kind` | All instruments; `connection` or `statement`, derived from activity identity rather than an identifier. |
+| `mssql.operation.outcome` | Count/duration only; `success`, `failure`, `timeout`, `canceled`. |
+| `mssql.statement.type` | Statement activities; `statement`, `prepared_statement`, `callable_statement`, `not_applicable`. |
+| `mssql.statement.protocol_operation` | Statement server-call activities only; approved protocol enum or `not_applicable`. |
+| `mssql.connection.auth_method` | Connection activities; approved authentication enum or `not_recorded`. |
+| `mssql.retry.reason` | Retry counter only; `retry`, `redirect`, `failover`, `configurable_retry`, `invalid_handle_retry`, `enclave_retry`, or `not_applicable`. |
+| `mssql.telemetry.schema.version` | All instruments; `1.0`. |
 
-The explicit resource is `service.name=mssql-jdbc`; the instrumentation scope is `com.microsoft.sqlserver.jdbc.user-endpoint`. Metrics are aggregated by the private SDK and exported every **60 seconds**, or on an explicit flush. No SQL text, endpoint, connection/statement identifier, raw exception, or credential is a metric dimension.
+Outcome resolution uses root/attempt outcome metadata first, then timeout/canceled error category, then captured failure/category evidence, otherwise success. Core END enrichment supplies approved root authentication/statement type to descendants and a retry reason only when additional attempts actually begun have one approved common reason. Mixed/unknown reasons use `not_applicable`; a scheduled retry alone does not count. A retry or error series can be absent until first recorded; absence is not zero.
 
-Do not sum all activities to obtain a connection or statement invocation count: parent and child scopes each contribute. Select `mssql.activity=CONNECTION` or `STATEMENT_INVOCATION` for root counts. Do not promise other metric families, custom buckets, per-connection series, or the older programmatic adapter's metrics from this automatic route.
+The 17 explicit histogram boundaries, in **seconds**, are `0.0001, 0.00025, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30`. These are SDK boundary advice, with no adapter-side bucket aggregation.
 
-Source: [pipeline instrument creation and metrics recording](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryProvider.java#L431-L507).
+The explicit resource is `service.name=mssql-jdbc`; meter and tracer scope is `com.microsoft.sqlserver.jdbc`, versioned from the core package implementation version (fallback: driver major/minor). Metrics are aggregated by the private SDK and exported every **60 seconds**, or on explicit flush. No SQL, endpoint, identifier, exception, credential, or error category is a metric dimension.
+
+Select `mssql.performance.activity=connection.open` or `statement.execute` for root counts. Never sum nested durations; compute each activity's mean from its own histogram sum/count and percentiles from its own buckets. Classic Prometheus buckets/sums do not retain an exact maximum, so the live dashboard leaves max unavailable. Region is shown only when emitted; it is not inferred.
+
+**Metric label migration:** dashboards and alerts using the old `mssql.activity` / `mssql.activity.type` point dimensions and raw enum names must migrate to the new schema. Prometheus translates the new keys to `mssql_performance_activity`, `mssql_operation_kind`, `mssql_operation_outcome`, etc.; old and new queries are not interchangeable. The span-only `mssql.activity` attribute is not a metric label contract.
+
+Sources: [shared instruments, registries, outcome and retry rules](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/PerformanceActivityMetrics.java), [automatic scope and SDK ownership](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryProvider.java).
 
 ## Connection and statement spans actually supported
 
@@ -136,11 +152,13 @@ Statement support is present, not merely planned: `SQLServerStatement.executeSta
 
 Coverage follows those existing scopes, not every public JDBC method: this is not a span for each result-set read, connection close, logical pool checkout, or all background recovery work. Statement invocation timing is not total result-set consumption time. In full response-buffering mode, `first_response` can include buffering the whole response rather than just first-byte latency. Connection-open lifecycle instrumentation explicitly excludes session-recovery reconnect scopes.
 
-Failed spans receive `ERROR` status and allowlisted error category/type. Detailed `mssql.driver.error` events are attached only where origin error evidence exists, not repeated on every failed ancestor. This automatic provider does **not** replay the separate lifecycle diagnostic-event list as retry-decision, timeout, or authentication span events; do not infer that capability from the older adapter's policies.
+Failed spans receive `ERROR` status and allowlisted error category/type. Detailed `mssql.driver.error` events are attached only where origin error evidence exists, not repeated on every failed ancestor. Root lifecycle diagnostics are replayed through the connection/statement name and value allowlists, using only valid timestamps within the root and at most the last 128 entries. Approved authentication, retry/retry-decision, redirect, and timeout events appear only when captured by the corresponding instrumented path; unknown events/values are not passed through.
 
-The route strips `db.query.text` even if another adapter supplied masked SQL. Raw SQL, parameter values, server addresses, tokens, options, raw exceptions, exception messages, and stack traces are not exported by this route. Allowlisted connection GUIDs and safe configuration/statement metadata can appear on **spans**; this is not a claim that spans contain no identifiers.
+Only the statement invocation root may carry `db.query.text`. At root END (when level is nonzero), the callback synchronously masks `getCurrentUserSql()` with the bounded fail-closed lexical sanitizer: remove comments, replace string/Unicode-string/numeric/exponent/hexadecimal literals with `?`, normalize whitespace, preserve parameter markers, and omit malformed or uncertain input. Input over 16,384 characters is rejected; output is bounded at 4,096. Only masked output is queued, never raw SQL. Externally supplied query enrichment is discarded rather than trusted; children, events, and metrics never receive SQL. Identifiers/query shape may remain in approved masked text, so masking is not anonymization of schema names.
 
-Sources: [activity-to-phase mapping](../src/main/java/com/microsoft/sqlserver/jdbc/PerformanceActivity.java), [statement invocation instrumentation](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerStatement.java#L267-L368), [prepared-statement instrumentation](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement.java), [span replay](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryProvider.java#L509-L596), [connection allowlist](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/ConnectionAttributePolicy.java), [statement allowlist](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/StatementAttributePolicy.java).
+Raw SQL, parameter values, server addresses, tokens, options, raw exceptions, exception messages, and stack traces are not exported by this route. Allowlisted connection GUIDs and safe configuration/statement metadata can appear on **spans**; this is not a claim that spans contain no identifiers. The live dashboard displays masked text only from the emitted statement root after its own fail-closed lexical display check; missing/rejected text stays unavailable.
+
+Sources: [activity-to-phase mapping](../src/main/java/com/microsoft/sqlserver/jdbc/PerformanceActivity.java), [statement invocation instrumentation](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerStatement.java), [prepared-statement instrumentation](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerPreparedStatement.java), [span and diagnostic replay](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryProvider.java), [SQL sanitizer](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/SqlStatementSanitizer.java), [connection allowlist](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/ConnectionAttributePolicy.java), [statement allowlist](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/StatementAttributePolicy.java), [dashboard display policy](otel-poc/internal/fdh-ui/src/live.ts).
 
 ## Optional callback authentication
 
@@ -224,7 +242,7 @@ public final class TelemetryTokenCallback implements SQLServerAccessTokenCallbac
 
 ## Asynchronous delivery, bounds, and ownership
 
-The connection route is installed before the physical-open scope begins. JDBC callbacks snapshot immutable lifecycle events without retaining exception objects, capture only root parent span identity, and make nonblocking offers. SDK creation, aggregation, tree filtering/replay, credential construction, and network export happen asynchronously. This is **best-effort fire-and-forget telemetry**, not an audit or durable delivery channel; it still has snapshot/queue overhead on the producer thread.
+The connection route is installed before the physical-open scope begins. JDBC callbacks snapshot immutable lifecycle events without retaining exception objects, capture only root parent span identity, synchronously mask statement SQL at root END when enabled, and make nonblocking offers. SDK creation, aggregation, tree filtering/replay, credential construction, and network export happen asynchronously. This is **best-effort fire-and-forget telemetry**, not an audit or durable delivery channel; it still has snapshot/masking/queue overhead on the producer thread.
 
 Current implementation bounds are fixed, not connection options:
 
@@ -254,13 +272,13 @@ The following are **public static methods on the optional adapter's concrete cla
 
 Closing a SQL connection does **not** close its shared exporter. At application shutdown, stop producers, optionally call `forceFlush(Duration.ofSeconds(5))`, then call `shutdown()`. Daemon workers do not keep the process alive. Shutdown does not wait on a blocked callback's authentication monitor; do not promise forced cancellation or prompt completion of arbitrary user callback code. These APIs do not shut down the application's SDK or global callback.
 
-Source: [public lifecycle methods](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryProvider.java#L105-L157).
+Source: [public lifecycle methods](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryProvider.java).
 
 ## Compatibility and verification boundaries
 
 - No installation/replacement of `GlobalOpenTelemetry`, no manual global performance-callback registration, and no application JUL-level changes are performed by the automatic route. Private SDKs have their own resource, meter, tracer, and exporters.
 - The application performance callback and user route receive lifecycle boundaries independently; failure in one route does not suppress the other. The automatic callback ignores legacy overloads. Existing legacy publication selects the current global callback at scope close and retains scope-time duration units; adding this route must not be presented as changing those semantics.
-- The optional route's no-SQL/no-exception-message export policy does not sanitize an application's own callback or preexisting JUL logging. Their behavior remains independent.
+- The optional route's no-raw-SQL/no-exception-message export policy does not sanitize an application's own callback or preexisting JUL logging. Their behavior remains independent.
 - The feature has focused test coverage, not proof of no regressions across every JRE, database, authentication method, pool, and deployment. This documentation change does not add or rerun that certification.
 
 Reviewed evidence:
@@ -271,7 +289,8 @@ Reviewed evidence:
 | [UserEndpointTelemetryTest](../mssql-jdbc-otel/src/test/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryTest.java) | SPI loading, a real core configuration failure alongside an application callback, wire-level OTLP metrics/spans, synthetic connection/statement trees, levels/thresholds, unsampled parents, per-message auth, failure backoff/no reuse, endpoint/callback-loader isolation, bounded queues and whole-tree loss. Most tree cases are fixtures, not a live SQL Server workload. |
 | [OtlpConfigurationTest](../mssql-jdbc-otel/src/test/java/com/microsoft/sqlserver/jdbc/otel/OtlpConfigurationTest.java) | Legacy endpoint security, safe headers, lazy cached-token refresh, and fail-closed behavior; do not confuse those legacy options/cache rules with automatic routing. |
 | [PerformanceLogLifecycleTest](../src/test/java/com/microsoft/sqlserver/jdbc/PerformanceLogLifecycleTest.java) | Lifecycle identity, exception-free snapshots, route failure isolation, callback registration-change behavior, and preservation of legacy callback selection/units. |
+| [PerformanceActivityMetricsTest](../mssql-jdbc-otel/src/test/java/com/microsoft/sqlserver/jdbc/otel/PerformanceActivityMetricsTest.java) and [PerformanceLogEndMetadataTest](../src/test/java/com/microsoft/sqlserver/jdbc/PerformanceLogEndMetadataTest.java) | Focused metric projection and core END-enrichment checks; inspect current tests/results rather than treating this documentation as a test-pass report. |
 
 ### Publication checklist
 
-Before merging/publishing, confirm optional-JAR/SPI packaging and release coordinates; state numeric `0` rather than literal `INFO`; explicitly retain the current broad HTTP acceptance caveat; do not claim durable delivery or flush acknowledgement; do not advertise legacy/demo options, richer metric families, or unimplemented diagnostic-event replay. Live SQL statement-path and multi-profile validation remain separate release checks, not conclusions from this summary.
+Before merging/publishing, confirm optional-JAR/SPI packaging and release coordinates; state numeric `0` rather than literal `INFO`; retain the broad HTTP acceptance and private-SDK ownership caveats; migrate metric labels in dashboards/alerts; verify masked SQL and diagnostic allowlists against real payloads. Do not claim durable delivery, flush acknowledgement, an exact Prometheus maximum, or completion of all proposal acceptance criteria. Live SQL statement-path and multi-profile validation remain separate release checks, not conclusions from this summary.

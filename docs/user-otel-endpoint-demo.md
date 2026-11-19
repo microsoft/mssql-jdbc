@@ -29,37 +29,50 @@ Review their security status before use; obtain approval for replacements and re
 
 ## 1. Ground truth to preserve
 
+The authoritative designs are the [connection error/span contract](mssql-jdbc-connection-error-category-mapping.md),
+[performance activity metrics proposal](mssql-jdbc-performance-activity-metrics-proposal.md),
+and [statement spans proposal](mssql-jdbc-statement-spans-proposal.md). The
+[feature reference](user-otel-endpoint.md) reconciles current implementation with
+those designs, including intentional automatic-endpoint/private-SDK configuration
+differences. This runbook is not exhaustive proposal acceptance evidence.
+
 Read these current sources again if the branch changes:
 
 | Source | Relevant contract |
 | --- | --- |
 | [Core configuration](../src/main/java/com/microsoft/sqlserver/jdbc/UserOtelConfiguration.java) | Five allowlisted options, early sanitized validation, `ServiceLoader`, fail-open optional provider. |
 | [Automatic provider](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryProvider.java) | Actual metrics, dimensions, seconds, root filtering, private SDKs, bounded queues, lifecycle APIs. |
+| [Shared metric projection](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/PerformanceActivityMetrics.java) and [core END enrichment](../src/main/java/com/microsoft/sqlserver/jdbc/PerformanceLog.java) | Four instruments, bounded schema, terminal outcomes, inherited type/authentication, and attempts-actually-begun retries. |
 | [Transport configuration](../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/OtlpConfiguration.java) | Base endpoint becomes `/v1/traces` and `/v1/metrics`; optional per-message token callback. |
 | [Root POM](../pom.xml) and [optional POM](../mssql-jdbc-otel/pom.xml) | Core and optional artifact version `13.6.0`; core `jre21` profile; standalone optional module uses OpenTelemetry `1.41.0`, Java source/target 8, core dependency **provided**. |
 | [SPI descriptor](../mssql-jdbc-otel/src/main/resources/META-INF/services/com.microsoft.sqlserver.jdbc.UserOtelTelemetryProvider) | Registers `com.microsoft.sqlserver.jdbc.otel.UserEndpointTelemetryProvider`. Must survive packaging. |
 | [Provider tests](../mssql-jdbc-otel/src/test/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryTest.java) | SPI discovery, real core configuration failure, fixture trees, wire assertions, captured-loader isolation, thresholds and fail-closed callback tests. Not full live SQL certification. |
 | [Property tests](../src/test/java/com/microsoft/sqlserver/jdbc/UserOtelPropertiesTest.java) | Exact names and sanitized validation. |
-| [Statement implementation](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerStatement.java#L267-L368) and [activities](../src/main/java/com/microsoft/sqlserver/jdbc/PerformanceActivity.java) | Execute invocation/attempt scopes; timing is not total result-set consumption. |
+| [Statement implementation](../src/main/java/com/microsoft/sqlserver/jdbc/SQLServerStatement.java) and [activities](../src/main/java/com/microsoft/sqlserver/jdbc/PerformanceActivity.java) | Execute invocation/attempt scopes; timing is not total result-set consumption. |
 | [Feature reference](user-otel-endpoint.md) | Detailed privacy, bounds, authentication and ownership caveats. |
 
 Use `UserEndpointDemo` to exercise the automatic user-supplied endpoint route. Do not register a programmatic adapter or manual callback in place of that route.
 
 ### Metrics and Prometheus translation
 
-Every ingested lifecycle **END** (root, attempt, or phase) records an operation and duration; captured failures also record an error. START is not counted. Levels and thresholds do not filter metrics, but ingestion/export losses still apply.
+Every ingested supported lifecycle **END** with nonnegative duration (root, attempt, or phase) records an operation and duration; terminal failure/timeout/cancellation also records an error. START and unsupported legacy-only wrappers are not counted. Levels, thresholds, and parent trace sampling do not filter metrics, but ingestion/export losses still apply.
 
 | OTLP instrument | Unit / kind | Prometheus exposition with this configuration |
 | --- | --- | --- |
 | `db.client.operation.count` | `{operation}`, monotonic counter | `db_client_operation_count_total` |
 | `db.client.operation.error.count` | `{error}`, monotonic counter | `db_client_operation_error_count_total` |
 | `db.client.operation.duration` | `s`, double histogram | `db_client_operation_duration_seconds_bucket`, `_sum`, `_count` |
+| `db.client.operation.retry.count` | `{retry}`, monotonic counter | `db_client_operation_retry_count_total` |
 
 The provider divides nanoseconds by `1,000,000,000`: **not milliseconds**. Collector 0.111.0 normalizes dots, adds the `seconds` unit suffix, ignores brace annotation units, and adds `_total` to monotonic sums with `add_metric_suffixes: true`. See the pinned [translator](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.111.0/pkg/translator/prometheus/normalize_name.go) and [exporter contract](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.111.0/exporter/prometheusexporter/README.md). Verify actual exposition before accepting dashboards; do not silently change queries to hypothetical `_ms` families.
 
-Only point dimensions set by this provider are `mssql.activity` and `mssql.activity.type`, translated to **`mssql_activity`** and **`mssql_activity_type`**. The second is `connection` or `statement`. There is **no `statement_type` or `mssql_statement_type` metric label**; `mssql.statement.type` is span metadata. Scope/resource/scrape machinery can add labels such as `otel_scope_name`, `job`, or `instance`. Resource-to-point conversion is disabled below; queries do not depend on resource labels. Resource service name is fixed to `mssql-jdbc`.
+All instruments use `mssql.performance.activity` (stable dotted names), `mssql.operation.kind` (`connection`/`statement`), and `mssql.telemetry.schema.version=1.0`. Prometheus translates these to **`mssql_performance_activity`**, **`mssql_operation_kind`**, and **`mssql_telemetry_schema_version`**. Count/duration also carry `mssql_operation_outcome` (`success`, `failure`, `timeout`, `canceled`); error/retry counters deliberately omit outcome. Statement activities carry `mssql_statement_type`; server-call activities alone add `mssql_statement_protocol_operation`. Connection activities carry `mssql_connection_auth_method`. Retry counts alone add `mssql_retry_reason`. Values come from closed registries, not SQL or IDs.
 
-Select root activity `CONNECTION` or `STATEMENT_INVOCATION` when counting user operations. Summing roots, attempts, and children double-counts nested work. A phase histogram is not root latency. The SDK's default histogram buckets are not customized by this feature.
+**Migration warning:** old dashboards/alerts using `mssql_activity`, `mssql_activity_type`, or raw enum values must migrate; those are not aliases for the new metric schema. The span attribute `mssql.activity` is separate. Scope/resource/scrape machinery can add labels such as `otel_scope_name`, `otel_scope_version`, `job`, or `instance`. Scope is `com.microsoft.sqlserver.jdbc` with the core package implementation version (fallback: driver major/minor). Resource service name is fixed to `mssql-jdbc`; resource-to-point conversion is disabled below.
+
+Select root activity `connection.open` or `statement.execute` when counting user operations. Summing roots, attempts, and children double-counts nested work. A phase histogram is not root latency. Explicit boundary advice in seconds is `0.0001, 0.00025, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30`. Compute each activity's mean from its own sum/count; never add nested durations. Classic Prometheus histograms do not preserve exact maxima.
+
+Retry counts use `max(attempt_count - 1, 0)` on root END only, with an approved common reason from additional attempts actually begun (otherwise `not_applicable`). A retry decision alone does not count. Missing error/retry series do not mean zero; the baseline does not guarantee a retry occurs.
 
 | Numeric level | Metrics | Eligible complete trace trees |
 | --- | --- | --- |
@@ -68,6 +81,8 @@ Select root activity `CONNECTION` or `STATEMENT_INVOCATION` when counting user o
 | `2` | Yes | Successful and failed roots. |
 
 Optional `otelConnectionSpanDurationThreshold` and `otelStatementSpanDurationThreshold` are decimal **seconds**, per root kind, combined with level selection using **strict `duration > threshold`**, including failed roots. Leave them **absent** in the baseline. Absent is not an implicit zero: explicit `0` excludes a zero-duration root. Maximum accepted value is `9223372036.854775807`; negative/nonfinite/out-of-range values fail validation.
+
+Eligible trace trees also honor a valid unsampled application parent: `parentBased(alwaysOn())` suppresses the entire tree while retaining eligible metrics. Without a valid parent, eligible roots are sampled. The automatic route does not use the application's SDK/exporter configuration or call its custom sampler.
 
 ## 2. Allocate one disposable directory
 
@@ -108,7 +123,7 @@ docker compose version; Check-Native
 
 ### File-materialization instructions for the executing agent
 
-Under that directory, write the following **six payloads** at the relative paths in their code blocks, plus the Java payload in section 5. Use UTF-8 without BOM and LF; do not include the path comment in file contents. The same payloads work in both shells. Use file-edit tools, or these shell patterns with the full corresponding payload pasted in place of `PASTE_PAYLOAD` (a marker, not actual file content):
+Under that directory, write the following **five inline infrastructure payloads**, copy the checked-in Grafana dashboard as directed below, and write the Java payload in section 5 (seven files total). Use UTF-8 without BOM and LF; do not include the path comment in file contents. The same payloads work in both shells. Use file-edit tools, or these shell patterns with the full corresponding payload pasted in place of `PASTE_PAYLOAD` (a marker, not actual file content):
 
 ```bash
 # Example pattern; repeat with the exact relative path and full payload below.
@@ -287,68 +302,27 @@ providers:
 
 ### Grafana dashboard JSON payload
 
-Do not include the path comment in JSON. Save the JSON below at relative path `grafana/dashboards/jdbc-user-endpoint.json`. Totals make a short run visible; five-minute rate/p95 panels need several scrapes. Sparse or absent errors can yield empty series rather than zero. Histogram quantiles are bucket estimates, not exact per-query timings. There is deliberately no fake metrics-to-trace correlation: inspect the Jaeger data source in Explore or follow the dashboard link.
+Use the [checked-in Grafana dashboard](otel-poc/user-endpoint-demo/grafana/dashboards/jdbc-user-endpoint.json)
+as the single source of query configuration instead of duplicating JSON here.
+Copy it unchanged into the disposable directory:
 
-```json
-{
-  "uid": "jdbc-user-endpoint",
-  "title": "JDBC automatic user endpoint",
-  "schemaVersion": 39,
-  "version": 1,
-  "editable": false,
-  "tags": ["jdbc", "local-demo"],
-  "timezone": "browser",
-  "refresh": "5s",
-  "time": {"from": "now-15m", "to": "now"},
-  "links": [{"title": "Jaeger trace search", "type": "link", "url": "http://127.0.0.1:16686", "targetBlank": true}],
-  "panels": [
-    {
-      "id": 1, "title": "Observed connection roots (SDK cumulative)", "type": "stat",
-      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 5},
-      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
-      "targets": [{"refId": "A", "expr": "sum(db_client_operation_count_total{job=\"jdbc-user-endpoint\",mssql_activity=\"CONNECTION\",mssql_activity_type=\"connection\"})", "instant": true}]
-    },
-    {
-      "id": 2, "title": "Observed statement invocation roots", "type": "stat",
-      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 5},
-      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
-      "targets": [{"refId": "A", "expr": "sum(db_client_operation_count_total{job=\"jdbc-user-endpoint\",mssql_activity=\"STATEMENT_INVOCATION\",mssql_activity_type=\"statement\"})", "instant": true}]
-    },
-    {
-      "id": 3, "title": "Observed failed roots by activity", "type": "stat",
-      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 5},
-      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
-      "targets": [{"refId": "A", "expr": "sum by (mssql_activity) (db_client_operation_error_count_total{job=\"jdbc-user-endpoint\",mssql_activity=~\"CONNECTION|STATEMENT_INVOCATION\"})", "instant": true, "legendFormat": "{{mssql_activity}}"}]
-    },
-    {
-      "id": 4, "title": "Root operations / second (5m)", "type": "timeseries",
-      "gridPos": {"x": 0, "y": 5, "w": 12, "h": 8},
-      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
-      "targets": [{"refId": "A", "expr": "sum by (mssql_activity) (rate(db_client_operation_count_total{job=\"jdbc-user-endpoint\",mssql_activity=~\"CONNECTION|STATEMENT_INVOCATION\"}[5m]))", "legendFormat": "{{mssql_activity}}"}]
-    },
-    {
-      "id": 5, "title": "Root duration p95 (seconds, 5m bucket estimate)", "type": "timeseries",
-      "gridPos": {"x": 12, "y": 5, "w": 12, "h": 8},
-      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
-      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
-      "targets": [{"refId": "A", "expr": "histogram_quantile(0.95, sum by (le,mssql_activity) (rate(db_client_operation_duration_seconds_bucket{job=\"jdbc-user-endpoint\",mssql_activity=~\"CONNECTION|STATEMENT_INVOCATION\"}[5m])))", "legendFormat": "{{mssql_activity}}"}]
-    },
-    {
-      "id": 6, "title": "Root failure ratio (5m)", "type": "timeseries",
-      "gridPos": {"x": 0, "y": 13, "w": 12, "h": 8},
-      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
-      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
-      "targets": [{"refId": "A", "expr": "sum by (mssql_activity) (rate(db_client_operation_error_count_total{job=\"jdbc-user-endpoint\",mssql_activity=~\"CONNECTION|STATEMENT_INVOCATION\"}[5m])) / sum by (mssql_activity) (rate(db_client_operation_count_total{job=\"jdbc-user-endpoint\",mssql_activity=~\"CONNECTION|STATEMENT_INVOCATION\"}[5m]))", "legendFormat": "{{mssql_activity}}"}]
-    },
-    {
-      "id": 7, "title": "All END observations by phase (not root totals)", "type": "timeseries",
-      "gridPos": {"x": 12, "y": 13, "w": 12, "h": 8},
-      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
-      "targets": [{"refId": "A", "expr": "sum by (mssql_activity,mssql_activity_type) (db_client_operation_count_total{job=\"jdbc-user-endpoint\"})", "legendFormat": "{{mssql_activity_type}} / {{mssql_activity}}"}]
-    }
-  ]
-}
+```bash
+cp "$REPO/docs/otel-poc/user-endpoint-demo/grafana/dashboards/jdbc-user-endpoint.json" \
+  "$DEMO/grafana/dashboards/jdbc-user-endpoint.json"
 ```
+
+```powershell
+Copy-Item -LiteralPath (Join-Path $Repo 'docs/otel-poc/user-endpoint-demo/grafana/dashboards/jdbc-user-endpoint.json') `
+    -Destination (Join-Path $Demo 'grafana/dashboards/jdbc-user-endpoint.json')
+```
+
+Its panels use the current dotted activity schema for root totals, outcome-based
+success ratios, outcome distributions, root retries, per-activity means, and
+histogram percentiles. Totals make a short run visible; rate/p95/increase panels
+need multiple scrapes. Missing error/retry series stay missing, not zero.
+Percentiles are bucket estimates; **exact maximum is unavailable** in this classic
+Prometheus path. There is no fake metrics-to-trace correlation: inspect the Jaeger
+data source in Explore or follow the dashboard link.
 
 ## 4. Build matching artifacts and an explicit runtime classpath
 
@@ -674,7 +648,7 @@ Open:
 ```bash
 curl --fail --silent http://127.0.0.1:8889/metrics | grep -E '^(# (HELP|TYPE) db_client_operation|db_client_operation_)'
 curl --fail --silent --get http://127.0.0.1:9090/api/v1/query \
-  --data-urlencode 'query=sum by (mssql_activity,mssql_activity_type) (db_client_operation_count_total{job="jdbc-user-endpoint"})'
+  --data-urlencode 'query=sum by (mssql_performance_activity,mssql_operation_kind,mssql_operation_outcome) (db_client_operation_count_total{job="jdbc-user-endpoint"})'
 curl --fail --silent --get http://127.0.0.1:16686/api/traces \
   --data-urlencode 'service=mssql-jdbc' --data-urlencode 'limit=20' \
   --data-urlencode 'operation=mssql.driver.statement.execute'
@@ -685,7 +659,7 @@ curl --fail --silent --get http://127.0.0.1:16686/api/traces \
 ```powershell
 (Invoke-WebRequest http://127.0.0.1:8889/metrics).Content -split "`n" |
     Where-Object { $_ -match '^(# (HELP|TYPE) db_client_operation|db_client_operation_)' }
-$Query = 'sum by (mssql_activity,mssql_activity_type) (db_client_operation_count_total{job="jdbc-user-endpoint"})'
+$Query = 'sum by (mssql_performance_activity,mssql_operation_kind,mssql_operation_outcome) (db_client_operation_count_total{job="jdbc-user-endpoint"})'
 $Result = Invoke-RestMethod ('http://127.0.0.1:9090/api/v1/query?query=' + [uri]::EscapeDataString($Query))
 $Result.data.result | ConvertTo-Json -Depth 8
 $Traces = Invoke-RestMethod 'http://127.0.0.1:16686/api/traces?service=mssql-jdbc&limit=20&operation=mssql.driver.statement.execute'
@@ -694,30 +668,31 @@ $Traces.data | Select-Object traceID
 
 Required evidence (record timestamps, counts, trace IDs, and safe screenshots, not secrets):
 
-1. Actual exposition contains the table's `_total` and `_seconds_bucket/_sum/_count` names, labels `mssql_activity`/`mssql_activity_type`, and nonzero root observations. Merely seeing Collector self-metrics is insufficient.
+1. Actual exposition contains operation/error counters and `_seconds_bucket/_sum/_count`, current `mssql_performance_activity`/`mssql_operation_kind`/schema labels, outcome on count/duration, and nonzero root observations. Verify applicable statement type/protocol and connection authentication labels plus the 17 finite histogram boundaries. Retry exposition is conditional on a begun additional attempt; the baseline need not produce it. Merely seeing Collector self-metrics is insufficient.
 2. PromQL below returns connection and statement counts, plus failed roots. Twenty successful iterations normally yield at least twenty workload connection roots and sixty statement invocation roots (fast, slow, invalid SQL), plus one failed connection root. Do not demand exact global totals: initialization paths, prior runs, resets, losses, or changed instrumentation can affect observations. Investigate unexpectedly missing workload roots.
 3. At level `2` without thresholds, Jaeger service `mssql-jdbc` contains successful `mssql.driver.connection.open`, successful `mssql.driver.statement.execute`, and failed roots of both kinds. Inspect children (for example `configuration`, `attempt`, `dns`, `socket_connect`, `request_build`, `server_call`, `first_response`) **only when the corresponding code path ran**. Not every connection has every phase. This harness installs no application parent, so connection and statement roots are not promised to share one trace.
 4. Failed roots have `ERROR` status; `mssql.driver.error` events appear at error origins when evidence exists, not on every failed ancestor. Verify the syntax failure at the statement root, not just an error-looking child tag. A fast parser failure can have a very short duration.
 5. Slow SQL has a measured invocation root longer than one second in this controlled full-buffered workload. Verify the actual root duration rather than inferring it from the SQL or a phase. This supports the threshold check below; it does not prove all JDBC API/result-reading timings.
+6. Where captured, statement roots contain approved masked `db.query.text` (for example `SELECT ? + ;`), not fixture literals; child spans/events/metrics contain no SQL. Inspect allowlisted root diagnostics when the relevant path runs, without requiring every diagnostic family from this baseline. Missing regions stay unavailable; do not infer them from hostnames.
 
 Useful exact PromQL (enter in Prometheus or Grafana Explore):
 
 ```promql
-sum(db_client_operation_count_total{job="jdbc-user-endpoint",mssql_activity="CONNECTION",mssql_activity_type="connection"})
+sum(db_client_operation_count_total{job="jdbc-user-endpoint",mssql_performance_activity="connection.open",mssql_operation_kind="connection"})
 ```
 
 ```promql
-sum(db_client_operation_count_total{job="jdbc-user-endpoint",mssql_activity="STATEMENT_INVOCATION",mssql_activity_type="statement"})
+sum(db_client_operation_count_total{job="jdbc-user-endpoint",mssql_performance_activity="statement.execute",mssql_operation_kind="statement"})
 ```
 
 ```promql
-sum by (mssql_activity) (db_client_operation_error_count_total{job="jdbc-user-endpoint",mssql_activity=~"CONNECTION|STATEMENT_INVOCATION"})
+sum by (mssql_performance_activity) (db_client_operation_error_count_total{job="jdbc-user-endpoint",mssql_performance_activity=~"connection[.]open|statement[.]execute"})
 ```
 
 ```promql
-sum(rate(db_client_operation_duration_seconds_sum{job="jdbc-user-endpoint",mssql_activity="STATEMENT_INVOCATION"}[5m]))
+sum(rate(db_client_operation_duration_seconds_sum{job="jdbc-user-endpoint",mssql_performance_activity="statement.execute"}[5m]))
 /
-sum(rate(db_client_operation_duration_seconds_count{job="jdbc-user-endpoint",mssql_activity="STATEMENT_INVOCATION"}[5m]))
+sum(rate(db_client_operation_duration_seconds_count{job="jdbc-user-endpoint",mssql_performance_activity="statement.execute"}[5m]))
 ```
 
 The last query is mean invocation seconds over the window; rate/quantile queries need at least two scrape samples and nonzero changes. Short/frozen runs may produce empty or NaN results. Root totals remain useful. Metrics retained by the Collector expire after 30 minutes without updates; Prometheus keeps already-scraped history for two hours while its container survives. A new JVM resets cumulative SDK counters; do not treat a later process's latest total as a cross-process lifetime count.
@@ -772,7 +747,9 @@ For callback behavior, the existing [wire tests](../mssql-jdbc-otel/src/test/jav
 
 ### Privacy acceptance
 
-Inspect safe trace details and raw metric labels locally before sharing artifacts. This automatic provider removes `db.query.text` even if supplied by another adapter. Expect **no raw SQL, parameter values, passwords, bearer tokens, connection string, server address, raw exception message, or stack trace** in its payload. Safe allowlisted metadata (including connection GUIDs, statement type/API, outcomes, error category/type, SQL error codes) can appear on **spans**. Metrics must not acquire GUID/SQL/statement-type dimensions. An error category/class name is not an exception message.
+Inspect safe trace details and raw metric labels locally before sharing artifacts. The provider discards supplied query enrichment and only exports its own synchronously sanitized callback SQL as statement-root `db.query.text`. The bounded lexical sanitizer removes comments and masks literals; malformed/uncertain or oversized input is omitted. Raw SQL is never queued. Expect **no raw SQL, parameter values, passwords, bearer tokens, connection string, server address, raw exception message, or stack trace** in its payload. Masked SQL may retain identifiers/query shape, so review it before sharing. Safe allowlisted metadata (including connection GUIDs, statement type/API, outcomes, error category/type, SQL error codes) can appear on **spans**. Metrics may have bounded statement type/protocol but never GUID/SQL/error-category dimensions. An error category/class name is not an exception message.
+
+The live viewer displays masked SQL only from emitted statement-root `db.query.text`, after a fail-closed lexical display check; it does not invent SQL from aliases, resources, or children. Exact maximum remains unavailable because classic histogram buckets/sums do not retain it; region appears only when emitted. Root diagnostics are replayed through name/value allowlists (up to 128, within the root timestamps), separately from origin error events.
 
 This is a source contract plus a manual payload inspection, not proof of absence across all code paths. Other application callbacks, JDBC JUL settings, proxies and SDK diagnostics have their own logging behavior; do not claim this route sanitizes them. Do not attach full trace JSON or collector logs to public issues without review. For a stronger check, use a harmless synthetic sentinel in a nonsecret test SQL literal and confirm its absence from locally inspected exported spans; never search by printing a real password/token.
 
@@ -788,7 +765,7 @@ Collector self-metrics such as `otelcol_receiver_accepted_spans`, `otelcol_recei
 | `NoSuchMethodError`/`ClassNotFoundException` | Stale core JAR, missing provided driver, duplicate OTel versions, or wrong JDK. Reinstall root first and regenerate the explicit classpath; do not use IDE launch defaults. |
 | SPI check passes, no metrics | Provider transport construction can still fail asynchronously. Check HTTP `4318` reachability, container logs locally, receiver metrics pipeline, explicit flush and Prometheus scrape. Without flush allow >60 seconds. |
 | Prometheus target UP, empty dashboard | UP proves scraping only. Inspect `8889/metrics`, family suffixes/labels, root activity filters, time range and scrape samples. `collector-internal` is not JDBC metrics. |
-| Metrics, no traces | Level `0`, strict thresholds including failed roots, missing complete tree, unsupported path, admission loss, or wrong Jaeger hop. Verify level `2` with absent thresholds, then `otlp/jaeger` → `jaeger:4317`, not port `16686` or HTTP `4318`. |
+| Metrics, no traces | Level `0`, strict thresholds including failed roots, valid unsampled parent, missing complete tree, unsupported path, admission loss, or wrong Jaeger hop. Verify level `2` with absent thresholds and inspect parent sampling, then `otlp/jaeger` → `jaeger:4317`, not port `16686` or HTTP `4318`. |
 | Jaeger UI health but no `mssql-jdbc` service | Actual traces have not arrived, storage was reset, or lookback is wrong. Health alone is not evidence. |
 | Slow SQL lacks slow invocation | Verify `responseBuffering=full`, execute vs later fetch time, measured root duration and supported statement path. Do not equate delayed result consumption with invocation timing. |
 | TLS/login errors instead of successful SQL | Fix approved test SQL URL/auth/certificate trust. Do not silently disable encryption or certificate validation. Report only failure coverage until real success is shown. |

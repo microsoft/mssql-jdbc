@@ -1,16 +1,18 @@
-import type { ConnectionFailure, StatementFailure, PerformanceMetric, ThroughputPoint, Span, ErrorEvent } from './data';
+import type { ConnectionFailure, StatementFailure, PerformanceMetric, ThroughputPoint, Span, ErrorEvent, OutcomeDistribution, RetryMetric } from './data';
 
 export type TelemetrySnapshot = {
   failures: ConnectionFailure[];
   statementFailures: StatementFailure[];
   performanceMetrics: PerformanceMetric[];
   throughputPoints: ThroughputPoint[];
+  outcomeDistribution: OutcomeDistribution[];
+  retries: RetryMetric[];
   loadedAt: string;
   warnings: string[];
 };
 
 export const emptyTelemetry: TelemetrySnapshot = {
-  failures: [], statementFailures: [], performanceMetrics: [], throughputPoints: [], loadedAt: '', warnings: [],
+  failures: [], statementFailures: [], performanceMetrics: [], throughputPoints: [], outcomeDistribution: [], retries: [], loadedAt: '', warnings: [],
 };
 
 type Row = Record<string, unknown>;
@@ -28,8 +30,41 @@ const safeKeys = new Set([
   'mssql.statement.type', 'mssql.statement.api', 'mssql.statement.operation',
   'mssql.statement.outcome', 'mssql.statement.failure_phase', 'mssql.statement.attempt_count',
   'mssql.statement.retry_count', 'mssql.statement.query_timeout', 'mssql.statement.result_kind',
+  'mssql.statement.response_buffering', 'mssql.statement.parameter_count', 'mssql.statement.batch_size',
+  'mssql.statement.update_count',
   'mssql.error.category', 'mssql.error.source', 'mssql.error.code', 'mssql.error.sql_state',
 ]);
+const diagnosticNames = new Set(['mssql.driver.error', 'mssql.driver.authentication', 'mssql.driver.retry',
+  'mssql.driver.connection.retry_decision', 'mssql.driver.statement.retry_decision', 'mssql.driver.redirect', 'mssql.driver.timeout']);
+const diagnosticKeys = new Set(['mssql.error.phase', 'mssql.error.source', 'mssql.error.code',
+  'mssql.error.category', 'mssql.error.sql_state', 'mssql.error.retry_decision', 'error.type', 'exception.type',
+  'mssql.error.driver_code', 'mssql.error.server_state', 'mssql.error.server_severity',
+  'mssql.connection.attempt', 'mssql.statement.attempt', 'mssql.retry.attempt', 'mssql.retry.delay',
+  'mssql.timeout.phase', 'mssql.timeout.kind', 'mssql.timeout.value', 'mssql.authentication.method',
+  'mssql.authentication.token_source', 'mssql.connection.redirect.index', 'mssql.connection.redirect.type',
+  'mssql.connection.endpoint_role']);
+
+// Trust only the provider's root field, not arbitrary SQL aliases/resource/child enrichment. This is a
+// fail-closed display check, not a second sanitizer: literals/comments must already have been removed.
+function maskedQuery(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim() || value.length > 4096 || /[\u0000-\u001f\u007f]/.test(value)) return absent;
+  for (let i = 0; i < value.length; i++) {
+    const c = value[i];
+    if (c === '[' || c === '"') {
+      const end = c === '[' ? ']' : '"';
+      let closed = false;
+      while (++i < value.length) {
+        if (value[i] === end) {
+          if (value[i + 1] === end) i++;
+          else { closed = true; break; }
+        }
+      }
+      if (!closed) return absent;
+    } else if (c === "'" || value.startsWith('--', i) || value.startsWith('/*', i)
+      || (/[0-9]/.test(c) && (i === 0 || !/[\p{L}\p{N}_$#]/u.test(value[i - 1])))) return absent;
+  }
+  return value;
+}
 
 function row(value: unknown): Row {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Row : {};
@@ -93,7 +128,7 @@ function mapTraces(payload: Row, snapshot: TelemetrySnapshot) {
     const all = rows(trace.spans);
     for (const root of all) {
       const connection = root.operationName === 'mssql.driver.connection.open';
-      if ((!connection && root.operationName !== 'mssql.driver.statement.execute') || !failed(root)) continue;
+      if ((!connection && !['mssql.driver.statement.execute', 'mssql.driver.statement.execute_batch'].includes(String(root.operationName))) || !failed(root)) continue;
       const start = number(root.startTime);
       const duration = number(root.duration);
       if (start === null || duration === null || !Number.isFinite(new Date(start / 1000).getTime())) continue;
@@ -110,10 +145,13 @@ function mapTraces(payload: Row, snapshot: TelemetrySnapshot) {
       const events: ErrorEvent[] = logs.flatMap(log => {
         const fields = tags(log.fields);
         const name = spanName(fields.event);
-        if (name === absent) return [];
+        if (!diagnosticNames.has(name)) return [];
+        const details = Object.fromEntries(Object.entries(fields).filter(([key, value]) => diagnosticKeys.has(key)
+          && (typeof value === 'number' ? Number.isFinite(value) && value >= 0 : text(value) !== absent))
+          .map(([key, value]) => [key, String(value)]));
         return [{ name, phase: text(fields['mssql.error.phase'] ?? fields['mssql.timeout.phase']),
           source: text(fields['mssql.error.source']), code: text(fields['mssql.error.code']),
-          decision: text(fields['mssql.error.retry_decision']) }];
+          decision: text(fields['mssql.error.retry_decision']), attributes: details }];
       });
       const guid = typeof values['mssql.connection.guid'] === 'string'
         && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(values['mssql.connection.guid'])
@@ -135,7 +173,7 @@ function mapTraces(payload: Row, snapshot: TelemetrySnapshot) {
       } else {
         snapshot.statementFailures.push({ ...common, id: traceId, connectionId: guid ?? absent,
           statementType: text(values['mssql.statement.type']), operation: text(values['mssql.statement.operation']),
-          maskedSql: absent,
+          maskedSql: maskedQuery(tags(root.tags)['db.query.text']),
         });
       }
     }
@@ -144,18 +182,17 @@ function mapTraces(payload: Row, snapshot: TelemetrySnapshot) {
   snapshot.statementFailures.sort((a, b) => b.time.localeCompare(a.time));
 }
 
-// Verified against PerformanceActivityMetrics and the live Prometheus activity label values.
-const activities: Record<string, string> = {
-  CONNECTION: 'connection.open', CONNECTION_CONFIGURATION: 'connection.configuration',
-  CONNECTION_ATTEMPT: 'connection.attempt', DNS: 'connection.dns', SOCKET_CONNECT: 'connection.socket_connect',
-  INSTANCE_DISCOVERY: 'connection.instance_discovery', CONNECTION_REDIRECT: 'connection.redirect',
-  TOKEN_REQUEST: 'connection.token_request', TOKEN_ACQUISITION: 'connection.token_acquisition', LOGIN: 'connection.login_wrapper',
-  PRELOGIN: 'connection.prelogin', TLS: 'connection.tls', LOGIN_EXCHANGE: 'connection.login',
-  CONNECTION_INITIALIZE: 'connection.initialize', STATEMENT_INVOCATION: 'statement.execute',
-  STATEMENT_ATTEMPT: 'statement.attempt', STATEMENT_REQUEST_BUILD: 'statement.request_build',
-  STATEMENT_PREPARE: 'statement.server_call.prepare', STATEMENT_PREPEXEC: 'statement.server_call.prepexec',
-  STATEMENT_EXECUTE: 'statement.server_call', STATEMENT_FIRST_SERVER_RESPONSE: 'statement.first_response',
-};
+// Stable metric identities, not span phase names or legacy callback-only wrappers.
+const activities = new Set(['connection.open', 'connection.configuration', 'connection.attempt',
+  'connection.dns', 'connection.socket_connect', 'connection.instance_discovery', 'connection.redirect',
+  'connection.token_request', 'connection.prelogin_legacy', 'connection.tls', 'connection.login',
+  'connection.initialize', 'statement.execute', 'statement.attempt', 'statement.request_build',
+  'statement.server_call.prepare', 'statement.server_call.prepexec', 'statement.server_call.execute', 'statement.first_response']);
+const outcomes = ['success', 'failure', 'timeout', 'canceled'] as const;
+const roots = new Set(['connection.open', 'statement.execute']);
+const retryReasons = new Set(['retry', 'redirect', 'failover', 'configurable_retry', 'invalid_handle_retry', 'enclave_retry', 'not_applicable']);
+const dimensions = 'mssql_performance_activity, mssql_operation_kind';
+const rootSelector = 'mssql_performance_activity=~"connection[.]open|statement[.]execute"';
 
 async function request(path: string, params: Record<string, string>, name: string, warnings: string[],
   prometheus = false): Promise<Row | null> {
@@ -190,41 +227,77 @@ export async function loadTelemetry(): Promise<TelemetrySnapshot> {
   const end = Math.floor(Date.now() / 1000);
   const start = end - windowSeconds;
   const snapshot: TelemetrySnapshot = { failures: [], statementFailures: [], performanceMetrics: [],
-    throughputPoints: [], loadedAt: '', warnings: [
+    throughputPoints: [], outcomeDistribution: [], retries: [], loadedAt: '', warnings: [
       'Failure counts cover only returned Jaeger traces (last 24 hours, maximum 1000 traces), not all failures; sampling and retention may omit traces.',
-      'Metrics use 24-hour counter increases (estimates requiring two samples; initial values before the first scrape cannot be counted); percentiles are histogram estimates. Max duration is not emitted. Throughput is operations/minute from 5-minute rates; gaps are missing data. Missing error series do not imply zero errors.',
+      'Metrics use 24-hour counter increases (estimates requiring two samples; initial values before the first scrape cannot be counted); percentiles are histogram estimates. Exact maximum duration is not available: classic histogram buckets and sums do not preserve it. Throughput is root operations/minute from 5-minute rates; gaps are missing data. Success ratios use observed outcome counts, not missing error counters. Missing error/retry series do not imply zero.',
     ] };
   const instant = (query: string, name: string) => request('/prometheus/api/v1/query',
     { query, time: String(end) }, name, snapshot.warnings, true);
-  const [traces, counts, errors, p50, p95, p99, throughput] = await Promise.all([
+  const [traces, counts, errors, p50, p95, p99, sums, retries, throughput] = await Promise.all([
     request('/jaeger/api/traces', { service: 'mssql-jdbc', start: String(start * 1e6),
       end: String(end * 1e6), limit: '1000' }, 'Jaeger traces', snapshot.warnings),
-    instant('sum by (mssql_activity) (increase(db_client_operation_count_total[24h]))', 'Operation counts'),
-    instant('sum by (mssql_activity) (increase(db_client_operation_error_count_total[24h]))', 'Error counts'),
-    ...[0.5, 0.95, 0.99].map(q => instant(`histogram_quantile(${q}, sum by (le, mssql_activity) (rate(db_client_operation_duration_seconds_bucket[24h])))`, `Percentile ${q}`)),
+    instant(`sum by (${dimensions}, mssql_operation_outcome) (increase(db_client_operation_count_total[24h]))`, 'Operation counts'),
+    instant(`sum by (${dimensions}) (increase(db_client_operation_error_count_total[24h]))`, 'Error counts'),
+    ...[0.5, 0.95, 0.99].map(q => instant(`histogram_quantile(${q}, sum by (le, ${dimensions}) (rate(db_client_operation_duration_seconds_bucket[24h])))`, `Percentile ${q}`)),
+    instant(`sum by (${dimensions}) (increase(db_client_operation_duration_seconds_sum[24h]))`, 'Duration sums'),
+    instant(`sum by (${dimensions}, mssql_retry_reason) (increase(db_client_operation_retry_count_total{${rootSelector}}[24h]))`, 'Retries'),
     request('/prometheus/api/v1/query_range', {
-      query: 'sum by (mssql_activity) (rate(db_client_operation_count_total{mssql_activity=~"CONNECTION|STATEMENT_INVOCATION"}[5m])) * 60',
+      query: `sum by (${dimensions}) (rate(db_client_operation_count_total{${rootSelector}}[5m])) * 60`,
       start: String(start), end: String(end), step: String(step),
     }, 'Throughput', snapshot.warnings, true),
   ]);
   if (traces) mapTraces(traces, snapshot);
+  const activityOf = (series: Row) => {
+    const labels = row(series.metric);
+    const activity = String(labels.mssql_performance_activity);
+    return activities.has(activity) && labels.mssql_operation_kind === (activity.startsWith('connection.') ? 'connection' : 'statement')
+      ? activity : null;
+  };
+  const valueOf = (series: Row) => {
+    const value = number(Array.isArray(series.value) ? series.value[1] : null);
+    return value !== null && value >= 0 ? value : null;
+  };
   const vector = (payload: Row | null) => new Map(rows(row(payload?.data).result)
-    .map(series => [String(row(series.metric).mssql_activity), number(Array.isArray(series.value) ? series.value[1] : null)]));
-  const vectors = [counts, errors, p50, p95, p99].map(vector);
+    .filter(series => activityOf(series) !== null).map(series => [activityOf(series)!, valueOf(series)]));
+  const outcomeCounts = new Map<string, Map<string, number | null>>();
+  for (const series of rows(row(counts?.data).result)) {
+    const activity = activityOf(series);
+    const outcome = String(row(series.metric).mssql_operation_outcome);
+    if (!activity || !outcomes.includes(outcome as typeof outcomes[number])) continue;
+    const values = outcomeCounts.get(activity) ?? new Map<string, number | null>();
+    values.set(outcome, valueOf(series));
+    outcomeCounts.set(activity, values);
+  }
+  const totals = new Map([...outcomeCounts].map(([activity, values]) => [activity,
+    [...values.values()].some(value => value === null) ? null : [...values.values()].reduce<number>((sum, value) => sum + value!, 0)]));
+  const vectors = [totals, ...[errors, p50, p95, p99, sums].map(vector)];
   const observed = new Set(vectors.flatMap(values => [...values.keys()]));
   for (const activity of observed) {
-    const display = activities[activity];
-    if (!display) continue;
-    const [count, errorCount, median, high, tail] = vectors.map(values => values.get(activity) ?? null);
-    snapshot.performanceMetrics.push({ activity: display, label: display.split('.').slice(1).join('.'),
-      kind: display.startsWith('connection.') ? 'Connection' : 'Statement', count, errors: errorCount,
-      successRate: count !== null && count > 0 && errorCount !== null ? (1 - errorCount / count) * 100 : null,
+    const [count, errorCount, median, high, tail, sum] = vectors.map(values => values.get(activity) ?? null);
+    const success = outcomeCounts.get(activity)?.get('success') ?? null;
+    snapshot.performanceMetrics.push({ activity, label: activity.split('.').slice(1).join('.'),
+      kind: activity.startsWith('connection.') ? 'Connection' : 'Statement', count, errors: errorCount,
+      successRate: count !== null && count > 0 && success !== null ? success / count * 100 : null,
       p50: median === null ? null : median * 1000, p95: high === null ? null : high * 1000,
-      p99: tail === null ? null : tail * 1000, max: null });
+      p99: tail === null ? null : tail * 1000, max: null,
+      totalDurationMs: sum === null ? null : sum * 1000,
+      meanDurationMs: sum !== null && count !== null && count > 0 ? sum / count * 1000 : null });
+    if (roots.has(activity)) snapshot.outcomeDistribution.push({ activity,
+      success, failure: outcomeCounts.get(activity)?.get('failure') ?? null,
+      timeout: outcomeCounts.get(activity)?.get('timeout') ?? null,
+      canceled: outcomeCounts.get(activity)?.get('canceled') ?? null });
+  }
+  for (const series of rows(row(retries?.data).result)) {
+    const activity = activityOf(series);
+    const reason = String(row(series.metric).mssql_retry_reason);
+    if (activity && roots.has(activity) && retryReasons.has(reason)) {
+      snapshot.retries.push({ activity, reason, count: valueOf(series) });
+    }
   }
   const samples = new Map<string, Map<number, number | null>>();
   for (const series of rows(row(throughput?.data).result)) {
-    const activity = String(row(series.metric).mssql_activity);
+    const activity = String(row(series.metric).mssql_performance_activity);
+    if (!roots.has(activity)) continue;
     const points = new Map<number, number | null>();
     if (Array.isArray(series.values)) for (const pair of series.values) {
       if (Array.isArray(pair)) points.set(Number(pair[0]), number(pair[1]));
@@ -233,8 +306,8 @@ export async function loadTelemetry(): Promise<TelemetrySnapshot> {
   }
   for (let timestamp = start; timestamp <= end; timestamp += step) {
     snapshot.throughputPoints.push({ label: new Date(timestamp * 1000).toISOString(),
-      connections: samples.get('CONNECTION')?.get(timestamp) ?? null,
-      statements: samples.get('STATEMENT_INVOCATION')?.get(timestamp) ?? null });
+      connections: samples.get('connection.open')?.get(timestamp) ?? null,
+      statements: samples.get('statement.execute')?.get(timestamp) ?? null });
   }
   snapshot.loadedAt = new Date().toISOString();
   return snapshot;

@@ -118,8 +118,8 @@ class UserEndpointTelemetryTest {
                 assertFalse(traces.contains("SECRET"));
                 String metrics = collector.body("/v1/metrics");
                 assertTrue(metrics.contains("db.client.operation.count"));
-                for (String activity : new String[] {"CONNECTION", "STATEMENT_INVOCATION", "DNS",
-                        "STATEMENT_FIRST_SERVER_RESPONSE"}) {
+                for (String activity : new String[] {"connection.open", "statement.execute", "connection.dns",
+                        "statement.first_response"}) {
                     assertEquals(2, collector.counter("db.client.operation.count", activity));
                     assertEquals(1, collector.counter("db.client.operation.error.count", activity));
                 }
@@ -175,7 +175,7 @@ class UserEndpointTelemetryTest {
                     flush();
                     String rootName = statement ? "mssql.driver.statement.execute" : "mssql.driver.connection.open";
                     assertEquals(level == 1 ? 1 : 2, occurrences(collector.body("/v1/traces"), rootName));
-                    String activity = statement ? "STATEMENT_INVOCATION" : "CONNECTION";
+                    String activity = statement ? "statement.execute" : "connection.open";
                     assertEquals(6, collector.counter("db.client.operation.count", activity));
                     assertEquals(3, collector.counter("db.client.operation.error.count", activity));
                 } finally {
@@ -209,7 +209,7 @@ class UserEndpointTelemetryTest {
                 flush();
                 String root = statement ? "mssql.driver.statement.execute" : "mssql.driver.connection.open";
                 assertEquals(2, occurrences(collector.body("/v1/traces"), root));
-                String activity = statement ? "STATEMENT_INVOCATION" : "CONNECTION";
+                String activity = statement ? "statement.execute" : "connection.open";
                 assertEquals(5, collector.counter("db.client.operation.count", activity));
                 assertEquals(5, collector.counter("db.client.operation.error.count", activity));
             } finally {
@@ -227,8 +227,8 @@ class UserEndpointTelemetryTest {
             assertThrows(SQLException.class, () -> new SQLServerDriver().connect("jdbc:sqlserver://", options));
             flush();
             assertTrue(collector.spans().isEmpty());
-            assertEquals(1, collector.counter("db.client.operation.count", "CONNECTION"));
-            assertEquals(1, collector.counter("db.client.operation.error.count", "CONNECTION"));
+            assertEquals(1, collector.counter("db.client.operation.count", "connection.open"));
+            assertEquals(1, collector.counter("db.client.operation.error.count", "connection.open"));
         }
     }
 
@@ -535,15 +535,16 @@ class UserEndpointTelemetryTest {
             flush();
             assertEquals(1, occurrences(collector.body("/v1/traces"), "mssql.driver.connection.open"));
             assertEquals(1, occurrences(collector.body("/v1/traces"), "mssql.driver.statement.execute"));
-            for (String activity : new String[] {"CONNECTION", "STATEMENT_INVOCATION"}) {
+            for (String activity : new String[] {"connection.open", "statement.execute"}) {
                 assertEquals(2, collector.counter("db.client.operation.count", activity));
-                assertEquals(1, collector.counter("db.client.operation.error.count", activity));
+                // Shared metrics honor the explicit outcome schema; trace admission still uses captured failures.
+                assertEquals(2, collector.counter("db.client.operation.error.count", activity));
             }
         }
     }
 
     @Test
-    void invalidNegativeThresholdsAreRejectedAndUnsampledParentsDoNotOverrideLevels() throws Exception {
+    void invalidNegativeThresholdsAreRejectedAndUnsampledParentsSuppressEntireStatementTrees() throws Exception {
         try (Collector collector = new Collector()) {
             for (String name : new String[] {"otelConnectionSpanDurationThreshold",
                     "otelStatementSpanDurationThreshold"}) {
@@ -562,13 +563,313 @@ class UserEndpointTelemetryTest {
                     TraceFlags.getDefault(), TraceState.getDefault());
             try (Scope ignored = Span.wrap(parent).makeCurrent()) {
                 tree(callback, 10, true, false, 100);
+                tree(callback, 20, true, true, 100);
             }
             flush();
-            assertEquals(0, occurrences(collector.body("/v1/traces"), "mssql.driver.connection.open"));
-            assertEquals(1, occurrences(collector.body("/v1/traces"), "mssql.driver.statement.execute"));
-            Wire root = collector.spans().stream().filter(s -> s.text(5).endsWith("execute")).findFirst().get();
-            assertArrayEquals(hex("1234567890abcdef"), root.bytes(4));
+            assertTrue(collector.spans().isEmpty(), "Even failed statement roots must honor an unsampled parent");
+            assertEquals(2, collector.counter("db.client.operation.count", "statement.execute"));
+            assertEquals(1, collector.counter("db.client.operation.error.count", "statement.execute"));
         }
+    }
+
+    @Test
+    void sampledAndInvalidParentsPreserveCompleteStatementHierarchy() throws Exception {
+        for (boolean valid : new boolean[] {false, true}) {
+            try (Collector collector = new Collector()) {
+                PerformanceLogCallback callback = provider().create(collector.options(2));
+                SpanContext parent = valid ? SpanContext.create("1234567890abcdef1234567890abcdef", "1234567890abcdef",
+                        TraceFlags.getSampled(), TraceState.getDefault()) : SpanContext.getInvalid();
+                try (Scope ignored = Span.wrap(parent).makeCurrent()) {
+                    tree(callback, 1, true, true, 100);
+                }
+                flush();
+                assertEquals(2, collector.spans().size());
+                Wire root = collector.spans().stream().filter(s -> s.text(5).endsWith("execute")).findFirst().get();
+                Wire child = collector.spans().stream().filter(s -> s.text(5).endsWith("first_response")).findFirst()
+                        .get();
+                assertArrayEquals(root.bytes(1), child.bytes(1));
+                assertArrayEquals(root.bytes(2), child.bytes(4));
+                if (valid) {
+                    assertArrayEquals(hex(parent.getTraceId()), root.bytes(1));
+                    assertArrayEquals(hex(parent.getSpanId()), root.bytes(4));
+                } else {
+                    assertEquals(0, root.bytes(4).length);
+                }
+            } finally {
+                cleanup();
+            }
+        }
+    }
+
+    @Test
+    void ownedSdkExportsVersionedScopesAndAllFourBoundedMetricsAtLevelZero() throws Exception {
+        try (Collector collector = new Collector()) {
+            PerformanceLogCallback callback = provider().create(collector.options(0));
+            for (boolean statement : new boolean[] {false, true}) {
+                PerformanceActivity activity = statement ? PerformanceActivity.STATEMENT_INVOCATION
+                                                         : PerformanceActivity.CONNECTION;
+                for (boolean failed : new boolean[] {false, true}) {
+                    PerformanceLogEvent end = ConnectionEventFixture.userEvent(PerformanceLogEvent.Type.END,
+                            failed ? 2 : 1, 0, failed ? 2 : 1, activity, statement, 100000000,
+                            failed ? new SQLException("SECRET") : null);
+                    Map<String, Object> metadata = new java.util.LinkedHashMap<>(end.getAttributes());
+                    metadata.put(statement ? "mssql.statement.attempt_count" : "mssql.connection.attempt_count", 3L);
+                    metadata.put("mssql.retry.reason", statement ? "configurable_retry" : "redirect");
+                    metadata.put("mssql.authentication.method", "sql_password");
+                    metadata.put("db.query.text", "SECRET-query");
+                    callback.publish(ConnectionEventFixture.withUserAttributes(end, metadata));
+                }
+            }
+            flush();
+            assertTrue(collector.spans().isEmpty());
+            java.util.Set<String> names = new java.util.HashSet<>();
+            for (Wire metric : collector.metrics()) {
+                names.add(metric.text(1));
+            }
+            assertEquals(new java.util.HashSet<>(
+                    java.util.Arrays.asList("db.client.operation.count", "db.client.operation.error.count",
+                            "db.client.operation.retry.count", "db.client.operation.duration")),
+                    names);
+            for (String activity : new String[] {"connection.open", "statement.execute"}) {
+                assertEquals(2, collector.counter("db.client.operation.count", activity));
+                assertEquals(1, collector.counter("db.client.operation.error.count", activity));
+                assertEquals(4, collector.counter("db.client.operation.retry.count", activity));
+            }
+            double[] expected = {0.0001, 0.00025, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1,
+                    2.5, 5, 10, 30};
+            for (Wire metric : collector.metrics()) {
+                if (!"db.client.operation.duration".equals(metric.text(1))) {
+                    continue;
+                }
+                List<Wire> points = metric.children(9).get(0).children(1);
+                assertEquals(4, points.size(), "Both outcomes and root kinds retain separate histogram series");
+                for (Wire point : points) {
+                    assertArrayEquals(expected, point.doubles(7));
+                    assertEquals(1, point.number(4));
+                    assertEquals(0.1, Double.longBitsToDouble(point.number(5)), 0.000000001);
+                    long[] buckets = point.longs(6);
+                    assertEquals(18, buckets.length);
+                    assertEquals(1, buckets[9], "The p95 input falls in the 100ms bucket, not a coarse default bucket");
+                    assertEquals("1.0", point.attribute(9, "mssql.telemetry.schema.version"));
+                    String kind = point.attribute(9, "mssql.operation.kind");
+                    assertTrue("connection".equals(kind) || "statement".equals(kind));
+                    assertEquals("connection".equals(kind) ? "sql_password" : "statement", point.attribute(9,
+                            "connection".equals(kind) ? "mssql.connection.auth_method" : "mssql.statement.type"));
+                    assertTrue(java.util.Arrays.asList("success", "failure")
+                            .contains(point.attribute(9, "mssql.operation.outcome")));
+                }
+            }
+            assertFalse(collector.body("/v1/metrics").contains("SECRET"));
+            assertScopes(collector, "/v1/metrics");
+        }
+    }
+
+    private static void assertScopes(Collector collector, String path) {
+        String version = SQLServerDriver.class.getPackage().getImplementationVersion();
+        if (version == null || version.isEmpty()) {
+            SQLServerDriver driver = new SQLServerDriver();
+            version = driver.getMajorVersion() + "." + driver.getMinorVersion();
+        }
+        int count = 0;
+        for (Request request : collector.requests) {
+            if (path.equals(request.path)) {
+                for (Wire resource : new Wire(request.bytes).children(1)) {
+                    for (Wire scope : resource.children(2)) {
+                        Wire identity = scope.children(1).get(0);
+                        assertEquals("com.microsoft.sqlserver.jdbc", identity.text(1));
+                        assertEquals(version, identity.text(2));
+                        count++;
+                    }
+                }
+            }
+        }
+        assertTrue(count > 0);
+    }
+
+    @Test
+    void retryMetricCountsOnlyAdditionalAttemptsOnRootsNotAttemptScopesOrDecisions() throws Exception {
+        try (Collector collector = new Collector()) {
+            PerformanceLogCallback callback = provider().create(collector.options(0));
+            for (boolean statement : new boolean[] {false, true}) {
+                long id = statement ? 10 : 1;
+                PerformanceActivity root = statement ? PerformanceActivity.STATEMENT_INVOCATION
+                                                     : PerformanceActivity.CONNECTION;
+                PerformanceActivity attempt = statement ? PerformanceActivity.STATEMENT_ATTEMPT
+                                                        : PerformanceActivity.CONNECTION_ATTEMPT;
+                Map<String, Object> metadata = new java.util.LinkedHashMap<>();
+                metadata.put(statement ? "mssql.statement.attempt_count" : "mssql.connection.attempt_count", 3L);
+                metadata.put("mssql.retry.reason", "SECRET-unregistered-reason");
+                callback.publish(ConnectionEventFixture.withUserAttributes(ConnectionEventFixture
+                        .userEvent(PerformanceLogEvent.Type.END, id, 0, id, root, statement, 100, null), metadata));
+                for (int i = 1; i <= 3; i++) {
+                    callback.publish(ConnectionEventFixture.withUserAttributes(ConnectionEventFixture.userEvent(
+                            PerformanceLogEvent.Type.END, id + i, id, id, attempt, statement, 10, null), metadata));
+                }
+                // A scheduled retry that never began another attempt is not a retry-count observation.
+                metadata.put(statement ? "mssql.statement.attempt_count" : "mssql.connection.attempt_count", 1L);
+                metadata.put(statement ? "mssql.statement.retry_count" : "mssql.connection.retry_count", 99L);
+                callback.publish(ConnectionEventFixture.withUserAttributes(ConnectionEventFixture.userEvent(
+                        PerformanceLogEvent.Type.END, id + 100, 0, id + 100, root, statement, 100, null), metadata));
+            }
+            flush();
+            for (String activity : new String[] {"connection.open", "statement.execute"}) {
+                assertEquals(2, collector.counter("db.client.operation.retry.count", activity));
+            }
+            for (String activity : new String[] {"connection.attempt", "statement.attempt"}) {
+                assertEquals(3, collector.counter("db.client.operation.count", activity));
+                assertEquals(0, collector.counter("db.client.operation.retry.count", activity));
+            }
+            for (Wire metric : collector.metrics()) {
+                if ("db.client.operation.retry.count".equals(metric.text(1))) {
+                    for (Wire point : metric.children(7).get(0).children(1)) {
+                        assertEquals("not_applicable", point.attribute(7, "mssql.retry.reason"));
+                    }
+                }
+            }
+            assertFalse(collector.body("/v1/metrics").contains("SECRET"));
+        }
+    }
+
+    @Test
+    void sqlIsCapturedOnlyOnRootEndMaskedBeforeAdmissionAndNeverTrustedFromAttributes() throws Exception {
+        try (Collector collector = new Collector()) {
+            PerformanceLogCallback callback = provider().create(collector.options(2));
+            Object owner = field(callback, "owner");
+            CountDownLatch entered = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            blockWorker(owner, entered, release);
+            try {
+                assertTrue(entered.await(5, TimeUnit.SECONDS));
+                long id = 0;
+                for (String sql : new String[] {"SELECT N'SECRET-literal', 42 /* SECRET-comment */",
+                        "SELECT 'SECRET-malformed", "SELECT /* SECRET-unclosed-comment",
+                        String.join("", Collections.nCopies(3000, "SECRET")), null}) {
+                    id++;
+                    PerformanceLogEvent start = ConnectionEventFixture.userEvent(PerformanceLogEvent.Type.START, id, 0,
+                            id, PerformanceActivity.STATEMENT_INVOCATION, true, 0, null);
+                    publishSql(callback, start.withMaskedQueryText("SECRET-injected-start"), "SELECT 'SECRET-start'");
+                    PerformanceLogEvent child = ConnectionEventFixture.userEvent(PerformanceLogEvent.Type.START,
+                            id + 100, id, id, PerformanceActivity.STATEMENT_FIRST_SERVER_RESPONSE, true, 0, null);
+                    publishSql(callback, child.withMaskedQueryText("SECRET-injected-child"), "SELECT 'SECRET-child'");
+                    child = ConnectionEventFixture.userEvent(PerformanceLogEvent.Type.END, id + 100, id, id,
+                            PerformanceActivity.STATEMENT_FIRST_SERVER_RESPONSE, true, 100,
+                            new SQLException("SECRET-error"));
+                    publishSql(callback, child.withMaskedQueryText("SECRET-injected-child"), "SELECT 'SECRET-child'");
+                    PerformanceLogEvent end = ConnectionEventFixture.userEvent(PerformanceLogEvent.Type.END, id, 0, id,
+                            PerformanceActivity.STATEMENT_INVOCATION, true, 100, new SQLException("SECRET-error"));
+                    publishSql(callback, end.withMaskedQueryText("SECRET-injected-root"), sql);
+                }
+                for (Object queued : (java.util.Queue<?>) field(owner, "queue")) {
+                    for (java.lang.reflect.Field capture : queued.getClass().getDeclaredFields()) {
+                        capture.setAccessible(true);
+                        Object value = capture.get(queued);
+                        if (value instanceof PerformanceLogEvent) {
+                            PerformanceLogEvent event = (PerformanceLogEvent) value;
+                            assertNull(event.getException());
+                            assertFalse(event.getAttributes().toString().contains("SECRET"),
+                                    "Never enqueue caller SQL attributes");
+                        } else if (value instanceof String) {
+                            assertFalse(((String) value).contains("SECRET"));
+                        }
+                    }
+                }
+            } finally {
+                release.countDown();
+            }
+            flush();
+            List<Wire> spans = collector.spans();
+            assertEquals(10, spans.size());
+            assertEquals(1, spans.stream().filter(s -> s.attribute("db.query.text") != null).count());
+            Wire captured = spans.stream().filter(s -> s.attribute("db.query.text") != null).findFirst().get();
+            assertEquals("mssql.driver.statement.execute", captured.text(5));
+            assertEquals("SELECT ?, ?", captured.attribute("db.query.text"));
+            assertFalse(collector.body("/v1/traces").contains("SECRET"));
+            assertFalse(collector.body("/v1/metrics").contains("db.query.text"));
+            assertScopes(collector, "/v1/traces");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void publishSql(PerformanceLogCallback callback, PerformanceLogEvent event,
+            String sql) throws Exception {
+        java.lang.reflect.Field field = Class.forName("com.microsoft.sqlserver.jdbc.PerformanceLog")
+                .getDeclaredField("currentUserSql");
+        field.setAccessible(true);
+        ThreadLocal<String> current = (ThreadLocal<String>) field.get(null);
+        current.set(sql);
+        try {
+            callback.publish(event);
+        } finally {
+            current.remove();
+        }
+    }
+
+    @Test
+    void connectionAndStatementDiagnosticsReplayOnRootsWithOriginalTimestampsAndAllowlists() throws Exception {
+        try (Collector collector = new Collector()) {
+            PerformanceLogCallback callback = provider().create(collector.options(2));
+            long start = 1700000000000000000L;
+            for (boolean statement : new boolean[] {false, true}) {
+                PerformanceActivity activity = statement ? PerformanceActivity.STATEMENT_INVOCATION
+                                                         : PerformanceActivity.CONNECTION;
+                long id = statement ? 2 : 1;
+                callback.publish(ConnectionEventFixture.userEvent(PerformanceLogEvent.Type.START, id, 0, id, activity,
+                        statement, 0, null));
+                Map<String, Object> metadata = new java.util.LinkedHashMap<>();
+                metadata.put("mssql.error.retry_decision", "retry_scheduled");
+                metadata.put("mssql.retry.delay", 0.5);
+                metadata.put("mssql.timeout.kind", statement ? "query" : "login_budget");
+                metadata.put("mssql.timeout.phase", statement ? "first_response" : "dns");
+                metadata.put("password", "SECRET");
+                List<Map<String, Object>> diagnostics = new ArrayList<>();
+                String retry = statement ? "mssql.driver.statement.retry_decision"
+                                         : "mssql.driver.connection.retry_decision";
+                diagnostics.add(diagnostic(retry, start + 20, metadata));
+                diagnostics.add(diagnostic("mssql.driver.timeout", start + 30, metadata));
+                diagnostics.add(diagnostic("mssql.driver.SECRET", start + 40, metadata));
+                diagnostics.add(diagnostic("mssql.driver.timeout", start + 101, metadata));
+                PerformanceLogEvent end = ConnectionEventFixture.userEvent(PerformanceLogEvent.Type.END, id, 0, id,
+                        activity, statement, 100, null);
+                callback.publish(withDiagnostics(end, diagnostics));
+            }
+            flush();
+            assertEquals(2, collector.spans().size());
+            for (Wire root : collector.spans()) {
+                List<Wire> events = root.children(11);
+                assertEquals(2, events.size());
+                assertEquals(start + 20, events.get(0).number(1));
+                assertEquals("retry_scheduled", events.get(0).attribute(3, "mssql.error.retry_decision"));
+                assertEquals(start + 30, events.get(1).number(1));
+                assertEquals("mssql.driver.timeout", events.get(1).text(2));
+                assertEquals(root.text(5).contains("statement") ? "query" : "login_budget",
+                        events.get(1).attribute(3, "mssql.timeout.kind"));
+            }
+            assertFalse(collector.body("/v1/traces").contains("SECRET"));
+        }
+    }
+
+    private static Map<String, Object> diagnostic(String name, long timestamp, Map<String, Object> attributes) {
+        Map<String, Object> diagnostic = new java.util.LinkedHashMap<>();
+        diagnostic.put("name", name);
+        diagnostic.put("timestamp", timestamp);
+        diagnostic.put("attributes", attributes);
+        return diagnostic;
+    }
+
+    private static PerformanceLogEvent withDiagnostics(PerformanceLogEvent event,
+            List<Map<String, Object>> diagnostics) throws Exception {
+        // The existing fixture overload predates statement IDs; preserve the real statement identity here.
+        Class<?>[] types = {PerformanceLogEvent.Type.class, long.class, long.class, long.class, int.class, int.class,
+                PerformanceActivity.class, long.class, long.class, long.class, Exception.class, String.class, Map.class,
+                Map.class, List.class};
+        java.lang.reflect.Constructor<PerformanceLogEvent> constructor = PerformanceLogEvent.class
+                .getDeclaredConstructor(types);
+        constructor.setAccessible(true);
+        Object[] arguments = {event.getType(), event.getScopeId(), event.getParentScopeId(), event.getRootScopeId(),
+                event.getConnectionId(), event.getStatementId(), event.getActivity(), event.getStartEpochNanos(),
+                event.getEndEpochNanos(), event.getDurationNanos(), event.getException(), event.getFailurePhase(),
+                event.getAttributes(), event.getErrorAttributes(), diagnostics};
+        return constructor.newInstance(arguments);
     }
 
     @Test
@@ -631,8 +932,8 @@ class UserEndpointTelemetryTest {
             }
             flush();
             assertTrue(collector.spans().isEmpty());
-            assertEquals(2, collector.counter("db.client.operation.count", "CONNECTION"));
-            assertEquals(513, collector.counter("db.client.operation.count", "DNS"));
+            assertEquals(2, collector.counter("db.client.operation.count", "connection.open"));
+            assertEquals(513, collector.counter("db.client.operation.count", "connection.dns"));
         }
     }
 
@@ -834,6 +1135,43 @@ class UserEndpointTelemetryTest {
 
         long number(int tag) {
             return (Long) fields.getOrDefault(tag, Collections.singletonList(0L)).get(0);
+        }
+
+        double[] doubles(int tag) {
+            List<Object> encoded = fields.getOrDefault(tag, Collections.emptyList());
+            if (encoded.size() == 1 && encoded.get(0) instanceof byte[]) {
+                java.nio.ByteBuffer packed = java.nio.ByteBuffer.wrap((byte[]) encoded.get(0))
+                        .order(java.nio.ByteOrder.LITTLE_ENDIAN);
+                double[] values = new double[packed.remaining() / 8];
+                for (int i = 0; i < values.length; i++) {
+                    values[i] = packed.getDouble();
+                }
+                return values;
+            }
+            double[] values = new double[encoded.size()];
+            for (int i = 0; i < values.length; i++) {
+                values[i] = Double.longBitsToDouble((Long) encoded.get(i));
+            }
+            return values;
+        }
+
+        long[] longs(int tag) {
+            List<Object> encoded = fields.getOrDefault(tag, Collections.emptyList());
+            if (encoded.size() == 1 && encoded.get(0) instanceof byte[]) {
+                // OTLP HistogramDataPoint.bucket_counts is packed fixed64, not packed varint.
+                java.nio.ByteBuffer packed = java.nio.ByteBuffer.wrap((byte[]) encoded.get(0))
+                        .order(java.nio.ByteOrder.LITTLE_ENDIAN);
+                long[] result = new long[packed.remaining() / 8];
+                for (int i = 0; i < result.length; i++) {
+                    result[i] = packed.getLong();
+                }
+                return result;
+            }
+            long[] result = new long[encoded.size()];
+            for (int i = 0; i < result.length; i++) {
+                result[i] = (Long) encoded.get(i);
+            }
+            return result;
         }
 
         String attribute(String name) {
@@ -1052,6 +1390,7 @@ class UserEndpointTelemetryTest {
                 if (!"/v1/metrics".equals(request.path)) {
                     continue;
                 }
+                long current = 0;
                 for (Wire resource : new Wire(request.bytes).children(1)) {
                     for (Wire scope : resource.children(2)) {
                         for (Wire metric : scope.children(2)) {
@@ -1060,16 +1399,31 @@ class UserEndpointTelemetryTest {
                             }
                             for (Wire sum : metric.children(7)) {
                                 for (Wire point : sum.children(1)) {
-                                    if (activity.equals(point.attribute(7, "mssql.activity"))) {
-                                        result = point.number(6);
+                                    if (activity.equals(point.attribute(7, "mssql.performance.activity"))) {
+                                        current += point.number(6);
                                     }
                                 }
                             }
                         }
                     }
                 }
+                result = current; // Cumulative export: sum outcomes within the newest HTTP snapshot, not across flushes.
             }
             return result;
+        }
+
+        List<Wire> metrics() {
+            List<Wire> metrics = new ArrayList<>();
+            for (Request request : requests) {
+                if ("/v1/metrics".equals(request.path)) {
+                    for (Wire resource : new Wire(request.bytes).children(1)) {
+                        for (Wire scope : resource.children(2)) {
+                            metrics.addAll(scope.children(2));
+                        }
+                    }
+                }
+            }
+            return metrics;
         }
 
         @Override

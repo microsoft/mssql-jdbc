@@ -32,12 +32,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.microsoft.sqlserver.jdbc.PerformanceActivity;
 import com.microsoft.sqlserver.jdbc.PerformanceLogCallback;
 import com.microsoft.sqlserver.jdbc.PerformanceLogEvent;
+import com.microsoft.sqlserver.jdbc.SQLServerDriver;
 import com.microsoft.sqlserver.jdbc.UserOtelTelemetryProvider;
 
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.metrics.DoubleHistogram;
-import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.MeterProvider;
 import io.opentelemetry.api.trace.Span;
@@ -46,10 +46,13 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.TracerProvider;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.propagation.ContextPropagators;
 import io.opentelemetry.exporter.otlp.http.metrics.OtlpHttpMetricExporter;
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
 import io.opentelemetry.sdk.common.CompletableResultCode;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.data.MetricData;
 import io.opentelemetry.sdk.metrics.export.MetricExporter;
@@ -66,10 +69,14 @@ import io.opentelemetry.sdk.trace.samplers.Sampler;
  * Automatic user-owned OTLP/HTTP routing, independent of the global SDK and the legacy performance callback.
  * SDK construction, tree filtering, token providers and export run exclusively on daemon workers. Producer callbacks
  * only capture exception-free immutable events and the caller's SpanContext, and offer them to a bounded lossy queue.
+ * Statement root END also performs bounded synchronous SQL masking while callback thread-local SQL is available;
+ * raw SQL is never queued. These private SDKs deliberately own this endpoint's meter/tracer providers and transport,
+ * independently of application/global SDK configuration; no SDK is installed globally.
  * Admission loss invalidates pending and queued older trees; incomplete trees are never replayed as complete traces.
  * Closing a SQL connection does not close a shared transport. Idle transports expire after five minutes.
  */
 public final class UserEndpointTelemetryProvider implements UserOtelTelemetryProvider {
+    private static final String SCOPE = "com.microsoft.sqlserver.jdbc";
     private static final int MAX_QUEUE = 8192;
     private static final int MAX_ENDPOINTS = 32;
     private static final int MAX_TREES = 256;
@@ -106,7 +113,7 @@ public final class UserEndpointTelemetryProvider implements UserOtelTelemetryPro
     /**
      * Drains queued events and requests bounded SDK flushes. Completion is not a collector delivery acknowledgement.
      * This explicit application-lifecycle method may wait; JDBC callbacks never do.
-    *
+     *
      * @param timeout
      *        total nonnegative wait budget
      * @return whether the drain and SDK flush completed within the budget
@@ -243,10 +250,20 @@ public final class UserEndpointTelemetryProvider implements UserOtelTelemetryPro
             }
             try {
                 long epoch = owner.lossEpoch.get();
-                PerformanceLogEvent snapshot = event.withoutException();
+                PerformanceLogEvent projected = event.withoutException();
+                if (projected.getAttributes().containsKey("db.query.text")) {
+                    // This API only replaces nonempty text. Overwrite untrusted enrichment before queueing;
+                    // the placeholder is always removed before span policy and never represents captured SQL.
+                    projected = projected.withMaskedQueryText("?");
+                }
+                PerformanceLogEvent snapshot = projected;
+                String maskedSql = options.level != 0 && event.getType() == PerformanceLogEvent.Type.END
+                        && event.getParentScopeId() == 0 && event.getScopeId() == event.getRootScopeId() && event
+                                .getActivity() == PerformanceActivity.STATEMENT_INVOCATION ? SqlStatementSanitizer
+                                        .mask(getCurrentUserSql()) : null;
                 boolean rootStart = event.getParentScopeId() == 0 && event.getType() == PerformanceLogEvent.Type.START;
                 SpanContext parent = rootStart ? Span.current().getSpanContext() : SpanContext.getInvalid();
-                owner.offer(() -> owner.accept(options, snapshot, parent, epoch));
+                owner.offer(() -> owner.accept(options, snapshot, parent, maskedSql, epoch));
             } catch (RuntimeException | LinkageError | ServiceConfigurationError e) {
                 owner.lossEpoch.incrementAndGet();
                 // Optional telemetry must never affect the SQL operation or log event/configuration values.
@@ -343,7 +360,7 @@ public final class UserEndpointTelemetryProvider implements UserOtelTelemetryPro
             }
         }
 
-        void accept(Options options, PerformanceLogEvent event, SpanContext parent, long epoch) {
+        void accept(Options options, PerformanceLogEvent event, SpanContext parent, String maskedSql, long epoch) {
             Pipeline pipeline = endpoints.get(options.key);
             if (pipeline == null) {
                 expire();
@@ -404,7 +421,7 @@ public final class UserEndpointTelemetryProvider implements UserOtelTelemetryPro
                     trees.remove(key);
                     if (!tree.overflow && tree.starts.size() == tree.events.size() && epoch == lossEpoch.get()
                             && options.traces(event)) {
-                        pipeline.traces(tree, event);
+                        pipeline.traces(tree, event, maskedSql);
                     }
                 }
             }
@@ -443,9 +460,7 @@ public final class UserEndpointTelemetryProvider implements UserOtelTelemetryPro
         final TreeExporter exports;
         final SdkMeterProvider metrics;
         final Tracer tracer;
-        final LongCounter count;
-        final LongCounter errors;
-        final DoubleHistogram duration;
+        final PerformanceActivityMetrics performanceMetrics;
         long lastUsed = System.nanoTime();
 
         Pipeline(Key key) {
@@ -466,8 +481,8 @@ public final class UserEndpointTelemetryProvider implements UserOtelTelemetryPro
                         .setHeaders(configuration).setConnectTimeout(EXPORT_TIMEOUT).setTimeout(EXPORT_TIMEOUT)
                         .setRetryPolicy(null).setMeterProvider(MeterProvider.noop()).build());
                 // Admission must be atomic for a whole tree. A BatchSpanProcessor drops individual spans at capacity.
-                traceProvider = SdkTracerProvider.builder().setResource(resource).setSampler(Sampler.alwaysOn())
-                        .build();
+                traceProvider = SdkTracerProvider.builder().setResource(resource)
+                        .setSampler(Sampler.parentBased(Sampler.alwaysOn())).build();
                 metricExporter = new SafeMetrics(OtlpHttpMetricExporter.builder()
                         .setEndpoint(configuration.metricsEndpoint).setHeaders(configuration)
                         .setConnectTimeout(EXPORT_TIMEOUT).setTimeout(EXPORT_TIMEOUT).setRetryPolicy(null).build());
@@ -477,11 +492,37 @@ public final class UserEndpointTelemetryProvider implements UserOtelTelemetryPro
                 traces = traceProvider;
                 exports = new TreeExporter(spanExporter);
                 metrics = meterProvider;
-                tracer = traces.get("com.microsoft.sqlserver.jdbc.user-endpoint");
-                Meter meter = metrics.get("com.microsoft.sqlserver.jdbc.user-endpoint");
-                count = meter.counterBuilder("db.client.operation.count").setUnit("{operation}").build();
-                errors = meter.counterBuilder("db.client.operation.error.count").setUnit("{error}").build();
-                duration = meter.histogramBuilder("db.client.operation.duration").setUnit("s").build();
+                OpenTelemetrySdk sdk = OpenTelemetrySdk.builder().setTracerProvider(traces).setMeterProvider(metrics)
+                        .build();
+                String packagedVersion = SQLServerDriver.class.getPackage().getImplementationVersion();
+                SQLServerDriver driver = new SQLServerDriver();
+                final String version = packagedVersion == null || packagedVersion.isEmpty() ? driver.getMajorVersion()
+                        + "." + driver.getMinorVersion() : packagedVersion;
+                tracer = sdk.getTracer(SCOPE, version);
+                // Shared metrics use the one-argument API. Supply the actual driver scope version without
+                // changing its bounded schema or creating another aggregation/instrumentation implementation.
+                OpenTelemetry versioned = new OpenTelemetry() {
+                    @Override
+                    public TracerProvider getTracerProvider() {
+                        return sdk.getTracerProvider();
+                    }
+
+                    @Override
+                    public MeterProvider getMeterProvider() {
+                        return sdk.getMeterProvider();
+                    }
+
+                    @Override
+                    public Meter getMeter(String scope) {
+                        return sdk.meterBuilder(scope).setInstrumentationVersion(version).build();
+                    }
+
+                    @Override
+                    public ContextPropagators getPropagators() {
+                        return sdk.getPropagators();
+                    }
+                };
+                performanceMetrics = new PerformanceActivityMetrics(versioned, SCOPE);
             } catch (RuntimeException | LinkageError | ServiceConfigurationError e) {
                 configuration.close();
                 if (traceProvider != null) {
@@ -500,16 +541,15 @@ public final class UserEndpointTelemetryProvider implements UserOtelTelemetryPro
         }
 
         void metrics(PerformanceLogEvent event) {
-            Attributes labels = Attributes.builder().put("mssql.activity", event.getActivity().name())
-                    .put("mssql.activity.type", event.getStatementId() == 0 ? "connection" : "statement").build();
-            count.add(1, labels, Context.root());
-            duration.record(Math.max(0, event.getDurationNanos()) / 1_000_000_000.0, labels, Context.root());
-            if (event.hasException()) {
-                errors.add(1, labels, Context.root());
-            }
+            performanceMetrics.record(event, null);
         }
 
-        void traces(Tree tree, PerformanceLogEvent root) {
+        void traces(Tree tree, PerformanceLogEvent root, String maskedSql) {
+            // Both root kinds honor the captured parent's sampling decision. Never replay a partial tree or
+            // cast the sampler's non-recording spans to ReadableSpan; invalid parents remain ordinary new roots.
+            if (tree.parent.isValid() && !tree.parent.isSampled()) {
+                return;
+            }
             // Validate closure before creating any SDK spans, not after a partial replay has already escaped.
             Set<Long> available = new HashSet<>();
             available.add(root.getScopeId());
@@ -539,10 +579,13 @@ public final class UserEndpointTelemetryProvider implements UserOtelTelemetryPro
                                                                : ConnectionAttributePolicy.phase(event.getPhase());
                 }
                 Map<String, Object> metadata = event.getAttributes();
-                // This automatic route never opts into SQL capture, including masked SQL supplied by another adapter.
-                if (statement && metadata.containsKey("db.query.text")) {
+                if (metadata.containsKey("db.query.text")) {
                     metadata = new LinkedHashMap<>(metadata);
                     metadata.remove("db.query.text");
+                }
+                if (statement && isRoot && maskedSql != null) {
+                    metadata = new LinkedHashMap<>(metadata);
+                    metadata.put("db.query.text", maskedSql);
                 }
                 Attributes attributes;
                 if (statement) {
@@ -557,6 +600,9 @@ public final class UserEndpointTelemetryProvider implements UserOtelTelemetryPro
                         .setStartTimestamp(event.getStartEpochNanos(), TimeUnit.NANOSECONDS)
                         .setAllAttributes(attributes).setAttribute("mssql.activity", event.getActivity().name());
                 Span span = builder.startSpan();
+                if (isRoot) {
+                    diagnostics(span, event, statement);
+                }
                 if (event.hasException()) {
                     span.setStatus(StatusCode.ERROR);
                     span.setAttribute("mssql.error.category",
@@ -584,6 +630,36 @@ public final class UserEndpointTelemetryProvider implements UserOtelTelemetryPro
                 }
             }
             exports.offer(completed);
+        }
+
+        @SuppressWarnings("unchecked")
+        private static void diagnostics(Span span, PerformanceLogEvent root, boolean statement) {
+            // Core freezes and bounds these root-only lists. Keep synthetic inputs bounded as well, and reuse
+            // the same independent event name/value allowlists as the application-owned callback route.
+            List<Map<String, Object>> diagnostics = root.getDiagnosticEvents();
+            for (int i = Math.max(0, diagnostics.size() - 128); i < diagnostics.size(); i++) {
+                Map<String, Object> diagnostic = diagnostics.get(i);
+                if (diagnostic == null) {
+                    continue;
+                }
+                Object name = diagnostic.get("name");
+                Object timestamp = diagnostic.get("timestamp");
+                Object attributes = diagnostic.get("attributes");
+                if (name instanceof String && timestamp instanceof Long && attributes instanceof Map
+                        && (Long) timestamp >= root.getStartEpochNanos()
+                        && (Long) timestamp <= root.getEndEpochNanos()) {
+                    Map<String, Object> values = (Map<String, Object>) attributes;
+                    Attributes safe;
+                    if (statement) {
+                        safe = StatementAttributePolicy.diagnostic((String) name, values);
+                    } else {
+                        safe = ConnectionAttributePolicy.diagnostic((String) name, values);
+                    }
+                    if (safe != null) {
+                        span.addEvent((String) name, safe, (Long) timestamp, TimeUnit.NANOSECONDS);
+                    }
+                }
+            }
         }
 
         boolean flush(long deadline) {

@@ -28,6 +28,9 @@ import {
   PerformanceMetric,
   StatementFailure,
   ThroughputPoint,
+  OutcomeDistribution,
+  RetryMetric,
+  ErrorEvent,
 } from './data';
 import { emptyTelemetry, loadTelemetry } from './live';
 
@@ -275,9 +278,29 @@ function ActivityLatency({ title, subtitle, metrics, tone }: {
   );
 }
 
-function PerformanceMetricsDashboard({ performanceMetrics, throughputPoints }: {
+function EventDetails({ event }: { event: ErrorEvent }) {
+  return <><strong>{event.name}</strong><p>{event.phase} · {event.source}</p>
+    <div className="event-tags">{Object.entries(event.attributes ?? {}).map(([key, value]) => <span key={key}>{key}: {value}</span>)}</div></>;
+}
+
+function OutcomeChart({ data }: { data: OutcomeDistribution[] }) {
+  const keys = ['success', 'failure', 'timeout', 'canceled'] as const;
+  const tones = ['#117865', '#c50f1f', '#c239b3', '#5b5fc7'];
+  const max = Math.max(1, ...data.flatMap(item => keys.map(key => item[key] ?? 0)));
+  return <div className="panel metrics-latency-panel outcome-panel">
+    <div className="panel-title-row"><div><h3>Root operation outcomes</h3><p>24h count increases by actual outcome · — means not observed</p></div></div>
+    <div className="latency-bars">{data.flatMap(item => keys.map((key, index) => <div className="latency-row" key={`${item.activity}-${key}`}>
+      <span>{item.activity} · {key}</span><div className="latency-track"><i style={{ width: `${(item[key] ?? 0) / max * 100}%`, background: tones[index] }} /></div>
+      <strong>{formatNumber(item[key])}</strong>
+    </div>))}{!data.length && <p>No root outcome counts observed.</p>}</div>
+  </div>;
+}
+
+function PerformanceMetricsDashboard({ performanceMetrics, throughputPoints, outcomeDistribution, retries }: {
   performanceMetrics: PerformanceMetric[];
   throughputPoints: ThroughputPoint[];
+  outcomeDistribution: OutcomeDistribution[];
+  retries: RetryMetric[];
 }) {
   const connectionRoot = performanceMetrics.find(metric => metric.activity === 'connection.open');
   const statementRoot = performanceMetrics.find(metric => metric.activity === 'statement.execute');
@@ -303,6 +326,15 @@ function PerformanceMetricsDashboard({ performanceMetrics, throughputPoints }: {
       </section>
       <section className="charts-grid performance-bottom-grid">
         <ActivityLatency title="Statement pipeline latency" subtitle="Independent p95; nested phase durations are not added" metrics={statementStages} tone="#5b5fc7" />
+        <OutcomeChart data={outcomeDistribution} />
+      </section>
+      <section className="charts-grid performance-bottom-grid">
+        <div className="panel metrics-latency-panel retry-panel">
+          <div className="panel-title-row"><div><h3>Additional attempts begun</h3><p>Root retry counter · 24h increases, not retry decisions</p></div></div>
+          <table className="data-table"><thead><tr><th>Activity</th><th>Reason</th><th>Retries</th></tr></thead>
+            <tbody>{retries.map(item => <tr key={`${item.activity}-${item.reason}`}><td>{item.activity}</td><td>{item.reason}</td><td>{formatNumber(item.count)}</td></tr>)}</tbody></table>
+          {!retries.length && <p>No retry series observed; this does not establish zero retries.</p>}
+        </div>
         <div className="panel metric-principles-panel">
           <div className="panel-title-row"><div><h3>Metric signal contract</h3><p>Existing END boundaries and bounded dimensions</p></div></div>
           <div className="principle-list">
@@ -310,6 +342,7 @@ function PerformanceMetricsDashboard({ performanceMetrics, throughputPoints }: {
             <div><strong>OpenTelemetry SDK aggregation</strong><span>One count and duration observation per completed activity</span></div>
             <div><strong>Bounded cardinality</strong><span>No SQL, IDs, server names, exception text, or trace context</span></div>
             <div><strong>Failure diagnostics stay separate</strong><span>Only failed root traces are displayed above</span></div>
+            <div><strong>Exact maximum unavailable</strong><span>Classic histogram buckets and sums cannot recover the largest observation</span></div>
           </div>
         </div>
       </section>
@@ -320,12 +353,12 @@ function PerformanceMetricsDashboard({ performanceMetrics, throughputPoints }: {
         </div>
         <div className="data-table-wrap aggregate-table-wrap">
           <table className="data-table aggregate-table">
-            <thead><tr><th>Activity</th><th>Kind</th><th>Count</th><th>Success rate</th><th>Errors</th><th>p50</th><th>p95</th><th>p99</th><th>Max</th></tr></thead>
+            <thead><tr><th>Activity</th><th>Kind</th><th>Count</th><th>Success rate</th><th>Errors</th><th>Mean</th><th>p50</th><th>p95</th><th>p99</th><th>Max</th></tr></thead>
             <tbody>{performanceMetrics.map(metric => (
               <tr key={metric.activity}>
                 <td><code className="metric-activity">{metric.activity}</code></td><td>{metric.kind}</td><td>{formatNumber(metric.count)}</td>
                 <td>{metric.successRate === null ? '—' : `${formatNumber(metric.successRate, 3)}%`}</td><td>{formatNumber(metric.errors)}</td>
-                <td>{milliseconds(metric.p50)}</td><td><strong>{milliseconds(metric.p95)}</strong></td><td>{milliseconds(metric.p99)}</td><td title="Exact maximum is not emitted by the histogram">{milliseconds(metric.max)}</td>
+                <td title="Histogram sum / observed count; never a sum of nested phase durations">{milliseconds(metric.meanDurationMs)}</td><td>{milliseconds(metric.p50)}</td><td><strong>{milliseconds(metric.p95)}</strong></td><td>{milliseconds(metric.p99)}</td><td title="Exact maximum is not preserved by classic histogram buckets or sums">{milliseconds(metric.max)}</td>
               </tr>
             ))}</tbody>
           </table>
@@ -399,9 +432,7 @@ function DetailDrawer({ connection, onClose }: { connection: ConnectionFailure; 
                 <div className="event-card" key={`${event.name}-${index}`}>
                   <div className="event-icon"><ShieldErrorRegular /></div>
                   <div>
-                    <strong>{event.name}</strong>
-                    <p>{event.phase} · {event.source}</p>
-                    <div className="event-tags"><span>{event.code}</span><span>{event.decision}</span></div>
+                    <EventDetails event={event} />
                   </div>
                 </div>
               ))}
@@ -439,7 +470,7 @@ function StatementDetailDrawer({ statement, onClose }: { statement: StatementFai
           ))}</div>}
           {tab === 'events' && <div className="event-list">{statement.events.map((event, index) => (
             <div className="event-card" key={`${event.name}-${index}`}><div className="event-icon"><ShieldErrorRegular /></div><div>
-              <strong>{event.name}</strong><p>{event.phase} · {event.source}</p><div className="event-tags"><span>{event.code}</span><span>{event.decision}</span></div>
+              <EventDetails event={event} />
             </div></div>
           ))}</div>}
         </div>
@@ -473,7 +504,7 @@ export function App() {
     window.addEventListener('keydown', close);
     return () => window.removeEventListener('keydown', close);
   }, []);
-  const { failures, statementFailures, performanceMetrics, throughputPoints } = telemetry;
+  const { failures, statementFailures, performanceMetrics, throughputPoints, outcomeDistribution, retries } = telemetry;
   const tracesReady = Boolean(telemetry.loadedAt) && !telemetry.warnings.some(warning => warning.startsWith('Jaeger traces unavailable'));
   const [phase, setPhase] = useState('All');
   const [region, setRegion] = useState('All');
@@ -530,7 +561,7 @@ export function App() {
           </div>
           <div className="header-actions"><span className="updated" aria-live="polite">{loading ? 'Refreshing…' : `Updated ${utcTime(telemetry.loadedAt || new Date().toISOString())} UTC`}</span><Button disabled={loading} onClick={() => void refresh()} icon={<ArrowClockwiseRegular />}>Refresh</Button><Button appearance="primary" onClick={() => { void navigator.clipboard.writeText(window.location.href).then(() => setNotice('View link copied. This dashboard is local to this machine.'), () => setNotice('Could not copy the link. Copy the address from the browser.')); }}>Share view</Button></div>
         </section>
-        <details className="telemetry-note" open={telemetry.warnings.some(warning => warning.includes('unavailable')) || undefined}><summary>Live local telemetry · last 24 hours · refreshes every 30 seconds · collection limits</summary>{telemetry.warnings.map(warning => <p key={warning}>{warning}</p>)}<p>SQL text and unreported regions are not available on this telemetry route. No mock values are displayed.</p></details>
+        <details className="telemetry-note" open={telemetry.warnings.some(warning => warning.includes('unavailable')) || undefined}><summary>Live local telemetry · last 24 hours · refreshes every 30 seconds · collection limits</summary>{telemetry.warnings.map(warning => <p key={warning}>{warning}</p>)}<p>Only provider-masked root db.query.text is displayed when emitted and lexically safe. Missing SQL and regions remain unreported. No mock values are displayed.</p></details>
         {notice && <div className="telemetry-note" role="status">{notice}<Button appearance="subtle" onClick={() => setNotice('')} icon={<DismissRegular />} aria-label="Dismiss message" /></div>}
         <section className="metrics">
           <MetricCard label="Failed connections" value={tracesReady ? filtered.length.toLocaleString() : '—'} delta="Returned traces · last 24 hours" tone="#c50f1f" />
@@ -588,7 +619,7 @@ export function App() {
         </section>
         <section className="panel table-panel statement-panel">
           <div className="panel-title-row table-title-row">
-            <div><h3>Statement and prepared-statement errors</h3><p>Live driver failures. SQL text is deliberately not emitted by this telemetry route.</p></div>
+            <div><h3>Statement and prepared-statement errors</h3><p>Live driver failures. Only emitted, provider-masked root SQL is displayed.</p></div>
             <span className="period-chip">{statementFailures.length} failures</span>
           </div>
           <div className="data-table-wrap">
@@ -604,9 +635,9 @@ export function App() {
               ))}{!statementFailures.length && <tr><td colSpan={8} className="empty-state">{loading ? 'Loading statement failures…' : 'No failed statement traces returned.'}</td></tr>}</tbody>
             </table>
           </div>
-          <div className="table-footer"><span>Showing {Math.min(statementFailures.length, 40)} of {statementFailures.length} returned failures</span><span>SQL text not emitted · last 24 hours</span></div>
+          <div className="table-footer"><span>Showing {Math.min(statementFailures.length, 40)} of {statementFailures.length} returned failures</span><span>Masked root SQL only · last 24 hours</span></div>
         </section>
-        <PerformanceMetricsDashboard performanceMetrics={performanceMetrics} throughputPoints={throughputPoints} />
+        <PerformanceMetricsDashboard performanceMetrics={performanceMetrics} throughputPoints={throughputPoints} outcomeDistribution={outcomeDistribution} retries={retries} />
       </main>
       {selected && <DetailDrawer connection={selected} onClose={() => setSelected(null)} />}
       {selectedStatement && <StatementDetailDrawer statement={selectedStatement} onClose={() => setSelectedStatement(null)} />}

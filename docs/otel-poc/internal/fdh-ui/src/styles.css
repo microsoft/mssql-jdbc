@@ -1,3 +1,6 @@
+.outcome-panel .latency-row { grid-template-columns: minmax(160px, 1.4fr) 1fr 42px; }
+.retry-panel > p { margin: 16px 18px; color: #616161; font-size: 12px; }
+.event-tags { flex-wrap: wrap; overflow-wrap: anywhere; }
 :root {
   font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   color: #242424;

@@ -14,7 +14,7 @@ const originalNow = Date.now;
 afterEach(() => { globalThis.fetch = originalFetch; Date.now = originalNow; });
 
 test('preserves prepared execution metrics as distinct bounded activities', async () => {
-  mock({ counters: { STATEMENT_PREPARE: 4, STATEMENT_PREPEXEC: 8, TOKEN_REQUEST: 2, INSTANCE_DISCOVERY: 1 } });
+  mock({ counters: { 'statement.server_call.prepare': 4, 'statement.server_call.prepexec': 8, 'connection.token_request': 2, 'connection.instance_discovery': 1 } });
   const snapshot = await loadTelemetry();
   assert.deepEqual(snapshot.performanceMetrics.map(metric => metric.activity), [
     'statement.server_call.prepare', 'statement.server_call.prepexec', 'connection.token_request', 'connection.instance_discovery',
@@ -28,8 +28,9 @@ const span = (spanID, operationName, startTime, parent, values = {}, logs = []) 
   references: parent ? [{ refType: 'CHILD_OF', traceID: 'abc123', spanID: parent }] : [],
 });
 const vector = values => ({ status: 'success', data: { resultType: 'vector',
-  result: Object.entries(values).map(([mssql_activity, value]) => ({ metric: { mssql_activity }, value: [1, String(value)] })) } });
-function mock({ traces = [], counters = {}, errors = {}, quantiles = {}, series = [], fail } = {}) {
+  result: Object.entries(values).map(([activity, value]) => ({ metric: { mssql_performance_activity: activity,
+    mssql_operation_kind: activity.startsWith('connection.') ? 'connection' : 'statement', mssql_operation_outcome: 'success' }, value: [1, String(value)] })) } });
+function mock({ traces = [], counters = {}, outcomes, errors = {}, quantiles = {}, sums = {}, retries = [], series = [], fail } = {}) {
   const requests = [];
   globalThis.fetch = async (input, options) => {
     const url = new URL(input, 'http://localhost');
@@ -40,7 +41,10 @@ function mock({ traces = [], counters = {}, errors = {}, quantiles = {}, series 
     if (url.pathname === '/jaeger/api/traces') payload = { data: traces };
     else if (url.pathname.endsWith('query_range')) payload = { status: 'success', data: { resultType: 'matrix', result: series } };
     else if (query.startsWith('histogram_quantile')) payload = vector(quantiles);
-    else payload = vector(query.includes('error_count') ? errors : counters);
+    else if (query.includes('retry_count')) payload = { status: 'success', data: { result: retries } };
+    else if (query.includes('duration_seconds_sum')) payload = vector(sums);
+    else if (query.includes('error_count')) payload = vector(errors);
+    else payload = outcomes ? { status: 'success', data: { result: outcomes } } : vector(counters);
     return { ok: true, json: async () => payload };
   };
   return requests;
@@ -74,7 +78,8 @@ test('maps actual GUID, units, CHILD_OF hierarchy, ordered siblings and safe err
   assert.deepEqual(failure.spans.map(s => s.depth), [0, 1, 1, 2]);
   assert.equal(failure.spans[3].start, 0.03);
   assert.deepEqual(failure.events[0], { name: 'mssql.driver.error', phase: 'dns', source: 'jvm',
-    code: 'jdbc:R_test', decision: 'not_retryable' });
+    code: 'jdbc:R_test', decision: 'not_retryable', attributes: { 'mssql.error.phase': 'dns',
+      'mssql.error.source': 'jvm', 'mssql.error.code': 'jdbc:R_test', 'mssql.error.retry_decision': 'not_retryable' } });
   assert.ok(!JSON.stringify(snapshot).includes('SECRET'));
 });
 
@@ -105,10 +110,11 @@ test('queries bounded 24h increases and estimates; preserves missing values and 
   Date.now = () => 1795000200000;
   const end = Math.floor(Date.now() / 1000 / 300) * 300;
   const start = end - 86400;
-  const requests = mock({ counters: { CONNECTION: 20, STATEMENT_INVOCATION: 0, DNS: 8 }, errors: { CONNECTION: 2 },
-    quantiles: { CONNECTION: 0.025, DNS: 'NaN' }, series: [
-      { metric: { mssql_activity: 'CONNECTION' }, values: [[start, '2'], [start + 300, '0']] },
-      { metric: { mssql_activity: 'STATEMENT_INVOCATION' }, values: [[start + 300, '10'], [start + 600, 'NaN']] },
+  const requests = mock({ outcomes: [sample('connection.open', 18, 'success'), sample('connection.open', 2, 'failure'),
+    sample('statement.execute', 0, 'success'), sample('connection.dns', 8, 'success')], errors: { 'connection.open': 2 },
+    quantiles: { 'connection.open': 0.025, 'connection.dns': 'NaN' }, sums: { 'connection.open': 0.5 }, series: [
+      { metric: { mssql_performance_activity: 'connection.open' }, values: [[start, '2'], [start + 300, '0']] },
+      { metric: { mssql_performance_activity: 'statement.execute' }, values: [[start + 300, '10'], [start + 600, 'NaN']] },
     ] });
   const snapshot = await loadTelemetry();
   const connection = snapshot.performanceMetrics.find(m => m.activity === 'connection.open');
@@ -126,7 +132,9 @@ test('queries bounded 24h increases and estimates; preserves missing values and 
   assert.equal(snapshot.throughputPoints[1].connections, 0);
   assert.equal(snapshot.throughputPoints[1].statements, 10);
   assert.equal(snapshot.throughputPoints[2].statements, null);
-  assert.equal(requests.length, 7);
+  assert.equal(connection.totalDurationMs, 500);
+  assert.equal(connection.meanDurationMs, 25);
+  assert.equal(requests.length, 9);
   assert.equal(requests[0].url.searchParams.get('limit'), '1000');
   assert.equal(requests[0].url.searchParams.get('start'), String(start * 1e6));
   assert.ok(requests.every(r => r.options.signal instanceof AbortSignal));
@@ -138,7 +146,7 @@ test('queries bounded 24h increases and estimates; preserves missing values and 
 });
 
 test('partial HTTP failure retains other sources; all failures have nulls and no synthetic records', async () => {
-  mock({ counters: { CONNECTION: 5 }, fail: url => url.pathname.includes('jaeger') || url.searchParams.get('query')?.includes('error_count') });
+  mock({ counters: { 'connection.open': 5 }, fail: url => url.pathname.includes('jaeger') || url.searchParams.get('query')?.includes('error_count') });
   let snapshot = await loadTelemetry();
   assert.equal(snapshot.performanceMetrics[0].count, 5);
   assert.equal(snapshot.performanceMetrics[0].errors, null);
@@ -148,7 +156,7 @@ test('partial HTTP failure retains other sources; all failures have nulls and no
   assert.deepEqual(snapshot.failures, []);
   assert.deepEqual(snapshot.performanceMetrics, []);
   assert.ok(snapshot.throughputPoints.every(p => p.connections === null && p.statements === null));
-  assert.equal(snapshot.warnings.filter(w => w.includes('unavailable')).length, 7);
+  assert.equal(snapshot.warnings.filter(w => w.includes('unavailable')).length, 9);
   assert.equal(emptyTelemetry.loadedAt, '');
 });
 
@@ -161,7 +169,7 @@ test('backend errors, malformed JSON and network failures are sanitized', async 
     return { ok: true, json: async () => ({ status: 'error', error: 'SECRET query' }) };
   };
   const snapshot = await loadTelemetry();
-  assert.equal(snapshot.warnings.filter(w => w.includes('unavailable')).length, 7);
+  assert.equal(snapshot.warnings.filter(w => w.includes('unavailable')).length, 9);
   assert.ok(!JSON.stringify(snapshot).includes('SECRET'));
 });
 
@@ -175,9 +183,9 @@ test('hung requests time out and abort even when fetch ignores cancellation', as
   const pending = loadTelemetry();
   context.mock.timers.tick(10000);
   const snapshot = await pending;
-  assert.equal(signals.length, 7);
+  assert.equal(signals.length, 9);
   assert.ok(signals.every(signal => signal.aborted));
-  assert.equal(snapshot.warnings.filter(w => w.includes('unavailable')).length, 7);
+  assert.equal(snapshot.warnings.filter(w => w.includes('unavailable')).length, 9);
   assert.deepEqual(snapshot.performanceMetrics, []);
 });
 
@@ -188,5 +196,68 @@ test('backend partial-result warnings are retained without copying backend messa
   const snapshot = await loadTelemetry();
   assert.ok(snapshot.warnings.some(w => w.includes('partial results')));
   assert.ok(snapshot.warnings.some(w => w.includes('backend reported warnings')));
+  assert.ok(!JSON.stringify(snapshot).includes('SECRET'));
+});
+
+function sample(activity, value, outcome = 'success', extra = {}) {
+  return { metric: { mssql_performance_activity: activity,
+    mssql_operation_kind: activity.startsWith('connection.') ? 'connection' : 'statement',
+    mssql_operation_outcome: outcome, ...extra }, value: [1, String(value)] };
+}
+
+test('outcomes come from count labels, not absent errors; retries stay independent and root-only', async () => {
+  const requests = mock({ outcomes: [sample('connection.open', 8), sample('connection.open', 1, 'timeout'),
+    sample('connection.open', 1, 'canceled'), sample('statement.execute', 2, 'failure'),
+    sample('statement.server_call.execute', 6), sample('connection.prelogin_legacy', 3),
+    sample('connection.open', 999, 'invented'), sample('CUSTOMER SQL', 1)],
+    retries: [sample('connection.open', 2, undefined, { mssql_retry_reason: 'redirect' }),
+      sample('statement.execute', 1, undefined, { mssql_retry_reason: 'configurable_retry' }),
+      sample('statement.attempt', 100, undefined, { mssql_retry_reason: 'retry' })] });
+  const snapshot = await loadTelemetry();
+  assert.equal(snapshot.performanceMetrics.find(m => m.activity === 'connection.open').successRate, 80);
+  assert.equal(snapshot.performanceMetrics.find(m => m.activity === 'connection.open').errors, null);
+  assert.equal(snapshot.performanceMetrics.find(m => m.activity === 'statement.execute').successRate, null);
+  assert.equal(snapshot.performanceMetrics.length, 4);
+  assert.deepEqual(snapshot.outcomeDistribution.find(m => m.activity === 'connection.open'), {
+    activity: 'connection.open', success: 8, failure: null, timeout: 1, canceled: 1,
+  });
+  assert.equal(snapshot.retries.length, 2);
+  assert.equal(snapshot.retries[0].reason, 'redirect');
+  const queries = requests.map(r => r.url.searchParams.get('query')).filter(Boolean);
+  assert.ok(queries.every(q => !/mssql_activity\b|mssql_activity_type|CONNECTION\|/.test(q)));
+  assert.match(queries.find(q => q.includes('count_total') && q.includes('increase')), /mssql_operation_outcome/);
+  assert.match(queries.find(q => q.includes('duration_seconds_sum')), /sum by \(mssql_performance_activity, mssql_operation_kind\)/);
+  assert.match(queries.find(q => q.includes('retry_count')), /mssql_retry_reason/);
+});
+
+test('only emitted root masked SQL is shown, never resource/child SQL or unmasked lexical input', async () => {
+  const time = 1795000000000000;
+  const masked = 'SELECT [col2], "id" FROM dbo.t WHERE label = ? AND id = ?';
+  const invalid = ["SELECT 'SECRET'", 'SELECT 123', 'SELECT 0xDEAD', 'SELECT .25e2', 'SELECT ? -- SECRET',
+    'SELECT /* SECRET */ ?', 'SELECT [unclosed', 'SELECT "unclosed', 'x'.repeat(4097), 'SELECT ?\u0000'];
+  mock({ traces: [{ spans: [
+    span('safe', 'statement.execute', time, null, { error: true, 'db.query.text': masked }),
+    span('child', 'statement.server_call', time, 'safe', { 'db.query.text': 'SECRET CHILD' }),
+    span('resource', 'statement.execute_batch', time, null, { error: true }),
+    ...invalid.map((sql, i) => span(String(i), 'statement.execute', time, null, { error: true, 'db.query.text': sql })),
+  ], processes: { p1: { tags: tagged({ 'db.query.text': 'SECRET RESOURCE' }) } } }] });
+  const snapshot = await loadTelemetry();
+  assert.equal(snapshot.statementFailures.length, invalid.length + 2);
+  assert.equal(snapshot.statementFailures[0].maskedSql, masked);
+  assert.ok(snapshot.statementFailures.slice(1).every(s => s.maskedSql === 'Not emitted'));
+  assert.ok(!JSON.stringify(snapshot).includes('SECRET'));
+});
+
+test('actual retry, timeout, redirect and authentication diagnostics retain bounded structured details', async () => {
+  const names = ['mssql.driver.statement.retry_decision', 'mssql.driver.timeout', 'mssql.driver.redirect',
+    'mssql.driver.authentication', 'mssql.driver.connection.retry_decision', 'mssql.driver.retry'];
+  mock({ traces: [{ spans: [span('r', 'statement.execute', 1795000000000000, null, { error: true },
+    [...names, 'mssql.driver.arbitrary'].map(event => ({ timestamp: 1, fields: tagged({ event,
+      'mssql.retry.delay': 0.5, 'mssql.timeout.kind': 'query', 'mssql.statement.attempt': 2,
+      'mssql.error.retry_decision': 'retry_scheduled', 'exception.message': 'SECRET',
+    }) }))) ] }] });
+  const snapshot = await loadTelemetry();
+  assert.deepEqual(snapshot.statementFailures[0].events.map(e => e.name), names);
+  assert.equal(snapshot.statementFailures[0].events[0].attributes['mssql.retry.delay'], '0.5');
   assert.ok(!JSON.stringify(snapshot).includes('SECRET'));
 });

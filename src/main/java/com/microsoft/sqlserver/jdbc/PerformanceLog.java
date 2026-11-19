@@ -5,11 +5,14 @@
 
 package com.microsoft.sqlserver.jdbc;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.ServiceConfigurationError;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 
 class PerformanceLog {
 
@@ -55,7 +58,8 @@ class PerformanceLog {
      * time and remains fixed for the lifetime of this callback. To change the duration unit,
      * unregister and re-register with the new setting.
      *
-     * @param cb The callback to register.
+     * @param cb
+     *        The callback to register.
      */
     public static synchronized void registerCallback(PerformanceLogCallback cb) {
         if (registration != null) {
@@ -85,6 +89,8 @@ class PerformanceLog {
         private final PerformanceLogCallback userOtelCallback;
         private final ConnectionPerformanceState.Node lifecycle;
         private final StatementPerformanceState.Node statementLifecycle;
+        private String begunRetryReason;
+        private boolean mixedRetryReasons;
         private boolean closed;
 
         private Exception exception;
@@ -107,8 +113,8 @@ class PerformanceLog {
         }
 
         // Constructor for statement-level activities
-        public Scope(Logger logger, SQLServerConnection con, int statementId,
-                     SQLServerStatement stmt, String userSql, PerformanceActivity activity) {
+        public Scope(Logger logger, SQLServerConnection con, int statementId, SQLServerStatement stmt, String userSql,
+                PerformanceActivity activity) {
             this(logger, con, statementId, stmt, userSql, activity, true);
         }
 
@@ -154,6 +160,9 @@ class PerformanceLog {
                                                                                 : null;
             if (lifecycle != null) {
                 lifecycle.scope = this;
+                if (activity == PerformanceActivity.CONNECTION_ATTEMPT && lifecycle.root.attemptCount > 1) {
+                    lifecycle.root.scope.recordBegunRetry(lifecycle.attributes.get("mssql.connection.attempt_reason"));
+                }
                 boolean started = false;
                 try {
                     notifyLifecycle(false);
@@ -167,6 +176,10 @@ class PerformanceLog {
             }
             if (statementLifecycle != null) {
                 statementLifecycle.scope = this;
+                if (activity == PerformanceActivity.STATEMENT_ATTEMPT && statementLifecycle.root.attemptCount > 1) {
+                    statementLifecycle.root.scope
+                            .recordBegunRetry(statementLifecycle.attributes.get("mssql.statement.attempt_reason"));
+                }
                 boolean started = false;
                 try {
                     notifyStatementLifecycle(false);
@@ -194,6 +207,9 @@ class PerformanceLog {
 
         private void notifyLifecycle(boolean end) {
             PerformanceLogEvent event = lifecycle.event(end);
+            if (end) {
+                event = endMetadata(event, lifecycle.root.attributes, "mssql.authentication.method");
+            }
             publishLifecycle(lifecycleCallback, event);
             publishLifecycle(userOtelCallback, event);
         }
@@ -205,11 +221,79 @@ class PerformanceLog {
                 currentUserSql.set(userSql);
                 currentStatementType.set(deriveStatementType(stmtHandle));
                 PerformanceLogEvent event = statementLifecycle.event(end);
+                if (end) {
+                    event = endMetadata(event, statementLifecycle.root.attributes, "mssql.statement.type");
+                }
                 publishLifecycle(lifecycleCallback, event);
                 publishLifecycle(userOtelCallback, event);
             } finally {
                 currentUserSql.remove();
                 currentStatementType.remove();
+            }
+        }
+
+        private void recordBegunRetry(Object reason) {
+            // Read only the driver's closed attempt-reason registries, never a scheduled next-attempt value.
+            boolean approved = lifecycle != null ? "retry".equals(reason) || "redirect".equals(reason)
+                    || "failover".equals(reason)
+                                                 : "configurable_retry".equals(reason)
+                                                         || "invalid_handle_retry".equals(reason)
+                                                         || "enclave_retry".equals(reason);
+            if (!approved) {
+                mixedRetryReasons = true;
+            } else if (begunRetryReason == null) {
+                begunRetryReason = (String) reason;
+            } else if (!begunRetryReason.equals(reason)) {
+                mixedRetryReasons = true;
+            }
+        }
+
+        private PerformanceLogEvent endMetadata(PerformanceLogEvent event, Map<String, Object> rootAttributes,
+                String inheritedKey) {
+            Object inherited = rootAttributes.get(inheritedKey);
+            if (!approvedInheritedValue(inherited, lifecycle != null)) {
+                inherited = null;
+            }
+            boolean retry = event.getParentScopeId() == 0 && begunRetryReason != null && !mixedRetryReasons;
+            if ((inherited == null || inherited.equals(event.getAttributes().get(inheritedKey))) && !retry) {
+                return event;
+            }
+            Map<String, Object> attributes = new LinkedHashMap<>(event.getAttributes());
+            if (inherited != null) {
+                attributes.put(inheritedKey, inherited);
+            }
+            if (retry) {
+                attributes.put("mssql.retry.reason", begunRetryReason);
+            }
+            return event.withAttributes(attributes);
+        }
+
+        private static boolean approvedInheritedValue(Object value, boolean connection) {
+            if (!(value instanceof String)) {
+                return false;
+            }
+            if (!connection) {
+                return "statement".equals(value) || "prepared_statement".equals(value)
+                        || "callable_statement".equals(value);
+            }
+            switch ((String) value) {
+                case "sql_password":
+                case "integrated_native":
+                case "integrated_kerberos":
+                case "integrated_ntlm":
+                case "entra_password":
+                case "entra_integrated":
+                case "managed_identity":
+                case "service_principal_secret":
+                case "service_principal_certificate":
+                case "interactive":
+                case "default_credential":
+                case "access_token":
+                case "access_token_callback":
+                case "unknown":
+                    return true;
+                default:
+                    return false;
             }
         }
 
@@ -242,14 +326,15 @@ class PerformanceLog {
 
         @Override
         public void close() {
-                if (closed || (lifecycle != null && !lifecycle.isOwner())
+            if (closed || (lifecycle != null && !lifecycle.isOwner())
                     || (statementLifecycle != null && !statementLifecycle.isOwner())) {
                 return;
             }
             closed = true;
             // Capture legacy elapsed time before callbacks, preserving its close-time measurement.
-            long duration = enabled
-                    ? (useNanos ? System.nanoTime() - startTime : System.currentTimeMillis() - startTime) : 0;
+            long duration = enabled ? (useNanos ? System.nanoTime() - startTime
+                                                : System.currentTimeMillis() - startTime)
+                                    : 0;
             try {
                 if (lifecycle != null) {
                     notifyLifecycle(true);
@@ -306,7 +391,8 @@ class PerformanceLog {
             if (logger != null && logger.isLoggable(Level.FINE)) {
                 String unit = useNanos ? "ns" : "ms";
                 if (exception != null && statementId != 0) {
-                    logger.fine(String.format("%s %s, duration: %d%s, exception: %s", getTraceId(), activity, duration, unit, exception.getMessage()));
+                    logger.fine(String.format("%s %s, duration: %d%s, exception: %s", getTraceId(), activity, duration,
+                            unit, exception.getMessage()));
                 } else {
                     logger.fine(String.format("%s %s, duration: %d%s", getTraceId(), activity, duration, unit));
                 }
@@ -416,8 +502,8 @@ class PerformanceLog {
         return new Scope(logger, con, activity);
     }
 
-    public static Scope createScope(Logger logger, SQLServerConnection con, int statementId,
-                                    SQLServerStatement stmt, String userSql, PerformanceActivity activity) {
+    public static Scope createScope(Logger logger, SQLServerConnection con, int statementId, SQLServerStatement stmt,
+            String userSql, PerformanceActivity activity) {
         return new Scope(logger, con, statementId, stmt, userSql, activity);
     }
 

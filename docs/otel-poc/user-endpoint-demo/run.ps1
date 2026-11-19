@@ -265,8 +265,8 @@ function Test-SpanError($Span) {
 }
 
 function Get-RootMetric([string] $Family, [string] $Activity) {
-    $kind = if ($Activity -eq 'CONNECTION') { 'connection' } else { 'statement' }
-    $query = "sum(${Family}{job=`"jdbc-user-endpoint`",mssql_activity=`"$Activity`",mssql_activity_type=`"$kind`"})"
+    $kind = if ($Activity -eq 'connection.open') { 'connection' } else { 'statement' }
+    $query = "sum(${Family}{job=`"jdbc-user-endpoint`",mssql_performance_activity=`"$Activity`",mssql_operation_kind=`"$kind`"})"
     $response = Get-LocalJson ('http://127.0.0.1:9090/api/v1/query?query=' + [uri]::EscapeDataString($query))
     if ($response.status -ne 'success' -or @($response.data.result).Count -ne 1) { throw 'Root metric not observed.' }
     $value = [double]::Parse([string]$response.data.result[0].value[1], [Globalization.CultureInfo]::InvariantCulture)
@@ -274,16 +274,96 @@ function Get-RootMetric([string] $Family, [string] $Activity) {
     return $value
 }
 
-function Assert-Evidence {
-    Assert-Health
-    $exposition = (Invoke-WebRequest 'http://127.0.0.1:8889/metrics' -TimeoutSec 5 -NoProxy).Content
+function Assert-MetricSchema([string] $Exposition) {
+    # Pure exposition validation: never query SQL/Docker or echo metric values on failure.
+    $activities = @('connection.open', 'connection.prelogin_legacy', 'connection.configuration',
+        'connection.attempt', 'connection.instance_discovery', 'connection.dns', 'connection.socket_connect',
+        'connection.tls', 'connection.login', 'connection.token_request', 'connection.initialize', 'connection.redirect',
+        'statement.execute', 'statement.attempt', 'statement.request_build', 'statement.first_response',
+        'statement.server_call.prepare', 'statement.server_call.prepexec', 'statement.server_call.execute')
+    $protocols = @('direct_sql', 'direct_sql_batch', 'sp_executesql', 'sp_prepexec', 'sp_prepare', 'sp_execute',
+        'prepared_batch', 'cursor_open', 'cursor_prepexec', 'cursor_execute', 'bulk_copy', 'not_applicable')
+    $authMethods = @('sql_password', 'entra_password', 'entra_integrated', 'managed_identity',
+        'service_principal_secret', 'service_principal_certificate', 'interactive', 'default_credential',
+        'access_token_callback', 'access_token', 'integrated_kerberos', 'integrated_ntlm', 'integrated_native',
+        'unknown', 'not_recorded')
+    $driverLabels = @('mssql_performance_activity', 'mssql_operation_kind', 'mssql_operation_outcome',
+        'mssql_statement_type', 'mssql_statement_protocol_operation', 'mssql_connection_auth_method',
+        'mssql_retry_reason', 'mssql_telemetry_schema_version')
+    $boundaries = @(0.0001, 0.00025, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1,
+        0.25, 0.5, 1, 2.5, 5, 10, 30, [double]::PositiveInfinity)
     foreach ($family in @('db_client_operation_count_total', 'db_client_operation_error_count_total',
         'db_client_operation_duration_seconds_bucket', 'db_client_operation_duration_seconds_sum',
         'db_client_operation_duration_seconds_count')) {
-        if ($exposition -notmatch "(?m)^$family\{") { throw 'Expected translated JDBC metric family is missing.' }
+        if ($Exposition -notmatch "(?m)^$family\{") { throw 'Expected translated JDBC metric family is missing.' }
     }
+    $bucketSets = @{}
+    $retryObserved = $false
+    foreach ($line in ($Exposition -split '\r?\n')) {
+        if ($line -notmatch '^(db_client_operation_(?:count_total|error_count_total|retry_count_total|duration_seconds_(?:bucket|sum|count)))\{([^}]*)\}\s') { continue }
+        $family = $Matches[1]; $rawLabels = $Matches[2]
+        $labels = @{}
+        $pairs = [regex]::Matches($rawLabels, '(?:^|,)([a-zA-Z_][a-zA-Z0-9_]*)="((?:\\.|[^"\\])*)"')
+        if (($pairs | ForEach-Object { $_.Value }) -join '' -cne $rawLabels) { throw 'Invalid metric labels.' }
+        foreach ($pair in $pairs) {
+            $key = $pair.Groups[1].Value
+            if ($labels.ContainsKey($key)) { throw 'Duplicate metric dimension.' }
+            $labels[$key] = $pair.Groups[2].Value
+            # Resource/exporter labels are pipeline-owned; only driver dimensions are projected here.
+            if (($key.StartsWith('mssql_') -and $key -cnotin $driverLabels) -or
+                $key -cmatch '^(db_|error_|exception_|trace_|span_)') { throw 'Forbidden metric dimension.' }
+        }
+        $activity = $labels['mssql_performance_activity']; $kind = $labels['mssql_operation_kind']
+        if ($activity -cnotin $activities -or $labels['mssql_telemetry_schema_version'] -cne '1.0' -or
+            $kind -cne $(if ($activity.StartsWith('connection.')) { 'connection' } else { 'statement' })) {
+            throw 'Invalid metric activity, kind or schema version.'
+        }
+        $withOutcome = $family -eq 'db_client_operation_count_total' -or $family.StartsWith('db_client_operation_duration_')
+        if (($withOutcome -and $labels['mssql_operation_outcome'] -cnotin @('success', 'failure', 'timeout', 'canceled')) -or
+            (!$withOutcome -and $labels.ContainsKey('mssql_operation_outcome'))) { throw 'Invalid metric outcome placement.' }
+        if ($kind -eq 'statement') {
+            if ($labels['mssql_statement_type'] -cnotin @('statement', 'prepared_statement', 'callable_statement', 'not_applicable') -or
+                $labels.ContainsKey('mssql_connection_auth_method')) { throw 'Invalid statement dimensions.' }
+        } elseif ($labels['mssql_connection_auth_method'] -cnotin $authMethods -or $labels.ContainsKey('mssql_statement_type')) {
+            throw 'Invalid connection dimensions.'
+        }
+        $serverCall = $activity.StartsWith('statement.server_call.')
+        if (($serverCall -and $labels['mssql_statement_protocol_operation'] -cnotin $protocols) -or
+            (!$serverCall -and $labels.ContainsKey('mssql_statement_protocol_operation'))) { throw 'Invalid protocol dimension placement.' }
+        if ($family -eq 'db_client_operation_retry_count_total') {
+            $retryObserved = $true
+            if ($activity -cnotin @('connection.open', 'statement.execute') -or
+                $labels['mssql_retry_reason'] -cnotin @('retry', 'redirect', 'failover', 'configurable_retry',
+                    'invalid_handle_retry', 'enclave_retry', 'not_applicable')) { throw 'Invalid retry dimensions.' }
+        } elseif ($labels.ContainsKey('mssql_retry_reason')) { throw 'Retry reason on non-retry metric.' }
+        if ($family.EndsWith('_bucket')) {
+            $le = $labels['le']
+            $boundary = if ($le -ceq '+Inf') { [double]::PositiveInfinity } else {
+                [double]::Parse($le, [Globalization.CultureInfo]::InvariantCulture)
+            }
+            if ($boundary -notin $boundaries) { throw 'Duration histogram does not use the specified bucket advice.' }
+            $identity = ($labels.Keys | Where-Object { $_ -ne 'le' } | Sort-Object | ForEach-Object { "$_=$($labels[$_])" }) -join ','
+            if (!$bucketSets.ContainsKey($identity)) { $bucketSets[$identity] = [Collections.Generic.HashSet[double]]::new() }
+            if (!$bucketSets[$identity].Add($boundary)) { throw 'Duplicate histogram boundary.' }
+        } elseif ($labels.ContainsKey('le')) { throw 'Histogram boundary on a non-bucket metric.' }
+    }
+    foreach ($set in $bucketSets.Values) {
+        if ($set.Count -ne $boundaries.Count) { throw 'Incomplete duration histogram bucket advice.' }
+    }
+    # OTel sums are lazy: an instrument with no observations may have no family/sample at all.
+    # This workload has no controlled retry; check family existence explicitly, not positivity.
+    $retryFamily = $Exposition -match '(?m)^(?:# (?:HELP|TYPE) )?db_client_operation_retry_count_total(?:\{|\s)'
+    Write-Host $(if ($retryObserved) { 'Retry family observed; dimensions verified (zero is valid).' }
+        elseif ($retryFamily) { 'Retry family declared; no retry samples observed.' }
+        else { 'Retry family not observed; no retry scenario exercised (not proof of zero).' })
+}
+
+function Assert-Evidence {
+    Assert-Health
+    $exposition = (Invoke-WebRequest 'http://127.0.0.1:8889/metrics' -TimeoutSec 5 -NoProxy).Content
+    Assert-MetricSchema $exposition
     $counts = @{}
-    foreach ($activity in @('CONNECTION', 'STATEMENT_INVOCATION')) {
+    foreach ($activity in @('connection.open', 'statement.execute')) {
         $counts[$activity] = Get-RootMetric 'db_client_operation_count_total' $activity
         $null = Get-RootMetric 'db_client_operation_error_count_total' $activity
     }
@@ -327,7 +407,7 @@ function Assert-Evidence {
         if ($found.Count -eq 0) { throw 'Controlled connection error phase/origin evidence is missing.' }
     }
     Write-Host ("Verified fresh roots: {0}; observed cumulative connection/statement counters: {1}/{2}" -f
-        $roots.Count, $counts.CONNECTION, $counts.STATEMENT_INVOCATION)
+        $roots.Count, $counts['connection.open'], $counts['statement.execute'])
     Write-Host ('Safe root trace IDs: ' + (($roots | Select-Object -ExpandProperty traceID -Unique) -join ', '))
 }
 

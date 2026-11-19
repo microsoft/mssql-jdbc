@@ -6,6 +6,15 @@ Prometheus/Jaeger → live diagnostics dashboard**, with Grafana as an additiona
 No cloud account, Azure service, existing database, application callback, or Java
 agent is needed. It uses packaged driver JARs built from this checkout.
 
+The authoritative designs are the [connection error/span contract](../../mssql-jdbc-connection-error-category-mapping.md),
+[performance activity metrics proposal](../../mssql-jdbc-performance-activity-metrics-proposal.md),
+and [statement spans proposal](../../mssql-jdbc-statement-spans-proposal.md).
+The [feature reference](../../user-otel-endpoint.md) describes the current
+in-progress implementation and reconciles remaining differences: automatic
+`otelEndpoint` selection owns a private SDK/transport, not the proposals'
+application-owned SDK configuration. A successful demo does not certify every
+proposal acceptance criterion.
+
 ## Let an agent run it
 
 Open this branch in VS Code with GitHub Copilot Agent mode. Invoke
@@ -92,7 +101,48 @@ The live dashboard refreshes every 30 seconds; select a failure row to open
 ephemeral stack, so a 24-hour query only includes retained data. Metric counter
 increases need two scrapes and omit the first observed value; histogram percentiles
 and five-minute throughput rates are estimates. Missing observations remain `—`.
-SQL text, exact maxima, and unreported regions are not fabricated.
+Masked SQL is displayed only from emitted statement-root `db.query.text` after a
+fail-closed lexical check; absent/rejected text stays unavailable. Raw SQL is never
+queued or displayed. Masking preserves query shape and may retain identifiers, so
+review screenshots before sharing. Exact maximum duration remains unavailable:
+classic Prometheus histogram buckets/sums do not retain it. Region appears only
+when emitted, never inferred or fabricated.
+
+## Current signal contract
+
+- Four instruments: `db.client.operation.count`, `.duration`, `.error.count`, and
+  `.retry.count`. The provider shares the bounded projection in
+  [PerformanceActivityMetrics](../../../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/PerformanceActivityMetrics.java).
+  Counts/durations cover supported lifecycle END events, including successes;
+  root retries count additional attempts actually begun, not retry decisions.
+- Metric identities use `mssql.performance.activity` with dotted values such as
+  `connection.open`, `statement.execute`, and `statement.first_response`, plus
+  `mssql.operation.kind` and schema version `1.0`. Count/duration include outcome;
+  error/retry counters omit outcome. Bounded statement type, server-call protocol,
+  connection authentication method, and retry reason apply as specified in the
+  feature reference. Missing error/retry series are not zero; the baseline does
+  not force retries.
+- **Dashboard/alert migration:** old `mssql_activity` / `mssql_activity_type`
+  labels and raw enum values must be replaced with `mssql_performance_activity` /
+  `mssql_operation_kind` and dotted activity values. Outcome translates to
+  `mssql_operation_outcome`. The [Grafana queries](grafana/dashboards/jdbc-user-endpoint.json)
+  and [live adapter](../internal/fdh-ui/src/live.ts) use the new schema, outcome
+  distributions, root retry breakdowns, and per-activity means/percentiles. Never
+  sum nested phase durations or treat `statement.first_response` as root latency;
+  with full buffering it can include the complete response.
+- Duration is recorded in seconds with 17 explicit boundary advice values from
+  `0.0001` through `30` seconds. Meter/tracer scope is `com.microsoft.sqlserver.jdbc`
+  with core package implementation version (fallback: driver major/minor).
+  The private resource is `service.name=mssql-jdbc`, with a 60-second metric reader.
+- Trace levels/strict root-duration thresholds still apply. The private
+  `parentBased(alwaysOn())` sampler also suppresses a whole tree under a valid
+  unsampled parent; eligible metric observations remain. No valid parent means
+  eligible roots are sampled, not that an application's custom sampler is called.
+- Approved root-only masked SQL is captured synchronously at statement END;
+  the bounded lexical sanitizer removes comments and replaces literals with `?`.
+  Root diagnostics replay only approved names/values within root timestamps, at
+  most 128 entries; error-origin events remain on their originating spans. Only
+  diagnostics actually captured by the executed path are expected.
 
 ## Repeat, verify, and clean up
 
@@ -135,6 +185,11 @@ existing Chromium/Edge installation (`BROWSER_PATH` on non-default systems), and
 the running demo. It exercises both failure drawers, all tabs, search, refresh,
 metrics, and browser runtime errors. A skipped browser test is not a pass. It
 saves a screenshot to the OS temporary directory, not the checkout.
+
+Deterministic adapter/browser fixtures exercise masked SQL display rather than
+assuming all SQL is unavailable; they must still reject raw/child/resource SQL
+and leave exact maxima and unreported regions unavailable. Fixture checks are not
+evidence of live SQL ingestion or exhaustive privacy/acceptance coverage.
 
 The older [manual runbook](../../user-otel-endpoint-demo.md) remains useful for
 signal-contract details and exploratory level/threshold scenarios. Prefer this

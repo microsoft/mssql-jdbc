@@ -18,6 +18,9 @@ import java.util.Map;
  * it is not sanitized, is not deep-copied, and must not be serialized or recorded as a raw telemetry exception.
  */
 public final class PerformanceLogEvent {
+    private static final List<Map<String, Object>> EMPTY_DIAGNOSTICS = Collections
+            .unmodifiableList(new ArrayList<Map<String, Object>>(0));
+
     /** Lifecycle boundary reported by this snapshot. */
     public enum Type {
         /** The activity has started. */
@@ -57,10 +60,10 @@ public final class PerformanceLogEvent {
             Exception exception, String failurePhase, Map<String, Object> attributes,
             Map<String, Object> errorAttributes, List<Map<String, Object>> diagnosticEvents) {
         this(type, scopeId, parentScopeId, rootScopeId, connectionId, 0, activity, startEpochNanos, endEpochNanos,
-            durationNanos, exception, failurePhase, attributes, errorAttributes, diagnosticEvents);
-        }
+                durationNanos, exception, failurePhase, attributes, errorAttributes, diagnosticEvents);
+    }
 
-        PerformanceLogEvent(Type type, long scopeId, long parentScopeId, long rootScopeId, int connectionId,
+    PerformanceLogEvent(Type type, long scopeId, long parentScopeId, long rootScopeId, int connectionId,
             int statementId, PerformanceActivity activity, long startEpochNanos, long endEpochNanos, long durationNanos,
             Exception exception, String failurePhase, Map<String, Object> attributes,
             Map<String, Object> errorAttributes, List<Map<String, Object>> diagnosticEvents) {
@@ -81,8 +84,21 @@ public final class PerformanceLogEvent {
         this.failurePhase = failurePhase;
         this.attributes = Collections.unmodifiableMap(new LinkedHashMap<>(attributes));
         this.errorAttributes = Collections.unmodifiableMap(new LinkedHashMap<>(errorAttributes));
-        // Entries and their nested attribute maps are already immutable driver-owned snapshots.
-        this.diagnosticEvents = Collections.unmodifiableList(new ArrayList<>(diagnosticEvents));
+        // Freeze both map levels once, before asynchronous projections share this bounded decision list.
+        if (diagnosticEvents.isEmpty()) {
+            this.diagnosticEvents = EMPTY_DIAGNOSTICS;
+        } else {
+            List<Map<String, Object>> decisions = new ArrayList<>(diagnosticEvents.size());
+            for (Map<String, Object> diagnostic : diagnosticEvents) {
+                Map<String, Object> decision = new LinkedHashMap<>(diagnostic);
+                Object values = decision.get("attributes");
+                if (values instanceof Map<?, ?>) {
+                    decision.put("attributes", Collections.unmodifiableMap(new LinkedHashMap<>((Map<?, ?>) values)));
+                }
+                decisions.add(Collections.unmodifiableMap(decision));
+            }
+            this.diagnosticEvents = Collections.unmodifiableList(decisions);
+        }
     }
 
     private PerformanceLogEvent(PerformanceLogEvent source) {
@@ -140,7 +156,8 @@ public final class PerformanceLogEvent {
      * Returns a snapshot enriched with already-masked bounded SQL. This method never accepts raw or oversized text;
      * callers remain responsible for fail-closed lexical masking before invoking it.
      *
-     * @param value masked SQL, at most 4,096 characters
+     * @param value
+     *        masked SQL, at most 4,096 characters
      * @return enriched immutable snapshot
      */
     public PerformanceLogEvent withMaskedQueryText(String value) {
@@ -150,6 +167,11 @@ public final class PerformanceLogEvent {
         Map<String, Object> safe = new LinkedHashMap<>(attributes);
         safe.put("db.query.text", value);
         return new PerformanceLogEvent(this, safe);
+    }
+
+    // Core-only projection: preserve boundary, error provenance and diagnostics while inheriting safe metadata.
+    PerformanceLogEvent withAttributes(Map<String, Object> values) {
+        return new PerformanceLogEvent(this, new LinkedHashMap<>(values));
     }
 
     /** @return whether an exception was captured, including when its reference was removed by projection */
@@ -233,12 +255,14 @@ public final class PerformanceLogEvent {
     }
 
     /**
-     * Returns bounded, sanitized decision events on the CONNECTION END snapshot only. Each immutable map contains
+     * Returns bounded, sanitized decision events on connection and statement root END snapshots only. Each immutable map contains
      * {@code name} (String), {@code timestamp} (Long, epoch nanoseconds derived from the root's monotonic clock), and
      * {@code attributes} (immutable Map of String keys to approved scalar values). Names are
      * {@code mssql.driver.retry}, {@code mssql.driver.connection.retry_decision}, {@code mssql.driver.redirect},
-     * {@code mssql.driver.timeout}, and {@code mssql.driver.authentication}. At most 128 events are retained; omitted
-     * events are counted in {@code mssql.connection.diagnostic_events_dropped} on the root. Events contain no raw
+     * {@code mssql.driver.timeout}, {@code mssql.driver.authentication}, and
+     * {@code mssql.driver.statement.retry_decision}. Connection roots retain at most 128 events; omitted connection
+     * events are counted in {@code mssql.connection.diagnostic_events_dropped}. Statement roots retain at most 64
+     * events, without a dropped-event counter. Events contain no raw
      * exceptions, messages, endpoints, tokens, callback class names or credential values. A retry decision does not
      * imply that another attempt started, or authorize statement/transaction replay.
      *

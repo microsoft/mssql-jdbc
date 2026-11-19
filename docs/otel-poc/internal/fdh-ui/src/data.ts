@@ -15,6 +15,7 @@ export type ErrorEvent = {
   source: string;
   code: string;
   decision: string;
+  attributes?: Record<string, string>;
 };
 
 export type ConnectionFailure = {
@@ -59,7 +60,19 @@ export type PerformanceMetric = {
   p95: number | null;
   p99: number | null;
   max: number | null;
+  totalDurationMs?: number | null;
+  meanDurationMs?: number | null;
 };
+
+export type OutcomeDistribution = {
+  activity: string;
+  success: number | null;
+  failure: number | null;
+  timeout: number | null;
+  canceled: number | null;
+};
+
+export type RetryMetric = { activity: string; reason: string; count: number | null };
 
 export type ThroughputPoint = {
   label: string;
