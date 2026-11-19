@@ -138,7 +138,9 @@ public enum PerformanceActivity {
     /** One JDBC execute invocation, including internal retries. */
     STATEMENT_INVOCATION("Statement invocation"),
     /** One initial or internally retried execution attempt. */
-    STATEMENT_ATTEMPT("Statement attempt");
+    STATEMENT_ATTEMPT("Statement attempt"),
+    /** Aggregate server call phase used when the protocol operation is not one of prepare/prepexec/execute. */
+    STATEMENT_SERVER_CALL("Statement server call");
 
     private final String activity;
 
@@ -189,6 +191,8 @@ public enum PerformanceActivity {
                 return "statement.execute";
             case STATEMENT_ATTEMPT:
                 return "attempt";
+            case STATEMENT_SERVER_CALL:
+                return "server_call";
             case STATEMENT_REQUEST_BUILD:
                 return "request_build";
             case STATEMENT_FIRST_SERVER_RESPONSE:
@@ -204,7 +208,7 @@ public enum PerformanceActivity {
 
     boolean isLifecycleOnly() {
         return (this != CONNECTION && this != PRELOGIN && connectionPhase() != null)
-                || this == STATEMENT_INVOCATION || this == STATEMENT_ATTEMPT;
+                || this == STATEMENT_INVOCATION || this == STATEMENT_ATTEMPT || this == STATEMENT_SERVER_CALL;
     }
 
     @Override

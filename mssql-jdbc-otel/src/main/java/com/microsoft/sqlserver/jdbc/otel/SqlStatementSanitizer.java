@@ -63,8 +63,9 @@ final class SqlStatementSanitizer {
                 }
                 i = end;
             } else if (current == '"') {
+                appendMask(output);
                 int end = skipQuoted(sql, i, '"');
-                if (end < 0 || !appendBounded(output, sql, i, end)) {
+                if (end < 0) {
                     return null;
                 }
                 i = end;
