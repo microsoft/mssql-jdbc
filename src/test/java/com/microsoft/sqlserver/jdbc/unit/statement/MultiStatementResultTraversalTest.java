@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -4319,6 +4320,516 @@ abstract class MultiStatementResultTraversalTestBase extends AbstractTest {
                     assertEquals(Statement.EXECUTE_FAILED, counts[1],
                             "second INSERT (PK violation) must report EXECUTE_FAILED");
                 } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+    }
+
+    // =========================================================================================
+    //  Section 10.B — executeBatch() with single statements affecting multiple rows
+    // =========================================================================================
+
+    /**
+     * Customer-reported {@code prepareMethod=none} scenarios: a non-compound
+     * {@code PreparedStatement} batch entry that affects a row count other than 1 must report that
+     * row count, not 1.
+     */
+    @Nested
+    public class ExecuteBatchMultiRowStatements {
+
+        private void seedRows(Statement stmt, String table, int rows) throws SQLException {
+            StringBuilder sql = new StringBuilder("INSERT INTO ").append(table).append(" VALUES ");
+            for (int i = 1; i <= rows; i++) {
+                if (i > 1) {
+                    sql.append(", ");
+                }
+                sql.append('(').append(i).append(", 0)");
+            }
+            stmt.executeUpdate(sql.toString());
+        }
+
+        private int countRows(Statement stmt, String table, String predicate) throws SQLException {
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table + predicate)) {
+                assertTrue(rs.next());
+                return rs.getInt(1);
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMultiRowUpdateReturnsRowsAffected() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRUpd"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 20);
+
+                    try (PreparedStatement ps = conn
+                            .prepareStatement("UPDATE " + table + " SET c2 = c2 + 1 WHERE c1 <= ?")) {
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 8);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5, 8}, ps.executeBatch(),
+                                "batched UPDATEs affecting 5 and 8 rows must report 5 and 8");
+                    }
+
+                    assertEquals(5, countRows(stmt, table, " WHERE c2 = 2"), "rows 1 through 5 must be updated twice");
+                    assertEquals(3, countRows(stmt, table, " WHERE c2 = 1"), "rows 6 through 8 must be updated once");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMultiRowDeleteReturnsRowsAffected() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRDel"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 20);
+
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + table + " WHERE c1 <= ?")) {
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 8);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5, 3}, ps.executeBatch(),
+                                "batched DELETEs affecting 5 and 3 rows must report 5 and 3");
+                    }
+
+                    assertEquals(12, countRows(stmt, table, ""), "rows 1 through 8 must be deleted");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMultiRowInsertSelectReturnsRowsAffected() throws SQLException {
+            String source = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRSrc"));
+            String target = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTgt"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, source);
+                    createPlainTable(stmt, target);
+                    seedRows(stmt, source, 20);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + target + " SELECT c1, c2 FROM " + source + " WHERE c1 <= ?")) {
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 8);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5, 8}, ps.executeBatch(),
+                                "batched INSERT ... SELECTs affecting 5 and 8 rows must report 5 and 8");
+                    }
+
+                    assertEquals(13, countRows(stmt, target, ""), "5 + 8 rows must be inserted");
+                } finally {
+                    TestUtils.dropTableIfExists(target, stmt);
+                    TestUtils.dropTableIfExists(source, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchDeleteTopWithJoinWithoutParameters() throws SQLException {
+            String target = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTopTgt"));
+            String ids = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTopIds"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, target);
+                    createPlainTable(stmt, ids);
+                    seedRows(stmt, target, 20);
+                    seedRows(stmt, ids, 5);
+
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE TOP (5) t FROM " + target
+                            + " t WITH (TABLOCK) INNER JOIN " + ids + " i ON i.c1 = t.c1")) {
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5}, ps.executeBatch(),
+                                "a batched DELETE TOP (5) with a join must report 5");
+                    }
+
+                    assertEquals(15, countRows(stmt, target, ""), "exactly 5 rows must be deleted");
+                    assertEquals(0, countRows(stmt, target, " WHERE c1 <= 5"), "the joined ids must be deleted");
+                } finally {
+                    TestUtils.dropTableIfExists(ids, stmt);
+                    TestUtils.dropTableIfExists(target, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchDeleteTopWithParameterOnTempTable() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier("#" + RandomUtil.getIdentifier("EBMRTopTemp"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 20);
+
+                    try (PreparedStatement ps = conn
+                            .prepareStatement("DELETE TOP (5) FROM " + table + " WHERE c1 <= ?")) {
+                        ps.setInt(1, 20);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5}, ps.executeBatch(),
+                                "a batched temp-table DELETE TOP (5) must report 5");
+                    }
+
+                    assertEquals(15, countRows(stmt, table, ""), "exactly 5 rows must be deleted");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementDeleteTopWithJoinOnTempTablesMatchesExecuteUpdate() throws SQLException {
+            try (Connection conn = getSuiteConnection()) {
+                assertDeleteTopWithJoinOnTempTables(conn);
+            }
+        }
+
+        @Test
+        public void preparedStatementDeleteTopWithJoinOnTempTablesWithLastUpdateCountFalse() throws SQLException {
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false")) {
+                assertDeleteTopWithJoinOnTempTables(conn);
+            }
+        }
+
+        private void assertDeleteTopWithJoinOnTempTables(Connection conn) throws SQLException {
+            String target = AbstractSQLGenerator.escapeIdentifier("#" + RandomUtil.getIdentifier("EBMRTopJoinTgt"));
+            String ids = AbstractSQLGenerator.escapeIdentifier("#" + RandomUtil.getIdentifier("EBMRTopJoinIds"));
+            String sql = "DELETE TOP (5) t FROM " + target + " t WITH (TABLOCK) INNER JOIN " + ids
+                    + " i ON i.c1 = t.c1";
+            try (Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, target);
+                    createPlainTable(stmt, ids);
+                    seedRows(stmt, ids, 5);
+                    seedRows(stmt, target, 20);
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5}, ps.executeBatch(),
+                                "a batched temp-table DELETE TOP (5) with a join must report 5");
+                    }
+                    assertEquals(15, countRows(stmt, target, ""), "executeBatch must delete exactly 5 rows");
+
+                    stmt.executeUpdate("DELETE FROM " + target);
+                    seedRows(stmt, target, 20);
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        assertEquals(5, ps.executeUpdate(),
+                                "executeUpdate of the same temp-table DELETE TOP (5) must report 5");
+                    }
+                    assertEquals(15, countRows(stmt, target, ""), "executeUpdate must delete exactly 5 rows");
+                } finally {
+                    TestUtils.dropTableIfExists(ids, stmt);
+                    TestUtils.dropTableIfExists(target, stmt);
+                }
+            }
+        }
+
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementDeleteTopWithJoinOnTriggerTable() throws SQLException {
+            try (Connection conn = getSuiteConnection()) {
+                assertDeleteTopWithJoinOnTriggerTable(conn, false, 5);
+            }
+        }
+
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementDeleteTopWithJoinOnNoCountTriggerTable() throws SQLException {
+            try (Connection conn = getSuiteConnection()) {
+                assertDeleteTopWithJoinOnTriggerTable(conn, true, 5);
+            }
+        }
+
+        /**
+         * With {@code lastUpdateCount=false}, {@code executeUpdate} returns the FIRST count, which is the trigger's
+         * 1-row count because it arrives before the outer DELETE's count. {@code executeBatch} still reports 5.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementDeleteTopWithJoinOnTriggerTableWithLastUpdateCountFalse() throws SQLException {
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false")) {
+                assertDeleteTopWithJoinOnTriggerTable(conn, false, 1);
+            }
+        }
+
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementDeleteTopWithJoinOnNoCountTriggerTableWithLastUpdateCountFalse() throws SQLException {
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false")) {
+                assertDeleteTopWithJoinOnTriggerTable(conn, true, 5);
+            }
+        }
+
+        private void assertDeleteTopWithJoinOnTriggerTable(Connection conn, boolean suppressNoCount,
+                int expectedExecuteUpdateCount) throws SQLException {
+            String target = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTopTrgTgt"));
+            String ids = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTopTrgIds"));
+            String meta = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTopTrgMeta"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTopTrg"));
+            String sql = "DELETE TOP (5) t FROM " + target + " t WITH (TABLOCK) INNER JOIN " + ids
+                    + " i ON i.c1 = t.c1";
+            try (Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(meta, stmt);
+                    TestUtils.dropTableIfExists(ids, stmt);
+                    TestUtils.dropTableIfExists(target, stmt);
+                    createPlainTable(stmt, target);
+                    createPlainTable(stmt, ids);
+                    createPlainTable(stmt, meta);
+                    seedRows(stmt, ids, 5);
+                    seedRows(stmt, meta, 1);
+                    seedRows(stmt, target, 20);
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + target + " AFTER DELETE AS "
+                            + (suppressNoCount ? "SET NOCOUNT ON; " : "") + "UPDATE " + meta + " SET c2 = c2 + 1");
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5}, ps.executeBatch(),
+                                "the trigger's 1-row count must not replace the outer DELETE TOP (5) count");
+                    }
+                    assertEquals(15, countRows(stmt, target, ""), "executeBatch must delete exactly 5 rows");
+                    assertEquals(1, countRows(stmt, meta, " WHERE c2 = 1"), "the trigger must fire once");
+
+                    stmt.executeUpdate("DELETE FROM " + target + "; UPDATE " + meta + " SET c2 = 0");
+                    seedRows(stmt, target, 20);
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        assertEquals(expectedExecuteUpdateCount, ps.executeUpdate(),
+                                "executeUpdate must report the expected DELETE TOP (5) count for this configuration");
+                    }
+                    assertEquals(15, countRows(stmt, target, ""), "executeUpdate must delete exactly 5 rows");
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(meta, stmt);
+                    TestUtils.dropTableIfExists(ids, stmt);
+                    TestUtils.dropTableIfExists(target, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchSingleRowUpdatesReturnOnePerEntry() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRPerRowUpd"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 20);
+
+                    try (PreparedStatement ps = conn.prepareStatement("UPDATE " + table + " SET c2 = 1 WHERE c1 = ?")) {
+                        for (int i = 1; i <= 5; i++) {
+                            ps.setInt(1, i);
+                            ps.addBatch();
+                        }
+                        assertArrayEquals(new int[] {1, 1, 1, 1, 1}, ps.executeBatch(),
+                                "each single-row UPDATE batch entry must report 1");
+                    }
+
+                    assertEquals(5, countRows(stmt, table, " WHERE c2 = 1"), "rows 1 through 5 must be updated");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchDeleteTopPurgeLoopRemovesAllRows() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRPurge"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 23);
+
+                    List<Integer> reported = new ArrayList<>();
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE TOP (5) FROM " + table)) {
+                        int count;
+                        do {
+                            ps.addBatch();
+                            int[] counts = ps.executeBatch();
+                            assertEquals(1, counts.length, "each purge batch has one entry");
+                            count = counts[0];
+                            reported.add(count);
+                        } while (count == 5 && reported.size() < 10);
+                    }
+
+                    assertEquals(Arrays.asList(5, 5, 5, 5, 3), reported,
+                            "a count-driven purge loop must see each batch's real delete count");
+                    assertEquals(0, countRows(stmt, table, ""), "the purge loop must remove every row");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMultiRowCountsMatchExecuteUpdate() throws SQLException {
+            String source = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRParSrc"));
+            String target = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRParTgt"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, source);
+                    createPlainTable(stmt, target);
+                    String[] statements = {"UPDATE " + source + " SET c2 = c2 + 1 WHERE c1 <= ?",
+                            "DELETE FROM " + source + " WHERE c1 <= ?",
+                            "INSERT INTO " + target + " SELECT c1, c2 FROM " + source + " WHERE c1 <= ?"};
+
+                    for (String sql : statements) {
+                        stmt.executeUpdate("DELETE FROM " + source + "; DELETE FROM " + target);
+                        seedRows(stmt, source, 20);
+                        int[] batchCounts;
+                        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                            ps.setInt(1, 5);
+                            ps.addBatch();
+                            batchCounts = ps.executeBatch();
+                        }
+
+                        stmt.executeUpdate("DELETE FROM " + source + "; DELETE FROM " + target);
+                        seedRows(stmt, source, 20);
+                        int updateCount;
+                        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                            ps.setInt(1, 5);
+                            updateCount = ps.executeUpdate();
+                        }
+
+                        assertEquals(5, updateCount, "executeUpdate must report 5 rows for: " + sql);
+                        assertArrayEquals(new int[] {updateCount}, batchCounts,
+                                "executeBatch must match executeUpdate for: " + sql);
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(target, stmt);
+                    TestUtils.dropTableIfExists(source, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMixedRowCountsMapToEntries() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRMixed"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 10);
+
+                    try (PreparedStatement ps = conn
+                            .prepareStatement("UPDATE " + table + " SET c2 = c2 + 1 WHERE c1 BETWEEN ? AND ?")) {
+                        ps.setInt(1, 1);
+                        ps.setInt(2, 1);
+                        ps.addBatch();
+                        ps.setInt(1, 2);
+                        ps.setInt(2, 6);
+                        ps.addBatch();
+                        ps.setInt(1, 7);
+                        ps.setInt(2, 9);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {1, 5, 3}, ps.executeBatch(),
+                                "each batch entry must report its own row count");
+                    }
+
+                    assertEquals(9, countRows(stmt, table, " WHERE c2 = 1"), "rows 1 through 9 must be updated");
+                    assertEquals(1, countRows(stmt, table, " WHERE c2 = 0"), "row 10 must not be updated");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMultiRowDeleteOnTempTable() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier("#" + RandomUtil.getIdentifier("EBMRTemp"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 10);
+
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + table + " WHERE c1 <= ?")) {
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 8);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5, 3}, ps.executeBatch(),
+                                "batched temp-table DELETEs must report 5 then 3");
+                    }
+
+                    assertEquals(2, countRows(stmt, table, ""), "rows 9 and 10 must remain");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMultiRowDeleteWithLastUpdateCountFalse() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRLuc"));
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 10);
+
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + table + " WHERE c1 <= ?")) {
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 8);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5, 3}, ps.executeBatch(),
+                                "lastUpdateCount=false must not change batched DELETE counts");
+                    }
+
+                    assertEquals(2, countRows(stmt, table, ""), "rows 9 and 10 must remain");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementExecuteBatchMultiRowDeleteOnTriggerTable() throws SQLException {
+            assertMultiRowDeleteOnTriggerTable(false);
+        }
+
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementExecuteBatchMultiRowDeleteOnNoCountTriggerTable() throws SQLException {
+            assertMultiRowDeleteOnTriggerTable(true);
+        }
+
+        private void assertMultiRowDeleteOnTriggerTable(boolean suppressNoCount) throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTrgTbl"));
+            String audit = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTrgAudit"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTrg"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(audit, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                    createPlainTable(stmt, table);
+                    createPlainTable(stmt, audit);
+                    seedRows(stmt, table, 10);
+                    seedRows(stmt, audit, 1);
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + table + " AFTER DELETE AS "
+                            + (suppressNoCount ? "SET NOCOUNT ON; " : "") + "UPDATE " + audit + " SET c2 = c2 + 1");
+
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + table + " WHERE c1 <= ?")) {
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 8);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5, 3}, ps.executeBatch(),
+                                "trigger counts must not replace the outer DELETE counts");
+                    }
+
+                    assertEquals(2, countRows(stmt, table, ""), "rows 9 and 10 must remain");
+                    assertEquals(1, countRows(stmt, audit, " WHERE c2 = 2"), "the trigger must fire once per entry");
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(audit, stmt);
                     TestUtils.dropTableIfExists(table, stmt);
                 }
             }
