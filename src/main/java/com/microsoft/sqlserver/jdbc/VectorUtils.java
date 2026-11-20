@@ -44,8 +44,6 @@ class VectorUtils {
         }
 
         int objectCount = (bytes.length - getHeaderLength()) / bytesPerDimension; // 8 bytes for header
-        Object[] objectArray = new Float[objectCount];
-
         ByteBuffer buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
 
         /*
@@ -55,16 +53,16 @@ class VectorUtils {
          */
         ((Buffer) buffer).position(getHeaderLength()); // Skip the first 8 bytes (header)
 
-        for (int i = 0; i < objectCount; i++) {
-            if (vectorType == VectorDimensionType.FLOAT16) {
-                // Server sends 2-byte float16, convert to 4-byte float for user
-                objectArray[i] = float16ToFloat(buffer.getShort());
-            } else {
-                objectArray[i] = buffer.getFloat(); // Read 4 bytes for FLOAT32
+        float[] floatArray = new float[objectCount];
+        if (vectorType == VectorDimensionType.FLOAT16) {
+            for (int i = 0; i < objectCount; i++) {
+                floatArray[i] = float16ToFloat(buffer.getShort());
             }
+        } else {
+            buffer.asFloatBuffer().get(floatArray);
         }
 
-        return new Vector(objectCount, vectorType, objectArray);
+        return new Vector(objectCount, vectorType, floatArray, true);
     }
 
     /**
@@ -77,7 +75,9 @@ class VectorUtils {
      * 6. Encode float values (Little-Endian) - 4 bytes per float value
      */
     static byte[] toBytes(Vector vector) {
-        if (vector.getData() == null) {
+        float[] floatData = vector.getFloatDataInternal();
+        Object[] data = vector.getData();
+        if (floatData == null && data == null) {
             return null;
         }
 
@@ -91,20 +91,33 @@ class VectorUtils {
         buffer.put(getScaleByte(vector.getVectorDimensionType())); // 0x00 for FLOAT32, 0x01 for FLOAT16
         buffer.put(new byte[3]);
 
-        Object[] data = vector.getData();
-        switch (vector.getVectorDimensionType()) {
-            case FLOAT16:
-                for (Object value : data) {
-                    value = floatToFloat16((Float) value);
-                    buffer.putShort((short) ((Number) value).intValue());
-                }
-                break;
-            case FLOAT32:
-            default:
-                for (Object value : data) {
-                    buffer.putFloat(((Number) value).floatValue());
-                }
-                break;
+        if (floatData != null) {
+            switch (vector.getVectorDimensionType()) {
+                case FLOAT16:
+                    for (float value : floatData) {
+                        buffer.putShort(floatToFloat16(value));
+                    }
+                    break;
+                case FLOAT32:
+                default:
+                    buffer.asFloatBuffer().put(floatData);
+                    break;
+            }
+        } else {
+            switch (vector.getVectorDimensionType()) {
+                case FLOAT16:
+                    for (Object value : data) {
+                        value = floatToFloat16((Float) value);
+                        buffer.putShort((short) ((Number) value).intValue());
+                    }
+                    break;
+                case FLOAT32:
+                default:
+                    for (Object value : data) {
+                        buffer.putFloat(((Number) value).floatValue());
+                    }
+                    break;
+            }
         }
 
         return buffer.array();
@@ -281,7 +294,7 @@ class VectorUtils {
      * @param value The 4-byte float value to serialize
      * @return The 2-byte representation as a short
      */
-    private static Short floatToFloat16(Float value) {
+    private static short floatToFloat16(float value) {
         int bits = Float.floatToIntBits(value);
 
         int sign = (bits >>> 31) & 0x1;
@@ -309,39 +322,26 @@ class VectorUtils {
             return (short) ((sign << 15) | 0x7C00);
         }
 
-        // Underflow → Subnormal or Zero
+        // Underflow to subnormal or zero
         if (halfExponent <= 0) {
             if (halfExponent < -10) {
-                return (short) (sign << 15); // Too small → zero
+                return (short) (sign << 15); // underflow to zero
             }
 
-            // Convert to subnormal
-            mantissa |= 0x800000;
-            int shift = 1 - halfExponent;
-
-            int mant = mantissa >> (shift + 13);
-
-            // Round to nearest-even
-            int roundBit = (mantissa >> (shift + 12)) & 1;
-            int lostBits = mantissa & ((1 << (shift + 12)) - 1);
-
-            if (roundBit == 1 && (lostBits != 0 || (mant & 1) == 1)) {
-                mant++;
+            mantissa = (mantissa | 0x800000) >> (1 - halfExponent);
+            // Round to nearest even
+            if ((mantissa & 0x1000) != 0) {
+                mantissa += 0x2000;
             }
-
-            return (short) ((sign << 15) | mant);
+            return (short) ((sign << 15) | (mantissa >> 13));
         }
 
-        // Normal number
+        // Normal number: 10-bit mantissa with rounding
         int mant = mantissa >> 13;
-
-        // Rounding
-        int roundBit = (mantissa >> 12) & 1;
-        int lostBits = mantissa & 0xFFF;
-
-        if (roundBit == 1 && (lostBits != 0 || (mant & 1) == 1)) {
+        if ((mantissa & 0x1000) != 0) {
+            // Round to nearest even
             mant++;
-            if (mant == 0x400) { // Mantissa overflow
+            if ((mant & 0x400) != 0) {
                 mant = 0;
                 halfExponent++;
                 if (halfExponent >= 31) {
@@ -351,6 +351,13 @@ class VectorUtils {
         }
 
         return (short) ((sign << 15) | (halfExponent << 10) | mant);
+    }
+
+    private static Short floatToFloat16(Float value) {
+        if (value == null) {
+            return null;
+        }
+        return floatToFloat16(value.floatValue());
     }
     
     /**
@@ -363,7 +370,7 @@ class VectorUtils {
      * @param value The 2-byte float16 value as a short
      * @return The 4-byte float representation
      */
-    private static Float float16ToFloat(Short value) {
+    private static float float16ToFloat(short value) {
         int bits = value & 0xFFFF;
 
         int sign = (bits >>> 15) & 1;
@@ -398,6 +405,13 @@ class VectorUtils {
 
         int result = (sign << 31) | (exponent << 23) | (mantissa << 13);
         return Float.intBitsToFloat(result);
+    }
+
+    private static Float float16ToFloat(Short value) {
+        if (value == null) {
+            return null;
+        }
+        return float16ToFloat(value.shortValue());
     }
 
     
