@@ -14,6 +14,8 @@ import java.text.MessageFormat;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +32,10 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
      * Update serialVersionUID when making changes to this file
      */
     private static final long serialVersionUID = -955998113956445541L;
+
+    private static final DateTimeFormatter DATETIMEOFFSET_FORMATTER = new DateTimeFormatterBuilder()
+            .appendPattern("uuuu-MM-dd HH:mm:ss").appendFraction(ChronoField.NANO_OF_SECOND, 0, 7, true)
+            .appendPattern(" xxx").toFormatter(java.util.Locale.US);
 
     transient List<Parameter[]> batchParam;
     private int batchParamIndex = -1;
@@ -76,6 +82,15 @@ class SQLServerBulkBatchInsertRecord extends SQLServerBulkRecord {
 
     private Object convertValue(ColumnMetadata cm, Object data) throws SQLServerException {
         switch (cm.columnType) {
+            case microsoft.sql.Types.DATETIMEOFFSET: {
+                if (data instanceof OffsetDateTime) {
+                    // Both native and varchar bulk paths expect SQL literals, not ISO-8601 strings.
+                    OffsetDateTime value = ((OffsetDateTime) data).plusNanos(50);
+                    return value.withNano(value.getNano() / 100 * 100).format(DATETIMEOFFSET_FORMATTER);
+                }
+                return data;
+            }
+
             case Types.INTEGER: {
                 // Formatter to remove the decimal part as SQL Server floors the
                 // decimal in integer types

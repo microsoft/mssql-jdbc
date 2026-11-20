@@ -48,6 +48,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -58,6 +59,7 @@ import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerConnection;
 import com.microsoft.sqlserver.jdbc.SQLServerException;
 import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
+import com.microsoft.sqlserver.jdbc.SQLServerResultSet;
 import com.microsoft.sqlserver.jdbc.SQLServerStatement;
 import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
@@ -1314,7 +1316,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setObject(3, dateTime2Val); // DATETIME2
             pstmt.setDate(4, dateVal); // DATE
             pstmt.setObject(5, timeVal); // TIME
-            pstmt.setDateTimeOffset(6, dateTimeOffsetVal); // DATETIMEOFFSET
+            pstmt.setDateTimeOffset(6, dateTimeOffsetVal); // DATETIMEOFFSET (legacy API)
+            pstmt.setOffsetDateTime(6, offsetDateTimeVal); // DATETIMEOFFSET (new API)
             pstmt.setMoney(7, moneyVal); // MONEY
             pstmt.setSmallMoney(8, smallMoneyVal); // SMALLMONEY
 
@@ -1342,6 +1345,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
                 assertEquals(dateTimeOffsetVal, rs.getObject(6, DateTimeOffset.class));
                 assertEquals(expectedDateTimeOffsetString, rs.getObject(6).toString());
+                assertEquals(offsetDateTimeVal, ((SQLServerResultSet) rs).getOffsetDateTime(6));
 
                 assertEquals(moneyVal, rs.getBigDecimal(7));
                 assertEquals(expectedMoneyString, rs.getBigDecimal(7).toString());
@@ -1350,9 +1354,41 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 assertEquals(expectedSmallMoneyString,rs.getBigDecimal(8).toString());
                 
             }
+
         } finally {
             try (Statement stmt = connection.createStatement()) {
                 TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(tableName), stmt);
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkInsertOffsetDateTime(boolean sendAsString) throws SQLException {
+        OffsetDateTime[] values = {OffsetDateTime.parse("2025-05-13T14:30:00Z"),
+                OffsetDateTime.parse("1234-12-12T23:59:59.1234567-03:00"),
+                OffsetDateTime.parse("0095-05-12T16:15:34.7841496+07:44"),
+                OffsetDateTime.parse("2024-01-02T03:04:05.0000001+05:30"), null};
+        try (Connection con = PrepUtil.getConnection(connectionString
+                + ";useBulkCopyForBatchInsert=true;sendTemporalDataTypesAsStringForBulkCopy=" + sendAsString);
+                Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #dtoBatch (id int, value datetimeoffset(7))");
+            try (SQLServerPreparedStatement insert = (SQLServerPreparedStatement) con
+                    .prepareStatement("INSERT INTO #dtoBatch VALUES (?, ?)")) {
+                for (int i = 0; i < values.length; i++) {
+                    insert.setInt(1, i);
+                    insert.setOffsetDateTime(2, values[i]);
+                    insert.addBatch();
+                }
+                assertEquals(values.length, insert.executeBatch().length);
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT value FROM #dtoBatch ORDER BY id")) {
+                for (OffsetDateTime value : values) {
+                    assertTrue(rs.next());
+                    assertEquals(value, rs.getObject(1, OffsetDateTime.class));
+                }
+                assertFalse(rs.next());
             }
         }
     }
@@ -1384,7 +1420,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setObject(3, null); // DATETIME2
             pstmt.setDate(4, null); // DATE
             pstmt.setObject(5, null); // TIME
-            pstmt.setDateTimeOffset(6, null); // DATETIMEOFFSET
+            pstmt.setDateTimeOffset(6, (DateTimeOffset) null); // DATETIMEOFFSET (legacy API)
+            pstmt.setOffsetDateTime(6, null); // DATETIMEOFFSET (new API)
             pstmt.setMoney(7, null); // MONEY
             pstmt.setSmallMoney(8, null); // SMALLMONEY
 
@@ -1401,6 +1438,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 assertEquals(null, rs.getDate(4));
                 assertEquals(null, rs.getObject(5));
                 assertEquals(null, rs.getObject(6));
+                assertEquals(null, ((SQLServerResultSet) rs).getOffsetDateTime(6));
                 assertEquals(null, rs.getBigDecimal(7));
                 assertEquals(null, rs.getBigDecimal(8));
                 
@@ -1467,7 +1505,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setObject(3, dateTime2Val); // DATETIME2
             pstmt.setDate(4, dateVal); // DATE
             pstmt.setTimestamp(5, timeVal); // TIME
-            pstmt.setDateTimeOffset(6, dateTimeOffsetVal); // DATETIMEOFFSET
+            pstmt.setDateTimeOffset(6, dateTimeOffsetVal); // DATETIMEOFFSET (legacy API)
+            pstmt.setOffsetDateTime(6, offsetDateTimeVal); // DATETIMEOFFSET (new API)
             pstmt.setMoney(7, moneyVal); // MONEY
             pstmt.setSmallMoney(8, smallMoneyVal); // SMALLMONEY
 
@@ -1495,6 +1534,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
 
                 assertEquals(dateTimeOffsetVal, rs.getObject(6, DateTimeOffset.class));
                 assertEquals(expectedDateTimeOffsetString, rs.getObject(6).toString());
+                assertEquals(offsetDateTimeVal, ((SQLServerResultSet) rs).getOffsetDateTime(6));
 
                 assertEquals(moneyVal, rs.getBigDecimal(7));
                 assertEquals(expectedMoneyString, rs.getBigDecimal(7).toString());
@@ -1537,7 +1577,8 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
             pstmt.setObject(3, null); // DATETIME2
             pstmt.setDate(4, null); // DATE
             pstmt.setObject(5, null); // TIME
-            pstmt.setDateTimeOffset(6, null); // DATETIMEOFFSET
+            pstmt.setDateTimeOffset(6, (DateTimeOffset) null); // DATETIMEOFFSET (legacy API)
+            pstmt.setOffsetDateTime(6, null); // DATETIMEOFFSET (new API)
             pstmt.setMoney(7, null); // MONEY
             pstmt.setSmallMoney(8, null); // SMALLMONEY
 
@@ -1554,6 +1595,7 @@ public class BatchExecutionWithBulkCopyTest extends AbstractTest {
                 assertEquals(null, rs.getDate(4));
                 assertEquals(null, rs.getObject(5));
                 assertEquals(null, rs.getObject(6));
+                assertEquals(null, ((SQLServerResultSet) rs).getOffsetDateTime(6));
                 assertEquals(null, rs.getBigDecimal(7));
                 assertEquals(null, rs.getBigDecimal(8));
                 

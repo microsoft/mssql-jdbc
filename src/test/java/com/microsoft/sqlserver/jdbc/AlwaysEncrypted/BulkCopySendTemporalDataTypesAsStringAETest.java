@@ -5,6 +5,9 @@
 package com.microsoft.sqlserver.jdbc.AlwaysEncrypted;
 
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -14,6 +17,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.AfterAll;
@@ -27,6 +31,7 @@ import com.microsoft.sqlserver.jdbc.ComparisonUtil;
 import com.microsoft.sqlserver.jdbc.RandomUtil;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
+import com.microsoft.sqlserver.jdbc.SQLServerPreparedStatement;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 import com.microsoft.sqlserver.testframework.AbstractSQLGenerator;
 import com.microsoft.sqlserver.testframework.Constants;
@@ -82,6 +87,34 @@ public class BulkCopySendTemporalDataTypesAsStringAETest extends AESetup {
                     delimiter, true);
 
             testBulkCopyCSV(conn, fileRecord, destTableNameAE);
+        }
+    }
+
+    @Test
+    public void testPlaintextResultSetToEncryptedDateTimeOffset() throws SQLException {
+        beforeEachSetupAE();
+        OffsetDateTime expected = OffsetDateTime.parse("2024-01-02T03:04:05.1234567+05:30");
+        try (Connection conn = PrepUtil.getConnection(AETestConnectionString, AEInfo);
+                Statement sourceStatement = conn.createStatement(); Statement verifyStatement = conn.createStatement();
+                ResultSet source = sourceStatement
+                        .executeQuery("SELECT CAST('2024-01-02T03:04:05.1234567+05:30' AS datetimeoffset(7)) AS c5");
+                SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(conn)) {
+            bulkCopy.setDestinationTableName(destTableNameAE);
+            bulkCopy.addColumnMapping("c5", "c5");
+            bulkCopy.writeToServer(source);
+            try (SQLServerPreparedStatement insert = (SQLServerPreparedStatement) conn
+                    .prepareStatement("INSERT INTO " + destTableNameAE + " (c5) VALUES (?)")) {
+                insert.setOffsetDateTime(1, expected, 7, true);
+                insert.executeUpdate();
+            }
+            try (ResultSet result = verifyStatement.executeQuery("SELECT c5 FROM " + destTableNameAE)) {
+                assertTrue(result.next());
+                assertEquals(microsoft.sql.DateTimeOffset.class.getName(), result.getMetaData().getColumnClassName(1));
+                assertEquals(expected, result.getObject(1, OffsetDateTime.class));
+                assertTrue(result.next());
+                assertEquals(expected, result.getObject(1, OffsetDateTime.class));
+                assertFalse(result.next());
+            }
         }
     }
 

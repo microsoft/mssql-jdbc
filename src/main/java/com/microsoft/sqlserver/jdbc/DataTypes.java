@@ -128,6 +128,7 @@ enum SSType {
     DATE(Category.DATE, "date", JDBCType.DATE),
     TIME(Category.TIME, "time", JDBCType.TIME),
     DATETIME2(Category.DATETIME2, "datetime2", JDBCType.TIMESTAMP),
+    /** SQL Server {@code datetimeoffset} type. The canonical Java mapping is {@link java.time.OffsetDateTime}. */
     DATETIMEOFFSET(Category.DATETIMEOFFSET, "datetimeoffset", JDBCType.DATETIMEOFFSET),
     SMALLMONEY(Category.NUMERIC, "smallmoney", JDBCType.SMALLMONEY),
     MONEY(Category.NUMERIC, "money", JDBCType.MONEY),
@@ -588,7 +589,9 @@ enum JavaType {
 
         DATE(JavaType.DATE, EnumSet.of(JDBCType.DATE)),
 
-        DATETIMEOFFSET(JavaType.DATETIMEOFFSET, EnumSet.of(JDBCType.DATETIMEOFFSET)),
+        DATETIMEOFFSET(JavaType.DATETIMEOFFSET, EnumSet.of(JDBCType.DATETIMEOFFSET, JDBCType.TIMESTAMP_WITH_TIMEZONE)),
+
+        OFFSETDATETIME(JavaType.OFFSETDATETIME, EnumSet.of(JDBCType.DATETIMEOFFSET, JDBCType.TIMESTAMP_WITH_TIMEZONE)),
 
         DOUBLE(JavaType.DOUBLE, EnumSet.of(JDBCType.DOUBLE)),
 
@@ -813,7 +816,8 @@ enum JDBCType {
                 JDBCType.Category.LONG_NCHARACTER)),
 
         DATETIMEOFFSET(JDBCType.Category.DATETIMEOFFSET, EnumSet.of(JDBCType.Category.DATE, JDBCType.Category.TIME,
-                JDBCType.Category.TIMESTAMP, JDBCType.Category.DATETIMEOFFSET)),
+                JDBCType.Category.TIMESTAMP, JDBCType.Category.DATETIMEOFFSET,
+                JDBCType.Category.TIMESTAMP_WITH_TIMEZONE)),
 
         SQLXML(JDBCType.Category.SQLXML, EnumSet.of(JDBCType.Category.SQLXML)),
 
