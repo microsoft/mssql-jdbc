@@ -333,6 +333,8 @@ final class Column {
         // conversion from the requested JDBCType to the column SSType, or the driver needs to
         // provide special data conversion.
 
+        SSType effectiveSSType = (null != cryptoMetadata) ? cryptoMetadata.baseTypeInfo.getSSType() : ssType;
+
         // Update of Unicode SSType from textual JDBCType: Use Unicode.
         if ((SSType.NCHAR == ssType || SSType.NVARCHAR == ssType || SSType.NVARCHARMAX == ssType
                 || SSType.NTEXT == ssType || SSType.XML == ssType || SSType.JSON == ssType) &&
@@ -343,8 +345,10 @@ final class Column {
         }
 
         // Update of binary SSType from textual JDBCType: Convert hex to binary.
-        else if ((SSType.BINARY == ssType || SSType.VARBINARY == ssType || SSType.VARBINARYMAX == ssType
-                || SSType.IMAGE == ssType || SSType.UDT == ssType || SSType.VECTOR == ssType) &&
+        // For Always Encrypted columns ssType is the physical (encrypted) VARBINARY type, so use the base type.
+        else if ((SSType.BINARY == effectiveSSType || SSType.VARBINARY == effectiveSSType
+                || SSType.VARBINARYMAX == effectiveSSType || SSType.IMAGE == effectiveSSType
+                || SSType.UDT == effectiveSSType || SSType.VECTOR == effectiveSSType) &&
 
                 (JDBCType.CHAR == jdbcType || JDBCType.VARCHAR == jdbcType || JDBCType.LONGVARCHAR == jdbcType)) {
             jdbcType = JDBCType.VARBINARY;
