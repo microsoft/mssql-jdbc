@@ -151,6 +151,33 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
     }
 
     @ParameterizedTest
+    @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true"})
+    @Tag(Constants.xAzureSQLDW)
+    public void serverErrorThrowsBatchUpdateException(String method, boolean large) throws Exception {
+        String message = "direct batch exception regression";
+        try (SQLServerConnection con = open(method); Statement stmt = con.createStatement();
+                PreparedStatement ps = con.prepareStatement("RAISERROR(?,16,1)")) {
+            SQLServerException serverError = assertThrows(SQLServerException.class,
+                    () -> stmt.execute("RAISERROR('direct batch exception regression',16,1)"));
+            ps.setString(1, message);
+            ps.addBatch();
+
+            BatchUpdateException batchError = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
+            assertEquals(BatchUpdateException.class, batchError.getClass(),
+                    "The public API must throw BatchUpdateException, not wrap it in SQLServerException");
+            assertEquals(50000, batchError.getErrorCode());
+            assertEquals(serverError.getSQLState(), batchError.getSQLState());
+            assertTrue(batchError.getMessage().contains(message));
+            if (large)
+                assertArrayEquals(new long[] {Statement.EXECUTE_FAILED}, batchError.getLargeUpdateCounts());
+            else
+                assertArrayEquals(new int[] {Statement.EXECUTE_FAILED}, batchError.getUpdateCounts());
+            assertArrayEquals(new long[0], execute(ps, large), "The failed batch must be cleared");
+            assertEquals(1, scalar(stmt, "SELECT 1"));
+        }
+    }
+
+    @ParameterizedTest
     @CsvSource({"false", "true"})
     public void abortedEntriesRemainFailed(boolean large) throws Exception {
         try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement()) {
