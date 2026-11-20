@@ -14,6 +14,11 @@ the only cost of an inaccurate hint is a possible statement re-prepare.
 This differs from `defineParameterType()`, which is an explicit declaration and **is** enforced as
 a hard maximum.
 
+When `stringParameterDefaultLength` is enabled, a usable positive `setObject` hint still wins:
+it is not combined with the connection floor, and it does not update adaptive history. An
+omitted or non-positive hint allows eligible input-only parameters to use the connection default.
+See [adaptive connection defaults](parameter-hints-overview.md#adaptive-connection-default-stringparameterdefaultlength).
+
 ## See Also
 
 This document focuses specifically on the `setObject(..., scaleOrLength)` behavior. For a broader overview of parameter length hints and the precedence rule between this API and `defineParameterType()`, see **[README.md](README.md)**.
@@ -210,8 +215,9 @@ For more details, see **[README.md](README.md#precedence-rule-defineparametertyp
 
 Passing a non-positive `scaleOrLength` (`<= 0`) for a supported bounded variable-length type is
 not an error. It is not a usable declared length, so the hint is ignored entirely and the driver
-falls back to its default sizing (`varchar(8000)` / `nvarchar(4000)` / `varbinary(8000)`) — the
-same behavior as calling `setObject()` without a length.
+falls back to the enabled adaptive connection policy for eligible input-only parameters, or to
+legacy sizing (`varchar(8000)` / `nvarchar(4000)` / `varbinary(8000)`) otherwise — the same behavior
+as calling `setObject()` without a length.
 
 (Note: for `defineParameterType()`, non-positive values *are* rejected eagerly at call time with
 `R_invalidParameterLength`.)
@@ -268,7 +274,7 @@ int[] counts = ps.executeBatch();
 |---|---|---|
 | **Scope** | Per-call | Persists across calls |
 | **Enforcement** | Advisory — widened to fit if too small | Enforced — value longer than `maxLength` is an error |
-| **Non-positive length** | Ignored, driver default sizing is used | Rejected with `R_invalidParameterLength` |
+| **Non-positive length** | Ignored; enabled connection default or legacy sizing is used | Rejected with `R_invalidParameterLength` |
 | **Batch behavior** | Hint varies per row | Hint is consistent across all rows |
 | **Discoverability** | Less obvious (standard JDBC parameter) | More explicit (dedicated method) |
 | **Best for** | Single executions, non-batch scenarios | Batch inserts, consistent type contracts |
