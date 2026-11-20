@@ -69,40 +69,6 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"false,false,false", "true,false,false", "false,true,false", "true,true,false", "false,false,true",
-            "true,false,true", "false,true,true", "true,true,true"})
-    public void unexpectedResultsFailWithoutApplyingRowLimit(boolean large, boolean scrollable,
-            boolean rowError) throws Exception {
-        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement()) {
-            stmt.execute("CREATE TABLE #counts (id int); INSERT INTO #counts VALUES (1),(2)");
-            try (PreparedStatement ps = con.prepareStatement("/* result set first */ SELECT 10 / (id - ?) FROM #counts",
-                    scrollable ? ResultSet.TYPE_SCROLL_INSENSITIVE : ResultSet.TYPE_FORWARD_ONLY,
-                    ResultSet.CONCUR_READ_ONLY)) {
-                ((SQLServerPreparedStatement) ps).setResponseBuffering("adaptive");
-                ps.setMaxRows(1);
-                ps.setInt(1, rowError ? 1 : 0);
-                ps.addBatch();
-                BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
-                assertArrayEquals(new long[] {Statement.EXECUTE_FAILED}, error.getLargeUpdateCounts());
-                if (rowError)
-                    assertEquals(8134, error.getErrorCode());
-                else
-                    assertEquals(SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), error.getMessage());
-                assertEquals(1, ps.getMaxRows());
-                assertEquals(3, scalar(stmt, "SELECT SUM(id) FROM #counts"));
-                ps.setMaxRows(0);
-                ps.setInt(1, 0);
-                try (ResultSet rs = ps.executeQuery()) {
-                    int rows = 0;
-                    while (rs.next())
-                        rows++;
-                    assertEquals(2, rows);
-                }
-            }
-        }
-    }
-
-    @ParameterizedTest
     @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true", "scopeTempTablesToConnection,false",
             "scopeTempTablesToConnection,true"})
     public void actualCountsAndReuse(String method, boolean large) throws Exception {

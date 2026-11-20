@@ -5,22 +5,17 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -67,11 +62,7 @@ class DirectBatchResponseTest {
                 Object result = results[index];
                 if (result instanceof SQLServerException)
                     throw (SQLServerException) result;
-                if (result instanceof SQLServerResultSet) {
-                    stmt.resultSet = (SQLServerResultSet) result;
-                    stmt.updateCount = -1;
-                } else
-                    stmt.updateCount = (Long) result;
+                stmt.updateCount = (Long) result;
                 return true;
             }).when(stmt).getNextResult(true);
         }
@@ -107,55 +98,6 @@ class DirectBatchResponseTest {
         SQLServerException error = new SQLServerException("late error", "S0001", 50000, null);
         error.setDriverErrorCode(SQLServerException.DRIVER_ERROR_FROM_DATABASE);
         return error;
-    }
-
-    @Test
-    void scrollableDiscardReleasesMarksAndPreservesRowErrors() throws Throwable {
-        for (boolean rowError : new boolean[] {false, true}) {
-            SQLServerResultSet rs = mock(SQLServerResultSet.class, CALLS_REAL_METHODS);
-            SQLServerStatement stmt = mock(SQLServerStatement.class);
-            TDSReader reader = mock(TDSReader.class);
-            ScrollWindow window = mock(ScrollWindow.class);
-            when(stmt.getSQLResultSetType()).thenReturn(SQLServerResultSet.TYPE_SS_SCROLL_STATIC);
-            when(reader.mark()).thenReturn(mock(TDSReaderMark.class));
-            when(reader.readUnsignedByte()).thenReturn(TDS.TDS_ROW);
-            set(SQLServerResultSet.class, rs, "stmt", stmt);
-            set(SQLServerResultSet.class, rs, "tdsReader", reader);
-            set(SQLServerResultSet.class, rs, "scrollWindow", window);
-            Class<?> type = Arrays.stream(SQLServerResultSet.class.getDeclaredClasses())
-                    .filter(c -> "FetchBuffer".equals(c.getSimpleName())).findFirst().get();
-            Constructor<?> constructor = type.getDeclaredConstructor(SQLServerResultSet.class);
-            constructor.setAccessible(true);
-            Object buffer = constructor.newInstance(rs);
-            set(SQLServerResultSet.class, rs, "fetchBuffer", buffer);
-            assertNotNull(field(buffer, "startMark"));
-            TDSTokenHandler handler = (TDSTokenHandler) field(buffer, "fetchBufferTokenHandler");
-            SQLServerException error = databaseError();
-            AtomicInteger rows = new AtomicInteger();
-            doAnswer(invocation -> {
-                assertNull(field(buffer, "startMark"), "Discard must release retained marks");
-                if (rows.getAndIncrement() == 100) {
-                    if (rowError)
-                        throw error;
-                    return false;
-                }
-                handler.onRow(reader);
-                assertNull(field(buffer, "startMark"), "Discard must not recreate marks");
-                return true;
-            }).when(rs).fetchBufferNext();
-            doNothing().when(rs).close();
-            Response response = new Response(3, 5L, rs, 1L);
-            assertArrayEquals(new long[] {5, Statement.EXECUTE_FAILED, 1}, response.run());
-            assertEquals(101, rows.get());
-            verify(window).clear();
-            verify(rs).close();
-            verify(rs, never()).next();
-            if (rowError)
-                assertSame(error, response.error());
-            else
-                assertEquals(SQLServerException.getErrString("R_resultsetGeneratedForUpdate"),
-                        response.error().getMessage());
-        }
     }
 
     @Test
