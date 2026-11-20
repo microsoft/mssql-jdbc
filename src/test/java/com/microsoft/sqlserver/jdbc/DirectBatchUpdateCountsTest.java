@@ -19,11 +19,13 @@ import java.sql.SQLTimeoutException;
 import java.sql.Statement;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import com.microsoft.sqlserver.testframework.AbstractTest;
+import com.microsoft.sqlserver.testframework.Constants;
 import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
@@ -290,6 +292,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
     @ParameterizedTest
     @CsvSource({"false", "true"})
     @Timeout(30)
+    @Tag(Constants.xAzureSQLDW)
     public void timeoutDoesNotBecomeSuccess(boolean large) throws Exception {
         try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement();
                 PreparedStatement ps = con.prepareStatement("WAITFOR DELAY '00:00:10'; UPDATE #counts SET id=?")) {
