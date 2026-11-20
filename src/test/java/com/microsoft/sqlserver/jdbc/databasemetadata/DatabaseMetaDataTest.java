@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -47,6 +48,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
@@ -113,6 +116,47 @@ public class DatabaseMetaDataTest extends AbstractTest {
     private static final String SS_XML_SCHEMACOLLECTION_CATALOG_NAME = "SS_XML_SCHEMACOLLECTION_CATALOG_NAME";
     private static final String SS_XML_SCHEMACOLLECTION_SCHEMA_NAME = "SS_XML_SCHEMACOLLECTION_SCHEMA_NAME";
     private static final String SS_XML_SCHEMACOLLECTION_NAME = "SS_XML_SCHEMACOLLECTION_NAME";
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @Tag(Constants.xAzureSQLDW)
+    public void testGetIndexInfoReleasesStatements(boolean consumeAllRows) throws Exception {
+        String table = RandomUtil.getIdentifier("IndexInfoStatementCleanup");
+        String escapedTable = AbstractSQLGenerator.escapeIdentifier(table);
+        try (SQLServerConnection con = (SQLServerConnection) getConnection(); Statement setup = con.createStatement()) {
+            setup.execute("CREATE TABLE " + escapedTable + " (id INT NOT NULL PRIMARY KEY)");
+            try {
+                DatabaseMetaData metadata = con.getMetaData();
+                Field listenersField = SQLServerConnection.class.getDeclaredField("reconnectListeners");
+                listenersField.setAccessible(true);
+                List<?> listeners = (List<?>) listenersField.get(con);
+                // Warm the fallback's cached callable statement before checking for per-call growth.
+                try (ResultSet rs = metadata.getIndexInfo(con.getCatalog(), null, table, false, false)) {
+                    assertTrue(rs.next());
+                }
+                int baseline = listeners.size();
+                for (int i = 0; i < 10; i++) {
+                    Statement internalStatement;
+                    try (ResultSet rs = metadata.getIndexInfo(con.getCatalog(), null, table, false, false)) {
+                        internalStatement = rs.getStatement();
+                        assertNotNull(internalStatement);
+                        assertTrue(rs.next(), "Index metadata must remain readable until the result set is closed");
+                        if (consumeAllRows) {
+                            while (rs.next()) {
+                                rs.getString("INDEX_NAME");
+                            }
+                        }
+                    }
+                    if (!(internalStatement instanceof CallableStatement)) {
+                        assertTrue(internalStatement.isClosed(), "Closing index metadata must close its statement");
+                    }
+                    assertEquals(baseline, listeners.size(), "getIndexInfo must not retain a statement per call");
+                }
+            } finally {
+                TestUtils.dropTableIfExists(escapedTable, setup);
+            }
+        }
+    }
 
     /**
      * Verify DatabaseMetaData#isWrapperFor and DatabaseMetaData#unwrap.
