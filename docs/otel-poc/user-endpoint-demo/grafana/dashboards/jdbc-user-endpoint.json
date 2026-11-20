@@ -1,0 +1,81 @@
+{
+  "uid": "jdbc-user-endpoint",
+  "title": "JDBC automatic user endpoint",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "tags": ["jdbc", "local-demo"],
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": {"from": "now-15m", "to": "now"},
+  "links": [{"title": "Jaeger trace search", "type": "link", "url": "http://127.0.0.1:16686", "targetBlank": true}],
+  "panels": [
+    {
+      "id": 1, "title": "Observed connection roots (SDK cumulative)", "type": "stat",
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 5},
+      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
+      "targets": [{"refId": "A", "expr": "sum(db_client_operation_count_total{job=\"jdbc-user-endpoint\",mssql_performance_activity=\"connection.open\",mssql_operation_kind=\"connection\"})", "instant": true}]
+    },
+    {
+      "id": 2, "title": "Observed statement invocation roots", "type": "stat",
+      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 5},
+      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
+      "targets": [{"refId": "A", "expr": "sum(db_client_operation_count_total{job=\"jdbc-user-endpoint\",mssql_performance_activity=\"statement.execute\",mssql_operation_kind=\"statement\"})", "instant": true}]
+    },
+    {
+      "id": 3, "title": "Observed failed roots by activity", "type": "stat",
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 5},
+      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
+      "targets": [{"refId": "A", "expr": "sum by (mssql_performance_activity) (db_client_operation_error_count_total{job=\"jdbc-user-endpoint\",mssql_performance_activity=~\"connection[.]open|statement[.]execute\"})", "instant": true, "legendFormat": "{{mssql_performance_activity}}"}]
+    },
+    {
+      "id": 4, "title": "Root operations / second (5m)", "type": "timeseries",
+      "gridPos": {"x": 0, "y": 5, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
+      "targets": [{"refId": "A", "expr": "sum by (mssql_performance_activity) (rate(db_client_operation_count_total{job=\"jdbc-user-endpoint\",mssql_performance_activity=~\"connection[.]open|statement[.]execute\"}[5m]))", "legendFormat": "{{mssql_performance_activity}}"}]
+    },
+    {
+      "id": 5, "title": "Root duration p95 (seconds, 5m bucket estimate)", "type": "timeseries",
+      "gridPos": {"x": 12, "y": 5, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "description": "Independent root histograms. Buckets do not preserve an exact maximum; nested durations are not additive.",
+      "targets": [{"refId": "A", "expr": "histogram_quantile(0.95, sum by (le,mssql_performance_activity) (rate(db_client_operation_duration_seconds_bucket{job=\"jdbc-user-endpoint\",mssql_performance_activity=~\"connection[.]open|statement[.]execute\"}[5m])))", "legendFormat": "{{mssql_performance_activity}}"}]
+    },
+    {
+      "id": 6, "title": "Root success ratio from outcome counts (5m)", "type": "timeseries",
+      "gridPos": {"x": 0, "y": 13, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []},
+      "description": "Missing success series stay missing; absent error counters are never treated as zero.",
+      "targets": [{"refId": "A", "expr": "sum by (mssql_performance_activity) (rate(db_client_operation_count_total{job=\"jdbc-user-endpoint\",mssql_performance_activity=~\"connection[.]open|statement[.]execute\",mssql_operation_outcome=\"success\"}[5m])) / sum by (mssql_performance_activity) (rate(db_client_operation_count_total{job=\"jdbc-user-endpoint\",mssql_performance_activity=~\"connection[.]open|statement[.]execute\"}[5m]))", "legendFormat": "{{mssql_performance_activity}}"}]
+    },
+    {
+      "id": 7, "title": "All END observations by phase (not root totals)", "type": "timeseries",
+      "gridPos": {"x": 12, "y": 13, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
+      "targets": [{"refId": "A", "expr": "sum by (mssql_performance_activity,mssql_operation_kind) (db_client_operation_count_total{job=\"jdbc-user-endpoint\"})", "legendFormat": "{{mssql_operation_kind}} / {{mssql_performance_activity}}"}]
+    },
+    {
+      "id": 8, "title": "Root outcome distribution (24h increases)", "type": "barchart",
+      "gridPos": {"x": 0, "y": 21, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
+      "targets": [{"refId": "A", "expr": "sum by (mssql_performance_activity,mssql_operation_outcome) (increase(db_client_operation_count_total{job=\"jdbc-user-endpoint\",mssql_performance_activity=~\"connection[.]open|statement[.]execute\"}[24h]))", "instant": true, "legendFormat": "{{mssql_performance_activity}} / {{mssql_operation_outcome}}"}]
+    },
+    {
+      "id": 9, "title": "Additional attempts begun by reason (24h)", "type": "table",
+      "description": "Retry count is root-only and counts attempts actually begun, not decisions. No series is expected until a retry occurs; missing is not zero.",
+      "gridPos": {"x": 12, "y": 21, "w": 12, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
+      "targets": [{"refId": "A", "expr": "sum by (mssql_performance_activity,mssql_retry_reason) (increase(db_client_operation_retry_count_total{job=\"jdbc-user-endpoint\",mssql_performance_activity=~\"connection[.]open|statement[.]execute\"}[24h]))", "instant": true, "format": "table"}]
+    },
+    {
+      "id": 10, "title": "Activity mean duration (seconds, 5m)", "type": "timeseries",
+      "description": "Sum / count within each activity histogram. Never sum nested phase durations.",
+      "gridPos": {"x": 0, "y": 29, "w": 24, "h": 8},
+      "datasource": {"type": "prometheus", "uid": "demo-prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "targets": [{"refId": "A", "expr": "sum by (mssql_performance_activity,mssql_operation_kind) (rate(db_client_operation_duration_seconds_sum{job=\"jdbc-user-endpoint\"}[5m])) / sum by (mssql_performance_activity,mssql_operation_kind) (rate(db_client_operation_duration_seconds_count{job=\"jdbc-user-endpoint\"}[5m]))", "legendFormat": "{{mssql_operation_kind}} / {{mssql_performance_activity}}"}]
+    }
+  ]
+}

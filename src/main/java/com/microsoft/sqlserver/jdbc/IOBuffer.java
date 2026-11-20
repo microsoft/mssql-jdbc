@@ -773,6 +773,7 @@ final class TDSChannel implements Serializable {
             inputStream = tcpInputStream = new ProxyInputStream(tcpSocket.getInputStream());
             outputStream = tcpOutputStream = tcpSocket.getOutputStream();
         } catch (IOException ex) {
+            PerformanceLog.recordConnectionFailure(con, ex);
             SQLServerException.convertConnectExceptionToSQLServerException(host, port, con, ex);
         }
         return (InetSocketAddress) channelSocket.getRemoteSocketAddress();
@@ -1696,6 +1697,18 @@ final class TDSChannel implements Serializable {
      */
     void enableSSL(String host, int port, String clientCertificate, String clientKey, String clientKeyPassword,
             boolean isTDS8) throws SQLServerException {
+        try (PerformanceLog.Scope tlsScope = PerformanceLog.createConnectionScope(con, PerformanceActivity.TLS)) {
+            try {
+                enableSSLInternal(host, port, clientCertificate, clientKey, clientKeyPassword, isTDS8);
+            } catch (Exception e) {
+                tlsScope.setException(e);
+                throw e;
+            }
+        }
+    }
+
+    private void enableSSLInternal(String host, int port, String clientCertificate, String clientKey,
+            String clientKeyPassword, boolean isTDS8) throws SQLServerException {
         // If enabling SSL fails, which it can for a number of reasons, the following items
         // are used in logging information to the TDS channel logger to help diagnose the problem.
         Provider tmfProvider = null; // TrustManagerFactory provider
@@ -1974,6 +1987,7 @@ final class TDSChannel implements Serializable {
 
         } catch (Exception e) {
             // Log the original exception and its source at FINER level
+            PerformanceLog.recordConnectionFailure(con, e, "R_sslFailed");
             if (logger.isLoggable(Level.FINER))
                 logger.log(Level.FINER, e.getMessage(), e);
 
@@ -2318,6 +2332,7 @@ final class TDSChannel implements Serializable {
                 logger.fine(toString() + " read failed:" + e.getMessage());
 
             if (e instanceof SocketTimeoutException) {
+                PerformanceLog.recordConnectionFailure(con, e);
                 con.terminate(SQLServerException.ERROR_SOCKET_TIMEOUT, e.getMessage(), e);
             } else {
                 con.terminate(SQLServerException.DRIVER_ERROR_IO_FAILED, e.getMessage(), e);
@@ -2619,6 +2634,7 @@ final class SocketFinder {
             String iPAddressPreference) throws SQLServerException {
         assert timeoutInMilliSeconds != 0 : "The driver does not allow a time out of 0";
 
+        PerformanceLog.Scope socketScope = null;
         try {
             InetAddress[] inetAddrs = null;
 
@@ -2637,7 +2653,7 @@ final class SocketFinder {
             // case.
             if (useParallel || useTnir) {
                 // Ignore TNIR if host resolves to more than 64 IPs. Make sure we are using original timeout for this.
-                inetAddrs = InetAddress.getAllByName(hostName);
+                inetAddrs = conn.resolveAllAddresses(hostName);
 
                 if ((useTnir) && (inetAddrs.length > IP_ADDRESS_LIMIT)) {
                     useTnir = false;
@@ -2674,6 +2690,8 @@ final class SocketFinder {
                 // Single address so do not start any threads
                 return getConnectedSocket(inetAddrs[0], portNumber, timeoutInMilliSeconds);
             }
+            // Resolution has finished. This owner-thread scope covers the parallel race, not its DNS work.
+            socketScope = PerformanceLog.createConnectionScope(conn, PerformanceActivity.SOCKET_CONNECT);
             timeoutInMilliSeconds = Math.max(timeoutInMilliSeconds, MIN_TIMEOUT_FOR_PARALLEL_CONNECTIONS);
             if (Util.isIBM()) {
                 if (logger.isLoggable(Level.FINER)) {
@@ -2717,11 +2735,13 @@ final class SocketFinder {
                     }
                     String message = SQLServerException.getErrString("R_connectionTimedOut");
                     selectedException = new IOException(message);
+                    PerformanceLog.recordConnectionFailure(conn, selectedException, "R_connectionTimedOut");
                 }
                 throw selectedException;
             }
 
         } catch (InterruptedException ex) {
+            PerformanceLog.recordConnectionFailure(conn, ex);
             // re-interrupt the current thread, in order to restore the thread's interrupt status.
             Thread.currentThread().interrupt();
 
@@ -2729,6 +2749,8 @@ final class SocketFinder {
             SQLServerException.convertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
         } catch (IOException ex) {
             close(selectedSocket);
+            // Includes the selected worker exception, captured on the thread owning the connection scope.
+            PerformanceLog.recordConnectionFailure(conn, ex);
             // The code below has been moved from connectHelper.
             // If we do not move it, the functions open(caller of findSocket)
             // and findSocket will have to
@@ -2740,6 +2762,10 @@ final class SocketFinder {
             // Instead, it would be good to wrap all exceptions at one place - Right here, their origin.
             SQLServerException.convertConnectExceptionToSQLServerException(hostName, portNumber, conn, ex);
 
+        } finally {
+            if (socketScope != null) {
+                socketScope.close();
+            }
         }
 
         assert result.equals(Result.SUCCESS);
@@ -2967,7 +2993,7 @@ final class SocketFinder {
     private Socket getSocketByIPPreference(String hostName, int portNumber, int timeoutInMilliSeconds,
             String iPAddressPreference) throws IOException, SQLServerException {
         InetSocketAddress addr = null;
-        InetAddress[] addresses = InetAddress.getAllByName(hostName);
+        InetAddress[] addresses = conn.resolveAllAddresses(hostName);
         IPAddressPreference pref = IPAddressPreference.valueOfString(iPAddressPreference);
         switch (pref) {
             case IPV6_FIRST:
@@ -3049,6 +3075,18 @@ final class SocketFinder {
     }
 
     private Socket getConnectedSocket(InetSocketAddress addr, int timeoutInMilliSeconds) throws IOException {
+        try (PerformanceLog.Scope socketScope = PerformanceLog.createConnectionScope(conn,
+                PerformanceActivity.SOCKET_CONNECT)) {
+            try {
+                return connectSocket(addr, timeoutInMilliSeconds);
+            } catch (IOException | RuntimeException e) {
+                socketScope.setException(e);
+                throw e;
+            }
+        }
+    }
+
+    private Socket connectSocket(InetSocketAddress addr, int timeoutInMilliSeconds) throws IOException {
         assert timeoutInMilliSeconds != 0 : "timeout cannot be zero";
         if (addr.isUnresolved())
             throw new java.net.UnknownHostException();

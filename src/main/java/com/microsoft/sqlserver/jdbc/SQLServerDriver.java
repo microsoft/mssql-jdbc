@@ -682,6 +682,10 @@ enum SQLServerDriverStringProperty {
     SERVER_CERTIFICATE("serverCertificate", ""),
     DATETIME_DATATYPE("datetimeParameterType", DatetimeType.DATETIME2.toString()),
     ACCESS_TOKEN_CALLBACK_CLASS("accessTokenCallbackClass", ""),
+    OTEL_ENDPOINT("otelEndpoint", null),
+    OTEL_ACCESS_TOKEN_CALLBACK("otelAccessTokenCallback", null),
+    OTEL_CONNECTION_SPAN_DURATION_THRESHOLD("otelConnectionSpanDurationThreshold", null),
+    OTEL_STATEMENT_SPAN_DURATION_THRESHOLD("otelStatementSpanDurationThreshold", null),
     RETRY_EXEC("retryExec", ""),
     RETRY_CONN("retryConn", ""),
     QUOTED_IDENTIFIER("quotedIdentifier", OnOffOption.ON.toString()),
@@ -709,6 +713,7 @@ enum SQLServerDriverStringProperty {
 
 
 enum SQLServerDriverIntProperty {
+    OTEL_LOG_LEVEL("otelLogLevel", 0, 0, 2),
     PACKET_SIZE("packetSize", TDS.DEFAULT_PACKET_SIZE),
     LOCK_TIMEOUT("lockTimeout", -1),
     LOGIN_TIMEOUT("loginTimeout", 30, 0, 65535),
@@ -1004,6 +1009,16 @@ public final class SQLServerDriver implements java.sql.Driver {
                     SQLServerDriverObjectProperty.ACCESS_TOKEN_CALLBACK.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.toString(),
                     SQLServerDriverStringProperty.ACCESS_TOKEN_CALLBACK_CLASS.getDefaultValue(), false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_ENDPOINT.toString(), null, false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK.toString(), null,
+                    false, null),
+            new SQLServerDriverPropertyInfo(SQLServerDriverIntProperty.OTEL_LOG_LEVEL.toString(), "0", false,
+                    new String[] {"0", "1", "2"}),
+            new SQLServerDriverPropertyInfo(
+                    SQLServerDriverStringProperty.OTEL_CONNECTION_SPAN_DURATION_THRESHOLD.toString(), null, false,
+                    null),
+            new SQLServerDriverPropertyInfo(
+                    SQLServerDriverStringProperty.OTEL_STATEMENT_SPAN_DURATION_THRESHOLD.toString(), null, false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.RETRY_EXEC.toString(),
                     SQLServerDriverStringProperty.RETRY_EXEC.getDefaultValue(), false, null),
             new SQLServerDriverPropertyInfo(SQLServerDriverStringProperty.RETRY_CONN.toString(),
@@ -1470,14 +1485,11 @@ public final class SQLServerDriver implements java.sql.Driver {
             }
         }
 
-        // Merge connectProperties (from URL) and supplied properties from user.
-        Properties connectProperties = parseAndMergeProperties(url, suppliedProperties);
-        if (connectProperties != null) {
+        // Reject other drivers' URLs without creating a connection or publishing an open operation.
+        // Parse recognized URLs inside the connection's configuration scope, including malformed URLs.
+        if (null == url || url.startsWith("jdbc:sqlserver://")) {
             result = DriverJDBCVersion.getSQLServerConnection(toString());
-            // if (connectProperties.getProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString()) == null) {
-            //     connectProperties.setProperty(SQLServerDriverStringProperty.APPLICATION_NAME.toString(), SQLServerDriver.constructedAppName);
-            // }   
-            result.connect(connectProperties, null);
+            result = (SQLServerConnection) result.connect(url, suppliedProperties, this);
         }
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.exiting(getClassNameLogging(), "connect", result);
@@ -1485,7 +1497,7 @@ public final class SQLServerDriver implements java.sql.Driver {
         return result;
     }
 
-    private Properties parseAndMergeProperties(String url, Properties suppliedProperties) throws SQLServerException {
+    Properties parseAndMergeProperties(String url, Properties suppliedProperties) throws SQLServerException {
         if (url == null) {
             throw new SQLServerException(null, SQLServerException.getErrString("R_nullConnection"), null, 0, false);
         }

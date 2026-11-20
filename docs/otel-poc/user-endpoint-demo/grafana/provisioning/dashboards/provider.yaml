@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: JDBC user endpoint demo
+    orgId: 1
+    folder: JDBC Demo
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/dashboards

@@ -1,0 +1,70 @@
+# Historical, version-pinned local demo baseline, not production-approved images.
+# Password and ownership token come from run.ps1's process environment, never a file.
+services:
+  sql:
+    image: mcr.microsoft.com/mssql/server:2022-CU20-ubuntu-22.04
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${JDBC_DEMO_SQL_PASSWORD:?Run through run.ps1}
+    labels:
+      io.mssql.jdbc.demo.owner: ${JDBC_DEMO_OWNER_ID:?Run through run.ps1}
+    ports: ["127.0.0.1:14333:1433"]
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    labels:
+      io.mssql.jdbc.demo.owner: ${JDBC_DEMO_OWNER_ID:?Run through run.ps1}
+    volumes:
+      - ./collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:8889:8889"
+      - "127.0.0.1:13133:13133"
+    depends_on: [jaeger]
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=2h"]
+    labels:
+      io.mssql.jdbc.demo.owner: ${JDBC_DEMO_OWNER_ID:?Run through run.ps1}
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+    ports: ["127.0.0.1:9090:9090"]
+    depends_on: [collector]
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    labels:
+      io.mssql.jdbc.demo.owner: ${JDBC_DEMO_OWNER_ID:?Run through run.ps1}
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: memory
+      MEMORY_MAX_TRACES: "10000"
+    ports: ["127.0.0.1:16686:16686"]
+  grafana:
+    image: grafana/grafana:11.2.2
+    labels:
+      io.mssql.jdbc.demo.owner: ${JDBC_DEMO_OWNER_ID:?Run through run.ps1}
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on: [prometheus, jaeger]
+  dashboard:
+    build:
+      context: ../internal/fdh-ui
+    labels:
+      io.mssql.jdbc.demo.owner: ${JDBC_DEMO_OWNER_ID:?Run through run.ps1}
+    ports: ["127.0.0.1:3002:8080"]
+    depends_on: [jaeger, prometheus]
+networks:
+  default:
+    labels:
+      io.mssql.jdbc.demo.owner: ${JDBC_DEMO_OWNER_ID:?Run through run.ps1}

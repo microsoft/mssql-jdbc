@@ -1,0 +1,274 @@
+/*
+ * Microsoft JDBC Driver for SQL Server Copyright(c) Microsoft Corporation All rights reserved. This program is made
+ * available under the terms of the MIT License. See the LICENSE file in the project root for more information.
+ */
+package com.microsoft.sqlserver.jdbc;
+
+import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+
+/**
+ * Immutable snapshot of a connection or statement activity boundary. Scope IDs are process-local correlation identifiers, not
+ * OpenTelemetry trace or span IDs. Attribute maps contain only driver-approved scalar metadata and never raw messages,
+ * connection strings, host names or credentials. The exception reference is retained for trusted in-process diagnostics;
+ * it is not sanitized, is not deep-copied, and must not be serialized or recorded as a raw telemetry exception.
+ */
+public final class PerformanceLogEvent {
+    private static final List<Map<String, Object>> EMPTY_DIAGNOSTICS = Collections
+            .unmodifiableList(new ArrayList<Map<String, Object>>(0));
+
+    /** Lifecycle boundary reported by this snapshot. */
+    public enum Type {
+        /** The activity has started. */
+        START,
+        /** The activity has ended, successfully or with a failure. */
+        END
+    }
+
+    private final Type type;
+    private final long scopeId;
+    private final long parentScopeId;
+    private final long rootScopeId;
+    private final int connectionId;
+    private final int statementId;
+    private final PerformanceActivity activity;
+    private final String phase;
+    private final long startEpochNanos;
+    private final long endEpochNanos;
+    private final long durationNanos;
+    private final Exception exception;
+    private final boolean hasException;
+    private final String failurePhase;
+    private final Map<String, Object> attributes;
+    private final Map<String, Object> errorAttributes;
+    private final List<Map<String, Object>> diagnosticEvents;
+
+    PerformanceLogEvent(Type type, long scopeId, long parentScopeId, long rootScopeId, int connectionId,
+            PerformanceActivity activity, long startEpochNanos, long endEpochNanos, long durationNanos,
+            Exception exception, String failurePhase, Map<String, Object> attributes,
+            Map<String, Object> errorAttributes) {
+        this(type, scopeId, parentScopeId, rootScopeId, connectionId, 0, activity, startEpochNanos, endEpochNanos,
+                durationNanos, exception, failurePhase, attributes, errorAttributes, Collections.emptyList());
+    }
+
+    PerformanceLogEvent(Type type, long scopeId, long parentScopeId, long rootScopeId, int connectionId,
+            PerformanceActivity activity, long startEpochNanos, long endEpochNanos, long durationNanos,
+            Exception exception, String failurePhase, Map<String, Object> attributes,
+            Map<String, Object> errorAttributes, List<Map<String, Object>> diagnosticEvents) {
+        this(type, scopeId, parentScopeId, rootScopeId, connectionId, 0, activity, startEpochNanos, endEpochNanos,
+                durationNanos, exception, failurePhase, attributes, errorAttributes, diagnosticEvents);
+    }
+
+    PerformanceLogEvent(Type type, long scopeId, long parentScopeId, long rootScopeId, int connectionId,
+            int statementId, PerformanceActivity activity, long startEpochNanos, long endEpochNanos, long durationNanos,
+            Exception exception, String failurePhase, Map<String, Object> attributes,
+            Map<String, Object> errorAttributes, List<Map<String, Object>> diagnosticEvents) {
+        this.type = type;
+        this.scopeId = scopeId;
+        this.parentScopeId = parentScopeId;
+        this.rootScopeId = rootScopeId;
+        this.connectionId = connectionId;
+        this.statementId = statementId;
+        this.activity = activity;
+        String connectionActivityPhase = activity.connectionPhase();
+        this.phase = connectionActivityPhase == null ? activity.statementPhase() : connectionActivityPhase;
+        this.startEpochNanos = startEpochNanos;
+        this.endEpochNanos = endEpochNanos;
+        this.durationNanos = durationNanos;
+        this.exception = exception;
+        this.hasException = exception != null;
+        this.failurePhase = failurePhase;
+        this.attributes = Collections.unmodifiableMap(new LinkedHashMap<>(attributes));
+        this.errorAttributes = Collections.unmodifiableMap(new LinkedHashMap<>(errorAttributes));
+        // Freeze both map levels once, before asynchronous projections share this bounded decision list.
+        if (diagnosticEvents.isEmpty()) {
+            this.diagnosticEvents = EMPTY_DIAGNOSTICS;
+        } else {
+            List<Map<String, Object>> decisions = new ArrayList<>(diagnosticEvents.size());
+            for (Map<String, Object> diagnostic : diagnosticEvents) {
+                Map<String, Object> decision = new LinkedHashMap<>(diagnostic);
+                Object values = decision.get("attributes");
+                if (values instanceof Map<?, ?>) {
+                    decision.put("attributes", Collections.unmodifiableMap(new LinkedHashMap<>((Map<?, ?>) values)));
+                }
+                decisions.add(Collections.unmodifiableMap(decision));
+            }
+            this.diagnosticEvents = Collections.unmodifiableList(decisions);
+        }
+    }
+
+    private PerformanceLogEvent(PerformanceLogEvent source) {
+        type = source.type;
+        scopeId = source.scopeId;
+        parentScopeId = source.parentScopeId;
+        rootScopeId = source.rootScopeId;
+        connectionId = source.connectionId;
+        statementId = source.statementId;
+        activity = source.activity;
+        phase = source.phase;
+        startEpochNanos = source.startEpochNanos;
+        endEpochNanos = source.endEpochNanos;
+        durationNanos = source.durationNanos;
+        exception = null;
+        hasException = source.hasException;
+        failurePhase = source.failurePhase;
+        attributes = source.attributes;
+        errorAttributes = source.errorAttributes;
+        diagnosticEvents = source.diagnosticEvents;
+    }
+
+    private PerformanceLogEvent(PerformanceLogEvent source, Map<String, Object> safeAttributes) {
+        type = source.type;
+        scopeId = source.scopeId;
+        parentScopeId = source.parentScopeId;
+        rootScopeId = source.rootScopeId;
+        connectionId = source.connectionId;
+        statementId = source.statementId;
+        activity = source.activity;
+        phase = source.phase;
+        startEpochNanos = source.startEpochNanos;
+        endEpochNanos = source.endEpochNanos;
+        durationNanos = source.durationNanos;
+        exception = source.exception;
+        hasException = source.hasException;
+        failurePhase = source.failurePhase;
+        attributes = Collections.unmodifiableMap(safeAttributes);
+        errorAttributes = source.errorAttributes;
+        diagnosticEvents = source.diagnosticEvents;
+    }
+
+    /**
+     * Returns an asynchronous-safe projection with no exception reference. This constant-time operation shares the
+     * already immutable metadata, does not inspect the exception or its causes, and preserves {@link #hasException()}.
+     * The original event is unchanged and remains available to trusted synchronous diagnostics.
+     *
+     * @return this event if it already has no exception reference, otherwise an exception-free snapshot
+     */
+    public PerformanceLogEvent withoutException() {
+        return exception == null ? this : new PerformanceLogEvent(this);
+    }
+
+    /**
+     * Returns a snapshot enriched with already-masked bounded SQL. This method never accepts raw or oversized text;
+     * callers remain responsible for fail-closed lexical masking before invoking it.
+     *
+     * @param value
+     *        masked SQL, at most 4,096 characters
+     * @return enriched immutable snapshot
+     */
+    public PerformanceLogEvent withMaskedQueryText(String value) {
+        if (value == null || value.isEmpty() || value.length() > 4096) {
+            return this;
+        }
+        Map<String, Object> safe = new LinkedHashMap<>(attributes);
+        safe.put("db.query.text", value);
+        return new PerformanceLogEvent(this, safe);
+    }
+
+    // Core-only projection: preserve boundary, error provenance and diagnostics while inheriting safe metadata.
+    PerformanceLogEvent withAttributes(Map<String, Object> values) {
+        return new PerformanceLogEvent(this, new LinkedHashMap<>(values));
+    }
+
+    /** @return whether an exception was captured, including when its reference was removed by projection */
+    public boolean hasException() {
+        return hasException;
+    }
+
+    /** @return explicit START or END boundary, independent of timestamps and failure state */
+    public Type getType() {
+        return type;
+    }
+
+    /** @return unique process-local scope ID */
+    public long getScopeId() {
+        return scopeId;
+    }
+
+    /** @return parent scope ID, or zero for a root */
+    public long getParentScopeId() {
+        return parentScopeId;
+    }
+
+    /** @return owning root scope ID */
+    public long getRootScopeId() {
+        return rootScopeId;
+    }
+
+    /** @return driver connection ID, or zero when unavailable */
+    public int getConnectionId() {
+        return connectionId;
+    }
+
+    /** @return driver statement ID, or zero for connection activities */
+    public int getStatementId() {
+        return statementId;
+    }
+
+    /** @return the accurately bounded connection activity */
+    public PerformanceActivity getActivity() {
+        return activity;
+    }
+
+    /** @return stable phase name; {@code connection.open} or {@code statement.execute} for roots */
+    public String getPhase() {
+        return phase;
+    }
+
+    /** @return scope start in epoch nanoseconds */
+    public long getStartEpochNanos() {
+        return startEpochNanos;
+    }
+
+    /** @return monotonic-clock-derived end in epoch nanoseconds, or zero at start */
+    public long getEndEpochNanos() {
+        return endEpochNanos;
+    }
+
+    /** @return monotonic elapsed nanoseconds, or zero at start */
+    public long getDurationNanos() {
+        return durationNanos;
+    }
+
+    /** @return original captured failure, or null when absent or projected out; never export this reference raw */
+    public Exception getException() {
+        return exception;
+    }
+
+    /** @return original failing phase, or null when this scope did not fail */
+    public String getFailurePhase() {
+        return failurePhase;
+    }
+
+    /** @return immutable approved span metadata and, on failure, category/type summary */
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
+
+    /** @return immutable detailed error metadata on the originating scope only; otherwise empty */
+    public Map<String, Object> getErrorAttributes() {
+        return errorAttributes;
+    }
+
+    /**
+     * Returns bounded, sanitized decision events on connection and statement root END snapshots only. Each immutable map contains
+     * {@code name} (String), {@code timestamp} (Long, epoch nanoseconds derived from the root's monotonic clock), and
+     * {@code attributes} (immutable Map of String keys to approved scalar values). Names are
+     * {@code mssql.driver.retry}, {@code mssql.driver.connection.retry_decision}, {@code mssql.driver.redirect},
+     * {@code mssql.driver.timeout}, {@code mssql.driver.authentication}, and
+     * {@code mssql.driver.statement.retry_decision}. Connection roots retain at most 128 events; omitted connection
+     * events are counted in {@code mssql.connection.diagnostic_events_dropped}. Statement roots retain at most 64
+     * events, without a dropped-event counter. Events contain no raw
+     * exceptions, messages, endpoints, tokens, callback class names or credential values. A retry decision does not
+     * imply that another attempt started, or authorize statement/transaction replay.
+     *
+     * @return immutable list of immutable diagnostic event maps; empty on other boundaries
+     */
+    public List<Map<String, Object>> getDiagnosticEvents() {
+        return diagnosticEvents;
+    }
+}
