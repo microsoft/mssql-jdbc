@@ -4,11 +4,13 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -37,6 +39,32 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 
 /**
+ * Runs the result-traversal suite with both the normal connection and direct SQL execution.
+ */
+@RunWith(JUnitPlatform.class)
+public class MultiStatementResultTraversalTest {
+
+    @Nested
+    public class NormalConnection extends MultiStatementResultTraversalTestBase {
+    }
+
+    @Nested
+    public class PrepareMethodNone extends MultiStatementResultTraversalTestBase {
+
+        @Override
+        protected String getSuiteConnectionString() {
+            return super.getSuiteConnectionString() + ";prepareMethod=none";
+        }
+
+        @Override
+        protected boolean isPrepareMethodNoneRun() {
+            return true;
+        }
+    }
+}
+
+
+/**
  * Regression matrix for multi-statement result traversal across {@link Statement},
  * {@link PreparedStatement}, and {@link java.sql.CallableStatement}. Pins {@code execute},
  * {@code executeUpdate}, {@code executeQuery}, and {@code executeBatch} contracts on single and
@@ -46,12 +74,29 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
  * #2737, #2740, #2742, #2817, #2850, #2866, #2940, #2941. Trigger tests are tagged
  * {@link Constants#xAzureSQLDW}.
  */
-@RunWith(JUnitPlatform.class)
-public class MultiStatementResultTraversalTest extends AbstractTest {
+abstract class MultiStatementResultTraversalTestBase extends AbstractTest {
 
     @BeforeAll
     public static void setupTests() throws Exception {
         setConnection();
+    }
+
+    protected String getSuiteConnectionString() {
+        return connectionString;
+    }
+
+    private Connection getSuiteConnection() throws SQLException {
+        return PrepUtil.getConnection(getSuiteConnectionString());
+    }
+
+    protected boolean isPrepareMethodNoneRun() {
+        return false;
+    }
+
+    /** Skips a test whose expectations are not yet met by the prepareMethod=none run (known direct-path issues). */
+    private void skipForPrepareMethodNoneRun() {
+        assumeFalse(isPrepareMethodNoneRun(),
+                "Known issue: prepareMethod=none direct execution does not yet match this contract");
     }
 
     // =========================================================================================
@@ -140,7 +185,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteSingleUpdate() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BaseSU"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
@@ -163,7 +208,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteSingleSelect() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BaseSS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
@@ -186,7 +231,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteSingleUpdate() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BasePSU"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
@@ -214,7 +259,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteSingleSelect() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BasePSS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
@@ -242,7 +287,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteUpdateSingleInsert() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BaseSUI"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -261,7 +306,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteQuerySingleSelect() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BaseSQ"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
@@ -300,7 +345,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteDeleteInsertSelect_Issue2940LiteralRepro() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PSExecDIS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
@@ -334,7 +379,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteFiveDmlsPlusSelect_Issue2737Shape() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PSExecFull"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
@@ -372,7 +417,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteInsertThenSelect() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StmtIS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -398,7 +443,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteInsertThenSelect() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PSIS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -429,7 +474,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteInterleavedInsertSelect() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PSInter"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -460,7 +505,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteSelectThenInsert() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PSSI"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -488,7 +533,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteTwoInsertsNoTrailingSelect() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PSII"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -516,7 +561,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteTwoSelects() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PSSS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
@@ -545,7 +590,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteUpdateDeleteChain() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PSUD"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
@@ -575,7 +620,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteFiveDmlsPlusSelectParity() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("StmtFull"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)");
@@ -620,8 +665,9 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         /** {@code lastUpdateCount=true} (default): {@code executeUpdate("INSERT;UPDATE")} returns LAST count. */
         @Test
         public void preparedStatementExecuteUpdateCompoundReturnsLastCount() throws SQLException {
+            skipForPrepareMethodNoneRun();
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EULast"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
@@ -646,7 +692,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteUpdateCompoundReturnsFirstCountWhenLastUpdateCountFalse()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EUFirst"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false");
                     Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
@@ -677,7 +723,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteUpdateThrowsOnTrailingSelect() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EUStmtRS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1)");
@@ -695,8 +741,9 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         /** Symmetric for {@link PreparedStatement}: {@code executeUpdate("INSERT;SELECT")} must throw. */
         @Test
         public void preparedStatementExecuteUpdateThrowsOnTrailingSelect() throws SQLException {
+            skipForPrepareMethodNoneRun();
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EUPSRS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     try (PreparedStatement ps = conn.prepareStatement(
@@ -716,7 +763,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteUpdateThrowsOnSelectOnly() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EUSelOnly"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     assertThrows(SQLException.class,
@@ -736,8 +783,9 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteUpdateComplexCompoundDmlChainReturnsLastCount()
                 throws SQLException {
+            skipForPrepareMethodNoneRun();
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EUCpxLast"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     String seed = "INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)";
@@ -787,7 +835,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteUpdateMultipleInsertsCompoundReturnsLastCount()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EUMultiIns"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -827,7 +875,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void statementExecuteUpdateComplexCompoundDmlChainReturnsFirstCount()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EUStmtCpx"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     String seed = "INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)";
@@ -872,7 +920,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteUpdateCompoundWithLeadingSetNoCountOnReturnsMinusOne()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EUNoCnt"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -939,7 +987,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteQueryConsumesLeadingInsert() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQLeadStmt"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     try (ResultSet rs = stmt.executeQuery(
@@ -968,7 +1016,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteQueryConsumesLeadingInsert() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQLeadPS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     try (PreparedStatement ps = conn.prepareStatement(
@@ -998,7 +1046,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteQueryThrowsWhenNoResultSetProduced() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQNoRS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1)");
@@ -1034,7 +1082,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteQueryDeepCompoundChainEndingInSelect() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQDeepPS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     String seed = "INSERT INTO " + table + " VALUES (1, 1), (2, 2), (3, 3)";
@@ -1098,7 +1146,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteQueryCompoundUnderLastUpdateCountFalse() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQLucFPS"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false");
                     Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
@@ -1155,7 +1203,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteQueryCompoundWithPrepareMethodNone() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQPmnPS"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";prepareMethod=none");
                     Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
@@ -1217,7 +1265,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteQueryCompoundWithLeadingSetNoCountOn() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQNcPS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     String seed = "INSERT INTO " + table + " VALUES (1, 1), (2, 2)";
@@ -1287,7 +1335,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQTrgA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQTrgB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EQTrg"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -1374,7 +1422,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteInsertReturnsIdentityKey_Issue2554() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKStmtE"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createIdentityTable(stmt, table);
 
@@ -1405,7 +1453,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteUpdateInsertReturnsIdentityKey() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKStmtU"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createIdentityTable(stmt, table);
 
@@ -1430,7 +1478,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteInsertReturnsIdentityKey() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKPSE"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createIdentityTable(stmt, table);
 
@@ -1462,7 +1510,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteUpdateInsertReturnsIdentityKey() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKPSU"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createIdentityTable(stmt, table);
 
@@ -1495,7 +1543,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteUpdateWithSetNoCountOn_Issue2587LiteralRepro()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKNoCnt"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createIdentityTable(stmt, table);
 
@@ -1531,7 +1579,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrigA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrigB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrig"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -1575,7 +1623,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTriA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTriB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTri"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -1617,7 +1665,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteCompoundDeleteInsertWithGeneratedKeys()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKCmpDIS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createIdentityTable(stmt, table);
                     // Pre-populate with id=1, id=2 so DELETE has something to remove
@@ -1666,8 +1714,9 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteUpdateCompoundDeleteInsertWithGeneratedKeys()
                 throws SQLException {
+            skipForPrepareMethodNoneRun();
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKEUCmp"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createIdentityTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " (name) VALUES ('a'), ('b')");
@@ -1705,8 +1754,9 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteCompoundMultipleInsertsReturnsLastIdentityViaScopeIdentity()
                 throws SQLException {
+            skipForPrepareMethodNoneRun();
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKMultiIns"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createIdentityTable(stmt, table);
 
@@ -1765,7 +1815,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteCompoundWithNoCountAndInsertAndGeneratedKeys()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKNCSelect"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createIdentityTable(stmt, table);
 
@@ -1806,7 +1856,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteUpdateCompoundWithNoCountAndGeneratedKeys()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKEUNoCnt"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createIdentityTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " (name) VALUES ('seed')");
@@ -1848,7 +1898,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrSelA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrSelB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrSel"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -1899,10 +1949,11 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteUpdateCompoundOnTriggerTableWithGeneratedKeys()
                 throws SQLException {
+            skipForPrepareMethodNoneRun();
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrEUA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrEUB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKTrEU"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -1952,7 +2003,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKQuadA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKQuadB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GKQuad"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2012,7 +2063,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void statementExecuteInsertNoIdentityReturnsEmptyGeneratedKeys()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0StmtE"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table); // (c1 INT, c2 SMALLINT) - no identity
 
@@ -2038,7 +2089,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void statementExecuteUpdateInsertNoIdentityReturnsEmptyGeneratedKeys()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0StmtU"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -2061,7 +2112,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteInsertNoIdentityReturnsEmptyGeneratedKeys()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0PSE"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -2089,7 +2140,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteUpdateInsertNoIdentityReturnsEmptyGeneratedKeys()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0PSU"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -2117,7 +2168,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteUpdateMultiRowInsertNoIdentityReturnsEmptyGeneratedKeys()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0Multi"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -2146,7 +2197,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteBatchInsertNoIdentityReturnsEmptyGeneratedKeys()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0Batch"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -2179,7 +2230,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void statementExecuteLargeUpdateInsertNoIdentityReturnsEmptyGeneratedKeys()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0Large"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -2205,7 +2256,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementInsertNoIdentityDefaultNewIdReturnsEmptyGeneratedKeys()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0Newid"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     stmt.executeUpdate("CREATE TABLE " + table
                             + " (id INT NOT NULL, guidCol UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID())");
@@ -2233,7 +2284,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementInsertNoIdentityComputedColumnReturnsEmptyGeneratedKeys()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0Comp"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     stmt.executeUpdate("CREATE TABLE " + table + " (id INT NOT NULL, computedCol AS (id + 1))");
 
@@ -2263,7 +2314,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0TrA")); // keyless
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0TrB")); // identity
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("GK0Tr"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2323,7 +2374,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigSRA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigSRB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigSR"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2362,7 +2413,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigMRA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigMRB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigMR"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2402,7 +2453,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigNCA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigNCB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigNC"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2444,7 +2495,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigStmA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigStmB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigStm"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2482,7 +2533,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigEUA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigEUB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrigEU"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2523,7 +2574,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSCpA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSCpB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSCp"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2564,7 +2615,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSCpNA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSCpNB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSCpN"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2605,7 +2656,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEUA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEUB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEU"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2644,7 +2695,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEUNA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEUNB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEUN"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2686,7 +2737,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEQA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEQB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEQ"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2734,7 +2785,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEQNA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEQNB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrSEQN"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2785,7 +2836,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPCpA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPCpB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPCp"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2830,7 +2881,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPCpNA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPCpNB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPCpN"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2871,10 +2922,11 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteUpdateCompoundOnTriggerTableWithoutNoCount()
                 throws SQLException {
+            skipForPrepareMethodNoneRun();
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEUA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEUB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEU"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -2914,7 +2966,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEUNA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEUNB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEUN"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false");
                     Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -2955,7 +3007,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEQA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEQB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEQ"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -3006,7 +3058,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEQNA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEQNB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TrPEQN"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -3068,7 +3120,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void statementExecuteRecoversValidCountAfterMidBatchError_Issue2850LiteralRepro()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BRStmt"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     stmt.executeUpdate(
                             "CREATE TABLE " + table + " (id INT PRIMARY KEY, name VARCHAR(16))");
@@ -3094,7 +3146,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteRecoversValidCountAfterMidBatchError() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("BRPS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     stmt.executeUpdate(
                             "CREATE TABLE " + table + " (id INT PRIMARY KEY, name VARCHAR(16))");
@@ -3174,7 +3226,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteCompoundUnderDefaultLastUpdateCount() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PropDef"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -3206,7 +3258,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteCompoundUnderLastUpdateCountFalseIdenticalToDefault()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PropF"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false");
                     Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
@@ -3239,7 +3291,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteCompoundWithPrepareMethodNone() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PropPM"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";prepareMethod=none");
                     Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
@@ -3269,7 +3321,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteCompoundWithLeadingSetNoCountOn() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PropNoC"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -3315,7 +3367,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteDeepCompoundWithPrepareMethodNone() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PmnDeep"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";prepareMethod=none");
                     Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
@@ -3356,7 +3408,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteUpdateCompoundWithPrepareMethodNone() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PmnEU"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";prepareMethod=none");
                     Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
@@ -3398,7 +3450,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PmnEUF"));
             try (Connection conn = PrepUtil.getConnection(
-                    connectionString + ";prepareMethod=none;lastUpdateCount=false");
+                    getSuiteConnectionString() + ";prepareMethod=none;lastUpdateCount=false");
                     Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
@@ -3428,7 +3480,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteCompoundWithPrepareMethodNoneAndPayloadNoCount()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PmnNc"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";prepareMethod=none");
                     Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
@@ -3475,7 +3527,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void callableStatementExecuteProcWithMultipleDmlAndSelect() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPDml"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPDmlProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     createPlainTable(stmt, table);
@@ -3511,7 +3563,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void callableStatementExecuteProcWithSetNoCountOnAndSelect() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPNoCnt"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPNoCntProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     createPlainTable(stmt, table);
@@ -3545,7 +3597,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void callableStatementExecuteProcReturningResultSetOnly() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPRsOnly"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPRsOnlyProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     createPlainTable(stmt, table);
@@ -3578,7 +3630,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void callableStatementExecuteProcWithResultSetAndOutParam() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPRsOut"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPRsOutProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     createPlainTable(stmt, table);
@@ -3618,7 +3670,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void callableStatementExecuteCompoundDeleteInsertSelectParityWithPreparedStatement()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("CSCompound"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
@@ -3651,7 +3703,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void callableStatementExecuteProcReturningMultipleResultSets() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPMultiRs"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPMultiRsProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     createPlainTable(stmt, table);
@@ -3689,7 +3741,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void callableStatementExecuteProcWithReturnValueParameter() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPRet"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPRetProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     createPlainTable(stmt, table);
@@ -3736,7 +3788,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void callableStatementExecuteProcWithInterleavedDmlAndResultSets() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPInter"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPInterProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     createPlainTable(stmt, table);
@@ -3786,7 +3838,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTrB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTr"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTrProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -3836,7 +3888,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTNB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTN"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPCpTNProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -3886,7 +3938,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPNCBdyB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPNCBdy"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPNCBdyProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -3940,7 +3992,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEULast"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEULastProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     createPlainTable(stmt, table);
@@ -3991,7 +4043,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUFst"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUFstProc"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false");
                     Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
@@ -4032,7 +4084,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTrB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTr"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTrProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -4078,7 +4130,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTFB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTF"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPEUTFProc"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false");
                     Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
@@ -4125,7 +4177,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPQuintB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPQuint"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPQuintProc"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropProcedureIfExists(proc, stmt);
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -4185,7 +4237,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteBatchReturnsOneCountPerItem() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBStmt"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -4212,7 +4264,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteBatchReturnsOneCountPerParameterSet() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBPS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -4244,7 +4296,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteBatchReportsExecuteFailedOnMidBatchPkViolation() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBErr"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     stmt.executeUpdate("CREATE TABLE " + table
                             + " (id INT PRIMARY KEY, name VARCHAR(16))");
@@ -4275,6 +4327,516 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
     }
 
     // =========================================================================================
+    //  Section 10.B — executeBatch() with single statements affecting multiple rows
+    // =========================================================================================
+
+    /**
+     * Customer-reported {@code prepareMethod=none} scenarios: a non-compound
+     * {@code PreparedStatement} batch entry that affects a row count other than 1 must report that
+     * row count, not 1.
+     */
+    @Nested
+    public class ExecuteBatchMultiRowStatements {
+
+        private void seedRows(Statement stmt, String table, int rows) throws SQLException {
+            StringBuilder sql = new StringBuilder("INSERT INTO ").append(table).append(" VALUES ");
+            for (int i = 1; i <= rows; i++) {
+                if (i > 1) {
+                    sql.append(", ");
+                }
+                sql.append('(').append(i).append(", 0)");
+            }
+            stmt.executeUpdate(sql.toString());
+        }
+
+        private int countRows(Statement stmt, String table, String predicate) throws SQLException {
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table + predicate)) {
+                assertTrue(rs.next());
+                return rs.getInt(1);
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMultiRowUpdateReturnsRowsAffected() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRUpd"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 20);
+
+                    try (PreparedStatement ps = conn
+                            .prepareStatement("UPDATE " + table + " SET c2 = c2 + 1 WHERE c1 <= ?")) {
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 8);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5, 8}, ps.executeBatch(),
+                                "batched UPDATEs affecting 5 and 8 rows must report 5 and 8");
+                    }
+
+                    assertEquals(5, countRows(stmt, table, " WHERE c2 = 2"), "rows 1 through 5 must be updated twice");
+                    assertEquals(3, countRows(stmt, table, " WHERE c2 = 1"), "rows 6 through 8 must be updated once");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMultiRowDeleteReturnsRowsAffected() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRDel"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 20);
+
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + table + " WHERE c1 <= ?")) {
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 8);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5, 3}, ps.executeBatch(),
+                                "batched DELETEs affecting 5 and 3 rows must report 5 and 3");
+                    }
+
+                    assertEquals(12, countRows(stmt, table, ""), "rows 1 through 8 must be deleted");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMultiRowInsertSelectReturnsRowsAffected() throws SQLException {
+            String source = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRSrc"));
+            String target = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTgt"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, source);
+                    createPlainTable(stmt, target);
+                    seedRows(stmt, source, 20);
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "INSERT INTO " + target + " SELECT c1, c2 FROM " + source + " WHERE c1 <= ?")) {
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 8);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5, 8}, ps.executeBatch(),
+                                "batched INSERT ... SELECTs affecting 5 and 8 rows must report 5 and 8");
+                    }
+
+                    assertEquals(13, countRows(stmt, target, ""), "5 + 8 rows must be inserted");
+                } finally {
+                    TestUtils.dropTableIfExists(target, stmt);
+                    TestUtils.dropTableIfExists(source, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchDeleteTopWithJoinWithoutParameters() throws SQLException {
+            String target = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTopTgt"));
+            String ids = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTopIds"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, target);
+                    createPlainTable(stmt, ids);
+                    seedRows(stmt, target, 20);
+                    seedRows(stmt, ids, 5);
+
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE TOP (5) t FROM " + target
+                            + " t WITH (TABLOCK) INNER JOIN " + ids + " i ON i.c1 = t.c1")) {
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5}, ps.executeBatch(),
+                                "a batched DELETE TOP (5) with a join must report 5");
+                    }
+
+                    assertEquals(15, countRows(stmt, target, ""), "exactly 5 rows must be deleted");
+                    assertEquals(0, countRows(stmt, target, " WHERE c1 <= 5"), "the joined ids must be deleted");
+                } finally {
+                    TestUtils.dropTableIfExists(ids, stmt);
+                    TestUtils.dropTableIfExists(target, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchDeleteTopWithParameterOnTempTable() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier("#" + RandomUtil.getIdentifier("EBMRTopTemp"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 20);
+
+                    try (PreparedStatement ps = conn
+                            .prepareStatement("DELETE TOP (5) FROM " + table + " WHERE c1 <= ?")) {
+                        ps.setInt(1, 20);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5}, ps.executeBatch(),
+                                "a batched temp-table DELETE TOP (5) must report 5");
+                    }
+
+                    assertEquals(15, countRows(stmt, table, ""), "exactly 5 rows must be deleted");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementDeleteTopWithJoinOnTempTablesMatchesExecuteUpdate() throws SQLException {
+            try (Connection conn = getSuiteConnection()) {
+                assertDeleteTopWithJoinOnTempTables(conn);
+            }
+        }
+
+        @Test
+        public void preparedStatementDeleteTopWithJoinOnTempTablesWithLastUpdateCountFalse() throws SQLException {
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false")) {
+                assertDeleteTopWithJoinOnTempTables(conn);
+            }
+        }
+
+        private void assertDeleteTopWithJoinOnTempTables(Connection conn) throws SQLException {
+            String target = AbstractSQLGenerator.escapeIdentifier("#" + RandomUtil.getIdentifier("EBMRTopJoinTgt"));
+            String ids = AbstractSQLGenerator.escapeIdentifier("#" + RandomUtil.getIdentifier("EBMRTopJoinIds"));
+            String sql = "DELETE TOP (5) t FROM " + target + " t WITH (TABLOCK) INNER JOIN " + ids
+                    + " i ON i.c1 = t.c1";
+            try (Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, target);
+                    createPlainTable(stmt, ids);
+                    seedRows(stmt, ids, 5);
+                    seedRows(stmt, target, 20);
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5}, ps.executeBatch(),
+                                "a batched temp-table DELETE TOP (5) with a join must report 5");
+                    }
+                    assertEquals(15, countRows(stmt, target, ""), "executeBatch must delete exactly 5 rows");
+
+                    stmt.executeUpdate("DELETE FROM " + target);
+                    seedRows(stmt, target, 20);
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        assertEquals(5, ps.executeUpdate(),
+                                "executeUpdate of the same temp-table DELETE TOP (5) must report 5");
+                    }
+                    assertEquals(15, countRows(stmt, target, ""), "executeUpdate must delete exactly 5 rows");
+                } finally {
+                    TestUtils.dropTableIfExists(ids, stmt);
+                    TestUtils.dropTableIfExists(target, stmt);
+                }
+            }
+        }
+
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementDeleteTopWithJoinOnTriggerTable() throws SQLException {
+            try (Connection conn = getSuiteConnection()) {
+                assertDeleteTopWithJoinOnTriggerTable(conn, false, 5);
+            }
+        }
+
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementDeleteTopWithJoinOnNoCountTriggerTable() throws SQLException {
+            try (Connection conn = getSuiteConnection()) {
+                assertDeleteTopWithJoinOnTriggerTable(conn, true, 5);
+            }
+        }
+
+        /**
+         * With {@code lastUpdateCount=false}, {@code executeUpdate} returns the FIRST count, which is the trigger's
+         * 1-row count because it arrives before the outer DELETE's count. {@code executeBatch} still reports 5.
+         */
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementDeleteTopWithJoinOnTriggerTableWithLastUpdateCountFalse() throws SQLException {
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false")) {
+                assertDeleteTopWithJoinOnTriggerTable(conn, false, 1);
+            }
+        }
+
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementDeleteTopWithJoinOnNoCountTriggerTableWithLastUpdateCountFalse() throws SQLException {
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false")) {
+                assertDeleteTopWithJoinOnTriggerTable(conn, true, 5);
+            }
+        }
+
+        private void assertDeleteTopWithJoinOnTriggerTable(Connection conn, boolean suppressNoCount,
+                int expectedExecuteUpdateCount) throws SQLException {
+            String target = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTopTrgTgt"));
+            String ids = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTopTrgIds"));
+            String meta = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTopTrgMeta"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTopTrg"));
+            String sql = "DELETE TOP (5) t FROM " + target + " t WITH (TABLOCK) INNER JOIN " + ids
+                    + " i ON i.c1 = t.c1";
+            try (Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(meta, stmt);
+                    TestUtils.dropTableIfExists(ids, stmt);
+                    TestUtils.dropTableIfExists(target, stmt);
+                    createPlainTable(stmt, target);
+                    createPlainTable(stmt, ids);
+                    createPlainTable(stmt, meta);
+                    seedRows(stmt, ids, 5);
+                    seedRows(stmt, meta, 1);
+                    seedRows(stmt, target, 20);
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + target + " AFTER DELETE AS "
+                            + (suppressNoCount ? "SET NOCOUNT ON; " : "") + "UPDATE " + meta + " SET c2 = c2 + 1");
+
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5}, ps.executeBatch(),
+                                "the trigger's 1-row count must not replace the outer DELETE TOP (5) count");
+                    }
+                    assertEquals(15, countRows(stmt, target, ""), "executeBatch must delete exactly 5 rows");
+                    assertEquals(1, countRows(stmt, meta, " WHERE c2 = 1"), "the trigger must fire once");
+
+                    stmt.executeUpdate("DELETE FROM " + target + "; UPDATE " + meta + " SET c2 = 0");
+                    seedRows(stmt, target, 20);
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        assertEquals(expectedExecuteUpdateCount, ps.executeUpdate(),
+                                "executeUpdate must report the expected DELETE TOP (5) count for this configuration");
+                    }
+                    assertEquals(15, countRows(stmt, target, ""), "executeUpdate must delete exactly 5 rows");
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(meta, stmt);
+                    TestUtils.dropTableIfExists(ids, stmt);
+                    TestUtils.dropTableIfExists(target, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchSingleRowUpdatesReturnOnePerEntry() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRPerRowUpd"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 20);
+
+                    try (PreparedStatement ps = conn.prepareStatement("UPDATE " + table + " SET c2 = 1 WHERE c1 = ?")) {
+                        for (int i = 1; i <= 5; i++) {
+                            ps.setInt(1, i);
+                            ps.addBatch();
+                        }
+                        assertArrayEquals(new int[] {1, 1, 1, 1, 1}, ps.executeBatch(),
+                                "each single-row UPDATE batch entry must report 1");
+                    }
+
+                    assertEquals(5, countRows(stmt, table, " WHERE c2 = 1"), "rows 1 through 5 must be updated");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchDeleteTopPurgeLoopRemovesAllRows() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRPurge"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 23);
+
+                    List<Integer> reported = new ArrayList<>();
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE TOP (5) FROM " + table)) {
+                        int count;
+                        do {
+                            ps.addBatch();
+                            int[] counts = ps.executeBatch();
+                            assertEquals(1, counts.length, "each purge batch has one entry");
+                            count = counts[0];
+                            reported.add(count);
+                        } while (count == 5 && reported.size() < 10);
+                    }
+
+                    assertEquals(Arrays.asList(5, 5, 5, 5, 3), reported,
+                            "a count-driven purge loop must see each batch's real delete count");
+                    assertEquals(0, countRows(stmt, table, ""), "the purge loop must remove every row");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMultiRowCountsMatchExecuteUpdate() throws SQLException {
+            String source = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRParSrc"));
+            String target = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRParTgt"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, source);
+                    createPlainTable(stmt, target);
+                    String[] statements = {"UPDATE " + source + " SET c2 = c2 + 1 WHERE c1 <= ?",
+                            "DELETE FROM " + source + " WHERE c1 <= ?",
+                            "INSERT INTO " + target + " SELECT c1, c2 FROM " + source + " WHERE c1 <= ?"};
+
+                    for (String sql : statements) {
+                        stmt.executeUpdate("DELETE FROM " + source + "; DELETE FROM " + target);
+                        seedRows(stmt, source, 20);
+                        int[] batchCounts;
+                        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                            ps.setInt(1, 5);
+                            ps.addBatch();
+                            batchCounts = ps.executeBatch();
+                        }
+
+                        stmt.executeUpdate("DELETE FROM " + source + "; DELETE FROM " + target);
+                        seedRows(stmt, source, 20);
+                        int updateCount;
+                        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                            ps.setInt(1, 5);
+                            updateCount = ps.executeUpdate();
+                        }
+
+                        assertEquals(5, updateCount, "executeUpdate must report 5 rows for: " + sql);
+                        assertArrayEquals(new int[] {updateCount}, batchCounts,
+                                "executeBatch must match executeUpdate for: " + sql);
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(target, stmt);
+                    TestUtils.dropTableIfExists(source, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMixedRowCountsMapToEntries() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRMixed"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 10);
+
+                    try (PreparedStatement ps = conn
+                            .prepareStatement("UPDATE " + table + " SET c2 = c2 + 1 WHERE c1 BETWEEN ? AND ?")) {
+                        ps.setInt(1, 1);
+                        ps.setInt(2, 1);
+                        ps.addBatch();
+                        ps.setInt(1, 2);
+                        ps.setInt(2, 6);
+                        ps.addBatch();
+                        ps.setInt(1, 7);
+                        ps.setInt(2, 9);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {1, 5, 3}, ps.executeBatch(),
+                                "each batch entry must report its own row count");
+                    }
+
+                    assertEquals(9, countRows(stmt, table, " WHERE c2 = 1"), "rows 1 through 9 must be updated");
+                    assertEquals(1, countRows(stmt, table, " WHERE c2 = 0"), "row 10 must not be updated");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMultiRowDeleteOnTempTable() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier("#" + RandomUtil.getIdentifier("EBMRTemp"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 10);
+
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + table + " WHERE c1 <= ?")) {
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 8);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5, 3}, ps.executeBatch(),
+                                "batched temp-table DELETEs must report 5 then 3");
+                    }
+
+                    assertEquals(2, countRows(stmt, table, ""), "rows 9 and 10 must remain");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchMultiRowDeleteWithLastUpdateCountFalse() throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRLuc"));
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false");
+                    Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    seedRows(stmt, table, 10);
+
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + table + " WHERE c1 <= ?")) {
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 8);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5, 3}, ps.executeBatch(),
+                                "lastUpdateCount=false must not change batched DELETE counts");
+                    }
+
+                    assertEquals(2, countRows(stmt, table, ""), "rows 9 and 10 must remain");
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementExecuteBatchMultiRowDeleteOnTriggerTable() throws SQLException {
+            assertMultiRowDeleteOnTriggerTable(false);
+        }
+
+        @Test
+        @Tag(Constants.xAzureSQLDW)
+        public void preparedStatementExecuteBatchMultiRowDeleteOnNoCountTriggerTable() throws SQLException {
+            assertMultiRowDeleteOnTriggerTable(true);
+        }
+
+        private void assertMultiRowDeleteOnTriggerTable(boolean suppressNoCount) throws SQLException {
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTrgTbl"));
+            String audit = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTrgAudit"));
+            String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBMRTrg"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(audit, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                    createPlainTable(stmt, table);
+                    createPlainTable(stmt, audit);
+                    seedRows(stmt, table, 10);
+                    seedRows(stmt, audit, 1);
+                    stmt.executeUpdate("CREATE TRIGGER " + trigger + " ON " + table + " AFTER DELETE AS "
+                            + (suppressNoCount ? "SET NOCOUNT ON; " : "") + "UPDATE " + audit + " SET c2 = c2 + 1");
+
+                    try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + table + " WHERE c1 <= ?")) {
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 8);
+                        ps.addBatch();
+                        assertArrayEquals(new int[] {5, 3}, ps.executeBatch(),
+                                "trigger counts must not replace the outer DELETE counts");
+                    }
+
+                    assertEquals(2, countRows(stmt, table, ""), "rows 9 and 10 must remain");
+                    assertEquals(1, countRows(stmt, audit, " WHERE c2 = 2"), "the trigger must fire once per entry");
+                } finally {
+                    TestUtils.dropTriggerIfExists(trigger, stmt);
+                    TestUtils.dropTableIfExists(audit, stmt);
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+    }
+
+    // =========================================================================================
     //  Section 10.A — executeBatch() × compound × property cross-products
     // =========================================================================================
 
@@ -4298,7 +4860,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteBatchWithCompoundItemsReturnsLastCountPerItem() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBCompStmt"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -4341,7 +4903,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBTrgA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBTrgB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBTrg"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -4389,7 +4951,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteBatchWithNoCountItem() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBNcItem"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -4432,8 +4994,9 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
          */
         @Test
         public void preparedStatementExecuteBatchWithCompoundPreparedSql() throws SQLException {
+            skipForPrepareMethodNoneRun();
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBCompPS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -4456,6 +5019,110 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                         assertTrue(rs.next());
                         assertEquals(2, rs.getInt(1),
                                 "both INSERT rows must persist");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchWithMultiRowUpdateThenInsertSelectThenUpdate() throws SQLException {
+            skipForPrepareMethodNoneRun();
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBCompUpdateFirst"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 0), (2, 0), (3, 0), (4, 0)");
+
+                    try (PreparedStatement ps = conn.prepareStatement("UPDATE " + table
+                            + " SET c2 = c2 + 1 WHERE c1 <= ?; INSERT INTO " + table + " SELECT ?, c2 FROM " + table
+                            + " WHERE c1 = 4; UPDATE " + table + " SET c2 = c2 + 10")) {
+                        ps.setInt(1, 2);
+                        ps.setInt(2, 5);
+                        ps.addBatch();
+                        ps.setInt(1, 3);
+                        ps.setInt(2, 6);
+                        ps.addBatch();
+                        int[] counts = ps.executeBatch();
+
+                        assertEquals(2, counts.length, "executeBatch must return one count per parameter set");
+                        assertEquals(5, counts[0], "item 0 updates 2, inserts 1, then updates 5 rows");
+                        assertEquals(6, counts[1], "item 1 updates 3, inserts 1, then updates 6 rows");
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table + " WHERE c2 >= 20")) {
+                        assertTrue(rs.next());
+                        assertEquals(6, rs.getInt(1), "all six rows must reflect the final UPDATE");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchWithMultiRowDeleteThenUpdate() throws SQLException {
+            skipForPrepareMethodNoneRun();
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBCompDeleteFirst"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+                    stmt.executeUpdate(
+                            "INSERT INTO " + table + " VALUES (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0)");
+
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "DELETE FROM " + table + " WHERE c1 <= ?; UPDATE " + table + " SET c2 = c2 + 1")) {
+                        ps.setInt(1, 2);
+                        ps.addBatch();
+                        ps.setInt(1, 5);
+                        ps.addBatch();
+                        int[] counts = ps.executeBatch();
+
+                        assertEquals(2, counts.length, "executeBatch must return one count per parameter set");
+                        assertEquals(4, counts[0], "item 0 deletes 2 rows, then updates the 4 survivors");
+                        assertEquals(1, counts[1], "item 1 deletes 3 rows, then updates the sole survivor");
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT c1, c2 FROM " + table)) {
+                        assertTrue(rs.next());
+                        assertEquals(6, rs.getInt(1), "row 6 must survive both DELETEs");
+                        assertEquals(2, rs.getInt(2), "the survivor must be updated by both entries");
+                        assertFalse(rs.next(), "no other rows should remain");
+                    }
+                } finally {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+
+        @Test
+        public void preparedStatementExecuteBatchWithMultiRowInsertThenDeleteThenUpdate() throws SQLException {
+            skipForPrepareMethodNoneRun();
+            String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EBCompInsertFirst"));
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+                try {
+                    createPlainTable(stmt, table);
+
+                    try (PreparedStatement ps = conn
+                            .prepareStatement("INSERT INTO " + table + " VALUES (?, 0), (?, 1), (?, 2); DELETE FROM "
+                                    + table + " WHERE c2 = 0; UPDATE " + table + " SET c2 = c2 + 10")) {
+                        for (int item = 1; item <= 2; item++) {
+                            ps.setInt(1, item);
+                            ps.setInt(2, item);
+                            ps.setInt(3, item);
+                            ps.addBatch();
+                        }
+                        int[] counts = ps.executeBatch();
+
+                        assertEquals(2, counts.length, "executeBatch must return one count per parameter set");
+                        assertEquals(2, counts[0], "item 0 inserts 3, deletes 1, then updates 2 rows");
+                        assertEquals(4, counts[1], "item 1 inserts 3, deletes 1, then updates 4 rows");
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table + " WHERE c2 >= 11")) {
+                        assertTrue(rs.next());
+                        assertEquals(4, rs.getInt(1), "four inserted rows must survive and be updated");
                     }
                 } finally {
                     TestUtils.dropTableIfExists(table, stmt);
@@ -4488,7 +5155,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XTrigLucA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XTrigLucB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XTrigLuc"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false");
                     Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -4527,7 +5194,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XTrigPMA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XTrigPMB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XTrigPM"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";prepareMethod=none");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";prepareMethod=none");
                     Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
@@ -4567,7 +5234,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Tag(Constants.xAzureSQLDW)
         public void preparedStatementGeneratedKeysWithLastUpdateCountFalse() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("XGKLuc"));
-            try (Connection conn = PrepUtil.getConnection(connectionString + ";lastUpdateCount=false");
+            try (Connection conn = PrepUtil.getConnection(getSuiteConnectionString() + ";lastUpdateCount=false");
                     Statement stmt = conn.createStatement()) {
                 try {
                     createIdentityTable(stmt, table);
@@ -4615,7 +5282,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void statementExecuteCreateTableInsertSelect() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("DdlCIS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     String sql = "CREATE TABLE " + table + " (c1 INT, c2 SMALLINT);"
                             + " INSERT INTO " + table + " VALUES (1, 1);"
@@ -4642,7 +5309,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void statementExecuteMergeReturnsTotalAffectedRowCount() throws SQLException {
             String src = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("MrgSrc"));
             String tgt = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("MrgTgt"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, src);
                     createPlainTable(stmt, tgt);
@@ -4678,7 +5345,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void statementExecuteSelectIntoReturnsRowCount() throws SQLException {
             String src = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SelIntoSrc"));
             String dst = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SelIntoDst"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, src);
                     stmt.executeUpdate("INSERT INTO " + src + " VALUES (1, 1), (2, 2), (3, 3)");
@@ -4723,7 +5390,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TUpdA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TUpdB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TUpd"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -4762,7 +5429,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TDelA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TDelB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TDel"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -4801,7 +5468,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIof"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -4861,7 +5528,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TBodyA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TBodyB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TBody"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -4900,7 +5567,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofUA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofUB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofU"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -4959,7 +5626,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofDA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofDB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TIofD"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -5016,7 +5683,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableA = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRaA"));
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRaB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRa"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(tableB, stmt);
@@ -5078,7 +5745,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteOnRecursiveTriggerTable() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRecur"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRecurTrig"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(table, stmt);
@@ -5130,7 +5797,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tableB = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TProcB"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TProc"));
             String proc = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TProcSP"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropProcedureIfExists(proc, stmt);
@@ -5169,7 +5836,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteOnTriggerThatEmitsResultSet() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRsT"));
             String trigger = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("TRs"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     TestUtils.dropTriggerIfExists(trigger, stmt);
                     TestUtils.dropTableIfExists(table, stmt);
@@ -5233,7 +5900,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementExecuteCompoundWithEmptyResultSets() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EEmptyRs"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
 
@@ -5266,7 +5933,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         @Test
         public void preparedStatementGetMoreResultsCloseAllResultsMode() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EGMRMode"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
                     stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
@@ -5306,7 +5973,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementExecuteWithMidBatchErrorFollowedByCountAndSelect()
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("EErrCS"));
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
                 try {
                     stmt.executeUpdate("CREATE TABLE " + table
                             + " (id INT PRIMARY KEY, name VARCHAR(16))");
@@ -5382,7 +6049,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
         public void preparedStatementBatchWithUseBulkCopyForBatchInsertSmoke() throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPBulk"));
             try (Connection conn = PrepUtil.getConnection(
-                    connectionString + ";useBulkCopyForBatchInsert=true");
+                    getSuiteConnectionString() + ";useBulkCopyForBatchInsert=true");
                     Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);
@@ -5428,7 +6095,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
             String tempTable = AbstractSQLGenerator
                     .escapeIdentifier("#" + RandomUtil.getIdentifier("tmpScope"));
             try (Connection conn = PrepUtil.getConnection(
-                    connectionString + ";prepareMethod=scopeTempTablesToConnection");
+                    getSuiteConnectionString() + ";prepareMethod=scopeTempTablesToConnection");
                     Statement stmt = conn.createStatement()) {
                 try {
                     // Create the temp table first via direct SQL so the prepared statement that
@@ -5463,7 +6130,7 @@ public class MultiStatementResultTraversalTest extends AbstractTest {
                 throws SQLException {
             String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("SPAE"));
             try (Connection conn = PrepUtil.getConnection(
-                    connectionString + ";columnEncryptionSetting=Enabled");
+                    getSuiteConnectionString() + ";columnEncryptionSetting=Enabled");
                     Statement stmt = conn.createStatement()) {
                 try {
                     createPlainTable(stmt, table);

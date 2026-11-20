@@ -4112,43 +4112,28 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // Process results for each batch entry
                     for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
                         try {
-                            boolean isResultSet = getNextResult(true);
-
-                            if (isResultSet) {
-                                batchCommand.updateCounts[batchIdx] = 1;
-                                if (null != resultSet) {
-                                    resultSet.close();
-                                    resultSet = null;
-                                }
-                            } else {
-                                long updateCount = getUpdateCount();
-                                batchCommand.updateCounts[batchIdx] = updateCount;
+                            // getNextResult returns true for an update count as well as for a ResultSet.
+                            if (!getNextResult(true))
+                                break;
+                            if (null != resultSet) {
+                                resultSet.close();
+                                resultSet = null;
                             }
-                        } catch (SQLException e) {
+                            batchCommand.updateCounts[batchIdx] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
+                                                                                      : updateCount;
+                        } catch (SQLServerException e) {
+                            if (connection.isSessionUnAvailable() || connection.rolledBackTransaction()
+                                    || SQLServerException.ERROR_QUERY_TIMEOUT == e.getDriverErrorCode())
+                                throw e;
+
                             batchCommand.updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
 
                             if (null == batchCommand.batchException) {
-                                batchCommand.batchException = new SQLServerException(
-                                        e.getMessage(), e.getSQLState(), e.getErrorCode(), e);
+                                batchCommand.batchException = e;
                             }
                         }
                     }
-                    // If we had any batch failures, throw BatchUpdateException with update counts
-                    if (null != batchCommand.batchException) {
-                        int[] updateCounts = new int[batchCommand.updateCounts.length];
-                        for (int i = 0; i < batchCommand.updateCounts.length; i++) {
-                            updateCounts[i] = (int) batchCommand.updateCounts[i];
-                        }
-
-                        BatchUpdateException batchException = new BatchUpdateException(
-                                batchCommand.batchException.getMessage(),
-                                batchCommand.batchException.getSQLState(),
-                                batchCommand.batchException.getErrorCode(), updateCounts);
-
-                        throw new SQLServerException(batchException.getMessage(),
-                                batchException.getSQLState(),
-                                batchException.getErrorCode(), batchException);
-                    }
+                    // executeBatch and executeLargeBatch turn batchException into a BatchUpdateException.
                 } catch (SQLServerException e) {
                     executeScope.setException(e);
                     throw e;
