@@ -202,6 +202,7 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     /** Raw SQL is callback-scoped only; lifecycle snapshots never retain it. */
     private transient String telemetryUserSql;
+    transient String telemetryBatchApi;
 
     String getClassNameLogging() {
         return loggingClassName;
@@ -283,13 +284,17 @@ public class SQLServerStatement implements ISQLServerStatement {
 
                 do {
                     cont = false;
-                    try (PerformanceLog.Scope attemptScope = PerformanceLog.createStatementAttemptScope(this,
-                            telemetrySql)) {
+                    boolean ownsAttempt = telemetryBatchApi == null;
+                    try {
+                        PerformanceLog.createStatementAttemptScope(this, telemetrySql);
                         startCreationToFirstPacketTracking();
                         try {
                             executeCommand(newStmtCmd);
                         } catch (SQLServerException e) {
-                            attemptScope.setException(e);
+                            StatementPerformanceState.Node attempt = StatementPerformanceState.currentAttempt(this);
+                            if (attempt != null) {
+                                attempt.scope.setException(e);
+                            }
                 SQLServerError sqlServerError = e.getSQLServerError();
                 ConfigurableRetryRule rule = null;
 
@@ -323,6 +328,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                         // This is intentional - the retry backoff time should not be included in metrics.
                         // A new scope will be started at the top of the next loop iteration.
                         PerformanceLog.recordStatementRetry(this, TimeUnit.SECONDS.toMillis(timeToWait));
+                        endCreationToFirstPacketTracking();
+                        PerformanceLog.completeStatementAttempt(this, null);
                         try {
                             Thread.sleep(TimeUnit.SECONDS.toMillis(timeToWait));
                         } catch (InterruptedException ex) {
@@ -330,6 +337,8 @@ public class SQLServerStatement implements ISQLServerStatement {
                         }
                         cont = true;
                         retryAttempt++;
+                    } else {
+                        throw e;
                     }
                 } else if (e.getDriverErrorCode() == SQLServerException.ERROR_QUERY_TIMEOUT) {
                     if (e.getCause() == null) {
@@ -352,6 +361,10 @@ public class SQLServerStatement implements ISQLServerStatement {
                 if (newStmtCmd.wasExecuted()) {
                     lastStmtExecCmd = newStmtCmd;
                 }
+                        }
+                    } finally {
+                        if (ownsAttempt) {
+                            PerformanceLog.completeStatementAttempt(this, null);
                         }
                     }
                 } while (cont);
@@ -2287,6 +2300,27 @@ public class SQLServerStatement implements ISQLServerStatement {
      */
     @Override
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
+        executeMethod = EXECUTE_BATCH;
+        telemetryBatchApi = "execute_batch";
+        try (PerformanceLog.Scope invocation = PerformanceLog.createStatementInvocationScope(this, null)) {
+            try {
+                if (!batchStatementBuffer.isEmpty()) {
+                    PerformanceLog.createStatementAttemptScope(this, null);
+                }
+                return executeBatchInternal();
+            } catch (SQLException e) {
+                PerformanceLog.completeStatementAttempt(this, e);
+                invocation.setException(e);
+                throw e;
+            } finally {
+                PerformanceLog.completeStatementAttempt(this, null);
+            }
+        } finally {
+            telemetryBatchApi = null;
+        }
+    }
+
+    private int[] executeBatchInternal() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "executeBatch");
         }
@@ -2367,6 +2401,27 @@ public class SQLServerStatement implements ISQLServerStatement {
 
     @Override
     public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
+        executeMethod = EXECUTE_BATCH;
+        telemetryBatchApi = "execute_large_batch";
+        try (PerformanceLog.Scope invocation = PerformanceLog.createStatementInvocationScope(this, null)) {
+            try {
+                if (!batchStatementBuffer.isEmpty()) {
+                    PerformanceLog.createStatementAttemptScope(this, null);
+                }
+                return executeLargeBatchInternal();
+            } catch (SQLException e) {
+                PerformanceLog.completeStatementAttempt(this, e);
+                invocation.setException(e);
+                throw e;
+            } finally {
+                PerformanceLog.completeStatementAttempt(this, null);
+            }
+        } finally {
+            telemetryBatchApi = null;
+        }
+    }
+
+    private long[] executeLargeBatchInternal() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
 
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");

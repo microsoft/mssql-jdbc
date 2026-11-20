@@ -8,8 +8,9 @@ agent: agent
 
 Read [the executable demo guide](../../docs/otel-poc/user-endpoint-demo/README.md)
 and the help in [the runner](../../docs/otel-poc/user-endpoint-demo/run.ps1).
-Use the checked-in runner and assets; do not reconstruct files from the older
-manual runbook, scaffold another project, or modify driver sources.
+Use the checked-in runner and assets; exploratory level/threshold expectations
+are in the same guide. Do not duplicate payloads, scaffold another project, or
+modify driver sources.
 
 Treat the [connection error/span contract](../../docs/mssql-jdbc-connection-error-category-mapping.md),
 [metrics proposal](../../docs/mssql-jdbc-performance-activity-metrics-proposal.md),

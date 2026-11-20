@@ -110,6 +110,14 @@ when emitted, never inferred or fabricated.
 
 ## Current signal contract
 
+The checked-in [runner](run.ps1), [workload harness](UserEndpointDemo.java),
+[Compose stack](compose.yaml), [Collector configuration](collector.yaml),
+[Prometheus configuration](prometheus.yaml), and [Grafana assets](grafana/dashboards/jdbc-user-endpoint.json)
+are the executable sources of truth; do not materialize a second set of payloads.
+The dashboard image owns its [Nginx configuration](../internal/fdh-ui/nginx.conf),
+which resolves `jaeger` and `prometheus` through Compose service DNS. Host Vite
+development proxies remain loopback-only.
+
 - Four instruments: `db.client.operation.count`, `.duration`, `.error.count`, and
   `.retry.count`. The provider shares the bounded projection in
   [PerformanceActivityMetrics](../../../mssql-jdbc-otel/src/main/java/com/microsoft/sqlserver/jdbc/otel/PerformanceActivityMetrics.java).
@@ -143,6 +151,71 @@ when emitted, never inferred or fabricated.
   Root diagnostics replay only approved names/values within root timestamps, at
   most 128 entries; error-origin events remain on their originating spans. Only
   diagnostics actually captured by the executed path are expected.
+
+## Exploratory levels and thresholds
+
+These are **additional checks**, not claims made by a successful baseline run.
+The runner and checked-in harness deliberately fix level `2` with absent thresholds;
+they do not read `DEMO_LEVEL`, `DEMO_CONNECTION_THRESHOLD`, or
+`DEMO_STATEMENT_THRESHOLD`, and have no `validate` mode. Do not set those obsolete
+variables and assume an experiment ran. For deterministic level, strict-boundary,
+invalid-option and callback checks, use the existing
+[provider tests](../../../mssql-jdbc-otel/src/test/java/com/microsoft/sqlserver/jdbc/otel/UserEndpointTelemetryTest.java)
+and [property tests](../../../src/test/java/com/microsoft/sqlserver/jdbc/UserOtelPropertiesTest.java).
+Any separately approved live variant should reuse the checked-in assets and adapt
+only the harness's `telemetry()` properties; it is not the baseline verified by
+the runner. Never replace automatic provider selection with a manual callback.
+
+| Options under test | Expected new trace trees; metrics remain eligible in every row |
+| --- | --- |
+| `otelLogLevel=0`, absent thresholds | None, including forced failures. |
+| `otelLogLevel=1`, absent thresholds | Failed roots only; a successful root with a failed retried child does not qualify. |
+| `otelLogLevel=2`, absent thresholds | Successful and failed roots on supported paths. |
+| Level `2`, connection threshold `9223372036.854775807`, statement threshold `1` | No practical connection trees; only statement roots measured above one second. Fast successes and failures are filtered alike. |
+| Level `2`, both thresholds `9223372036.854775807` | No practical trees for this short workload, even its failures. |
+
+Threshold property names are `otelConnectionSpanDurationThreshold` and
+`otelStatementSpanDurationThreshold`, in decimal **seconds**. Selection is strict
+`duration > threshold`, combined with the level. Absent differs from explicit zero:
+zero excludes a zero-duration root. Negative, nonfinite and out-of-range values
+must be rejected with sanitized errors before creating the telemetry route; no
+telemetry is expected for an invalid telemetry option. Use synthetic provider
+tests for exact equality rather than comparing wall-clock SQL sleep durations.
+
+Record a bounded time window/trace IDs for each experiment so old traces cannot
+masquerade as new evidence. If a reset is needed, use the runner's owned
+`Stop -RemoveVolumes` then `Start` lifecycle with the same project/state arguments,
+never direct teardown of another stack. A reset/start also regenerates baseline
+data: account for it in the experiment window. Inspect actual root durations;
+`WAITFOR`, delayed result consumption, and a slow phase alone do not prove a slow
+execute root. Keep full buffering for the baseline, and report missing qualifying
+roots as unverified. A valid unsampled application parent suppresses the entire
+eligible tree, not metrics; this harness installs no application parent and does
+not promise connection and statement roots share a trace.
+
+### Evidence, privacy, and authentication boundaries
+
+- Inspect root `connection.open` and `statement.execute` observations, applicable
+  children, origin error events and safe masked SQL. Never sum nested activities
+  as user-operation totals. Counts reset in a new JVM; missing series are not zero.
+  Use the checked-in Grafana queries rather than maintaining copied PromQL here.
+- Review payloads locally before sharing: no raw SQL/literals, credentials,
+  connection strings, server addresses, exception messages or stack traces are
+  expected from this route. Masked SQL can retain identifiers/query shape. A
+  harmless nonsecret literal sentinel can test masking; never print real secrets.
+  This does not certify other callbacks, JUL, proxies or SDK diagnostics.
+- The Collector receiver is unauthenticated. Do not send real tokens to plaintext
+  OTLP or infer token validation from successful ingestion. Provider wire tests
+  check callback/header behavior with recording receivers; issuer, audience and
+  signature validation need a separately approved authenticated receiver.
+- SQL success, backend health and a flush boolean are not delivery acknowledgements.
+  Bounded asynchronous queues, incomplete trees, outages and process exit can lose
+  telemetry. Collector accepted/refused/export-failed counters describe only that
+  hop, not driver-side drops. Do not infer losslessness from absent refused series.
+- Report infrastructure, packaged SPI/classpath, configuration/DNS failures,
+  SQL success, statement/prepared success/failure, metrics, levels/thresholds and
+  privacy separately. Include unrun checks and safe timestamps/trace IDs; fixture
+  checks are not live ingestion evidence.
 
 ## Repeat, verify, and clean up
 
@@ -190,7 +263,3 @@ Deterministic adapter/browser fixtures exercise masked SQL display rather than
 assuming all SQL is unavailable; they must still reject raw/child/resource SQL
 and leave exact maxima and unreported regions unavailable. Fixture checks are not
 evidence of live SQL ingestion or exhaustive privacy/acceptance coverage.
-
-The older [manual runbook](../../user-otel-endpoint-demo.md) remains useful for
-signal-contract details and exploratory level/threshold scenarios. Prefer this
-checked-in runner for reproducible full-demo startup; do not mix the two stacks.

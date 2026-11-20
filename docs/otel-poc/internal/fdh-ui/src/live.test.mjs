@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { test, afterEach } from 'node:test';
 import ts from 'typescript';
 
-// Transpile only this module: the type-only data import must not execute fixture data.
+// Transpile only the live adapter; its shared models are type-only imports.
 const source = await readFile(new URL('./live.ts', import.meta.url), 'utf8');
 const { outputText } = ts.transpileModule(source, { compilerOptions: {
   target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext,

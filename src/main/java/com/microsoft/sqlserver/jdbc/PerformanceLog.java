@@ -431,13 +431,39 @@ class PerformanceLog {
     }
 
     static Scope createStatementInvocationScope(SQLServerStatement statement, String userSql) {
+        if (StatementPerformanceState.current(statement) != null) {
+            return Scope.NOOP;
+        }
         return new Scope(perfLoggerStatement, statement.connection, statement.getStatementID(), statement, userSql,
                 PerformanceActivity.STATEMENT_INVOCATION, true);
     }
 
     static Scope createStatementAttemptScope(SQLServerStatement statement, String userSql) {
+        if (StatementPerformanceState.currentAttempt(statement) != null) {
+            return Scope.NOOP;
+        }
         return new Scope(perfLoggerStatement, statement.connection, statement.getStatementID(), statement, userSql,
                 PerformanceActivity.STATEMENT_ATTEMPT, true);
+    }
+
+    static void completeStatementAttempt(SQLServerStatement statement, Exception failure) {
+        StatementPerformanceState.Node attempt = StatementPerformanceState.currentAttempt(statement);
+        if (attempt != null) {
+            if (failure != null) {
+                attempt.scope.setException(failure);
+            }
+            attempt.scope.close();
+        }
+    }
+
+    /** Replace a failed internal pass, without creating another JDBC invocation. */
+    static void retryStatementAttempt(SQLServerStatement statement, Exception failure, String reason, String userSql) {
+        completeStatementAttempt(statement, failure);
+        StatementPerformanceState.Node node = StatementPerformanceState.current(statement);
+        if (node != null) {
+            node.root.nextAttemptReason = reason;
+            createStatementAttemptScope(statement, userSql);
+        }
     }
 
     static void recordStatementRetry(SQLServerStatement statement, long delayMillis) {

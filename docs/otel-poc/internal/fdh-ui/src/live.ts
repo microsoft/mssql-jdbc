@@ -1,4 +1,4 @@
-import type { ConnectionFailure, StatementFailure, PerformanceMetric, ThroughputPoint, Span, ErrorEvent, OutcomeDistribution, RetryMetric } from './data';
+import type { ConnectionFailure, StatementFailure, PerformanceMetric, ThroughputPoint, Span, ErrorEvent, OutcomeDistribution, RetryMetric } from './types';
 
 export type TelemetrySnapshot = {
   failures: ConnectionFailure[];

@@ -1,12 +1,70 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
+import ts from 'typescript';
 
 const demo = new URL('../../../user-endpoint-demo/', import.meta.url);
 const runner = fileURLToPath(new URL('run.ps1', demo));
 const dashboard = JSON.parse(await readFile(new URL('grafana/dashboards/jdbc-user-endpoint.json', demo), 'utf8'));
+
+test('shared dashboard models contain types only, never runtime fixture datasets', async () => {
+  await assert.rejects(access(new URL('./data.ts', import.meta.url)), { code: 'ENOENT' });
+  const source = await readFile(new URL('./types.ts', import.meta.url), 'utf8');
+  const ast = ts.createSourceFile('types.ts', source, ts.ScriptTarget.Latest, true);
+  assert.ok(ast.statements.length > 0);
+  assert.ok(ast.statements.every(node => ts.isTypeAliasDeclaration(node) || ts.isInterfaceDeclaration(node)));
+  assert.equal(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText.trim(), 'export {};');
+  for (const name of ['App.tsx', 'live.ts']) {
+    const text = await readFile(new URL(name, import.meta.url), 'utf8');
+    assert.doesNotMatch(text, /from\s+['"]\.\/data['"]/);
+    const consumer = ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true);
+    const imports = consumer.statements.filter(node => ts.isImportDeclaration(node) && node.moduleSpecifier.text === './types');
+    assert.equal(imports.length, 1, name);
+    assert.equal(imports[0].importClause.isTypeOnly, true, name);
+  }
+});
+
+test('Compose uses checked-in config paths and the frontend image owns the only Nginx config', async () => {
+  const compose = await readFile(new URL('compose.yaml', demo), 'utf8');
+  for (const match of compose.matchAll(/^\s+- (\.\/[^:\r\n]+):[^\r\n]+:ro\s*$/gm)) {
+    await access(new URL(match[1], demo));
+  }
+  assert.equal([...compose.matchAll(/^\s+- (\.\/[^:\r\n]+):[^\r\n]+:ro\s*$/gm)].length, 4);
+  const dashboardService = compose.slice(compose.indexOf('\n  dashboard:'), compose.indexOf('\nnetworks:'));
+  assert.doesNotMatch(dashboardService, /volumes:|nginx\.conf/);
+  const context = /context: (\S+)/.exec(dashboardService)?.[1];
+  assert.ok(context);
+  const frontend = new URL(`${context}/`, demo);
+  assert.equal(frontend.href, new URL('../', import.meta.url).href);
+  const dockerfile = await readFile(new URL('Dockerfile', frontend), 'utf8');
+  assert.match(dockerfile, /COPY nginx\.conf \/etc\/nginx\/conf\.d\/default\.conf/);
+  const nginx = await readFile(new URL('nginx.conf', frontend), 'utf8');
+  assert.match(nginx, /proxy_pass http:\/\/jaeger:16686\//);
+  assert.match(nginx, /proxy_pass http:\/\/prometheus:9090\//);
+  assert.doesNotMatch(nginx, /host\.docker\.internal|127\.0\.0\.1/);
+  await assert.rejects(access(new URL('nginx.conf', demo)), { code: 'ENOENT' });
+  const vite = await readFile(new URL('vite.config.ts', frontend), 'utf8');
+  assert.match(vite, /target: 'http:\/\/127\.0\.0\.1:16686'/);
+  assert.match(vite, /target: 'http:\/\/127\.0\.0\.1:9090'/);
+});
+
+test('demo documentation links checked-in assets instead of a duplicate manual runbook', async () => {
+  const guides = [new URL('README.md', demo), new URL('../README.md', demo),
+    new URL('../../../.github/prompts/user-otel-demo.prompt.md', demo)];
+  for (const guide of guides) {
+    const text = await readFile(guide, 'utf8');
+    assert.doesNotMatch(text, /user-otel-endpoint-demo\.md/);
+    for (const [, target] of text.matchAll(/\]\(([^)]+)\)/g)) {
+      if (!/^(?:https?:|#)/.test(target)) {
+        const path = new URL(target, guide);
+        path.hash = '';
+        await access(path);
+      }
+    }
+  }
+});
 
 test('Grafana uses dotted activity roots, outcome ratios and all four instruments', () => {
   const queries = dashboard.panels.flatMap(p => p.targets ?? []).map(t => t.expr);

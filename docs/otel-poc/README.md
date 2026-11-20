@@ -9,8 +9,8 @@ The feature exports JDBC telemetry to an endpoint supplied by the application:
   connection/statement duration thresholds.
 - [Complete local demo](user-endpoint-demo/README.md): run `/user-otel-demo` in
   Copilot Agent mode, or use the checked-in PowerShell runner.
-- [Manual signal walkthrough](../user-otel-endpoint-demo.md): detailed payloads
-  and exploratory verification scenarios.
+- [Exploratory verification](user-endpoint-demo/README.md#exploratory-levels-and-thresholds):
+  level/threshold expectations and evidence boundaries alongside the same runner.
 
 The feature does not discover a monitoring endpoint or acquire credentials for the
 application. If the endpoint needs a bearer token, the application provides the

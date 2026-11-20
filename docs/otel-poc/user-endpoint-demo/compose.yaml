@@ -62,9 +62,6 @@ services:
       context: ../internal/fdh-ui
     labels:
       io.mssql.jdbc.demo.owner: ${JDBC_DEMO_OWNER_ID:?Run through run.ps1}
-    # Override the shared UI's Docker Desktop-only upstream configuration.
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports: ["127.0.0.1:3002:8080"]
     depends_on: [jaeger, prometheus]
 networks:

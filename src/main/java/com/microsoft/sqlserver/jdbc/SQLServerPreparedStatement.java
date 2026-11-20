@@ -162,11 +162,14 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     String statementProtocol() {
-        return isDirectSqlExecution ? "sql_batch" : "rpc";
+        return telemetryBulkCopy ? "bulk_copy" : isDirectSqlExecution ? "sql_batch" : "rpc";
     }
 
     @Override
     String statementProtocolOperation(PerformanceActivity activity) {
+        if (telemetryBulkCopy) {
+            return "bulk_copy";
+        }
         if (activity == PerformanceActivity.STATEMENT_PREPARE) {
             return "sp_prepare";
         }
@@ -186,6 +189,22 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
      * For caching data related to batch insert with bulkcopy
      */
     private SQLServerBulkCopy bcOperation = null;
+    private transient boolean telemetryBulkCopy;
+
+    private void writeBatchWithBulkCopy(SQLServerBulkBatchInsertRecord batchRecord) throws SQLServerException {
+        telemetryBulkCopy = true;
+        try (PerformanceLog.Scope call = PerformanceLog.createScope(PerformanceLog.perfLoggerStatement, connection,
+                getStatementID(), this, userSQL, PerformanceActivity.STATEMENT_SERVER_CALL)) {
+            try {
+                bcOperation.writeToServer(batchRecord);
+            } catch (SQLServerException e) {
+                call.setException(e);
+                throw e;
+            }
+        } finally {
+            telemetryBulkCopy = false;
+        }
+    }
 
     /**
      * Bulkcopy operation table name
@@ -761,6 +780,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
     }
 
     final void doExecutePreparedStatement(PrepStmtExecCmd command) throws SQLServerException {
+        doExecutePreparedStatement(command, false);
+    }
+
+    private void doExecutePreparedStatement(PrepStmtExecCmd command, boolean inRetry) throws SQLServerException {
         resetForReexecute();
 
         // If this request might be a query (as opposed to an update) then make
@@ -781,7 +804,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
         boolean hasExistingTypeDefinitions = preparedTypeDefinitions != null;
         boolean hasNewTypeDefinitions = true;
-        boolean inRetry = false; // Used to indicate if this execution is a retry
         if (!encryptionMetadataIsRetrieved) {
             hasNewTypeDefinitions = buildPreparedStrings(inOutParam, false);
         }
@@ -869,14 +891,17 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                     // Reset tracking for retry - end first to clear any incomplete scope
                     // from failed attempt before starting fresh tracking
                     endCreationToFirstPacketTracking();
+                    PerformanceLog.retryStatementAttempt(this, e, "invalid_handle_retry", userSQL);
                     startCreationToFirstPacketTracking();
                     continue;
                 } else if (!inRetry && connection.doesServerSupportEnclaveRetry()) {
                     // We only want to retry once, so no retrying if we're already in the second pass.
                     // If we are AE_v3, remove the failed entry and try again.
                     ParameterMetaDataCache.removeCacheEntry(connection, preparedSQL);
-                    inRetry = true;
-                    doExecutePreparedStatement(command);
+                    endCreationToFirstPacketTracking();
+                    PerformanceLog.retryStatementAttempt(this, e, "enclave_retry", userSQL);
+                    startCreationToFirstPacketTracking();
+                    doExecutePreparedStatement(command, true);
                 } else {
                     throw e;
                 }
@@ -2598,6 +2623,27 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public int[] executeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
+        executeMethod = EXECUTE_BATCH;
+        telemetryBatchApi = "execute_batch";
+        try (PerformanceLog.Scope invocation = PerformanceLog.createStatementInvocationScope(this, userSQL)) {
+            try {
+                if (batchParamValues != null && !batchParamValues.isEmpty()) {
+                    PerformanceLog.createStatementAttemptScope(this, userSQL);
+                }
+                return executeBatchInternal();
+            } catch (SQLException e) {
+                PerformanceLog.completeStatementAttempt(this, e);
+                invocation.setException(e);
+                throw e;
+            } finally {
+                PerformanceLog.completeStatementAttempt(this, null);
+            }
+        } finally {
+            telemetryBatchApi = null;
+        }
+    }
+
+    private int[] executeBatchInternal() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), EXECUTE_BATCH_STRING);
         }
@@ -2744,7 +2790,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             bcOperation.setDestinationTableMetadata(rs);
                         }
 
-                        bcOperation.writeToServer(batchRecord);
+                        writeBatchWithBulkCopy(batchRecord);
 
                         updateCounts = new int[batchParamValues.size()];
                         for (int i = 0; i < batchParamValues.size(); ++i) {
@@ -2818,6 +2864,27 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     @Override
     public long[] executeLargeBatch() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
+        executeMethod = EXECUTE_BATCH;
+        telemetryBatchApi = "execute_large_batch";
+        try (PerformanceLog.Scope invocation = PerformanceLog.createStatementInvocationScope(this, userSQL)) {
+            try {
+                if (batchParamValues != null && !batchParamValues.isEmpty()) {
+                    PerformanceLog.createStatementAttemptScope(this, userSQL);
+                }
+                return executeLargeBatchInternal();
+            } catch (SQLException e) {
+                PerformanceLog.completeStatementAttempt(this, e);
+                invocation.setException(e);
+                throw e;
+            } finally {
+                PerformanceLog.completeStatementAttempt(this, null);
+            }
+        } finally {
+            telemetryBatchApi = null;
+        }
+    }
+
+    private long[] executeLargeBatchInternal() throws SQLServerException, BatchUpdateException, SQLTimeoutException {
         if (loggerExternal.isLoggable(Level.FINER)) {
             loggerExternal.entering(getClassNameLogging(), "executeLargeBatch");
         }
@@ -2930,7 +2997,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                             bcOperation.setDestinationTableMetadata(rs);
                         }
 
-                        bcOperation.writeToServer(batchRecord);
+                        writeBatchWithBulkCopy(batchRecord);
 
                         updateCounts = new long[batchParamValues.size()];
                         for (int i = 0; i < batchParamValues.size(); ++i) {
@@ -3065,16 +3132,6 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
 
     private void checkAdditionalQuery() {
         while (checkAndRemoveCommentsAndSpace(true)) {}
-
-        // Once the VALUES list has been consumed, only comments, whitespace or semicolons may remain.
-        // Any other trailing content (for example an OPTION (...) query hint) cannot be honored by the
-        // Bulk Copy API. Throw so the caller falls back to the regular batch execution path, which sends
-        // the full statement - including the trailing clause - to the server.
-        if (null != localUserSQL && !localUserSQL.trim().isEmpty()) {
-            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidSQL"));
-            Object[] msgArgs = {localUserSQL};
-            throw new IllegalArgumentException(form.format(msgArgs));
-        }
     }
 
     private String parseUserSQLForTableNameDW(boolean hasInsertBeenFound, boolean hasIntoBeenFound,

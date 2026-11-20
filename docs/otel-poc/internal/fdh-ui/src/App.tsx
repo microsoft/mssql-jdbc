@@ -22,7 +22,7 @@ import {
   ShieldErrorRegular,
   WeatherMoonRegular,
 } from '@fluentui/react-icons';
-import {
+import type {
   ConnectionFailure,
   FailurePhase,
   PerformanceMetric,
@@ -31,7 +31,7 @@ import {
   OutcomeDistribution,
   RetryMetric,
   ErrorEvent,
-} from './data';
+} from './types';
 import { emptyTelemetry, loadTelemetry } from './live';
 
 const formatNumber = (value: number | null | undefined, digits = 1) =>

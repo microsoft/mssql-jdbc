@@ -20,6 +20,15 @@ final class StatementPerformanceState {
 
     private StatementPerformanceState() {}
 
+    static Node currentAttempt(SQLServerStatement statement) {
+        for (Node node = current(statement); node != null; node = node.parent) {
+            if (node.activity == PerformanceActivity.STATEMENT_ATTEMPT) {
+                return node;
+            }
+        }
+        return null;
+    }
+
     static Node current(SQLServerStatement statement) {
         List<Node> nodes = ACTIVE.get();
         if (nodes != null) {
@@ -129,7 +138,8 @@ final class StatementPerformanceState {
                 attributes.put("mssql.statement.type", statement instanceof SQLServerCallableStatement
                         ? "callable_statement" : statement instanceof SQLServerPreparedStatement
                                 ? "prepared_statement" : "statement");
-                attributes.put("mssql.statement.api", api(statement.executeMethod));
+                attributes.put("mssql.statement.api", statement.telemetryBatchApi != null ? statement.telemetryBatchApi
+                                                                                       : api(statement.executeMethod));
                 attributes.put("mssql.statement.operation", operation(userSql));
                 attributes.put("mssql.statement.query_timeout", (double) Math.max(0, statement.queryTimeout));
                 attributes.put("mssql.statement.response_buffering",
