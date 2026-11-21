@@ -3882,6 +3882,20 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                                 return;
                             }
 
+                            // A retry resends the batch starting with the first entry that has not been executed.
+                            // batchParam still holds the values of the last entry written to the failed request, so
+                            // the values of the entry to resend have to be loaded again. Otherwise the last entry is
+                            // sent in place of the first one and the first one is never sent.
+                            if (1 < attempt) {
+                                paramValues = batchParamValues.get(numBatchesPrepared);
+                                System.arraycopy(paramValues, 0, batchParam, 0, paramValues.length);
+                                hasNewTypeDefinitions = buildPreparedStrings(batchParam, false);
+                                if (getStatementLogger().isLoggable(Level.FINER)) {
+                                    getStatementLogger().finer(toString() + ": cached prepared statement handle was "
+                                            + "rejected, resending batch from entry index " + numBatchesPrepared);
+                                }
+                            }
+
                             // Re-use handle if available, requires parameter definitions which are not available until here.
                             if (reuseCachedHandle(hasNewTypeDefinitions, 1 < attempt)) {
                                 hasNewTypeDefinitions = false;
