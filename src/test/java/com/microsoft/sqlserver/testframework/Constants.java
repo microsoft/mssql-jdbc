@@ -33,6 +33,7 @@ public final class Constants {
      * vectorTest - - - - -For tests requiring vector setup
      * JSONTest -  - - - - For tests requiring JSON setup
      * CodeCov - - - - - - For tests tracked in coverage-only runs
+     * largeStream - - - - For slow multi-MiB stream tests, run only on request
      * legacyFx  - - - - - For tests validating legacy FX regressions
      * vectorFloat16Test - For tests requiring vector(float16) setup
      * alwaysEncrypted  - - For tests in the AlwaysEncrypted package
@@ -61,6 +62,7 @@ public final class Constants {
     public static final String vectorTest = "vectorTest";
     public static final String JSONTest = "JSONTest";
     public static final String CodeCov = "CodeCov";
+    public static final String largeStream = "largeStream";
     public static final String legacyFx = "legacyFx";
     public static final String alwaysEncrypted = "alwaysEncrypted";
     public static final String bulkCopy = "bulkCopy";

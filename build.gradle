@@ -34,7 +34,7 @@ allprojects {
 
 test {
     useJUnitPlatform {
-        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth','kerberos','vectorTest','JSONTest','vectorFloat16Test','legacyFx','legacyFx_Xa')
+        excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','reqExternalSetup','NTLM','MSI','clientCertAuth','fedAuth','kerberos','vectorTest','JSONTest','vectorFloat16Test','legacyFx','legacyFx_Xa','largeStream')
     }
 }
 
@@ -69,7 +69,7 @@ if (jdbc43Profiles.contains(currentProfile)) {
 
     test {
         useJUnitPlatform {
-            excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test', 'legacyFx','legacyFx_Xa')
+            excludeTags(hasProperty('excludedGroups') ? excludedGroups : 'vectorTest','JSONTest','vectorFloat16Test', 'legacyFx','legacyFx_Xa','largeStream')
         }
     }
 }
@@ -86,7 +86,7 @@ if (currentProfile == "jre8") {
 	
 	test {
 		useJUnitPlatform {
-			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42','vectorTest','JSONTest','vectorFloat16Test','legacyFx','legacyFx_Xa')
+			excludeTags (hasProperty('excludedGroups') ? excludedGroups : 'xSQLv15','xGradle','NTLM','reqExternalSetup','MSI','clientCertAuth','fedAuth','xJDBC42','vectorTest','JSONTest','vectorFloat16Test','legacyFx','legacyFx_Xa','largeStream')
 		}
 	}
 }
