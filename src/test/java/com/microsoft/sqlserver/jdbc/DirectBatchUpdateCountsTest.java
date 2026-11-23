@@ -352,6 +352,67 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
     }
 
     @ParameterizedTest
+    @CsvSource({"false,1003", "true,1003", "false,1004", "true,1004"})
+    public void multipleUnexpectedResultSetsAreConsumed(boolean large, int resultType) throws Exception {
+        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #counts (id int); INSERT INTO #counts VALUES (0)");
+            try (PreparedStatement ps = con.prepareStatement(
+                    "UPDATE #counts SET id=id+?; SELECT v FROM (VALUES (1),(2),(3)) s(v);"
+                            + "SELECT CAST(NULL AS int) AS v UNION ALL SELECT 4; UPDATE #counts SET id=id+10",
+                    resultType, ResultSet.CONCUR_READ_ONLY)) {
+                ps.setMaxRows(1);
+                ps.setInt(1, 1);
+                for (int execution = 1; execution <= 2; execution++) {
+                    ps.addBatch();
+                    BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
+                    assertEquals(SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), error.getMessage());
+                    assertArrayEquals(new long[] {1}, error.getLargeUpdateCounts());
+                    assertTrue(((SQLServerStatement) ps).resultsReader().getCommand().getProcessedResponse(),
+                            "Response must already be consumed before another statement can perform cleanup");
+                    assertEquals(11 * execution, scalar(stmt, "SELECT SUM(id) FROM #counts"));
+                    assertArrayEquals(new long[0], execute(ps, large));
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false", "true"})
+    public void rollbackAfterCountSlotsAreFull(boolean large) throws Exception {
+        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement()) {
+            stmt.execute(
+                    "CREATE TABLE #counts (id int PRIMARY KEY); INSERT INTO #counts VALUES (1);" + "SET XACT_ABORT ON");
+            con.setAutoCommit(false);
+            try (PreparedStatement ps = con.prepareStatement(
+                    "INSERT INTO #counts VALUES (?); INSERT INTO #counts VALUES (1); INSERT INTO #counts VALUES (3)")) {
+                ps.setInt(1, 2);
+                ps.addBatch();
+                SQLException error = assertThrows(SQLException.class, () -> execute(ps, large));
+                assertFalse(error instanceof BatchUpdateException, "Late transaction rollback must propagate");
+                assertEquals(2627, error.getErrorCode());
+                assertEquals("23000", error.getSQLState());
+                assertEquals(0, scalar(stmt, "SELECT XACT_STATE()"),
+                        "Verify server rollback before an explicit client rollback can hide it");
+                assertEquals(1, scalar(stmt, "SELECT COUNT(*) FROM #counts"));
+                assertEquals(1, scalar(stmt, "SELECT SUM(id) FROM #counts"));
+                con.rollback();
+                con.setAutoCommit(true);
+                assertArrayEquals(new long[0], execute(ps, large));
+                stmt.execute("DELETE FROM #counts");
+                ps.addBatch();
+                assertArrayEquals(new long[] {1}, execute(ps, large));
+                assertEquals(3, scalar(stmt, "SELECT COUNT(*) FROM #counts"));
+                assertEquals(6, scalar(stmt, "SELECT SUM(id) FROM #counts"));
+            } finally {
+                if (!con.getAutoCommit()) {
+                    con.rollback();
+                    con.setAutoCommit(true);
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
     @CsvSource({"false", "true"})
     public void reuseAfterDirectBatchAndPreSendRpcFallback(boolean large) throws Exception {
         try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement()) {

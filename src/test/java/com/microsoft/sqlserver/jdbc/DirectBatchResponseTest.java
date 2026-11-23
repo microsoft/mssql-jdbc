@@ -34,6 +34,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 
 class DirectBatchResponseTest {
@@ -177,55 +179,77 @@ class DirectBatchResponseTest {
         }
     }
 
-    @Test
-    void scrollableDiscardReleasesMarksAndPreservesRowErrors() throws Throwable {
-        for (boolean rowError : new boolean[] {false, true}) {
-            SQLServerResultSet rs = mock(SQLServerResultSet.class, CALLS_REAL_METHODS);
-            SQLServerStatement stmt = mock(SQLServerStatement.class);
-            TDSReader reader = mock(TDSReader.class);
-            ScrollWindow window = mock(ScrollWindow.class);
-            when(stmt.getSQLResultSetType()).thenReturn(SQLServerResultSet.TYPE_SS_SCROLL_STATIC);
-            when(reader.mark()).thenReturn(mock(TDSReaderMark.class));
-            when(reader.readUnsignedByte()).thenReturn(TDS.TDS_ROW);
-            set(SQLServerResultSet.class, rs, "stmt", stmt);
-            set(SQLServerResultSet.class, rs, "tdsReader", reader);
-            set(SQLServerResultSet.class, rs, "scrollWindow", window);
-            Class<?> type = Arrays.stream(SQLServerResultSet.class.getDeclaredClasses())
-                    .filter(c -> "FetchBuffer".equals(c.getSimpleName())).findFirst().get();
-            Constructor<?> constructor = type.getDeclaredConstructor(SQLServerResultSet.class);
-            constructor.setAccessible(true);
-            Object buffer = constructor.newInstance(rs);
-            set(SQLServerResultSet.class, rs, "fetchBuffer", buffer);
-            assertNotNull(field(buffer, "startMark"));
-            TDSTokenHandler handler = (TDSTokenHandler) field(buffer, "fetchBufferTokenHandler");
-            SQLServerException error = databaseError();
-            AtomicInteger rows = new AtomicInteger();
-            doAnswer(invocation -> {
-                assertNull(field(buffer, "startMark"), "Discard must release retained marks");
-                if (rows.getAndIncrement() == 100) {
-                    if (rowError)
-                        throw error;
-                    return false;
-                }
-                handler.onRow(reader);
-                assertNull(field(buffer, "startMark"), "Discard must not recreate marks");
-                return true;
-            }).when(rs).fetchBufferNext();
-            doNothing().when(rs).close();
-            Response response = new Response(2, rs, 1L);
+    @ParameterizedTest
+    @CsvSource({"209,success", "210,success", "253,success", "209,databaseError", "210,databaseError",
+            "253,databaseError", "209,canceled", "210,canceled", "253,canceled"})
+    void scrollableDiscardReleasesMarksAndPreservesRowErrors(int token, String outcome) throws Throwable {
+        SQLServerResultSet rs = mock(SQLServerResultSet.class, CALLS_REAL_METHODS);
+        SQLServerStatement stmt = mock(SQLServerStatement.class);
+        TDSReader reader = mock(TDSReader.class);
+        ScrollWindow window = mock(ScrollWindow.class);
+        when(stmt.getSQLResultSetType()).thenReturn(SQLServerResultSet.TYPE_SS_SCROLL_STATIC);
+        when(reader.mark()).thenReturn(mock(TDSReaderMark.class));
+        when(reader.readUnsignedByte()).thenReturn(token);
+        when(reader.readShort()).thenReturn((short) TDS.DONE_MORE, StreamDone.CMD_SELECT);
+        set(SQLServerResultSet.class, rs, "stmt", stmt);
+        set(SQLServerResultSet.class, rs, "tdsReader", reader);
+        set(SQLServerResultSet.class, rs, "scrollWindow", window);
+        Class<?> type = Arrays.stream(SQLServerResultSet.class.getDeclaredClasses())
+                .filter(c -> "FetchBuffer".equals(c.getSimpleName())).findFirst().get();
+        Constructor<?> constructor = type.getDeclaredConstructor(SQLServerResultSet.class);
+        constructor.setAccessible(true);
+        Object buffer = constructor.newInstance(rs);
+        set(SQLServerResultSet.class, rs, "fetchBuffer", buffer);
+        assertNotNull(field(buffer, "startMark"));
+        TDSTokenHandler handler = (TDSTokenHandler) field(buffer, "fetchBufferTokenHandler");
+        boolean canceled = "canceled".equals(outcome);
+        SQLServerException error = canceled ? new SQLServerException("canceled while draining",
+                SQLState.STATEMENT_CANCELED.getSQLStateCode(), 0, null) : databaseError();
+        AtomicInteger rows = new AtomicInteger();
+        doAnswer(invocation -> {
+            assertNull(field(buffer, "startMark"), "Discard must release retained marks");
+            if (rows.getAndIncrement() == 100) {
+                if (!"success".equals(outcome))
+                    throw error;
+                return false;
+            }
+            switch (token) {
+                case TDS.TDS_ROW:
+                    handler.onRow(reader);
+                    break;
+                case TDS.TDS_NBCROW:
+                    handler.onNBCRow(reader);
+                    break;
+                case TDS.TDS_DONE:
+                    handler.onDone(reader);
+                    break;
+                default:
+                    throw new AssertionError("Unexpected token: " + token);
+            }
+            assertNull(field(buffer, "startMark"), "Discard must not recreate marks");
+            return true;
+        }).when(rs).fetchBufferNext();
+        doNothing().when(rs).close();
+        Response response = new Response(2, rs, 1L);
+        if (canceled) {
+            assertSame(error, assertThrows(SQLServerException.class, response::run).getCause());
+            assertEquals(1, response.next.get(), "Cancellation must stop result traversal");
+            assertNull(response.error(), "Cancellation must not become a recoverable batch error");
+        } else {
             assertArrayEquals(new long[] {Statement.EXECUTE_FAILED, 1}, response.run());
-            assertEquals(101, rows.get());
-            assertNull(field(buffer, "startMark"));
-            assertEquals(false, field(buffer, "discarding"), "Restore normal cursor behavior even after row errors");
-            verify(window).clear();
-            verify(rs).close();
-            verify(rs, never()).next();
-            if (rowError)
-                assertSame(error, response.error());
-            else
-                assertEquals(SQLServerException.getErrString("R_resultsetGeneratedForUpdate"),
-                        response.error().getMessage());
+            assertTrue(response.finished.get());
         }
+        assertEquals(101, rows.get());
+        assertNull(field(buffer, "startMark"));
+        assertEquals(false, field(buffer, "discarding"), "Restore normal cursor behavior even after row errors");
+        verify(window).clear();
+        verify(rs).close();
+        verify(rs, never()).next();
+        if ("databaseError".equals(outcome))
+            assertSame(error, response.error());
+        else if (!canceled)
+            assertEquals(SQLServerException.getErrString("R_resultsetGeneratedForUpdate"),
+                    response.error().getMessage());
     }
 
     @Test
