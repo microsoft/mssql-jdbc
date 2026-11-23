@@ -5,17 +5,25 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -26,6 +34,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 
 class DirectBatchResponseTest {
@@ -50,10 +60,22 @@ class DirectBatchResponseTest {
             for (int i = 0; i < entries; i++)
                 stmt.batchParamValues.add(new Parameter[0]);
             set(type, command, "updateCounts", new long[entries]);
-            when(command.startRequest(TDS.PKT_QUERY)).thenReturn(mock(TDSWriter.class));
+            stmt.executedSqlDirectly = false;
+            stmt.expectCursorOutParams = true;
+            set(SQLServerPreparedStatement.class, stmt, "expectPrepStmtHandle", true);
+            set(SQLServerPreparedStatement.class, stmt, "outParamIndexAdjustment", 3);
+            when(command.startRequest(TDS.PKT_QUERY)).thenAnswer(invocation -> {
+                assertTrue(stmt.executedSqlDirectly);
+                assertFalse(stmt.expectCursorOutParams);
+                assertEquals(false, field(stmt, "expectPrepStmtHandle"));
+                assertEquals(0, field(stmt, "outParamIndexAdjustment"));
+                return mock(TDSWriter.class);
+            });
             when(command.getProcessedResponse()).thenAnswer(invocation -> finished.get());
             doReturn(null).when(command).startResponse(anyBoolean());
             doAnswer(invocation -> {
+                if (!stmt.moreResults)
+                    return false;
                 int index = next.getAndIncrement();
                 if (index >= results.length) {
                     finished.set(true);
@@ -62,7 +84,17 @@ class DirectBatchResponseTest {
                 Object result = results[index];
                 if (result instanceof SQLServerException)
                     throw (SQLServerException) result;
-                stmt.updateCount = (Long) result;
+                if (Boolean.FALSE.equals(result)) {
+                    stmt.moreResults = false;
+                    stmt.updateCount = -1;
+                    return true;
+                }
+                if (result instanceof SQLServerResultSet) {
+                    stmt.resultSet = (SQLServerResultSet) result;
+                    stmt.updateCount = -1;
+                } else {
+                    stmt.updateCount = (Long) result;
+                }
                 return true;
             }).when(stmt).getNextResult(true);
         }
@@ -100,6 +132,7 @@ class DirectBatchResponseTest {
         return error;
     }
 
+    /** Preserves zero, long, and unknown-success update counts without narrowing through the int API. */
     @Test
     void preservesLongCountsAndUnknownSuccess() throws Throwable {
         Response response = new Response(3, 0L, 1L + Integer.MAX_VALUE, -1L);
@@ -107,6 +140,7 @@ class DirectBatchResponseTest {
         verify(response.stmt, never()).getUpdateCount();
     }
 
+    /** Records a recoverable database failure for its entry and continues consuming later results. */
     @Test
     void recordsFailedEntryAndContinues() throws Throwable {
         SQLServerException error = databaseError();
@@ -115,12 +149,129 @@ class DirectBatchResponseTest {
         assertSame(error, response.error());
     }
 
+    /** Leaves entries without a corresponding result marked as failed after response processing stops. */
     @Test
     void leavesUnexecutedSlotsFailed() throws Throwable {
         Response response = new Response(3, 1L, databaseError());
         assertArrayEquals(new long[] {1, Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED}, response.run());
     }
 
+    /** Continues past logical conditional completions until the physical response is fully consumed. */
+    @Test
+    void resumesAfterLogicalCompletionUntilResponseEOF() throws Throwable {
+        Response response = new Response(3, false, 3L, false, 5L, false);
+        assertArrayEquals(new long[] {Statement.SUCCESS_NO_INFO, 3, Statement.SUCCESS_NO_INFO}, response.run());
+        assertTrue(response.finished.get(), "A logical batch completion must not leave the response unread");
+    }
+
+    /** Retains the first late database error even after every update-count slot has been populated. */
+    @Test
+    void retainsFirstErrorBeyondCountSlots() throws Throwable {
+        SQLServerException error = databaseError();
+        Response response = new Response(1, 3L, 2L, error, databaseError(), 5L);
+        assertArrayEquals(new long[] {3}, response.run());
+        assertSame(error, response.error());
+        assertTrue(response.finished.get());
+    }
+
+    /** Propagates cancellation and non-database driver failures without resuming result traversal. */
+    @Test
+    void propagatesCancellationAndUnexpectedDriverFailure() throws Exception {
+        for (String state : new String[] {SQLState.STATEMENT_CANCELED.getSQLStateCode(), "HY000"}) {
+            SQLServerException error = new SQLServerException("stop processing", state, 0, null);
+            Response response = new Response(2, error, 1L);
+            assertSame(error, assertThrows(SQLServerException.class, response::run).getCause());
+            assertEquals(1, response.next.get(), "Do not resume parsing after a non-database failure");
+        }
+    }
+
+    /** Discards scrollable rows without retaining marks while preserving database errors and cancellation. */
+    @ParameterizedTest
+    @CsvSource({"209,success", "210,success", "253,success", "209,databaseError", "210,databaseError",
+            "253,databaseError", "209,canceled", "210,canceled", "253,canceled"})
+    void scrollableDiscardReleasesMarksAndPreservesRowErrors(int token, String outcome) throws Throwable {
+        SQLServerResultSet rs = mock(SQLServerResultSet.class, CALLS_REAL_METHODS);
+        SQLServerStatement stmt = mock(SQLServerStatement.class);
+        TDSReader reader = mock(TDSReader.class);
+        ScrollWindow window = mock(ScrollWindow.class);
+        when(stmt.getSQLResultSetType()).thenReturn(SQLServerResultSet.TYPE_SS_SCROLL_STATIC);
+        when(reader.mark()).thenReturn(mock(TDSReaderMark.class));
+        when(reader.readUnsignedByte()).thenReturn(token);
+        when(reader.readShort()).thenReturn((short) TDS.DONE_MORE, StreamDone.CMD_SELECT);
+        set(SQLServerResultSet.class, rs, "stmt", stmt);
+        set(SQLServerResultSet.class, rs, "tdsReader", reader);
+        set(SQLServerResultSet.class, rs, "scrollWindow", window);
+        Class<?> type = Arrays.stream(SQLServerResultSet.class.getDeclaredClasses())
+                .filter(c -> "FetchBuffer".equals(c.getSimpleName())).findFirst().get();
+        Constructor<?> constructor = type.getDeclaredConstructor(SQLServerResultSet.class);
+        constructor.setAccessible(true);
+        Object buffer = constructor.newInstance(rs);
+        set(SQLServerResultSet.class, rs, "fetchBuffer", buffer);
+        assertNotNull(field(buffer, "startMark"));
+        TDSTokenHandler handler = (TDSTokenHandler) field(buffer, "fetchBufferTokenHandler");
+        boolean canceled = "canceled".equals(outcome);
+        SQLServerException error = canceled ? new SQLServerException("canceled while draining",
+                SQLState.STATEMENT_CANCELED.getSQLStateCode(), 0, null) : databaseError();
+        AtomicInteger rows = new AtomicInteger();
+        doAnswer(invocation -> {
+            assertNull(field(buffer, "startMark"), "Discard must release retained marks");
+            if (rows.getAndIncrement() == 100) {
+                if (!"success".equals(outcome))
+                    throw error;
+                return false;
+            }
+            switch (token) {
+                case TDS.TDS_ROW:
+                    handler.onRow(reader);
+                    break;
+                case TDS.TDS_NBCROW:
+                    handler.onNBCRow(reader);
+                    break;
+                case TDS.TDS_DONE:
+                    handler.onDone(reader);
+                    break;
+                default:
+                    throw new AssertionError("Unexpected token: " + token);
+            }
+            assertNull(field(buffer, "startMark"), "Discard must not recreate marks");
+            return true;
+        }).when(rs).fetchBufferNext();
+        doNothing().when(rs).close();
+        Response response = new Response(2, rs, 1L);
+        if (canceled) {
+            assertSame(error, assertThrows(SQLServerException.class, response::run).getCause());
+            assertEquals(1, response.next.get(), "Cancellation must stop result traversal");
+            assertNull(response.error(), "Cancellation must not become a recoverable batch error");
+        } else {
+            assertArrayEquals(new long[] {Statement.EXECUTE_FAILED, 1}, response.run());
+            assertTrue(response.finished.get());
+        }
+        assertEquals(101, rows.get());
+        assertNull(field(buffer, "startMark"));
+        assertEquals(false, field(buffer, "discarding"), "Restore normal cursor behavior even after row errors");
+        verify(window).clear();
+        verify(rs).close();
+        verify(rs, never()).next();
+        if ("databaseError".equals(outcome))
+            assertSame(error, response.error());
+        else if (!canceled)
+            assertEquals(SQLServerException.getErrString("R_resultsetGeneratedForUpdate"),
+                    response.error().getMessage());
+    }
+
+    /** Propagates non-database failures raised while consuming an unexpected ResultSet. */
+    @Test
+    void rowConsumptionDoesNotSwallowDriverFailures() throws Exception {
+        SQLServerResultSet rs = mock(SQLServerResultSet.class);
+        SQLServerException error = new SQLServerException("row read failure", "HY000", 0, null);
+        doThrow(error).when(rs).discardFetchBufferWithErrors();
+        Response response = new Response(2, rs, 1L);
+        assertSame(error, assertThrows(SQLServerException.class, response::run).getCause());
+        verify(rs).close();
+        assertEquals(1, response.next.get());
+    }
+
+    /** Propagates fatal session-loss and transaction-rollback errors instead of treating them as entry failures. */
     @Test
     void propagatesSessionAndRollbackFailures() throws Exception {
         SQLServerException error = databaseError();
