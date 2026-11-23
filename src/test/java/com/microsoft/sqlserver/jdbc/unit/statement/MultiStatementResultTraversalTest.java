@@ -170,6 +170,138 @@ abstract class MultiStatementResultTraversalTestBase extends AbstractTest {
                 "CREATE TRIGGER " + triggerName + " ON " + mainTable + " FOR INSERT AS " + body);
     }
 
+    /** Conditional DML must surface its update count before the trailing ResultSet. */
+    @Test
+    public void preparedStatementExecuteConditionalDml() throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PropIf"));
+        try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+            try {
+                createPlainTable(stmt, table);
+                stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1)");
+
+                String sql = "IF EXISTS (SELECT 1 FROM " + table + " WHERE c1 = 1)"
+                        + " UPDATE " + table + " SET c2 = ? WHERE c1 = 1"
+                        + " ELSE INSERT INTO " + table + " VALUES (1, ?);"
+                        + " SELECT * FROM " + table;
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, 2);
+                    ps.setInt(2, 2);
+                    boolean isResultSet = ps.execute();
+
+                    Traversal t = traverseAllResults(ps, isResultSet);
+                    assertEquals(Arrays.asList(1), t.updateCounts,
+                            "conditional UPDATE must surface one update count of 1");
+                    assertEquals(Arrays.asList(1), t.resultSetRowCounts,
+                            "trailing SELECT must surface the conditionally updated row");
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, stmt);
+            }
+        }
+    }
+
+    /** A false condition must surface the selected {@code ELSE INSERT} count and trailing ResultSet. */
+    @Test
+    public void preparedStatementExecuteConditionalDmlElseBranch() throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PropElse"));
+        try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+            try {
+                createPlainTable(stmt, table);
+
+                String sql = "IF EXISTS (SELECT 1 FROM " + table + " WHERE c1 = 1)"
+                        + " UPDATE " + table + " SET c2 = ? WHERE c1 = 1"
+                        + " ELSE INSERT INTO " + table + " VALUES (1, ?);"
+                        + " SELECT * FROM " + table;
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, 7);
+                    ps.setInt(2, 7);
+                    boolean isResultSet = ps.execute();
+
+                    Traversal t = traverseAllResults(ps, isResultSet);
+                    assertEquals(Arrays.asList(1), t.updateCounts,
+                            "conditional ELSE INSERT must surface one update count of 1");
+                    assertEquals(Arrays.asList(1), t.resultSetRowCounts,
+                            "trailing SELECT must surface the conditionally inserted row");
+                }
+
+                try (ResultSet rs = stmt.executeQuery("SELECT c2 FROM " + table + " WHERE c1 = 1")) {
+                    assertTrue(rs.next(), "ELSE INSERT must persist one row");
+                    assertEquals(7, rs.getInt(1), "persisted row must come from the ELSE branch");
+                    assertFalse(rs.next(), "ELSE INSERT must persist exactly one matching row");
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, stmt);
+            }
+        }
+    }
+
+    /** A false condition without an {@code ELSE} must not create a phantom update count. */
+    @Test
+    public void preparedStatementExecuteConditionalDmlNoOpBranch() throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PropNoOp"));
+        try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+            try {
+                createPlainTable(stmt, table);
+                stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1)");
+
+                String sql = "IF EXISTS (SELECT 1 FROM " + table + " WHERE c1 = 99)"
+                        + " DELETE FROM " + table + " WHERE c1 = 99;"
+                        + " SELECT * FROM " + table;
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    boolean isResultSet = ps.execute();
+
+                    Traversal t = traverseAllResults(ps, isResultSet);
+                    assertEquals(0, t.updateCounts.size(),
+                            "a conditional DML branch that does not execute must not surface an update count");
+                    assertEquals(Arrays.asList(1), t.resultSetRowCounts,
+                            "trailing SELECT must remain reachable after the no-op conditional branch");
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, stmt);
+            }
+        }
+    }
+
+    /** Every DML count inside the selected {@code BEGIN}/{@code END} branch must surface in order. */
+    @Test
+    public void preparedStatementExecuteConditionalMultiDmlBranch() throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("PropIfMulti"));
+        try (Connection conn = getSuiteConnection(); Statement stmt = conn.createStatement()) {
+            try {
+                createPlainTable(stmt, table);
+                stmt.executeUpdate("INSERT INTO " + table + " VALUES (1, 1), (2, 2)");
+
+                String sql = "IF EXISTS (SELECT 1 FROM " + table + " WHERE c1 = 1) BEGIN"
+                        + " UPDATE " + table + " SET c2 = ?;"
+                        + " DELETE FROM " + table + " WHERE c1 = 2;"
+                        + " END ELSE BEGIN"
+                        + " INSERT INTO " + table + " VALUES (3, ?);"
+                        + " END;"
+                        + " SELECT * FROM " + table;
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setInt(1, 9);
+                    ps.setInt(2, 9);
+                    boolean isResultSet = ps.execute();
+
+                    Traversal t = traverseAllResults(ps, isResultSet);
+                    assertEquals(Arrays.asList(2, 1), t.updateCounts,
+                            "selected branch must surface UPDATE=2 then DELETE=1");
+                    assertEquals(Arrays.asList(1), t.resultSetRowCounts,
+                            "trailing SELECT must surface the one row remaining after the selected branch");
+                }
+
+                try (ResultSet rs = stmt.executeQuery("SELECT c1, c2 FROM " + table)) {
+                    assertTrue(rs.next(), "one updated row must remain");
+                    assertEquals(1, rs.getInt("c1"), "DELETE must remove only c1=2");
+                    assertEquals(9, rs.getInt("c2"), "UPDATE must apply before DELETE");
+                    assertFalse(rs.next(), "selected branch must leave exactly one row");
+                }
+            } finally {
+                TestUtils.dropTableIfExists(table, stmt);
+            }
+        }
+    }
+
     // =========================================================================================
     //  Section 1 — Single-result baselines
     // =========================================================================================
