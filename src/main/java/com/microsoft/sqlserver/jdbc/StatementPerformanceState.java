@@ -9,12 +9,10 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 
 /** Driver-owned, thread-confined statement execution lifecycle state. */
 final class StatementPerformanceState {
-    private static final AtomicLong IDS = new AtomicLong();
     private static final ThreadLocal<List<Node>> ACTIVE = new ThreadLocal<>();
     private static final int MAX_DIAGNOSTIC_EVENTS = 64;
 
@@ -109,7 +107,7 @@ final class StatementPerformanceState {
         final Node parent;
         final Node root;
         final Thread owner = Thread.currentThread();
-        final long id = IDS.incrementAndGet();
+        final long id = PerformanceScopeIds.next();
         final long startNanos = System.nanoTime();
         final long startEpochNanos;
         final Map<String, Object> attributes = new LinkedHashMap<>();
@@ -184,9 +182,12 @@ final class StatementPerformanceState {
                     Map<String, Object> timeout = new LinkedHashMap<>();
                     timeout.put("mssql.statement.attempt", root.attemptCount);
                     timeout.put("mssql.timeout.phase", failure.error.phase);
-                    timeout.put("mssql.timeout.kind", "first_response".equals(failure.error.phase)
-                            ? "socket_read" : "query");
-                    timeout.put("mssql.timeout.value", (double) Math.max(0, statement.queryTimeout));
+                    boolean socket = "java.net.SocketTimeoutException".equals(failure.error.errorType);
+                    timeout.put("mssql.timeout.kind", socket ? "socket_read"
+                            : "query");
+                    timeout.put("mssql.timeout.value", socket
+                            ? (double) Math.max(0, statement.connection.getSocketTimeoutMilliseconds()) / 1000.0
+                            : (double) Math.max(0, statement.queryTimeout));
                     timeout.put("error.type", failure.error.errorType);
                     root.diagnostic("mssql.driver.timeout", timeout);
                 }

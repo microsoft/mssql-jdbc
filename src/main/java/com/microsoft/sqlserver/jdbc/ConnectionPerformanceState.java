@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -20,7 +19,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * their own scopes; an unrelated connection or thread cannot inherit or overwrite another operation's phase.
  */
 final class ConnectionPerformanceState {
-    private static final AtomicLong IDS = new AtomicLong();
     private static final ThreadLocal<List<Node>> ACTIVE = new ThreadLocal<>();
     private static final int MAX_DIAGNOSTIC_EVENTS = 128;
 
@@ -237,7 +235,7 @@ final class ConnectionPerformanceState {
         final Node parent;
         final Node root;
         final Thread owner = Thread.currentThread();
-        final long id = IDS.incrementAndGet();
+        final long id = PerformanceScopeIds.next();
         final long startNanos = System.nanoTime();
         final long startEpochNanos;
         final Map<String, Object> attributes = new LinkedHashMap<>();

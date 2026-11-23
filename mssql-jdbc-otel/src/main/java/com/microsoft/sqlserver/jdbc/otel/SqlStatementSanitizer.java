@@ -16,6 +16,15 @@ final class SqlStatementSanitizer {
         if (sql == null || sql.isEmpty() || sql.length() > MAX_INPUT) {
             return null;
         }
+        String trimmed = sql.trim();
+        if (trimmed.regionMatches(true, 0, "exec", 0, 4)
+                && (trimmed.length() == 4 || Character.isWhitespace(trimmed.charAt(4)))) {
+            return null;
+        }
+        if (trimmed.regionMatches(true, 0, "execute", 0, 7)
+                && (trimmed.length() == 7 || Character.isWhitespace(trimmed.charAt(7)))) {
+            return null;
+        }
         StringBuilder output = new StringBuilder(Math.min(sql.length(), MAX_OUTPUT));
         int length = sql.length();
         for (int i = 0; i < length && output.length() < MAX_OUTPUT; ) {

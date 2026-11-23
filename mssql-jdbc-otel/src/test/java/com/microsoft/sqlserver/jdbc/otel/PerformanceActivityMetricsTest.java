@@ -93,7 +93,8 @@ class PerformanceActivityMetricsTest {
         catalog.put(PerformanceActivity.STATEMENT_PREPARE, "statement.server_call.prepare");
         catalog.put(PerformanceActivity.STATEMENT_PREPEXEC, "statement.server_call.prepexec");
         catalog.put(PerformanceActivity.STATEMENT_EXECUTE, "statement.server_call.execute");
-        assertEquals(PerformanceActivity.values().length - 2, catalog.size());
+        catalog.put(PerformanceActivity.STATEMENT_SERVER_CALL, "statement.server_call");
+        assertEquals(20, catalog.size());
         for (PerformanceActivity activity : PerformanceActivity.values()) {
             Map<String, Object> metadata = values("mssql.authentication.method", "sql_password", "mssql.statement.type",
                     "prepared_statement", PROTOCOL, "sp_execute");

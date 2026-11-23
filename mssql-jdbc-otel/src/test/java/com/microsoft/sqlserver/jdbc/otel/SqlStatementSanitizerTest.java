@@ -20,4 +20,10 @@ class SqlStatementSanitizerTest {
     void rejectsUnclosedDoubleQuotedLiteral() {
         assertNull(SqlStatementSanitizer.mask("SELECT \"SECRET"));
     }
+
+    @Test
+    void rejectsUnquotedExecuteArguments() {
+        assertNull(SqlStatementSanitizer.mask("EXEC dbo.authenticate @password = MySecret"));
+        assertNull(SqlStatementSanitizer.mask("execute dbo.authenticate @password = MySecret"));
+    }
 }

@@ -200,6 +200,8 @@ final class PerformanceActivityMetrics {
                 return "statement.server_call.prepexec";
             case STATEMENT_EXECUTE:
                 return "statement.server_call.execute";
+            case STATEMENT_SERVER_CALL:
+                return "statement.server_call";
             default:
                 return null;
         }
