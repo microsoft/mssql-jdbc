@@ -273,6 +273,40 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
     }
 
     @ParameterizedTest
+    @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true"})
+    public void conditionalNoOpDoesNotHideLateDuplicateKey(String method, boolean large) throws Exception {
+        try (SQLServerConnection con = open(method); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #pk (id int PRIMARY KEY)");
+            try (PreparedStatement ps = con.prepareStatement("IF ?=1 INSERT INTO #pk VALUES (1)")) {
+                for (int condition : new int[] {0, 1, 1}) {
+                    ps.setInt(1, condition);
+                    ps.addBatch();
+                }
+
+                BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
+                assertEquals(2627, error.getErrorCode());
+                assertEquals("23000", error.getSQLState());
+                assertArrayEquals(
+                        "none".equals(method)
+                                              ? new long[] {Statement.SUCCESS_NO_INFO,
+                                                      Statement.SUCCESS_NO_INFO, 1}
+                                              : new long[] {Statement.SUCCESS_NO_INFO, 1,
+                                                      Statement.EXECUTE_FAILED},
+                        error.getLargeUpdateCounts());
+                assertEquals(1, scalar(stmt, "SELECT COUNT(*) FROM #pk"),
+                        "the middle entry must persist before the final duplicate-key failure");
+                assertArrayEquals(new long[0], execute(ps, large), "the failed batch must be cleared");
+
+                ps.setInt(1, 0);
+                ps.addBatch();
+                assertArrayEquals(new long[] {Statement.SUCCESS_NO_INFO}, execute(ps, large));
+                assertEquals(1, scalar(stmt, "SELECT COUNT(*) FROM #pk"),
+                        "the statement and connection must remain reusable after the recoverable error");
+            }
+        }
+    }
+
+    @ParameterizedTest
     @CsvSource({"none,false", "none,true", "scopeTempTablesToConnection,false", "scopeTempTablesToConnection,true"})
     public void errorAfterCountSlotsAreFull(String method, boolean large) throws Exception {
         try (SQLServerConnection con = open(method); Statement stmt = con.createStatement();
@@ -348,6 +382,29 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
             BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
             assertEquals(SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), error.getMessage());
             assertEquals(1, scalar(stmt, "SELECT COUNT(*) FROM #counts"));
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false", "true"})
+    public void unselectedConditionalResultSetDoesNotFailBatch(boolean large) throws Exception {
+        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement();
+                PreparedStatement ps = con.prepareStatement("IF ?=1 SELECT 42; INSERT INTO #counts VALUES (1)")) {
+            stmt.execute("CREATE TABLE #counts (id int)");
+
+            ps.setInt(1, 0);
+            ps.addBatch();
+            assertArrayEquals(new long[] {Statement.SUCCESS_NO_INFO}, execute(ps, large),
+                    "an unselected result-set branch must not fail the batch");
+            assertEquals(1, scalar(stmt, "SELECT COUNT(*) FROM #counts"));
+
+            ps.setInt(1, 1);
+            ps.addBatch();
+            BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
+            assertEquals(SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), error.getMessage());
+            assertEquals(2, scalar(stmt, "SELECT COUNT(*) FROM #counts"),
+                    "the trailing INSERT must execute even when the selected result set is rejected");
+            assertArrayEquals(new long[0], execute(ps, large), "the rejected batch must be cleared");
         }
     }
 
