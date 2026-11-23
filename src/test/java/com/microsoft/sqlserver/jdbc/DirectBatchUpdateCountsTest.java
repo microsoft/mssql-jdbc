@@ -5,11 +5,13 @@
 package com.microsoft.sqlserver.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.StringReader;
 import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
 import java.sql.PreparedStatement;
@@ -17,6 +19,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.sql.Statement;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -210,6 +217,224 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
                 assertArrayEquals(new long[] {3}, execute(ps, large));
                 assertEquals(10, scalar(stmt, "SELECT SUM(id) FROM #counts"));
             }
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true"})
+    public void conditionalCountsAndLateDuplicateKey(String method, boolean large) throws Exception {
+        try (SQLServerConnection con = open(method); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #counts (id int PRIMARY KEY, value int);"
+                    + "INSERT INTO #counts VALUES (1,0),(2,0),(3,0),(4,0),(5,0);"
+                    + "CREATE TABLE #pk (id int PRIMARY KEY)");
+            try (PreparedStatement ps = con.prepareStatement("IF ?=1 UPDATE #counts SET value=value+1 WHERE id<=?")) {
+                for (int[] entry : new int[][] {{1, 3}, {1, 5}, {0, 0}}) {
+                    ps.setInt(1, entry[0]);
+                    ps.setInt(2, entry[1]);
+                    ps.addBatch();
+                }
+                long[] expected = "none".equals(method)
+                                                        ? new long[] {Statement.SUCCESS_NO_INFO, 3,
+                                                                Statement.SUCCESS_NO_INFO}
+                                                        : new long[] {3, 5, Statement.SUCCESS_NO_INFO};
+                assertArrayEquals(expected, execute(ps, large));
+                assertEquals(8, scalar(stmt, "SELECT SUM(value) FROM #counts"));
+                ps.setInt(1, 1);
+                ps.setInt(2, 1);
+                ps.addBatch();
+                assertArrayEquals("none".equals(method) ? new long[] {Statement.SUCCESS_NO_INFO} : new long[] {1},
+                        execute(ps, large));
+                assertEquals(9, scalar(stmt, "SELECT SUM(value) FROM #counts"));
+            }
+            try (PreparedStatement ps = con.prepareStatement(
+                    "IF ?=1 UPDATE #counts SET value=value+1 WHERE id<=? ELSE INSERT INTO #pk VALUES (1)")) {
+                for (int[] entry : new int[][] {{1, 3}, {0, 0}, {0, 0}}) {
+                    ps.setInt(1, entry[0]);
+                    ps.setInt(2, entry[1]);
+                    ps.addBatch();
+                }
+                BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
+                assertEquals(2627, error.getErrorCode());
+                assertEquals("23000", error.getSQLState());
+                assertArrayEquals(
+                        "none".equals(method) ? new long[] {Statement.SUCCESS_NO_INFO, 3, Statement.SUCCESS_NO_INFO}
+                                              : new long[] {3, 1, Statement.EXECUTE_FAILED},
+                        error.getLargeUpdateCounts());
+                assertEquals(12, scalar(stmt, "SELECT SUM(value) FROM #counts"));
+                assertEquals(1, scalar(stmt, "SELECT COUNT(*) FROM #pk"));
+                assertArrayEquals(new long[0], execute(ps, large));
+                ps.setInt(1, 1);
+                ps.setInt(2, 1);
+                ps.addBatch();
+                execute(ps, large);
+                assertEquals(13, scalar(stmt, "SELECT SUM(value) FROM #counts"));
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"none,false", "none,true", "scopeTempTablesToConnection,false", "scopeTempTablesToConnection,true"})
+    public void errorAfterCountSlotsAreFull(String method, boolean large) throws Exception {
+        try (SQLServerConnection con = open(method); Statement stmt = con.createStatement();
+                PreparedStatement ps = con.prepareStatement(
+                        "CREATE TABLE #late_error (id int PRIMARY KEY); INSERT INTO #late_error VALUES (?),(?)")) {
+            assertDirect(ps, true);
+            ps.setInt(1, 1);
+            ps.setInt(2, 1);
+            ps.addBatch();
+            BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
+            assertEquals(2627, error.getErrorCode());
+            assertArrayEquals(new long[] {0}, error.getLargeUpdateCounts(),
+                    "The late failure has no count slot; do not overwrite the observed CREATE count");
+            assertEquals(0, scalar(stmt, "SELECT COUNT(*) FROM #late_error"));
+            stmt.execute("DROP TABLE #late_error");
+            ps.setInt(2, 2);
+            ps.addBatch();
+            assertArrayEquals(new long[] {0}, execute(ps, large));
+            assertEquals(2, scalar(stmt, "SELECT COUNT(*) FROM #late_error"));
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false,1003,false", "true,1003,false", "false,1004,false", "true,1004,false", "false,1005,false",
+            "true,1005,false", "false,1003,true", "true,1003,true", "false,1004,true", "true,1004,true",
+            "false,1005,true", "true,1005,true"})
+    @Timeout(30)
+    public void trailingResultSetIsDrainedWithoutHidingRowErrors(boolean large, int resultType,
+            boolean rowError) throws Exception {
+        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #counts (id int); INSERT INTO #counts VALUES (0);"
+                    + "CREATE TABLE #rows (id int PRIMARY KEY CLUSTERED, v varchar(20));"
+                    + "INSERT INTO #rows SELECT TOP (512) ROW_NUMBER() OVER (ORDER BY (SELECT NULL)), '1'"
+                    + " FROM (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) a(n)"
+                    + " CROSS JOIN (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) b(n)"
+                    + " CROSS JOIN (VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9)) c(n)");
+            if (rowError)
+                stmt.execute("UPDATE #rows SET v='invalid' WHERE id=512");
+            try (PreparedStatement ps = con.prepareStatement(
+                    "UPDATE #counts SET id=id+?; SELECT CONVERT(int,v), REPLICATE('x',2000) FROM #rows ORDER BY id;"
+                            + "UPDATE #counts SET id=id+1",
+                    resultType, ResultSet.CONCUR_READ_ONLY)) {
+                ps.setMaxRows(1);
+                ((SQLServerStatement) ps).setResponseBuffering(large ? "full" : "adaptive");
+                ps.setInt(1, 1);
+                ps.addBatch();
+                BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
+                if (rowError)
+                    assertEquals(245, error.getErrorCode(), "The server row error must survive result-set cleanup");
+                else
+                    assertEquals(SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), error.getMessage());
+                assertArrayEquals(new long[] {1}, error.getLargeUpdateCounts());
+                assertEquals(rowError ? 1 : 2, scalar(stmt, "SELECT SUM(id) FROM #counts"));
+                assertArrayEquals(new long[0], execute(ps, large));
+                // Reuse the same statement after failure, now with no rows to drain.
+                stmt.execute("DELETE FROM #rows");
+                ps.addBatch();
+                BatchUpdateException reused = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
+                assertEquals(SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), reused.getMessage());
+                assertEquals(rowError ? 3 : 4, scalar(stmt, "SELECT SUM(id) FROM #counts"));
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false", "true"})
+    public void initialConditionalResultSetIsRejected(boolean large) throws Exception {
+        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement();
+                PreparedStatement ps = con.prepareStatement("IF ?=1 SELECT 42; INSERT INTO #counts VALUES (1)")) {
+            stmt.execute("CREATE TABLE #counts (id int)");
+            ps.setInt(1, 1);
+            ps.addBatch();
+            BatchUpdateException error = assertThrows(BatchUpdateException.class, () -> execute(ps, large));
+            assertEquals(SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), error.getMessage());
+            assertEquals(1, scalar(stmt, "SELECT COUNT(*) FROM #counts"));
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false", "true"})
+    public void reuseAfterDirectBatchAndPreSendRpcFallback(boolean large) throws Exception {
+        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #counts (v nvarchar(20), executions int); INSERT INTO #counts VALUES ('',0)");
+            try (PreparedStatement ps = con.prepareStatement("UPDATE #counts SET v=?, executions=executions+1",
+                    ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+                ps.setString(1, "direct");
+                ps.addBatch();
+                assertArrayEquals(new long[] {1}, execute(ps, large));
+                assertDirect(ps, true);
+                ps.setCharacterStream(1, new StringReader("stream"), 6);
+                ps.addBatch();
+                assertArrayEquals(new long[] {1}, execute(ps, large));
+                assertDirect(ps, false);
+                assertEquals(2, scalar(stmt, "SELECT executions FROM #counts WHERE v='stream'"));
+                ps.setString(1, "reused");
+                ps.addBatch();
+                assertArrayEquals(new long[] {1}, execute(ps, large));
+                assertEquals(3, scalar(stmt, "SELECT executions FROM #counts WHERE v='reused'"));
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"1003", "1004", "1005"})
+    public void ordinaryCloseRemainsBestEffort(int resultType) throws Exception {
+        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #rows (id int PRIMARY KEY CLUSTERED, v varchar(20));"
+                    + "INSERT INTO #rows VALUES (1,'1'),(2,'2'),(3,'invalid')");
+            try (PreparedStatement ps = con.prepareStatement("SELECT CONVERT(int,v) FROM #rows ORDER BY id", resultType,
+                    ResultSet.CONCUR_READ_ONLY)) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertDoesNotThrow(rs::close, "Ordinary cleanup must still suppress unread row errors");
+                }
+                stmt.execute("UPDATE #rows SET v='3' WHERE id=3");
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(1, rs.getInt(1));
+                    if (resultType != ResultSet.TYPE_FORWARD_ONLY) {
+                        assertTrue(rs.last());
+                        assertEquals(3, rs.getInt(1));
+                        assertTrue(rs.first());
+                        assertEquals(1, rs.getInt(1));
+                    }
+                }
+                assertEquals(1, scalar(stmt, "SELECT 1"));
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false", "true"})
+    @Timeout(30)
+    @Tag(Constants.xAzureSQLDW)
+    public void cancellationAfterCountSlotsAreFull(boolean large) throws Exception {
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        try (SQLServerConnection con = open("none"); Statement stmt = con.createStatement();
+                PreparedStatement ps = con.prepareStatement(
+                        "UPDATE #counts SET id=id+?;" + "RAISERROR('batch ready to cancel',0,1) WITH NOWAIT;"
+                                + "WAITFOR DELAY '00:00:15'; UPDATE #counts SET id=id+1")) {
+            stmt.execute("CREATE TABLE #counts (id int); INSERT INTO #counts VALUES (0)");
+            CountDownLatch ready = new CountDownLatch(1);
+            con.setServerMessageHandler(message -> {
+                if (message.getErrorMessage().contains("batch ready to cancel"))
+                    ready.countDown();
+                return message;
+            });
+            ps.setQueryTimeout(10);
+            ps.setInt(1, 1);
+            ps.addBatch();
+            Future<SQLException> execution = worker
+                    .submit(() -> assertThrows(SQLException.class, () -> execute(ps, large)));
+            assertTrue(ready.await(5, TimeUnit.SECONDS), "Wait for server execution before cancelling");
+            ps.cancel();
+            SQLException error = execution.get(20, TimeUnit.SECONDS);
+            assertFalse(error instanceof BatchUpdateException, "Interrupts must not become recoverable entry errors");
+            assertTrue(error instanceof SQLTimeoutException || "HY008".equals(error.getSQLState()));
+            assertEquals(1, scalar(stmt, "SELECT SUM(id) FROM #counts"));
+            ps.setQueryTimeout(0);
+            assertArrayEquals(new long[0], execute(ps, large));
+        } finally {
+            worker.shutdownNow();
+            assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
         }
     }
 

@@ -49,6 +49,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Fixed
 
+- **Process Complete Direct-Batch Responses and Report Late Errors**
+  - **What was fixed**: Continued response processing past conditional completion tokens and a full update-count array, and propagated row errors when consuming unexpected batch result sets before rejecting them.
+  - **Who benefits**: Applications using `executeBatch()` or `executeLargeBatch()` with `prepareMethod=none`, or eligible direct `scopeTempTablesToConnection` statements.
+  - **Impact**: Late recoverable SQL errors now produce `BatchUpdateException` instead of apparent success. Direct-batch counts remain positional, not general per-entry results for conditional or compound SQL; use `prepexec` when per-entry execution boundaries are required. This does not change RPC batch cleanup or guarantee preservation of every additional error or exception cause.
+
 - **Prevent Silent Loss of Trailing SQL in Bulk Copy Batch Inserts** [#3037](https://github.com/microsoft/mssql-jdbc/pull/3037)
   - **What was fixed**: Detected query hints, additional `VALUES` tuples, and other meaningful SQL after the first values tuple and persistently routed those statements through normal batch execution.
   - **Who benefits**: Applications using `useBulkCopyForBatchInsert=true` with query hints, multi-row inserts, or trailing comments.

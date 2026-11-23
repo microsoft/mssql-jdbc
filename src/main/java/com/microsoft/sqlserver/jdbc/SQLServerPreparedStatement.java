@@ -51,6 +51,14 @@ import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
  * SQLServerPreparedStatement supports batching whereby a set of prepared statements are executed in a single database
  * round trip to improve runtime performance.
  * <p>
+ * With {@code prepareMethod=none}, or eligible {@code scopeTempTablesToConnection} statements, direct batches combine
+ * parameter sets into one SQL script. Update counts are assigned in response order, not by parameter-set identity.
+ * Conditional or compound SQL can produce multiple results per entry, so counts (including those in a
+ * {@link BatchUpdateException}) may not identify which entry succeeded or failed. Later results are still inspected
+ * for errors after the count array is full. Unexpected result sets are consumed with row-error propagation and rejected.
+ * Use {@code prepareMethod=prepexec} when per-entry execution boundaries are required; do not retry entries solely
+ * from ambiguous direct-batch counts, since their database changes may already have occurred.
+ * <p>
  * The API javadoc for JDBC API methods that this class implements are not repeated here. Please see Sun's JDBC API
  * interfaces javadoc for those details.
  */
@@ -4079,6 +4087,10 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
             }
 
             // Execute the combined SQL script
+            executedSqlDirectly = true;
+            expectCursorOutParams = false;
+            expectPrepStmtHandle = false;
+            outParamIndexAdjustment = 0;
             TDSWriter tdsWriter = batchCommand.startRequest(TDS.PKT_QUERY);
             tdsWriter.writeString(sqlScript.toString());
 
@@ -4102,36 +4114,54 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                         endFirstPacketToFirstResponseTracking();
                     }
 
-                    startResults();
-
                     // Initialize update counts to failed by default
                     for (int i = 0; i < numBatches; i++) {
                         batchCommand.updateCounts[i] = Statement.EXECUTE_FAILED;
                     }
 
-                    // Process results for each batch entry
-                    for (int batchIdx = 0; batchIdx < numBatches; batchIdx++) {
+                    // Counts are result positions, not parameter-set boundaries. Conditional DONE tokens can end
+                    // a logical result before response EOF; keep inspecting even after all count slots are full.
+                    int resultIndex = 0;
+                    while (!batchCommand.getProcessedResponse()) {
+                        boolean resultSetRejected = false;
+                        startResults();
                         try {
-                            // getNextResult returns true for an update count as well as for a ResultSet.
                             if (!getNextResult(true))
-                                break;
+                                continue;
                             if (null != resultSet) {
-                                resultSet.close();
-                                resultSet = null;
+                                SQLServerResultSet batchResultSet = resultSet;
+                                try {
+                                    batchResultSet.discardFetchBufferWithErrors();
+                                } finally {
+                                    resultSet = null;
+                                    batchResultSet.close();
+                                }
+                                resultSetRejected = true;
+                                SQLServerException.makeFromDriverError(connection, this,
+                                        SQLServerException.getErrString("R_resultsetGeneratedForUpdate"), null, false);
                             }
-                            batchCommand.updateCounts[batchIdx] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
-                                                                                      : updateCount;
+                            if (resultIndex < numBatches)
+                                batchCommand.updateCounts[resultIndex] = (-1 == updateCount) ? Statement.SUCCESS_NO_INFO
+                                                                                             : updateCount;
                         } catch (SQLServerException e) {
                             if (connection.isSessionUnAvailable() || connection.rolledBackTransaction()
-                                    || SQLServerException.ERROR_QUERY_TIMEOUT == e.getDriverErrorCode())
+                                    || SQLServerException.ERROR_QUERY_TIMEOUT == e.getDriverErrorCode()
+                                    || SQLState.STATEMENT_CANCELED.getSQLStateCode().equals(e.getSQLState()))
                                 throw e;
 
-                            batchCommand.updateCounts[batchIdx] = Statement.EXECUTE_FAILED;
+                            if (!resultSetRejected
+                                    && SQLServerException.DRIVER_ERROR_FROM_DATABASE != e.getDriverErrorCode())
+                                throw e;
+
+                            if (resultIndex < numBatches)
+                                batchCommand.updateCounts[resultIndex] = Statement.EXECUTE_FAILED;
 
                             if (null == batchCommand.batchException) {
                                 batchCommand.batchException = e;
                             }
                         }
+                        if (resultIndex < numBatches)
+                            resultIndex++;
                     }
                     // executeBatch and executeLargeBatch turn batchException into a BatchUpdateException.
                 } catch (SQLServerException e) {
