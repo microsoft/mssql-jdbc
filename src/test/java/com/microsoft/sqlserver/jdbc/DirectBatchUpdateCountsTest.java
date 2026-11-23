@@ -75,6 +75,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Verifies exact direct and RPC update counts, empty-batch behavior, and statement reuse. */
     @ParameterizedTest
     @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true", "scopeTempTablesToConnection,false",
             "scopeTempTablesToConnection,true"})
@@ -101,6 +102,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Verifies multi-row insert/delete counts and SUCCESS_NO_INFO when NOCOUNT is enabled. */
     @ParameterizedTest
     @CsvSource({"false", "true"})
     public void insertDeleteAndNoCount(boolean large) throws Exception {
@@ -135,6 +137,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Preserves successful counts around a recoverable duplicate-key failure and permits reuse. */
     @ParameterizedTest
     @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true"})
     public void recoverableErrorPreservesCounts(String method, boolean large) throws Exception {
@@ -157,6 +160,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Exposes a server RAISERROR as BatchUpdateException with the original error details and failed count. */
     @ParameterizedTest
     @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true"})
     @Tag(Constants.xAzureSQLDW)
@@ -184,6 +188,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Marks the failing and aborted entries failed when a conversion error terminates direct execution. */
     @ParameterizedTest
     @CsvSource({"false", "true"})
     public void abortedEntriesRemainFailed(boolean large) throws Exception {
@@ -204,6 +209,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Treats compound-statement counts as result positions rather than totals for each batch entry. */
     @ParameterizedTest
     @CsvSource({"false", "true"})
     public void compoundResultsArePositionsNotEntryTotals(boolean large) throws Exception {
@@ -220,6 +226,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Verifies conditional counts and preserves a duplicate-key error from the final ELSE branch. */
     @ParameterizedTest
     @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true"})
     public void conditionalCountsAndLateDuplicateKey(String method, boolean large) throws Exception {
@@ -272,6 +279,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Ensures an initial conditional no-op cannot hide a duplicate-key failure in a later entry. */
     @ParameterizedTest
     @CsvSource({"none,false", "none,true", "prepexec,false", "prepexec,true"})
     public void conditionalNoOpDoesNotHideLateDuplicateKey(String method, boolean large) throws Exception {
@@ -306,6 +314,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Propagates a late SQL error after count slots are full without overwriting observed counts. */
     @ParameterizedTest
     @CsvSource({"none,false", "none,true", "scopeTempTablesToConnection,false", "scopeTempTablesToConnection,true"})
     public void errorAfterCountSlotsAreFull(String method, boolean large) throws Exception {
@@ -329,6 +338,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Drains a trailing ResultSet and preserves conversion errors encountered in its unread rows. */
     @ParameterizedTest
     @CsvSource({"false,1003,false", "true,1003,false", "false,1004,false", "true,1004,false", "false,1005,false",
             "true,1005,false", "false,1003,true", "true,1003,true", "false,1004,true", "true,1004,true",
@@ -371,6 +381,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Rejects an initial conditional ResultSet while still consuming the remaining batch response. */
     @ParameterizedTest
     @CsvSource({"false", "true"})
     public void initialConditionalResultSetIsRejected(boolean large) throws Exception {
@@ -385,6 +396,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Allows an unselected SELECT branch but rejects it when selected and leaves the statement reusable. */
     @ParameterizedTest
     @CsvSource({"false", "true"})
     public void unselectedConditionalResultSetDoesNotFailBatch(boolean large) throws Exception {
@@ -408,6 +420,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Consumes multiple unexpected ResultSets through response completion without overflowing count slots. */
     @ParameterizedTest
     @CsvSource({"false,1003", "true,1003", "false,1004", "true,1004"})
     public void multipleUnexpectedResultSetsAreConsumed(boolean large, int resultType) throws Exception {
@@ -433,6 +446,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Propagates a rollback detected after count slots are full and verifies post-rollback reuse. */
     @ParameterizedTest
     @CsvSource({"false", "true"})
     public void rollbackAfterCountSlotsAreFull(boolean large) throws Exception {
@@ -469,6 +483,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Verifies direct-to-RPC fallback clears direct parsing state and supports subsequent direct values. */
     @ParameterizedTest
     @CsvSource({"false", "true"})
     public void reuseAfterDirectBatchAndPreSendRpcFallback(boolean large) throws Exception {
@@ -493,6 +508,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Preserves ordinary ResultSet.close() best-effort suppression of unread-row errors. */
     @ParameterizedTest
     @CsvSource({"1003", "1004", "1005"})
     public void ordinaryCloseRemainsBestEffort(int resultType) throws Exception {
@@ -520,6 +536,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Preserves statement cancellation after count slots are full and completes attention handling. */
     @ParameterizedTest
     @CsvSource({"false", "true"})
     @Timeout(30)
@@ -556,6 +573,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Distinguishes a zero-row optimistic-lock update from a successful one-row update. */
     @ParameterizedTest
     @CsvSource({"false", "true"})
     public void optimisticLockZeroIsNotSuccessOne(boolean large) throws Exception {
@@ -573,6 +591,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Verifies temp-table scope routing between direct and RPC execution over the connection lifetime. */
     @ParameterizedTest
     @CsvSource({"false", "true"})
     public void scopeRoutingAndConnectionLifetime(boolean large) throws Exception {
@@ -603,6 +622,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Propagates transaction rollback as a fatal error rather than a recoverable batch-entry failure. */
     @ParameterizedTest
     @CsvSource({"false", "true"})
     public void rollbackErrorPropagates(boolean large) throws Exception {
@@ -625,6 +645,7 @@ public class DirectBatchUpdateCountsTest extends AbstractTest {
         }
     }
 
+    /** Propagates query timeout without reporting success or applying the delayed update. */
     @ParameterizedTest
     @CsvSource({"false", "true"})
     @Timeout(30)

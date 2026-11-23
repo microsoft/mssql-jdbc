@@ -132,6 +132,7 @@ class DirectBatchResponseTest {
         return error;
     }
 
+    /** Preserves zero, long, and unknown-success update counts without narrowing through the int API. */
     @Test
     void preservesLongCountsAndUnknownSuccess() throws Throwable {
         Response response = new Response(3, 0L, 1L + Integer.MAX_VALUE, -1L);
@@ -139,6 +140,7 @@ class DirectBatchResponseTest {
         verify(response.stmt, never()).getUpdateCount();
     }
 
+    /** Records a recoverable database failure for its entry and continues consuming later results. */
     @Test
     void recordsFailedEntryAndContinues() throws Throwable {
         SQLServerException error = databaseError();
@@ -147,12 +149,14 @@ class DirectBatchResponseTest {
         assertSame(error, response.error());
     }
 
+    /** Leaves entries without a corresponding result marked as failed after response processing stops. */
     @Test
     void leavesUnexecutedSlotsFailed() throws Throwable {
         Response response = new Response(3, 1L, databaseError());
         assertArrayEquals(new long[] {1, Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED}, response.run());
     }
 
+    /** Continues past logical conditional completions until the physical response is fully consumed. */
     @Test
     void resumesAfterLogicalCompletionUntilResponseEOF() throws Throwable {
         Response response = new Response(3, false, 3L, false, 5L, false);
@@ -160,6 +164,7 @@ class DirectBatchResponseTest {
         assertTrue(response.finished.get(), "A logical batch completion must not leave the response unread");
     }
 
+    /** Retains the first late database error even after every update-count slot has been populated. */
     @Test
     void retainsFirstErrorBeyondCountSlots() throws Throwable {
         SQLServerException error = databaseError();
@@ -169,6 +174,7 @@ class DirectBatchResponseTest {
         assertTrue(response.finished.get());
     }
 
+    /** Propagates cancellation and non-database driver failures without resuming result traversal. */
     @Test
     void propagatesCancellationAndUnexpectedDriverFailure() throws Exception {
         for (String state : new String[] {SQLState.STATEMENT_CANCELED.getSQLStateCode(), "HY000"}) {
@@ -179,6 +185,7 @@ class DirectBatchResponseTest {
         }
     }
 
+    /** Discards scrollable rows without retaining marks while preserving database errors and cancellation. */
     @ParameterizedTest
     @CsvSource({"209,success", "210,success", "253,success", "209,databaseError", "210,databaseError",
             "253,databaseError", "209,canceled", "210,canceled", "253,canceled"})
@@ -252,6 +259,7 @@ class DirectBatchResponseTest {
                     response.error().getMessage());
     }
 
+    /** Propagates non-database failures raised while consuming an unexpected ResultSet. */
     @Test
     void rowConsumptionDoesNotSwallowDriverFailures() throws Exception {
         SQLServerResultSet rs = mock(SQLServerResultSet.class);
@@ -263,6 +271,7 @@ class DirectBatchResponseTest {
         assertEquals(1, response.next.get());
     }
 
+    /** Propagates fatal session-loss and transaction-rollback errors instead of treating them as entry failures. */
     @Test
     void propagatesSessionAndRollbackFailures() throws Exception {
         SQLServerException error = databaseError();
