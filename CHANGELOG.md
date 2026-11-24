@@ -3,6 +3,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
+## [13.6.3] Stable Release
+
+### Fixed
+
+- **Fix getIndexInfo internal prepared statement leak** [#3097](https://github.com/microsoft/mssql-jdbc/pull/3097)
+  - **What was fixed**: `DatabaseMetaData.getIndexInfo()` closed the internal prepared statement it uses to query index metadata, instead of leaving it open.
+  - **Who benefits**: Applications that call `getIndexInfo()` repeatedly on long-lived connections.
+  - **Impact**: Prevents accumulation of unclosed internal statements and their server resources.
+
+- **Fix direct batch update counts and batch exception type** [#3102](https://github.com/microsoft/mssql-jdbc/pull/3102)
+  - **What was fixed**: `executeBatch()` and `executeLargeBatch()` with `prepareMethod=none`, and the direct path of `scopeTempTablesToConnection`, reported `1` for every successful entry. They now return the server's update count, including `0` and multi-row counts. Entries without a count are reported as `SUCCESS_NO_INFO`, and entries that did not run as `EXECUTE_FAILED`. Failures throw `BatchUpdateException` with these counts instead of a wrapped `SQLServerException`.
+  - **Who benefits**: Applications using `prepareMethod=none` batches whose statements affect zero or multiple rows, including optimistic-locking checks.
+  - **Impact**: Counts are correct when each batch entry is a single DML statement. For conditional or multi-statement entries, counts are assigned in the order the server returns results, not per entry. Use `prepareMethod=prepexec` where per-entry counts are required.
+
+- **Fix missed SQL errors and premature result processing in direct prepared-statement batches** [#3114](https://github.com/microsoft/mssql-jdbc/pull/3114)
+  - **What was fixed**: Direct batches now read the server response to the end. Conditional statements such as `IF` no longer cause executed entries to be reported as `EXECUTE_FAILED`, and errors later in the batch are reported through `BatchUpdateException`. A result set returned by a batch entry is rejected with `BatchUpdateException`. It no longer closes the connection, and errors in its rows are reported.
+  - **Who benefits**: Applications using `prepareMethod=none` batches with conditional logic, multiple statements, or `SELECT` statements in batch entries.
+  - **Impact**: Prevents a failed batch from being reported as successful. A batch entry that returns rows now fails with `BatchUpdateException`, as the JDBC specification requires.
+
 ## [13.6.2] Stable Release
 
 ### Fixed
