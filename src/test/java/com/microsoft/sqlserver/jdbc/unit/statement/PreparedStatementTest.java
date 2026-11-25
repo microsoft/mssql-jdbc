@@ -4,6 +4,7 @@
  */
 package com.microsoft.sqlserver.jdbc.unit.statement;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -31,6 +32,7 @@ import java.sql.Time;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Random;
@@ -53,12 +55,14 @@ import com.microsoft.sqlserver.jdbc.TestResource;
 import com.microsoft.sqlserver.jdbc.TestUtils;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -71,6 +75,185 @@ import com.microsoft.sqlserver.testframework.PrepUtil;
 
 @RunWith(JUnitPlatform.class)
 public class PreparedStatementTest extends AbstractTest {
+
+    private static final String BATCH_RETRY_UNICODE_VALUE = new String(new int[] {0x0e01, 0x4e2d}, 0, 2);
+
+    @ParameterizedTest(name = "error {0}, prepareMethod={1}, largeBatch={2}")
+    @CsvSource({"8179, prepexec, false", "8179, prepexec, true", "8179, prepare, false", "8179, prepare, true",
+            "586, prepexec, false", "586, prepexec, true", "586, prepare, false", "586, prepare, true"})
+    @Tag(Constants.xAzureSQLDW)
+    public void testBatchRetryAfterRejectedCachedHandle(int error, String prepareMethod,
+            boolean largeBatch) throws SQLException {
+        assertEquals("1=v1 2=v2 3=v3 4=v4 ", executeBatchWithRejectedHandle("", error, prepareMethod, largeBatch,
+                "nvarchar(10)", "v1", "v2", "v3", "v4"), "every entry must be stored once with its own values");
+    }
+
+    @ParameterizedTest(name = "error {0}, prepareMethod={1}")
+    @CsvSource({"8179, prepexec", "8179, prepare", "586, prepexec", "586, prepare"})
+    @Tag(Constants.xAzureSQLDW)
+    public void testBatchRetryAfterRejectedCachedHandleWithTypeChange(int error,
+            String prepareMethod) throws SQLException {
+        assertEquals("1=5 2=1 ", executeBatchWithRejectedHandle("", error, prepareMethod, false, "int", 5, true),
+                "the retry must restore both values and parameter types");
+    }
+
+    @ParameterizedTest(name = "error {0}, prepareMethod={1}")
+    @CsvSource({"8179, prepexec", "8179, prepare", "586, prepexec", "586, prepare"})
+    @Tag(Constants.xSQLv11)
+    @Tag(Constants.xSQLv12)
+    @Tag(Constants.xAzureSQLDW)
+    public void testBatchRetryAfterRejectedCachedHandleAEOnConnection(int error,
+            String prepareMethod) throws SQLException {
+        assertEquals("1=" + BATCH_RETRY_UNICODE_VALUE + " ",
+                executeBatchWithRejectedHandle(";columnEncryptionSetting=Enabled;", error, prepareMethod, false,
+                        "nvarchar(10)", BATCH_RETRY_UNICODE_VALUE),
+                "the retry must preserve all Unicode characters");
+    }
+
+    /**
+     * The first two RPCs use a valid int handle. The remaining RPCs use a removed bit handle, so the retry must
+     * restart at index 2 without repeating the successful prefix or substituting the last entry's values.
+     */
+    @ParameterizedTest(name = "prepareMethod={0}, largeBatch={1}")
+    @CsvSource({"prepexec, false", "prepexec, true", "prepare, false", "prepare, true"})
+    @Tag(Constants.xAzureSQLDW)
+    public void testBatchRetryAfterEarlierEntriesSucceed(String prepareMethod, boolean largeBatch) throws SQLException {
+        String table = AbstractSQLGenerator.escapeIdentifier(RandomUtil.getIdentifier("batchRetrySuccessfulPrefix"));
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil.getConnection(connectionString)) {
+            configureBatchRetryConnection(con, prepareMethod);
+            String sql = "/*batchretry_" + UUID.randomUUID() + "*/INSERT INTO " + table + " (id, val) VALUES (?, ?)";
+            executeSQL(con, "CREATE TABLE " + table + " (id int, val int)");
+            try {
+                int validHandle = cacheBatchRetryHandle(con, sql, 7);
+                int rejectedHandle = cacheBatchRetryHandle(con, sql, true);
+                assertTrue(validHandle != rejectedHandle, "int and bit definitions must have distinct cached handles");
+                executeSQL(con, "EXEC sp_unprepare " + rejectedHandle);
+                executeSQL(con, "DELETE FROM " + table);
+
+                try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                    Object[] values = {7, 9, true, false, true};
+                    for (int i = 0; i < values.length; i++) {
+                        pstmt.setInt(1, i + 1);
+                        setBatchRetryValue(pstmt, values[i]);
+                        pstmt.addBatch();
+                    }
+                    assertBatchRetryCounts(pstmt, largeBatch, values.length);
+                    assertTrue(rejectedHandle != pstmt.getPreparedStatementHandle(),
+                            "the rejected handle must have been replaced");
+                }
+                assertEquals("1=7 2=9 3=1 4=0 5=1 ", readBatchRetryRows(con, table),
+                        "successful entries must not repeat and the unfinished suffix must retain its own values");
+                executeSQL(con, "INSERT INTO " + table + " (id, val) VALUES (6, 11)");
+                assertEquals("1=7 2=9 3=1 4=0 5=1 6=11 ", readBatchRetryRows(con, table),
+                        "the connection must remain usable after the retry");
+            } finally {
+                try (Statement stmt = con.createStatement()) {
+                    TestUtils.dropTableIfExists(table, stmt);
+                }
+            }
+        }
+    }
+
+    private void configureBatchRetryConnection(SQLServerConnection con, String prepareMethod) {
+        con.setDisableStatementPooling(false);
+        con.setStatementPoolingCacheSize(10);
+        con.setPrepareMethod(prepareMethod);
+        con.setUseBulkCopyForBatchInsert(false);
+    }
+
+    private int cacheBatchRetryHandle(SQLServerConnection con, String sql, Object value) throws SQLException {
+        try (SQLServerPreparedStatement pstmt = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+            pstmt.setInt(1, 0);
+            setBatchRetryValue(pstmt, value);
+            pstmt.executeUpdate();
+            pstmt.executeUpdate();
+            int handle = pstmt.getPreparedStatementHandle();
+            assertTrue(0 < handle, "a prepared statement handle must be cached");
+            return handle;
+        }
+    }
+
+    private String executeBatchWithRejectedHandle(String connectionProperties, int error, String prepareMethod,
+            boolean largeBatch, String valueType, Object... values) throws SQLException {
+        String testTableName = RandomUtil.getIdentifier("tableTestBatchRetryAfterRejectedHandle");
+        try (SQLServerConnection con = (SQLServerConnection) PrepUtil
+                .getConnection(connectionString + connectionProperties)) {
+            Assumptions.assumeFalse(586 == error && TestUtils.isAzure(con) && !TestUtils.isAzureMI(con),
+                    "USE cannot switch databases on Azure SQL Database");
+            configureBatchRetryConnection(con, prepareMethod);
+            String database = con.getCatalog();
+            String schema;
+            try (Statement stmt = con.createStatement(); ResultSet rs = stmt.executeQuery("SELECT SCHEMA_NAME()")) {
+                assertTrue(rs.next());
+                schema = rs.getString(1);
+            }
+            String table = AbstractSQLGenerator.escapeIdentifier(database) + "."
+                    + AbstractSQLGenerator.escapeIdentifier(schema) + "."
+                    + AbstractSQLGenerator.escapeIdentifier(testTableName);
+            String sql = "/*batchretry_" + UUID.randomUUID() + "*/INSERT INTO " + table + " (id, val) VALUES (?, ?)";
+            executeSQL(con, "CREATE TABLE " + table + " (id int, val " + valueType + ")");
+            try {
+                if (586 == error) {
+                    con.setCatalog("tempdb");
+                }
+                int handle = cacheBatchRetryHandle(con, sql, values[0]);
+                if (586 == error) {
+                    con.setCatalog(database);
+                } else {
+                    executeSQL(con, "EXEC sp_unprepare " + handle);
+                }
+                executeSQL(con, "DELETE FROM " + table);
+                try (PreparedStatement pstmt = con.prepareStatement(sql)) {
+                    for (int i = 0; i < values.length; i++) {
+                        pstmt.setInt(1, i + 1);
+                        setBatchRetryValue(pstmt, values[i]);
+                        pstmt.addBatch();
+                    }
+                    assertBatchRetryCounts(pstmt, largeBatch, values.length);
+                }
+                return readBatchRetryRows(con, table);
+            } finally {
+                con.setCatalog(database);
+                try (Statement stmt = con.createStatement()) {
+                    TestUtils.dropTableIfExists(AbstractSQLGenerator.escapeIdentifier(testTableName), stmt);
+                }
+            }
+        }
+    }
+
+    private static void assertBatchRetryCounts(PreparedStatement pstmt, boolean largeBatch,
+            int count) throws SQLException {
+        if (largeBatch) {
+            long[] expected = new long[count];
+            Arrays.fill(expected, 1);
+            assertArrayEquals(expected, pstmt.executeLargeBatch());
+        } else {
+            int[] expected = new int[count];
+            Arrays.fill(expected, 1);
+            assertArrayEquals(expected, pstmt.executeBatch());
+        }
+    }
+
+    private static String readBatchRetryRows(SQLServerConnection con, String table) throws SQLException {
+        StringBuilder rows = new StringBuilder();
+        try (Statement stmt = con.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT id, val FROM " + table + " ORDER BY id")) {
+            while (rs.next()) {
+                rows.append(rs.getInt(1)).append('=').append(rs.getString(2)).append(' ');
+            }
+        }
+        return rows.toString();
+    }
+
+    private static void setBatchRetryValue(PreparedStatement pstmt, Object value) throws SQLException {
+        if (value instanceof Boolean) {
+            pstmt.setBoolean(2, (Boolean) value);
+        } else if (value instanceof Integer) {
+            pstmt.setInt(2, (Integer) value);
+        } else {
+            pstmt.setString(2, (String) value);
+        }
+    }
 
     final static String tableName = RandomUtil.getIdentifier("tableTestStatementPoolingInternal1");
     final static String tableName2 = RandomUtil.getIdentifier("tableTestStatementPoolingInternal2");
