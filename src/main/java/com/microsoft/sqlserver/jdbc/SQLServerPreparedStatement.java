@@ -1012,7 +1012,9 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 setPreparedStatementHandle(param.getInt(tdsReader, statement));
 
                 // Cache the reference to the newly created handle, NOT for cursorable handles.
-                if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod) && connection.isStatementPoolingEnabled()) {
+                // Check pooling before constructing the key; the cache method's guard runs after argument evaluation.
+                if (null == cachedPreparedStatementHandle && !isCursorable(executeMethod)
+                        && connection.isStatementPoolingEnabled()) {
                     cachedPreparedStatementHandle = connection.registerCachedPreparedStatementHandle(
                             new CityHash128Key(preparedSQL, preparedTypeDefinitions), prepStmtHandle,
                             executedSqlDirectly);
@@ -1388,7 +1390,7 @@ public class SQLServerPreparedStatement extends SQLServerStatement implements IS
                 return false;
         }
 
-        // Check for new cache reference.
+        // Check pooling before allocating a lookup key, but only after releasing or invalidating the old handle.
         if (null == cachedPreparedStatementHandle && connection.isStatementPoolingEnabled()) {
             PreparedStatementHandle cachedHandle = connection
                     .getCachedPreparedStatementHandle(new CityHash128Key(preparedSQL, preparedTypeDefinitions));
