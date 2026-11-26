@@ -21,11 +21,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 
 ### Changed
 
-- **Avoid Unnecessary Statement Handle Cache Keys** [#3048](https://github.com/microsoft/mssql-jdbc/pull/3048)
-  - **What was changed**: Skip constructing `CityHash128Key` objects for prepared-handle lookup and registration when statement pooling is disabled.
-  - **Who benefits**: Applications executing prepared statements without statement pooling, including the default configuration.
-  - **Impact**: Avoids unused handle-cache allocations while preserving parsed-SQL caching, enabled statement pooling, and reuse of a statement's own server handle. Community contribution by @dolfinus.
-
 - **Strengthen JDBC URL Port and Instance-Name Validation** [#3031](https://github.com/microsoft/mssql-jdbc/pull/3031)
   - **What was changed**: Validated port segments as non-empty numeric values in the range `0–65535` and rejected instance names containing `=`.
   - **Who benefits**: Applications constructing SQL Server JDBC URLs and users diagnosing malformed connection strings.
