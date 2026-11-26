@@ -687,6 +687,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   **Who benefits**: Users configuring SSL via system properties.
   **Impact**: Enables proper SSL trust store resolution, improving compatibility with system configurations.
 
+- **Remove Static JAAS Configuration Setting in KerbAuthentication** [#2590](https://github.com/microsoft/mssql-jdbc/pull/2590)
+  **What was fixed**: Removed the driver's JVM-wide JAAS configuration override during Kerberos authentication initialization.
+  **Who benefits**: Applications using Kerberos authentication, especially those sharing a JVM with other JAAS-based libraries or application servers.
+  **Impact**: Preserves application-managed JAAS settings, avoids interference with other authentication components, and reduces unnecessary configuration-processing and memory overhead.
+
 - **Addressed a data integrity and performance issue for bulk copy batch inserts with non-Unicode Strings** [#2735](https://github.com/microsoft/mssql-jdbc/pull/2735)
   **What was fixed**: Resolved performance degradation and incorrect string handling in bulk copy batch inserts when useBulkCopyForBatchInsert=true and sendStringParametersAsUnicode=false.
   **Who benefits**: Applications using SQL Server JDBC Bulk Copy for high-volume inserts, especially with non-Unicode or accented character data.
