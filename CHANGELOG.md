@@ -687,6 +687,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
   **Who benefits**: Users configuring SSL via system properties.
   **Impact**: Enables proper SSL trust store resolution, improving compatibility with system configurations.
 
+- **Remove Static JAAS Configuration Setting in KerbAuthentication** [#2590](https://github.com/microsoft/mssql-jdbc/pull/2590)
+  **What was fixed**: Removed the driver's JVM-wide JAAS configuration override during Kerberos authentication initialization.
+  **Who benefits**: Applications using Kerberos authentication, especially those sharing a JVM with other JAAS-based libraries or application servers.
+  **Impact**: Preserves application-managed JAAS settings, avoids interference with other authentication components, and reduces unnecessary configuration-processing and memory overhead.
+  **Breaking change in 13.2.0 GA**: Applications using `integratedSecurity=true;authenticationScheme=JavaKerberos` that relied on the driver's implicit `SQLJDBCDriver` JAAS configuration must now configure JAAS explicitly or opt in to the driver's built-in configuration. With the default `useDefaultJaasConfig=false` and no matching JAAS entry, login can fail with an error such as `Kerberos Login failed: Integrated authentication failed ... LoginException (No LoginModules configured for SQLJDBCDriver) ... ClientConnectionId: ...`.
+  **Mitigation**: Set `useDefaultJaasConfig=true` in the connection string to use the driver's built-in Kerberos ticket-cache configuration. Alternatively, keep `useDefaultJaasConfig=false`, provide a local JAAS configuration file via the JVM option `-Djava.security.auth.login.config=<path-to-jaas.conf>`, and define a `SQLJDBCDriver` entry (or an entry matching the `jaasConfigurationName` connection property). See [Using Kerberos integrated authentication to connect to SQL Server](https://learn.microsoft.com/sql/connect/jdbc/using-kerberos-integrated-authentication-to-connect-to-sql-server).
+
 - **Addressed a data integrity and performance issue for bulk copy batch inserts with non-Unicode Strings** [#2735](https://github.com/microsoft/mssql-jdbc/pull/2735)
   **What was fixed**: Resolved performance degradation and incorrect string handling in bulk copy batch inserts when useBulkCopyForBatchInsert=true and sendStringParametersAsUnicode=false.
   **Who benefits**: Applications using SQL Server JDBC Bulk Copy for high-volume inserts, especially with non-Unicode or accented character data.
