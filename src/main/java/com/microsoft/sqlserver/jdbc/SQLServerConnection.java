@@ -2097,6 +2097,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** pooled connection parent */
     private SQLServerPooledConnection pooledConnectionParent;
 
+    private volatile boolean pooledConnectionResetPending;
+
     /** the meta data for this connection */
     private SQLServerDatabaseMetaData databaseMetaData;
 
@@ -2266,6 +2268,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     final void resetPooledConnection() throws SQLServerException {
+        pooledConnectionResetPending = true;
         tdsChannel.resetPooledConnection();
         initResettableValues();
 
@@ -6413,6 +6416,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
              * anymore commands to the server in that case.
              */
             if (!isRoutedInCurrentAttempt) {
+                if (pooledConnectionResetPending) {
+                    tdsChannel.resetPooledConnection();
+                }
                 originalCatalog = sCatalog;
                 String sqlStmt = sqlStatementToInitialize();
                 if (sqlStmt != null) {
@@ -6555,6 +6561,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 break;
             case ENVCHANGE_RESET_COMPLETE:
                 sessionRecovery.getSessionStateTable().reset();
+                pooledConnectionResetPending = false;
                 break;
             // Skip unsupported, ENVCHANGES
             case ENVCHANGE_CHARSET:

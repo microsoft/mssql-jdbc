@@ -365,6 +365,38 @@ public class BasicConnectionTest extends AbstractTest {
     }
 
     @Test
+    public void testPooledConnectionResetBeforeReconnect() throws SQLException {
+        SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
+        mds.setURL(connectionString);
+        PooledConnection pooledConnection = mds.getPooledConnection();
+        try {
+            int sessionId;
+            int initialLockTimeout;
+            try (Connection first = pooledConnection.getConnection(); Statement statement = first.createStatement()) {
+                try (ResultSet resultSet = statement.executeQuery("SELECT @@SPID, @@LOCK_TIMEOUT")) {
+                    assertTrue(resultSet.next());
+                    sessionId = resultSet.getInt(1);
+                    initialLockTimeout = resultSet.getInt(2);
+                }
+                int changedLockTimeout = initialLockTimeout == 1234 ? 5678 : 1234;
+                statement.execute("SET LOCK_TIMEOUT " + changedLockTimeout);
+            }
+
+            try (Connection second = pooledConnection.getConnection();
+                    Statement statement = second.createStatement()) {
+                ResiliencyUtils.minimizeIdleNetworkTracker(second);
+                ResiliencyUtils.killConnection(sessionId, connectionString, second, 0);
+                try (ResultSet resultSet = statement.executeQuery("SELECT @@LOCK_TIMEOUT")) {
+                    assertTrue(resultSet.next());
+                    assertEquals(initialLockTimeout, resultSet.getInt(1));
+                }
+            }
+        } finally {
+            pooledConnection.close();
+        }
+    }
+
+    @Test
     @Tag(Constants.xAzureSQLDB) // Switching databases is not supported against Azure, skip/
     public void testPooledConnectionDB() throws SQLException {
         SQLServerConnectionPoolDataSource mds = new SQLServerConnectionPoolDataSource();
