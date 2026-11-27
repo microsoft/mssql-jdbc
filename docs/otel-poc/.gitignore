@@ -1,0 +1,13 @@
+.env
+.env.*
+*.pfx
+*.p12
+*.pem
+*.key
+*.jks
+*.crt
+*.cer
+*.log
+evidence/
+.cloud/
+secrets/

@@ -2008,12 +2008,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     /** connection ID */
     private final int connectionID;
 
+    /** Privacy-safe physical connection correlation retained for later statement telemetry. */
+    private String telemetryConnectionGuid;
+
     /**
      * Returns the connection ID for performance tracking
      * @return the connection ID
      */
     final int getConnectionID() {
         return connectionID;
+    }
+
+    final String getTelemetryConnectionGuid() {
+        return telemetryConnectionGuid;
+    }
+
+    final void setTelemetryConnectionGuid(String value) {
+        telemetryConnectionGuid = value;
     }
 
     /**
@@ -2401,9 +2412,45 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection) throws SQLServerException {
-        try (PerformanceLog.Scope connectScope = PerformanceLog.createScope(PerformanceLog.perfLoggerConnection,
-                this, PerformanceActivity.CONNECTION)) {
+        return connect(propsIn, pooledConnection, null, null);
+    }
+
+    Connection connect(String url, Properties properties, SQLServerDriver driver) throws SQLServerException {
+        return connect(properties, null, url, driver);
+    }
+
+    // Per physical connection, never globally registered and never closed with the SQL connection.
+    private transient PerformanceLog.Registration userOtelRegistration;
+
+    PerformanceLog.Registration getUserOtelRegistration() {
+        return userOtelRegistration;
+    }
+
+    private Connection connect(Properties propsIn, SQLServerPooledConnection pooledConnection, String url,
+            SQLServerDriver driver) throws SQLServerException {
+        SQLServerException configurationFailure = null;
+        try {
+            if (null != driver) {
+                propsIn = driver.parseAndMergeProperties(url, propsIn);
+                if (null == propsIn) {
+                    return null;
+                }
+            }
+            if (propsIn != null) {
+                userOtelRegistration = UserOtelConfiguration.create(propsIn);
+            }
+        } catch (SQLServerException e) {
+            // Preserve application lifecycle diagnostics for parsing/validation failures too.
+            configurationFailure = e;
+        }
+        try (PerformanceLog.Scope connectScope = PerformanceLog.createConnectionOpenScope(this,
+                propsIn != null || driver != null);
+                PerformanceLog.Scope configurationScope = PerformanceLog.createConnectionScope(this,
+                        PerformanceActivity.CONNECTION_CONFIGURATION)) {
             try {
+                if (configurationFailure != null) {
+                    throw configurationFailure;
+                }
                 int loginTimeoutSeconds = SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue();
                 if (propsIn != null) {
                     String sPropValue = propsIn.getProperty(SQLServerDriverIntProperty.LOGIN_TIMEOUT.toString());
@@ -2415,6 +2462,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             }
                         }
                     } catch (NumberFormatException e) {
+                        PerformanceLog.recordConnectionFailure(this, e, "R_invalidTimeOut");
                         MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_invalidTimeOut"));
                         Object[] msgArgs = { sPropValue };
                         SQLServerException.makeFromDriverError(this, this, form.format(msgArgs), null, false);
@@ -2433,6 +2481,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 // For example, if this is a session recovery reconnect.
                 //
                 invalidateEnclaveSessionCache();
+                boolean firstConnect = true;
                 for (int connectRetryAttempt = 0, tlsRetryAttempt = 0;;) {
                     try {
                         if (0 == elapsedSeconds || elapsedSeconds < loginTimeoutSeconds) {
@@ -2449,6 +2498,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 }
                             }
 
+                            if (firstConnect) {
+                                firstConnect = false;
+                                return connectInternal(propsIn, pooledConnection, configurationScope);
+                            }
                             return connectInternal(propsIn, pooledConnection);
                         }
                     } catch (SQLServerException e) {
@@ -2464,6 +2517,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                 + tlsRetryAttempt + ".");
                             }
                             tlsRetryAttempt++;
+                                ConnectionPerformanceState.retry(this, ConnectionPerformanceState.RetryDecision.RETRY_SCHEDULED,
+                                    false, 0);
                         } else {
                             // TLS max retry exceeded
                             if (tlsRetryAttempt > INTERMITTENT_TLS_MAX_RETRY) {
@@ -2476,8 +2531,12 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                             if (0 == connectRetryCount) {
                                 // connection retry disabled
+                                ConnectionPerformanceState.retry(this, ConnectionPerformanceState.RetryDecision.LIMIT_REACHED,
+                                        false, 0);
                                 throw e;
                             } else if (connectRetryAttempt++ >= connectRetryCount) {
+                                ConnectionPerformanceState.retry(this, ConnectionPerformanceState.RetryDecision.LIMIT_REACHED,
+                                    false, 0);
                                 // maximum connection retry count reached
                                 if (connectionlogger.isLoggable(Level.FINE)) {
                                     connectionlogger.fine("Connection failed. Maximum connection retry count "
@@ -2489,6 +2548,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 // in use)
                                 SQLServerError sqlServerError = e.getSQLServerError();
                                 if (null == sqlServerError) {
+                                    ConnectionPerformanceState.retry(this, ConnectionPerformanceState.RetryDecision.NOT_RETRYABLE,
+                                            false, 0);
                                     throw e;
                                 } else {
                                     ConfigurableRetryRule rule = ConfigurableRetryLogic.getInstance()
@@ -2496,9 +2557,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                                     if (null == rule) {
                                         if (ConfigurableRetryLogic.getInstance().getReplaceFlag()) {
+                                            ConnectionPerformanceState.retry(this, ConnectionPerformanceState.RetryDecision.NOT_RETRYABLE,
+                                                    false, 0);
                                             throw e;
                                         } else {
                                             if (!TransientError.isTransientError(sqlServerError)) {
+                                                ConnectionPerformanceState.retry(this, ConnectionPerformanceState.RetryDecision.NOT_RETRYABLE,
+                                                        false, 0);
                                                 throw e;
                                             }
                                         }
@@ -2507,6 +2572,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                                 // check if there's time to retry, no point to wait if no time left
                                 if ((elapsedSeconds + connectRetryInterval) >= loginTimeoutSeconds) {
+                                    ConnectionPerformanceState.retry(this, ConnectionPerformanceState.RetryDecision.BUDGET_EXHAUSTED,
+                                        false, 0);
                                     if (connectionlogger.isLoggable(Level.FINEST)) {
                                         connectionlogger
                                                 .finest("Connection failed. No time left to retry timeout will be exceeded:"
@@ -2526,6 +2593,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                             + connectRetryInterval + ")s before retry.");
                                 }
 
+                                ConnectionPerformanceState.retry(this, ConnectionPerformanceState.RetryDecision.RETRY_SCHEDULED,
+                                    false, connectRetryAttempt > 1 ? TimeUnit.SECONDS.toMillis(connectRetryInterval) : 0);
                                 if (connectRetryAttempt > 1) {
                                     // We do not sleep for first retry; first retry is immediate
                                     sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
@@ -2535,6 +2604,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
                 }
             } catch (Exception e) {
+                configurationScope.setException(e);
+                configurationScope.close();
                 connectScope.setException(e);
                 throw e;
             }
@@ -2708,6 +2779,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     Connection connectInternal(Properties propsIn,
             SQLServerPooledConnection pooledConnection) throws SQLServerException {
+        try (PerformanceLog.Scope configurationScope = PerformanceLog.createConnectionScope(this,
+            PerformanceActivity.CONNECTION_CONFIGURATION)) {
+            return connectInternal(propsIn, pooledConnection, configurationScope);
+        }
+        }
+
+        private Connection connectInternal(Properties propsIn, SQLServerPooledConnection pooledConnection,
+            PerformanceLog.Scope configurationScope) throws SQLServerException {
         try {
             if (propsIn != null) {
 
@@ -3786,10 +3865,13 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 sessionRecovery.setLoginParameters(instanceValue, nPort, fo,
                         ((loginTimeoutSeconds > queryTimeoutSeconds) && queryTimeoutSeconds > 0) ? queryTimeoutSeconds
                                                                                                  : loginTimeoutSeconds);
+                captureConnectionSettings(loginTimeoutSeconds);
+                configurationScope.close();
                 login(activeConnectionProperties.getProperty(serverNameProperty), instanceValue, nPort, mirror, fo,
                         loginTimeoutSeconds, startTime);
             } else {
                 long startTime = System.currentTimeMillis();
+                configurationScope.close();
                 login(activeConnectionProperties.getProperty(SQLServerDriverStringProperty.SERVER_NAME.toString()),
                         sessionRecovery.getInstanceValue(), sessionRecovery.getNPort(),
                         activeConnectionProperties
@@ -3797,6 +3879,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         sessionRecovery.getFailoverInfo(), sessionRecovery.getLoginTimeoutSeconds(), startTime);
             }
 
+            try (PerformanceLog.Scope initializeScope = PerformanceLog.createConnectionScope(this,
+                    PerformanceActivity.CONNECTION_INITIALIZE)) {
+                try {
             // If SSL is to be used for the duration of the connection, then make sure
             // that the final negotiated TDS packet size is no larger than the SSL record size.
             if (TDS.ENCRYPT_ON == negotiatedEncryptionLevel || TDS.ENCRYPT_REQ == negotiatedEncryptionLevel) {
@@ -3822,12 +3907,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             // Reset socket timeout back to the original value.
             tdsChannel.resetTcpSocketTimeout();
 
+                } catch (Exception e) {
+                    initializeScope.setException(e);
+                    throw e;
+                }
+            }
+
             if (connectionlogger.isLoggable(Level.FINER)) {
                 connectionlogger.finer(toString() + " End of connect");
             }
         } catch (SocketException e) {
             throw new SQLServerException(e.getMessage(), null);
+        } catch (Exception e) {
+            configurationScope.setException(e);
+            throw e;
         } finally {
+            configurationScope.close();
             // once we exit the connect function, the connection can be only in one of two
             // states, Opened or Closed(if an exception occurred)
             if (!state.equals(State.OPENED) && !state.equals(State.CLOSED)) {
@@ -3837,6 +3932,30 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             activeConnectionProperties.remove(SQLServerDriverStringProperty.TRUST_STORE_PASSWORD.toString());
         }
         return this;
+    }
+
+    /** Snapshot only validated, effective, non-identifying settings, never the connection property bag. */
+    private void captureConnectionSettings(int loginTimeoutSeconds) {
+        if (!PerformanceLog.isConnectionLifecycleActive(this)) {
+            return;
+        }
+        Properties settings = new Properties();
+        settings.setProperty("encrypt", encryptOption);
+        settings.setProperty("trustServerCertificate", Boolean.toString(trustServerCertificate));
+        settings.setProperty("applicationIntent", applicationIntent.toString());
+        settings.setProperty("multiSubnetFailover", Boolean.toString(multiSubnetFailover));
+        settings.setProperty("transparentNetworkIPResolution", Boolean.toString(transparentNetworkIPResolution));
+        settings.setProperty("loginTimeout", Integer.toString(0 == loginTimeoutSeconds
+                ? SQLServerDriverIntProperty.LOGIN_TIMEOUT.getDefaultValue() : loginTimeoutSeconds));
+        settings.setProperty("socketTimeout", Integer.toString(socketTimeoutMilliseconds));
+        settings.setProperty("connectRetryCount", Integer.toString(connectRetryCount));
+        settings.setProperty("connectRetryInterval", Integer.toString(connectRetryInterval));
+        settings.setProperty("authentication", authenticationString);
+        settings.setProperty("integratedSecurity", Boolean.toString(integratedSecurity));
+        settings.setProperty("authenticationScheme", intAuthScheme.toString());
+        settings.setProperty("suppliedToken", Boolean.toString(accessTokenInByte != null));
+        settings.setProperty("tokenCallback", Boolean.toString(accessTokenCallback != null || hasAccessTokenCallbackClass));
+        PerformanceLog.setConnectionSettings(this, settings);
     }
 
     private void setSessionProperties() throws SQLServerException {
@@ -3903,9 +4022,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     toString() + " Connection open - connection failure. Driver error code: " + e.getDriverErrorCode());
         }
 
-        if (null != sqlServerError && !sqlServerError.getErrorMessage().isEmpty()) {
-            loggerResiliency.finer(toString() + " Connection open - connection failure. SQL Server error : "
-                    + sqlServerError.getErrorMessage());
+        if (null != sqlServerError) {
+            loggerResiliency.finer(toString() + " Connection open - connection failure. SQL Server error number: "
+                + sqlServerError.getErrorNumber());
         }
     }
 
@@ -4003,7 +4122,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     clientConnectionId = null;
                     state = State.INITIALIZED;
 
-                    try {
+                    try (PerformanceLog.Scope attemptScope = PerformanceLog.createConnectionScope(this,
+                            PerformanceActivity.CONNECTION_ATTEMPT)) {
+                        try {
                         if (isDBMirroring && useFailoverHost) {
                             if (null == currentFOPlaceHolder) {
                                 // integrated security flag passed here to verify that the linked dll can be
@@ -4067,11 +4188,15 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         }
 
                         if (isRoutedInCurrentAttempt) {
+                            try (PerformanceLog.Scope redirectScope = PerformanceLog.createConnectionScope(this,
+                                PerformanceActivity.CONNECTION_REDIRECT)) {
+                            try {
                             // we ignore the failoverpartner ENVCHANGE if we got routed so no error needs to
                             // be thrown
                             if (isDBMirroring) {
                                 String msg = SQLServerException.getErrString("R_invalidRoutingInfo");
-                                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
+                                terminateConnectionFailure(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg,
+                                        "R_invalidRoutingInfo");
                             }
 
                             noOfRedirections++;
@@ -4085,7 +4210,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                 MessageFormat form = new MessageFormat(
                                         SQLServerException.getErrString("R_multipleRedirections"));
                                 Object[] msgArgs = { maxNoOfRedirections };
-                                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, form.format(msgArgs));
+                                terminateConnectionFailure(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG,
+                                    form.format(msgArgs), "R_multipleRedirections");
                             }
 
                             // close tds channel
@@ -4121,14 +4247,23 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                         Integer.toString(currentConnectPlaceHolder.getPortNumber()),
                                         SQLServerException.getErrString("R_timedOutBeforeRouting") };
                                 String msg = form.format(msgArgs);
-                                terminate(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg);
+                                terminateConnectionFailure(SQLServerException.DRIVER_ERROR_UNSUPPORTED_CONFIG, msg,
+                                    "R_timedOutBeforeRouting");
                             } else {
+                                redirectScope.close();
+                                ConnectionPerformanceState.redirect(this,
+                                    routingInfo != null && routingInfo.getDatabaseName() != null);
                                 // set isRoutedInCurrentAttempt to false for the next attempt
                                 isRoutedInCurrentAttempt = false;
                                 // Reset so the routed server must re-negotiate enhanced routing
                                 serverSupportsEnhancedRouting = false;
 
                                 continue;
+                            }
+                            } catch (Exception e) {
+                                redirectScope.setException(e);
+                                throw e;
+                            }
                             }
                         } else {
                             if (loggerResiliency.isLoggable(Level.FINE) && attemptNumber > 0) {
@@ -4138,6 +4273,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             }
 
                             break; // leave the while loop -- we've successfully connected
+                        }
+                        } catch (Exception e) {
+                            attemptScope.setException(e);
+                            throw e;
                         }
                     } catch (SQLServerException e) {
 
@@ -4161,15 +4300,22 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                         sqlServerError = e.getSQLServerError();
 
-                        if (isFatalError(e) // do not retry on fatal errors
-                                || timerHasExpired(timerExpire) // no time left
-                                || (timerRemaining(timerExpire) < TimeUnit.SECONDS.toMillis(connectRetryInterval)
-                                        + 2 * timeForFirstTry) // not enough time for another retry
-                                || (connectRetryCount == 0 && !isDBMirroring && !useTnir) // retries disabled
+                        ConnectionPerformanceState.RetryDecision stopDecision = null;
+                        if (isFatalError(e)) {
+                            stopDecision = ConnectionPerformanceState.RetryDecision.NOT_RETRYABLE;
+                        } else if (timerHasExpired(timerExpire)
+                            || timerRemaining(timerExpire) < TimeUnit.SECONDS.toMillis(connectRetryInterval)
+                                + 2 * timeForFirstTry) {
+                            stopDecision = ConnectionPerformanceState.RetryDecision.BUDGET_EXHAUSTED;
+                        } else if ((connectRetryCount == 0 && !isDBMirroring && !useTnir) // retries disabled
                                 // retry at least once for TNIR and failover
                                 || (connectRetryCount == 0 && (isDBMirroring || useTnir) && attemptNumber > 0)
                                 || (connectRetryCount != 0 && attemptNumber >= connectRetryCount) // no retries left
                         ) {
+                            stopDecision = ConnectionPerformanceState.RetryDecision.LIMIT_REACHED;
+                        }
+                        if (stopDecision != null) {
+                            ConnectionPerformanceState.retry(this, stopDecision, false, 0);
                             if (loggerResiliency.isLoggable(Level.FINER)) {
                                 logConnectFailure(attemptNumber, e, sqlServerError);
                             }
@@ -4197,6 +4343,8 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             // Do this in the catch block so we can re-throw the current exception
                             long remainingMilliseconds = timerRemaining(timerExpire);
                             if (remainingMilliseconds <= fedauthRetryInterval) {
+                                ConnectionPerformanceState.retry(this, ConnectionPerformanceState.RetryDecision.BUDGET_EXHAUSTED,
+                                    false, 0);
 
                                 if (loggerResiliency.isLoggable(Level.FINER)) {
                                     logConnectFailure(attemptNumber, e, sqlServerError);
@@ -4208,6 +4356,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     }
 
                     // We only get here when we failed to connect, but are going to re-try
+                    long retryDelay = 0;
                     // After trying to connect to both servers fails, sleep for a bit to prevent
                     // clogging
                     // the network with requests, then update sleep interval for next iteration (max
@@ -4233,8 +4382,14 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                                                 + attemptNumber);
                             }
 
-                            sleepForInterval(TimeUnit.SECONDS.toMillis(connectRetryInterval));
+                            retryDelay = TimeUnit.SECONDS.toMillis(connectRetryInterval);
                         }
+                    }
+
+                    ConnectionPerformanceState.retry(this, ConnectionPerformanceState.RetryDecision.RETRY_SCHEDULED,
+                            isDBMirroring, retryDelay);
+                    if (retryDelay > 0) {
+                        sleepForInterval(retryDelay);
                     }
 
                     // Update timeout interval (but no more than the point where we're supposed to
@@ -4490,6 +4645,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
             clientConnectionId = UUID.randomUUID();
         }
         assert null != clientConnectionId;
+        PerformanceLog.setAttemptClientConnectionId(this, clientConnectionId);
 
         if (isTDS8) {
             tdsChannel.enableSSL(serverInfo.getParsedServerName(), serverInfo.getPortNumber(), clientCertificate,
@@ -5014,6 +5170,16 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
      */
     final void terminate(int driverErrorCode, String message) throws SQLServerException {
         terminate(driverErrorCode, message, null);
+    }
+
+    private void terminateConnectionFailure(int driverErrorCode, String message, String resourceKey)
+            throws SQLServerException {
+        try {
+            terminate(driverErrorCode, message);
+        } catch (SQLServerException e) {
+            PerformanceLog.recordConnectionFailure(this, e, resourceKey);
+            throw e;
+        }
     }
 
     final void terminate(int driverErrorCode, String message, Throwable throwable) throws SQLServerException {
@@ -6338,6 +6504,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     }
 
     private void logon(LogonCommand command) throws SQLServerException {
+        try (PerformanceLog.Scope loginScope = PerformanceLog.createConnectionScope(this,
+                PerformanceActivity.LOGIN_EXCHANGE)) {
+            try {
+                logon(command, loginScope);
+            } catch (Exception e) {
+                loginScope.setException(e);
+                throw e;
+            }
+        }
+    }
+
+    private void logon(LogonCommand command, PerformanceLog.Scope loginScope) throws SQLServerException {
         SSPIAuthentication authentication = null;
         byte[] channelBindingInfo = null != tdsChannel ? tdsChannel.getChannelBindingInfo() : null;
 
@@ -6408,15 +6586,25 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         }
         try {
             sendLogon(command, authentication, fedAuthFeatureExtensionData);
+            loginScope.close();
             /*
              * If we got routed in the current attempt, the server closes the connection. So, we should not be sending
              * anymore commands to the server in that case.
              */
             if (!isRoutedInCurrentAttempt) {
+                PerformanceLog.completeConnectionAttempt(this);
+                try (PerformanceLog.Scope initializeScope = PerformanceLog.createConnectionScope(this,
+                        PerformanceActivity.CONNECTION_INITIALIZE)) {
+                    try {
                 originalCatalog = sCatalog;
                 String sqlStmt = sqlStatementToInitialize();
                 if (sqlStmt != null) {
                     connectionCommand(sqlStmt, "Change Settings");
+                }
+                    } catch (Exception e) {
+                        initializeScope.setException(e);
+                        throw e;
+                    }
                 }
             }
         } finally {
@@ -6611,8 +6799,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                     if (isEnhancedRouting) {
                         routingDatabaseNameLength = tdsReader.readUnsignedShort();
                         if (routingDatabaseNameLength <= 0 || routingDatabaseNameLength > 128) {
-                            throw new SQLServerException(
+                            SQLServerException e = new SQLServerException(
                                     SQLServerException.getErrString("R_invalidEnhancedRoutingInfo"), null);
+                            PerformanceLog.recordConnectionFailure(this, e, "R_invalidEnhancedRoutingInfo");
+                            throw e;
                         }
 
                         routingDatabaseName = tdsReader.readUnicodeString(routingDatabaseNameLength);
@@ -6980,6 +7170,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                 attemptRefreshTokenLocked = true;
 
+                try (PerformanceLog.Scope tokenScope = PerformanceLog.createConnectionScope(this,
+                        PerformanceActivity.TOKEN_REQUEST)) {
+                    try {
                 if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString())
                         && null != accessTokenCallbackClass
                         && !accessTokenCallbackClass.isEmpty()) {
@@ -6989,17 +7182,35 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         SQLServerAccessTokenCallback callbackInstance = Util.newInstance(
                                 SQLServerAccessTokenCallback.class,
                                 accessTokenCallbackClass, null, msgArgs);
-                        fedAuthToken = callbackInstance.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
+                        ConnectionPerformanceState.authentication(this, "callback");
+                        try {
+                            fedAuthToken = callbackInstance.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
+                        } catch (Exception e) {
+                            PerformanceLog.recordTokenCallbackFailure(this, e);
+                            throw e;
+                        }
                     } catch (Exception e) {
+                        PerformanceLog.recordConnectionFailure(this, e, "R_InvalidAccessTokenCallbackClass");
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_InvalidAccessTokenCallbackClass"));
                         throw new SQLServerException(form.format(new Object[] { accessTokenCallbackClass }), e);
                     }
                 } else if (authenticationString.equals(SqlAuthentication.NOT_SPECIFIED.toString())
                         && null != accessTokenCallback) {
-                    fedAuthToken = accessTokenCallback.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
+                    ConnectionPerformanceState.authentication(this, "callback");
+                    try {
+                        fedAuthToken = accessTokenCallback.getAccessToken(fedAuthInfo.spn, fedAuthInfo.stsurl);
+                    } catch (Exception e) {
+                        PerformanceLog.recordTokenCallbackFailure(this, e);
+                        throw e;
+                    }
                 } else {
                     fedAuthToken = getFedAuthToken(fedAuthInfo);
+                }
+                    } catch (Exception e) {
+                        tokenScope.setException(e);
+                        throw e;
+                    }
                 }
 
                 attemptRefreshTokenLocked = false;
@@ -7026,11 +7237,24 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         // No of milliseconds to sleep for the initial back off.
         int fedauthSleepInterval = BACKOFF_INTERVAL;
 
+        if (SqlAuthentication.ACTIVE_DIRECTORY_MANAGED_IDENTITY.toString().equalsIgnoreCase(authenticationString)) {
+            ConnectionPerformanceState.authentication(this, "managed_identity");
+        } else if (SqlAuthentication.ACTIVE_DIRECTORY_DEFAULT.toString().equalsIgnoreCase(authenticationString)) {
+            ConnectionPerformanceState.authentication(this, "default_credential");
+        } else if (SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString().equalsIgnoreCase(authenticationString)
+                && isWindows && AuthenticationJNI.isDllLoaded()) {
+            ConnectionPerformanceState.authentication(this, "native");
+        } else {
+            ConnectionPerformanceState.authentication(this, "msal");
+        }
+
         if (!msalContextExists()
                 && !authenticationString
                         .equalsIgnoreCase(SqlAuthentication.ACTIVE_DIRECTORY_INTEGRATED.toString())) {
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_MSALMissing"));
-            throw new SQLServerException(form.format(new Object[] { authenticationString }), null, 0, null);
+            SQLServerException e = new SQLServerException(form.format(new Object[] { authenticationString }), null, 0, null);
+            PerformanceLog.recordConnectionFailure(this, e, "R_MSALMissing");
+            throw e;
         }
 
         if (loggerExternal.isLoggable(java.util.logging.Level.FINEST)) {
@@ -7132,7 +7356,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                             MessageFormat form = new MessageFormat(
                                     SQLServerException.getErrString("R_UnableLoadMSSQLAuthDll"));
                             Object[] msgArgs = { Integer.toHexString(dllException.getState()) };
-                            throw new SQLServerException(form.format(msgArgs), null);
+                            SQLServerException e = new SQLServerException(form.format(msgArgs), null);
+                            PerformanceLog.recordConnectionFailure(this, e, "R_UnableLoadMSSQLAuthDll");
+                            throw e;
                         }
 
                         millisecondsRemaining = timerRemaining(timerExpire);
@@ -7158,7 +7384,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
 
                             form = new MessageFormat(SQLServerException.getErrString("R_MSALExecution"));
                             Object[] msgArgs = { user, authenticationString };
-                            throw new SQLServerException(form.format(msgArgs), null, 0, middleException);
+                            SQLServerException e = new SQLServerException(form.format(msgArgs), null, 0, middleException);
+                            PerformanceLog.recordConnectionFailure(this, e, "R_MSALExecution");
+                            throw e;
                         }
 
                         if (connectionlogger.isLoggable(Level.FINER)) {
@@ -7184,7 +7412,9 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                         MessageFormat form = new MessageFormat(
                                 SQLServerException.getErrString("R_DLLandMSALMissing"));
                         Object[] msgArgs = { SQLServerDriver.AUTH_DLL_NAME, authenticationString };
-                        throw new SQLServerException(form.format(msgArgs), null, 0, null);
+                        SQLServerException e = new SQLServerException(form.format(msgArgs), null, 0, null);
+                        PerformanceLog.recordConnectionFailure(this, e, "R_DLLandMSALMissing");
+                        throw e;
                     }
                     fedAuthToken = SQLServerMSAL4JUtils.getSqlFedAuthTokenIntegrated(fedAuthInfo,
                             authenticationString,
@@ -9163,6 +9393,18 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
     private static final int BROWSER_PORT = 1434;
 
     String getInstancePort(String server, String instanceName) throws SQLServerException {
+        try (PerformanceLog.Scope discoveryScope = PerformanceLog.createConnectionScope(this,
+                PerformanceActivity.INSTANCE_DISCOVERY)) {
+            try {
+                return getInstancePortInternal(server, instanceName);
+            } catch (Exception e) {
+                discoveryScope.setException(e);
+                throw e;
+            }
+        }
+    }
+
+    private String getInstancePortInternal(String server, String instanceName) throws SQLServerException {
         String browserResult = null;
         DatagramSocket datagramSocket = null;
         String lastErrorMessage = null;
@@ -9191,7 +9433,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 if (multiSubnetFailover) {
                     // If instance name is specified along with multiSubnetFailover, we get all IPs resolved by server
                     // name
-                    InetAddress[] inetAddrs = InetAddress.getAllByName(server);
+                    InetAddress[] inetAddrs = resolveAllAddresses(server);
                     assert null != inetAddrs;
                     for (InetAddress inetAddr : inetAddrs) {
                         // Send the UDP request
@@ -9210,7 +9452,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 } else {
                     // If instance name is not specified along with multiSubnetFailover, we resolve only the first IP
                     // for server name
-                    InetAddress inetAddr = InetAddress.getByName(server);
+                    InetAddress inetAddr = resolveAddress(server);
 
                     assert null != inetAddr;
                     // Send the UDP request
@@ -9246,6 +9488,7 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 throw ioException;
             }
         } catch (IOException ioException) {
+            PerformanceLog.recordConnectionFailure(this, ioException, "R_sqlBrowserFailed");
             MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_sqlBrowserFailed"));
             Object[] msgArgs = {server, instanceName, ioException.toString()};
             connectionlogger.log(Level.FINE, toString() + " " + lastErrorMessage, ioException);
@@ -9268,6 +9511,29 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
         int p1 = p + 4;
         int p2 = browserResult.indexOf(';', p1);
         return browserResult.substring(p1, p2);
+    }
+
+    /** Keep the resolver boundary and original UnknownHostException ahead of transport/browser wrapping. */
+    InetAddress[] resolveAllAddresses(String server) throws UnknownHostException {
+        try (PerformanceLog.Scope dnsScope = PerformanceLog.createConnectionScope(this, PerformanceActivity.DNS)) {
+            try {
+                return InetAddress.getAllByName(server);
+            } catch (Exception e) {
+                dnsScope.setException(e);
+                throw e;
+            }
+        }
+    }
+
+    private InetAddress resolveAddress(String server) throws UnknownHostException {
+        try (PerformanceLog.Scope dnsScope = PerformanceLog.createConnectionScope(this, PerformanceActivity.DNS)) {
+            try {
+                return InetAddress.getByName(server);
+            } catch (Exception e) {
+                dnsScope.setException(e);
+                throw e;
+            }
+        }
     }
 
     int getNextSavepointId() {

@@ -1600,6 +1600,119 @@ public class SQLServerDataSource
     }
 
     /**
+     * Sets the optional HTTP/HTTPS telemetry endpoint. Supplying an endpoint automatically enables connection-specific
+     * routing through an installed {@link UserOtelTelemetryProvider}. Credentials, query and fragment are forbidden.
+     * Validation occurs when connecting. No exporter is closed by closing a SQL connection.
+     *
+     * @param endpoint
+     *        user endpoint; null leaves the current setting unchanged
+     */
+    public void setOtelEndpoint(String endpoint) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.OTEL_ENDPOINT.toString(), endpoint);
+    }
+
+    /**
+     * Returns the configured telemetry endpoint.
+     *
+     * @return endpoint, or null when unset (automatic user export disabled)
+     */
+    public String getOtelEndpoint() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.OTEL_ENDPOINT.toString(), null);
+    }
+
+    /**
+     * Sets the optional class name implementing {@link SQLServerAccessTokenCallback} for user telemetry only. The
+     * provider resolves the class with the application's context class loader and acquires tokens asynchronously.
+     * This property alone does not enable export; no automatic Microsoft credentials or discovery are used.
+     *
+     * @param className
+     *        callback class name, not a callback instance; null leaves the setting unchanged
+     */
+    public void setOtelAccessTokenCallback(String className) {
+        setStringProperty(connectionProps, SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK.toString(),
+                className);
+    }
+
+    /**
+     * Returns the optional telemetry token callback class name.
+     *
+     * @return class name, or null when unset (unauthenticated user telemetry)
+     */
+    public String getOtelAccessTokenCallback() {
+        return getStringProperty(connectionProps, SQLServerDriverStringProperty.OTEL_ACCESS_TOKEN_CALLBACK.toString(),
+                null);
+    }
+
+    /**
+     * Sets the user telemetry level: 0 records aggregate metrics only, 1 also exports failed connection/statement
+     * trees, and 2 exports successful and failed trees. Validation occurs when connecting.
+     *
+     * @param level
+     *        numeric level 0, 1 or 2
+     */
+    public void setOtelLogLevel(int level) {
+        setIntProperty(connectionProps, SQLServerDriverIntProperty.OTEL_LOG_LEVEL.toString(), level);
+    }
+
+    /**
+     * Returns the user telemetry level.
+     *
+     * @return configured level, or 0 for aggregate metrics only
+     */
+    public int getOtelLogLevel() {
+        return getIntProperty(connectionProps, SQLServerDriverIntProperty.OTEL_LOG_LEVEL.toString(),
+                SQLServerDriverIntProperty.OTEL_LOG_LEVEL.getDefaultValue());
+    }
+
+    /**
+     * Sets the optional connection tree threshold in finite nonnegative decimal seconds, representable as signed-long
+     * nanoseconds. Trees require root duration strictly greater than this value; metrics are unaffected. An unset
+     * threshold does not filter even zero-duration roots. Validation occurs when connecting, including without an
+     * endpoint. Strings preserve decimal precision and distinguish an absent threshold from zero.
+     *
+     * @param seconds
+     *        decimal seconds; null leaves the current setting unchanged
+     */
+    public void setOtelConnectionSpanDurationThreshold(String seconds) {
+        setStringProperty(connectionProps,
+                SQLServerDriverStringProperty.OTEL_CONNECTION_SPAN_DURATION_THRESHOLD.toString(), seconds);
+    }
+
+    /**
+     * Returns the optional connection tree threshold in seconds.
+     *
+     * @return decimal seconds, or null when unset (no duration filtering)
+     */
+    public String getOtelConnectionSpanDurationThreshold() {
+        return getStringProperty(connectionProps,
+                SQLServerDriverStringProperty.OTEL_CONNECTION_SPAN_DURATION_THRESHOLD.toString(), null);
+    }
+
+    /**
+     * Sets the optional statement tree threshold in finite nonnegative decimal seconds, representable as signed-long
+     * nanoseconds. Trees require root duration strictly greater than this value; metrics are unaffected. An unset
+     * threshold does not filter even zero-duration roots. Validation occurs when connecting, including without an
+     * endpoint. Strings preserve decimal precision and distinguish an absent threshold from zero.
+     *
+     * @param seconds
+     *        decimal seconds; null leaves the current setting unchanged
+     */
+    public void setOtelStatementSpanDurationThreshold(String seconds) {
+        setStringProperty(connectionProps,
+                SQLServerDriverStringProperty.OTEL_STATEMENT_SPAN_DURATION_THRESHOLD.toString(), seconds);
+    }
+
+    /**
+     * Returns the optional statement tree threshold in seconds.
+     *
+     * @return decimal seconds, or null when unset (no duration filtering)
+     */
+    public String getOtelStatementSpanDurationThreshold() {
+        return getStringProperty(connectionProps,
+                SQLServerDriverStringProperty.OTEL_STATEMENT_SPAN_DURATION_THRESHOLD.toString(), null);
+    }
+
+    /**
      * Sets a property string value.
      *
      * @param props
@@ -1610,7 +1723,7 @@ public class SQLServerDataSource
      */
     private void setStringProperty(Properties props, String propKey, String propValue) {
         if (loggerExternal.isLoggable(Level.FINER)) {
-            if (!propKey.contains("password") && !propKey.contains("Password")) {
+            if (!propKey.contains("password") && !propKey.contains("Password") && !propKey.startsWith("otel")) {
                 loggerExternal.entering(getClassNameLogging(), "set" + propKey, propValue);
             } else {
                 loggerExternal.entering(getClassNameLogging(), "set" + propKey);
@@ -1638,8 +1751,8 @@ public class SQLServerDataSource
         String propValue = props.getProperty(propKey);
         if (null == propValue)
             propValue = defaultValue;
-        if (loggerExternal.isLoggable(Level.FINER) && !propKey.contains("password")
-                && !propKey.contains("Password")) {
+        if (loggerExternal.isLoggable(Level.FINER) && !propKey.contains("password") && !propKey.contains("Password")
+                && !propKey.startsWith("otel")) {
             loggerExternal.exiting(getClassNameLogging(), "get" + propKey, propValue);
         }
         return propValue;
