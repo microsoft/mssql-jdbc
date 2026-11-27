@@ -59,6 +59,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
@@ -503,6 +504,63 @@ public class PreparedStatementTest extends AbstractTest {
             }
             // Handle should be discarded
             assertSame(1, con.getDiscardedServerPreparedStatementCount());
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"prepexec,false", "prepexec,true", "prepare,false", "prepare,true"})
+    public void testStatementPoolingHandleLifecycle(String prepareMethod, boolean pooling) throws SQLException {
+        try (SQLServerConnection con = (SQLServerConnection) getConnection()) {
+            con.setPrepareMethod(prepareMethod);
+            con.setDisableStatementPooling(!pooling);
+            con.setStatementPoolingCacheSize(10);
+            con.setEnablePrepareOnFirstPreparedStatementCall(true);
+            con.setServerPreparedStatementDiscardThreshold(100);
+            String sql = "SELECT ? /* pooling_handle_lifecycle_" + UUID.randomUUID() + " */";
+            int originalHandle;
+            try (SQLServerPreparedStatement statement = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                statement.setInt(1, 7);
+                try (ResultSet rs = statement.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(7, rs.getInt(1));
+                }
+                assertFalse(statement.getMoreResults());
+                originalHandle = statement.getPreparedStatementHandle();
+                assertTrue(originalHandle > 0);
+                statement.setInt(1, 8);
+                try (ResultSet rs = statement.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(8, rs.getInt(1));
+                }
+                assertFalse(statement.getMoreResults());
+                assertEquals(originalHandle, statement.getPreparedStatementHandle(),
+                        "A statement must reuse its own handle even when pooling is disabled.");
+
+                statement.setLong(1, 1L << 33);
+                try (ResultSet rs = statement.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(1L << 33, rs.getLong(1));
+                }
+                assertFalse(statement.getMoreResults());
+            }
+            assertEquals(pooling ? 2 : 0, con.getStatementHandleCacheEntryCount());
+            assertEquals(pooling ? 0 : 1, con.getDiscardedServerPreparedStatementCount());
+
+            try (SQLServerPreparedStatement statement = (SQLServerPreparedStatement) con.prepareStatement(sql)) {
+                statement.setInt(1, 9);
+                try (ResultSet rs = statement.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(9, rs.getInt(1));
+                }
+                assertFalse(statement.getMoreResults());
+                if (pooling) {
+                    assertEquals(originalHandle, statement.getPreparedStatementHandle(),
+                            "Enabled pooling must reuse the cached handle for the original parameter type.");
+                }
+            }
+            assertEquals(pooling ? 0 : 2, con.getDiscardedServerPreparedStatementCount());
+            con.closeUnreferencedPreparedStatementHandles();
+            assertEquals(0, con.getDiscardedServerPreparedStatementCount());
         }
     }
 

@@ -4,17 +4,26 @@
  */
 package com.microsoft.sqlserver.jdbc;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -25,6 +34,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
+import org.mockito.MockedConstruction;
+
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.CityHash128Key;
+import com.microsoft.sqlserver.jdbc.SQLServerConnection.PreparedStatementHandle;
 
 
 public class SQLServerPreparedStatementUnitTest {
@@ -51,6 +64,94 @@ public class SQLServerPreparedStatementUnitTest {
     private SQLServerPreparedStatement prepare(String sql) throws SQLServerException {
         return new SQLServerPreparedStatement(connection, sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
                 SQLServerStatementColumnEncryptionSetting.USE_CONNECTION_SETTING);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testHandleLookupOnlyConstructsKeyWhenPoolingEnabled(boolean pooling) throws Exception {
+        when(connection.isStatementPoolingEnabled()).thenReturn(pooling);
+        PreparedStatementHandle handle = mock(PreparedStatementHandle.class);
+        when(handle.getHandle()).thenReturn(42);
+        when(handle.tryAddReference()).thenReturn(true);
+        when(connection.getCachedPreparedStatementHandle(any(CityHash128Key.class)))
+                .thenReturn(pooling ? handle : null);
+        try (SQLServerPreparedStatement statement = prepare("SELECT ?")) {
+            setField(statement, "preparedSQL", "SELECT @P0");
+            setField(statement, "preparedTypeDefinitions", "@P0 int");
+            // Start after statement construction: the parsed-SQL cache key is independent of handle pooling.
+            try (MockedConstruction<CityHash128Key> keys = mockConstruction(CityHash128Key.class)) {
+                assertEquals(pooling, reuseCachedHandle(statement, false, false));
+                assertEquals(pooling ? 1 : 0, keys.constructed().size());
+                assertEquals(pooling ? 42 : 0, statement.getPreparedStatementHandle());
+                if (pooling) {
+                    verify(connection).getCachedPreparedStatementHandle(keys.constructed().get(0));
+                    verify(handle).tryAddReference();
+                } else {
+                    verify(connection, never()).getCachedPreparedStatementHandle(any(CityHash128Key.class));
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testHandleRegistrationOnlyConstructsKeyWhenPoolingEnabled(boolean pooling) throws Exception {
+        when(connection.isStatementPoolingEnabled()).thenReturn(pooling);
+        TDSReader reader = mock(TDSReader.class);
+        when(reader.peekTokenType()).thenReturn(TDS.TDS_RETURN_VALUE, -1);
+        when(reader.getCommand()).thenReturn(mock(TDSCommand.class));
+        try (SQLServerPreparedStatement statement = prepare("SELECT ?")) {
+            setField(statement, "preparedSQL", "SELECT @P0");
+            setField(statement, "preparedTypeDefinitions", "@P0 int");
+            setField(statement, "expectPrepStmtHandle", true);
+            try (MockedConstruction<Parameter> parameters = mockConstruction(Parameter.class,
+                    (parameter, context) -> when(parameter.getInt(reader, statement)).thenReturn(42));
+                    MockedConstruction<CityHash128Key> keys = mockConstruction(CityHash128Key.class)) {
+                assertTrue(statement.consumeExecOutParam(reader));
+                assertEquals(42, statement.getPreparedStatementHandle());
+                assertEquals(pooling ? 1 : 0, keys.constructed().size());
+                if (pooling) {
+                    verify(connection).registerCachedPreparedStatementHandle(keys.constructed().get(0), 42, false);
+                } else {
+                    verify(connection, never()).registerCachedPreparedStatementHandle(any(CityHash128Key.class),
+                            anyInt(), anyBoolean());
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testDisabledPoolingStillReleasesOldHandle(boolean discard) throws Exception {
+        PreparedStatementHandle handle = mock(PreparedStatementHandle.class);
+        when(handle.getHandle()).thenReturn(42);
+        try (SQLServerPreparedStatement statement = prepare("SELECT ?")) {
+            setField(statement, "cachedPreparedStatementHandle", handle);
+            setField(statement, "prepStmtHandle", 42);
+            try (MockedConstruction<CityHash128Key> keys = mockConstruction(CityHash128Key.class)) {
+                assertFalse(reuseCachedHandle(statement, !discard, discard));
+                verify(handle).removeReference();
+                if (discard) {
+                    verify(handle).setIsExplicitlyDiscarded();
+                }
+                assertEquals(0, statement.getPreparedStatementHandle());
+                assertEquals(0, keys.constructed().size());
+            }
+        }
+    }
+
+    private static void setField(SQLServerPreparedStatement statement, String name, Object value) throws Exception {
+        Field field = SQLServerPreparedStatement.class.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(statement, value);
+    }
+
+    private static boolean reuseCachedHandle(SQLServerPreparedStatement statement, boolean newTypes,
+            boolean discard) throws Exception {
+        Method method = SQLServerPreparedStatement.class.getDeclaredMethod("reuseCachedHandle", boolean.class,
+                boolean.class);
+        method.setAccessible(true);
+        return (boolean) method.invoke(statement, newTypes, discard);
     }
 
     @Test
