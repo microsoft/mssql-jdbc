@@ -4,6 +4,117 @@
 
 This document describes the parameter length hint mechanisms available in mssql-jdbc for optimizing memory grants in SQL Server execution plans when working with variable-length types (VARCHAR, CHAR, NVARCHAR, NCHAR, VARBINARY, BINARY).
 
+## Adaptive connection default: `stringParameterDefaultLength`
+
+`stringParameterDefaultLength` is registered as a normal connection URL, `java.util.Properties`,
+and DataSource property. A positive value enables adaptive declaration sizing for character and
+binary **input-only parameters** on prepared and callable statements, including named and ordinal
+setters when Always Encrypted is disabled for parameters. Omission keeps legacy sizing.
+Explicit declarations and hints retain precedence.
+
+| Configuration | Connect-time behavior |
+|---|---|
+| Omitted | Stores 0 (legacy sizing), without a warning. |
+| Explicit 0 or a negative 32-bit integer | Logs a warning and stores 0; does not reject the connection for this setting. |
+| Positive 32-bit integer | Retains the exact configured integer, including 5000 and values above 8000. |
+| Malformed text, empty text, or integer overflow | Throws a driver connection-property exception. |
+
+`SQLServerDataSource.setStringParameterDefaultLength(int)` stores the supplied integer without
+eager validation, matching other integer properties. Its getter returns that stored value (or 0
+when unset), not the normalized value on an opened connection. The setting uses the existing
+DataSource JNDI and serialization mechanisms, including pooled and XA DataSources.
+
+The bounds policy retains a positive floor up to 8000 for CHAR/VARCHAR and BINARY/VARBINARY,
+or 4000 for NCHAR/NVARCHAR. An oversized floor resolves to that family's legacy bound and logs a
+warning at most once per family per connection when warning logging is enabled. Fixed and variable
+types share a warning family. The raw stored value is never changed: 5000 remains valid for
+varchar/varbinary even after resolving it to 4000 for nvarchar. Bounds are applied only when an
+eligible parameter uses the default, not globally during connection setup.
+
+### Units, history, and precedence
+
+Sizing uses the effective type after `sendStringParametersAsUnicode`: varchar lengths are encoded
+bytes in the database collation, nvarchar lengths are UTF-16 code units, and varbinary lengths are
+bytes. CHAR, NCHAR, and BINARY use the corresponding variable-length wire family.
+
+Each statement ordinal keeps independent varchar, nvarchar, and varbinary histories. Declaration
+resolution takes the larger of the effective floor and that family's largest observed length.
+Growth is exact, with no bucketing or batch pre-scan. Null and empty values use the floor or
+established history without shrinking it. Large actual values continue using LONG/MAX handling;
+the configured floor never truncates data. A bounded input promoted to MAX by its actual length
+also retains that observation across subsequent batch snapshots.
+
+History grows at RPC declaration resolution, not at setter or `addBatch()` time. Overwritten values
+and discarded batch rows therefore do not increase it. `clearParameters()` and `clearBatch()`
+retain established observations. Different ordinals and new statements have independent history,
+even if the new statement reuses a cached prepared handle. Only lengths are shared across an
+ordinal's batch snapshots; existing DTV snapshot and explicit-hint behavior remains unchanged.
+
+Always Encrypted is checked first: when enabled for parameters, the statement retains its
+original workflow and bypasses this setting, including for unencrypted columns.
+For other statements, precedence is enforced `defineParameterType()` declaration, then usable positive explicit
+`setObject` hint, then the adaptive connection default, then legacy sizing. Explicit hints are
+not combined with the floor using `max` and do not update default history. Non-positive explicit
+hints are unusable, so eligible values can use the connection default. Existing sticky MAX
+declarations remain authoritative.
+
+### Compatibility boundaries
+
+- **Registered OUT/INOUT parameters retain existing sizing**, including existing explicit-hint
+  behavior. Input values cannot predict the size of returned values, so this connection default
+  never narrows output buffers or records output history. Callable input-only parameters do adapt.
+- Statements with Always Encrypted enabled for parameters do not allocate adaptive history or
+  use this connection default, even when metadata identifies a parameter as unencrypted. Both
+  connection-level and statement-level AE settings are honored. Statement overrides that disable
+  parameter encryption (`DISABLED` or `RESULTSET_ONLY`) allow eligible inputs to use adaptive sizing.
+- Streams and values whose lengths cannot be measured safely retain legacy sizing. Explicit
+  LONG/LOB types and other unrelated types do not participate in adaptive history.
+- Bulk copy continues using destination-column metadata.
+- Successful literal SQL execution under `prepareMethod=none` does not grow adaptive history,
+  even if an internal declaration pass precedes literal formatting. If an unsupported literal
+  parameter (for example, a stream) triggers the existing fallback to unprepared `sp_executesql`,
+  eligible inputs use adaptive sizing after their normal RPC types are restored. The stream itself
+  retains legacy sizing. Subsequent executions remain unprepared RPCs; no prepared handle is created.
+  Procedure calls that already use RPC under `none` can also use adaptive sizing.
+- A parameter bound as native `JDBCType.JSON` does not contribute to character/binary adaptive
+  history; its existing declaration and large-value handling are unchanged. JSON text bound as
+  VARCHAR/NVARCHAR follows the ordinary character policy. In particular, the three-argument
+  `setObject(index, value, microsoft.sql.Types.JSON)` overload infers the type of a non-null String;
+  specifying JSON there is not equivalent to retaining a native JSON binding through another overload.
+
+For example, with floor 10, a successful literal execution containing a 31-character input does
+not raise adaptive history. If a later execution binds a one-character input alongside a stream,
+the existing RPC fallback declares the eligible input with length 10, then grows it to 13 and
+keeps 13 for subsequent lengths 13 and 2. With Unicode sending disabled, restored VARCHAR uses
+encoded bytes, not the temporary Unicode representation used for literal formatting. Existing
+sticky MAX declarations remain authoritative; skipping adaptive observations does not reset them.
+
+Fallback batches resolve snapshots in row order without a pre-scan. For NVARCHAR lengths
+`1, 13, 2, 4001, 2` with floor 10, declarations are `10, 13, 13, MAX, MAX` for both batch APIs.
+Fallback does not change explicit-hint precedence, AE/output exclusions, or existing retry and
+temporary-table scope rules.
+
+### Example
+
+```java
+SQLServerDataSource ds = new SQLServerDataSource();
+ds.setStringParameterDefaultLength(10);
+// Configure the remaining connection properties normally.
+try (Connection con = ds.getConnection();
+        PreparedStatement ps = con.prepareStatement("SELECT ?")) {
+    for (String value : new String[] {"x", "abcdefghijklm", "xy"}) {
+        ps.setString(1, value);
+        try (ResultSet rs = ps.executeQuery()) {
+            // With sendStringParametersAsUnicode=true, declarations are
+            // nvarchar(10), nvarchar(13), nvarchar(13), in that order.
+            while (rs.next()) {
+                System.out.println(rs.getString(1));
+            }
+        }
+    }
+}
+```
+
 ## The Problem
 
 By default, when a Java application calls `setString()`, `setNString()`, or `setBytes()` on a `PreparedStatement`, mssql-jdbc declares the parameter in TDS using the maximum bounded width regardless of the actual value size:
@@ -16,7 +127,7 @@ By default, when a Java application calls `setString()`, `setNString()`, or `set
 
 SQL Server uses the declared TypeInfo width to compute **memory grants** for query execution plans. When a parameter is declared `varchar(8000)` but the actual data is only 50 characters, the server over-allocates memory — compounding across batch sizes and concurrent sessions.
 
-## Solutions: Two APIs, One Precedence Rule
+## Explicit APIs: Higher Priority Than the Connection Default
 
 ### 1. `defineParameterType()` — The Primary API
 

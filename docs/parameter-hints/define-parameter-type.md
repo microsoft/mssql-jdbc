@@ -6,6 +6,10 @@
 
 **Precedence:** `defineParameterType()` takes priority over `setObject(..., scaleOrLength)` when both are used on the same parameter. See [Relationship to setObject](#relationship-to-setobject).
 
+It also takes priority over the adaptive `stringParameterDefaultLength` connection policy.
+Explicit declarations do not update adaptive history. See
+[adaptive connection defaults](parameter-hints-overview.md#adaptive-connection-default-stringparameterdefaultlength).
+
 ## Table of Contents
 
 1. [Relationship to setObject](#relationship-to-setobject)
