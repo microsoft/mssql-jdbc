@@ -697,7 +697,9 @@ final class DTV {
                         // the writers for those types expect local calendars.
                         timeZone = ((JDBCType.TIMESTAMP_WITH_TIMEZONE == jdbcType
                                 || JDBCType.TIME_WITH_TIMEZONE == jdbcType)
-                                && (null == typeInfo || SSType.DATETIMEOFFSET == typeInfo.getSSType()))
+                                && (null == typeInfo || SSType.DATETIMEOFFSET == typeInfo.getSSType()
+                                        || SSType.VARBINARY == typeInfo.getSSType()
+                                        || SSType.VARBINARYMAX == typeInfo.getSSType()))
                                                                                                         ? UTC.timeZone
                                                                                                         : new SimpleTimeZone(
                                                                                                                 minutesOffset
@@ -723,7 +725,8 @@ final class DTV {
                         // Otherwise, when converting from DATETIMEOFFSET to other temporal data types,
                         // use a local time zone determined by the minutes offset of the value, since
                         // the writers for those types expect local calendars.
-                        timeZone = (JDBCType.DATETIMEOFFSET == jdbcType
+                        timeZone = ((JDBCType.DATETIMEOFFSET == jdbcType
+                                || JDBCType.TIMESTAMP_WITH_TIMEZONE == jdbcType)
                                 && (null == typeInfo || SSType.DATETIMEOFFSET == typeInfo.getSSType()
                                         || SSType.VARBINARY == typeInfo.getSSType()
                                         || SSType.VARBINARYMAX == typeInfo.getSSType())) ?
@@ -796,7 +799,7 @@ final class DTV {
                         // When converting from any other temporal Java type to DATETIMEOFFSET,
                         // deliberately interpret the "wall calendar" representation as expressing
                         // a date/time in UTC rather than the local time zone.
-                        if (JavaType.DATETIMEOFFSET != javaType) {
+                        if (JavaType.DATETIMEOFFSET != javaType && JavaType.OFFSETDATETIME != javaType) {
                             calendar = timestampNormalizedCalendar(localCalendarAsUTC(calendar), javaType,
                                     conn.baseYear());
 

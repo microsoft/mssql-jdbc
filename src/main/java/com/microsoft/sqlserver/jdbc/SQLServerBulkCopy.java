@@ -2933,7 +2933,11 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                         else
                             tdsWriter.writeByte((byte) 0x0A);
 
-                        tdsWriter.writeOffsetDateTimeWithTimezone((OffsetDateTime) colValue, bulkScale);
+                        if (colValue instanceof DateTimeOffset) {
+                            tdsWriter.writeDateTimeOffset(colValue, bulkScale, destSSType);
+                        } else {
+                            tdsWriter.writeOffsetDateTimeWithTimezone((OffsetDateTime) colValue, bulkScale);
+                        }
                     }
                     break;
 
@@ -3332,6 +3336,9 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 case microsoft.sql.Types.DATETIMEOFFSET:
                     return sourceResultSet.getObject(srcColOrdinal, DateTimeOffset.class);
 
+                case java.sql.Types.TIMESTAMP_WITH_TIMEZONE:
+                    return sourceResultSet.getObject(srcColOrdinal, OffsetDateTime.class);
+
                 case microsoft.sql.Types.SQL_VARIANT:
                     return sourceResultSet.getObject(srcColOrdinal);
                 default:
@@ -3423,6 +3430,10 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
         if ((null != destCryptoMeta) && (null != colValue)) {
             JDBCType baseSrcJdbcType = (null != srcCryptoMeta) ? srcColumnMetadata
                     .get(srcColOrdinal).cryptoMeta.baseTypeInfo.getSSType().getJDBCType() : JDBCType.of(srcJdbcType);
+
+            if (null != sourceResultSet && JDBCType.TIMESTAMP_WITH_TIMEZONE == baseSrcJdbcType) {
+                baseSrcJdbcType = JDBCType.DATETIMEOFFSET;
+            }
 
             if (JDBCType.TIMESTAMP == baseSrcJdbcType) {
                 if (SSType.DATETIME == destSSType) {
@@ -3768,11 +3779,20 @@ public class SQLServerBulkCopy implements java.lang.AutoCloseable, java.io.Seria
                 return tdsWriter.getEncryptedDateTimeAsBytes(calendar, subSecondNanos, srcTemporalJdbcType, null);
 
             case DATETIMEOFFSET:
-                microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) colValue;
-                utcMillis = dtoValue.getTimestamp().getTime();
-                subSecondNanos = dtoValue.getTimestamp().getNanos();
-                int minutesOffset = dtoValue.getMinutesOffset();
+                int minutesOffset;
                 calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+                if (colValue instanceof OffsetDateTime) {
+                    OffsetDateTime value = (OffsetDateTime) colValue;
+                    utcMillis = value.toEpochSecond() * 1000;
+                    subSecondNanos = value.getNano();
+                    minutesOffset = value.getOffset().getTotalSeconds() / 60;
+                    calendar.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
+                } else {
+                    DateTimeOffset value = (DateTimeOffset) colValue;
+                    utcMillis = value.getTimestamp().getTime();
+                    subSecondNanos = value.getTimestamp().getNanos();
+                    minutesOffset = value.getMinutesOffset();
+                }
                 calendar.setLenient(true);
                 calendar.clear();
                 calendar.setTimeInMillis(utcMillis);

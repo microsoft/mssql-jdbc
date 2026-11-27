@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -101,6 +102,38 @@ public class BulkCopyAllTypesTest extends AbstractTest {
             testBulkCopyResultSet(false, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
             testBulkCopyResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
             testBulkCopyResultSet(false, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+        }
+    }
+
+    @Test
+    @Tag(Constants.xAzureSQLDW)
+    public void testBulkCopyHistoricalDateTimeOffset() throws SQLException {
+        String[] values = {"0025-03-11T18:57:04.349953-00:33", "0076-07-08T17:34:51.1592513+09:09",
+                "0095-05-12T16:15:34.7841496+07:44", "0104-03-03T09:04:05.871-05:13",
+                "0597-09-12T07:38:16.9166545+13:48", "1234-12-12T23:59:59.1234567-03:00",
+                "2024-01-02T03:04:05.0000001+05:30"};
+        try (Connection con = getConnection(); Statement stmt = con.createStatement()) {
+            stmt.execute("CREATE TABLE #dtoSource (id int, value datetimeoffset(7))");
+            stmt.execute("CREATE TABLE #dtoDestination (id int, value datetimeoffset(7))");
+            try (java.sql.PreparedStatement insert = con.prepareStatement("INSERT INTO #dtoSource VALUES (?, ?)")) {
+                for (int i = 0; i < values.length; i++) {
+                    insert.setInt(1, i);
+                    insert.setString(2, values[i]);
+                    insert.executeUpdate();
+                }
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT * FROM #dtoSource");
+                    SQLServerBulkCopy bulkCopy = new SQLServerBulkCopy(con)) {
+                bulkCopy.setDestinationTableName("#dtoDestination");
+                bulkCopy.writeToServer(rs);
+            }
+            try (ResultSet rs = stmt.executeQuery("SELECT value FROM #dtoDestination ORDER BY id")) {
+                for (String value : values) {
+                    assertTrue(rs.next());
+                    assertEquals(OffsetDateTime.parse(value), rs.getObject(1, OffsetDateTime.class));
+                }
+                org.junit.jupiter.api.Assertions.assertFalse(rs.next());
+            }
         }
     }
 

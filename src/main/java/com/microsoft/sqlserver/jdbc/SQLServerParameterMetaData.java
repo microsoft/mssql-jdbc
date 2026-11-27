@@ -255,6 +255,10 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
         qm.parameterClassName = md.getColumnClassName(index);
         qm.parameterType = md.getColumnType(index);
         qm.parameterTypeName = md.getColumnTypeName(index);
+        if (SSType.DATETIMEOFFSET.toString().equalsIgnoreCase(qm.parameterTypeName)) {
+            qm.parameterClassName = JDBCType.DATETIMEOFFSET.className();
+            qm.parameterType = JDBCType.DATETIMEOFFSET.asJavaSqlType();
+        }
         qm.precision = md.getPrecision(index);
         qm.scale = md.getScale(index);
         qm.isNullable = md.isNullable(index);
