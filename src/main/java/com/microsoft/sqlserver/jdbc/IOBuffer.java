@@ -3542,10 +3542,16 @@ final class TDSWriter {
 
     private CryptoMetadata cryptoMeta = null;
 
+    private final GregorianCalendar defaultCalendar = new GregorianCalendar(TimeZone.getDefault(), Locale.US);
+
     TDSWriter(TDSChannel tdsChannel, SQLServerConnection con) {
         this.tdsChannel = tdsChannel;
         this.con = con;
-        traceID = "TDSWriter@" + Integer.toHexString(hashCode()) + " (" + con.toString() + ")";
+        this.traceID = "TDSWriter@" + Integer.toHexString(hashCode()) + " (" + con.toString() + ")";
+
+        // Set the calendar lenient to allow setting the DAY_OF_YEAR and MILLISECOND fields
+        // to roll other fields to their correct values.
+        this.defaultCalendar.setLenient(true);
     }
 
     /**
@@ -3881,7 +3887,7 @@ final class TDSWriter {
     }
 
     void writeSmalldatetime(String value) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        GregorianCalendar calendar = initializeCalender();
         long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
         utcMillis = timestampValue.getTime();
@@ -3964,7 +3970,7 @@ final class TDSWriter {
     }
 
     void writeDate(String value) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        GregorianCalendar calendar = initializeCalender();
         long utcMillis;
         java.sql.Date dateValue = java.sql.Date.valueOf(value);
         utcMillis = dateValue.getTime();
@@ -3978,7 +3984,7 @@ final class TDSWriter {
     }
 
     void writeDate(long utcMillis, Calendar cal) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        GregorianCalendar calendar = initializeCalender();
 
         // Load the calendar with the desired value
         calendar.setTimeInMillis(utcMillis);
@@ -3992,7 +3998,7 @@ final class TDSWriter {
     }
 
     void writeTime(java.sql.Timestamp value, int scale) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        GregorianCalendar calendar = initializeCalender();
         long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         int subSecondNanos;
         utcMillis = value.getTime();
@@ -4005,7 +4011,7 @@ final class TDSWriter {
     }
 
     void writeTime(java.sql.Timestamp value, int scale, Calendar cal) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
+        GregorianCalendar calendar = initializeCalender();
         long utcMillis = value.getTime(); // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
         int subSecondNanos = value.getNanos();
 
@@ -4065,7 +4071,7 @@ final class TDSWriter {
                 timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
                                                                  : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
 
-                calendar = new GregorianCalendar(timeZone);
+                calendar = initializeCalender(timeZone);
 
                 int year = Integer.parseInt(timestampString.substring(0, 4));
                 int month = Integer.parseInt(timestampString.substring(5, 7));
@@ -4077,7 +4083,6 @@ final class TDSWriter {
                 subSecondNanos = (19 == timestampString.indexOf('.')) ? (new BigDecimal(timestampString.substring(19)))
                         .scaleByPowerOfTen(9).intValue() : 0;
 
-                calendar.setLenient(true);
                 calendar.set(Calendar.YEAR, year);
                 calendar.set(Calendar.MONTH, month - 1);
                 calendar.set(Calendar.DAY_OF_MONTH, day);
@@ -4107,9 +4112,7 @@ final class TDSWriter {
             timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
                                                              : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
 
-            calendar = new GregorianCalendar(timeZone, Locale.US);
-            calendar.setLenient(true);
-            calendar.clear();
+            calendar = initializeCalender(timeZone);
             calendar.setTimeInMillis(utcMillis);
         }
 
@@ -4537,6 +4540,15 @@ final class TDSWriter {
             Object[] msgArgs = {advertisedLength, actualLength};
             error(form.format(msgArgs), SQLState.DATA_EXCEPTION_LENGTH_MISMATCH, DriverError.NOT_SET);
         }
+    }
+
+    GregorianCalendar initializeCalender() {
+        // do not create new Calendar for each object, reuse it
+
+        // Clear the calendar of any existing state. The state of a new Calendar object always
+        // reflects the current date, time, DST offset, etc.
+        defaultCalendar.clear();
+        return defaultCalendar;
     }
 
     GregorianCalendar initializeCalender(TimeZone timeZone) {
@@ -6379,6 +6391,7 @@ final class TDSWriter {
             // we need to use a pure Gregorian calendar for dates that are Julian dates
             // under a standard Gregorian calendar and for (Gregorian) dates later than
             // the cutover date in the cutover year.
+            boolean cregorianChangeModified = false;
             if (cal.getTimeInMillis() < GregorianChange.STANDARD_CHANGE_DATE.getTime()
                     || cal.getActualMaximum(Calendar.DAY_OF_YEAR) < TDS.DAYS_PER_YEAR) {
                 int year = cal.get(Calendar.YEAR);
@@ -6387,12 +6400,16 @@ final class TDSWriter {
 
                 // Set the cutover as early as possible (pure Gregorian behavior)
                 cal.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
+                cregorianChangeModified = true;
 
                 // Initialize the date field by field (preserving the "wall calendar" value)
                 cal.set(year, month, date);
             }
 
             int daysIntoCE = DDC.daysSinceBaseDate(cal.get(Calendar.YEAR), cal.get(Calendar.DAY_OF_YEAR), 1);
+            if (cregorianChangeModified) {
+                cal.setGregorianChange(GregorianChange.STANDARD_CHANGE_DATE);
+            }
 
             // Last-ditch verification that the value is in the valid range for the
             // DATE/DATETIME2/DATETIMEOFFSET TDS data type (1/1/0001 to 12/31/9999).
@@ -6538,6 +6555,7 @@ final class TDSWriter {
             // we need to use a pure Gregorian calendar for dates that are Julian dates
             // under a standard Gregorian calendar and for (Gregorian) dates later than
             // the cutover date in the cutover year.
+            boolean cregorianChangeModified = false;
             if (cal.getTimeInMillis() < GregorianChange.STANDARD_CHANGE_DATE.getTime()
                     || cal.getActualMaximum(Calendar.DAY_OF_YEAR) < TDS.DAYS_PER_YEAR) {
                 int year = cal.get(Calendar.YEAR);
@@ -6546,12 +6564,16 @@ final class TDSWriter {
 
                 // Set the cutover as early as possible (pure Gregorian behavior)
                 cal.setGregorianChange(GregorianChange.PURE_CHANGE_DATE);
+                cregorianChangeModified = true;
 
                 // Initialize the date field by field (preserving the "wall calendar" value)
                 cal.set(year, month, date);
             }
 
             int daysIntoCE = DDC.daysSinceBaseDate(cal.get(Calendar.YEAR), cal.get(Calendar.DAY_OF_YEAR), 1);
+            if (cregorianChangeModified) {
+                cal.setGregorianChange(GregorianChange.STANDARD_CHANGE_DATE);
+            }
 
             // Last-ditch verification that the value is in the valid range for the
             // DATE/DATETIME2/DATETIMEOFFSET TDS data type (1/1/0001 to 12/31/9999).
