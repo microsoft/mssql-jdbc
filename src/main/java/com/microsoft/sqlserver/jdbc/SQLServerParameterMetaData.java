@@ -45,6 +45,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
     private static final String SS_TYPE_SCHEMA_NAME = "SS_TYPE_SCHEMA_NAME";
     /** SQL Server system type ID for structured types (Table-Valued Parameters) */
     private static final int STRUCTURED_TYPE = 243;
+    private static final Pattern DATATYPE_PATTERN = Pattern.compile("(.*)\\((.*)(\\)|,(.*)\\))");
 
     private final SQLServerPreparedStatement stmtParent;
     private SQLServerConnection con;
@@ -93,7 +94,6 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
      * Parses query metadata.
      */
     private void parseQueryMeta(ResultSet rsQueryMeta) throws SQLServerException {
-        Pattern datatypePattern = Pattern.compile("(.*)\\((.*)(\\)|,(.*)\\))");
         try {
             if (null != rsQueryMeta) {
                 while (rsQueryMeta.next()) {
@@ -138,7 +138,7 @@ public final class SQLServerParameterMetaData implements ParameterMetaData {
                         qm.precision = rsQueryMeta.getInt("suggested_precision");
                         qm.scale = rsQueryMeta.getInt("suggested_scale");
 
-                        Matcher matcher = datatypePattern.matcher(typename);
+                        Matcher matcher = DATATYPE_PATTERN.matcher(typename);
                         if (matcher.matches()) {
                             // the datatype has some precision/scale defined explicitly.
                             ssType = SSType.of(matcher.group(1));
