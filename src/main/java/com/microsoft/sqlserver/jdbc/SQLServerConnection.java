@@ -6560,7 +6560,10 @@ public class SQLServerConnection implements ISQLServerConnection, java.io.Serial
                 setLanguageName(tdsReader.readUnicodeString(tdsReader.readUnsignedByte()));
                 break;
             case ENVCHANGE_RESET_COMPLETE:
-                sessionRecovery.getSessionStateTable().reset();
+                SessionStateTable sessionStateTable = sessionRecovery.getSessionStateTable();
+                if (null != sessionStateTable) {
+                    sessionStateTable.reset();
+                }
                 pooledConnectionResetPending = false;
                 break;
             // Skip unsupported, ENVCHANGES
