@@ -67,6 +67,8 @@ final class Util {
 
     private static Boolean isIBM = null;
 
+    private static final DecimalFormat SCIENTIFIC_DECIMAL_FORMATTER = new DecimalFormat("###.#####");
+
     static boolean isIBM() {
         if (isIBM != null) {
             return isIBM;
@@ -1163,7 +1165,7 @@ final class Util {
                         }
                         // if the value is in scientific notation format
                         else if (("" + value).contains("E")) {
-                            DecimalFormat dform = new DecimalFormat("###.#####");
+                            DecimalFormat dform = SCIENTIFIC_DECIMAL_FORMATTER;
                             String s = dform.format(value);
                             s = s.replaceAll("\\.", "");
                             s = s.replaceAll("\\-", "");

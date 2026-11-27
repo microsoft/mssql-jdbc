@@ -3880,11 +3880,9 @@ final class TDSWriter {
         writeBytes(bytes);
     }
 
-    void writeSmalldatetime(String value) throws SQLServerException {
+    void writeSmalldatetime(java.sql.Timestamp value) throws SQLServerException {
         GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-        java.sql.Timestamp timestampValue = java.sql.Timestamp.valueOf(value);
-        utcMillis = timestampValue.getTime();
+        long utcMillis = value.getTime(); // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
 
         // Load the calendar with the desired value
         calendar.setTimeInMillis(utcMillis);
@@ -3920,8 +3918,7 @@ final class TDSWriter {
 
     void writeDatetime(java.sql.Timestamp dateValue) throws SQLServerException {
         LocalDateTime ldt = dateValue.toLocalDateTime();
-        int subSecondNanos;
-        subSecondNanos = ldt.getNano();
+        int subSecondNanos = ldt.getNano();
 
         // Number of days there have been since the SQL Base Date.
         // These are based on SQL Server algorithms
@@ -3963,18 +3960,8 @@ final class TDSWriter {
         writeInt((3 * millisSinceMidnight + 5) / 10);
     }
 
-    void writeDate(String value) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis;
-        java.sql.Date dateValue = java.sql.Date.valueOf(value);
-        utcMillis = dateValue.getTime();
-
-        // Load the calendar with the desired value
-        calendar.setTimeInMillis(utcMillis);
-
-        writeScaledTemporal(calendar, 0, // subsecond nanos (none for a date value)
-                0, // scale (dates are not scaled)
-                SSType.DATE);
+    void writeDate(java.sql.Date value) throws SQLServerException {
+        writeDate(value.getTime(), null);
     }
 
     void writeDate(long utcMillis, Calendar cal) throws SQLServerException {
@@ -3992,16 +3979,7 @@ final class TDSWriter {
     }
 
     void writeTime(java.sql.Timestamp value, int scale) throws SQLServerException {
-        GregorianCalendar calendar = initializeCalender(TimeZone.getDefault());
-        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-        int subSecondNanos;
-        utcMillis = value.getTime();
-        subSecondNanos = value.getNanos();
-
-        // Load the calendar with the desired value
-        calendar.setTimeInMillis(utcMillis);
-
-        writeScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME);
+        writeTime(value, scale, null);
     }
 
     void writeTime(java.sql.Timestamp value, int scale, Calendar cal) throws SQLServerException {
@@ -4018,99 +3996,74 @@ final class TDSWriter {
         writeScaledTemporal(calendar, subSecondNanos, scale, SSType.TIME);
     }
 
-    void writeDateTimeOffset(Object value, int scale, SSType destSSType) throws SQLServerException {
+    /*
+     * Out of all the supported temporal datatypes, DateTimeOffset is the only datatype that doesn't allow direct
+     * casting from java.sql.timestamp (which was created from a String). DateTimeOffset was never required to be
+     * constructed from a String, but with the introduction of extended bulk copy support for Azure DW, we now need
+     * to support this scenario. Parse the DTO as string if it's coming from a CSV.
+     */
+    void writeDateTimeOffset(String value, int scale, SSType destSSType) throws SQLServerException {
         GregorianCalendar calendar;
         TimeZone timeZone; // Time zone to associate with the value in the Gregorian calendar
         int subSecondNanos;
         int minutesOffset;
 
-        /*
-         * Out of all the supported temporal datatypes, DateTimeOffset is the only datatype that doesn't allow direct
-         * casting from java.sql.timestamp (which was created from a String). DateTimeOffset was never required to be
-         * constructed from a String, but with the introduction of extended bulk copy support for Azure DW, we now need
-         * to support this scenario. Parse the DTO as string if it's coming from a CSV.
-         */
-        if (value instanceof String) {
-            // expected format: YYYY-MM-DD hh:mm:ss[.nnnnnnn] [{+|-}hh:mm]
-            try {
-                String stringValue = (String) value;
-                int lastColon = stringValue.lastIndexOf(':');
+        // expected format: YYYY-MM-DD hh:mm:ss[.nnnnnnn] [{+|-}hh:mm]
+        try {
+            int lastColon = value.lastIndexOf(':');
 
-                String offsetString = stringValue.substring(lastColon - 3);
-
-                /*
-                 * At this point, offsetString should look like +hh:mm or -hh:mm. Otherwise, the optional offset value
-                 * has not been provided. Parse accordingly.
-                 */
-                String timestampString;
-
-                if (!offsetString.startsWith("+") && !offsetString.startsWith("-")) {
-                    minutesOffset = 0;
-                    timestampString = stringValue;
-                } else {
-                    minutesOffset = 60 * Integer.parseInt(offsetString.substring(1, 3))
-                            + Integer.parseInt(offsetString.substring(4, 6));
-                    timestampString = stringValue.substring(0, lastColon - 4);
-
-                    if (offsetString.startsWith("-"))
-                        minutesOffset = -minutesOffset;
-                }
-
-                /*
-                 * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that will hold the value,
-                 * since writeRPCDateTimeOffset expects a UTC calendar. Otherwise, when converting from DATETIMEOFFSET
-                 * to other temporal data types, use a local time zone determined by the minutes offset of the value,
-                 * since the writers for those types expect local calendars.
-                 */
-                timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
-                                                                 : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
-
-                calendar = new GregorianCalendar(timeZone);
-
-                int year = Integer.parseInt(timestampString.substring(0, 4));
-                int month = Integer.parseInt(timestampString.substring(5, 7));
-                int day = Integer.parseInt(timestampString.substring(8, 10));
-                int hour = Integer.parseInt(timestampString.substring(11, 13));
-                int minute = Integer.parseInt(timestampString.substring(14, 16));
-                int second = Integer.parseInt(timestampString.substring(17, 19));
-
-                subSecondNanos = (19 == timestampString.indexOf('.')) ? (new BigDecimal(timestampString.substring(19)))
-                        .scaleByPowerOfTen(9).intValue() : 0;
-
-                calendar.setLenient(true);
-                calendar.set(Calendar.YEAR, year);
-                calendar.set(Calendar.MONTH, month - 1);
-                calendar.set(Calendar.DAY_OF_MONTH, day);
-                calendar.set(Calendar.HOUR_OF_DAY, hour);
-                calendar.set(Calendar.MINUTE, minute);
-                calendar.set(Calendar.SECOND, second);
-                calendar.add(Calendar.MINUTE, -minutesOffset);
-            } catch (NumberFormatException | IndexOutOfBoundsException e) {
-                MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingDataError"));
-                Object[] msgArgs = {value, JDBCType.DATETIMEOFFSET};
-                throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
-            }
-        } else {
-            long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
-
-            microsoft.sql.DateTimeOffset dtoValue = (microsoft.sql.DateTimeOffset) value;
-            utcMillis = dtoValue.getTimestamp().getTime();
-            subSecondNanos = dtoValue.getTimestamp().getNanos();
-            minutesOffset = dtoValue.getMinutesOffset();
+            String offsetString = value.substring(lastColon - 3);
 
             /*
-             * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that will hold the value, since
-             * writeRPCDateTimeOffset expects a UTC calendar. Otherwise, when converting from DATETIMEOFFSET to other
-             * temporal data types, use a local time zone determined by the minutes offset of the value, since the
-             * writers for those types expect local calendars.
-             */
-            timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
-                                                             : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
+                * At this point, offsetString should look like +hh:mm or -hh:mm. Otherwise, the optional offset value
+                * has not been provided. Parse accordingly.
+                */
+            String timestampString;
 
-            calendar = new GregorianCalendar(timeZone, Locale.US);
-            calendar.setLenient(true);
-            calendar.clear();
-            calendar.setTimeInMillis(utcMillis);
+            if (!offsetString.startsWith("+") && !offsetString.startsWith("-")) {
+                minutesOffset = 0;
+                timestampString = value;
+            } else {
+                minutesOffset = 60 * Integer.parseInt(offsetString.substring(1, 3))
+                        + Integer.parseInt(offsetString.substring(4, 6));
+                timestampString = value.substring(0, lastColon - 4);
+
+                if (offsetString.startsWith("-"))
+                    minutesOffset = -minutesOffset;
+            }
+
+            /*
+                * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that will hold the value,
+                * since writeRPCDateTimeOffset expects a UTC calendar. Otherwise, when converting from DATETIMEOFFSET
+                * to other temporal data types, use a local time zone determined by the minutes offset of the value,
+                * since the writers for those types expect local calendars.
+                */
+            timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
+                                                                : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
+
+            calendar = initializeCalender(timeZone);
+
+            int year = Integer.parseInt(timestampString.substring(0, 4));
+            int month = Integer.parseInt(timestampString.substring(5, 7));
+            int day = Integer.parseInt(timestampString.substring(8, 10));
+            int hour = Integer.parseInt(timestampString.substring(11, 13));
+            int minute = Integer.parseInt(timestampString.substring(14, 16));
+            int second = Integer.parseInt(timestampString.substring(17, 19));
+
+            subSecondNanos = (19 == timestampString.indexOf('.')) ? (new BigDecimal(timestampString.substring(19)))
+                    .scaleByPowerOfTen(9).intValue() : 0;
+
+            calendar.set(Calendar.YEAR, year);
+            calendar.set(Calendar.MONTH, month - 1);
+            calendar.set(Calendar.DAY_OF_MONTH, day);
+            calendar.set(Calendar.HOUR_OF_DAY, hour);
+            calendar.set(Calendar.MINUTE, minute);
+            calendar.set(Calendar.SECOND, second);
+            calendar.add(Calendar.MINUTE, -minutesOffset);
+        } catch (NumberFormatException | IndexOutOfBoundsException e) {
+            MessageFormat form = new MessageFormat(SQLServerException.getErrString("R_ParsingDataError"));
+            Object[] msgArgs = {value, JDBCType.DATETIMEOFFSET};
+            throw new SQLServerException(this, form.format(msgArgs), null, 0, false);
         }
 
         writeScaledTemporal(calendar, subSecondNanos, scale, SSType.DATETIMEOFFSET);
@@ -4118,8 +4071,34 @@ final class TDSWriter {
         writeShort((short) minutesOffset);
     }
 
+    void writeDateTimeOffset(microsoft.sql.DateTimeOffset value, int scale, SSType destSSType) throws SQLServerException {
+        TimeZone timeZone; // Time zone to associate with the value in the Gregorian calendar
+        int subSecondNanos;
+        int minutesOffset;
+        long utcMillis; // Value to which the calendar is to be set (in milliseconds 1/1/1970 00:00:00 GMT)
+
+        utcMillis = value.getTimestamp().getTime();
+        subSecondNanos = value.getTimestamp().getNanos();
+        minutesOffset = value.getMinutesOffset();
+
+        /*
+            * If the target data type is DATETIMEOFFSET, then use UTC for the calendar that will hold the value, since
+            * writeRPCDateTimeOffset expects a UTC calendar. Otherwise, when converting from DATETIMEOFFSET to other
+            * temporal data types, use a local time zone determined by the minutes offset of the value, since the
+            * writers for those types expect local calendars.
+            */
+        timeZone = (SSType.DATETIMEOFFSET == destSSType) ? UTC.timeZone
+                                                            : new SimpleTimeZone(minutesOffset * 60 * 1000, "");
+
+        GregorianCalendar calendar = initializeCalender(timeZone);
+        calendar.setTimeInMillis(utcMillis);
+
+        writeScaledTemporal(calendar, subSecondNanos, scale, SSType.DATETIMEOFFSET);
+
+        writeShort((short) minutesOffset);
+    }
+
     void writeOffsetDateTimeWithTimezone(OffsetDateTime offsetDateTimeValue, int scale) throws SQLServerException {
-        GregorianCalendar calendar;
         TimeZone timeZone;
         long utcMillis;
         int subSecondNanos;
@@ -4160,7 +4139,8 @@ final class TDSWriter {
                 + offsetDateTimeValue.getHour() + ':' + offsetDateTimeValue.getMinute() + ':'
                 + offsetDateTimeValue.getSecond();
         utcMillis = Timestamp.valueOf(offDateTimeStr).getTime();
-        calendar = initializeCalender(timeZone);
+
+        GregorianCalendar calendar = initializeCalender(timeZone);
         calendar.setTimeInMillis(utcMillis);
 
         // Local timezone value in minutes
@@ -4177,7 +4157,6 @@ final class TDSWriter {
     }
 
     void writeOffsetTimeWithTimezone(OffsetTime offsetTimeValue, int scale) throws SQLServerException {
-        GregorianCalendar calendar;
         TimeZone timeZone;
         long utcMillis;
         int subSecondNanos;
@@ -4218,7 +4197,7 @@ final class TDSWriter {
                 + offsetTimeValue.getMinute() + ':' + offsetTimeValue.getSecond();
         utcMillis = Timestamp.valueOf(offsetTimeStr).getTime();
 
-        calendar = initializeCalender(timeZone);
+        GregorianCalendar calendar = initializeCalender(timeZone);
         calendar.setTimeInMillis(utcMillis);
 
         int minuteAdjustment = (TimeZone.getDefault().getRawOffset()) / (60 * 1000);
