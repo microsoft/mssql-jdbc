@@ -59,4 +59,31 @@ public interface ISQLServerStatement extends java.sql.Statement, Serializable {
      *         if any error occurs
      */
     void setCancelQueryTimeout(int seconds) throws SQLServerException;
+
+    /**
+     * Sets the SQL Server Query Notification request to include with subsequent executions of this statement.
+     * Passing {@code null} clears the request.
+     *
+     * @param request
+     *        the Query Notification request, or {@code null}
+     * @throws SQLServerException
+     *         if the statement is closed or the implementation does not support Query Notifications
+     */
+    default void setQueryNotificationRequest(SQLServerQueryNotificationRequest request) throws SQLServerException {
+        SQLServerException.makeFromDriverError(null, this, SQLServerException.getErrString("R_notSupported"), null,
+                false);
+    }
+
+    /**
+     * Returns the SQL Server Query Notification request configured for this statement.
+     *
+     * @return the configured request, or {@code null}
+     * @throws SQLServerException
+     *         if the statement is closed or the implementation does not support Query Notifications
+     */
+    default SQLServerQueryNotificationRequest getQueryNotificationRequest() throws SQLServerException {
+        SQLServerException.makeFromDriverError(null, this, SQLServerException.getErrString("R_notSupported"), null,
+                false);
+        return null;
+    }
 }
